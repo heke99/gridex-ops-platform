@@ -59,7 +59,18 @@
 | VM-055 | Commercial model TypeScript | VERIFIED | App and test targets pass |
 | VM-056 | Commercial unit/full tests | VERIFIED | 57 files / 365 tests |
 | VM-057 | Commercial static regression | VERIFIED | Admin/quote/internal/snapshot/billing chain |
-| VM-058 | API/OpenAPI/docs | VERIFIED | Version `2026-07-29.1`; all parity checks pass |
+| VM-058 | API/OpenAPI/docs | VERIFIED | Version `2026-07-30.1`; all parity checks pass |
 | VM-059 | Commercial production build | VERIFIED | Clean Next.js build completed |
 | VM-060 | New commercial migration checksum | VERIFIED | `20260729200000...` exact manifest match |
 | VM-061 | Commercial PostgreSQL apply/post-apply | BLOCKED | Requires BLK-003 recovery and authorized staging |
+| VM-062 | Canonical API release | VERIFIED LOCALLY | Runtime, guide, two OpenAPI documents and generated Web types use `2026-07-30.1` |
+| VM-063 | OpenAPI release manifest | VERIFIED LOCALLY | Two deterministic finalizer runs produced website `08e04d...` and portal `e3333b...` |
+| VM-064 | Dynamic legal evidence | VERIFIED LOCALLY | Runtime validation, closed OpenAPI schemas, docs and Web checkout tests pass |
+| VM-065 | Canonical customer events | VERIFIED LOCALLY | Strict runtime parser and positive/legacy-negative tests pass |
+| VM-066 | Portal identity/sync | STATIC VERIFIED | Strict payload/header equality, link-only response and atomic trigger migration |
+| VM-067 | Current full tests | VERIFIED | 58 files / 370 tests |
+| VM-068 | Current TypeScript/lint/build | VERIFIED LOCALLY | All TypeScript targets, zero-error lint and Next.js production build pass |
+| VM-069 | Current tenant/API regressions | VERIFIED LOCALLY | 107 single-key checks plus resolver, idempotency, portal, webhook and tenant gates |
+| VM-070 | New portal migration checksum | VERIFIED | `20260730120000...` SHA-256 matches manifest |
+| VM-071 | Live release-manifest parity | BLOCKED | Live endpoint returns HTTP 404 before deployment |
+| VM-072 | Full staging/two-tenant/concurrency/provider | BLOCKED | Authorized environment and credentials unavailable |

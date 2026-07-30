@@ -1270,6 +1270,16 @@ export type WebsiteLegalBundle = {
   bundle_version: string;
   required_types: string[];
   present_types: string[];
+  requirements: Array<{
+    requirement_code: string;
+    title: string;
+    description: string;
+    required: true;
+    document_id: string;
+    document_version: string;
+    document_hash: string;
+    document_url: string;
+  }>;
   tenant: {
     name: string | null;
     org_number: string | null;
@@ -1356,6 +1366,31 @@ export async function buildWebsiteLegalBundle(
   const missingTypes = requiredTypes.filter(
     (type) => !presentTypes.includes(type),
   );
+  const moduleVersions = Array.isArray(legal.module_versions)
+    ? legal.module_versions as Array<Record<string, unknown>>
+    : [];
+  const requirements = requiredTypes.flatMap((requirementCode) => {
+    const version = moduleVersions.find(
+      (item) => clean(item.module_key) === requirementCode,
+    );
+    const documentId = clean(version?.id);
+    const documentVersion = clean(version?.version);
+    const documentHash = clean(version?.content_sha256);
+    const documentUrl = clean(version?.url);
+    if (!version || !documentId || !documentVersion || !documentHash || !documentUrl) {
+      return [];
+    }
+    return [{
+      requirement_code: requirementCode,
+      title: clean(version.title) ?? requirementCode,
+      description: clean(version.title) ?? requirementCode,
+      required: true as const,
+      document_id: documentId,
+      document_version: documentVersion,
+      document_hash: documentHash,
+      document_url: documentUrl,
+    }];
+  });
 
   const { data, error: companyError } = await supabaseService
     .from("companies")
@@ -1389,6 +1424,7 @@ export async function buildWebsiteLegalBundle(
     bundle_version: offer.legal_bundle_version_id,
     required_types: requiredTypes,
     present_types: presentTypes,
+    requirements,
     tenant: {
       name: (row.name as string | null) ?? null,
       org_number: (row.org_number as string | null) ?? null,
@@ -1399,7 +1435,8 @@ export async function buildWebsiteLegalBundle(
     complete:
       companyLegalVersions !== null &&
       versions.length > 0 &&
-      missingTypes.length === 0,
+      missingTypes.length === 0 &&
+      requirements.length === requiredTypes.length,
     missing_types: missingTypes,
   };
 }

@@ -488,7 +488,7 @@ Fakturering sker per månadsunderlag. En fakturaperiod som omfattar flera månad
 
 `pricing.visibility.portfolio_price` och komponentens `website_card_visible` påverkar endast tenantens publika avtalskort. Dolda avgifter och priser finns fortfarande kvar i bindande prisöversikt, avtalssnapshot och fakturering.
 
-## Canonical fastpris, quote och teckningsflöde (`2026-07-29.1`)
+## Canonical fastpris, quote och teckningsflöde (`2026-07-30.1`)
 
 Den aktiva integrationsordningen är:
 
@@ -517,4 +517,4 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-07-29.1`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-07-30.1`; versionsvärdet ingår i ETag-underlaget.

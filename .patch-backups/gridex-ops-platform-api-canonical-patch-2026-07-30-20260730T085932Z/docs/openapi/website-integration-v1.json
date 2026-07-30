@@ -1,0 +1,5591 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gridex Website and Partner Integration API",
+    "version": "2026-07-29.1",
+    "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
+  },
+  "servers": [
+    {
+      "url": "https://app.gridex.se"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Integration context"
+    },
+    {
+      "name": "Website contracts"
+    },
+    {
+      "name": "API contracts"
+    },
+    {
+      "name": "Quotes"
+    },
+    {
+      "name": "Customer applications"
+    },
+    {
+      "name": "Webhooks"
+    },
+    {
+      "name": "Energy area"
+    },
+    {
+      "name": "Switch status"
+    },
+    {
+      "name": "Market price"
+    }
+  ],
+  "paths": {
+    "/api/v1/integration/context": {
+      "get": {
+        "tags": [
+          "Integration context"
+        ],
+        "summary": "Verify the API key tenant context",
+        "description": "Scope: integration_context.read. The API key is authoritative; company_id is never accepted as a tenant selector.",
+        "responses": {
+          "200": {
+            "description": "Tenant context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/IntegrationContext"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/IntegrationContext"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/website/public-contracts": {
+      "get": {
+        "tags": [
+          "Website contracts"
+        ],
+        "summary": "List website-published contracts",
+        "description": "Scope: website_contracts.read. Supports ETag/If-None-Match and returns 304. diagnostics=1 is deprecated; use the diagnostics endpoint. Sunset: 2026-10-31.",
+        "parameters": [
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business",
+                "company"
+              ]
+            },
+            "description": "private or business. company is deprecated and normalized to business."
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "diagnostics",
+            "in": "query",
+            "deprecated": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Website contract feed",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-07-29.1"
+                },
+                "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicContract"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/TenantMeta",
+                      "properties": {
+                        "contract_schema_version": {
+                          "const": "2026-07-29.1"
+                        }
+                      },
+                      "required": [
+                        "contract_schema_version"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Publication revision has not changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "x-required-scopes": [
+          "website_contracts.read"
+        ]
+      }
+    },
+    "/api/v1/website/public-contracts/diagnostics": {
+      "get": {
+        "tags": [
+          "Website contracts"
+        ],
+        "summary": "Diagnose canonical website publication readiness",
+        "description": "Scope: website_contracts.diagnostics. Uses the same canonical publication graph and readiness sources as the normal feed. The normal data field remains an array.",
+        "parameters": [
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business",
+                "company"
+              ]
+            },
+            "description": "private or business. company is deprecated and normalized to business."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicContract"
+                      }
+                    },
+                    "diagnostics": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/TenantMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "x-required-scopes": [
+          "website_contracts.diagnostics"
+        ]
+      }
+    },
+    "/api/v1/contracts": {
+      "get": {
+        "tags": [
+          "API contracts"
+        ],
+        "summary": "List contracts published to the api channel",
+        "description": "Scope: api_contracts.read. This endpoint is independent of the website channel and has its own tenant+channel publication revision.",
+        "x-required-scopes": [
+          "api_contracts.read"
+        ],
+        "parameters": [
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business",
+                "company"
+              ]
+            },
+            "description": "private or business. company is deprecated and normalized to business."
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API channel feed",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-07-29.1"
+                },
+                "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiPublicContract"
+                      }
+                    },
+                    "meta": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/TenantMeta"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_schema_version"
+                          ],
+                          "properties": {
+                            "contract_schema_version": {
+                              "const": "2026-07-29.1"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "API publication revision has not changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "410": {
+            "$ref": "#/components/responses/TenantGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/TenantPaused"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/quote": {
+      "post": {
+        "tags": [
+          "Website pricing"
+        ],
+        "summary": "Create a tenant-bound canonical quote for one published offer and one SE area",
+        "description": "Scope: website_quotes.write. Freezes the exact published product/version, selected SE-area price, fees, VAT, assumptions, consumption and requested start date. One quote is consumed by at most one canonical customer application.",
+        "x-required-scopes": [
+          "website_quotes.write"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteQuoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Canonical quote created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteQuoteResponse"
+                },
+                "example": {
+                  "data": {
+                    "quote_reference": "quote_example",
+                    "offer_reference": "offer_example",
+                    "valid_until": "2026-07-24T17:00:00Z",
+                    "input": {
+                      "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d",
+                      "price_area": "SE3"
+                    },
+                    "market_reference": {
+                      "provider": "elprisetjustnu",
+                      "price_area": "SE3",
+                      "reference_type": "preview",
+                      "reference_period": "rolling_30_days",
+                      "price_sek_per_kwh": 0.655699,
+                      "price_ore_per_kwh": 65.5699,
+                      "price_ex_vat_sek_per_kwh": 0.655699,
+                      "price_ex_vat_ore_per_kwh": 65.5699,
+                      "requested_days": 30,
+                      "included_days": 30,
+                      "period_start": "2026-06-24",
+                      "period_end": "2026-07-23",
+                      "source_as_of": "2026-07-24T14:02:14Z",
+                      "generated_at": "2026-07-24T14:05:00Z",
+                      "stale_after": "2026-07-24T17:05:00Z",
+                      "effective_stale_at": "2026-07-24T17:02:14Z",
+                      "source_currency": "SEK",
+                      "unit": "sek_per_kwh",
+                      "includes_vat": false,
+                      "includes_supplier_fees": false,
+                      "includes_grid_fees": false,
+                      "is_indicative": true,
+                      "is_stale": false,
+                      "fallback_used": false,
+                      "fallback_reason": null,
+                      "source_checksum": "sha256-example"
+                    },
+                    "estimate": {
+                      "monthly_ex_vat": 1000,
+                      "monthly_vat": 250,
+                      "monthly_inc_vat": 1250
+                    },
+                    "lines": []
+                  },
+                  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Published offer not found for tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Published version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Area price or quote input cannot be used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Quote creation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/quote/validate": {
+      "post": {
+        "tags": [
+          "Website pricing"
+        ],
+        "summary": "Validate a canonical quote before customer application",
+        "description": "Scope: website_quotes.validate. Verifies tenant, offer, customer type, SE area, grid area, postal code, annual consumption and requested start date. A quote already consumed by another application is rejected.",
+        "x-required-scopes": [
+          "website_quotes.validate"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteQuoteValidationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quote valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "valid",
+                        "quote_reference",
+                        "offer_reference"
+                      ],
+                      "properties": {
+                        "valid": {
+                          "const": true
+                        },
+                        "quote_reference": {
+                          "type": "string"
+                        },
+                        "offer_reference": {
+                          "type": "string"
+                        },
+                        "valid_until": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "selected_area_price": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/FixedAreaPrice"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote or offer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Quote already consumed or binding mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Quote expired or no longer valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/customer-applications": {
+      "post": {
+        "tags": [
+          "Customer applications"
+        ],
+        "summary": "Create a customer application bound to a published offer",
+        "description": "Scope: website_applications.write. Idempotency-Key krävs. Tenant hämtas enbart från API-nyckelns integrationskontext. I en databastransaktion validerar OPS en aktiv, okonsumerad quote_reference, skapar eller länkar canonical kund och valfri site/mätpunkt, skapar avtals- och juridiksnapshot, reserverar ansökningsidentiteten och konsumerar quoten. Exakt signaturbevis, workflow, portalidentitet och customer_application_continuation skrivs därefter idempotent. Om ett sådant eftersteg misslyckas returneras inte accepted: ansökan markeras partial/failed med reparerbart workflow och ett osignerat avtal markeras signature_failed. Endast exakt juridisk identitet inom samma tenant får återanvända kund; leveranspunkt är aldrig ensam kundnyckel. Därefter äger OPS juridiska mail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK, aktivering och webhooks.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerApplicationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canonical graph and quote committed; all required idempotent post-commit evidence/workflow steps also completed and durable automatic processing queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteCustomerApplicationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "API-nyckel saknas eller är ogiltig"
+          },
+          "403": {
+            "description": "Scope eller tenantbehörighet saknas"
+          },
+          "404": {
+            "description": "Refererad resurs finns inte inom verifierad tenant"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "description": "Application validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporärt beroendefel eller canonical resolution/workflow är inte tillgänglig",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-required-scopes": [
+          "website_applications.write"
+        ],
+        "x-automatic-domain-events": [
+          "customer_application.accepted",
+          "customer_application.needs_information",
+          "customer_application.failed",
+          "facility_information.requested",
+          "facility_information.received",
+          "supplier_switch.requested",
+          "supplier_switch.dispatched",
+          "supplier_switch.confirmed",
+          "supplier_switch.rejected",
+          "supply_period.activated",
+          "contract.activated"
+        ]
+      }
+    },
+    "/webhooks/contracts.publication.changed": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "contracts.publication.changed receiver contract",
+        "description": "Gridex sends signed HMAC-SHA256 requests. Verify x-gridex-timestamp and x-gridex-signature over `${timestamp}.${rawBody}`, reject stale timestamps, and deduplicate by x-gridex-event-id / x-gridex-delivery-id. Return any 2xx on success. Failed attempts use the configured retry/dead-letter pipeline.",
+        "parameters": [
+          {
+            "name": "x-gridex-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-gridex-delivery-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-gridex-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-gridex-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^sha256="
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationChangedWebhook"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted and durably deduplicated"
+          }
+        }
+      }
+    },
+    "/api/v1/website/energy-area/resolve": {
+      "post": {
+        "tags": [
+          "Website energy area"
+        ],
+        "summary": "Resolve canonical SE area, grid area and grid owner before quote and application",
+        "description": "Scope: website_energy_area.resolve. Uses the tenant-scoped OPS resolver. The unauthenticated legacy GET /api/public/energy-area remains removed.",
+        "x-required-scopes": [
+          "website_energy_area.resolve"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteEnergyAreaResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolution completed or requires a next action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resolution failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resolver failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/switch-status": {
+      "get": {
+        "tags": [
+          "Switch status"
+        ],
+        "summary": "Read supplier-switch status for an application",
+        "description": "Scope: website_switch_status.read. application_number is resolved strictly inside the API key tenant. Internal company, application and switch UUIDs are not exposed.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_number",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current application and supplier-switch status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SwitchStatus"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/TenantMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "description": "Application not found in tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Status unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/website-integration-v1.json": {
+      "get": {
+        "summary": "Hämta Website Integration OpenAPI",
+        "description": "Publik dokumentationsendpoint. Ingen API-nyckel krävs och endpointen används endast för utveckling, typgenerering och kontraktskontroll — aldrig som runtime-konfiguration.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "const": "2026-07-29.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Oförändrad ETag"
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/customer-portal-v1.json": {
+      "get": {
+        "summary": "Hämta Customer Portal OpenAPI",
+        "description": "Publik dokumentationsendpoint. Ingen API-nyckel krävs och endpointen används endast för utveckling, typgenerering och kontraktskontroll — aldrig som runtime-konfiguration.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "const": "2026-07-29.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Oförändrad ETag"
+          }
+        }
+      }
+    },
+    "/api/v1/website/customer-applications/{application_id}": {
+      "get": {
+        "tags": [
+          "Customer applications"
+        ],
+        "summary": "Read tenant-scoped automatic application status",
+        "description": "Scope: website_switch_status.read. Returns a small external status model; internal workflow payload, secrets and other tenants are never exposed.",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current application status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CustomerApplicationStatus"
+                    },
+                    "meta": {
+                      "type": "object"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found in authenticated tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-required-scopes": [
+          "website_switch_status.read"
+        ]
+      }
+    },
+    "/api/v1/website/market-price/current": {
+      "post": {
+        "tags": [
+          "Market price"
+        ],
+        "summary": "Get the current normalized spot-price interval for a tenant-bound energy resolution",
+        "description": "Scope: website_market_prices.read. resolution_id is authoritative for SE1-SE4. The response is the current wholesale market interval before VAT, supplier fees, energy tax and grid fees. It is not a complete customer price or settlement input.",
+        "x-required-scopes": [
+          "website_market_prices.read"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurrentMarketPriceRequest"
+              },
+              "example": {
+                "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current market interval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentMarketPriceResponse"
+                },
+                "example": {
+                  "data": {
+                    "provider": "elprisetjustnu",
+                    "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d",
+                    "price_area": "SE3",
+                    "reference_type": "current_interval",
+                    "resolution": "quarterly",
+                    "time_start": "2026-07-24T16:00:00+02:00",
+                    "time_end": "2026-07-24T16:15:00+02:00",
+                    "price_sek_per_kwh": 0.655699,
+                    "price_ore_per_kwh": 65.5699,
+                    "price_ex_vat_sek_per_kwh": 0.655699,
+                    "price_ex_vat_ore_per_kwh": 65.5699,
+                    "includes_vat": false,
+                    "includes_supplier_fees": false,
+                    "includes_grid_fees": false,
+                    "is_indicative": false,
+                    "is_stale": false,
+                    "source_as_of": "2026-07-24T14:02:14Z",
+                    "next_update_at": "2026-07-24T16:15:00+02:00"
+                  },
+                  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
+                  "contract_schema_version": "2026-07-29.1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope or resolution tenant mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resolution not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resolution expired, price-area mismatch or stale price",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                },
+                "examples": {
+                  "price_area_mismatch": {
+                    "value": {
+                      "error": {
+                        "code": "price_area_mismatch",
+                        "message": "Inskickat price_area motsäger OPS-resolutionen.",
+                        "field": "price_area",
+                        "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+                        "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+                        "retryable": false,
+                        "details": {
+                          "asserted_price_area": "SE4",
+                          "canonical_price_area": "SE3"
+                        }
+                      },
+                      "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21"
+                    }
+                  },
+                  "market_price_stale": {
+                    "value": {
+                      "error": {
+                        "code": "market_price_stale",
+                        "message": "Aktuellt spotpris för SE3 är stale enligt tenantens freshness-policy.",
+                        "field": null,
+                        "request_id": "04fc8fb2-a035-480e-a16c-728761126809",
+                        "correlation_id": "04fc8fb2-a035-480e-a16c-728761126809",
+                        "retryable": true,
+                        "details": {
+                          "price_area": "SE3"
+                        }
+                      },
+                      "request_id": "04fc8fb2-a035-480e-a16c-728761126809"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected provider or runtime failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Current market price unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/portfolio-prices": {
+      "get": {
+        "tags": [
+          "Website contracts"
+        ],
+        "summary": "Get public portfolio method and sanitized final historical prices",
+        "description": "Scope: website_contracts.read. This endpoint never returns current market indications and is not the calculator market-price source.",
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
+        "parameters": [
+          {
+            "name": "offer_reference",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "price_area",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SE1",
+                "SE2",
+                "SE3",
+                "SE4"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public method and final history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Offer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Offer cannot be used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/legal-bundle": {
+      "get": {
+        "tags": [
+          "Customer applications"
+        ],
+        "summary": "Get the published legal bundle",
+        "description": "Canonical offer-specific GET route. Scope: website_legal.read. Tenant is derived from the API key; offer_reference resolves the exact publication and immutable legal bundle.",
+        "x-required-scopes": [
+          "website_legal.read"
+        ],
+        "parameters": [
+          {
+            "name": "offer_reference",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Opaque canonical offer_reference returned by the public-contract feed."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published legal bundle",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "offer_reference is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The offer_reference is not published for this tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The exact offer legal bundle is incomplete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Legal bundle storage is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/customer-events": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Write a website customer event",
+        "description": "Scope: website_events.write. Idempotency-Key is required.",
+        "x-required-scopes": [
+          "website_events.write"
+        ],
+        "x-idempotency-required": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Gridex API token"
+      }
+    },
+    "schemas": {
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "code",
+          "message",
+          "request_id",
+          "correlation_id",
+          "blockers"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "code": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiBlocker"
+            }
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "error_stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "code",
+              "message",
+              "request_id",
+              "correlation_id",
+              "blockers"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "correlation_id": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
+              }
+            }
+          }
+        },
+        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+      },
+      "TenantMeta": {
+        "type": "object",
+        "required": [
+          "tenant_reference",
+          "api_version",
+          "channel"
+        ],
+        "properties": {
+          "tenant_reference": {
+            "type": "string",
+            "pattern": "^tenant_[0-9a-f]{36}$",
+            "description": "Stable opaque tenant identity. It is not the internal company UUID."
+          },
+          "api_version": {
+            "const": "v1"
+          },
+          "channel": {
+            "enum": [
+              "website",
+              "api"
+            ]
+          },
+          "publication_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "publication_updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "IntegrationContext": {
+        "type": "object",
+        "required": [
+          "tenant_reference",
+          "api_client_reference",
+          "api_version",
+          "authoritative_identity",
+          "contract_version",
+          "configuration",
+          "capabilities"
+        ],
+        "properties": {
+          "tenant_reference": {
+            "type": "string"
+          },
+          "api_client_reference": {
+            "type": "string"
+          },
+          "api_version": {
+            "const": "v1"
+          },
+          "authoritative_identity": {
+            "const": "api_key"
+          },
+          "contract_version": {
+            "const": "2026-07-29.1"
+          },
+          "configuration": {
+            "type": "object",
+            "required": [
+              "required_environment_variables",
+              "api_base_url",
+              "authentication",
+              "openapi_url",
+              "application_reference_location",
+              "tenant_id_environment_required",
+              "company_id_environment_required"
+            ],
+            "properties": {
+              "required_environment_variables": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "const": "GRIDEX_API_KEY"
+                  }
+                ],
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "api_base_url": {
+                "const": "https://app.gridex.se/api/v1"
+              },
+              "authentication": {
+                "type": "object",
+                "required": [
+                  "header",
+                  "scheme",
+                  "server_side_only"
+                ],
+                "properties": {
+                  "header": {
+                    "const": "Authorization"
+                  },
+                  "scheme": {
+                    "const": "Bearer"
+                  },
+                  "server_side_only": {
+                    "const": true
+                  }
+                }
+              },
+              "openapi_url": {
+                "const": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json"
+              },
+              "customer_portal_openapi_url": {
+                "const": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
+              },
+              "application_reference_location": {
+                "const": "top_level"
+              },
+              "tenant_id_environment_required": {
+                "const": false
+              },
+              "company_id_environment_required": {
+                "const": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "capabilities": {
+            "type": "object",
+            "required": [
+              "website_checkout_ready",
+              "customer_portal_ready",
+              "complete_tenant_website_ready",
+              "missing_website_scopes",
+              "missing_customer_portal_scopes",
+              "missing_recommended_scopes"
+            ],
+            "properties": {
+              "website_checkout_ready": {
+                "type": "boolean"
+              },
+              "customer_portal_ready": {
+                "type": "boolean"
+              },
+              "complete_tenant_website_ready": {
+                "type": "boolean"
+              },
+              "required_website_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_website_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "required_customer_portal_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_customer_portal_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "recommended_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_recommended_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "CustomerType": {
+        "type": "string",
+        "enum": [
+          "private",
+          "business"
+        ],
+        "description": "Canonical values. company is temporarily accepted as a deprecated alias for business until 2026-10-31."
+      },
+      "ApiPublicContract": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer_reference",
+          "name",
+          "description",
+          "contract_type",
+          "energy_direction",
+          "customer_type",
+          "pricing",
+          "valid_from",
+          "valid_to",
+          "channel"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_type": {
+            "type": "string"
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
+          "customer_type": {
+            "enum": [
+              "private",
+              "business",
+              "both"
+            ]
+          },
+          "pricing": {
+            "type": "object",
+            "description": "Public pricing data only. Internal identifiers and canonical snapshots are removed recursively.",
+            "additionalProperties": true
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "channel": {
+            "const": "api"
+          }
+        }
+      },
+      "PublicContract": {
+        "type": "object",
+        "required": [
+          "offer_reference",
+          "name",
+          "contract_type",
+          "energy_direction",
+          "customer_type",
+          "pricing"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string"
+          },
+          "customer_type": {
+            "enum": [
+              "private",
+              "business",
+              "both"
+            ]
+          },
+          "pricing": {
+            "type": "object",
+            "required": [
+              "visibility",
+              "calculation_components",
+              "display_components",
+              "calculation_contract",
+              "summary_components"
+            ],
+            "properties": {
+              "fixed_price": {
+                "$ref": "#/components/schemas/ContractPriceValue",
+                "description": "Compatibility value only when all SE-area prices are equal; otherwise null."
+              },
+              "monthly_fee": {
+                "$ref": "#/components/schemas/ContractPriceValue"
+              },
+              "invoice_fee": {
+                "$ref": "#/components/schemas/ContractPriceValue"
+              },
+              "markup": {
+                "$ref": "#/components/schemas/ContractPriceValue"
+              },
+              "variable_fee": {
+                "$ref": "#/components/schemas/ContractPriceValue"
+              },
+              "vat_rate": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "market_price_responsibility": {
+                "type": "string",
+                "enum": [
+                  "ops_quote",
+                  "not_applicable"
+                ]
+              },
+              "visibility": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "boolean"
+                }
+              },
+              "calculation_components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PricingComponent"
+                }
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PricingComponent"
+                },
+                "description": "Compatibility alias for calculation_components."
+              },
+              "display_components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PricingComponent"
+                }
+              },
+              "base_components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "calculation_contract": {
+                "type": "object",
+                "required": [
+                  "includes_all_applicable_components",
+                  "hidden_components_must_be_calculated",
+                  "market_price_supplied_by_ops"
+                ],
+                "properties": {
+                  "includes_all_applicable_components": {
+                    "const": true
+                  },
+                  "hidden_components_must_be_calculated": {
+                    "const": true
+                  },
+                  "market_price_supplied_by_ops": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "summary_components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PricingComponent"
+                },
+                "description": "Komponenter som får ingå som separata rader i en fullständig prissammanställning. Dolda komponenter finns fortfarande i calculation_components och totalsumman."
+              },
+              "area_pricing": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FixedAreaPrice"
+                },
+                "description": "Canonical area-price matrix for the same offer."
+              },
+              "energy_direction": {
+                "$ref": "#/components/schemas/EnergyDirection"
+              },
+              "production_pricing": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ProductionPricing"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": true
+          },
+          "legal": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "contract_type": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "variable_monthly",
+              "variable_hourly",
+              "variable_quarterly",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "fixed_price_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Compatibility scalar. Returned only when every available SE area has the same fixed price; otherwise null. Use area_pricing."
+          },
+          "monthly_fee_sek": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Always returned when applicable; visibility never removes it from API calculation data."
+          },
+          "invoice_fee_sek": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Always returned when applicable; visibility never removes it from API calculation data."
+          },
+          "area_pricing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FixedAreaPrice"
+            },
+            "description": "SE1-SE4 prices belonging to this one canonical product/version. They are not separate offers."
+          },
+          "name": {
+            "type": "string"
+          },
+          "public_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_code": {
+            "type": "string"
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
+          "production_pricing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProductionPricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customer_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business"
+              ]
+            }
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "price_areas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SE1",
+                "SE2",
+                "SE3",
+                "SE4"
+              ]
+            }
+          },
+          "binding_months": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "notice_months": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "automatic_renewal": {
+            "type": "boolean"
+          },
+          "power_of_attorney_required": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true,
+        "description": "Complete machine-readable calculation contract. Pricing fields and calculation_components include hidden charges. display_components is the presentation-only subset."
+      },
+      "QuoteRequest": {
+        "type": "object",
+        "required": [
+          "offer_reference",
+          "customer_type",
+          "price_area",
+          "annual_consumption_kwh",
+          "start_date"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string"
+          },
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business",
+              "company"
+            ],
+            "description": "company is a deprecated alias for business."
+          },
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "annual_consumption_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Quote": {
+        "type": "object",
+        "required": [
+          "quote_reference",
+          "offer_reference",
+          "valid_until",
+          "input"
+        ],
+        "properties": {
+          "quote_reference": {
+            "type": "string"
+          },
+          "offer_reference": {
+            "type": "string"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "selected_area_price": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FixedAreaPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "estimate": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "QuoteValidationRequest": {
+        "type": "object",
+        "required": [
+          "quote_reference",
+          "offer_reference",
+          "customer_type",
+          "resolution_id",
+          "annual_consumption_kwh",
+          "start_date"
+        ],
+        "properties": {
+          "quote_reference": {
+            "type": "string"
+          },
+          "offer_reference": {
+            "type": "string"
+          },
+          "customer_type": {
+            "$ref": "#/components/schemas/CustomerType"
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "annual_consumption_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "price_area": {
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "application_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LegalAcceptances": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "type": "boolean"
+          },
+          "privacy_policy": {
+            "type": "boolean"
+          },
+          "withdrawal": {
+            "type": "boolean"
+          },
+          "power_of_attorney": {
+            "type": "boolean"
+          },
+          "price_terms": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerApplicationRequest": {
+        "type": "object",
+        "required": [
+          "offer_reference",
+          "customer",
+          "site",
+          "annual_consumption_kwh",
+          "legal_acceptances",
+          "quote_reference",
+          "resolution_id"
+        ],
+        "properties": {
+          "external_customer_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Tenant-stable external customer identity."
+          },
+          "offer_reference": {
+            "type": "string",
+            "description": "Canonical opak offer_reference. Måste skickas på top-level."
+          },
+          "quote_reference": {
+            "type": "string",
+            "description": "Obligatorisk canonical OPS-quote. Fältet ligger alltid på top-level; inget konfigurerbart referensplaceringsläge finns eller behövs."
+          },
+          "annual_consumption_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "price_area": {
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ],
+            "description": "Deprecated klientpåstående. OPS använder price_area från resolution_id och returnerar konflikt vid mismatch.",
+            "deprecated": true
+          },
+          "grid_area": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "customer": {
+            "type": "object",
+            "required": [
+              "customer_type",
+              "email"
+            ],
+            "properties": {
+              "customer_type": {
+                "$ref": "#/components/schemas/CustomerType"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "first_name": {
+                "type": "string"
+              },
+              "last_name": {
+                "type": "string"
+              },
+              "company_name": {
+                "type": "string"
+              },
+              "personal_number": {
+                "type": "string"
+              },
+              "org_number": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "invoice_email": {
+                "type": "string",
+                "format": "email"
+              },
+              "billing_street": {
+                "type": "string"
+              },
+              "billing_postal_code": {
+                "type": "string"
+              },
+              "billing_city": {
+                "type": "string"
+              },
+              "billing_country": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "site": {
+            "type": "object",
+            "properties": {
+              "facility_id": {
+                "type": "string"
+              },
+              "site_name": {
+                "type": "string"
+              },
+              "site_type": {
+                "type": "string"
+              },
+              "street": {
+                "type": "string"
+              },
+              "postal_code": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              },
+              "price_area_code": {
+                "enum": [
+                  "SE1",
+                  "SE2",
+                  "SE3",
+                  "SE4"
+                ]
+              },
+              "grid_area_code": {
+                "type": "string"
+              },
+              "grid_owner_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "current_supplier_name": {
+                "type": "string"
+              },
+              "current_supplier_org_number": {
+                "type": "string"
+              },
+              "current_supplier_ediel_id": {
+                "type": "string"
+              },
+              "current_supplier_unknown": {
+                "type": "boolean"
+              },
+              "annual_consumption_kwh": {
+                "type": "number"
+              },
+              "move_in_date": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "additionalProperties": false
+          },
+          "metering_point": {
+            "type": "object",
+            "properties": {
+              "metering_point_id": {
+                "type": "string"
+              },
+              "site_facility_id": {
+                "type": "string"
+              },
+              "reading_frequency": {
+                "type": "string"
+              },
+              "measurement_type": {
+                "type": "string"
+              },
+              "price_area_code": {
+                "enum": [
+                  "SE1",
+                  "SE2",
+                  "SE3",
+                  "SE4"
+                ]
+              },
+              "grid_area_code": {
+                "type": "string"
+              },
+              "grid_owner_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "start_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "installation_date": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "additionalProperties": false
+          },
+          "legal_acceptances": {
+            "$ref": "#/components/schemas/LegalAcceptances"
+          },
+          "consents": {
+            "$ref": "#/components/schemas/LegalAcceptances"
+          },
+          "powerOfAttorney": {
+            "$ref": "#/components/schemas/PowerOfAttorneyInput"
+          },
+          "external_customer_reference": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Alias for external_customer_id. Preserved while OPS assigns or reuses the canonical customer_number."
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Samma tenantbundna OPS-resolution som användes när quote skapades. Fältet ligger alltid på top-level."
+          },
+          "contract": {
+            "type": "object",
+            "description": "Kompletterande start- och avtalsuppgifter. Lägg inte offer_reference, quote_reference eller resolution_id här.",
+            "properties": {
+              "requested_start_mode": {
+                "enum": [
+                  "earliest_possible",
+                  "specific_date"
+                ]
+              },
+              "requested_start_date": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "external_customer_id"
+                ]
+              },
+              {
+                "required": [
+                  "external_customer_reference"
+                ]
+              }
+            ]
+          }
+        ],
+        "description": "Canonical kundansökan. offer_reference, quote_reference och resolution_id skickas exakt en gång på top-level. Ingen tenantkonfiguration eller quote-reference-mode används. När avtalet kräver fullmakt ska powerOfAttorney vara komplett och externally sendable.",
+        "x-canonical-reference-location": "top_level"
+      },
+      "PublicResourceId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Opaque, tenant-bound public resource identifier. It has no business meaning and must not be used outside the authenticated tenant context."
+      },
+      "WebsiteSupplierSwitchState": {
+        "type": "object",
+        "required": [
+          "request_id",
+          "status",
+          "can_create_request",
+          "can_dispatch",
+          "blockers",
+          "next_action"
+        ],
+        "properties": {
+          "request_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicResourceId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_created",
+              "created"
+            ]
+          },
+          "can_create_request": {
+            "type": "boolean"
+          },
+          "can_dispatch": {
+            "type": "boolean",
+            "description": "Dispatch readiness is customer-specific and is never inferred from area resolution alone."
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_action": {
+            "type": "string",
+            "enum": [
+              "create_supplier_switch_request",
+              "await_supplier_switch_processing",
+              "resolve_switch_blockers"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteApplicationNextAction": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteApplicationCommunicationItem": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteApplicationCommunication": {
+        "type": "object",
+        "required": [
+          "pending",
+          "source_of_truth",
+          "triggered",
+          "queued",
+          "sent",
+          "failed"
+        ],
+        "properties": {
+          "pending": {
+            "type": "boolean"
+          },
+          "source_of_truth": {
+            "type": "string",
+            "const": "communication_logs"
+          },
+          "triggered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          },
+          "queued": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          },
+          "sent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteCustomerApplicationData": {
+        "type": "object",
+        "required": [
+          "missing_fields",
+          "blocking_reasons",
+          "grid_owner_verification_issues",
+          "warnings",
+          "supplier_switch"
+        ],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "customer_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "application_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "application_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_customer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_customer_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customer_site_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "site_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "metering_point_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "contract_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "contract_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offer_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quote_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quote_valid_until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "quote_bound": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_customer": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "next_step": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "confirmed_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "actual_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "requested_start_mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "calculated_earliest_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicResourceId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution_confidence": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "grid_owner_verification_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "can_request_grid_owner_information": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "can_send_agreement_confirmation": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "can_activate_customer": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "signed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "withdrawal_deadline_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "signature_snapshot_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workflow_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "workflow_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "continuation_job_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "missing_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blocking_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grid_owner_verification_issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/WebsiteApplicationNextAction"
+          },
+          "communication": {
+            "$ref": "#/components/schemas/WebsiteApplicationCommunication"
+          },
+          "supplier_switch": {
+            "$ref": "#/components/schemas/WebsiteSupplierSwitchState"
+          },
+          "power_of_attorney": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "signed",
+                  "missing"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "energy_direction": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EnergyDirection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "Explicit public DTO. Internal price-plan, publication, portal-identity, provider-connection and contract-price-snapshot identifiers are never exposed."
+      },
+      "WebsiteCustomerApplicationResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "request_id",
+          "correlation_id"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteCustomerApplicationData"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correlation_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DiagnosticReadiness": {
+        "type": "object",
+        "required": [
+          "canonical_graph_consistent",
+          "forward_publication_link_valid",
+          "reverse_legacy_link_valid",
+          "company_chain_valid",
+          "tenant_assignment_valid",
+          "channel_valid",
+          "source_offer_consistent",
+          "pricing_ready",
+          "legal_ready",
+          "invoice_fee_ready",
+          "publication_active",
+          "application_acceptance_ready"
+        ],
+        "properties": {
+          "canonical_graph_consistent": {
+            "type": "boolean"
+          },
+          "forward_publication_link_valid": {
+            "type": "boolean"
+          },
+          "reverse_legacy_link_valid": {
+            "type": "boolean"
+          },
+          "company_chain_valid": {
+            "type": "boolean"
+          },
+          "tenant_assignment_valid": {
+            "type": "boolean"
+          },
+          "channel_valid": {
+            "type": "boolean"
+          },
+          "source_offer_consistent": {
+            "type": "boolean"
+          },
+          "pricing_ready": {
+            "type": "boolean"
+          },
+          "legal_ready": {
+            "type": "boolean"
+          },
+          "invoice_fee_ready": {
+            "type": "boolean"
+          },
+          "publication_active": {
+            "type": "boolean"
+          },
+          "application_acceptance_ready": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PublicationChangedWebhook": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "created_at",
+          "tenant_reference",
+          "aggregate",
+          "data"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "const": "contracts.publication.changed"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tenant_reference": {
+            "type": "string"
+          },
+          "aggregate": {
+            "type": "object",
+            "required": [
+              "type",
+              "id"
+            ],
+            "properties": {
+              "type": {
+                "const": "contract_publication"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "tenant_reference",
+              "channel",
+              "publication_revision",
+              "revision_token",
+              "reason",
+              "timestamp"
+            ],
+            "properties": {
+              "tenant_reference": {
+                "type": "string"
+              },
+              "channel": {
+                "enum": [
+                  "website",
+                  "api",
+                  "internal",
+                  "phone",
+                  "partner"
+                ]
+              },
+              "publication_revision": {
+                "type": "integer"
+              },
+              "revision_token": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnergyAreaResolveRequest": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "street_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "SE"
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "facility_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metering_point_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "postal_code"
+            ]
+          },
+          {
+            "required": [
+              "grid_area_code"
+            ]
+          },
+          {
+            "required": [
+              "facility_id"
+            ]
+          },
+          {
+            "required": [
+              "metering_point_id"
+            ]
+          }
+        ]
+      },
+      "EnergyAreaResolution": {
+        "$ref": "#/components/schemas/WebsiteEnergyAreaResolution",
+        "deprecated": true,
+        "description": "Compatibility schema name. Use WebsiteEnergyAreaResolution."
+      },
+      "SwitchStatus": {
+        "type": "object",
+        "required": [
+          "application_number",
+          "application_status",
+          "switch",
+          "next_step",
+          "blocking_reasons",
+          "requested_start_date",
+          "confirmed_start_date",
+          "actual_start_date"
+        ],
+        "properties": {
+          "application_number": {
+            "type": "string"
+          },
+          "application_status": {
+            "type": "string"
+          },
+          "switch": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "switch_reference",
+                  "status",
+                  "lifecycle_blocked",
+                  "events"
+                ],
+                "properties": {
+                  "switch_reference": {
+                    "type": "string",
+                    "pattern": "^switch_"
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "requested_start_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "submitted_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "completed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "failed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "failure_reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "paused_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "pause_reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "lifecycle_blocked": {
+                    "type": "boolean"
+                  },
+                  "lifecycle_block_source": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "updated_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "event_type",
+                        "event_status",
+                        "message",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "event_type": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "event_status": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "next_step": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocking_reasons": {
+            "type": "array",
+            "items": {}
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "confirmed_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "actual_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteVisibilityMode": {
+        "type": "string",
+        "enum": [
+          "visible",
+          "hidden",
+          "summary_only"
+        ],
+        "description": "Presentation only. Hidden components remain available to the tenant calculation engine."
+      },
+      "CalculationInclusion": {
+        "type": "string",
+        "enum": [
+          "included",
+          "excluded",
+          "conditional"
+        ],
+        "description": "Whether the component participates in the calculation. Independent of website visibility."
+      },
+      "PricingComponent": {
+        "type": "object",
+        "required": [
+          "component_code",
+          "amount",
+          "unit",
+          "calculation_inclusion",
+          "website_visibility"
+        ],
+        "properties": {
+          "component_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "component_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "selection_policy": {
+            "type": "string",
+            "enum": [
+              "mandatory",
+              "customer_optional",
+              "admin_optional",
+              "conditional"
+            ]
+          },
+          "lifecycle": {
+            "type": "string",
+            "enum": [
+              "recurring",
+              "per_invoice",
+              "per_site",
+              "once_per_contract",
+              "once_per_site",
+              "annual",
+              "consumption_based",
+              "event_only"
+            ]
+          },
+          "component_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "calculation_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "calculation_base": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "vat_applicable": {
+            "type": "boolean"
+          },
+          "calculation_inclusion": {
+            "$ref": "#/components/schemas/CalculationInclusion"
+          },
+          "website_visibility": {
+            "$ref": "#/components/schemas/WebsiteVisibilityMode"
+          },
+          "website_card_visible": {
+            "type": "boolean",
+            "deprecated": true,
+            "description": "Compatibility boolean. Use website_visibility."
+          }
+        },
+        "additionalProperties": true
+      },
+      "ContractPriceValue": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "vat_included": {
+            "type": "boolean"
+          },
+          "vat_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "calculation_inclusion": {
+            "$ref": "#/components/schemas/CalculationInclusion"
+          },
+          "website_visibility": {
+            "$ref": "#/components/schemas/WebsiteVisibilityMode"
+          }
+        },
+        "additionalProperties": true
+      },
+      "FixedAreaPrice": {
+        "type": "object",
+        "required": [
+          "price_area",
+          "energy_price_ore_per_kwh",
+          "unit"
+        ],
+        "properties": {
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "energy_price_ore_per_kwh": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit": {
+            "const": "ore_per_kwh"
+          },
+          "vat_included": {
+            "type": "boolean"
+          },
+          "vat_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContractPriceOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "price_option_reference",
+          "option_code",
+          "customer_name",
+          "contract_type",
+          "binding_months",
+          "notice_months",
+          "auto_renew_enabled",
+          "area_prices"
+        ],
+        "properties": {
+          "price_option_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "option_code": {
+            "type": "string"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "contract_type": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "variable_monthly",
+              "variable_hourly",
+              "variable_quarterly",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "binding_months": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notice_months": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "auto_renew_enabled": {
+            "type": "boolean"
+          },
+          "renewal_term_months": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "area_prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FixedAreaPrice"
+            }
+          }
+        }
+      },
+      "WebsiteQuoteRequest": {
+        "type": "object",
+        "required": [
+          "offer_reference",
+          "customer_type",
+          "resolution_id",
+          "annual_consumption_kwh",
+          "start_date"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string"
+          },
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business",
+              "company"
+            ],
+            "description": "company is a deprecated alias for business."
+          },
+          "annual_consumption_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenantbunden OPS-resolution. Dess price_area och grid_area_code är canonical."
+          },
+          "price_option_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+            }
+          },
+          "site_count": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteQuoteData": {
+        "type": "object",
+        "required": [
+          "quote_reference",
+          "offer_reference",
+          "valid_until",
+          "input"
+        ],
+        "properties": {
+          "quote_reference": {
+            "type": "string"
+          },
+          "offer_reference": {
+            "type": "string"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "selected_area_price": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FixedAreaPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "estimate": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "resolution": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          },
+          "market_reference": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MarketReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "is_binding": {
+            "type": "boolean",
+            "const": false
+          },
+          "market_data_timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
+          "production_pricing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProductionPricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_option_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "area_price_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mandatory_component_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "conditional_component_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resolved_base_components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "resolved_price_components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingComponent"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "WebsiteQuoteResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteQuoteData"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/WebsiteQuoteData"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "WebsiteQuoteValidationRequest": {
+        "$ref": "#/components/schemas/QuoteValidationRequest"
+      },
+      "WebsiteEnergyAreaResolveRequest": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "street_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "SE"
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "facility_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metering_point_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "postal_code"
+            ]
+          },
+          {
+            "required": [
+              "grid_area_code"
+            ]
+          },
+          {
+            "required": [
+              "facility_id"
+            ]
+          },
+          {
+            "required": [
+              "metering_point_id"
+            ]
+          }
+        ]
+      },
+      "LifecycleBlocker": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnergyResolutionCapabilities": {
+        "type": "object",
+        "required": [
+          "pricing_ready",
+          "quote_ready",
+          "facility_lookup_ready",
+          "switch_request_creatable",
+          "switch_dispatch_ready"
+        ],
+        "properties": {
+          "pricing_ready": {
+            "type": "boolean"
+          },
+          "quote_ready": {
+            "type": "boolean"
+          },
+          "facility_lookup_ready": {
+            "type": "boolean"
+          },
+          "switch_request_creatable": {
+            "type": "boolean"
+          },
+          "switch_dispatch_ready": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnergyResolutionBlockers": {
+        "type": "object",
+        "required": [
+          "pricing",
+          "quote",
+          "facility_lookup",
+          "switch_creation",
+          "switch_dispatch"
+        ],
+        "properties": {
+          "pricing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "quote": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "facility_lookup": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "switch_creation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "switch_dispatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteEnergyAreaResolution": {
+        "type": "object",
+        "required": [
+          "resolution_id",
+          "price_area",
+          "resolution_status",
+          "confidence",
+          "capabilities",
+          "blockers",
+          "retryable",
+          "warnings"
+        ],
+        "properties": {
+          "resolution_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "price_area": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4",
+              null
+            ]
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grid_area_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grid_owner_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution_status": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "next_required_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resolved_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "resolver_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geodata_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/EnergyResolutionCapabilities"
+          },
+          "blockers": {
+            "$ref": "#/components/schemas/EnergyResolutionBlockers"
+          },
+          "conflict_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Tenantbunden OPS-resolution with independent pricing, quote, facility lookup, switch creation and switch dispatch readiness. Pricing and quote never depend on PRODAT transport readiness."
+      },
+      "WebsiteEnergyAreaResolveResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "request_id",
+          "correlation_id",
+          "retryable"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteEnergyAreaResolution"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarketReference": {
+        "type": "object",
+        "required": [
+          "provider",
+          "price_area",
+          "reference_type",
+          "reference_period",
+          "price_sek_per_kwh",
+          "price_ore_per_kwh",
+          "price_ex_vat_sek_per_kwh",
+          "price_ex_vat_ore_per_kwh",
+          "requested_days",
+          "included_days",
+          "source_as_of",
+          "generated_at",
+          "stale_after",
+          "effective_stale_at",
+          "unit",
+          "includes_vat",
+          "includes_supplier_fees",
+          "includes_grid_fees",
+          "is_indicative",
+          "is_stale",
+          "fallback_used"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "reference_type": {
+            "type": "string",
+            "const": "preview"
+          },
+          "reference_period": {
+            "type": "string"
+          },
+          "period_start": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "period_end": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "as_of": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "source_currency": {
+            "type": "string",
+            "default": "SEK"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "sek_per_kwh"
+            ]
+          },
+          "includes_vat": {
+            "type": "boolean"
+          },
+          "includes_supplier_fees": {
+            "type": "boolean"
+          },
+          "includes_grid_fees": {
+            "type": "boolean"
+          },
+          "is_indicative": {
+            "type": "boolean"
+          },
+          "is_stale": {
+            "type": "boolean"
+          },
+          "fallback_used": {
+            "type": "boolean"
+          },
+          "fallback_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_checksum": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_sek_per_kwh": {
+            "type": "number",
+            "description": "Canonical market reference in SEK/kWh. May be negative."
+          },
+          "price_ore_per_kwh": {
+            "type": "number",
+            "description": "Canonical market reference in öre/kWh. Equals price_sek_per_kwh × 100 and may be negative."
+          },
+          "price_ex_vat_sek_per_kwh": {
+            "type": "number"
+          },
+          "price_ex_vat_ore_per_kwh": {
+            "type": "number"
+          },
+          "requested_days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "included_days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source_as_of": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp derived from the newest underlying provider evidence."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the preview calculation was generated."
+          },
+          "stale_after": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective_stale_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Minimum of the global preview limit and tenant max_age_minutes applied to source_as_of."
+          },
+          "source_resolution": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "description": "Self-contained market reference used by the OPS quote. preview is indicative and never final settlement evidence. requested_days and included_days expose window completeness. A partial fallback is returned only when tenant policy allows it."
+      },
+      "PowerOfAttorneyInput": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "scope",
+          "signerName",
+          "signerIdentityNumber",
+          "method",
+          "textVersionId"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "const": true
+          },
+          "scope": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "supplier_switch",
+                "facility_information_lookup"
+              ]
+            },
+            "description": "Exakt publicerat authorization scope."
+          },
+          "signerName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "signerIdentityNumber": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Signerande persons identitet. Hanteras som skyddsvärd personuppgift."
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "website_acceptance",
+              "bankid",
+              "electronic_signature",
+              "manual_signature"
+            ]
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "textVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Publicerad power-of-attorney-version från legal bundle."
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "userAgent": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Strukturerad fullmakt som krävs för externally_sendable nätägarkommunikation. Bare consents.power_of_attorney=true är endast juridisk acceptans och kan inte skickas externt."
+      },
+      "CustomerApplicationStatus": {
+        "type": "object",
+        "required": [
+          "application_id",
+          "status",
+          "stage",
+          "missing_customer_action",
+          "updated_at"
+        ],
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "application_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "processing",
+              "needs_customer_information",
+              "completed",
+              "rejected",
+              "failed"
+            ]
+          },
+          "stage": {
+            "type": "string"
+          },
+          "customer_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supplier_switch_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supply_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "confirmed_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "missing_customer_action": {
+            "type": "boolean"
+          },
+          "next_step": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocking_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CurrentMarketPriceRequest": {
+        "type": "object",
+        "required": [
+          "resolution_id"
+        ],
+        "properties": {
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price_area": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4",
+              null
+            ],
+            "description": "Optional assertion only. It cannot override the canonical area stored on resolution_id."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentMarketPrice": {
+        "type": "object",
+        "required": [
+          "provider",
+          "resolution_id",
+          "price_area",
+          "reference_type",
+          "resolution",
+          "selected_resolution",
+          "available_resolutions",
+          "time_start",
+          "time_end",
+          "price_sek_per_kwh",
+          "price_ore_per_kwh",
+          "price_ex_vat_sek_per_kwh",
+          "price_ex_vat_ore_per_kwh",
+          "includes_vat",
+          "includes_supplier_fees",
+          "includes_grid_fees",
+          "is_indicative",
+          "is_stale",
+          "fallback_used",
+          "source_as_of",
+          "next_update_at"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "reference_type": {
+            "type": "string",
+            "const": "current_interval"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "hourly",
+              "quarterly"
+            ],
+            "deprecated": true,
+            "description": "Compatibility alias. Use selected_resolution."
+          },
+          "selected_resolution": {
+            "type": "string",
+            "enum": [
+              "hourly",
+              "quarterly"
+            ]
+          },
+          "available_resolutions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "hourly",
+                "quarterly"
+              ]
+            }
+          },
+          "time_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "time_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price_sek_per_kwh": {
+            "type": "number",
+            "description": "Current spot price in SEK/kWh, excluding VAT and all supplier/grid fees."
+          },
+          "price_ore_per_kwh": {
+            "type": "number",
+            "description": "Current spot price in öre/kWh. Equals price_sek_per_kwh × 100."
+          },
+          "price_ex_vat_sek_per_kwh": {
+            "type": "number",
+            "description": "May be negative. Decimal value is returned without local tenant rounding."
+          },
+          "price_ex_vat_ore_per_kwh": {
+            "type": "number",
+            "description": "May be negative. Decimal value is returned without local tenant rounding."
+          },
+          "includes_vat": {
+            "type": "boolean",
+            "const": false
+          },
+          "includes_supplier_fees": {
+            "type": "boolean",
+            "const": false
+          },
+          "includes_grid_fees": {
+            "type": "boolean",
+            "const": false
+          },
+          "is_indicative": {
+            "type": "boolean",
+            "const": false
+          },
+          "is_stale": {
+            "type": "boolean"
+          },
+          "fallback_used": {
+            "type": "boolean",
+            "const": false,
+            "description": "The current interval endpoint never substitutes a historical or cross-area fallback."
+          },
+          "source_as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "next_update_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentMarketPriceResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CurrentMarketPrice"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-29.1"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarketPriceErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "error",
+          "request_id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "field",
+              "request_id",
+              "correlation_id",
+              "retryable"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalid_request",
+                  "unknown_field",
+                  "invalid_json",
+                  "payload_too_large",
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_scope_missing",
+                  "rate_limited",
+                  "resolution_not_found",
+                  "resolution_expired",
+                  "resolution_pricing_not_ready",
+                  "price_area_mismatch",
+                  "current_market_price_unavailable",
+                  "market_price_stale",
+                  "market_price_provider_unavailable"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "correlation_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "EnergyDirection": {
+        "type": "string",
+        "enum": [
+          "consumption",
+          "production"
+        ],
+        "description": "Canonical economic direction. Consumption creates ordinary supply/invoice flows; production creates compensation settlement flows."
+      },
+      "ProductionPricing": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "compensation_model",
+          "resolution",
+          "settlement_mode",
+          "billing_direction",
+          "metering_point_role"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "const": true
+          },
+          "compensation_model": {
+            "type": "string",
+            "enum": [
+              "fixed_compensation"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "hourly",
+              "quarterly"
+            ]
+          },
+          "deduction_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "premium_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fixed_compensation_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "compensation_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "compensation_sek_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "settlement_mode": {
+            "type": "string",
+            "enum": [
+              "credit_invoice",
+              "self_billing"
+            ]
+          },
+          "billing_direction": {
+            "type": "string",
+            "enum": [
+              "credit_invoice",
+              "self_billing"
+            ]
+          },
+          "vat_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vat_rate_percent": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vat_treatment": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metering_point_role": {
+            "type": "string",
+            "const": "production"
+          }
+        },
+        "description": "Explicit production compensation contract. Runtime currently supports fixed compensation; additional compensation models require a future contract-version bump."
+      },
+      "ApiBlocker": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recommended_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "code",
+          "message",
+          "request_id",
+          "correlation_id",
+          "blockers"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "code": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiBlocker"
+            }
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "error_stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "code",
+              "message",
+              "request_id",
+              "correlation_id",
+              "blockers"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "correlation_id": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
+              }
+            }
+          }
+        },
+        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+      },
+      "LegalBundleDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "module_key",
+          "version",
+          "title",
+          "origin"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Opaque immutable legal document identifier."
+          },
+          "module_key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "content_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin": {
+            "type": "string"
+          },
+          "legal_bundle_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque immutable bundle version identifier."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      },
+      "WebsiteLegalBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "required_modules",
+          "module_versions",
+          "immutable"
+        ],
+        "properties": {
+          "terms_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "privacy_policy_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "withdrawal_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "power_of_attorney_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_terms_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "terms_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "privacy_policy_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "withdrawal_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_terms_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "power_of_attorney_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legal_bundle_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "terms_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "privacy_policy_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "withdrawal_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "price_terms_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "power_of_attorney_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "terms_required": {
+            "type": "boolean"
+          },
+          "privacy_policy_required": {
+            "type": "boolean"
+          },
+          "withdrawal_required": {
+            "type": "boolean"
+          },
+          "price_terms_required": {
+            "type": "boolean"
+          },
+          "power_of_attorney_required": {
+            "type": "boolean"
+          },
+          "immutable": {
+            "type": "boolean"
+          },
+          "required_modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "module_versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegalBundleDocument"
+            }
+          }
+        }
+      },
+      "WebsiteLegalBundle": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer_reference",
+          "bundle_version",
+          "required_types",
+          "present_types",
+          "tenant",
+          "legal",
+          "complete",
+          "missing_types"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string"
+          },
+          "bundle_version": {
+            "type": "string",
+            "description": "Opaque immutable legal bundle version."
+          },
+          "required_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "present_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tenant": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "org_number",
+              "brand_name",
+              "slug"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "org_number": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "brand_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "slug": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "legal": {
+            "$ref": "#/components/schemas/WebsiteLegalBlock"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "missing_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WebsiteLegalBundleResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "request_id",
+          "correlation_id"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteLegalBundle"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid query or payload",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid API key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Scope missing or tenant access denied",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "TenantGone": {
+        "description": "Tenant is terminated and no longer serves external API traffic",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "TenantPaused": {
+        "description": "Tenant is paused and external API traffic is temporarily locked",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "API client rate limit exceeded",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "The canonical API contract feed could not be built",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Expired, consumed or mismatched quote/idempotency state",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-contract-schema-version": "2026-07-29.1",
+  "x-gridex-tenant-setup": {
+    "required_environment_variables": [
+      "GRIDEX_API_KEY"
+    ],
+    "api_base_url": "https://app.gridex.se/api/v1",
+    "authentication": "Authorization: Bearer <GRIDEX_API_KEY>",
+    "tenant_identity_source": "api_key",
+    "tenant_id_environment_required": false,
+    "company_id_environment_required": false,
+    "application_reference_location": "top_level",
+    "website_openapi_url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
+    "customer_portal_openapi_url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
+  }
+}

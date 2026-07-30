@@ -1,18 +1,16 @@
 # Current state
 
-Last updated: 2026-07-29T15:56:55+02:00
+Last updated: 2026-07-30T02:31:00+02:00
 
-- PHASE-31 commercial contract model: IMPLEMENTED and LOCALLY VERIFIED; DATABASE VERIFICATION BLOCKED.
-- Canonical schema is `gridex_contract_pricing_v6_selection`.
-- Price options and SE-area rows have stable references and belong to one product/price-plan version.
-- Components carry stable code/reference, selection policy, conditions, lifecycle, invoice line and accounting classification.
-- Admin offer authoring is genuinely type-driven; hidden fields from another contract type are unmounted.
-- Website quote and internal customer registration use the same resolver.
-- Quote hash v3 covers exact selection and resolved component arrays while historical v2 quotes remain verifiable.
-- Website and internal customer contracts freeze exact base/price components.
-- Billing reads the immutable contract snapshot and fails closed on incomplete v6 identity; once/annual/invoice lifecycle gates are explicit.
-- API/OpenAPI/docs are synchronized at `2026-07-29.1`.
-- Verification: app/test TypeScript pass; changed runtime ESLint has zero errors; 57 files/365 tests pass; API contract/parity/version/examples pass; focused regression passes; Next.js production build passes.
-- New migration SHA-256 is `59c19820866d186567914b12fcf831cc94c769ba200038034fbc4e172603d80c` and is registered exactly.
+- PHASE-32 canonical OPS/Web API release: IMPLEMENTED and LOCALLY VERIFIED; LIVE/DATABASE VERIFICATION BLOCKED.
+- Website API, Customer Portal API, runtime, guide, examples and release manifest use `2026-07-30.1`.
+- `GET /api/v1/openapi/release-manifest.json` publishes canonical SHA-256 values for both deterministic OpenAPI documents.
+- Legal requirements and acceptances are dynamic, offer-bound and document ID/version/hash-bound; public application requests no longer expose the legacy fixed consent object.
+- Customer events use one strict canonical request shape and no longer accept the legacy free-form payload.
+- Portal sync has a strict body, paired UUID identity, matching required headers and a link/recovery-only response.
+- A forward-only migration atomically creates the portal identity and owner account inside the website-application transaction and adds tenant/provider/subject uniqueness.
+- Gridex Web synchronized snapshots and generated types locally; live release-manifest verification remains deliberately false until deployment.
+- Verification: all TypeScript targets pass; lint has zero errors; 58 files/370 tests pass; API contract/parity/version/examples pass; tenant, idempotency, portal and webhook regressions pass; production build passes.
+- New migration SHA-256 is `d56a6dd9ec660c3721aea2ba014fdf1abb3dbf9fe79d0ba193354e1980cee08a` and is registered exactly.
 - Migration integrity remains blocked only by pre-existing immutable `20260728170000...` drift (`a743...` actual versus `881e...` expected).
-- Release remains NO-GO until trusted historical recovery and authorized clean/upgraded staging apply, post-apply and end-to-end parity tests pass.
+- Release remains NO-GO until trusted historical recovery, authorized database apply, deployed live-manifest parity, full staging flow and two-tenant/concurrency/provider verification pass.

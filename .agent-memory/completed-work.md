@@ -123,6 +123,17 @@ Status: VERIFIED LOCALLY
 - Unified website and internal selection, quote hash v3, signed snapshots and billing under one v6 model.
 - Added atomic service-only offer and internal customer commands, tenant/RLS guards, deterministic backfill and review evidence.
 - Fixed exact component freezing and fail-closed billing identity.
-- Synchronized API/OpenAPI/docs to `2026-07-29.1`.
+- Synchronized API/OpenAPI/docs to `2026-07-30.1`.
 - Verified 57 files/365 tests, TypeScript, lint, API docs, focused regression and production build.
 - Database apply remains blocked by the immutable historical drift and absent authorized staging connection.
+
+## 2026-07-30 canonical OPS/Web API release
+
+- Added a machine-readable release manifest with deterministic OpenAPI hashes.
+- Synchronized runtime, Website OpenAPI, Customer Portal OpenAPI, guide and examples at `2026-07-30.1`.
+- Replaced fixed legal consent assumptions with dynamic, exact document evidence.
+- Closed the targeted quote, portfolio, customer-event and portal-sync contracts.
+- Added strict paired portal identity headers/payloads and a forward-only atomic portal identity/account migration.
+- Synchronized Gridex Web snapshots and generated types; live readiness remains fail-closed until deployment.
+- Verified 58 files/370 tests, all TypeScript targets, zero-error lint, API docs/parity, targeted tenant/idempotency/portal/webhook regressions and both production builds.
+- Production remains NO-GO because immutable migration drift, database apply, live manifest, staging, provider, concurrency and two-tenant evidence are unresolved.

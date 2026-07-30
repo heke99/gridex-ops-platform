@@ -1,26 +1,25 @@
 # Handover
 
-Last updated: 2026-07-29T15:56:55+02:00
+Last updated: 2026-07-30T02:31:00+02:00
 
 ## Verified locally
 
-- Canonical commercial selection unit suite: 5/5.
-- Full Vitest: 57 files / 365 tests.
-- App and test TypeScript targets: pass.
-- Changed runtime ESLint: zero errors.
-- Commercial static regression: pass.
-- API/OpenAPI/docs parity: `2026-07-29.1`, all checks pass.
-- Production Next.js build: pass.
-- New migration checksum matches the manifest.
+- Full Vitest: 58 files / 370 tests.
+- App, test and script TypeScript targets: pass.
+- ESLint: zero errors (124 existing warnings).
+- API/OpenAPI/docs parity and deterministic finalization: `2026-07-30.1`.
+- Single-key tenant regression: 107 checks; energy resolver, idempotency, portal, webhook, error-boundary and tenant-gate regressions pass.
+- Both OPS and Web production builds pass locally.
+- New portal-identity migration checksum matches the manifest.
 
 ## Implemented but not database-verified
 
-`20260729200000_contract_commercial_selection_completion.sql`, including option/area tables, component extensions, quote v3 immutability, atomic offer v3, atomic internal customer selection, website snapshot binding, publication guard, legacy backfill/review and invoice trace columns.
+`20260730120000_atomic_website_portal_identity.sql`, the release-manifest endpoint and deployment of the `2026-07-30.1` OpenAPI/runtime/guide release. Static checks pass, but the migration and live contract have not been applied/verified.
 
 ## Active blockers
 
-Historical `20260728170000...` checksum drift is still a release blocker. No authorized database, provider sandbox, deployment target or Git metadata is available. PostgreSQL clean/upgrade apply and post-apply are therefore not claimed.
+Historical `20260728170000...` checksum drift is still a release blocker. No authorized database, provider sandbox, staging API keys, deployment target or Git metadata is available. The current live release-manifest URL returns 404. PostgreSQL clean/upgrade apply, live parity and end-to-end staging are therefore not claimed.
 
 ## Exact continuation
 
-Restore the historical migration from the trusted applied artifact, run `npm run db:migrations:check`, apply through `20260729200000...` in staging, then run channel and commercial post-apply scripts plus fixed 12/24/36 × SE1–SE4, paper/e-invoice/email, manipulation, cross-tenant and internal-selection-to-invoice scenarios.
+Restore the historical migration from the trusted applied artifact, run `npm run db:migrations:check`, apply through `20260730120000...` in staging, deploy OPS with Node 22, then run Web `api:sync`/`api:check:live` plus guest/authenticated application, portal, webhook, idempotency, concurrency and two-tenant isolation scenarios.

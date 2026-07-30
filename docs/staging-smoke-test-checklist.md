@@ -75,7 +75,7 @@ sections marked *post-deploy* also run against production after deploy).
 - [ ] Pricing preview for a test contract; monthly run on staging data;
       invoice export dry-run; provider webhook test event processed
 
-## Canonical fastpris/quote/teckning (`2026-07-29.1`)
+## Canonical fastpris/quote/teckning (`2026-07-30.1`)
 
 - [ ] `public-contracts` returnerar ett fastprisavtal en gång med SE1–SE4 i `area_pricing`.
 - [ ] Olika SE-priser ger `fixed_price_ore_per_kwh=null`; klienten använder vald rad i `area_pricing`.
@@ -92,4 +92,4 @@ sections marked *post-deploy* also run against production after deploy).
 - [ ] Saknat anläggningsunderlag köar uppgiftsbegäran; komplett underlag startar leverantörsbyte automatiskt när route/fullmakt/readiness är godkänd.
 - [ ] `contract_price_snapshots.base_price_components_snapshot` innehåller endast kundens valda SE-prisrad för fastpris.
 - [ ] Fakturaunderlaget använder låst snapshot, inklusive dolda avgifter och publicerad nollavgift.
-- [ ] OpenAPI, utvecklarsida och runtime rapporterar kontraktsversion `2026-07-29.1`.
+- [ ] OpenAPI, utvecklarsida och runtime rapporterar kontraktsversion `2026-07-30.1`.

@@ -1,4 +1,4 @@
-export const API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-29.1" as const;
+export const API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-30.1" as const;
 
 export type ExternalContractChannel = "website" | "api";
 

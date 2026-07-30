@@ -2,7 +2,7 @@
 
 Det tidigare innehållet i denna fil beskrev en parallell arkitektur där tenantens webb själv löste elområde och hämtade indikativt marknadspris. Den modellen är ersatt och får inte användas som implementations- eller integrationsunderlag.
 
-Aktuellt canonicalt kontrakt är **API 2026-07-29.1**:
+Aktuellt canonicalt kontrakt är **API 2026-07-30.1**:
 
 - `docs/canonical-market-resolution-quote-billing-flow-2026-07-24.md`
 - `docs/external-website-api-integration-guide.md`

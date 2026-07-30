@@ -1,5 +1,6 @@
 //app/api/v1/customer-portal/sync/route.ts
 import { NextRequest } from 'next/server'
+import { z } from 'zod'
 import { readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
@@ -16,19 +17,28 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-type SyncPayload = {
-  external_customer_id?: string
-  customer_external_id?: string
-  external_account_id?: string
-  email?: string
-  person_number?: string
-  personal_number?: string
-  org_number?: string
-  organization_number?: string
-  customer_number?: string
-  facility_id?: string
-  metadata?: Record<string, unknown>
-}
+const SyncPayloadSchema = z.object({
+  external_customer_id: z.string().trim().min(1),
+  external_account_id: z.string().trim().min(1).optional(),
+  customer_portal_user_id: z.string().uuid(),
+  auth_user_id: z.string().uuid(),
+  email: z.string().email().optional(),
+  personal_number: z.string().trim().min(1).optional(),
+  organization_number: z.string().trim().min(1).optional(),
+  customer_number: z.string().trim().min(1).optional(),
+  facility_id: z.string().trim().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.customer_portal_user_id !== value.auth_user_id) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['customer_portal_user_id'],
+      message: 'customer_portal_user_id and auth_user_id must be identical',
+    })
+  }
+})
+
+type SyncPayload = z.infer<typeof SyncPayloadSchema>
 
 type CustomerCandidate = {
   id: string
@@ -169,6 +179,7 @@ async function upsertIdentity(input: {
   customerId: string | null
   externalCustomerId: string
   externalAccountId: string | null
+  authUserId: string
   email: string | null
   status: PortalIdentityApiStatus
   dbStatus: PortalIdentityDbStatus
@@ -183,6 +194,8 @@ async function upsertIdentity(input: {
     provider: 'gridex_website',
     external_customer_id: input.externalCustomerId,
     external_account_id: input.externalAccountId,
+    auth_user_id: input.authUserId,
+    customer_portal_user_id: input.authUserId,
     email: input.email,
     status: input.dbStatus,
     match_strength: input.matchStrength,
@@ -212,25 +225,39 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = (await readJsonObject(request)) as SyncPayload
-    const rawBody = body as Record<string, unknown>
-    if ('address' in rawBody || 'facility_data' in rawBody || 'site' in rawBody || 'street' in rawBody || 'postal_code' in rawBody) {
+    const parsed = SyncPayloadSchema.safeParse(await readJsonObject(request))
+    if (!parsed.success) {
       return customerPortalJson({
-        error: 'Denna route synkar endast portalidentitet. Skicka anläggningsadress via /api/v1/customer/sync med facility_data.address.',
-        code: 'facility_address_wrong_endpoint',
+        error: 'Ogiltig strikt portal sync-request.',
+        code: 'portal_sync_validation_error',
+        details: parsed.error.issues,
       }, { status: 422 })
     }
-    const externalCustomerId = String(body.external_customer_id ?? body.customer_external_id ?? '').trim()
+    const body = parsed.data
+    const portalUserIdHeader = request.headers
+      .get('x-gridex-customer-portal-user-id')
+      ?.trim()
+    const authUserIdHeader = request.headers
+      .get('x-gridex-auth-user-id')
+      ?.trim()
+    if (
+      !portalUserIdHeader ||
+      !authUserIdHeader ||
+      portalUserIdHeader !== authUserIdHeader ||
+      portalUserIdHeader !== body.customer_portal_user_id ||
+      authUserIdHeader !== body.auth_user_id
+    ) {
+      return customerPortalJson({
+        error: 'Portalidentiteten i headers och payload måste vara komplett och identisk.',
+        code: 'portal_identity_mismatch',
+      }, { status: 422 })
+    }
+    const externalCustomerId = body.external_customer_id
     const externalAccountId = String(body.external_account_id ?? '').trim() || null
     const email = normalizeEmail(body.email)
     const customerNumber = String(body.customer_number ?? '').trim()
-    const identifier = normalizeDigits(body.personal_number ?? body.person_number ?? body.org_number ?? body.organization_number)
+    const identifier = normalizeDigits(body.personal_number ?? body.organization_number)
     const facilityId = String(body.facility_id ?? '').trim()
-
-    if (!externalCustomerId) {
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 400, startedAt, errorCode: 'external_customer_id saknas' })
-      return customerPortalJson({ error: 'external_customer_id krävs.' }, { status: 400 })
-    }
 
     const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
     if (identityFactors < 2) {
@@ -239,6 +266,7 @@ export async function POST(request: NextRequest) {
         customerId: null,
         externalCustomerId,
         externalAccountId,
+        authUserId: body.auth_user_id,
         email: email || null,
         status: 'rejected',
         dbStatus: 'rejected',
@@ -287,6 +315,7 @@ export async function POST(request: NextRequest) {
         customerId: best.customer.id,
         externalCustomerId,
         externalAccountId,
+        authUserId: body.auth_user_id,
         email: email || best.customer.email,
         status: 'linked',
         dbStatus: 'active',
@@ -299,7 +328,17 @@ export async function POST(request: NextRequest) {
         },
       })
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
-      return customerPortalJson({ data: { outcome: 'linked', status: 'linked', access_granted: true, customer_id: best.customer.id, external_customer_id: externalCustomerId } })
+      return customerPortalJson({ data: {
+        status: 'linked',
+        customer_reference: externalCustomerId,
+        customer_number: best.customer.customer_number,
+        external_customer_id: externalCustomerId,
+        customer_portal_user_id: body.customer_portal_user_id,
+        auth_user_id: body.auth_user_id,
+        portal_role: 'owner',
+        created: false,
+        access_granted: true,
+      } })
     }
 
     const identity = await upsertIdentity({
@@ -307,6 +346,7 @@ export async function POST(request: NextRequest) {
       customerId: best?.customer.id ?? null,
       externalCustomerId,
       externalAccountId,
+      authUserId: body.auth_user_id,
       email: email || best?.customer.email || null,
       status: 'pending_review',
       dbStatus: 'pending_review',

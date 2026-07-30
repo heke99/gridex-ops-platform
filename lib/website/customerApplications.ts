@@ -249,6 +249,15 @@ const PowerOfAttorneySchema = z
   })
   .optional();
 
+const LegalAcceptanceSchema = z.object({
+  requirement_code: z.string().trim().min(1),
+  document_id: z.string().uuid(),
+  document_version: z.string().trim().min(1),
+  document_hash: z.string().regex(/^[a-f0-9]{64}$/i),
+  accepted: z.literal(true),
+  accepted_at: z.string().datetime({ offset: true }),
+}).strict();
+
 const ApplicationSchema = z.object({
   offer_reference: OPTIONAL_TEXT,
   offerReference: OPTIONAL_TEXT,
@@ -312,8 +321,9 @@ const ApplicationSchema = z.object({
   metering_point: MeteringPointSchema,
   contract: ContractSchema,
   consents: z.record(z.unknown()).optional(),
-  legalAcceptances: z.array(z.record(z.unknown())).optional(),
-  legal_acceptances: z.array(z.record(z.unknown())).optional(),
+  legal_bundle_version: OPTIONAL_TEXT,
+  legalAcceptances: z.array(LegalAcceptanceSchema).optional(),
+  legal_acceptances: z.array(LegalAcceptanceSchema).optional(),
   powerOfAttorney: PowerOfAttorneySchema,
   power_of_attorney: PowerOfAttorneySchema,
   metadata: z.record(z.unknown()).optional(),
@@ -870,6 +880,7 @@ const TOP_LEVEL_PAYLOAD_FIELDS = new Set([
   "last_name",
   "legalAcceptances",
   "legal_acceptances",
+  "legal_bundle_version",
   "markupOrePerKwh",
   "markup_ore_per_kwh",
   "measurement_type",
@@ -1528,8 +1539,79 @@ async function loadOfferBoundLegalVersions(input: {
 async function assertWebsiteLegalAcceptances(input: {
   companyId: string;
   consents?: Record<string, unknown>;
+  legalBundleVersion?: string | null;
+  legalAcceptances?: z.infer<typeof LegalAcceptanceSchema>[];
   publicOffer: PublicContractOffer;
 }): Promise<WebsiteLegalAcceptanceVersion[]> {
+  const legalVersions = await loadOfferBoundLegalVersions({
+    companyId: input.companyId,
+    publicOffer: input.publicOffer,
+  });
+  if (input.legalAcceptances) {
+    if (
+      !input.legalBundleVersion ||
+      input.legalBundleVersion !== input.publicOffer.legal_bundle_version_id
+    ) {
+      throw new WebsiteApplicationError({
+        message: "Juridikpaketet har ändrats. Hämta och visa det aktuella paketet innan kunden godkänner igen.",
+        status: 409,
+        code: "legal_bundle_version_mismatch",
+        field: "legal_bundle_version",
+        stage: "legal_acceptance",
+        hint: "Hämta /api/v1/website/legal-bundle på nytt och skapa acceptanser från det returnerade paketet.",
+      });
+    }
+    const duplicates = new Set<string>();
+    for (const acceptance of input.legalAcceptances) {
+      if (duplicates.has(acceptance.requirement_code)) {
+        throw new WebsiteApplicationError({
+          message: "Samma juridikkrav får inte skickas flera gånger.",
+          status: 422,
+          code: "legal_acceptance_duplicate",
+          field: "legal_acceptances",
+          stage: "legal_acceptance",
+        });
+      }
+      duplicates.add(acceptance.requirement_code);
+    }
+    const missingOrChanged = legalVersions.filter((version) => {
+      const requirementCode = version.module_key ?? version.type;
+      const acceptance = input.legalAcceptances?.find(
+        (item) => item.requirement_code === requirementCode,
+      );
+      return (
+        !acceptance ||
+        acceptance.accepted !== true ||
+        acceptance.document_id !== version.id ||
+        acceptance.document_version !== version.version ||
+        acceptance.document_hash.toLowerCase() !==
+          String(version.content_sha256 ?? "").toLowerCase()
+      );
+    });
+    if (
+      missingOrChanged.length > 0 ||
+      input.legalAcceptances.length !== legalVersions.length
+    ) {
+      throw new WebsiteApplicationError({
+        message: "Minst ett juridikkrav saknas eller matchar inte det aktuella dokumentets ID, version och hash.",
+        status: 409,
+        code: "legal_acceptance_document_mismatch",
+        field: "legal_acceptances",
+        stage: "legal_acceptance",
+        hint: "Hämta det aktuella juridikpaketet och låt kunden godkänna samtliga returnerade krav igen.",
+        details: {
+          requirements: missingOrChanged.map(
+            (version) => version.module_key ?? version.type,
+          ),
+        },
+      });
+    }
+    return legalVersions;
+  }
+
+  // Compatibility for already reserved applications created before the
+  // document-bound acceptance array was introduced. New public clients only
+  // receive and send the dynamic legal_acceptances contract.
   const requirements = requiredWebsiteLegalAcceptances(input.publicOffer);
   const missingConsents = requirements.filter(
     (item) => !consentAccepted(input.consents, item.aliases),
@@ -1545,10 +1627,7 @@ async function assertWebsiteLegalAcceptances(input: {
     });
   }
 
-  return loadOfferBoundLegalVersions({
-    companyId: input.companyId,
-    publicOffer: input.publicOffer,
-  });
+  return legalVersions;
 }
 
 type CustomerLegalAcceptanceEvidenceInput = {
@@ -6687,6 +6766,27 @@ export async function processWebsiteCustomerApplication(input: {
   }
 
   let body = parsed.data;
+  const authUserId = clean(body.auth_user_id);
+  const customerPortalUserId = clean(body.customer_portal_user_id);
+  if (
+    Boolean(authUserId) !== Boolean(customerPortalUserId) ||
+    (authUserId &&
+      customerPortalUserId &&
+      (authUserId !== customerPortalUserId ||
+        !isUuid(authUserId) ||
+        !isUuid(customerPortalUserId)))
+  ) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "auth_user_id och customer_portal_user_id ska antingen båda utelämnas eller vara samma UUID från den verifierade serversessionen.",
+        status: 422,
+        code: "portal_auth_identity_mismatch",
+        field: "customer_portal_user_id",
+        stage: "validation",
+      }),
+    );
+  }
   const normalizedRequestedStartMode =
     (
       clean(body.requested_start_mode) ??
@@ -7114,6 +7214,8 @@ export async function processWebsiteCustomerApplication(input: {
         assertWebsiteLegalAcceptances({
           companyId: input.client.company_id,
           consents: body.consents,
+          legalBundleVersion: clean(body.legal_bundle_version),
+          legalAcceptances: body.legal_acceptances ?? body.legalAcceptances,
           publicOffer: selectedPublicOffer,
         }),
       );
@@ -8293,6 +8395,9 @@ async function repairMissingPoaOnIdempotentApplication(input: {
   const legalVersions = await assertWebsiteLegalAcceptances({
     companyId: input.client.company_id,
     consents: input.body.consents,
+    legalBundleVersion: clean(input.body.legal_bundle_version),
+    legalAcceptances:
+      input.body.legal_acceptances ?? input.body.legalAcceptances,
     publicOffer,
   });
 
@@ -9024,6 +9129,8 @@ export async function repairWebsiteCustomerApplication(
     legalVersions = await assertWebsiteLegalAcceptances({
       companyId,
       consents: body.consents,
+      legalBundleVersion: clean(body.legal_bundle_version),
+      legalAcceptances: body.legal_acceptances ?? body.legalAcceptances,
       publicOffer,
     });
   }

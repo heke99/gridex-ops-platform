@@ -38,15 +38,16 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await recordWebsiteCustomerEvent({ request, client: auth.client, payload: parsed.data, source: 'website' })
+    const { _internal_customer_id: internalCustomerId, ...responseData } = data
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 200,
       startedAt,
-      metadata: { event_id: data.event_id, customer_event_id: data.customer_event_id, event_type: data.event_type, customer_id: data.customer_id },
+      metadata: { event_id: data.event_id, customer_event_id: data.customer_event_id, event_type: data.event_type, customer_id: internalCustomerId },
     })
 
-    return customerPortalJson({ data })
+    return customerPortalJson({ data: responseData })
   } catch (error) {
     const controlled = typeof (error as { status?: unknown })?.status === 'number' && typeof (error as { code?: unknown })?.code === 'string'
     const status = controlled ? (error as { status: number }).status : 500

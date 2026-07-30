@@ -105,6 +105,17 @@
 - Added server-owned selection to website quote and internal customer creation.
 - Fixed the reduced website contract snapshot and added database quote binding.
 - Added billing fail-closed identity and lifecycle charging semantics.
-- Added forward migration, backfill/review, RLS, trace fields, post-apply and regressions; synchronized API/docs at `2026-07-29.1`.
+- Added forward migration, backfill/review, RLS, trace fields, post-apply and regressions; synchronized API/docs at `2026-07-30.1`.
 - Verified 365 tests, TypeScript, changed-file lint, API docs, focused regression and a clean production build.
 - Preserved the historical checksum blocker and made no database-apply claim.
+
+## 2026-07-30
+
+- Traced the OPS-to-Web contract, legal, application, portal, event, OpenAPI sync and readiness paths.
+- Added the canonical release manifest and deterministic finalizer for version `2026-07-30.1`.
+- Implemented dynamic document-bound legal acceptance, strict canonical customer events and strict portal sync identity.
+- Added the forward-only atomic portal identity/account migration and registered its exact checksum.
+- Synchronized Web snapshots/generated types and fail-closed live/readiness evidence.
+- Verified all TypeScript targets, zero-error lint, 58 files/370 tests, API docs/parity, tenant/idempotency/portal/webhook regressions and both production builds.
+- Confirmed Web migration integrity passes, OPS migration integrity has exactly the known historical drift, and the live release-manifest endpoint returns HTTP 404.
+- Preserved an honest NO-GO pending trusted historical recovery, authorized database apply, deployment, live sync, full staging, provider/concurrency and two-tenant proof.

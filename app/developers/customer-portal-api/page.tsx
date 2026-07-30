@@ -6,6 +6,7 @@ import {
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
   WEBSITE_INTEGRATION_OPENAPI_URL,
   CUSTOMER_PORTAL_OPENAPI_URL,
+  OPENAPI_RELEASE_MANIFEST_URL,
 } from "@/lib/integrations/websiteIntegrationContract";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ const apiBaseUrl = WEBSITE_INTEGRATION_BASE_URL;
 const documentationVersion = WEBSITE_INTEGRATION_CONTRACT_VERSION;
 const websiteOpenApiUrl = WEBSITE_INTEGRATION_OPENAPI_URL;
 const customerPortalOpenApiUrl = CUSTOMER_PORTAL_OPENAPI_URL;
+const releaseManifestUrl = OPENAPI_RELEASE_MANIFEST_URL;
 
 const permissions = [
   [
@@ -323,7 +325,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-29.1"
+  "contract_schema_version": "2026-07-30.1"
 }`;
 
 const marketReferenceExample = `{
@@ -451,7 +453,6 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
   -H "Idempotency-Key: website-order-12345" \
   -d '{
     "external_customer_id": "CUSTOMER-12345",
-    "source": "exempel.se",
     "offer_reference": "offer_...",
     "quote_reference": "quote_...",
     "resolution_id": "uuid",
@@ -482,20 +483,24 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
     },
     "customer_portal_user_id": "<gridex-web-supabase-session-user-id>",
     "auth_user_id": "<gridex-web-supabase-session-user-id>",
-    "consents": {
-      "terms": true,
-      "privacy_policy": true,
-      "withdrawal": true,
-      "power_of_attorney": true,
-      "price_terms": true
-    },
+    "legal_bundle_version": "<bundle-uuid-from-legal-bundle>",
+    "legal_acceptances": [
+      {
+        "requirement_code": "general_consumer_terms",
+        "document_id": "<document-uuid-from-legal-bundle>",
+        "document_version": "2026-07-30-v1",
+        "document_hash": "<64-character-sha256-from-legal-bundle>",
+        "accepted": true,
+        "accepted_at": "2026-07-30T09:00:00Z"
+      }
+    ],
     "powerOfAttorney": {
       "accepted": true,
       "scope": ["supplier_switch", "facility_information_lookup"],
       "signerName": "Anna Andersson",
       "signerIdentityNumber": "YYYYMMDDXXXX",
       "method": "website_acceptance",
-      "acceptedAt": "2026-07-24T09:00:00Z",
+      "acceptedAt": "2026-07-30T09:00:00Z",
       "textVersionId": "legal_poa_uuid",
       "ipAddress": "203.0.113.10",
       "userAgent": "Mozilla/5.0 ..."
@@ -515,17 +520,18 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
 //
 // Juridikens source of truth är alltid OPS. Hemsidan ska visa juridiklänkarna
 // och versionerna från public-contracts/legal-bundle och skicka tillbaka
-// acceptans + version-ID. För fullmakt ska powerOfAttorney.textVersionId vara
+// legal_bundle_version och en acceptansrad per returnerat krav med exakt
+// document_id, document_version och document_hash. För fullmakt ska
+// powerOfAttorney.textVersionId vara
 // legal.power_of_attorney_version_id från det publicerade avtalet. Skicka inte
 // egna juridiska texter, egna versionsnamn eller egen fullmaktstext som källa.
 //
 // Structured powerOfAttorney är obligatorisk för AUTOMATIC grid-owner
 // communication: powerOfAttorney.accepted=true + signerName +
 // signerIdentityNumber + method + textVersionId från OPS. Customer identity är
-// inte fallback för nya website POAs. En bare consents.power_of_attorney=true
-// skapar legal acceptance men bara en WEAK POA som markeras
-// externally_sendable=false / requires_completion=true och skickas aldrig till
-// nätägaren.
+// inte fallback för nya website POAs. En fristående boolean-consent är inte ett
+// canonicalt dokumentbevis; Web ska alltid skicka legal_acceptances-raden och
+// den strukturerade fullmakten från samma bundle.
 //
 // När POST-svaret är accepted fortsätter OPS från ett persistent
 // customer_application_continuation-jobb. Workern väljer exakt ett nästa steg:
@@ -1484,6 +1490,9 @@ export default function CustomerPortalApiDocsPage() {
           </p>
           <p>
             Maskinläsbara kontrakt publiceras stabilt på
+            <a className="ml-1 font-mono text-emerald-700 underline" href={releaseManifestUrl}>
+              {releaseManifestUrl}
+            </a>,{" "}
             <a className="ml-1 font-mono text-emerald-700 underline" href={websiteOpenApiUrl}>
               {websiteOpenApiUrl}
             </a>{" "}

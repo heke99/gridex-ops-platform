@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
   logIntegrationApiRequest,
@@ -16,9 +16,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function legalBundleJson(body: unknown, init: ResponseInit = {}) {
-  const headers = new Headers(init.headers)
-  headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=60')
-  return NextResponse.json(body, { ...init, headers })
+  return customerPortalJson(body, init)
 }
 
 export async function GET(request: NextRequest) {

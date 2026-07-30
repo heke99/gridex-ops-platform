@@ -62,3 +62,18 @@ quote-v3 immutability, atomic internal selection and snapshot guards are
 implemented and locally verified. Clean/upgraded apply, post-apply,
 concurrency and tenant isolation require an authorized staging database after
 BLK-003 is resolved.
+
+## BLK-008 — Canonical API release deployment proof
+
+Status: RELEASE_BLOCKER. The local runtime, guide, OpenAPI documents and Web
+snapshots are synchronized at `2026-07-30.1`, but the live release-manifest
+endpoint currently returns HTTP 404. Deploy OPS only after BLK-003 is resolved,
+then require exact live manifest/version/SHA parity before Web compatibility can
+be marked ready.
+
+## BLK-009 — Full OPS/Web staging proof
+
+Status: BLOCKED_BY_ENVIRONMENT. No authorized staging API keys, two isolated
+tenant fixtures, webhook secret/provider sandbox or deployment SHA are
+available. Guest/authenticated onboarding, database atomicity, portal runtime,
+webhook retry/dead-letter, concurrency and cross-tenant denial remain unclaimed.

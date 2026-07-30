@@ -445,7 +445,7 @@ Depends on: WP-030
 Affected domains: admin contracts, internal customer contracts, public API, quote, immutable snapshots, billing, migrations
 Acceptance criteria: one type-driven option/component model; server-owned selection; exact quote/contract/billing parity; stable references; forward-only tenant-safe schema
 Required verification: clean/upgraded PostgreSQL apply, post-apply, two-tenant/concurrency, internal and website quote-to-invoice scenarios
-Evidence: TypeScript/lint pass; 365 tests; API docs `2026-07-29.1`; focused regression; production build
+Evidence: TypeScript/lint pass; 365 tests; API docs `2026-07-30.1`; focused regression; production build
 Files changed: admin editors/actions, commercial resolver/calculator, quote/onboarding/internal customer/billing, OpenAPI/docs/tests/scripts/memory
 Migrations: `20260729200000_contract_commercial_selection_completion.sql`
 Last updated: 2026-07-29

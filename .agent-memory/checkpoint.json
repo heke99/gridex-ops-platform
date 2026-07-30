@@ -1,60 +1,66 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-29T15:56:55+02:00",
+  "updated_at": "2026-07-30T02:31:00+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-31",
-  "active_task": "WP-031",
-  "active_subtask": "Restore immutable migration, then database-verify commercial selection",
+  "active_phase": "PHASE-32",
+  "active_task": "WP-032",
+  "active_subtask": "Restore immutable migration, then database/deploy/staging-verify canonical API release",
   "status": "BLOCKED",
   "implemented_not_database_verified": [
-    "20260729200000 canonical option/component selection completion",
-    "website quote v3 and exact contract snapshot binding",
-    "atomic internal customer commercial selection",
-    "billing v6 identity and lifecycle gates",
-    "external API schema 2026-07-29.1"
+    "20260730120000 atomic website portal identity and owner account",
+    "dynamic document-bound legal acceptance",
+    "strict canonical customer event and portal sync contracts",
+    "OpenAPI release manifest and deterministic SHA-256 publication",
+    "external API and Gridex Web snapshots/types at 2026-07-30.1"
   ],
   "active_blockers": [
     "20260728170000 checksum differs from its registered immutable checksum and the original bytes are unavailable",
     "Uploaded archive excludes Git metadata",
     "Authorized PostgreSQL staging/production connection is unavailable",
-    "Clean/upgraded apply and end-to-end invoice parity are not executable locally"
+    "Live release-manifest endpoint returns HTTP 404 before deployment",
+    "Staging API keys, two-tenant fixtures and provider/webhook credentials are unavailable"
   ],
   "verification": [
     {
       "name": "typecheck",
       "status": "VERIFIED",
-      "evidence": "app and test TypeScript targets pass"
+      "evidence": "app, test and script TypeScript targets pass"
     },
     {
       "name": "tests",
       "status": "VERIFIED",
-      "evidence": "57 files, 365 tests pass"
+      "evidence": "58 files, 370 tests pass"
     },
     {
       "name": "lint",
       "status": "VERIFIED",
-      "evidence": "changed runtime files pass with zero errors"
+      "evidence": "zero errors; 124 pre-existing warnings"
     },
     {
-      "name": "commercial regression",
+      "name": "API/OpenAPI/docs",
       "status": "VERIFIED",
-      "evidence": "admin, quote, internal, snapshot and billing chain controls pass"
+      "evidence": "contract, parity, examples, shared boundaries and version 2026-07-30.1 pass"
     },
     {
-      "name": "API/OpenAPI",
+      "name": "release determinism",
       "status": "VERIFIED",
-      "evidence": "contract, parity, examples and version 2026-07-29.1 pass"
+      "evidence": "two finalizer runs produced identical website 08e04d... and portal e3333b... canonical hashes"
+    },
+    {
+      "name": "tenant/idempotency/portal/webhook regressions",
+      "status": "VERIFIED",
+      "evidence": "single-key 107 checks and targeted regression commands pass"
     },
     {
       "name": "production build",
       "status": "VERIFIED",
-      "evidence": "clean Next.js build completes"
+      "evidence": "OPS and Gridex Web Next.js production builds complete locally"
     },
     {
       "name": "new migration checksum",
       "status": "VERIFIED",
-      "evidence": "20260729200000 SHA-256 matches manifest"
+      "evidence": "20260730120000 SHA-256 d56a6dd9... matches manifest"
     },
     {
       "name": "migration integrity",
@@ -62,17 +68,22 @@
       "evidence": "only historical 20260728170000 drift remains"
     },
     {
-      "name": "PostgreSQL apply/postflight/E2E",
+      "name": "live OpenAPI parity",
       "status": "BLOCKED",
-      "evidence": "requires immutable migration recovery and authorized database"
+      "evidence": "live release-manifest endpoint returns HTTP 404"
+    },
+    {
+      "name": "PostgreSQL apply/full staging/two-tenant/provider",
+      "status": "BLOCKED",
+      "evidence": "requires trusted migration recovery, deployment and authorized environment"
     }
   ],
-  "next_action": "Restore 20260728170000 from the exact trusted applied artifact, require a green migration check, then apply through 20260729200000 in staging and run post-apply plus quote/internal/billing parity scenarios",
-  "resume_from": "scripts/gridex-contract-commercial-selection-post-apply.sql",
+  "next_action": "Restore 20260728170000 from the trusted applied artifact, require a green migration check, apply through 20260730120000 in staging, deploy OPS and execute live manifest plus complete two-tenant OPS/Web staging verification",
+  "resume_from": "supabase/migrations/20260730120000_atomic_website_portal_identity.sql",
   "context_notes": [
     "Do not change the manifest checksum to hide 20260728170000 drift",
     "Do not apply pending migrations until npm run db:migrations:check is green",
-    "V6 billing must use the locked exact component snapshot",
-    "Repeat release build with declared production Node 22"
+    "Do not mark Web live compatibility ready until the deployed release manifest and SHA values pass",
+    "Repeat the release build with declared production Node 22"
   ]
 }

@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-29.1**
+> **Canonical API-version: 2026-07-30.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -20,6 +20,7 @@ quote_reference: top-level i kundansökan
 resolution_id: top-level i kundansökan
 Website OpenAPI: https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 Customer Portal OpenAPI: https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
+Release manifest: https://app.gridex.se/api/v1/openapi/release-manifest.json
 ```
 
 API-nyckeln avgör tenant, bolag och scopes. OpenAPI används för utveckling och typgenerering, aldrig som runtime-spärr. Tenantens webb ska därför inte ha separata miljövariabler för payloadläge, company-ID, tenantreferens, tenant-ID eller OpenAPI-sökväg.
@@ -334,13 +335,19 @@ Idempotency-Key: required
     "requested_start_mode": "specific_date",
     "requested_start_date": "2026-09-01"
   },
-  "consents": {
-    "terms": true,
-    "privacy_policy": true,
-    "withdrawal": true,
-    "power_of_attorney": true,
-    "price_terms": true
-  },
+  "customer_portal_user_id": "uuid-från-verifierad-serversession",
+  "auth_user_id": "uuid-från-verifierad-serversession",
+  "legal_bundle_version": "uuid-från-legal-bundle",
+  "legal_acceptances": [
+    {
+      "requirement_code": "general_consumer_terms",
+      "document_id": "uuid-från-legal-bundle",
+      "document_version": "2026-07-30-v1",
+      "document_hash": "64-teckens-sha256-från-legal-bundle",
+      "accepted": true,
+      "accepted_at": "2026-07-30T10:30:00+02:00"
+    }
+  ],
   "powerOfAttorney": {
     "accepted": true,
     "scope": [
@@ -350,7 +357,7 @@ Idempotency-Key: required
     "signerName": "Anna Andersson",
     "signerIdentityNumber": "YYYYMMDDXXXX",
     "method": "website_acceptance",
-    "acceptedAt": "2026-07-24T10:30:00+02:00",
+    "acceptedAt": "2026-07-30T10:30:00+02:00",
     "textVersionId": "uuid-från-publicerat-legal-bundle",
     "ipAddress": "203.0.113.10",
     "userAgent": "Mozilla/5.0"
@@ -364,7 +371,13 @@ OPS använder samma tenantbundna kundmatchning i alla intakekanaler. Organisatio
 
 Använd de canonicala fälten `customer.personal_number` för privatkund och `customer.org_number` för företagskund. Under en övergångsperiod normaliserar API:t även identitetsalias som `personal_identity_number`, `personalIdentityNumber`, `identity_number`, `personnummer`, `organization_number`, `organisation_number`, `organisationsnummer` och `orgnr`, men nya integrationer ska alltid skicka de canonicala fälten.
 
-`consents.power_of_attorney=true` registrerar den juridiska acceptansen, men räcker inte ensam för automatisk kommunikation med nätägaren. När fullmakt krävs ska tenant även skicka den strukturerade `powerOfAttorney`-modellen med signerande namn, signerande identitet, metod, exakt scope och publicerat `textVersionId`. OPS blockerar nätägarutskick om fullmakten inte är `externally_sendable`.
+`legal_acceptances` ska byggas exakt från endpointens dynamiska
+`requirements`. OPS verifierar bundle, requirement code, dokument-ID, version,
+SHA-256, `accepted=true` och timestamp. Om paketet ändrats returneras
+`legal_bundle_version_mismatch` eller `legal_acceptance_document_mismatch` och
+Web ska hämta paketet igen. När fullmakt krävs ska tenant även skicka den
+strukturerade `powerOfAttorney`-modellen med signerande namn, identitet, metod,
+exakt scope och publicerat `textVersionId`.
 
 Ett accepterat svar betyder att OPS har committat kund, anläggning, avtal, juridik och ett persistent fortsättningsjobb. Därefter äger OPS hela processen. Tenant ska inte själv skicka nätägarbegäran, skapa Z01/Z03, starta leverantörsbyte eller skicka juridiska avtalsmail.
 
@@ -486,9 +499,9 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-07-29.1` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-07-30.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-07-29.1
+## Canonical marknadsprisflöde i API 2026-07-30.1
 
 Det finns tre separata operationer:
 
@@ -553,10 +566,12 @@ Scope: website_legal.read eller website_contracts.read
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-07-29.1
+## Migrering till kontraktsversion 2026-07-30.1
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;
 - använd den canonicala strukturerade felmodellen med `ok=false`, `code`, `message`, `request_id`, `correlation_id` och `blockers`;
 - använd endast `GET /api/v1/website/legal-bundle` för juridikpaketet;
+- hämta release-manifestet före specs och verifiera båda SHA-256-värdena;
+- skicka dynamiska dokumentbundna `legal_acceptances`;
 - generera om externa typer från den nya OpenAPI-versionen.

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   logIntegrationApiRequest,
@@ -31,7 +32,17 @@ export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
   const headers = new Headers(init.headers)
   headers.set('Cache-Control', 'no-store')
   headers.set('X-Gridex-Contract-Version', WEBSITE_INTEGRATION_CONTRACT_VERSION)
-  return NextResponse.json(body, { ...init, headers })
+  const envelope = body && typeof body === 'object' && !Array.isArray(body)
+    ? {
+        ...(body as Record<string, unknown>),
+        request_id:
+          typeof (body as Record<string, unknown>).request_id === 'string'
+            ? (body as Record<string, unknown>).request_id
+            : randomUUID(),
+        contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
+      }
+    : body
+  return NextResponse.json(envelope, { ...init, headers })
 }
 
 export function jsonError(error: string, status: number, code?: string) {
