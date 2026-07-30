@@ -407,12 +407,6 @@ select public.gridex__repair_replace_function_text(
   $$o.valid_from::timestamptz,
     case when o.valid_to is null then null else (o.valid_to + 1)::timestamptz end$$
 );
-select public.gridex__repair_replace_function_text(
-  'public.gridex_sync_internal_offer_to_canonical(uuid)',
-  'o.valid_from::timestamptz,o.valid_to::timestamptz',
-  $$o.valid_from::timestamptz,
-    case when o.valid_to is null then null else (o.valid_to + 1)::timestamptz end$$
-);
 
 -- ---------------------------------------------------------------------------
 -- Canonical public view and publication integrity.
@@ -739,6 +733,12 @@ select public.gridex__repair_replace_function_text(
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_is_current_session_allowed()',
+  $$  v_disabled_at timestamptz;
+begin$$,
+  $$begin$$
+);
+select public.gridex__repair_replace_function_text(
+  'public.gridex_is_current_session_allowed()',
   $$select user_status, disabled_at
     into v_status, v_disabled_at$$,
   $$select profile.user_status
@@ -757,15 +757,6 @@ select public.gridex__repair_replace_function_text(
 
 $$,
   ''
-);
--- Remove the declaration only after every reference has been removed. Each
--- helper call executes CREATE OR REPLACE FUNCTION immediately, so this order
--- keeps every intermediate function definition compilable.
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$  v_disabled_at timestamptz;
-begin$$,
-  $$begin$$
 );
 
 select public.gridex__repair_replace_function_text(
@@ -1497,3 +1488,13 @@ comment on function public.gridex_retry_website_contract_signature(uuid,uuid,uui
   'Idempotently recovers signature_failed website contracts to pending_signature before a new exact-evidence finalization.';
 
 commit;
+
+
+
+
+select public.gridex__repair_replace_function_text(
+  'public.gridex_sync_internal_offer_to_canonical(uuid)',
+  'o.valid_from::timestamptz,o.valid_to::timestamptz',
+  $$o.valid_from::timestamptz,
+    case when o.valid_to is null then null else (o.valid_to + 1)::timestamptz end$$
+);

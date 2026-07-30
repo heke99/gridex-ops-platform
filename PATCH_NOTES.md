@@ -1,36 +1,41 @@
-# Gridex OPS — POA UUID validation + idempotency failed-log hotfix
+# Gridex Ops canonical production repair
 
-## Fixes
+Datum: 2026-07-30  
+Kontraktsversion: `2026-07-30.1`  
+Releasebeslut: **NO-GO tills blockerarna i VERIFICATION.md är lösta**
 
-1. `powerOfAttorney.textVersionId` is now validated as a UUID before querying `legal_text_versions`.
-   - Invalid values such as `2026-06-12-v1` now return a controlled `422 power_of_attorney_version_invalid`.
-   - OPS no longer leaks raw Postgres `22P02 invalid input syntax for type uuid` as a 500.
+## Levererat
 
-2. Failed application logging no longer crashes on duplicate `(company_id, idempotency_key)`.
-   - `createApplicationRow()` now detects `website_customer_applications_company_idempotency_uidx` duplicate-key errors.
-   - When a failed/partial row already exists, OPS updates that row instead of trying to insert a duplicate.
-   - This prevents `[website-applications] failed to log failed application ... duplicate key value violates unique constraint`.
+- Återställer den immutable historiska migrationen
+  `20260728170000_live_schema_code_canonical_sync.sql` byte-för-byte till den
+  registrerade SHA-256-summan `881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`.
+- Flyttar den felaktigt inlagda ändringen till den nya framåtriktade
+  migrationen `20260730130000_historical_sync_forward_repair.sql`.
+- Hashar exakt samma pretty-printade OpenAPI-bytes i release-manifestet som
+  routes faktiskt serverar, och gör manifestet `no-store`.
+- Normaliserar alla svar som går genom `customerPortalJson` till en enda
+  canonical fel-envelope utan parallella `code`, `error_code`, `message`,
+  `request_id` eller `correlation_id` på flera nivåer.
+- Tar bort dubblerad `meta` från integration context och dubblerad `quote` från
+  quote-svaret.
+- Projicerar webhooks till opaka, tenantbundna `event_id`, `delivery_id`,
+  `customer_reference` och aggregate `reference`.
+- Filtrerar råa databasfält `id` och `*_id` rekursivt från webhookdata.
+- Återprojicerar äldre redan köade webhookrader från deras tenantbundna
+  domänevent innan signering, så en uppgradering inte skickar legacy-UUID:n.
+- Regenererar Website och Customer Portal OpenAPI med slutna canonicala error-
+  och publication-webhook-scheman.
+- Exkluderar `.patch-backups/**` från aktiv lintning; katalogen innehåller
+  historiska leveranssnapshots, inte körbar källkod.
 
-3. Regressions updated to lock the behavior.
-   - POA regression asserts non-UUID `textVersionId` is rejected before DB lookup.
-   - Continuation regression asserts duplicate idempotency logging updates existing rows.
+## Exakta lokala OpenAPI-hashar
 
-## Changed files
+- Website: `9ad3fc518d9aadb687141af2df7d3068df8f7daca530cc01b525d4b94c816b7b`
+- Customer Portal: `a3e3f475f3822f30efab4e9a792d714585bacc98773d52790adf12072ed3251e`
 
-- `lib/website/customerApplications.ts`
-- `scripts/gridex-website-api-power-of-attorney-regression.cjs`
-- `scripts/gridex-ops-continuation-hardening-regression.cjs`
+## Viktig avgränsning
 
-## Verify
-
-Run from OPS project root:
-
-```bash
-npm run gridex:ops-continuation-hardening-regression
-npm run gridex:website-api-power-of-attorney-regression
-npm run gridex:batch-8-1-live-schema-regression
-npm run gridex:batch-7-website-foundation-regression
-npm run gridex:customer-portal-multi-site-api-regression
-npm run db:migrations:check
-npm run build
-```
+Det bifogade underlaget innehöll endast Gridex Ops. Gridex Web har därför inte
+ändrats, byggts eller verifierats. Skapa inte en Web-release från denna patch;
+synkronisera Web först när det aktuella Web-repot har levererats och den
+driftsatta OPS-manifestkontrollen är grön.

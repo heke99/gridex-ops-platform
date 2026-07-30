@@ -11,5 +11,6 @@ export async function GET(request: NextRequest) {
     request,
     buildOpenApiReleaseManifest(),
     'gridex-openapi-release-manifest.json',
+    { cacheControl: 'no-store, max-age=0, must-revalidate' },
   )
 }

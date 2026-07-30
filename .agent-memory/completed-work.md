@@ -137,3 +137,14 @@ Status: VERIFIED LOCALLY
 - Synchronized Gridex Web snapshots and generated types; live readiness remains fail-closed until deployment.
 - Verified 58 files/370 tests, all TypeScript targets, zero-error lint, API docs/parity, targeted tenant/idempotency/portal/webhook regressions and both production builds.
 - Production remains NO-GO because immutable migration drift, database apply, live manifest, staging, provider, concurrency and two-tenant evidence are unresolved.
+
+## 2026-07-30 immutable-history and public-contract repair
+
+- Recovered `20260728170000...` from a trusted prior synchronized artifact and restored its registered bytes without changing the manifest checksum.
+- Moved the intended inclusive `valid_to` and session-guard repairs into registered forward migration `20260730130000...`.
+- Fixed release-manifest SHA-256 calculation to hash the exact serialized bytes served by both OpenAPI routes and made the manifest response non-cacheable.
+- Normalized public errors to one nested envelope and removed duplicate integration-context and quote success aliases.
+- Replaced raw webhook UUIDs/internal IDs with stable tenant-bound opaque references and recursively sanitized webhook data.
+- Regenerated both OpenAPI documents with closed canonical error and publication-webhook schemas.
+- Verified 323 migrations/227 groups, 58 files/373 tests, all TypeScript profiles, API/docs/parity, error/tenant gates, zero-error lint and production build.
+- Production remains NO-GO pending migration-ledger resolution, clean/upgrade apply, deployment/live hashes, missing Web source and full environment E2E.

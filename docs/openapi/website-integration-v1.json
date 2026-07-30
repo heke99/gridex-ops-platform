@@ -3214,20 +3214,28 @@
       },
       "PublicationChangedWebhook": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
-          "id",
-          "type",
+          "event_id",
+          "delivery_id",
+          "event_type",
           "created_at",
           "tenant_reference",
           "aggregate",
-          "data"
+          "data",
+          "contract_schema_version"
         ],
         "properties": {
-          "id": {
+          "event_id": {
             "type": "string",
-            "format": "uuid"
+            "pattern": "^event_[a-f0-9]{32}$"
           },
-          "type": {
+          "delivery_id": {
+            "type": "string",
+            "pattern": "^delivery_[a-f0-9]{32}$"
+          },
+          "event_type": {
+            "type": "string",
             "const": "contracts.publication.changed"
           },
           "created_at": {
@@ -3235,28 +3243,63 @@
             "format": "date-time"
           },
           "tenant_reference": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^tenant_[A-Za-z0-9._-]+$"
+          },
+          "environment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "test",
+              "production",
+              null
+            ]
           },
           "aggregate": {
             "type": "object",
+            "additionalProperties": false,
             "required": [
               "type",
-              "id"
+              "reference"
             ],
             "properties": {
               "type": {
+                "type": "string",
                 "const": "contract_publication"
               },
-              "id": {
+              "reference": {
                 "type": "string"
               }
-            },
-            "additionalProperties": false
+            }
+          },
+          "customer": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "customer_reference",
+              "customer_number"
+            ],
+            "properties": {
+              "customer_reference": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "customer_number": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
           },
           "data": {
             "type": "object",
+            "additionalProperties": false,
             "required": [
-              "tenant_reference",
               "channel",
               "publication_revision",
               "revision_token",
@@ -3264,10 +3307,8 @@
               "timestamp"
             ],
             "properties": {
-              "tenant_reference": {
-                "type": "string"
-              },
               "channel": {
+                "type": "string",
                 "enum": [
                   "website",
                   "api",
@@ -3277,11 +3318,11 @@
                 ]
               },
               "publication_revision": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 1
               },
               "revision_token": {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               "reason": {
                 "type": "string"
@@ -3290,11 +3331,13 @@
                 "type": "string",
                 "format": "date-time"
               }
-            },
-            "additionalProperties": false
+            }
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-30.1"
           }
-        },
-        "additionalProperties": false
+        }
       },
       "EnergyAreaResolveRequest": {
         "type": "object",
@@ -5107,91 +5150,18 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "ok",
-          "code",
-          "message",
+          "error",
           "request_id",
-          "correlation_id",
-          "blockers"
+          "contract_schema_version"
         ],
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "const": false
-          },
-          "code": {
-            "type": "string"
-          },
-          "error_code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "correlation_id": {
-            "type": "string"
-          },
-          "blockers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiBlocker"
-            }
-          },
-          "field": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "details": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
-          },
-          "error_stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "action": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "hint": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "error": {
             "type": "object",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "required": [
               "code",
               "message",
-              "request_id",
-              "correlation_id",
-              "blockers"
+              "retryable"
             ],
             "properties": {
               "code": {
@@ -5200,17 +5170,14 @@
               "message": {
                 "type": "string"
               },
-              "request_id": {
-                "type": "string"
-              },
-              "correlation_id": {
+              "stage": {
                 "type": "string"
               },
               "field": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
+              },
+              "hint": {
+                "type": "string"
               },
               "retryable": {
                 "type": "boolean"
@@ -5220,11 +5187,31 @@
                 "items": {
                   "$ref": "#/components/schemas/ApiBlocker"
                 }
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               }
             }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-30.1"
           }
         },
-        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
       },
       "LegalBundleDocument": {
         "type": "object",

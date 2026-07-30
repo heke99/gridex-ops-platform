@@ -6,15 +6,14 @@ import {
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
   WEBSITE_INTEGRATION_OPENAPI_URL,
 } from '@/lib/integrations/websiteIntegrationContract'
+import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
 export const OPENAPI_RELEASED_AT = '2026-07-30T00:00:00.000Z' as const
 
-function canonicalDocument(document: unknown): string {
-  return `${JSON.stringify(document)}\n`
-}
-
 function sha256(document: unknown): string {
-  return createHash('sha256').update(canonicalDocument(document)).digest('hex')
+  return createHash('sha256')
+    .update(serializeOpenApiDocument(document))
+    .digest('hex')
 }
 
 export function buildOpenApiReleaseManifest() {

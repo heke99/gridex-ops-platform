@@ -14,13 +14,11 @@ database connection. Production remains NO-GO.
 
 ## BLK-003 — Noncanonical historical migration chain
 
-Status: RELEASE_BLOCKER. The file
-`20260728170000_live_schema_code_canonical_sync.sql` hashes to
-`a743f580168fa2e5de28a9814f151ca0fdc1649517c84490afd093a72340afc4`,
-but its immutable manifest value is
+Status: RESOLVED LOCALLY. The file was restored byte-for-byte from the trusted
+prior synchronized artifact and now hashes to its immutable manifest value
 `881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`.
-Restore the file from the trusted applied artifact. Never change the manifest
-to conceal drift and do not run `db push`.
+The intended delta is in registered forward migration `20260730130000...`.
+Database replay proof remains covered by BLK-002/BLK-010.
 
 ## BLK-006 — Contract-channel production scenarios
 
@@ -66,10 +64,10 @@ BLK-003 is resolved.
 ## BLK-008 — Canonical API release deployment proof
 
 Status: RELEASE_BLOCKER. The local runtime, guide, OpenAPI documents and Web
-snapshots are synchronized at `2026-07-30.1`, but the live release-manifest
-endpoint currently returns HTTP 404. Deploy OPS only after BLK-003 is resolved,
-then require exact live manifest/version/SHA parity before Web compatibility can
-be marked ready.
+contract are synchronized at `2026-07-30.1`. The live release-manifest endpoint
+now returns HTTP 200, but its advertised hashes do not match the raw served
+OpenAPI files. Deploy this OPS patch, then require exact live
+manifest/version/SHA parity before Web compatibility can be marked ready.
 
 ## BLK-009 — Full OPS/Web staging proof
 
@@ -77,3 +75,17 @@ Status: BLOCKED_BY_ENVIRONMENT. No authorized staging API keys, two isolated
 tenant fixtures, webhook secret/provider sandbox or deployment SHA are
 available. Guest/authenticated onboarding, database atomicity, portal runtime,
 webhook retry/dead-letter, concurrency and cross-tenant denial remain unclaimed.
+
+## BLK-010 — Duplicate migration timestamps and replay proof
+
+Status: RELEASE_BLOCKER. Version groups `20260612193000`, `20260616123000` and
+`20260727150000` contain multiple immutable files and are currently explicitly
+allowlisted. Renaming a migration that may already be applied is unsafe without
+the authoritative database migration ledger. A clean replay also needs to prove
+the restored `20260728170000...` intermediate function-rewrite sequence.
+
+## BLK-011 — Missing Gridex Web source
+
+Status: BLOCKED_BY_INPUT. The supplied archive contains only Gridex Ops. No Web
+patch, type generation, build or live client synchronization is claimed until
+the current Gridex Web repository/archive is supplied.

@@ -119,3 +119,18 @@
 - Verified all TypeScript targets, zero-error lint, 58 files/370 tests, API docs/parity, tenant/idempotency/portal/webhook regressions and both production builds.
 - Confirmed Web migration integrity passes, OPS migration integrity has exactly the known historical drift, and the live release-manifest endpoint returns HTTP 404.
 - Preserved an honest NO-GO pending trusted historical recovery, authorized database apply, deployment, live sync, full staging, provider/concurrency and two-tenant proof.
+- Searched prior synchronized artifacts and recovered the exact trusted
+  `20260728170000...` bytes matching manifest SHA-256 `881e1bc...`.
+- Added registered forward migration `20260730130000...` for the delta that had
+  incorrectly been placed in immutable history.
+- Found and fixed the release-manifest serialization mismatch: manifest hashes
+  now use the exact pretty-printed bytes served by the OpenAPI routes.
+- Centralized canonical error normalization, removed duplicate `meta`/`quote`
+  response aliases, and projected webhooks with tenant-bound opaque references
+  and no raw database IDs.
+- Regenerated OpenAPI and verified migration integrity, 373 tests, every
+  TypeScript profile, API/docs/parity, error/tenant gates, lint and production
+  build.
+- Confirmed live HTTP/version availability but not hash parity. Kept production
+  NO-GO for duplicate migration provenance, database replay, missing Web source
+  and full environment E2E.

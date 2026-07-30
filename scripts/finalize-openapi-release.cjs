@@ -50,6 +50,48 @@ for (const document of [website, portal]) {
   document['x-contract-schema-version'] = version
 }
 
+const canonicalErrorEnvelope = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['error', 'request_id', 'contract_schema_version'],
+  properties: {
+    error: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['code', 'message', 'retryable'],
+      properties: {
+        code: string,
+        message: string,
+        stage: string,
+        field: string,
+        hint: string,
+        retryable: { type: 'boolean' },
+        blockers: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/ApiBlocker' },
+        },
+        details: {
+          type: [
+            'object',
+            'array',
+            'string',
+            'number',
+            'boolean',
+            'null',
+          ],
+        },
+      },
+    },
+    request_id: string,
+    correlation_id: string,
+    contract_schema_version: contractVersion,
+  },
+  description:
+    'Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted.',
+}
+website.components.schemas.ApiError = canonicalErrorEnvelope
+portal.components.schemas.ApiError = canonicalErrorEnvelope
+
 website.components.schemas.LegalAcceptance = {
   type: 'object',
   additionalProperties: false,
@@ -348,6 +390,84 @@ website.components.schemas.OpsDomainWebhookEnvelope = {
   },
 }
 
+website.components.schemas.PublicationChangedWebhook = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'event_id',
+    'delivery_id',
+    'event_type',
+    'created_at',
+    'tenant_reference',
+    'aggregate',
+    'data',
+    'contract_schema_version',
+  ],
+  properties: {
+    event_id: {
+      type: 'string',
+      pattern: '^event_[a-f0-9]{32}$',
+    },
+    delivery_id: {
+      type: 'string',
+      pattern: '^delivery_[a-f0-9]{32}$',
+    },
+    event_type: {
+      type: 'string',
+      const: 'contracts.publication.changed',
+    },
+    created_at: dateTime,
+    tenant_reference: {
+      type: 'string',
+      pattern: '^tenant_[A-Za-z0-9._-]+$',
+    },
+    environment: {
+      type: ['string', 'null'],
+      enum: ['test', 'production', null],
+    },
+    aggregate: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['type', 'reference'],
+      properties: {
+        type: { type: 'string', const: 'contract_publication' },
+        reference: string,
+      },
+    },
+    customer: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['customer_reference', 'customer_number'],
+      properties: {
+        customer_reference: nullableString,
+        customer_number: nullableString,
+      },
+    },
+    data: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'channel',
+        'publication_revision',
+        'revision_token',
+        'reason',
+        'timestamp',
+      ],
+      properties: {
+        channel: {
+          type: 'string',
+          enum: ['website', 'api', 'internal', 'phone', 'partner'],
+        },
+        publication_revision: { type: 'integer', minimum: 1 },
+        revision_token: string,
+        reason: string,
+        timestamp: dateTime,
+      },
+    },
+    contract_schema_version: contractVersion,
+  },
+}
+
 website.components.schemas.OpenApiReleaseManifest = {
   type: 'object',
   additionalProperties: false,
@@ -604,11 +724,11 @@ fs.writeFileSync(portalPath, `${JSON.stringify(portal, null, 2)}\n`)
 const hashes = {
   website: crypto
     .createHash('sha256')
-    .update(`${JSON.stringify(website)}\n`)
+    .update(`${JSON.stringify(website, null, 2)}\n`)
     .digest('hex'),
   customer_portal: crypto
     .createHash('sha256')
-    .update(`${JSON.stringify(portal)}\n`)
+    .update(`${JSON.stringify(portal, null, 2)}\n`)
     .digest('hex'),
 }
 console.log(JSON.stringify({ version, hashes }, null, 2))

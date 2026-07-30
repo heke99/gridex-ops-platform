@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     const context = await loadExternalTenantContext(auth.client)
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId } })
-    return customerPortalJson({ data: context, meta: context, request_id: requestId }, {
+    return customerPortalJson({ data: context, request_id: requestId }, {
       status: 200,
       headers: {
         'Cache-Control': 'private, max-age=300',

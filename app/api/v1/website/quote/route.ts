@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
     })
 
     return customerPortalJson(
-      { data: result, quote: result, request_id: requestId },
+      { data: result, request_id: requestId },
       { status: 201, headers: { 'Cache-Control': 'no-store' } },
     )
   } catch (error) {

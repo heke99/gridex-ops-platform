@@ -1,35 +1,35 @@
 # Current task
 
-Last updated: 2026-07-30T02:31:00+02:00  
+Last updated: 2026-07-30T13:05:00+02:00  
 Branch: UNVERIFIED (uploaded archive excludes `.git`)  
 Last verified commit: null
 
 ## Active phase
 
-PHASE-32 — canonical OPS/Web API contract, dynamic legal evidence and atomic portal identity.
+PHASE-33 — immutable migration recovery, exact OpenAPI release bytes and canonical public envelopes.
 
 ## Completed locally
 
-- Added the machine-readable OpenAPI release manifest and deterministic finalization.
-- Closed the targeted website, quote, portfolio, event and portal sync schemas and synchronized both OpenAPI documents at `2026-07-30.1`.
-- Replaced fixed legal-consent assumptions with exact dynamic document evidence.
-- Enforced paired portal/auth identities in runtime requests and portal sync headers.
-- Added forward migration `20260730120000_atomic_website_portal_identity.sql`.
-- Synchronized Gridex Web snapshots/generated types and exposed fail-closed local/live/runtime readiness.
-- Verified all TypeScript targets, zero-error lint, 370 tests, API docs/parity, focused tenant/idempotency/portal/webhook regressions and production builds.
+- Restored the immutable historical migration to its registered trusted bytes.
+- Added and registered the forward-only repair migration.
+- Fixed exact served-byte release-manifest hashing and disabled manifest caching.
+- Canonicalized public error, integration-context, quote and webhook envelopes.
+- Regenerated both OpenAPI documents and added regression coverage for byte hashes, error normalization and internal-ID-free webhook projection.
+- Verified all TypeScript profiles, 373 tests, API/docs/parity, migration/error/tenant gates, zero-error lint and production build.
 
 ## Exact next action
 
-Recover `20260728170000_live_schema_code_canonical_sync.sql` byte-for-byte from the trusted applied source so its SHA-256 is `881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`. Then require a green migration check, apply pending forward migrations through `20260730120000...` in staging, deploy OPS, verify the live release manifest and execute the complete guest/authenticated portal, webhook, concurrency and two-tenant flow.
+Review the three allowlisted duplicate migration version groups against the actual staging/production migration ledger. Do not rename any applied migration without that proof. Then use Node 22, run a clean-database and upgraded-database apply through `20260730130000`, deploy OPS, verify the live release manifest against the two served files, synchronize the separate Gridex Web repository and execute two-tenant, quote concurrency, webhook replay/idempotency and provider delivery scenarios.
 
 ## Blockers
 
-- The exact trusted bytes for historical migration `20260728170000...` are not present in the supplied or previously available archives.
-- No authorized PostgreSQL staging/live connection is available.
-- The new portal-identity migration could not be applied to clean and upgraded databases in this workspace.
-- Provider sandbox/credentials, deployment target and Git metadata are absent.
-- The live OPS deployment does not yet expose `/api/v1/openapi/release-manifest.json` (HTTP 404).
+- No authorized PostgreSQL clean/staging/live connection or Supabase CLI is available.
+- The immutable historical file contains an intermediate text-rewrite sequence that appears unsafe on a clean replay; this must be proved with a real clean apply rather than declared passed.
+- Duplicate version groups `20260612193000`, `20260616123000` and `20260727150000` are allowlisted; safe resolution requires authoritative applied-ledger provenance.
+- Gridex Web source was not supplied, so its runtime sync/build cannot be changed or verified.
+- Staging API keys, isolated tenant fixtures, webhook receiver/secret and provider sandbox credentials are unavailable.
+- The live deployment is still the previous release and its manifest hashes do not match served OpenAPI bytes.
 
 ## Do not repeat
 
-Do not change the historical manifest checksum, run `db push` while integrity is red, claim database/live/staging verification from static checks, or mark live API compatibility ready before the deployed manifest and both SHA-256 values pass.
+Do not modify trusted historical migration bytes or manifest checksums, rename applied duplicate migrations without ledger proof, claim database/staging/Web/provider verification from static checks, or mark production `GO` until exact deployed manifest and full environment gates pass.

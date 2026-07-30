@@ -1,16 +1,15 @@
 # Current state
 
-Last updated: 2026-07-30T02:31:00+02:00
+Last updated: 2026-07-30T13:05:00+02:00
 
-- PHASE-32 canonical OPS/Web API release: IMPLEMENTED and LOCALLY VERIFIED; LIVE/DATABASE VERIFICATION BLOCKED.
-- Website API, Customer Portal API, runtime, guide, examples and release manifest use `2026-07-30.1`.
-- `GET /api/v1/openapi/release-manifest.json` publishes canonical SHA-256 values for both deterministic OpenAPI documents.
-- Legal requirements and acceptances are dynamic, offer-bound and document ID/version/hash-bound; public application requests no longer expose the legacy fixed consent object.
-- Customer events use one strict canonical request shape and no longer accept the legacy free-form payload.
-- Portal sync has a strict body, paired UUID identity, matching required headers and a link/recovery-only response.
-- A forward-only migration atomically creates the portal identity and owner account inside the website-application transaction and adds tenant/provider/subject uniqueness.
-- Gridex Web synchronized snapshots and generated types locally; live release-manifest verification remains deliberately false until deployment.
-- Verification: all TypeScript targets pass; lint has zero errors; 58 files/370 tests pass; API contract/parity/version/examples pass; tenant, idempotency, portal and webhook regressions pass; production build passes.
-- New migration SHA-256 is `d56a6dd9ec660c3721aea2ba014fdf1abb3dbf9fe79d0ba193354e1980cee08a` and is registered exactly.
-- Migration integrity remains blocked only by pre-existing immutable `20260728170000...` drift (`a743...` actual versus `881e...` expected).
-- Release remains NO-GO until trusted historical recovery, authorized database apply, deployed live-manifest parity, full staging flow and two-tenant/concurrency/provider verification pass.
+- PHASE-33 canonical API/tenant production repair: IMPLEMENTED and LOCALLY VERIFIED; DATABASE/LIVE/WEB E2E REMAIN BLOCKED.
+- Historical migration `20260728170000_live_schema_code_canonical_sync.sql` was recovered byte-for-byte from the prior trusted synchronized archive and now matches registered SHA-256 `881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`.
+- Intended changes that had been inserted into that immutable file were moved to forward migration `20260730130000_historical_sync_forward_repair.sql` with registered SHA-256 `3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b`.
+- Migration integrity passes: 323 files, 227 version groups and all registered checksums.
+- Release-manifest hashing now uses the exact pretty-printed bytes served by the OpenAPI routes, and the manifest route is `no-store`.
+- Public error responses are normalized centrally to one nested error envelope; integration context and quote responses no longer emit duplicate `meta`/`quote` aliases.
+- Webhook payloads use tenant-bound opaque event/delivery/customer/aggregate references and recursively exclude raw database `id`/`*_id` fields.
+- OpenAPI Website and Customer Portal documents were regenerated at `2026-07-30.1`; exact local SHA-256 values are website `9ad3fc518d9aadb687141af2df7d3068df8f7daca530cc01b525d4b94c816b7b` and portal `a3e3f475f3822f30efab4e9a792d714585bacc98773d52790adf12072ed3251e`.
+- Verification: all TypeScript targets pass; 58 files/373 tests pass; API docs/parity/examples/shared boundaries, migration integrity, API error boundaries, tenant/performance gates, zero-error lint and Next.js production build pass.
+- Live endpoints return HTTP 200 at version `2026-07-30.1`, but deployed manifest hashes do not match the bytes served and do not match this patch; deployment plus live revalidation is required.
+- Release remains NO-GO: no authorized clean/upgrade PostgreSQL apply, staging API keys, two-tenant fixtures, provider/webhook round trip or Gridex Web source was supplied. Three pre-existing allowlisted duplicate migration timestamps also remain unresolved pending authoritative migration-ledger provenance.

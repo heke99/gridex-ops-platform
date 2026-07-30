@@ -10,32 +10,18 @@ export type ApiBlocker = {
 }
 
 export type ApiErrorBody = {
-  ok: false
-  code: string
-  error_code: string
-  message: string
-  request_id: string
-  correlation_id: string
-  blockers: ApiBlocker[]
-  field: string | null
-  retryable: boolean
-  details: unknown
   error: {
     code: string
     message: string
-    request_id: string
-    correlation_id: string
-    field: string | null
+    stage?: string
+    field?: string
+    hint?: string
     retryable: boolean
-    blockers: ApiBlocker[]
+    blockers?: ApiBlocker[]
     details?: unknown
-    stage?: string | null
-    action?: string | null
   }
-  error_stage?: string | null
-  stage?: string | null
-  action?: string | null
-  hint?: string | null
+  request_id: string
+  correlation_id?: string
 }
 
 function text(value: unknown): string | null {
@@ -85,30 +71,17 @@ export function canonicalApiError(input: {
   const field = text(input.field)
   const retryable = input.retryable === true
   return {
-    ok: false,
-    code: input.code,
-    error_code: input.code,
-    message: input.message,
-    request_id: input.requestId,
-    correlation_id: correlationId,
-    blockers,
-    field,
-    retryable,
-    details: input.details ?? null,
     error: {
       code: input.code,
       message: input.message,
-      request_id: input.requestId,
-      correlation_id: correlationId,
-      field,
       retryable,
-      blockers,
+      ...(input.stage ? { stage: input.stage } : {}),
+      ...(field ? { field } : {}),
+      ...(input.hint ? { hint: input.hint } : {}),
+      ...(blockers.length > 0 ? { blockers } : {}),
       ...(input.details !== undefined ? { details: input.details } : {}),
-      ...(input.stage !== undefined ? { stage: input.stage } : {}),
-      ...(input.action !== undefined ? { action: input.action } : {}),
     },
-    ...(input.stage !== undefined ? { error_stage: input.stage, stage: input.stage } : {}),
-    ...(input.action !== undefined ? { action: input.action } : {}),
-    ...(input.hint !== undefined ? { hint: input.hint } : {}),
+    request_id: input.requestId,
+    ...(correlationId !== input.requestId ? { correlation_id: correlationId } : {}),
   }
 }

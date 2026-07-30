@@ -74,3 +74,13 @@
 | VM-070 | New portal migration checksum | VERIFIED | `20260730120000...` SHA-256 matches manifest |
 | VM-071 | Live release-manifest parity | BLOCKED | Live endpoint returns HTTP 404 before deployment |
 | VM-072 | Full staging/two-tenant/concurrency/provider | BLOCKED | Authorized environment and credentials unavailable |
+| VM-073 | Historical migration restoration | VERIFIED | `20260728170000...` SHA-256 equals trusted manifest value `881e1bc...` |
+| VM-074 | Forward historical repair | STATIC VERIFIED | `20260730130000...` registered as `3e204b00...`; migration integrity passes |
+| VM-075 | Exact OpenAPI byte hashing | VERIFIED LOCALLY | Shared serializer regression and local SHA values `9ad3fc...` / `a3e3f4...` |
+| VM-076 | Canonical public envelopes | VERIFIED LOCALLY | Error normalization, single context/quote response and webhook projection tests |
+| VM-077 | Current full tests | VERIFIED | 58 files / 373 tests |
+| VM-078 | Current TypeScript/lint/build | VERIFIED LOCALLY | All TS targets, 0-error lint and Next.js build pass |
+| VM-079 | Current migration history | PARTIAL | 323 files/227 groups/checksums pass; three allowlisted duplicate timestamps require ledger proof |
+| VM-080 | Live manifest exact hash parity | BLOCKED | HTTP/version available; deployed advertised hashes differ from served raw bytes |
+| VM-081 | Clean/upgrade PostgreSQL replay | BLOCKED | No authorized DB/CLI and historical intermediate rewrite needs runtime proof |
+| VM-082 | Gridex Web synchronization | BLOCKED | Gridex Web source not supplied |

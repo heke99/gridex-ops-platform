@@ -231,22 +231,21 @@ export type WebsiteCustomerApplicationBinding = {
 }
 
 export type ContractsPublicationChangedWebhook = {
-  id: string
   event_id: string
-  type: 'contracts.publication.changed'
+  delivery_id: string
   event_type: 'contracts.publication.changed'
   created_at: string
   tenant_reference: TenantReference
   aggregate: {
     type: 'contract_publication'
-    id: string
+    reference: string
   }
   data: {
-    tenant_reference: TenantReference
     channel: PublicationChannel | 'internal' | 'phone' | 'partner'
     publication_revision: number
     revision_token: string
     reason: string
     timestamp: string
   }
+  contract_schema_version: typeof WEBSITE_INTEGRATION_CONTRACT_VERSION
 }

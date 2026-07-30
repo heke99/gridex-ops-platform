@@ -1,8 +1,9 @@
-import { createHmac } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import type { DomainEventRow } from '@/lib/events/domainEvents'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 type WebhookSubscriptionRow = {
   id: string
@@ -60,42 +61,142 @@ function eventEnvironment(data: Record<string, unknown>): 'test' | 'production' 
   return value === 'test' || value === 'production' ? value : null
 }
 
-function canonicalPayload(event: DomainEventRow, tenantReference: string) {
-  const data: Record<string, unknown> = {
-    ...(event.payload ?? {}),
-    tenant_reference: tenantReference,
+function opaqueReference(
+  prefix: string,
+  tenantReference: string,
+  internalId: string,
+): string {
+  const digest = createHash('sha256')
+    .update(`${tenantReference}:${prefix}:${internalId}`)
+    .digest('hex')
+    .slice(0, 32)
+  return `${prefix}_${digest}`
+}
+
+function publicText(
+  data: Record<string, unknown>,
+  ...keys: string[]
+): string | null {
+  for (const key of keys) {
+    const value = data[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
   }
+  return null
+}
+
+function sanitizeWebhookData(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeWebhookData)
+  }
+  if (!value || typeof value !== 'object') return value
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => {
+        const normalized = key.toLowerCase()
+        return (
+          normalized !== 'id' &&
+          !normalized.endsWith('_id') &&
+          ![
+            'storage_path',
+            'bucket',
+            'object_path',
+            'service_role',
+          ].includes(normalized)
+        )
+      })
+      .map(([key, child]) => [key, sanitizeWebhookData(child)]),
+  )
+}
+
+function aggregateReference(
+  event: DomainEventRow,
+  data: Record<string, unknown>,
+  tenantReference: string,
+): string {
+  return (
+    publicText(
+      data,
+      `${event.aggregate_type}_reference`,
+      'contract_reference',
+      'application_number',
+      'offer_reference',
+      'quote_reference',
+      'site_reference',
+      'invoice_reference',
+      'document_reference',
+      'event_reference',
+    ) ??
+    opaqueReference(
+      event.aggregate_type.replace(/[^a-z0-9]+/gi, '_').toLowerCase(),
+      tenantReference,
+      event.aggregate_id,
+    )
+  )
+}
+
+export function buildPublicWebhookPayload(
+  event: DomainEventRow,
+  tenantReference: string,
+) {
+  const sourceData = event.payload ?? {}
+  const data = sanitizeWebhookData(sourceData) as Record<string, unknown>
+  const customerNumber = publicText(sourceData, 'customer_number')
+  const externalCustomerReference = publicText(
+    sourceData,
+    'customer_reference',
+    'external_customer_id',
+  )
+  const customerReference =
+    externalCustomerReference ??
+    (event.subject_customer_id
+      ? opaqueReference(
+          'customer',
+          tenantReference,
+          event.subject_customer_id,
+        )
+      : null)
+
   return {
-    id: event.id,
-    type: event.event_type,
-    event_id: event.id,
+    event_id: opaqueReference('event', tenantReference, event.id),
     event_type: event.event_type,
     created_at: event.occurred_at,
     tenant_reference: tenantReference,
-    // Surface environment so consumers can never confuse a test event with a
-    // production event. Route/outbox/customer-operation events carry it in data.
-    environment: eventEnvironment(data),
-    customer_id: event.subject_customer_id,
-    customer_number: typeof data.customer_number === 'string' ? data.customer_number : null,
-    external_customer_id: typeof data.external_customer_id === 'string' ? data.external_customer_id : null,
+    environment: eventEnvironment(sourceData),
     aggregate: {
       type: event.aggregate_type,
-      id: event.aggregate_id,
+      reference: aggregateReference(event, sourceData, tenantReference),
     },
+    ...(customerReference || customerNumber
+      ? {
+          customer: {
+            customer_reference: customerReference,
+            customer_number: customerNumber,
+          },
+        }
+      : {}),
     data,
+    contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
   }
 }
 
-function signedHeaders(subscription: WebhookSubscriptionRow, delivery: WebhookDeliveryRow, body: string, secret: string) {
+function signedHeaders(
+  subscription: WebhookSubscriptionRow,
+  delivery: WebhookDeliveryRow,
+  publicPayload: Record<string, unknown>,
+  publicDeliveryId: string,
+  body: string,
+  secret: string,
+) {
   const headers = new Headers({
     'content-type': 'application/json',
     'user-agent': 'Gridex-Webhooks/1.0',
-    'x-gridex-event-id': String(delivery.payload.id ?? delivery.domain_event_id),
+    'x-gridex-event-id': String(publicPayload.event_id),
     'x-gridex-event-type': delivery.event_type,
-    'x-gridex-delivery-id': delivery.id,
+    'x-gridex-delivery-id': publicDeliveryId,
   })
 
-  const deliveryEnvironment = (delivery.payload as { environment?: unknown }).environment
+  const deliveryEnvironment = publicPayload.environment
   if (deliveryEnvironment === 'test' || deliveryEnvironment === 'production') {
     headers.set('x-gridex-environment', deliveryEnvironment)
   }
@@ -113,6 +214,48 @@ function signedHeaders(subscription: WebhookSubscriptionRow, delivery: WebhookDe
   headers.set('x-gridex-webhook-signature', `sha256=${signature}`)
 
   return headers
+}
+
+function isCanonicalStoredPayload(
+  payload: Record<string, unknown>,
+): boolean {
+  const aggregate =
+    payload.aggregate &&
+    typeof payload.aggregate === 'object' &&
+    !Array.isArray(payload.aggregate)
+      ? (payload.aggregate as Record<string, unknown>)
+      : null
+  return (
+    typeof payload.event_id === 'string' &&
+    payload.event_id.startsWith('event_') &&
+    typeof payload.event_type === 'string' &&
+    typeof payload.tenant_reference === 'string' &&
+    typeof payload.contract_schema_version === 'string' &&
+    typeof aggregate?.reference === 'string' &&
+    payload.id === undefined &&
+    payload.type === undefined
+  )
+}
+
+async function publicPayloadForDelivery(
+  delivery: WebhookDeliveryRow,
+): Promise<Record<string, unknown>> {
+  if (isCanonicalStoredPayload(delivery.payload)) return delivery.payload
+
+  const { data, error } = await supabaseService
+    .from('domain_events')
+    .select('*')
+    .eq('id', delivery.domain_event_id)
+    .eq('company_id', delivery.company_id)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('webhook_domain_event_missing')
+
+  const tenantReference = await loadExternalTenantReference(delivery.company_id)
+  return buildPublicWebhookPayload(
+    data as DomainEventRow,
+    tenantReference,
+  ) as Record<string, unknown>
 }
 
 function nextAttempt(attempts: number): string {
@@ -183,7 +326,7 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
     max_attempts: subscription.max_attempts,
     target_url: subscription.endpoint_url,
     idempotency_key: `webhook:${subscription.id}:${event.id}`,
-    payload: canonicalPayload(event, tenantReference),
+    payload: buildPublicWebhookPayload(event, tenantReference),
   }))
 
   const { error: insertError } = await supabaseService
@@ -300,7 +443,6 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
       continue
     }
 
-    const body = JSON.stringify(delivery.payload)
     const secret = signingSecret(subscription)
     if (!secret) {
       const deadLetter = attempts >= delivery.max_attempts
@@ -324,9 +466,26 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     const timeout = setTimeout(() => controller.abort(), subscription.timeout_ms)
 
     try {
+      const publicPayload = await publicPayloadForDelivery(delivery)
+      const publicDeliveryId = opaqueReference(
+        'delivery',
+        String(publicPayload.tenant_reference),
+        delivery.id,
+      )
+      const body = JSON.stringify({
+        ...publicPayload,
+        delivery_id: publicDeliveryId,
+      })
       const response = await fetch(targetUrl, {
         method: 'POST',
-        headers: signedHeaders(subscription, delivery, body, secret),
+        headers: signedHeaders(
+          subscription,
+          delivery,
+          publicPayload,
+          publicDeliveryId,
+          body,
+          secret,
+        ),
         body,
         signal: controller.signal,
       })

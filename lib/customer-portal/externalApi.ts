@@ -7,6 +7,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers } from '@/lib/customer-portal/customerResolver'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
 
 export type LinkedPortalIdentity = {
   id: string | null
@@ -32,21 +33,99 @@ export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
   const headers = new Headers(init.headers)
   headers.set('Cache-Control', 'no-store')
   headers.set('X-Gridex-Contract-Version', WEBSITE_INTEGRATION_CONTRACT_VERSION)
-  const envelope = body && typeof body === 'object' && !Array.isArray(body)
-    ? {
-        ...(body as Record<string, unknown>),
-        request_id:
-          typeof (body as Record<string, unknown>).request_id === 'string'
-            ? (body as Record<string, unknown>).request_id
-            : randomUUID(),
-        contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
-      }
+  const record =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : null
+  const rawError = record?.error
+  const errorRecord =
+    rawError && typeof rawError === 'object' && !Array.isArray(rawError)
+      ? (rawError as Record<string, unknown>)
+      : null
+  const requestId =
+    typeof record?.request_id === 'string'
+      ? record.request_id
+      : typeof errorRecord?.request_id === 'string'
+        ? errorRecord.request_id
+        : randomUUID()
+  const correlationId =
+    typeof record?.correlation_id === 'string'
+      ? record.correlation_id
+      : typeof errorRecord?.correlation_id === 'string'
+        ? errorRecord.correlation_id
+        : undefined
+
+  const envelope = record
+    ? rawError !== undefined
+      ? canonicalApiError({
+          code:
+            typeof errorRecord?.code === 'string'
+              ? errorRecord.code
+              : typeof record.code === 'string'
+                ? record.code
+                : 'request_failed',
+          message:
+            typeof errorRecord?.message === 'string'
+              ? errorRecord.message
+              : typeof rawError === 'string'
+                ? rawError
+                : typeof record.message === 'string'
+                  ? record.message
+                  : 'Förfrågan kunde inte behandlas.',
+          requestId,
+          correlationId,
+          stage:
+            typeof errorRecord?.stage === 'string'
+              ? errorRecord.stage
+              : typeof record.error_stage === 'string'
+                ? record.error_stage
+                : typeof record.stage === 'string'
+                  ? record.stage
+                  : undefined,
+          field:
+            typeof errorRecord?.field === 'string'
+              ? errorRecord.field
+              : typeof record.field === 'string'
+                ? record.field
+                : undefined,
+          hint:
+            typeof errorRecord?.hint === 'string'
+              ? errorRecord.hint
+              : typeof record.hint === 'string'
+                ? record.hint
+                : undefined,
+          retryable:
+            errorRecord?.retryable === true || record.retryable === true,
+          blockers:
+            normalizeApiBlockers(
+              errorRecord?.blockers ?? record.blockers,
+            ),
+          details: errorRecord?.details ?? record.details,
+        })
+      : {
+          ...record,
+          request_id: requestId,
+        }
     : body
-  return NextResponse.json(envelope, { ...init, headers })
+  const versionedEnvelope =
+    envelope && typeof envelope === 'object' && !Array.isArray(envelope)
+      ? {
+          ...(envelope as Record<string, unknown>),
+          contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
+        }
+      : envelope
+  return NextResponse.json(versionedEnvelope, { ...init, headers })
 }
 
 export function jsonError(error: string, status: number, code?: string) {
-  return customerPortalJson({ error, ...(code ? { code } : {}) }, { status })
+  return customerPortalJson(
+    canonicalApiError({
+      code: code ?? 'request_failed',
+      message: error,
+      requestId: randomUUID(),
+    }),
+    { status },
+  )
 }
 
 export function normalizeEmail(value: unknown): string {

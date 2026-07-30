@@ -2506,91 +2506,18 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "ok",
-          "code",
-          "message",
+          "error",
           "request_id",
-          "correlation_id",
-          "blockers"
+          "contract_schema_version"
         ],
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "const": false
-          },
-          "code": {
-            "type": "string"
-          },
-          "error_code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "correlation_id": {
-            "type": "string"
-          },
-          "blockers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiBlocker"
-            }
-          },
-          "field": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "details": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
-          },
-          "error_stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "action": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "hint": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "error": {
             "type": "object",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "required": [
               "code",
               "message",
-              "request_id",
-              "correlation_id",
-              "blockers"
+              "retryable"
             ],
             "properties": {
               "code": {
@@ -2599,17 +2526,14 @@
               "message": {
                 "type": "string"
               },
-              "request_id": {
-                "type": "string"
-              },
-              "correlation_id": {
+              "stage": {
                 "type": "string"
               },
               "field": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
+              },
+              "hint": {
+                "type": "string"
               },
               "retryable": {
                 "type": "boolean"
@@ -2619,11 +2543,31 @@
                 "items": {
                   "$ref": "#/components/schemas/ApiBlocker"
                 }
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               }
             }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-30.1"
           }
         },
-        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
       },
       "CustomerContract": {
         "type": "object",
@@ -3366,91 +3310,18 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "ok",
-          "code",
-          "message",
+          "error",
           "request_id",
-          "correlation_id",
-          "blockers"
+          "contract_schema_version"
         ],
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "const": false
-          },
-          "code": {
-            "type": "string"
-          },
-          "error_code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "correlation_id": {
-            "type": "string"
-          },
-          "blockers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiBlocker"
-            }
-          },
-          "field": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "details": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
-          },
-          "error_stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "action": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "hint": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "error": {
             "type": "object",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "required": [
               "code",
               "message",
-              "request_id",
-              "correlation_id",
-              "blockers"
+              "retryable"
             ],
             "properties": {
               "code": {
@@ -3459,17 +3330,14 @@
               "message": {
                 "type": "string"
               },
-              "request_id": {
-                "type": "string"
-              },
-              "correlation_id": {
+              "stage": {
                 "type": "string"
               },
               "field": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
+              },
+              "hint": {
+                "type": "string"
               },
               "retryable": {
                 "type": "boolean"
@@ -3479,11 +3347,31 @@
                 "items": {
                   "$ref": "#/components/schemas/ApiBlocker"
                 }
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               }
             }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-30.1"
           }
         },
-        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
       },
       "WebsiteVisibilityMode": {
         "type": "string",
