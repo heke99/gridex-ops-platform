@@ -39,8 +39,15 @@ export type PublicContractPriceOption = {
   price_option_reference: string;
   option_code: string;
   customer_name: string;
+  price_type: string;
   contract_type: string;
   customer_type: "private" | "business" | "both";
+  resolution: string;
+  currency: "SEK";
+  unit: "ore_per_kwh";
+  fixed_price: number | null;
+  markup: number | null;
+  monthly_fee: number | null;
   binding_months: number;
   notice_months: number;
   auto_renew_enabled: boolean;
@@ -1514,7 +1521,7 @@ async function listPublishedLegalVersions(
   companyId: string,
 ): Promise<PublicLegalTextVersion[] | null> {
   const latestPublication = await supabaseService
-    .from("canonical_public_contract_offers_v")
+    .from("canonical_visible_public_contracts_v")
     .select("legal_bundle_version_id")
     .eq("company_id", companyId)
     .eq("is_archived", false)
@@ -1782,7 +1789,7 @@ async function loadPublishedPriceOptions(
   const optionQuery = await supabaseService
     .from("contract_price_options")
     .select(
-      "id,company_id,contract_product_version_id,price_plan_version_id,contract_publication_version_id,option_reference,option_code,customer_name,contract_type,customer_type,binding_months,notice_months,auto_renew_enabled,renewal_term_months,is_default,selection_required,valid_from,valid_to,earliest_start_date,latest_start_date,status,sort_order",
+      "id,company_id,contract_product_version_id,price_plan_version_id,contract_publication_version_id,option_reference,option_code,customer_name,contract_type,customer_type,binding_months,notice_months,auto_renew_enabled,renewal_term_months,is_default,selection_required,valid_from,valid_to,earliest_start_date,latest_start_date,status,sort_order,metadata",
     )
     .eq("company_id", companyId)
     .in("contract_publication_version_id", publicationIds)
@@ -1960,12 +1967,27 @@ async function loadPublishedPriceOptions(
         if (missingAreas.length > 0) continue;
       }
 
+      const optionMetadata = objectValue(row.metadata);
+      const resolution =
+        clean(optionMetadata.resolution) ??
+        (offer.contract_type === "variable_hourly"
+          ? "hourly"
+          : offer.contract_type === "variable_quarterly"
+            ? "quarterly"
+            : "monthly");
       validOptions.push({
         price_option_reference: optionReference,
         option_code: clean(row.option_code) ?? optionReference,
         customer_name: clean(row.customer_name) ?? optionReference,
+        price_type: offer.contract_type,
         contract_type: offer.contract_type,
         customer_type: customerType as PublicContractPriceOption["customer_type"],
+        resolution,
+        currency: "SEK",
+        unit: "ore_per_kwh",
+        fixed_price: numberOrNull(optionMetadata.fixed_price),
+        markup: numberOrNull(optionMetadata.markup),
+        monthly_fee: numberOrNull(optionMetadata.monthly_fee),
         binding_months: numberOrNull(row.binding_months) ?? 0,
         notice_months: numberOrNull(row.notice_months) ?? 0,
         auto_renew_enabled: row.auto_renew_enabled === true,
@@ -2167,7 +2189,7 @@ export async function listPublicContractOffers(input: {
 }): Promise<PublicContractOffer[]> {
   const tenantSlug = await loadCompanySlugById(input.client.company_id);
   const primary = await supabaseService
-    .from("canonical_public_contract_offers_v")
+    .from("canonical_visible_public_contracts_v")
     .select("*")
     .eq("company_id", input.client.company_id)
     .eq("is_archived", false)
@@ -2286,6 +2308,7 @@ export type PublicContractOfferDiagnostic = {
   name: string;
   product_code: string;
   publication_status: string | null;
+  channel_state: string;
   website_enabled: boolean;
   valid_from: string | null;
   valid_to: string | null;
@@ -2324,182 +2347,118 @@ export type PublicContractOfferDiagnostic = {
 export async function diagnosePublicContractOffers(input: {
   client: IntegrationApiClient;
   customerType?: string | null;
+  channel?: "website" | "api";
 }): Promise<{
   total: number;
   visible: number;
   hidden: number;
   offers: PublicContractOfferDiagnostic[];
 }> {
+  const channel = input.channel ?? "website";
   const query = await supabaseService
-    .from("canonical_public_contract_offers_v")
+    .from("canonical_public_contract_diagnostics_v")
     .select("*")
     .eq("company_id", input.client.company_id)
-    .order("sort_order", { ascending: true })
-    .order("public_name", { ascending: true });
-
+    .eq("channel", channel)
+    .order("name", { ascending: true });
   if (query.error) throw query.error;
 
-  const rows = (query.data ?? []) as Array<Record<string, unknown>>;
-  const offers = rows.map(mapOfferRow);
-  const [
-    graphIntegrity,
-    readinessByVersion,
-    legalByBundle,
-    priceOptionsByPublication,
-  ] = await Promise.all([
-    loadPublicationGraphIntegrity(
-      input.client.company_id,
-      offers.map((offer) => offer.id),
-    ),
-    loadPublicationReadinessByVersion(input.client.company_id, offers),
-    loadLegalVersionsByBundle(input.client.company_id, offers),
-    loadPublishedPriceOptions(input.client.company_id, offers),
-  ]);
-  const diagnostics: PublicContractOfferDiagnostic[] = [];
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index];
-    const offer = offers[index];
-    const blockers: string[] = [];
-    const graph = graphIntegrity.get(offer.id) ?? null;
-    if (graph?.canonical_graph_consistent !== true)
-      blockers.push("PUBLICATION_GRAPH_INCONSISTENT");
-    const publicationStatus = clean(row.publication_status);
-    if (row.is_archived === true || publicationStatus === "archived")
-      blockers.push("Erbjudandet är arkiverat");
-    if (row.website_enabled === false)
-      blockers.push("Visning på hemsidan är avstängd");
-    if (
-      publicationStatus
-        ? publicationStatus !== "published"
-        : row.is_public !== true
-    )
-      blockers.push("Erbjudandet är inte publicerat");
-    if (!customerTypeAllowed(offer, input.customerType))
-      blockers.push("Erbjudandet matchar inte vald kundtyp");
-
-    const publicationVersionId = clean(offer.contract_publication_version_id);
-    const readiness = publicationVersionId
-      ? readinessByVersion.get(publicationVersionId) ?? {
-          isReady: false,
-          blockers: ["Publiceringsversionen hittades inte för bolaget"],
-        }
-      : {
-          isReady: false,
-          blockers: ["Kanonisk publiceringsversion saknas"],
-        };
-    blockers.push(
-      ...readiness.blockers.filter((blocker) => !blockers.includes(blocker)),
-    );
-    const priceOptionReadiness = publicationVersionId
-      ? priceOptionsByPublication.get(publicationVersionId) ?? {
-          options: [],
-          diagnostics: [{
-            code: "price_option_missing",
-            severity: "blocker" as const,
-            offer_reference: publicOfferReference(offer),
-            price_option_reference: null,
-            price_area: null,
-          }],
-        }
-      : {
-          options: [],
-          diagnostics: [{
-            code: "price_option_publication_mismatch",
-            severity: "blocker" as const,
-            offer_reference: publicOfferReference(offer),
-            price_option_reference: null,
-            price_area: null,
-          }],
-        };
-    blockers.push(
-      ...priceOptionReadiness.diagnostics
-        .filter((diagnostic) => diagnostic.severity === "blocker")
-        .map((diagnostic) => diagnostic.code),
-    );
+  const rows = ((query.data ?? []) as Array<Record<string, unknown>>).filter(
+    (row) => {
+      if (!input.customerType) return true;
+      const customerType = clean(row.customer_type);
+      return customerType === "both" || customerType === input.customerType;
+    },
+  );
+  const diagnostics: PublicContractOfferDiagnostic[] = rows.map((row) => {
+    const blockers = Array.isArray(row.blockers)
+      ? row.blockers.map(clean).filter((value): value is string => Boolean(value))
+      : [];
+    const visible = row.visible === true && blockers.length === 0;
+    const publicationVersionExists = Boolean(clean(row.publication_version_id));
+    const assignmentValid =
+      Boolean(clean(row.assignment_id)) &&
+      clean(row.assignment_status) === "active";
+    const channelValid =
+      Boolean(clean(row.channel_id)) && clean(row.channel_status) === "active";
+    const snapshotHashValid = !blockers.includes("PUBLICATION_SNAPSHOT_INVALID");
+    const priceOptionsReady =
+      Number(row.price_option_count ?? 0) > 0 &&
+      !blockers.some(
+        (blocker) =>
+          blocker.startsWith("PUBLICATION_PRICE_OPTION") ||
+          blocker === "PUBLICATION_AREA_PRICES_MISSING",
+      );
+    const legalReady = row.legal_ready === true;
     const invoiceFeeReadiness = assessCanonicalInvoiceFee({
-      rowAmount: offer.invoice_fee_sek,
-      snapshot: offer.pricing_snapshot,
+      rowAmount: row.invoice_fee_sek,
+      snapshot: objectValue(row.pricing_snapshot),
     });
-    if (invoiceFeeReadiness.status === "blocked") {
-      blockers.push(invoiceFeeReadiness.code);
-    }
-
-    const legalBundleVersionId = clean(offer.legal_bundle_version_id);
-    const strictLegal = legalBundleVersionId
-      ? legalByBundle.get(legalBundleVersionId) ?? null
-      : null;
-    if (blockers.length === 0 && !hasExactCanonicalLegalVersions(strictLegal))
-      blockers.push("Erbjudandets exakta juridikpaket kunde inte verifieras");
-
-    const legalReady = hasExactCanonicalLegalVersions(strictLegal);
-    const invoiceFeeReady = invoiceFeeReadiness.status === "ready";
-    const priceOptionsReady = priceOptionReadiness.options.length > 0;
-    const pricingReady =
-      readiness.isReady && invoiceFeeReady && priceOptionsReady;
-    const applicationAcceptanceReady =
-      legalReady &&
-      (!offer.power_of_attorney_required ||
-        Boolean(strictLegal?.some((version) => version.type === "power_of_attorney")));
-    const visible = blockers.length === 0;
-    diagnostics.push({
-      id: offer.canonical_offer_reference ?? null,
-      name: offer.public_name,
-      product_code: offer.product_code,
-      publication_status: publicationStatus,
-      website_enabled: row.website_enabled !== false,
-      valid_from: offer.valid_from,
-      valid_to: offer.valid_to,
-      customer_type: offer.customer_type,
+    const pricingDiagnostics: PublicPriceOptionDiagnostic[] = blockers
+      .filter(
+        (blocker) =>
+          blocker.includes("PRICE_OPTION") || blocker.includes("AREA_PRICES"),
+      )
+      .map((code) => ({
+        code,
+        severity: "blocker" as const,
+        offer_reference:
+          clean(row.offer_reference) ?? "missing_offer_reference",
+        price_option_reference: null,
+        price_area: null,
+      }));
+    const graph = {
+      canonical_graph_consistent: visible,
+      forward_publication_link_valid: publicationVersionExists,
+      reverse_legacy_link_valid:
+        channel === "api" || Boolean(clean(row.public_offer_id)),
+      company_chain_valid: clean(row.company_status) === "active",
+      tenant_assignment_valid: assignmentValid,
+      channel_valid: channelValid,
+      product_version_valid: publicationVersionExists,
+      source_offer_consistent:
+        Boolean(clean(row.source_contract_offer_id)) &&
+        clean(row.snapshot_source_contract_offer_id) ===
+          clean(row.source_contract_offer_id),
+      publication_active:
+        clean(row.publication_status) === "published" &&
+        clean(row.publication_version_status) === "published",
+      snapshot_hash_valid: snapshotHashValid,
+      energy_direction_valid: publicationVersionExists,
+      contract_type_valid: Boolean(clean(row.contract_type)),
+      successor_chain_valid: true,
+    };
+    return {
+      id: clean(row.offer_reference),
+      name: clean(row.name) ?? "Elavtal",
+      product_code: clean(row.product_code) ?? "electricity",
+      publication_status: clean(row.publication_version_status),
+      channel_state: clean(row.channel_state) ?? "error",
+      website_enabled: channel === "api" || row.website_enabled === true,
+      valid_from: clean(row.valid_from),
+      valid_to: clean(row.valid_to),
+      customer_type: clean(row.customer_type) ?? "both",
       visible,
       blockers: Array.from(new Set(blockers)),
-      offer_reference: offer.canonical_offer_reference ?? null,
-      graph: graph
-        ? {
-            canonical_graph_consistent: graph.canonical_graph_consistent,
-            forward_publication_link_valid:
-              graph.forward_publication_link_valid,
-            reverse_legacy_link_valid: graph.reverse_legacy_link_valid,
-            company_chain_valid: graph.company_chain_valid,
-            tenant_assignment_valid: graph.tenant_assignment_valid,
-            channel_valid: graph.channel_valid,
-            product_version_valid: graph.product_version_valid,
-            source_offer_consistent: graph.source_offer_consistent,
-            publication_active: graph.publication_active,
-            snapshot_hash_valid: graph.snapshot_hash_valid,
-            energy_direction_valid: graph.energy_direction_valid,
-            contract_type_valid: graph.contract_type_valid,
-            successor_chain_valid: graph.successor_chain_valid,
-          }
-        : null,
+      offer_reference: clean(row.offer_reference),
+      graph,
       pricing_readiness: {
         invoice_fee: invoiceFeeReadiness,
         price_options: {
           ready: priceOptionsReady,
-          diagnostics: priceOptionReadiness.diagnostics,
+          diagnostics: pricingDiagnostics,
         },
       },
       readiness: {
-        canonical_graph_consistent: graph?.canonical_graph_consistent === true,
-        forward_publication_link_valid:
-          graph?.forward_publication_link_valid === true,
-        reverse_legacy_link_valid: graph?.reverse_legacy_link_valid === true,
-        company_chain_valid: graph?.company_chain_valid === true,
-        tenant_assignment_valid: graph?.tenant_assignment_valid === true,
-        channel_valid: graph?.channel_valid === true,
-        source_offer_consistent: graph?.source_offer_consistent === true,
-        snapshot_hash_valid: graph?.snapshot_hash_valid === true,
-        energy_direction_valid: graph?.energy_direction_valid === true,
-        contract_type_valid: graph?.contract_type_valid === true,
-        successor_chain_valid: graph?.successor_chain_valid === true,
-        pricing_ready: pricingReady,
+        ...graph,
+        pricing_ready:
+          priceOptionsReady && invoiceFeeReadiness.status === "ready",
         legal_ready: legalReady,
-        invoice_fee_ready: invoiceFeeReady,
-        publication_active: graph?.publication_active === true,
-        application_acceptance_ready: applicationAcceptanceReady,
+        invoice_fee_ready: invoiceFeeReadiness.status === "ready",
+        application_acceptance_ready: legalReady,
       },
-    });
-  }
-
+    };
+  });
   const visible = diagnostics.filter((item) => item.visible).length;
   return {
     total: diagnostics.length,

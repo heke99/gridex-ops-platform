@@ -5,6 +5,7 @@ import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/int
 import { diagnosePublicContractOffers, listPublicContractOffers, publicContractResponse } from '@/lib/website/publicContracts'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
+import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import {
   ifNoneMatchMatches,
   loadPublicationRevision,
@@ -65,12 +66,30 @@ export async function GET(request: NextRequest) {
     }
 
     const offers = await listPublicContractOffers({ client: auth.client, customerType: query.customerType })
-    const data = offers.map((offer) =>
-      mapContractPublicationToPublicDto({
-        publication: publicContractResponse(offer),
-        channel: 'website',
-      }),
-    )
+    const data: Record<string, unknown>[] = []
+    let rejectedContracts = 0
+    for (const offer of offers) {
+      try {
+        data.push(
+          mapContractPublicationToPublicDto({
+            publication: publicContractResponse(offer),
+            channel: 'website',
+          }),
+        )
+      } catch (mappingError) {
+        rejectedContracts += 1
+        console.error('[public-contracts] rejected malformed publication', {
+          requestId: currentRequestId,
+          companyId: auth.client.company_id,
+          apiClientId: auth.client.id,
+          channel: 'website',
+          error: mappingError,
+        })
+      }
+    }
+    if (rejectedContracts > 0 && data.length === 0) {
+      throw new Error('PUBLICATION_GRAPH_INCOMPLETE')
+    }
     const diagnostics = query.diagnostics
       ? await diagnosePublicContractOffers({ client: auth.client, customerType: query.customerType })
       : null
@@ -79,7 +98,7 @@ export async function GET(request: NextRequest) {
       request,
       statusCode: 200,
       startedAt,
-      metadata: { request_id: currentRequestId, result_count: offers.length, customer_type: query.customerType, diagnostics: query.diagnostics, publication_revision: revision.revision },
+      metadata: { request_id: currentRequestId, result_count: data.length, rejected_contracts: rejectedContracts, customer_type: query.customerType, diagnostics: query.diagnostics, publication_revision: revision.revision },
     })
     await logUsageEvent({
       companyId: auth.client.company_id,
@@ -91,7 +110,7 @@ export async function GET(request: NextRequest) {
       source: 'website_api',
       billable: true,
       billingUnit: 'api_request',
-      metadata: { result_count: offers.length, customer_type: query.customerType, diagnostics: query.diagnostics },
+      metadata: { result_count: data.length, rejected_contracts: rejectedContracts, customer_type: query.customerType, diagnostics: query.diagnostics },
     })
 
     if (query.diagnostics) {
@@ -106,18 +125,52 @@ export async function GET(request: NextRequest) {
         tenant_reference: tenant.tenant_reference,
         api_version: 'v1',
         channel: 'website',
+        count: data.length,
         publication_revision: revision.revision,
         publication_updated_at: revision.updatedAt,
         contract_schema_version: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
         deprecated_aliases: ['contracts', 'contract_offer_id', 'publication_reference'],
       },
-      ...(diagnostics ? { diagnostics: { publication: diagnostics, source_of_truth: 'contract_publication_versions' } } : {}),
+      ...(diagnostics ? { diagnostics: { publication: diagnostics, source_of_truth: 'canonical_public_contract_diagnostics_v' } } : {}),
       request_id: currentRequestId,
     }, { status: 200, headers })
   } catch (error) {
     const traceId = randomUUID()
-    console.error('[public-contracts] failed', { traceId, requestId: currentRequestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'public_contracts_unavailable', metadata: { trace_id: traceId, request_id: currentRequestId } })
-    return customerPortalJson({ error: { code: 'public_contracts_unavailable', message: 'Publicerade avtal kunde inte hämtas.', trace_id: traceId, request_id: currentRequestId } }, { status: 500 })
+    const classified = classifyPublicContractsError(error)
+    console.error('[public-contracts] failed', {
+      traceId,
+      requestId: currentRequestId,
+      companyId: auth.client.company_id,
+      apiClientId: auth.client.id,
+      endpoint: '/api/v1/website/public-contracts',
+      channel: 'website',
+      errorCode: classified.code,
+      databaseCode: classified.databaseCode,
+      error,
+    })
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: classified.status,
+      startedAt,
+      errorCode: classified.code,
+      metadata: {
+        trace_id: traceId,
+        request_id: currentRequestId,
+        channel: 'website',
+        database_code: classified.databaseCode,
+      },
+    })
+    return customerPortalJson(
+      {
+        error: {
+          code: classified.code,
+          message: classified.message,
+          trace_id: traceId,
+          request_id: currentRequestId,
+        },
+      },
+      { status: classified.status },
+    )
   }
 }

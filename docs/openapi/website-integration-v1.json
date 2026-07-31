@@ -86,7 +86,7 @@
           "Website contracts"
         ],
         "summary": "List website-published contracts",
-        "description": "Scope: website_contracts.read. Supports ETag/If-None-Match and returns 304. diagnostics=1 is deprecated; use the diagnostics endpoint. Sunset: 2026-10-31.",
+        "description": "Scope: website_contracts.read. Supports ETag/If-None-Match and returns 304. diagnostics=1 is deprecated; use the diagnostics endpoint. Sunset: 2026-10-31. ETag changes when publication version, price options, area prices, validity, channel/website flags or legal snapshot changes.",
         "parameters": [
           {
             "name": "customer_type",
@@ -170,6 +170,12 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/InternalError"
           }
         },
         "x-required-scopes": [
@@ -231,6 +237,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/InternalError"
           }
         },
         "x-required-scopes": [
@@ -244,7 +256,7 @@
           "API contracts"
         ],
         "summary": "List contracts published to the api channel",
-        "description": "Scope: api_contracts.read. This endpoint is independent of the website channel and has its own tenant+channel publication revision.",
+        "description": "Deprecated compatibility alias for GET /api/v1/public-contracts. Uses the same api channel, scope, DTO, ETag and strict tenant resolution. ETag changes when publication version, price options, area prices, validity, channel/website flags or legal snapshot changes.",
         "x-required-scopes": [
           "api_contracts.read"
         ],
@@ -346,7 +358,8 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/v1/website/quote": {
@@ -1578,6 +1591,187 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/public-contracts": {
+      "get": {
+        "tags": [
+          "API contracts"
+        ],
+        "summary": "List canonical contracts published to the api channel",
+        "description": "Canonical endpoint. Scope: api_contracts.read. Tenant identity is derived strictly from the authenticated API client; the api and website channels are independent. A valid empty result returns data=[], contracts=[] and meta.count=0. ETag changes when publication version, price options, area prices, validity, channel/website flags or legal snapshot changes.",
+        "x-required-scopes": [
+          "api_contracts.read"
+        ],
+        "parameters": [
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business",
+                "company"
+              ]
+            },
+            "description": "private or business. company is deprecated and normalized to business."
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API channel feed",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-07-30.3"
+                },
+                "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiPublicContract"
+                      }
+                    },
+                    "meta": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/TenantMeta"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_schema_version",
+                            "count"
+                          ],
+                          "properties": {
+                            "contract_schema_version": {
+                              "const": "2026-07-30.3"
+                            },
+                            "count": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "contracts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiPublicContract"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "API publication revision has not changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "410": {
+            "$ref": "#/components/responses/TenantGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/TenantPaused"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/public-contracts/diagnostics": {
+      "get": {
+        "tags": [
+          "API contracts"
+        ],
+        "summary": "Diagnose canonical API-channel publication readiness",
+        "description": "Scope: api_contracts.diagnostics. Starts from the internal contract offer with LEFT JOINs and returns explicit blockers even when the strict feed would hide the contract.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "diagnostics": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/TenantMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "x-required-scopes": [
+          "api_contracts.diagnostics"
+        ]
       }
     }
   },
@@ -3924,7 +4118,14 @@
           "valid_to",
           "earliest_start_date",
           "latest_start_date",
-          "area_prices"
+          "area_prices",
+          "price_type",
+          "resolution",
+          "currency",
+          "unit",
+          "fixed_price",
+          "markup",
+          "monthly_fee"
         ],
         "properties": {
           "price_option_reference": {
@@ -4014,6 +4215,51 @@
             "items": {
               "$ref": "#/components/schemas/ContractPriceOptionAreaPrice"
             }
+          },
+          "price_type": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "variable_monthly",
+              "variable_hourly",
+              "variable_quarterly",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "hourly",
+              "quarterly"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "const": "SEK"
+          },
+          "unit": {
+            "type": "string",
+            "const": "ore_per_kwh"
+          },
+          "fixed_price": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "markup": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "monthly_fee": {
+            "type": [
+              "number",
+              "null"
+            ]
           }
         }
       },

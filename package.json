@@ -236,7 +236,11 @@
     "verify:contract-channel-publication:static": "npm run typecheck && vitest run __tests__/contract-channel-publication-completion.test.ts && npm run gridex:contract-channel-publication-regression && npm run api:docs",
     "gridex:contract-commercial-selection-regression": "node scripts/gridex-contract-commercial-selection-regression.cjs",
     "gridex:contract-commercial-selection-post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/gridex-contract-commercial-selection-post-apply.sql",
-    "verify:contract-commercial-selection:static": "npm run db:migrations:check && npm run typecheck && npm run typecheck:tests && vitest run __tests__/contract-commercial-selection.test.ts && npm run gridex:contract-commercial-selection-regression && npm run api:docs && npm run build"
+    "verify:contract-commercial-selection:static": "npm run db:migrations:check && npm run typecheck && npm run typecheck:tests && vitest run __tests__/contract-commercial-selection.test.ts && npm run gridex:contract-commercial-selection-regression && npm run api:docs && npm run build",
+    "gridex:public-contract-publication-graph-db-test": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v offer_id=\"$GRIDEX_CONTRACT_TEST_OFFER_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -f scripts/gridex-public-contract-publication-graph-db-test.sql",
+    "gridex:public-contract-backfill:preview": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v offer_id=\"${GRIDEX_CONTRACT_TEST_OFFER_ID:-}\" -v publication_version_id=\"${GRIDEX_CONTRACT_TEST_PUBLICATION_VERSION_ID:-}\" -v channel=\"${GRIDEX_CONTRACT_TEST_CHANNEL:-}\" -f scripts/gridex-public-contract-backfill-preview.sql",
+    "gridex:public-contract-backfill:apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -v offer_id=\"${GRIDEX_CONTRACT_TEST_OFFER_ID:-}\" -v publication_version_id=\"${GRIDEX_CONTRACT_TEST_PUBLICATION_VERSION_ID:-}\" -v channel=\"${GRIDEX_CONTRACT_TEST_CHANNEL:-}\" -f scripts/gridex-public-contract-backfill-apply.sql",
+    "gridex:public-contract-publication-graph:post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -f scripts/gridex-public-contract-publication-graph-post-apply.sql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

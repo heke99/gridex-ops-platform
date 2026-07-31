@@ -341,6 +341,7 @@
     "20260730130000_historical_sync_forward_repair.sql": "3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b",
     "20260730153000_customer_portal_api_production_completion.sql": "b5a9f323400a4e3592f3e392bf94695161969c1d5b0ba8d99cace9821338d740",
     "20260730220000_canonical_price_option_publication_api_completion.sql": "0ab350f0da6648a497a80aeaedc1688eb5ae88e6279d6ab486526c070ff8c505",
+    "20260731152000_public_contract_publication_graph_repair.sql": "0fd851712e3a3c5918e2ae0c034348f7bbd3b6133dcce3d7d0a2472efc7af0b6",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

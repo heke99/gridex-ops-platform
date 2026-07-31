@@ -1009,8 +1009,12 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{publicContractsExample}</CodeBlock>
           <CodeBlock>{publicContractsResponse}</CodeBlock>
           <p>
-            <code>GET /public-contracts</code> är urvals-API och publicerat
-            produktunderlag. <code>pricing.calculation_components</code> innehåller
+            <code>GET /website/public-contracts</code> är hemsidans urvals-API.
+            Partnerintegrationer använder <code>GET /public-contracts</code>.
+            Båda returnerar canonical top-level <code>price_options</code>; ett
+            giltigt tomt resultat har <code>data: []</code>, <code>contracts: []</code>
+            och <code>meta.count: 0</code>, medan konfigurations- och schemafel
+            returneras som explicita felkoder. <code>pricing.calculation_components</code> innehåller
             alla tillämpliga prisdelar och avgifter, även när
             <code>website_visibility=hidden</code>, men kundens slutliga preview ska
             alltid hämtas från OPS quote. <code>pricing.display_components</code> är
@@ -1440,8 +1444,11 @@ export default function CustomerPortalApiDocsPage() {
             <code>/api/v1/website/public-contracts</code>,
             <code>/api/v1/website/public-contracts/diagnostics</code>,
             <code>/api/v1/website/customer-applications</code>,
-            <code>/api/v1/contracts</code> och
-            <code>/api/v1/customer/portal-bundle</code>. Parametern
+            <code>/api/v1/public-contracts</code>,
+            <code>/api/v1/public-contracts/diagnostics</code> och
+            <code>/api/v1/customer/portal-bundle</code>. Den äldre partner-routen
+            <code>/api/v1/contracts</code> är ett deprecated kompatibilitetsalias.
+            Parametern
             <code>?diagnostics=1</code> är deprecated till 2026-10-31 och
             returnerar deprecation- och sunset-headers.
           </p>
@@ -1450,7 +1457,7 @@ export default function CustomerPortalApiDocsPage() {
           <ul className="list-disc space-y-1 pl-5">
             <li><code>internal</code>: endast OPS interna sälj- och administrationsflöden.</li>
             <li><code>website</code>: public feed, tenantautentiserad elområdesresolution, canonical quote och teckning på tenantens hemsida.</li>
-            <li><code>api</code>: separat partnerfeed via <code>GET /api/v1/contracts</code> och scope <code>api_contracts.read</code>.</li>
+            <li><code>api</code>: separat partnerfeed via <code>GET /api/v1/public-contracts</code> och scope <code>api_contracts.read</code>. Diagnostik använder <code>GET /api/v1/public-contracts/diagnostics</code> och <code>api_contracts.diagnostics</code>.</li>
           </ul>
           <p>
             Revision, ETag och cache är bundna till <code>tenant + channel</code>.
@@ -1464,8 +1471,10 @@ export default function CustomerPortalApiDocsPage() {
           <p>
             OPS är source of truth för publicerad prismodell, fast pris per SE-område,
             påslag, alla avgifter, moms, synlighetsregler och versionskopplingar.
-            Ett fastprisavtal publiceras en gång och innehåller sin prismatris i
-            <code>area_pricing</code>. Tenantens backend använder den autentiserade
+            Varje avtal returnerar canonical top-level <code>price_options</code>.
+            Fastprisets stödda elområden finns i
+            <code>price_options[].area_prices</code>; endast områden som avtalet
+            uttryckligen stödjer krävs och exponeras. Tenantens backend använder den autentiserade
             <code>/api/v1/website/energy-area/resolve</code>, skapar en tenantbunden
             <code>/api/v1/website/quote</code> och validerar den före teckning.
             Endast den oautentiserade legacyrutten <code>/api/public/energy-area</code>

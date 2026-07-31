@@ -3,6 +3,7 @@ import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { diagnosePublicContractOffers } from '@/lib/website/publicContracts'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
+import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import { loadPublicationRevision, parsePublicContractsQuery, PublicContractsQueryError, requestId } from '@/lib/website/publicContractApi'
 
 export const runtime = 'nodejs'
@@ -40,16 +41,36 @@ export async function GET(request: NextRequest) {
       diagnostics: {
         publication,
         graph: {
-          source_of_truth: 'contract_publication_versions',
+          source_of_truth: 'canonical_public_contract_diagnostics_v',
           canonical_graph_consistent: canonicalGraphConsistent,
         },
       },
-      meta: { tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'website', publication_revision: revision.revision },
+      meta: { count: publication.total, tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'website', publication_revision: revision.revision },
       request_id: currentRequestId,
     }, { status: 200, headers: { ETag: revision.etag, 'Cache-Control': 'no-store' } })
   } catch (error) {
-    console.error('[public-contracts-diagnostics] failed', { requestId: currentRequestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'public_contract_diagnostics_unavailable' })
-    return customerPortalJson({ error: { code: 'public_contract_diagnostics_unavailable', message: 'Avtalsdiagnostiken kunde inte hämtas.', request_id: currentRequestId } }, { status: 500 })
+    const classified = classifyPublicContractsError(error)
+    console.error('[public-contracts-diagnostics] failed', {
+      requestId: currentRequestId,
+      companyId: auth.client.company_id,
+      apiClientId: auth.client.id,
+      endpoint: '/api/v1/website/public-contracts/diagnostics',
+      channel: 'website',
+      errorCode: classified.code,
+      databaseCode: classified.databaseCode,
+      error,
+    })
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: classified.status,
+      startedAt,
+      errorCode: classified.code,
+      metadata: { request_id: currentRequestId, channel: 'website', database_code: classified.databaseCode },
+    })
+    return customerPortalJson(
+      { error: { code: classified.code, message: classified.message, request_id: currentRequestId } },
+      { status: classified.status },
+    )
   }
 }

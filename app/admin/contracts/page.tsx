@@ -61,6 +61,39 @@ type ContractDiagnosticBlocker = {
   reason?: string;
 };
 
+type PublicContractChannelDiagnostic = {
+  channel_state: string;
+  blockers: string[];
+  visible: boolean;
+};
+
+function publicContractChannelStateLabel(value: string | undefined): string {
+  switch (value) {
+    case "missing":
+      return "Saknas";
+    case "draft":
+      return "Utkast";
+    case "preparing":
+      return "Förbereds";
+    case "published":
+      return "Publicerad";
+    case "inactive":
+      return "Inaktiv";
+    case "expired":
+      return "Utgången";
+    case "blocked":
+      return "Blockerad";
+    case "error":
+      return "Fel";
+    default:
+      return value || "Okänd";
+  }
+}
+
+function publicationDiagnosticKey(offerId: string, channel: "website" | "api"): string {
+  return `${offerId}:${channel}`;
+}
+
 function diagnosticBlockers(
   value: Record<string, unknown> | null | undefined,
 ): ContractDiagnosticBlocker[] {
@@ -787,6 +820,10 @@ export default async function AdminContractsPage({
   let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
   let hasNextPage = false;
   let listError: string | undefined;
+  const publicationDiagnosticByOfferChannel = new Map<
+    string,
+    PublicContractChannelDiagnostic
+  >();
   let diagnostic:
     | {
         offerId: string;
@@ -827,6 +864,49 @@ export default async function AdminContractsPage({
         companyId: scope.companyId,
         userId: user?.id ?? null,
       });
+    }
+  }
+  if (scope.companyId && offers.length > 0) {
+    const diagnosticResult = await supabaseService
+      .from("canonical_public_contract_diagnostics_v")
+      .select("source_contract_offer_id,channel,channel_state,blockers,visible")
+      .eq("company_id", scope.companyId)
+      .in(
+        "source_contract_offer_id",
+        offers.map((offer) => offer.id),
+      )
+      .in("channel", ["website", "api"]);
+    if (diagnosticResult.error) {
+      const diagnosticMessage =
+        "Canonical kanaldiagnostik kunde inte hämtas. Kanalstatusen kan därför vara ofullständig.";
+      listError = listError
+        ? `${listError} · ${diagnosticMessage}`
+        : diagnosticMessage;
+    } else {
+      for (const raw of diagnosticResult.data ?? []) {
+        const offerId =
+          typeof raw.source_contract_offer_id === "string"
+            ? raw.source_contract_offer_id
+            : null;
+        const channel = raw.channel === "website" || raw.channel === "api"
+          ? raw.channel
+          : null;
+        if (!offerId || !channel || typeof raw.channel_state !== "string") {
+          continue;
+        }
+        publicationDiagnosticByOfferChannel.set(
+          publicationDiagnosticKey(offerId, channel),
+          {
+            channel_state: raw.channel_state,
+            blockers: Array.isArray(raw.blockers)
+              ? raw.blockers.filter(
+                  (blocker): blocker is string => typeof blocker === "string",
+                )
+              : [],
+            visible: raw.visible === true,
+          },
+        );
+      }
     }
   }
   if (scope.companyId && diagnoseOfferId) {
@@ -1408,15 +1488,62 @@ export default async function AdminContractsPage({
                                 <div>Teckningsbar nu: {offer.internally_sellable_now ? "Ja" : "Nej"}</div>
                                 <div className="mt-2 font-black text-slate-800">Hemsida</div>
                                 <div>Behörighet: {offer.website_publication_allowed ? "Ja" : "Nej"}</div>
-                                <div>Kanal: {offer.website_channel_status}</div>
-                                <div>Tillgänglig nu: {offer.website_available_now ? "Ja" : "Nej"}</div>
+                                <div>
+                                  Status:{" "}
+                                  {publicContractChannelStateLabel(
+                                    publicationDiagnosticByOfferChannel.get(
+                                      publicationDiagnosticKey(offer.id, "website"),
+                                    )?.channel_state,
+                                  )}
+                                </div>
+                                <div>
+                                  Tillgänglig nu:{" "}
+                                  {(
+                                    publicationDiagnosticByOfferChannel.get(
+                                      publicationDiagnosticKey(offer.id, "website"),
+                                    )?.visible ?? offer.website_available_now
+                                  )
+                                    ? "Ja"
+                                    : "Nej"}
+                                </div>
+                                {(publicationDiagnosticByOfferChannel.get(
+                                  publicationDiagnosticKey(offer.id, "website"),
+                                )?.blockers.length ?? 0) > 0 ? (
+                                  <div className="mt-1 break-words text-amber-800">
+                                    Blockerare:{" "}
+                                    {publicationDiagnosticByOfferChannel
+                                      .get(publicationDiagnosticKey(offer.id, "website"))
+                                      ?.blockers.join(", ")}
+                                  </div>
+                                ) : null}
                                 <div className="mt-2 font-black text-slate-800">API</div>
                                 <div>Behörighet: {offer.api_publication_allowed ? "Ja" : "Nej"}</div>
-                                <div>Kanal: {offer.api_channel_status}</div>
-                                <div>Externt tillgänglig: {offer.api_available_now ? "Ja" : "Nej"}</div>
-                                {offer.api_channel_status === "active" && !offer.api_available_now ? (
-                                  <div className="mt-1 text-amber-800">
-                                    Orsak: Aktiv API-klient med api_contracts.read saknas eller publiceringsgrafen är inte komplett.
+                                <div>
+                                  Status:{" "}
+                                  {publicContractChannelStateLabel(
+                                    publicationDiagnosticByOfferChannel.get(
+                                      publicationDiagnosticKey(offer.id, "api"),
+                                    )?.channel_state,
+                                  )}
+                                </div>
+                                <div>
+                                  Externt tillgänglig:{" "}
+                                  {(
+                                    publicationDiagnosticByOfferChannel.get(
+                                      publicationDiagnosticKey(offer.id, "api"),
+                                    )?.visible ?? offer.api_available_now
+                                  )
+                                    ? "Ja"
+                                    : "Nej"}
+                                </div>
+                                {(publicationDiagnosticByOfferChannel.get(
+                                  publicationDiagnosticKey(offer.id, "api"),
+                                )?.blockers.length ?? 0) > 0 ? (
+                                  <div className="mt-1 break-words text-amber-800">
+                                    Blockerare:{" "}
+                                    {publicationDiagnosticByOfferChannel
+                                      .get(publicationDiagnosticKey(offer.id, "api"))
+                                      ?.blockers.join(", ")}
                                   </div>
                                 ) : null}
                               </div>

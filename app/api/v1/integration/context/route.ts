@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
+import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 export const runtime = 'nodejs'
@@ -28,8 +29,17 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[integration-context] failed', { requestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'integration_context_unavailable' })
-    return customerPortalJson({ error: { code: 'integration_context_unavailable', message: 'Tenantkontext kunde inte hämtas.', request_id: requestId } }, { status: 500 })
+    const classified = classifyPublicContractsError(error)
+    console.error('[integration-context] failed', {
+      requestId,
+      companyId: auth.client.company_id,
+      apiClientId: auth.client.id,
+      endpoint: '/api/v1/integration/context',
+      errorCode: classified.code,
+      databaseCode: classified.databaseCode,
+      error,
+    })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: classified.status, startedAt, errorCode: classified.code, metadata: { request_id: requestId, database_code: classified.databaseCode } })
+    return customerPortalJson({ error: { code: classified.code, message: classified.message, request_id: requestId } }, { status: classified.status })
   }
 }

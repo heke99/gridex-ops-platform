@@ -12,6 +12,25 @@ import {
   WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES,
 } from '@/lib/integrations/websiteIntegrationContract'
 
+export class ExternalTenantContextError extends Error {
+  readonly status: number
+  readonly code:
+    | 'TENANT_NOT_FOUND'
+    | 'EXTERNAL_TENANT_REFERENCE_MISSING'
+    | 'TENANT_NOT_OPERATIONALLY_READY'
+
+  constructor(input: {
+    status: number
+    code: ExternalTenantContextError['code']
+    message: string
+  }) {
+    super(input.message)
+    this.name = 'ExternalTenantContextError'
+    this.status = input.status
+    this.code = input.code
+  }
+}
+
 export type ExternalTenantContext = {
   tenant_reference: string
   api_client_reference: string
@@ -48,13 +67,35 @@ export type ExternalTenantContext = {
 export async function loadExternalTenantReference(companyId: string): Promise<string> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('external_tenant_reference')
+    .select('external_tenant_reference,status')
     .eq('id', companyId)
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new ExternalTenantContextError({
+        status: 404,
+        code: 'TENANT_NOT_FOUND',
+        message: 'Tenantbolaget kunde inte hittas.',
+      })
+    }
+    throw error
+  }
+  if (String(data?.status ?? '') !== 'active') {
+    throw new ExternalTenantContextError({
+      status: 409,
+      code: 'TENANT_NOT_OPERATIONALLY_READY',
+      message: 'Tenantbolaget är inte operationellt aktivt.',
+    })
+  }
   const tenantReference = String(data?.external_tenant_reference ?? '').trim()
-  if (!tenantReference) throw new Error('external_tenant_reference_missing')
+  if (!tenantReference) {
+    throw new ExternalTenantContextError({
+      status: 409,
+      code: 'EXTERNAL_TENANT_REFERENCE_MISSING',
+      message: 'Tenantens externa referens saknas.',
+    })
+  }
   return tenantReference
 }
 

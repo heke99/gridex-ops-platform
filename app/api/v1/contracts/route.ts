@@ -4,6 +4,7 @@ import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
+import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import { supabaseService } from '@/lib/supabase/service'
 import { ifNoneMatchMatches, loadPublicationRevision } from '@/lib/website/publicContractApi'
 import {
@@ -91,13 +92,30 @@ export async function GET(request: NextRequest) {
       p_customer_type: normalized.value,
     })
     if (error) throw error
-    const contracts = ((data ?? []) as Array<{ data?: Record<string, unknown> }>).map(
-      (row) =>
-        mapContractPublicationToPublicDto({
-          publication: row.data ?? row,
+    const contracts: Record<string, unknown>[] = []
+    let rejectedContracts = 0
+    for (const row of (data ?? []) as Array<{ data?: Record<string, unknown> }>) {
+      try {
+        contracts.push(
+          mapContractPublicationToPublicDto({
+            publication: row.data ?? row,
+            channel: 'api',
+          }),
+        )
+      } catch (mappingError) {
+        rejectedContracts += 1
+        console.error('[api-contracts] rejected malformed publication', {
+          requestId,
+          companyId: auth.client.company_id,
+          apiClientId: auth.client.id,
           channel: 'api',
-        }),
-    )
+          error: mappingError,
+        })
+      }
+    }
+    if (rejectedContracts > 0 && contracts.length === 0) {
+      throw new Error('PUBLICATION_GRAPH_INCOMPLETE')
+    }
 
     await logIntegrationApiRequest({
       client: auth.client,
@@ -111,13 +129,16 @@ export async function GET(request: NextRequest) {
         deprecated_customer_type_alias: normalized.deprecatedAlias,
         publication_revision: revision.revision,
         channel: 'api',
+        rejected_contracts: rejectedContracts,
       },
     })
 
     return NextResponse.json(
       {
         data: contracts,
+        contracts,
         meta: {
+          count: contracts.length,
           tenant_reference: tenant.tenant_reference,
           api_version: 'v1',
           contract_schema_version: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
@@ -132,11 +153,38 @@ export async function GET(request: NextRequest) {
       { status: 200, headers },
     )
   } catch (error) {
-    console.error('[api-contracts] failed', { requestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'api_contracts_unavailable' })
+    const classified = classifyPublicContractsError(error)
+    console.error('[api-contracts] failed', {
+      requestId,
+      companyId: auth.client.company_id,
+      apiClientId: auth.client.id,
+      endpoint: '/api/v1/public-contracts',
+      channel: 'api',
+      errorCode: classified.code,
+      databaseCode: classified.databaseCode,
+      error,
+    })
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: classified.status,
+      startedAt,
+      errorCode: classified.code,
+      metadata: {
+        request_id: requestId,
+        channel: 'api',
+        database_code: classified.databaseCode,
+      },
+    })
     return customerPortalJson(
-      { error: { code: 'api_contracts_unavailable', message: 'API-publicerade avtal kunde inte hämtas.', request_id: requestId } },
-      { status: 500 },
+      {
+        error: {
+          code: classified.code,
+          message: classified.message,
+          request_id: requestId,
+        },
+      },
+      { status: classified.status },
     )
   }
 }
