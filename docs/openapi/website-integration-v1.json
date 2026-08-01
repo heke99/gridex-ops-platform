@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-08-01.1",
+    "version": "2026-08-01.2",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -69,15 +69,90 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
+            "description": "Missing or invalid API key",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
+            "description": "Scope missing or tenant access denied",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "integration_context.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "integration_context.read"
+        ]
       }
     },
     "/api/v1/website/public-contracts": {
@@ -129,39 +204,19 @@
                 "description": "Tenant- and channel-specific publication revision token."
               },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-RateLimit-Limit": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitLimit"
               },
               "X-RateLimit-Remaining": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitRemaining"
               },
               "X-RateLimit-Reset": {
-                "schema": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Stable external reference for the locked legal bundle version."
-                }
+                "$ref": "#/components/headers/RateLimitReset"
               },
               "X-Request-ID": {
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                "$ref": "#/components/headers/RequestId"
               }
             },
             "content": {
@@ -235,7 +290,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-01.1"
+                          "const": "2026-08-01.2"
                         },
                         "deprecated_aliases": {
                           "type": "array",
@@ -459,7 +514,7 @@
                     "count": 1,
                     "publication_revision": 42,
                     "publication_updated_at": "2026-08-01T00:00:00.000Z",
-                    "contract_schema_version": "2026-08-01.1",
+                    "contract_schema_version": "2026-08-01.2",
                     "deprecated_aliases": [
                       "contracts",
                       "contract_offer_id",
@@ -475,18 +530,10 @@
             "description": "Publication revision has not changed",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                "$ref": "#/components/headers/RequestId"
               },
               "ETag": {
                 "schema": {
@@ -495,107 +542,134 @@
                 "description": "Tenant- and channel-specific publication revision token."
               },
               "X-RateLimit-Limit": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitLimit"
               },
               "X-RateLimit-Remaining": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitRemaining"
               },
               "X-RateLimit-Reset": {
-                "schema": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Stable external reference for the locked legal bundle version."
-                }
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest",
+            "description": "Invalid query or payload",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized",
+            "description": "Missing or invalid API key",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict",
+            "description": "Expired, consumed or mismatched quote/idempotency state",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "503": {
-            "$ref": "#/components/responses/InternalError",
+            "description": "The canonical API contract feed could not be built",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
         },
         "x-required-scopes": [
           "website_contracts.read"
+        ],
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
+          }
         ]
       }
     },
@@ -646,23 +720,143 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Invalid query or payload",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
+            "description": "Scope missing or tenant access denied",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "description": "Expired, consumed or mismatched quote/idempotency state",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "503": {
-            "$ref": "#/components/responses/InternalError"
+            "description": "The canonical API contract feed could not be built",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         },
         "x-required-scopes": [
           "website_contracts.diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.diagnostics"
+            ]
+          }
         ]
       }
     },
@@ -710,39 +904,19 @@
                 "description": "Tenant- and channel-specific publication revision token."
               },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-RateLimit-Limit": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitLimit"
               },
               "X-RateLimit-Remaining": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitRemaining"
               },
               "X-RateLimit-Reset": {
-                "schema": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Stable external reference for the locked legal bundle version."
-                }
+                "$ref": "#/components/headers/RateLimitReset"
               },
               "X-Request-ID": {
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                "$ref": "#/components/headers/RequestId"
               }
             },
             "content": {
@@ -816,7 +990,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-01.1"
+                          "const": "2026-08-01.2"
                         },
                         "deprecated_aliases": {
                           "type": "array",
@@ -857,18 +1031,10 @@
             "description": "API publication revision has not changed",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                "$ref": "#/components/headers/RequestId"
               },
               "ETag": {
                 "schema": {
@@ -877,163 +1043,217 @@
                 "description": "Tenant- and channel-specific publication revision token."
               },
               "X-RateLimit-Limit": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitLimit"
               },
               "X-RateLimit-Remaining": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitRemaining"
               },
               "X-RateLimit-Reset": {
-                "schema": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Stable external reference for the locked legal bundle version."
-                }
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest",
+            "description": "Invalid query or payload",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized",
+            "description": "Missing or invalid API key",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden",
+            "description": "Scope missing or tenant access denied",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "410": {
-            "$ref": "#/components/responses/TenantGone",
+            "description": "Tenant is terminated and no longer serves external API traffic",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "423": {
-            "$ref": "#/components/responses/TenantPaused",
+            "description": "Tenant is paused and external API traffic is temporarily locked",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "429": {
-            "$ref": "#/components/responses/RateLimited",
+            "description": "API client rate limit exceeded",
             "headers": {
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "500": {
-            "$ref": "#/components/responses/InternalError",
+            "description": "The canonical API contract feed could not be built",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "security": [
+          {
+            "bearerAuth": [
+              "api_contracts.read"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/website/quote": {
@@ -1116,13 +1336,47 @@
                     "site_count": 1
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-08-01.1"
+                  "contract_schema_version": "2026-08-01.2"
                 }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
             "description": "Invalid request",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1133,6 +1387,23 @@
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1143,6 +1414,23 @@
           },
           "404": {
             "description": "Published offer not found for tenant",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1153,6 +1441,23 @@
           },
           "409": {
             "description": "Published version conflict",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1163,6 +1468,23 @@
           },
           "413": {
             "description": "Payload too large",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1173,6 +1495,23 @@
           },
           "422": {
             "description": "Area price or quote input cannot be used",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1183,6 +1522,23 @@
           },
           "500": {
             "description": "Quote creation failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1191,7 +1547,14 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_quotes.write"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/website/quote/validate": {
@@ -1238,20 +1601,53 @@
                       "type": [
                         "string",
                         "null"
-                      ],
-                      "description": "Stable external reference for the locked legal bundle version."
+                      ]
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.1"
+                      "const": "2026-08-01.2"
                     }
                   }
                 }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
             "description": "Invalid request",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1262,6 +1658,23 @@
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1272,6 +1685,23 @@
           },
           "404": {
             "description": "Quote or offer not found",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1282,6 +1712,23 @@
           },
           "409": {
             "description": "Quote already consumed or binding mismatch",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1292,6 +1739,23 @@
           },
           "413": {
             "description": "Payload too large",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1302,6 +1766,23 @@
           },
           "422": {
             "description": "Quote expired or no longer valid",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1312,6 +1793,23 @@
           },
           "500": {
             "description": "Validation failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1320,7 +1818,14 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_quotes.validate"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/website/customer-applications": {
@@ -1359,25 +1864,179 @@
                   "$ref": "#/components/schemas/WebsiteCustomerApplicationResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Invalid query or payload",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "401": {
-            "description": "API-nyckel saknas eller är ogiltig"
+            "description": "API-nyckel saknas eller är ogiltig",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Scope eller tenantbehörighet saknas"
+            "description": "Scope eller tenantbehörighet saknas",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Refererad resurs finns inte inom verifierad tenant"
+            "description": "Refererad resurs finns inte inom verifierad tenant",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "description": "Expired, consumed or mismatched quote/idempotency state",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "422": {
             "description": "Application validation error",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1388,6 +2047,23 @@
           },
           "503": {
             "description": "Temporärt beroendefel eller canonical resolution/workflow är inte tillgänglig",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1412,6 +2088,13 @@
           "supplier_switch.rejected",
           "supply_period.activated",
           "contract.activated"
+        ],
+        "security": [
+          {
+            "bearerAuth": [
+              "website_applications.write"
+            ]
+          }
         ]
       }
     },
@@ -1469,7 +2152,24 @@
         },
         "responses": {
           "200": {
-            "description": "Accepted and durably deduplicated"
+            "description": "Accepted and durably deduplicated",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            }
           }
         }
       }
@@ -1503,10 +2203,44 @@
                   "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "400": {
             "description": "Invalid request",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1517,6 +2251,23 @@
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1527,6 +2278,23 @@
           },
           "413": {
             "description": "Payload too large",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1537,16 +2305,50 @@
           },
           "422": {
             "description": "Resolution failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "500": {
             "description": "Resolver failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1555,7 +2357,14 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_energy_area.resolve"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/website/switch-status": {
@@ -1592,13 +2401,71 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Invalid query or payload",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "404": {
             "description": "Application not found in tenant",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1609,6 +2476,23 @@
           },
           "500": {
             "description": "Status unavailable",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1617,7 +2501,17 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_switch_status.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_switch_status.read"
+        ]
       }
     },
     "/api/v1/openapi/website-integration-v1.json": {
@@ -1635,9 +2529,19 @@
                 }
               },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "const": "2026-08-01.1"
-                }
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             },
             "content": {
@@ -1650,7 +2554,24 @@
             }
           },
           "304": {
-            "description": "Oförändrad ETag"
+            "description": "Oförändrad ETag",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            }
           }
         }
       }
@@ -1670,9 +2591,19 @@
                 }
               },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "const": "2026-08-01.1"
-                }
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             },
             "content": {
@@ -1685,65 +2616,26 @@
             }
           },
           "304": {
-            "description": "Oförändrad ETag"
+            "description": "Oförändrad ETag",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            }
           }
         }
-      }
-    },
-    "/api/v1/website/customer-applications/{application_id}": {
-      "get": {
-        "tags": [
-          "Customer applications"
-        ],
-        "summary": "Read tenant-scoped automatic application status",
-        "description": "Scope: website_switch_status.read. Returns a small external status model; internal workflow payload, secrets and other tenants are never exposed.",
-        "parameters": [
-          {
-            "name": "application_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Current application status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CustomerApplicationStatus"
-                    },
-                    "meta": {
-                      "type": "object"
-                    },
-                    "request_id": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Application not found in authenticated tenant",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "x-required-scopes": [
-          "website_switch_status.read"
-        ]
       }
     },
     "/api/v1/website/market-price/current": {
@@ -1799,137 +2691,282 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-08-01.1"
+                  "contract_schema_version": "2026-08-01.2"
                 }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
             "description": "Invalid request",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "403": {
             "description": "Missing scope or resolution tenant mismatch",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "404": {
             "description": "Resolution not found",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "409": {
             "description": "Resolution expired, price-area mismatch or stale price",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
-                },
-                "examples": {
-                  "price_area_mismatch": {
-                    "value": {
-                      "error": {
-                        "code": "price_area_mismatch",
-                        "message": "Inskickat price_area motsäger OPS-resolutionen.",
-                        "field": "price_area",
-                        "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-                        "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-                        "retryable": false,
-                        "details": {
-                          "asserted_price_area": "SE4",
-                          "canonical_price_area": "SE3"
-                        }
-                      },
-                      "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21"
-                    }
-                  },
-                  "market_price_stale": {
-                    "value": {
-                      "error": {
-                        "code": "market_price_stale",
-                        "message": "Aktuellt spotpris för SE3 är stale enligt tenantens freshness-policy.",
-                        "field": null,
-                        "request_id": "04fc8fb2-a035-480e-a16c-728761126809",
-                        "correlation_id": "04fc8fb2-a035-480e-a16c-728761126809",
-                        "retryable": true,
-                        "details": {
-                          "price_area": "SE3"
-                        }
-                      },
-                      "request_id": "04fc8fb2-a035-480e-a16c-728761126809"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "413": {
             "description": "Payload too large",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "429": {
             "description": "Rate limited",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "500": {
             "description": "Unexpected provider or runtime failure",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "503": {
             "description": "Current market price unavailable",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_market_prices.read"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/website/portfolio-prices": {
@@ -1990,20 +3027,53 @@
                       "type": [
                         "string",
                         "null"
-                      ],
-                      "description": "Stable external reference for the locked legal bundle version."
+                      ]
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.1"
+                      "const": "2026-08-01.2"
                     }
                   }
                 }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
             "description": "Invalid request",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2014,6 +3084,23 @@
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2024,6 +3111,23 @@
           },
           "403": {
             "description": "Missing scope",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2034,6 +3138,23 @@
           },
           "404": {
             "description": "Offer not found",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2044,6 +3165,23 @@
           },
           "422": {
             "description": "Offer cannot be used",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2052,7 +3190,14 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/website/legal-bundle": {
@@ -2063,7 +3208,8 @@
         "summary": "Get the published legal bundle",
         "description": "Canonical offer-specific GET route. Scope: website_legal.read. Tenant is derived from the API key; offer_reference resolves the exact publication and immutable legal bundle.",
         "x-required-scopes": [
-          "website_legal.read"
+          "website_legal.read",
+          "website_contracts.read"
         ],
         "parameters": [
           {
@@ -2086,10 +3232,44 @@
                   "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "400": {
             "description": "offer_reference is missing",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2100,6 +3280,23 @@
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2110,6 +3307,23 @@
           },
           "403": {
             "description": "Missing scope",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2120,6 +3334,23 @@
           },
           "404": {
             "description": "The offer_reference is not published for this tenant",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2130,16 +3361,50 @@
           },
           "422": {
             "description": "The exact offer legal bundle is incomplete",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
           "503": {
             "description": "Legal bundle storage is temporarily unavailable",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2148,6 +3413,25 @@
               }
             }
           }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "website_legal.read"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
+          }
+        ],
+        "x-scope-mode": "any",
+        "x-scope-requirement": {
+          "anyOf": [
+            "website_legal.read",
+            "website_contracts.read"
+          ]
         }
       }
     },
@@ -2196,20 +3480,53 @@
                       "type": [
                         "string",
                         "null"
-                      ],
-                      "description": "Stable external reference for the locked legal bundle version."
+                      ]
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.1"
+                      "const": "2026-08-01.2"
                     }
                   }
                 }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
             "description": "Invalid request",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2220,6 +3537,23 @@
           },
           "401": {
             "description": "Authentication failed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2230,6 +3564,23 @@
           },
           "403": {
             "description": "Missing scope",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2240,6 +3591,23 @@
           },
           "409": {
             "description": "Idempotency conflict",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2248,7 +3616,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [
+              "website_events.write"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/openapi/release-manifest.json": {
@@ -2264,6 +3644,23 @@
                 "schema": {
                   "$ref": "#/components/schemas/OpenApiReleaseManifest"
                 }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           }
@@ -2314,39 +3711,19 @@
                 "description": "Tenant- and channel-specific publication revision token."
               },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-RateLimit-Limit": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitLimit"
               },
               "X-RateLimit-Remaining": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitRemaining"
               },
               "X-RateLimit-Reset": {
-                "schema": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Stable external reference for the locked legal bundle version."
-                }
+                "$ref": "#/components/headers/RateLimitReset"
               },
               "X-Request-ID": {
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                "$ref": "#/components/headers/RequestId"
               }
             },
             "content": {
@@ -2420,7 +3797,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-01.1"
+                          "const": "2026-08-01.2"
                         },
                         "deprecated_aliases": {
                           "type": "array",
@@ -2461,18 +3838,10 @@
             "description": "API publication revision has not changed",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                "$ref": "#/components/headers/RequestId"
               },
               "ETag": {
                 "schema": {
@@ -2481,200 +3850,270 @@
                 "description": "Tenant- and channel-specific publication revision token."
               },
               "X-RateLimit-Limit": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitLimit"
               },
               "X-RateLimit-Remaining": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+                "$ref": "#/components/headers/RateLimitRemaining"
               },
               "X-RateLimit-Reset": {
-                "schema": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Stable external reference for the locked legal bundle version."
-                }
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest",
+            "description": "Invalid query or payload",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized",
+            "description": "Missing or invalid API key",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden",
+            "description": "Scope missing or tenant access denied",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict",
+            "description": "Expired, consumed or mismatched quote/idempotency state",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "410": {
-            "$ref": "#/components/responses/TenantGone",
+            "description": "Tenant is terminated and no longer serves external API traffic",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "423": {
-            "$ref": "#/components/responses/TenantPaused",
+            "description": "Tenant is paused and external API traffic is temporarily locked",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "429": {
-            "$ref": "#/components/responses/RateLimited",
+            "description": "API client rate limit exceeded",
             "headers": {
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "500": {
-            "$ref": "#/components/responses/InternalError",
+            "description": "The canonical API contract feed could not be built",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
           "503": {
-            "$ref": "#/components/responses/InternalError",
+            "description": "The canonical API contract feed could not be built",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "schema": {
-                  "type": "string",
-                  "const": "2026-08-01.1"
-                },
-                "description": "Canonical public contract schema version."
+                "$ref": "#/components/headers/GridexContractVersion"
               },
               "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "description": "Correlation identifier returned in the response body and logs."
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "api_contracts.read"
+            ]
+          }
+        ]
       }
     },
     "/api/v1/public-contracts/diagnostics": {
@@ -2710,23 +4149,252 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Invalid query or payload",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
+            "description": "Scope missing or tenant access denied",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "description": "Expired, consumed or mismatched quote/idempotency state",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "503": {
-            "$ref": "#/components/responses/InternalError"
+            "description": "The canonical API contract feed could not be built",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         },
         "x-required-scopes": [
           "api_contracts.diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": [
+              "api_contracts.diagnostics"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/v1/website/customer-applications/{application_number}": {
+      "get": {
+        "tags": [
+          "Customer applications"
+        ],
+        "summary": "Read tenant-scoped automatic application status",
+        "description": "Scope: website_switch_status.read. application_number is resolved strictly inside the API-key tenant. Internal database UUIDs are never accepted or returned.",
+        "parameters": [
+          {
+            "name": "application_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current application status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data",
+                    "request_id",
+                    "contract_schema_version"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WebsiteCustomerApplicationStatusData"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "contract_schema_version": {
+                      "type": "string",
+                      "const": "2026-08-01.2"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found in authenticated tenant",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-required-scopes": [
+          "website_switch_status.read"
+        ],
+        "security": [
+          {
+            "bearerAuth": [
+              "website_switch_status.read"
+            ]
+          }
         ]
       }
     }
@@ -2744,90 +4412,20 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "ok",
-          "code",
-          "message",
+          "error",
           "request_id",
           "correlation_id",
-          "blockers"
+          "contract_schema_version"
         ],
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "const": false
-          },
-          "code": {
-            "type": "string"
-          },
-          "error_code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "correlation_id": {
-            "type": "string"
-          },
-          "blockers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiBlocker"
-            }
-          },
-          "field": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "details": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
-          },
-          "error_stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "action": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "hint": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "error": {
             "type": "object",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "required": [
               "code",
               "message",
-              "request_id",
-              "correlation_id",
+              "retryable",
+              "field",
               "blockers"
             ],
             "properties": {
@@ -2837,10 +4435,7 @@
               "message": {
                 "type": "string"
               },
-              "request_id": {
-                "type": "string"
-              },
-              "correlation_id": {
+              "stage": {
                 "type": "string"
               },
               "field": {
@@ -2848,6 +4443,9 @@
                   "string",
                   "null"
                 ]
+              },
+              "hint": {
+                "type": "string"
               },
               "retryable": {
                 "type": "boolean"
@@ -2857,11 +4455,31 @@
                 "items": {
                   "$ref": "#/components/schemas/ApiBlocker"
                 }
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               }
             }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-08-01.2"
           }
         },
-        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
       },
       "TenantMeta": {
         "type": "object",
@@ -2923,7 +4541,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "configuration": {
             "type": "object",
@@ -3084,8 +4702,7 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "contract_type": {
             "type": "string",
@@ -3171,15 +4788,13 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "valid_to": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "channel": {
             "type": "string",
@@ -3230,8 +4845,7 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "name": {
             "type": "string"
@@ -3241,8 +4855,7 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "public_description": {},
           "contract_type": {
@@ -3617,13 +5230,6 @@
               "null"
             ]
           },
-          "application_id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          },
           "price_option_reference": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
@@ -3647,6 +5253,9 @@
           "site_count": {
             "type": "integer",
             "minimum": 1
+          },
+          "application_number": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -4124,26 +5733,18 @@
           "supplier_switch",
           "selected_component_references",
           "mandatory_component_references",
-          "conditional_component_references"
+          "conditional_component_references",
+          "application_number"
         ],
         "properties": {
-          "customer_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
-          },
           "customer_number": {
             "type": [
               "string",
               "null"
             ]
           },
-          "application_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
-          },
           "application_number": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "external_customer_id": {
             "type": [
@@ -4156,18 +5757,6 @@
               "string",
               "null"
             ]
-          },
-          "customer_site_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
-          },
-          "site_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
-          },
-          "metering_point_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
-          },
-          "contract_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
           },
           "contract_number": {
             "type": [
@@ -4270,16 +5859,6 @@
               "null"
             ]
           },
-          "resolution_id": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/PublicResourceId"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "resolution_status": {
             "type": [
               "string",
@@ -4336,17 +5915,11 @@
               "null"
             ]
           },
-          "workflow_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
-          },
           "workflow_state": {
             "type": [
               "string",
               "null"
             ]
-          },
-          "continuation_job_id": {
-            "$ref": "#/components/schemas/PublicResourceId"
           },
           "missing_fields": {
             "type": "array",
@@ -4379,7 +5952,47 @@
             "$ref": "#/components/schemas/WebsiteApplicationCommunication"
           },
           "supplier_switch": {
-            "$ref": "#/components/schemas/WebsiteSupplierSwitchState"
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "request_reference",
+              "status",
+              "can_create_request",
+              "can_dispatch",
+              "blockers",
+              "next_action"
+            ],
+            "properties": {
+              "request_reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "created",
+                  "not_created"
+                ]
+              },
+              "can_create_request": {
+                "type": "boolean"
+              },
+              "can_dispatch": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "next_action": {
+                "type": "string"
+              }
+            }
           },
           "power_of_attorney": {
             "type": "object",
@@ -4411,22 +6024,19 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "area_price_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "invoice_delivery_method": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "site_count": {
             "type": [
@@ -4455,6 +6065,41 @@
             "items": {
               "type": "string"
             }
+          },
+          "customer_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
+          },
+          "application_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
+          },
+          "facility_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
+          },
+          "metering_point_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
+          },
+          "contract_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
           }
         },
         "additionalProperties": false,
@@ -4462,25 +6107,30 @@
       },
       "WebsiteCustomerApplicationResponse": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "data",
           "request_id",
-          "correlation_id"
+          "contract_schema_version"
         ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/WebsiteCustomerApplicationData"
           },
           "request_id": {
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
           },
           "correlation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_schema_version": {
             "type": "string",
-            "format": "uuid"
+            "const": "2026-08-01.2"
           }
-        },
-        "additionalProperties": false
+        }
       },
       "DiagnosticReadiness": {
         "type": "object",
@@ -4611,15 +6261,13 @@
                 "type": [
                   "string",
                   "null"
-                ],
-                "description": "Stable external reference for the locked legal bundle version."
+                ]
               },
               "customer_number": {
                 "type": [
                   "string",
                   "null"
-                ],
-                "description": "Stable external reference for the locked legal bundle version."
+                ]
               }
             }
           },
@@ -4662,7 +6310,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           }
         }
       },
@@ -5542,12 +7190,11 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           }
         }
       },
@@ -5867,7 +7514,8 @@
           "data",
           "request_id",
           "correlation_id",
-          "retryable"
+          "retryable",
+          "contract_schema_version"
         ],
         "properties": {
           "data": {
@@ -5881,6 +7529,10 @@
           },
           "retryable": {
             "type": "boolean"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-08-01.2"
           }
         },
         "additionalProperties": false
@@ -6106,32 +7758,27 @@
       },
       "CustomerApplicationStatus": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
-          "application_id",
+          "application_number",
           "status",
           "stage",
-          "missing_customer_action",
-          "updated_at"
+          "supplier_switch_status",
+          "missing_customer_action"
         ],
         "properties": {
-          "application_id": {
-            "type": "string",
-            "format": "uuid"
-          },
           "application_number": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "status": {
+            "type": "string",
             "enum": [
-              "accepted",
               "processing",
+              "accepted",
               "needs_customer_information",
-              "completed",
               "rejected",
-              "failed"
+              "failed",
+              "completed"
             ]
           },
           "stage": {
@@ -6150,10 +7797,7 @@
             ]
           },
           "supplier_switch_status": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "supply_status": {
             "type": [
@@ -6165,15 +7809,13 @@
             "type": [
               "string",
               "null"
-            ],
-            "format": "date"
+            ]
           },
           "confirmed_start_date": {
             "type": [
               "string",
               "null"
-            ],
-            "format": "date"
+            ]
           },
           "missing_customer_action": {
             "type": "boolean"
@@ -6191,8 +7833,10 @@
             ]
           },
           "updated_at": {
-            "type": "string",
-            "format": "date-time"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -6372,52 +8016,39 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           }
         },
         "additionalProperties": false
       },
       "MarketPriceErrorEnvelope": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "error",
-          "request_id"
+          "request_id",
+          "correlation_id",
+          "contract_schema_version"
         ],
-        "additionalProperties": false,
         "properties": {
           "error": {
             "type": "object",
+            "additionalProperties": false,
             "required": [
               "code",
               "message",
+              "retryable",
               "field",
-              "request_id",
-              "correlation_id",
-              "retryable"
+              "blockers"
             ],
-            "additionalProperties": false,
             "properties": {
               "code": {
-                "type": "string",
-                "enum": [
-                  "invalid_request",
-                  "unknown_field",
-                  "invalid_json",
-                  "payload_too_large",
-                  "missing_api_token",
-                  "invalid_api_token",
-                  "api_scope_missing",
-                  "rate_limited",
-                  "resolution_not_found",
-                  "resolution_expired",
-                  "resolution_pricing_not_ready",
-                  "price_area_mismatch",
-                  "current_market_price_unavailable",
-                  "market_price_stale",
-                  "market_price_provider_unavailable"
-                ]
+                "type": "string"
               },
               "message": {
+                "type": "string"
+              },
+              "stage": {
                 "type": "string"
               },
               "field": {
@@ -6426,31 +8057,42 @@
                   "null"
                 ]
               },
-              "request_id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "correlation_id": {
-                "type": "string",
-                "format": "uuid"
+              "hint": {
+                "type": "string"
               },
               "retryable": {
                 "type": "boolean"
               },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
+              },
               "details": {
                 "type": [
                   "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
                   "null"
-                ],
-                "additionalProperties": true
+                ]
               }
             }
           },
           "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
             "type": "string",
-            "format": "uuid"
+            "const": "2026-08-01.2"
           }
-        }
+        },
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
       },
       "EnergyDirection": {
         "type": "string",
@@ -6618,6 +8260,7 @@
         "required": [
           "error",
           "request_id",
+          "correlation_id",
           "contract_schema_version"
         ],
         "properties": {
@@ -6627,7 +8270,9 @@
             "required": [
               "code",
               "message",
-              "retryable"
+              "retryable",
+              "field",
+              "blockers"
             ],
             "properties": {
               "code": {
@@ -6640,7 +8285,10 @@
                 "type": "string"
               },
               "field": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "hint": {
                 "type": "string"
@@ -6674,7 +8322,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -6867,43 +8515,37 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "privacy_policy_document_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "withdrawal_document_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "price_terms_document_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "power_of_attorney_document_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "legal_bundle_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           }
         }
       },
@@ -7018,7 +8660,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           }
         }
       },
@@ -7183,15 +8825,13 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "geodata_version": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "market_reference": {
             "$ref": "#/components/schemas/MarketReference"
@@ -7203,15 +8843,13 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "area_price_reference": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "invoice_delivery_method": {
             "type": "string",
@@ -7278,15 +8916,13 @@
                 "type": [
                   "string",
                   "null"
-                ],
-                "description": "Stable external reference for the locked legal bundle version."
+                ]
               },
               "area_price_reference": {
                 "type": [
                   "string",
                   "null"
-                ],
-                "description": "Stable external reference for the locked legal bundle version."
+                ]
               }
             },
             "required": [
@@ -7302,6 +8938,7 @@
       "WebsiteCustomerEventIdentity": {
         "type": "object",
         "additionalProperties": false,
+        "required": [],
         "properties": {
           "external_customer_id": {
             "type": "string"
@@ -7321,14 +8958,6 @@
             "type": "string",
             "format": "email"
           }
-        },
-        "dependentRequired": {
-          "auth_user_id": [
-            "customer_portal_user_id"
-          ],
-          "customer_portal_user_id": [
-            "auth_user_id"
-          ]
         }
       },
       "WebsiteCustomerEventRequest": {
@@ -7348,14 +8977,38 @@
             "pattern": "^customer\\.[a-z0-9_]+$"
           },
           "event_reference": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "occurred_at": {
             "type": "string",
             "format": "date-time"
           },
           "customer": {
-            "$ref": "#/components/schemas/WebsiteCustomerEventIdentity"
+            "type": "object",
+            "additionalProperties": false,
+            "required": [],
+            "properties": {
+              "external_customer_id": {
+                "type": "string"
+              },
+              "customer_number": {
+                "type": "string"
+              },
+              "auth_user_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "customer_portal_user_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              }
+            }
           },
           "subject": {
             "type": "object",
@@ -7384,30 +9037,24 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "event_id",
-          "customer_event_id",
           "event_reference",
+          "event_resource_reference",
           "event_type",
           "customer_reference",
-          "status"
+          "status",
+          "occurred_at",
+          "replayed"
         ],
         "properties": {
-          "event_id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          },
-          "customer_event_id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          },
           "event_reference": {
             "type": "string"
+          },
+          "event_resource_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$"
           },
           "event_type": {
             "type": "string"
@@ -7416,12 +9063,18 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "status": {
             "type": "string",
             "const": "accepted"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replayed": {
+            "type": "boolean"
           }
         }
       },
@@ -7461,8 +9114,7 @@
             "type": [
               "string",
               "null"
-            ],
-            "description": "Stable external reference for the locked legal bundle version."
+            ]
           },
           "data": {
             "type": "object"
@@ -7484,23 +9136,23 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "released_at": {
             "type": "string",
@@ -7540,7 +9192,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-08-01.1"
+            "const": "2026-08-01.2"
           },
           "url": {
             "type": "string",
@@ -7716,6 +9368,163 @@
             "format": "uri"
           }
         }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error",
+          "request_id",
+          "correlation_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "retryable",
+              "field",
+              "blockers"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "stage": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hint": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-08-01.2"
+          }
+        },
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
+      },
+      "WebsiteCustomerApplicationStatusData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "application_number",
+          "status",
+          "stage",
+          "supplier_switch_status",
+          "missing_customer_action"
+        ],
+        "properties": {
+          "application_number": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "accepted",
+              "needs_customer_information",
+              "rejected",
+              "failed",
+              "completed"
+            ]
+          },
+          "stage": {
+            "type": "string"
+          },
+          "customer_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supplier_switch_status": {
+            "type": "string"
+          },
+          "supply_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmed_start_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "missing_customer_action": {
+            "type": "boolean"
+          },
+          "next_step": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocking_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       }
     },
     "responses": {
@@ -7727,6 +9536,23 @@
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
           }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          }
         }
       },
       "Unauthorized": {
@@ -7736,6 +9562,23 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
           }
         }
       },
@@ -7747,6 +9590,23 @@
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
           }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          }
         }
       },
       "TenantGone": {
@@ -7756,6 +9616,23 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
           }
         }
       },
@@ -7767,6 +9644,23 @@
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
           }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          }
         }
       },
       "RateLimited": {
@@ -7777,6 +9671,21 @@
               "type": "integer",
               "minimum": 1
             }
+          },
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
           }
         },
         "content": {
@@ -7795,6 +9704,23 @@
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
           }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          }
         }
       },
       "Conflict": {
@@ -7805,11 +9731,80 @@
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
           }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          }
+        }
+      }
+    },
+    "headers": {
+      "GridexContractVersion": {
+        "description": "Canonical contract version used for this response.",
+        "schema": {
+          "type": "string",
+          "const": "2026-08-01.2"
+        }
+      },
+      "RequestId": {
+        "description": "Stable request identifier for support and audit.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RateLimitLimit": {
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "RateLimitRemaining": {
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "RateLimitReset": {
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "RetryAfter": {
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9._:+~-]+$"
         }
       }
     }
   },
-  "x-contract-schema-version": "2026-08-01.1",
+  "x-contract-schema-version": "2026-08-01.2",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

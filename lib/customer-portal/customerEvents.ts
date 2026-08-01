@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
@@ -5,6 +6,8 @@ import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
 import { isMissingPortalSchemaError, resolvePortalCustomer } from '@/lib/customer-portal/customerResolver'
+import { ApiInputError, executeIdempotentPortalWrite, requireIdempotencyKey } from '@/lib/api/strictRequest'
+import { publicReference } from '@/lib/integrations/publicReferences'
 
 const CustomerEventIdentitySchema = z.object({
   external_customer_id: z.string().trim().min(1).optional(),
@@ -31,12 +34,12 @@ const CustomerEventIdentitySchema = z.object({
 
 export const CustomerEventSchema = z.object({
   event_type: z.string().min(3).regex(/^customer\.[a-z0-9_]+$/),
-  event_reference: z.string().trim().min(1),
+  event_reference: z.string().trim().min(1).max(200),
   occurred_at: z.string().datetime({ offset: true }),
   customer: CustomerEventIdentitySchema,
   subject: z.object({
-    type: z.string().trim().min(1),
-    reference: z.string().trim().min(1).optional(),
+    type: z.string().trim().min(1).max(100),
+    reference: z.string().trim().min(1).max(200).optional(),
   }).strict(),
   data: z.record(z.unknown()),
   metadata: z.record(z.unknown()).optional(),
@@ -44,17 +47,26 @@ export const CustomerEventSchema = z.object({
 
 export type CustomerEventInput = z.infer<typeof CustomerEventSchema>
 
+export type CustomerEventResponseData = {
+  event_reference: string
+  event_resource_reference: string | null
+  event_type: string
+  customer_reference: string | null
+  status: 'accepted'
+  occurred_at: string
+}
+
+export type RecordedWebsiteCustomerEvent = CustomerEventResponseData & {
+  replayed: boolean
+  _internal_customer_id: string
+}
+
 export function parseCustomerEventPayload(body: unknown) {
   return CustomerEventSchema.safeParse(body)
 }
 
 export function isSupportEvent(eventType: string): boolean {
   return /^customer\.(support|case)(?:_|$)/i.test(eventType)
-}
-
-class CustomerEventResolutionError extends Error {
-  status = 422
-  code = 'customer_identity_required'
 }
 
 async function resolveCustomerIdentity(client: IntegrationApiClient, payload: CustomerEventInput) {
@@ -70,7 +82,12 @@ async function resolveCustomerIdentity(client: IntegrationApiClient, payload: Cu
   })
 
   if (!resolution.ok) {
-    return { customerId: null as string | null, portalIdentityId: null as string | null, externalCustomerId: payload.customer.external_customer_id ?? null }
+    throw new ApiInputError(
+      'Kundevent kräver en verifierad kundlänk.',
+      resolution.code || 'customer_identity_required',
+      resolution.status || 422,
+      'customer',
+    )
   }
 
   return {
@@ -80,100 +97,141 @@ async function resolveCustomerIdentity(client: IntegrationApiClient, payload: Cu
   }
 }
 
+function eventIdempotencyKey(input: {
+  companyId: string
+  clientId: string
+  operation: string
+  idempotencyKey: string
+}) {
+  return createHash('sha256')
+    .update([input.companyId, input.clientId, input.operation, input.idempotencyKey].join('|'))
+    .digest('hex')
+}
+
 export async function recordWebsiteCustomerEvent(input: {
   request: NextRequest
   client: IntegrationApiClient
   payload: CustomerEventInput
+  operation: '/api/v1/events' | '/api/v1/website/customer-events'
   source?: string
-}) {
+}): Promise<RecordedWebsiteCustomerEvent> {
   const identity = await resolveCustomerIdentity(input.client, input.payload)
   const customerId = identity.customerId
-  if (!customerId) {
-    throw new CustomerEventResolutionError('Kundevent kräver en verifierad kundlänk. Skicka customer_portal_user_id/auth_user_id och kundnummer eller external_customer_id enligt Customer Portal sync.')
-  }
-  const occurredAt = input.payload.occurred_at ?? new Date().toISOString()
-  const aggregateId = input.payload.subject.reference ?? input.payload.event_reference
-  const idempotencyKey = input.request.headers.get('idempotency-key')?.trim() || null
 
-  const customerEventPayload = {
-    company_id: input.client.company_id,
-    api_client_id: input.client.id,
-    customer_id: customerId,
-    portal_identity_id: identity.portalIdentityId,
-    external_customer_id: identity.externalCustomerId ?? input.payload.customer.external_customer_id ?? null,
-    event_type: input.payload.event_type,
-    source: input.source ?? 'website',
-    idempotency_key: idempotencyKey,
-    payload: input.payload.data,
-    metadata: {
-      ...(input.payload.metadata ?? {}),
-      event_reference: input.payload.event_reference,
-      subject: input.payload.subject,
-    },
-    occurred_at: occurredAt,
-  }
+  const result = await executeIdempotentPortalWrite<{ data: CustomerEventResponseData }>({
+    request: input.request,
+    companyId: input.client.company_id,
+    clientId: input.client.id,
+    customerId,
+    operation: input.operation,
+    payload: input.payload,
+    execute: async () => {
+      const occurredAt = input.payload.occurred_at
+      const aggregateId = input.payload.subject.reference ?? input.payload.event_reference
+      const requestKey = requireIdempotencyKey(input.request)
+      const durableIdempotencyKey = eventIdempotencyKey({
+        companyId: input.client.company_id,
+        clientId: input.client.id,
+        operation: input.operation,
+        idempotencyKey: requestKey,
+      })
 
-  const customerEventResult = idempotencyKey
-    ? await supabaseService
-        .from('customer_events')
-        .upsert(customerEventPayload, { onConflict: 'company_id,idempotency_key' })
-        .select('id')
-        .maybeSingle()
-    : await supabaseService
+      const customerEventPayload = {
+        company_id: input.client.company_id,
+        api_client_id: input.client.id,
+        customer_id: customerId,
+        portal_identity_id: identity.portalIdentityId,
+        external_customer_id: identity.externalCustomerId ?? input.payload.customer.external_customer_id ?? null,
+        event_type: input.payload.event_type,
+        source: input.source ?? 'website',
+        idempotency_key: durableIdempotencyKey,
+        payload: input.payload.data,
+        metadata: {
+          ...(input.payload.metadata ?? {}),
+          event_reference: input.payload.event_reference,
+          subject: input.payload.subject,
+          public_operation: input.operation,
+        },
+        occurred_at: occurredAt,
+      }
+
+      const customerEventResult = await supabaseService
         .from('customer_events')
         .insert(customerEventPayload)
         .select('id')
         .maybeSingle()
+      if (customerEventResult.error && !isMissingPortalSchemaError(customerEventResult.error)) {
+        throw customerEventResult.error
+      }
+      const customerEventId = customerEventResult.error
+        ? null
+        : customerEventResult.data?.id ?? null
 
-  if (customerEventResult.error && !isMissingPortalSchemaError(customerEventResult.error)) throw customerEventResult.error
-  const customerEventId = customerEventResult.error ? null : customerEventResult.data?.id ?? null
+      const event = await emitDomainEvent({
+        companyId: input.client.company_id,
+        eventType: input.payload.event_type,
+        aggregateType: 'customer',
+        aggregateId,
+        subjectCustomerId: customerId,
+        source: 'website_customer_events',
+        idempotencyKey: `website-event:${durableIdempotencyKey}`,
+        payload: {
+          external_customer_id: identity.externalCustomerId ?? input.payload.customer.external_customer_id ?? null,
+          customer_id: customerId,
+          customer_event_id: customerEventId,
+          event_reference: input.payload.event_reference,
+          subject: input.payload.subject,
+          occurred_at: occurredAt,
+          api_client_id: input.client.id,
+          data: input.payload.data,
+          metadata: input.payload.metadata ?? {},
+        },
+      })
 
-  const event = await emitDomainEvent({
-    companyId: input.client.company_id,
-    eventType: input.payload.event_type,
-    aggregateType: customerId ? 'customer' : 'external_customer',
-    aggregateId,
-    subjectCustomerId: customerId,
-    source: 'website_customer_events',
-    idempotencyKey: idempotencyKey ? `website-event:${input.client.company_id}:${idempotencyKey}` : null,
-    payload: {
-      external_customer_id: identity.externalCustomerId ?? input.payload.customer.external_customer_id ?? null,
-      customer_id: customerId,
-      customer_event_id: customerEventId,
-      event_reference: input.payload.event_reference,
-      subject: input.payload.subject,
-      occurred_at: occurredAt,
-      api_client_id: input.client.id,
-      data: input.payload.data,
-      metadata: input.payload.metadata ?? {},
+      const metadata = {
+        event_id: event?.id ?? null,
+        customer_event_id: customerEventId,
+        event_type: input.payload.event_type,
+        customer_id: customerId,
+      }
+      await logUsageEvent({
+        companyId: input.client.company_id,
+        apiClientId: input.client.id,
+        customerId,
+        entityType: 'customer_event',
+        entityId: typeof customerEventId === 'string' ? customerEventId : null,
+        eventKey: 'api.customer_event.received',
+        actionLabel: 'Tog emot kundevent från hemsida',
+        source: 'website_api',
+        billable: true,
+        billingUnit: 'customer_event',
+        metadata,
+      })
+
+      return {
+        statusCode: 200,
+        body: {
+          data: {
+            event_reference: input.payload.event_reference,
+            event_resource_reference: event?.id
+              ? publicReference('event', input.client.company_id, event.id)
+              : null,
+            event_type: input.payload.event_type,
+            customer_reference:
+              identity.externalCustomerId ??
+              input.payload.customer.customer_number ??
+              publicReference('customer', input.client.company_id, customerId),
+            status: 'accepted',
+            occurred_at: occurredAt,
+          },
+        },
+      }
     },
   })
 
-  const metadata = { event_id: event?.id ?? null, customer_event_id: customerEventId, event_type: input.payload.event_type, customer_id: customerId }
-  await logUsageEvent({
-    companyId: input.client.company_id,
-    apiClientId: input.client.id,
-    customerId,
-    entityType: 'customer_event',
-    entityId: typeof customerEventId === 'string' ? customerEventId : null,
-    eventKey: 'api.customer_event.received',
-    actionLabel: 'Tog emot kundevent från hemsida',
-    source: 'website_api',
-    billable: true,
-    billingUnit: 'customer_event',
-    metadata,
-  })
-
   return {
-    event_id: event?.id ?? null,
-    customer_event_id: customerEventId,
-    event_reference: input.payload.event_reference,
-    event_type: input.payload.event_type,
-    customer_reference:
-      identity.externalCustomerId ??
-      input.payload.customer.customer_number ??
-      null,
-    status: 'accepted',
+    ...result.body.data,
+    replayed: result.replayed,
     _internal_customer_id: customerId,
   }
 }

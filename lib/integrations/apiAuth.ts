@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
@@ -36,6 +37,22 @@ export type IntegrationTenantApiStatus =
   | 'archived'
   | 'pending_deletion'
   | 'deleted_test_only'
+
+
+export type IntegrationScopeRequirement =
+  | readonly string[]
+  | { allOf?: readonly string[]; anyOf?: readonly string[] }
+
+export type IntegrationApiResponseContext = {
+  rateLimit?: IntegrationApiRateLimit
+  retryAfterSeconds?: number
+}
+
+const integrationApiResponseContext = new AsyncLocalStorage<IntegrationApiResponseContext>()
+
+export function currentIntegrationApiResponseContext(): IntegrationApiResponseContext | null {
+  return integrationApiResponseContext.getStore() ?? null
+}
 
 export type IntegrationApiAuthResult =
   | { ok: true; client: IntegrationApiClient; context: TenantContext; rateLimit: IntegrationApiRateLimit }
@@ -85,9 +102,27 @@ export function missingIntegrationApiScopes(clientScopes: string[], requiredScop
   return requiredScopes.filter((scope) => !expanded.has(scope))
 }
 
-function hasRequiredScopes(clientScopes: string[], requiredScopes: string[]): boolean {
-  return missingIntegrationApiScopes(clientScopes, requiredScopes).length === 0
+function isScopeList(
+  requirement: IntegrationScopeRequirement,
+): requirement is readonly string[] {
+  return Array.isArray(requirement)
 }
+
+function hasRequiredScopes(
+  clientScopes: string[],
+  requirement: IntegrationScopeRequirement,
+): boolean {
+  const expanded = expandIntegrationApiScopes(clientScopes)
+  if (expanded.has('*')) return true
+  if (isScopeList(requirement)) {
+    return requirement.every((scope) => expanded.has(scope))
+  }
+  const allOf = requirement.allOf ?? []
+  const anyOf = requirement.anyOf ?? []
+  return allOf.every((scope) => expanded.has(scope))
+    && (anyOf.length === 0 || anyOf.some((scope) => expanded.has(scope)))
+}
+
 
 function requestIp(request: NextRequest): string | null {
   return trustedClientIp(request.headers)
@@ -311,9 +346,9 @@ async function rateLimitDecision(client: IntegrationApiClient, request: NextRequ
   return { outcome: 'allowed', rateLimit }
 }
 
-export async function requireIntegrationApiAccess(
+async function resolveIntegrationApiAccess(
   request: NextRequest,
-  requiredScopes: string[]
+  requiredScopes: IntegrationScopeRequirement,
 ): Promise<IntegrationApiAuthResult> {
   // Reject unauthenticated traffic before touching Supabase. Besides being the
   // correct security boundary, this keeps public 401 responses deterministic
@@ -425,6 +460,19 @@ export async function requireIntegrationApiAccess(
   })
 
   return { ok: true, client, context, rateLimit: rateLimit.rateLimit }
+}
+
+
+export async function requireIntegrationApiAccess(
+  request: NextRequest,
+  requiredScopes: IntegrationScopeRequirement,
+): Promise<IntegrationApiAuthResult> {
+  const result = await resolveIntegrationApiAccess(request, requiredScopes)
+  integrationApiResponseContext.enterWith({
+    rateLimit: result.rateLimit,
+    retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,
+  })
+  return result
 }
 
 export async function logIntegrationApiRequest(input: {

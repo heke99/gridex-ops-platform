@@ -126,7 +126,7 @@ ok(src.includes('responsePayload.power_of_attorney = {'), 'response includes a p
 
 // 6) Docs updated.
 const opsDoc = read('docs/ops-api-customer-intake-facility.md')
-ok(opsDoc.includes('powerOfAttorney') && opsDoc.includes('manualInformationRequest') && opsDoc.includes('nextAction'), 'ops API doc documents structured POA + nextAction + manual request')
+ok(opsDoc.includes('powerOfAttorney') && opsDoc.includes('power_of_attorney') && opsDoc.includes('communication') && opsDoc.includes('next_action'), 'ops API doc separates structured POA input from canonical public response')
 const extDoc = read('docs/external-website-api-integration-guide.md')
 ok(extDoc.includes('powerOfAttorney') && extDoc.includes('textVersionId'), 'external integration guide documents structured POA')
 const devPage = read('app/developers/customer-portal-api/page.tsx')

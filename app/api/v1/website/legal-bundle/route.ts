@@ -22,7 +22,7 @@ function legalBundleJson(body: unknown, init: ResponseInit = {}) {
 export async function GET(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
-  const auth = await requireIntegrationApiAccess(request, ['website_legal.read'])
+  const auth = await requireIntegrationApiAccess(request, { anyOf: ['website_legal.read', 'website_contracts.read'] })
 
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })

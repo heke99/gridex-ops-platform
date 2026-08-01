@@ -47,7 +47,7 @@ describe('public website application DTO', () => {
         'contract-public-id',
       ),
       supplier_switch: {
-        request_id: null,
+        request_reference: null,
         status: 'not_created',
         can_create_request: true,
         can_dispatch: false,

@@ -13,15 +13,15 @@ export type ApiErrorBody = {
   error: {
     code: string
     message: string
-    stage?: string
-    field?: string
-    hint?: string
     retryable: boolean
-    blockers?: ApiBlocker[]
+    field: string | null
+    blockers: ApiBlocker[]
+    stage?: string
+    hint?: string
     details?: unknown
   }
   request_id: string
-  correlation_id?: string
+  correlation_id: string
 }
 
 function text(value: unknown): string | null {
@@ -69,19 +69,18 @@ export function canonicalApiError(input: {
   const correlationId = text(input.correlationId) ?? input.requestId
   const blockers = normalizeApiBlockers(input.blockers)
   const field = text(input.field)
-  const retryable = input.retryable === true
   return {
     error: {
       code: input.code,
       message: input.message,
-      retryable,
+      retryable: input.retryable === true,
+      field,
+      blockers,
       ...(input.stage ? { stage: input.stage } : {}),
-      ...(field ? { field } : {}),
       ...(input.hint ? { hint: input.hint } : {}),
-      ...(blockers.length > 0 ? { blockers } : {}),
       ...(input.details !== undefined ? { details: input.details } : {}),
     },
     request_id: input.requestId,
-    ...(correlationId !== input.requestId ? { correlation_id: correlationId } : {}),
+    correlation_id: correlationId,
   }
 }

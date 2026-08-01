@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-01.1'
+const version = '2026-08-01.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-01.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-01.2.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -99,17 +99,17 @@ for (const document of [website, portal]) {
 const canonicalErrorEnvelope = {
   type: 'object',
   additionalProperties: false,
-  required: ['error', 'request_id', 'contract_schema_version'],
+  required: ['error', 'request_id', 'correlation_id', 'contract_schema_version'],
   properties: {
     error: {
       type: 'object',
       additionalProperties: false,
-      required: ['code', 'message', 'retryable'],
+      required: ['code', 'message', 'retryable', 'field', 'blockers'],
       properties: {
         code: string,
         message: string,
         stage: string,
-        field: string,
+        field: nullableString,
         hint: string,
         retryable: { type: 'boolean' },
         blockers: {
@@ -864,6 +864,11 @@ quoteRequest.required = Array.from(new Set([
 const quoteValidationRequest =
   website.components.schemas.QuoteValidationRequest
 quoteValidationRequest.additionalProperties = false
+delete quoteValidationRequest.properties.application_id
+quoteValidationRequest.properties.application_number = string
+quoteValidationRequest.required = (quoteValidationRequest.required ?? []).filter(
+  (field) => field !== 'application_id',
+)
 quoteValidationRequest.properties.price_option_reference = stableReference
 quoteValidationRequest.properties.invoice_delivery_method =
   invoiceDeliveryMethod
@@ -1704,6 +1709,460 @@ setResponse(
 )
 portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
   portal.paths['/api/v1/customer/move-out'].post.responses['200']
+
+
+// Runtime/OpenAPI hardening for release 2026-08-01.2. These overrides are
+// deliberately placed after legacy schema construction so the public contract
+// has one source of truth even while deprecated components remain resolvable.
+for (const document of [website, portal]) {
+  document.components.schemas.ApiError = canonicalErrorEnvelope
+  document.components.schemas.ErrorEnvelope = canonicalErrorEnvelope
+  document.components.schemas.ErrorResponse = canonicalErrorEnvelope
+  document.components.schemas.MarketPriceErrorEnvelope = canonicalErrorEnvelope
+}
+
+function closedObject(properties, required = []) {
+  return { type: 'object', additionalProperties: false, required, properties }
+}
+
+function ensureStandardHeaders(document) {
+  document.components.headers = document.components.headers ?? {}
+  Object.assign(document.components.headers, {
+    GridexContractVersion: {
+      description: 'Canonical contract version used for this response.',
+      schema: contractVersion,
+    },
+    RequestId: {
+      description: 'Stable request identifier for support and audit.',
+      schema: string,
+    },
+    RateLimitLimit: { schema: { type: 'integer', minimum: 1 } },
+    RateLimitRemaining: { schema: { type: 'integer', minimum: 0 } },
+    RateLimitReset: { schema: dateTime },
+    RetryAfter: { schema: { type: 'integer', minimum: 1 } },
+  })
+
+  function addHeaders(response, status) {
+    if (!response || typeof response !== 'object' || response.$ref) return
+    response.headers = {
+      ...(response.headers ?? {}),
+      'X-Gridex-Contract-Version': { $ref: '#/components/headers/GridexContractVersion' },
+      'X-Request-ID': { $ref: '#/components/headers/RequestId' },
+      'X-RateLimit-Limit': { $ref: '#/components/headers/RateLimitLimit' },
+      'X-RateLimit-Remaining': { $ref: '#/components/headers/RateLimitRemaining' },
+      'X-RateLimit-Reset': { $ref: '#/components/headers/RateLimitReset' },
+      ...(String(status) === '429'
+        ? { 'Retry-After': { $ref: '#/components/headers/RetryAfter' } }
+        : {}),
+    }
+  }
+  for (const response of Object.values(document.components.responses ?? {})) {
+    addHeaders(response, '')
+  }
+  for (const item of Object.values(document.paths ?? {})) {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+      const operation = item?.[method]
+      if (!operation) continue
+      for (const [status, response] of Object.entries(operation.responses ?? {})) {
+        addHeaders(response, status)
+      }
+    }
+  }
+}
+
+
+function ensureCanonicalErrorResponses(document) {
+  for (const item of Object.values(document.paths ?? {})) {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+      const operation = item?.[method]
+      if (!operation) continue
+      for (const [status, original] of Object.entries(operation.responses ?? {})) {
+        if (!/^[45]\d\d$/.test(String(status))) continue
+        const referenced = original?.$ref?.startsWith('#/components/responses/')
+          ? document.components?.responses?.[original.$ref.split('/').at(-1)]
+          : null
+        const source = referenced ?? original ?? {}
+        operation.responses[status] = {
+          description: source.description ?? 'Canonical API error.',
+          ...(source.headers ? { headers: source.headers } : {}),
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+            },
+          },
+        }
+      }
+    }
+  }
+}
+
+function ensureSecurityFromScopeExtensions(document) {
+  for (const item of Object.values(document.paths ?? {})) {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+      const operation = item?.[method]
+      if (!operation) continue
+      const scopes = operation['x-required-scopes']
+      if (!Array.isArray(scopes) || scopes.length === 0) continue
+      const scopeMode = String(operation['x-scope-mode'] ?? 'all')
+      operation.security = scopeMode.startsWith('any')
+        ? scopes.map((scope) => ({ bearerAuth: [scope] }))
+        : [{ bearerAuth: scopes }]
+    }
+  }
+}
+
+function ensureParameterRef(operation, ref) {
+  if (!operation) return
+  const parameters = Array.isArray(operation.parameters)
+    ? operation.parameters
+    : []
+  if (!parameters.some((parameter) => parameter?.$ref === ref)) {
+    operation.parameters = [...parameters, { $ref: ref }]
+  }
+}
+
+function dedupeOperationParameters(document) {
+  for (const item of Object.values(document.paths ?? {})) {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+      const operation = item?.[method]
+      if (!operation || !Array.isArray(operation.parameters)) continue
+      const seen = new Set()
+      operation.parameters = operation.parameters.filter((parameter) => {
+        const key = parameter?.$ref
+          ? `ref:${parameter.$ref}`
+          : `parameter:${parameter?.in ?? ''}:${parameter?.name ?? JSON.stringify(parameter)}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+    }
+  }
+}
+
+function removeMisappliedLegalDescription(document) {
+  function walk(value, key = '') {
+    if (!value || typeof value !== 'object') return
+    if (
+      value.description === 'Stable external reference for the locked legal bundle version.' &&
+      !/legal_bundle/i.test(key)
+    ) delete value.description
+    for (const [childKey, child] of Object.entries(value)) walk(child, childKey)
+  }
+  walk(document)
+}
+
+const publicReferenceSchema = {
+  type: ['string', 'null'],
+  pattern: '^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$',
+}
+const websiteApplicationData = website.components.schemas.WebsiteCustomerApplicationData
+for (const internalField of [
+  'customer_id', 'application_id', 'customer_site_id', 'metering_point_id',
+  'contract_id', 'workflow_id', 'continuation_job_id', 'site_id', 'resolution_id',
+]) delete websiteApplicationData.properties[internalField]
+websiteApplicationData.required = (websiteApplicationData.required ?? []).filter(
+  (field) => ![
+    'customer_id', 'application_id', 'customer_site_id', 'metering_point_id',
+    'contract_id', 'workflow_id', 'continuation_job_id', 'site_id', 'resolution_id',
+  ].includes(field),
+)
+Object.assign(websiteApplicationData.properties, {
+  application_number: string,
+  customer_reference: publicReferenceSchema,
+  application_reference: publicReferenceSchema,
+  facility_reference: publicReferenceSchema,
+  metering_point_reference: publicReferenceSchema,
+  contract_reference: publicReferenceSchema,
+  supplier_switch: closedObject({
+    request_reference: publicReferenceSchema,
+    status: { type: 'string', enum: ['created', 'not_created'] },
+    can_create_request: { type: 'boolean' },
+    can_dispatch: { type: 'boolean' },
+    blockers: { type: 'array', items: string },
+    next_action: string,
+  }, ['request_reference', 'status', 'can_create_request', 'can_dispatch', 'blockers', 'next_action']),
+})
+websiteApplicationData.required = Array.from(new Set([
+  ...(websiteApplicationData.required ?? []),
+  'application_number',
+  'supplier_switch',
+]))
+website.components.schemas.WebsiteCustomerApplicationResponse = envelope({
+  $ref: '#/components/schemas/WebsiteCustomerApplicationData',
+})
+setResponse(
+  website,
+  '/api/v1/website/customer-applications',
+  { $ref: '#/components/schemas/WebsiteCustomerApplicationResponse' },
+  'post',
+  '200',
+)
+if (website.paths['/api/v1/website/customer-applications/{application_id}']) {
+  website.paths['/api/v1/website/customer-applications/{application_number}'] =
+    website.paths['/api/v1/website/customer-applications/{application_id}']
+  delete website.paths['/api/v1/website/customer-applications/{application_id}']
+}
+const applicationStatusPath = website.paths['/api/v1/website/customer-applications/{application_number}']
+if (applicationStatusPath?.get) {
+  applicationStatusPath.get.description =
+    'Scope: website_switch_status.read. application_number is resolved strictly inside the API-key tenant. Internal database UUIDs are never accepted or returned.'
+  applicationStatusPath.get.parameters = (applicationStatusPath.get.parameters ?? []).map((parameter) => {
+    if (parameter?.in === 'path') {
+      return { ...parameter, name: 'application_number', required: true, schema: string }
+    }
+    return parameter
+  })
+}
+if (website.components.schemas.CustomerApplicationStatus) {
+  website.components.schemas.CustomerApplicationStatus = closedObject({
+    application_number: string,
+    status: { type: 'string', enum: ['processing', 'accepted', 'needs_customer_information', 'rejected', 'failed', 'completed'] },
+    stage: string,
+    customer_number: nullableString,
+    contract_status: nullableString,
+    supplier_switch_status: string,
+    supply_status: nullableString,
+    requested_start_date: nullableString,
+    confirmed_start_date: nullableString,
+    missing_customer_action: { type: 'boolean' },
+    next_step: nullableString,
+    blocking_reason: nullableString,
+    updated_at: nullableString,
+  }, ['application_number', 'status', 'stage', 'supplier_switch_status', 'missing_customer_action'])
+}
+website.components.schemas.WebsiteCustomerApplicationStatusData = closedObject({
+  application_number: string,
+  status: { type: 'string', enum: ['processing', 'accepted', 'needs_customer_information', 'rejected', 'failed', 'completed'] },
+  stage: string,
+  customer_number: nullableString,
+  contract_status: nullableString,
+  supplier_switch_status: string,
+  supply_status: nullableString,
+  requested_start_date: nullableString,
+  confirmed_start_date: nullableString,
+  missing_customer_action: { type: 'boolean' },
+  next_step: nullableString,
+  blocking_reason: nullableString,
+  updated_at: nullableString,
+}, ['application_number', 'status', 'stage', 'supplier_switch_status', 'missing_customer_action'])
+if (applicationStatusPath?.get) {
+  setResponse(
+    website,
+    '/api/v1/website/customer-applications/{application_number}',
+    envelope({ $ref: '#/components/schemas/WebsiteCustomerApplicationStatusData' }),
+  )
+}
+
+if (website.components.schemas.WebsiteEnergyAreaResolveResponse) {
+  website.components.schemas.WebsiteEnergyAreaResolveResponse.properties.contract_schema_version = contractVersion
+  website.components.schemas.WebsiteEnergyAreaResolveResponse.required = Array.from(new Set([
+    ...(website.components.schemas.WebsiteEnergyAreaResolveResponse.required ?? []),
+    'contract_schema_version',
+  ]))
+}
+
+for (const [path, scopes] of [
+  ['/api/v1/integration/context', ['integration_context.read']],
+  ['/api/v1/website/switch-status', ['website_switch_status.read']],
+]) {
+  const operation = website.paths[path]?.get
+  if (!operation) continue
+  operation.security = [{ bearerAuth: scopes }]
+  operation['x-required-scopes'] = scopes
+}
+const legalOperation = website.paths['/api/v1/website/legal-bundle']?.get
+if (legalOperation) {
+  legalOperation.security = [
+    { bearerAuth: ['website_legal.read'] },
+    { bearerAuth: ['website_contracts.read'] },
+  ]
+  legalOperation['x-required-scopes'] = ['website_legal.read', 'website_contracts.read']
+  legalOperation['x-scope-mode'] = 'any'
+  legalOperation['x-scope-requirement'] = {
+    anyOf: ['website_legal.read', 'website_contracts.read'],
+  }
+}
+
+const eventIdentity = closedObject({
+  external_customer_id: string,
+  customer_number: string,
+  auth_user_id: uuid,
+  customer_portal_user_id: uuid,
+  email: { type: 'string', format: 'email' },
+})
+const customerEventRequest = closedObject({
+  event_type: { type: 'string', pattern: '^customer\\.[a-z0-9_]+$' },
+  event_reference: { type: 'string', minLength: 1, maxLength: 200 },
+  occurred_at: dateTime,
+  customer: eventIdentity,
+  subject: closedObject({ type: string, reference: string }, ['type']),
+  data: { type: 'object' },
+  metadata: { type: 'object' },
+}, ['event_type', 'event_reference', 'occurred_at', 'customer', 'subject', 'data'])
+const customerEventData = closedObject({
+  event_reference: string,
+  event_resource_reference: publicReferenceSchema,
+  event_type: string,
+  customer_reference: nullableString,
+  status: { type: 'string', const: 'accepted' },
+  occurred_at: dateTime,
+  replayed: { type: 'boolean' },
+}, ['event_reference', 'event_resource_reference', 'event_type', 'customer_reference', 'status', 'occurred_at', 'replayed'])
+website.components.schemas.WebsiteCustomerEventIdentity = eventIdentity
+website.components.schemas.WebsiteCustomerEventRequest = customerEventRequest
+website.components.schemas.WebsiteCustomerEventData = customerEventData
+setRequest(website, '/api/v1/website/customer-events', { $ref: '#/components/schemas/WebsiteCustomerEventRequest' })
+setResponse(website, '/api/v1/website/customer-events', envelope({ $ref: '#/components/schemas/WebsiteCustomerEventData' }), 'post')
+
+portal.components.schemas.CustomerNotificationReadRequest = closedObject({
+  notification_ids: { type: 'array', minItems: 1, maxItems: 100, uniqueItems: true, items: uuid },
+}, ['notification_ids'])
+portal.components.schemas.CustomerNotificationReadData = closedObject({
+  data: { type: 'array', items: closedObject({ id: uuid, status: string, read_at: dateTime }, ['id', 'status', 'read_at']) },
+  updated_count: { type: 'integer', minimum: 0 },
+}, ['data', 'updated_count'])
+setRequest(portal, '/api/v1/customer/notifications/read', { $ref: '#/components/schemas/CustomerNotificationReadRequest' })
+setResponse(portal, '/api/v1/customer/notifications/read', envelope({
+  $ref: '#/components/schemas/CustomerNotificationReadData',
+}), 'post')
+
+portal.components.schemas.CustomerProfile = {
+  ...closedObject({
+  first_name: string,
+  last_name: string,
+  full_name: string,
+  company_name: string,
+  email: { type: 'string', format: 'email' },
+  phone: string,
+  invoice_email: { type: 'string', format: 'email' },
+  language_code: string,
+  timezone: string,
+  }),
+  minProperties: 1,
+}
+const customerFacilityAddress = {
+  ...closedObject({
+    street: string,
+    postal_code: string,
+    city: string,
+    country: string,
+    care_of: string,
+    apartment_number: string,
+  }),
+  minProperties: 1,
+}
+portal.components.schemas.CustomerFacilityUpdate = closedObject({
+  facility_reference: string,
+  address: customerFacilityAddress,
+  external_request_id: string,
+}, ['facility_reference', 'address'])
+portal.components.schemas.CustomerProfileUpdateRequest = {
+  type: 'object',
+  additionalProperties: false,
+  anyOf: [{ required: ['profile'] }, { required: ['facility_data'] }],
+  properties: {
+    profile: { $ref: '#/components/schemas/CustomerProfile' },
+    facility_data: { $ref: '#/components/schemas/CustomerFacilityUpdate' },
+    metadata: { type: 'object' },
+  },
+}
+portal.components.schemas.CustomerProfileUpdateData = closedObject({
+  completion_reference: string,
+  status: string,
+  created_at: dateTime,
+  profile_updated: { type: 'boolean' },
+  facility_updated: { type: 'boolean' },
+  address_result: { type: ['object', 'null'] },
+}, ['completion_reference', 'status', 'created_at', 'profile_updated', 'facility_updated', 'address_result'])
+setRequest(portal, '/api/v1/customer/profile-update', { $ref: '#/components/schemas/CustomerProfileUpdateRequest' })
+setResponse(portal, '/api/v1/customer/profile-update', envelope({ $ref: '#/components/schemas/CustomerProfileUpdateData' }), 'post')
+const profileOperation = portal.paths['/api/v1/customer/profile-update']?.post
+if (profileOperation) {
+  profileOperation.security = [
+    { bearerAuth: ['customer_contact.write'] },
+    { bearerAuth: ['customer_facility_data.write'] },
+  ]
+  profileOperation['x-required-scopes'] = ['customer_contact.write', 'customer_facility_data.write']
+  profileOperation['x-scope-mode'] = 'any-per-request; both required when both operations are present'
+  profileOperation['x-scope-requirement'] = {
+    anyOf: ['customer_contact.write', 'customer_facility_data.write'],
+    allOfWhenBothPayloadSectionsArePresent: [
+      'customer_contact.write',
+      'customer_facility_data.write',
+    ],
+  }
+}
+
+portal.components.schemas.CustomerEventIdentity = eventIdentity
+portal.components.schemas.CustomerEventRequest = customerEventRequest
+portal.components.schemas.CustomerEventData = customerEventData
+portal.components.schemas.PublicDomainEvent = closedObject({
+  event_id: string,
+  event_type: string,
+  created_at: dateTime,
+  tenant_reference: string,
+  environment: { type: ['string', 'null'], enum: ['test', 'production', null] },
+  aggregate: closedObject({ type: string, reference: string }, ['type', 'reference']),
+  customer: closedObject({ customer_reference: nullableString, customer_number: nullableString }),
+  data: { type: 'object' },
+  contract_schema_version: contractVersion,
+}, ['event_id', 'event_type', 'created_at', 'tenant_reference', 'environment', 'aggregate', 'data', 'contract_schema_version'])
+portal.components.schemas.DomainEventListData = {
+  type: 'array',
+  items: { $ref: '#/components/schemas/PublicDomainEvent' },
+}
+setRequest(portal, '/api/v1/events', { $ref: '#/components/schemas/CustomerEventRequest' }, 'post')
+setResponse(portal, '/api/v1/events', envelope({ $ref: '#/components/schemas/CustomerEventData' }), 'post')
+setResponse(portal, '/api/v1/events', {
+  type: 'object',
+  additionalProperties: false,
+  required: ['data', 'next_before', 'request_id', 'contract_schema_version'],
+  properties: {
+    data: { $ref: '#/components/schemas/DomainEventListData' },
+    next_before: nullableString,
+    request_id: string,
+    correlation_id: nullableString,
+    contract_schema_version: contractVersion,
+  },
+}, 'get')
+const eventsGet = portal.paths['/api/v1/events']?.get
+if (eventsGet) {
+  const queryNames = new Set(['event_type', 'external_customer_id', 'before', 'limit'])
+  eventsGet.parameters = [
+    ...(eventsGet.parameters ?? []).filter((parameter) =>
+      !(parameter?.in === 'query' && queryNames.has(parameter?.name)),
+    ),
+    { name: 'event_type', in: 'query', required: false, schema: { type: 'string', pattern: '^customer\\.[a-z0-9_]+$' } },
+    { name: 'external_customer_id', in: 'query', required: false, schema: string },
+    { name: 'before', in: 'query', required: false, schema: dateTime },
+    { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 100 } },
+  ]
+}
+
+website.components.parameters = website.components.parameters ?? {}
+website.components.parameters.IdempotencyKey = {
+  name: 'Idempotency-Key',
+  in: 'header',
+  required: true,
+  schema: {
+    type: 'string',
+    minLength: 8,
+    maxLength: 200,
+    pattern: '^[A-Za-z0-9._:+~-]+$',
+  },
+}
+ensureParameterRef(
+  website.paths['/api/v1/website/customer-events']?.post,
+  '#/components/parameters/IdempotencyKey',
+)
+
+for (const document of [website, portal]) {
+  dedupeOperationParameters(document)
+  ensureSecurityFromScopeExtensions(document)
+  ensureCanonicalErrorResponses(document)
+  ensureStandardHeaders(document)
+  removeMisappliedLegalDescription(document)
+}
 
 function explicitlyPermissive(schema) {
   return schema?.type === 'object' && (

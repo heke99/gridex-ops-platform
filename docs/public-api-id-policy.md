@@ -1,54 +1,57 @@
-# Public API ID policy
+# Public API identifier policy
 
-Gridex public APIs may expose opaque resource identifiers only when the
-resource belongs to the tenant authenticated by the API key. An identifier is
-not authorization: every read and write must repeat the tenant predicate and
-return `404` when the resource exists under another tenant.
+Gridex public APIs expose business references and tenant-bound public resource
+references. PostgreSQL UUIDs remain internal join keys and are never part of a
+public request, response, webhook payload or customer-facing URL.
 
-## Allowed public resource IDs
+An identifier is never authorization. Every read and write repeats the
+server-resolved `company_id` predicate and returns a neutral `404` when the
+resource cannot be found inside the API key's tenant.
 
-The following UUID-valued fields are documented public resource IDs:
+## Canonical public identifiers
 
-- `customer_id`
-- `application_id`
-- `contract_id`
-- `customer_site_id` and compatibility alias `site_id`
-- `metering_point_id`
-- `workflow_id`
-- `continuation_job_id`
-- `supplier_switch.request_id`
-- `resolution_id`
+Use these identifiers at external boundaries:
 
-They are opaque, tenant-bound references without business meaning. Clients may
-store them for subsequent calls inside the same authenticated tenant, but must
-not parse them, derive permissions from them, show them as customer-facing
-numbers or reuse them across tenants.
+- `application_number` for website application creation and status lookup;
+- `customer_number` and tenant-owned `external_customer_id` for customer linking;
+- `offer_reference` and `quote_reference` for the published sales flow;
+- `contract_number`, invoice number and other documented business references;
+- derived opaque references such as `customer_reference`,
+  `application_reference`, `facility_reference`, `metering_point_reference`,
+  `contract_reference`, `completion_reference`, `event_resource_reference` and
+  `supplier_switch.request_reference`.
 
-## IDs that are never public
+Derived references are stable within the authenticated tenant but cannot be
+reversed into a database ID. Clients may store and display only references that
+the relevant operation documents.
 
-Public DTOs must not expose internal pricing, publication, identity or provider
-implementation keys, including:
+## Internal identifiers that are never public
 
-- `price_plan_id` and `price_plan_version_id`
-- `contract_price_snapshot_id`
-- `public_contract_offer_id` and internal publication IDs
-- `portal_identity_id`
-- `provider_connection_id`
-- billing-provider or automation-user database IDs
+Public DTOs must not expose database or implementation keys, including:
 
-External business references such as `offer_reference`, `quote_reference`,
-`customer_number`, `application_number`, `contract_number` and a tenant-owned
-`external_customer_id` remain separate from public resource IDs.
+- `customer_id`, `application_id`, `contract_id`, `customer_site_id`, `site_id`
+  and `metering_point_id`;
+- `workflow_id`, `continuation_job_id`, `supplier_switch_request_id` and raw
+  request/job IDs;
+- `price_plan_id`, `price_plan_version_id`, `contract_price_snapshot_id` and
+  publication-row IDs;
+- `portal_identity_id`, provider connection IDs, automation actor IDs and
+  storage object IDs;
+- `company_id` supplied by a client. Tenant is always derived from the verified
+  API client or portal identity.
+
+Internal IDs may appear in tenant-scoped audit logs and worker payloads, but
+must be removed before an external response or webhook is serialized.
 
 ## Runtime requirements
 
-- Build public responses from explicit allowlists; never serialize database
-  rows directly.
-- Verify tenant ownership on every lookup, including idempotent replays and
-  detail endpoints.
-- Use `404`, not ownership metadata, for cross-tenant identifiers.
-- Do not include forbidden IDs in errors, warnings, logs returned to clients,
-  webhook payloads or cache keys visible outside OPS.
-- Adding an ID to a public response requires OpenAPI documentation, tenant
-  authorization tests and a review of the response sanitizer.
-
+- Build public responses from explicit allowlists; never serialize database rows
+  directly.
+- Resolve every public reference together with the authenticated tenant.
+- Use `404`, not ownership metadata, for cross-tenant lookups.
+- Do not include internal IDs in errors, blockers, warnings, externally visible
+  logs, webhook payloads or cache keys.
+- Bind idempotency to tenant, API client, operation, customer where applicable,
+  key and normalized payload hash.
+- Adding a public identifier requires synchronized runtime DTO, OpenAPI,
+  documentation and route-to-OpenAPI regression coverage.

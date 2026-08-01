@@ -1,3 +1,12 @@
+## 2026-08-01 – External API runtime/OpenAPI parity 2026-08-01.2
+
+- Replaced the unusable website application UUID follow-up contract with tenant-bound `application_number` status lookup and public resource references.
+- Unified runtime and OpenAPI error envelopes, request IDs, contract-version headers, rate-limit headers and cache-policy handling.
+- Added operation-specific profile/facility, notification and customer-event contracts with mandatory tenant-bound idempotency.
+- Added explicit OR-scope support for legal and profile/facility operations, canonical event filtering without internal customer IDs and sanitized webhook/event resources.
+- Updated the public identifier policy, developer documentation, OpenAPI documents, checksums and no-dependency runtime/OpenAPI parity regression.
+- Reconciled the migration checksum manifest against the byte-identical SQL files on the connected GitHub `main` branch; historical SQL files were not modified.
+
 ## 2026-08-01 – Public Contracts runtime/OpenAPI/legal parity 2026-08-01.1
 
 - Made `price_options[].is_default` canonical and retained `default` as an always-identical deprecated compatibility alias.

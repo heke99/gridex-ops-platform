@@ -2,7 +2,7 @@
 \pset pager off
 
 -- Read-only inventory. Safe to run before migration or backfill.
-drop table if exists canonical_multitenant_findings;
+drop table if exists pg_temp.canonical_multitenant_findings;
 create temporary table canonical_multitenant_findings (
   severity text not null,
   finding_code text not null,

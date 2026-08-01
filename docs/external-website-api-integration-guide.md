@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-08-01.1**
+> **Canonical API-version: 2026-08-01.2**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -64,10 +64,14 @@ inte. Ett tidigare publicerat avtal kan endast hårdraderas när samtliga kanale
 är avpublicerade och dependency-kontrollen bevisar att ingen affärshistorik
 finns. Stängda avtal är terminala och hårdraderas inte.
 
-UUID-fält som `customer_id`, `application_id`, `contract_id` och `resolution_id`
-är dokumenterade, opaka och tenantbundna publika resurs-ID:n. De ger aldrig
-behörighet i sig. Interna prisplans-, publicerings-, portalidentitets- och
-provider-ID:n returneras inte. Se [Public API ID policy](./public-api-id-policy.md).
+Externa klienter använder `application_number` och tenantbundna publika
+referenser som `customer_reference`, `application_reference`,
+`facility_reference`, `metering_point_reference` och `contract_reference`.
+Interna databas-UUID:n för kund, ansökan, site, mätpunkt, avtal, workflow,
+continuation-jobb, prisplan, publicering, portalidentitet och provider returneras
+inte. `resolution_id` är ett separat dokumenterat, opakt quote-underlag och får
+aldrig användas som tenantväljare eller generell resursidentifierare. Se
+[Public API ID policy](./public-api-id-policy.md).
 
 ## 2. Canonical ordning
 
@@ -155,8 +159,14 @@ Content-Type: application/json
 {
   "error": {
     "code": "grid_area_address_mismatch",
-    "message": "Adress och påstått nätområde motsäger varandra."
-  }
+    "message": "Adress och påstått nätområde motsäger varandra.",
+    "retryable": false,
+    "field": "grid_area_code",
+    "blockers": []
+  },
+  "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+  "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+  "contract_schema_version": "2026-08-01.2"
 }
 ```
 
@@ -372,11 +382,13 @@ Idempotency-Key: required
 }
 ```
 
-`offer_reference`, `quote_reference` och `resolution_id` ligger alltid på requestens top-level. `contract` innehåller endast kompletterande avtalsuppgifter. `quote_reference` och `resolution_id` måste matcha den validerade quoten. Dubbel submit med samma idempotency key och samma request hash returnerar samma canonicala kund-, site-, mätpunkts- och avtals-ID:n.
+`offer_reference`, `quote_reference` och `resolution_id` ligger alltid på requestens top-level. `contract` innehåller endast kompletterande avtalsuppgifter. `quote_reference` och `resolution_id` måste matcha den validerade quoten. Dubbel submit med samma `Idempotency-Key` och samma normaliserade request-hash returnerar samma canonicala affärsresultat och samma publika referenser. Samma nyckel med annan payload ger `409 idempotency_conflict`.
 
 OPS använder samma tenantbundna kundmatchning i alla intakekanaler. Organisationsnummer eller verifierat personnummer väger starkare än e-post. E-post ensam slår inte automatiskt ihop osäker identitet.
 
 Använd de canonicala fälten `customer.personal_number` för privatkund och `customer.org_number` för företagskund. Under en övergångsperiod normaliserar API:t även identitetsalias som `personal_identity_number`, `personalIdentityNumber`, `identity_number`, `personnummer`, `organization_number`, `organisation_number`, `organisationsnummer` och `orgnr`, men nya integrationer ska alltid skicka de canonicala fälten.
+
+En fullmakt får endast gå vidare till extern nätägar- eller marknadskommunikation när svaret anger `externally_sendable: true`. Vid `externally_sendable: false` ska klienten följa `next_action` och komplettera signerare, identitet, metod eller låst juridisk text; ett äldre consentfält är aldrig tillräckligt som extern fullmakt.
 
 `legal_acceptances` ska byggas exakt från endpointens dynamiska
 `requirements`. OPS verifierar bundle, requirement code, dokument-ID, version,
@@ -393,19 +405,20 @@ Exempel på accepterat svar:
 ```json
 {
   "data": {
-    "application_id": "uuid",
-    "customer_id": "uuid",
+    "application_number": "APP-20260801-0001",
     "customer_number": "DX-123456",
-    "site_id": "uuid",
-    "contract_id": "uuid",
-    "workflow_id": "uuid",
+    "customer_reference": "customer_...",
+    "application_reference": "application_...",
+    "facility_reference": "facility_...",
+    "metering_point_reference": "metering_point_...",
+    "contract_reference": "contract_...",
     "status": "accepted",
     "workflow_state": "canonical_data_committed",
     "next_step": "automatic_processing",
     "missing_fields": [],
     "blocking_reasons": [],
     "supplier_switch": {
-      "request_id": null,
+      "request_reference": null,
       "status": "not_created",
       "can_create_request": true,
       "can_dispatch": false,
@@ -413,15 +426,16 @@ Exempel på accepterat svar:
       "next_action": "create_supplier_switch_request"
     }
   },
-  "request_id": "uuid",
-  "correlation_id": "uuid"
+  "request_id": "req_...",
+  "correlation_id": "req_...",
+  "contract_schema_version": "2026-08-01.2"
 }
 ```
 
 Tenant kan följa samma process utan interna OPS-tillstånd via:
 
 ```http
-GET /api/v1/website/customer-applications/{application_id}
+GET /api/v1/website/customer-applications/{application_number}
 Scope: website_switch_status.read
 ```
 
@@ -445,7 +459,29 @@ Fakturering läser kundavtalets snapshot, faktisk förbrukning och separat verif
 
 När anläggningsuppgifter saknas fortsätter samma idempotenta process med `request_site_information`. När canonical mätpunkt, fullmakt, avtal och route-readiness är kompletta fortsätter samma process-ID med `supplier_switch`. `needs_review` skapar inte en ny parallell process vid retry. OPS väljer exakt ett nästa huvudsteg; Z01 och Z03 startas inte som konkurrerande parallella flöden.
 
-## 10. Felkoder
+## 10. Events och webhooks
+
+Kundevent skickas med samma stängda canonical request på båda write-routes:
+
+```http
+POST /api/v1/website/customer-events
+POST /api/v1/events
+Idempotency-Key: required
+```
+
+`Idempotency-Key` är obligatorisk. Retry med samma nyckel och samma payload
+returnerar samma resultat; samma nyckel med annan payload ger konflikt. Externa
+responses och webhookar innehåller endast `tenant_reference`, publika
+resursreferenser, kundnummer och sanitiserad affärsdata. `company_id`,
+`customer_id`, `application_id`, `contract_id` och andra interna `*_id`-fält
+tas bort innan leverans.
+
+Webhookar levereras via den signerade `webhook_deliveries`-kedjan. Mottagaren
+ska verifiera `X-Gridex-Timestamp` och `X-Gridex-Signature`, deduplicera på
+`X-Gridex-Delivery-Id` och lagra `X-Gridex-Event-Id`. Ett köat mail eller internt
+domain event är inte samma sak som ett levererat publikt webhookevent.
+
+## 11. Felkoder
 
 Centrala felkoder:
 
@@ -506,9 +542,9 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-08-01.1` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-08-01.2` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-08-01.1
+## Canonical marknadsprisflöde i API 2026-08-01.2
 
 Det finns tre separata operationer:
 
@@ -551,7 +587,7 @@ Om tenantens policy har `allow_indicative_latest=false` returneras inte en parti
 | 503 | `current_market_price_unavailable` | Ja | Försök igen; behåll föregående visning endast om produktens UX-policy tillåter det. |
 | 500 | `market_price_provider_unavailable` | Ja | Försök igen och använd `request_id` vid support. |
 
-Alla fel returnerar `error.code`, `error.message`, `error.field`, `error.request_id`, `error.correlation_id`, `error.retryable` och top-level `request_id`. Tenant ska aldrig ersätta ett marknadsprisfel med en egen prisberäkning.
+Alla fel returnerar `error.code`, `error.message`, `error.retryable`, `error.field`, `error.blockers` samt top-level `request_id`, `correlation_id` och `contract_schema_version`. Tenant ska aldrig ersätta ett marknadsprisfel med en egen prisberäkning.
 
 
 ## Production och canonical energiriktning
@@ -573,7 +609,7 @@ Scope: website_legal.read eller website_contracts.read
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-08-01.1
+## Migrering till kontraktsversion 2026-08-01.2
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

@@ -69,9 +69,9 @@ expect(exists('app/admin/website-applications/[id]/page.tsx') && read('app/admin
 expect(read('app/admin/website-applications/actions.ts').includes('requeueWebsiteApplicationContinuationAction'), 'admin can safely requeue the canonical continuation row')
 
 expect(docs.includes('powerOfAttorney') && docs.includes('facility_information_lookup'), 'tenant guide documents structured externally-sendable POA')
-expect(docs.includes('/api/v1/website/customer-applications/{application_id}'), 'tenant guide documents the application status endpoint')
-expect(openapi.includes('CustomerApplicationStatus') && openapi.includes('/api/v1/website/customer-applications/{application_id}'), 'OpenAPI exposes the tenant-scoped status endpoint')
-expect(exists('app/api/v1/website/customer-applications/[applicationId]/route.ts'), 'status endpoint route exists')
+expect(docs.includes('/api/v1/website/customer-applications/{application_number}'), 'tenant guide documents the application status endpoint')
+expect(openapi.includes('CustomerApplicationStatus') && openapi.includes('/api/v1/website/customer-applications/{application_number}'), 'OpenAPI exposes the tenant-scoped status endpoint')
+expect(exists('app/api/v1/website/customer-applications/[applicationId]/route.ts') && read('lib/website/customerApplicationStatus.ts').includes(".eq('application_number', input.applicationNumber)"), 'status endpoint route exists')
 expect(exists('lib/website/customerApplicationWorkflowBridge.ts'), 'downstream facility/Ediel outcomes correlate back to the original workflow')
 
 if (failures) {

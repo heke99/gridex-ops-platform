@@ -37,7 +37,8 @@ describe('website quote validation contract', () => {
       'annual_consumption_kwh',
       'start_date',
     ]))
-    expect(schema.properties).toHaveProperty('application_id')
+    expect(schema.properties).toHaveProperty('application_number')
+    expect(schema.properties).not.toHaveProperty('application_id')
 
     const application = openapi.components.schemas.CustomerApplicationRequest
     expect(application.additionalProperties).toBe(false)

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-01.1.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-01.2.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
@@ -91,7 +91,7 @@ const publicContractErrorRows = [
   ['PUBLICATION_LEGAL_SNAPSHOT_INCOMPLETE', '409', 'Blockerande', 'Juridiksnapshoten är tom, muterbar eller ofullständig.'],
   ['PUBLICATION_LEGAL_MODULE_VERSION_INVALID', '409', 'Blockerande', 'En modul saknar giltig version, identifierare eller unik module_key.'],
   ['PUBLICATION_PRICE_OPTION_DEFAULT_MISMATCH', '409', 'Blockerande', 'default och is_default skiljer sig. Reparera källdatan.'],
-  ['PUBLICATION_RUNTIME_SCHEMA_MISMATCH', '409', 'Blockerande per avtal', 'Runtime-DTO:n kan inte byggas strikt från snapshoten. Logga request_id/trace_id och reparera publiceringen.'],
+  ['PUBLICATION_RUNTIME_SCHEMA_MISMATCH', '409', 'Blockerande per avtal', 'Runtime-DTO:n kan inte byggas strikt från snapshoten. Logga request_id/correlation_id och reparera publiceringen.'],
   ['PUBLICATION_CONTRACT_VERSION_MISMATCH', '503', 'Integrationsblockerande', 'Runtime och publicerat kontrakt rapporterar olika version. Deploya en sammanhängande release.'],
   ['PUBLICATION_OPENAPI_CHECKSUM_MISMATCH', '503', 'Integrationsblockerande', 'Manifestets SHA-256 matchar inte publicerade OpenAPI-bytes.'],
   ['PUBLIC_CONTRACT_SCHEMA_OUTDATED', '503', 'Integrationsblockerande', 'Databas/RPC är inte migrerad till den version som applikationen kräver.'],
@@ -125,8 +125,8 @@ const contractVersion = response.headers.get("x-gridex-contract-version")
 if (!response.ok) {
   const failure = await response.json()
   console.error("Gridex public contracts failed", {
-    requestId: failure?.error?.request_id ?? requestId,
-    traceId: failure?.error?.trace_id,
+    requestId: failure?.request_id ?? requestId,
+    correlationId: failure?.correlation_id,
     code: failure?.error?.code,
     status: response.status
   })
@@ -385,7 +385,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-08-01.1"
+  "contract_schema_version": "2026-08-01.2"
 }`;
 
 const marketReferenceExample = `{
@@ -421,17 +421,19 @@ const marketPriceErrorExample = `{
   "error": {
     "code": "market_reference_window_incomplete",
     "message": "En fullständig marknadsreferens saknas och tenantens policy tillåter inte partiell fallback.",
-    "field": "resolution_id",
-    "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-    "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
     "retryable": true,
+    "field": "resolution_id",
+    "blockers": [],
     "details": {
       "price_area": "SE3",
       "requested_days": 30,
       "included_days": 1,
       "allow_indicative_latest": false
     }
-  }
+  },
+  "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+  "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+  "contract_schema_version": "2026-08-01.2"
 }`;
 
 const marketPriceErrors = [
@@ -611,15 +613,13 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
 // manuell granskning. API-requestens livstid styr aldrig fortsättningen.
 const applicationResponse = `{
   "data": {
-    "customer_id": "uuid",
     "customer_number": "DX-100025",
-    "application_id": "uuid",
-    "application_number": "APP-20260724-0001",
-    "customer_site_id": "uuid",
-    "metering_point_id": "uuid",
-    "contract_id": "uuid",
-    "workflow_id": "uuid",
-    "continuation_job_id": "uuid",
+    "application_number": "APP-20260801-0001",
+    "customer_reference": "customer_...",
+    "application_reference": "application_...",
+    "facility_reference": "facility_...",
+    "metering_point_reference": "metering_point_...",
+    "contract_reference": "contract_...",
     "status": "accepted",
     "workflow_state": "canonical_data_committed",
     "next_step": "automatic_processing",
@@ -634,7 +634,7 @@ const applicationResponse = `{
       "source_of_truth": "communication_logs"
     },
     "supplier_switch": {
-      "request_id": null,
+      "request_reference": null,
       "status": "not_created",
       "can_create_request": true,
       "can_dispatch": false,
@@ -642,8 +642,9 @@ const applicationResponse = `{
       "next_action": "create_supplier_switch_request"
     }
   },
-  "request_id": "uuid",
-  "correlation_id": "uuid"
+  "request_id": "req_...",
+  "correlation_id": "req_...",
+  "contract_schema_version": "2026-08-01.2"
 }
 
 # accepted betyder att canonical kund/site/avtal/juridiksnapshot och quote
@@ -654,7 +655,7 @@ const applicationResponse = `{
 # själv starta de stegen. Integrationsklienten följer nextAction/next_action
 # i statusresponsen.
 
-curl -X GET "${apiBaseUrl}/website/customer-applications/<application_id>" \
+curl -X GET "${apiBaseUrl}/website/customer-applications/<application_number>" \
   -H "Authorization: Bearer $GRIDEX_API_KEY" \
   -H "Accept: application/json"
 
@@ -665,11 +666,16 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
 {
   "error": {
     "code": "legal_acceptance_missing",
-    "message": "Kunden måste godkänna allmänna villkor, integritetspolicy, ångerrätt, fullmakt och prisvillkor innan ansökan kan skickas.",
+    "message": "Kunden måste godkänna alla obligatoriska dokument i det publicerade juridikpaketet innan ansökan kan skickas.",
+    "retryable": false,
+    "field": "legal_acceptances",
+    "blockers": [],
     "stage": "legal_acceptance",
-    "field": "consents.terms",
-    "hint": "Visa alla juridiska checkboxar från OPS publicerade juridikpaket och skicka true för varje required consent."
-  }
+    "hint": "Rendera required_documents från OPS juridikpaket och skicka en acceptans med exakt dokumentreferens och version för varje obligatoriskt dokument."
+  },
+  "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+  "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+  "contract_schema_version": "2026-08-01.2"
 }
 
 Vanliga 422-koder:
@@ -830,21 +836,24 @@ const customerStatusResponseExample = `{
 }`;
 
 const webhookPayload = `{
-  "id": "event_123",
-  "type": "contract.application_received",
-  "event_id": "event_123",
+  "event_id": "event_...",
   "event_type": "contract.application_received",
-  "created_at": "2026-06-16T10:30:00Z",
-  "company_id": "uuid",
-  "customer_id": "uuid",
-  "customer_number": "DX-100025",
-  "external_customer_id": "CUSTOMER-12345",
-  "aggregate": { "type": "customer_contract", "id": "uuid" },
+  "created_at": "2026-08-01T13:30:00Z",
+  "tenant_reference": "tenant_...",
+  "environment": "production",
+  "aggregate": {
+    "type": "customer_contract",
+    "reference": "contract_..."
+  },
+  "customer": {
+    "customer_reference": "customer_...",
+    "customer_number": "DX-100025"
+  },
   "data": {
-    "application_id": "uuid",
-    "contract_id": "uuid",
+    "application_number": "APP-20260801-0001",
     "status": "application_received"
-  }
+  },
+  "contract_schema_version": "2026-08-01.2"
 }`;
 
 const webhookHeaders = `X-Gridex-Event-Id: event_123
@@ -989,7 +998,7 @@ export default function CustomerPortalApiDocsPage() {
             <li>Visa juridiken från avtalets immutable <code>legal</code>-snapshot. Hämta inte en senare juridikversion separat.</li>
             <li>Lös elområde och skapa quote när avtalsmodellen kräver en kundspecifik beräkning.</li>
             <li>Skicka <code>POST /api/v1/website/customer-applications</code> med samma canonical referenser och en unik <code>Idempotency-Key</code>.</li>
-            <li>Spara <code>request_id</code>, <code>trace_id</code>, kontraktsversion och vald juridikversion för support och revisionsspår.</li>
+            <li>Spara <code>request_id</code>, <code>correlation_id</code>, kontraktsversion och vald juridikversion för support och revisionsspår.</li>
           </ol>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1511,7 +1520,7 @@ export default function CustomerPortalApiDocsPage() {
             klientgräns ger <code>503 api_rate_limit_invalid</code>.
           </p>
           <p>
-            Alla write-anrop bör skicka <code>Idempotency-Key</code>; för{" "}
+            Alla dokumenterade write-anrop ska skicka <code>Idempotency-Key</code>; för{" "}
             <code>POST /api/v1/website/customer-applications</code> är den
             obligatorisk och valideras till 8–200 tecken. Samma nyckel är låst
             till samma normaliserade payload via SHA-256. Stabil
@@ -1712,7 +1721,7 @@ export default function CustomerPortalApiDocsPage() {
             <li><code>Authorization: Bearer &lt;GRIDEX_API_KEY&gt;</code> – obligatorisk på tenantbundna routes och endast server-side.</li>
             <li><code>Accept: application/json</code> – rekommenderad på GET.</li>
             <li><code>Content-Type: application/json</code> – obligatorisk på JSON-body.</li>
-            <li><code>Idempotency-Key</code> – obligatorisk på customer applications och rekommenderad på övriga writes.</li>
+            <li><code>Idempotency-Key</code> – obligatorisk på customer applications, portal writes och customer events.</li>
             <li><code>If-None-Match</code> – använd public contracts- eller OpenAPI-responsens ETag för villkorad hämtning.</li>
           </ul>
           <h3 className="mt-6 text-lg font-bold text-slate-900">Response headers</h3>
@@ -1829,7 +1838,7 @@ npx ajv-cli compile -s website-integration-v1.json --spec=draft2020`}</CodeBlock
 
         <Section id="troubleshooting" title="17. Avtal visas inte på hemsidan">
           <ol className="list-decimal space-y-2 pl-5">
-            <li>Kontrollera HTTP-status och responsebody. Spara <code>request_id</code> och eventuell <code>trace_id</code>.</li>
+            <li>Kontrollera HTTP-status och responsebody. Spara <code>request_id</code> och <code>correlation_id</code>.</li>
             <li>Kontrollera att Bearer-nyckeln är aktiv, server-side och har <code>website_contracts.read</code>.</li>
             <li>Hämta integration context och kontrollera tenantens operational status samt capabilities.</li>
             <li>Jämför <code>x-gridex-contract-version</code>, <code>meta.contract_schema_version</code>, OpenAPI <code>info.version</code> och release manifest.</li>
@@ -1840,7 +1849,7 @@ npx ajv-cli compile -s website-integration-v1.json --spec=draft2020`}</CodeBlock
             <li>Vid <code>openapi_required</code>: kontrollera om runtime, OpenAPI eller den låsta snapshoten saknar fältet. Ett required-fält får inte tyst defaultas i klienten.</li>
             <li>Kontrollera semantiska blockers i diagnostics-routen. Hoppa över ett enskilt ogiltigt avtal men dölj inte övriga giltiga avtal.</li>
             <li>Kontrollera att klienten inte kräver icke-tom <code>area_prices</code> för ett rörligt avtal.</li>
-            <li>Sök OPS-loggar på request-ID/trace-ID och jämför company, channel, offer reference, publication version, error code och JSON-path utan att logga känslig payload.</li>
+            <li>Sök OPS-loggar på request-ID/correlation-ID och jämför company, channel, offer reference, publication version, error code och JSON-path utan att logga känslig payload.</li>
           </ol>
         </Section>
 

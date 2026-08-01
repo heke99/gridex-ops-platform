@@ -2,15 +2,16 @@
 const fs = require('node:fs')
 
 const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
-const routeRe = /{ method: '(GET|POST)', path: '([^']+)', scopes: \[([^\]]*)\]/g
+const routeRe = /{ method: '(GET|POST)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\]/g
 const registry = []
 let match
 while ((match = routeRe.exec(registrySource))) {
   registry.push({
     method: match[1],
-    path: match[2],
-    normalizedPath: match[2].replace(/\[[^\]]+\]/g, '{}'),
-    scopes: [...match[3].matchAll(/'([^']+)'/g)].map((item) => item[1]),
+    path: match[3] ?? match[2],
+    runtimePath: match[2],
+    normalizedPath: (match[3] ?? match[2]).replace(/\[[^\]]+\]/g, '{}'),
+    scopes: [...match[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),
   })
 }
 

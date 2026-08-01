@@ -12,7 +12,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 
 describe('canonical public API release', () => {
   it('publishes one version and a release-manifest operation', () => {
-    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-01.1')
+    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-01.2')
     expect(websiteOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(websiteOpenApi.paths['/api/v1/openapi/release-manifest.json']?.get).toBeDefined()
@@ -89,11 +89,54 @@ describe('canonical public API release', () => {
         code: 'quote_expired',
         message: 'Quoten har gått ut.',
         retryable: false,
+        field: null,
+        blockers: [],
       },
       request_id: 'request-123',
       correlation_id: 'correlation-123',
       contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
     })
+    expect(response.headers.get('x-request-id')).toBe('request-123')
+  })
+
+
+  it('keeps website application lookup public and tenant-bound', () => {
+    const path = websiteOpenApi.paths['/api/v1/website/customer-applications/{application_number}']
+    expect(path?.get).toBeDefined()
+    expect(websiteOpenApi.paths['/api/v1/website/customer-applications/{application_id}']).toBeUndefined()
+    const data = websiteOpenApi.components.schemas.WebsiteCustomerApplicationData
+    expect(data.properties.application_number).toBeDefined()
+    for (const internalField of [
+      'customer_id', 'application_id', 'customer_site_id', 'metering_point_id',
+      'contract_id', 'workflow_id', 'continuation_job_id', 'site_id', 'resolution_id',
+    ]) {
+      expect(data.properties[internalField]).toBeUndefined()
+    }
+  })
+
+  it('publishes operation-specific closed write contracts', () => {
+    const portalPaths = customerPortalOpenApi.paths
+    expect(portalPaths['/api/v1/customer/profile-update'].post.requestBody.content['application/json'].schema)
+      .toEqual({ $ref: '#/components/schemas/CustomerProfileUpdateRequest' })
+    expect(portalPaths['/api/v1/customer/notifications/read'].post.requestBody.content['application/json'].schema)
+      .toEqual({ $ref: '#/components/schemas/CustomerNotificationReadRequest' })
+    expect(portalPaths['/api/v1/events'].post.requestBody.content['application/json'].schema)
+      .toEqual({ $ref: '#/components/schemas/CustomerEventRequest' })
+    expect(customerPortalOpenApi.components.schemas.CustomerNotificationReadRequest.required)
+      .toContain('notification_ids')
+  })
+
+  it('uses one closed canonical error contract and preserves explicit cache policy', async () => {
+    expect(websiteOpenApi.components.schemas.ErrorEnvelope)
+      .toEqual(websiteOpenApi.components.schemas.ApiError)
+    expect(customerPortalOpenApi.components.schemas.ErrorResponse)
+      .toEqual(customerPortalOpenApi.components.schemas.ApiError)
+    const response = customerPortalJson(
+      { data: { ok: true }, request_id: 'request-cache' },
+      { headers: { 'Cache-Control': 'private, max-age=300' } },
+    )
+    expect(response.headers.get('cache-control')).toBe('private, max-age=300')
+    expect(response.headers.get('x-request-id')).toBe('request-cache')
   })
 
   it('projects webhook events without raw tenant or database identifiers', () => {

@@ -1,9 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { NextRequest, NextResponse } from 'next/server'
-import { readJsonObject } from '@/lib/api/strictRequest'
+import { NextRequest } from 'next/server'
+import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
+import { canonicalApiError } from '@/lib/api/apiError'
 import { listDomainEventsForCompany } from '@/lib/events/domainEvents'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { resolvePortalCustomer } from '@/lib/customer-portal/customerResolver'
 import { isSupportEvent, parseCustomerEventPayload, recordWebsiteCustomerEvent } from '@/lib/customer-portal/customerEvents'
+import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
+import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
@@ -12,14 +16,59 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const ALLOWED_QUERY_PARAMETERS = new Set([
+  'event_type',
+  'external_customer_id',
+  'before',
+  'limit',
+])
+
+function singleQueryValue(request: NextRequest, name: string): string | null {
+  const values = request.nextUrl.searchParams.getAll(name)
+  if (values.length > 1) {
+    throw new ApiInputError(`${name} får bara anges en gång.`, 'duplicate_query_parameter', 400, name)
+  }
+  const value = values[0]?.trim() ?? ''
+  return value || null
+}
+
 function parseLimit(value: string | null): number {
-  const parsed = Number.parseInt(value ?? '100', 10)
-  if (!Number.isFinite(parsed)) return 100
-  return Math.min(Math.max(parsed, 1), 100)
+  if (!value) return 100
+  if (!/^\d+$/.test(value)) {
+    throw new ApiInputError('limit måste vara ett heltal mellan 1 och 100.', 'invalid_limit', 400, 'limit')
+  }
+  const parsed = Number.parseInt(value, 10)
+  if (parsed < 1 || parsed > 100) {
+    throw new ApiInputError('limit måste vara ett heltal mellan 1 och 100.', 'invalid_limit', 400, 'limit')
+  }
+  return parsed
+}
+
+function validateQuery(request: NextRequest) {
+  for (const key of request.nextUrl.searchParams.keys()) {
+    if (!ALLOWED_QUERY_PARAMETERS.has(key)) {
+      throw new ApiInputError(`Okänd query-parameter: ${key}.`, 'unknown_query_parameter', 400, key)
+    }
+  }
+  const eventType = singleQueryValue(request, 'event_type')
+  if (eventType && !/^customer\.[a-z0-9_]+$/.test(eventType)) {
+    throw new ApiInputError('event_type har ogiltigt format.', 'invalid_event_type', 422, 'event_type')
+  }
+  const before = singleQueryValue(request, 'before')
+  if (before && !Number.isFinite(new Date(before).getTime())) {
+    throw new ApiInputError('before måste vara en giltig ISO-tidpunkt.', 'invalid_cursor', 400, 'before')
+  }
+  return {
+    eventType,
+    externalCustomerId: singleQueryValue(request, 'external_customer_id'),
+    before,
+    limit: parseLimit(singleQueryValue(request, 'limit')),
+  }
 }
 
 export async function GET(request: NextRequest) {
   const startedAt = Date.now()
+  const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['events.read'])
 
   if (!auth.ok) {
@@ -30,51 +79,67 @@ export async function GET(request: NextRequest) {
       startedAt,
       errorCode: auth.errorCode,
     })
-    return NextResponse.json({ error: auth.error }, { status: auth.status })
+    return customerPortalJson(canonicalApiError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
 
   try {
-    const events = await listDomainEventsForCompany({
-      companyId: auth.context.companyId,
-      eventType: request.nextUrl.searchParams.get('type'),
-      customerId: request.nextUrl.searchParams.get('customer_id'),
-      cursorOccurredBefore: request.nextUrl.searchParams.get('before'),
-      limit: parseLimit(request.nextUrl.searchParams.get('limit')),
-    })
+    const query = validateQuery(request)
+    let customerId: string | null = null
+    if (query.externalCustomerId) {
+      const resolution = await resolvePortalCustomer({
+        client: auth.client,
+        identifiers: { externalCustomerId: query.externalCustomerId },
+      })
+      if (!resolution.ok) {
+        throw new ApiInputError(resolution.error, resolution.code, resolution.status, 'external_customer_id')
+      }
+      customerId = resolution.customer.customer_id
+    }
+
+    const [events, tenantReference] = await Promise.all([
+      listDomainEventsForCompany({
+        companyId: auth.context.companyId,
+        eventType: query.eventType,
+        customerId,
+        cursorOccurredBefore: query.before,
+        limit: query.limit,
+      }),
+      loadExternalTenantReference(auth.context.companyId),
+    ])
 
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 200,
       startedAt,
-      metadata: { result_count: events.length },
+      metadata: { result_count: events.length, request_id: requestId },
     })
 
-    return NextResponse.json({
-      data: events.map((event) => ({
-        id: event.id,
-        type: event.event_type,
-        occurred_at: event.occurred_at,
-        aggregate: {
-          type: event.aggregate_type,
-          id: event.aggregate_id,
-        },
-        customer_id: event.subject_customer_id,
-        payload: event.payload,
-      })),
+    return customerPortalJson({
+      data: events.map((event) => buildPublicWebhookPayload(event, tenantReference)),
       next_before: events.at(-1)?.occurred_at ?? null,
+      request_id: requestId,
+      correlation_id: requestId,
     })
   } catch (error) {
-    const traceId = randomUUID()
-    console.error('[events-read] failed', { traceId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'events_read_failed', metadata: { trace_id: traceId } })
-    return NextResponse.json({ error: 'Händelser kunde inte hämtas just nu.', code: 'events_read_failed', trace_id: traceId }, { status: 500 })
+    const controlled = error instanceof ApiInputError
+    const status = controlled ? error.status : 500
+    const code = controlled ? error.code : 'events_read_failed'
+    const message = controlled ? error.message : 'Händelser kunde inte hämtas just nu.'
+    console.error('[events-read] failed', { requestId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
+    return customerPortalJson(canonicalApiError({
+      code,
+      message,
+      requestId,
+      field: controlled ? error.field : null,
+    }), { status })
   }
 }
 
-
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+  const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_events.write'])
 
   if (!auth.ok) {
@@ -85,42 +150,62 @@ export async function POST(request: NextRequest) {
       startedAt,
       errorCode: auth.errorCode,
     })
-    return customerPortalJson({ error: auth.error, code: auth.errorCode }, { status: auth.status })
+    return customerPortalJson(canonicalApiError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
 
   try {
     const body = await readJsonObject(request)
     const parsed = parseCustomerEventPayload(body)
     if (!parsed.success) {
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 422, startedAt, errorCode: 'validation_error' })
-      return customerPortalJson({ error: 'Ogiltigt kundevent.', code: 'validation_error', details: parsed.error.issues }, { status: 422 })
+      throw new ApiInputError(
+        parsed.error.issues[0]?.message ?? 'Ogiltigt kundevent.',
+        'validation_error',
+        422,
+        parsed.error.issues[0]?.path.join('.') || null,
+      )
     }
     if (isSupportEvent(parsed.data.event_type)) {
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 422, startedAt, errorCode: 'support_out_of_scope' })
-      return customerPortalJson({
-        error: 'Supporthantering ligger utanför Gridex Ops API.',
-        code: 'support_out_of_scope',
-        hint: 'Elbolaget hanterar support i sina egna kanaler. Skicka inte support- eller case-events till Ops.',
-      }, { status: 422 })
+      throw new ApiInputError(
+        'Supporthantering ligger utanför Gridex Ops API.',
+        'support_out_of_scope',
+        422,
+        'event_type',
+      )
     }
 
-    const data = await recordWebsiteCustomerEvent({ request, client: auth.client, payload: parsed.data, source: 'website' })
+    const data = await recordWebsiteCustomerEvent({
+      request,
+      client: auth.client,
+      payload: parsed.data,
+      operation: '/api/v1/events',
+      source: 'website',
+    })
     const { _internal_customer_id: internalCustomerId, ...responseData } = data
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 200,
       startedAt,
-      metadata: { event_id: data.event_id, customer_event_id: data.customer_event_id, event_type: data.event_type, customer_id: internalCustomerId },
+      metadata: {
+        event_reference: data.event_reference,
+        event_type: data.event_type,
+        customer_id: internalCustomerId,
+        idempotency_replay: data.replayed,
+      },
     })
-    return customerPortalJson({ data: responseData })
+    return customerPortalJson({ data: responseData, request_id: requestId, correlation_id: requestId })
   } catch (error) {
-    const controlled = typeof (error as { status?: unknown })?.status === 'number' && typeof (error as { code?: unknown })?.code === 'string'
-    const status = controlled ? (error as { status: number }).status : 500
-    const code = controlled ? (error as { code: string }).code : 'customer_event_failed'
-    const traceId = randomUUID()
-    console.error('[events-write] failed', { traceId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { trace_id: traceId } })
-    return customerPortalJson({ error: 'Kundeventet kunde inte behandlas.', code, trace_id: traceId }, { status })
+    const controlled = error instanceof ApiInputError
+    const status = controlled ? error.status : 500
+    const code = controlled ? error.code : 'customer_event_failed'
+    const message = controlled ? error.message : 'Kundeventet kunde inte behandlas just nu.'
+    console.error('[events-write] failed', { requestId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
+    return customerPortalJson(canonicalApiError({
+      code,
+      message,
+      requestId,
+      field: controlled ? error.field : null,
+    }), { status })
   }
 }

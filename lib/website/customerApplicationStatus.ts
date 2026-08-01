@@ -28,13 +28,13 @@ export class WebsiteCustomerApplicationStatusError extends Error {
 
 export async function loadWebsiteCustomerApplicationStatus(input: {
   companyId: string
-  applicationId: string
+  applicationNumber: string
 }) {
   const { data: application, error: applicationError } = await supabaseService
     .from('website_customer_applications')
     .select('id,application_number,customer_id,customer_site_id,metering_point_id,contract_id,status,next_step,response_payload,updated_at')
     .eq('company_id', input.companyId)
-    .eq('id', input.applicationId)
+    .eq('application_number', input.applicationNumber)
     .maybeSingle()
   if (applicationError) throw applicationError
   if (!application) throw new WebsiteCustomerApplicationStatusError('application_not_found', 404, 'Kundansökan hittades inte.')
@@ -44,7 +44,7 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
       .from('customer_application_workflows')
       .select('id,state,next_action,failure_code,last_transition_at,updated_at')
       .eq('company_id', input.companyId)
-      .eq('customer_application_id', input.applicationId)
+      .eq('customer_application_id', application.id)
       .maybeSingle(),
     application.customer_id
       ? supabaseService
@@ -84,7 +84,6 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
   })
 
   return {
-    application_id: application.id,
     application_number: application.application_number,
     status: externalStatus,
     stage: workflowState ?? clean(application.status) ?? 'processing',

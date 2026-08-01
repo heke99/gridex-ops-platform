@@ -2,7 +2,7 @@
 \pset pager off
 
 -- Dry-run only. Shows deterministic repairs and leaves mismatches untouched.
-drop table if exists canonical_multitenant_repair_candidates;
+drop table if exists pg_temp.canonical_multitenant_repair_candidates;
 create temporary table canonical_multitenant_repair_candidates (
   table_name text,
   relation_name text,

@@ -77,6 +77,7 @@
     "api:finalize": "node scripts/finalize-openapi-release.cjs",
     "api:compatibility": "node scripts/check-api-compatibility.cjs",
     "api:release:verify": "node scripts/verify-openapi-release.cjs",
+    "api:runtime:parity": "node scripts/canonical-external-api-runtime-parity.cjs",
     "gridex:customer-info-status-regression": "node scripts/gridex-customer-info-status-regression.cjs",
     "ediel:route-materialization-regression": "node scripts/ediel-route-materialization-regression.cjs",
     "gridex:energy-resolver-contract-regression": "node scripts/gridex-energy-resolver-contract-regression.cjs",

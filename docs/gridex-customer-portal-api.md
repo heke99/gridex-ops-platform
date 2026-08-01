@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-08-01.1`.
+Dokumentationsversion: `2026-08-01.2`.
 
 ## Tenantkonfiguration
 
@@ -134,7 +134,7 @@ Samtliga kräver `customer_portal.read` (GET) och identifierare via headers/quer
 - `GET /api/v1/customer/powers-of-attorney`
 - `GET /api/v1/customer/events`, `GET /api/v1/customer/notifications`
 
-Skriv-endpoints (`POST /sync`, `/profile-update`, `/move-out`, `/notifications/read`) kräver `customer_portal.write`.
+Skriv-endpoints kräver granulära scopes: `customer_sync.write`, `customer_contact.write`, `customer_facility_data.write`, `customer_power_of_attorney.write` och `customer_notifications.write`. Legacy-scope `customer_portal.write` expanderas server-side under övergångsperioden. `profile-update` kräver det scope som motsvarar operationen och båda scopes när både profil och anläggningsdata skickas i samma request.
 
 ## Kundens tecknade avtal
 
@@ -150,10 +150,11 @@ Authorization: Bearer ${GRIDEX_API_KEY}
 Content-Type: application/json
 ```
 
-> `Idempotency-Key`-headern är valfri och utvärderas för närvarande inte av
-> `/sync`. Endpointen är i sig idempotent: OPS härleder stabila nycklar per
-> kund/typ/referens (`tenant-sync:{client}:{customer}:{type}:{ref}`) och gör
-> upserts, så att skicka samma payload flera gånger skapar inte dubbletter.
+> `Idempotency-Key` är obligatorisk på `/sync`, `/profile-update`,
+> `/move-out`, `/notifications/read`, `POST /api/v1/events` och
+> `POST /api/v1/website/customer-events`. Nyckeln binds till tenant,
+> API-klient, kund, operation och payload-hash. Samma nyckel med samma payload
+> ger replay av lagrat resultat; samma nyckel med annan payload ger `409`.
 
 ```json
 {
@@ -265,7 +266,7 @@ Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som H
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Canonical fastpris, quote och teckningsflöde (`2026-08-01.1`)
+## Canonical fastpris, quote och teckningsflöde (`2026-08-01.2`)
 
 Den aktiva integrationsordningen är:
 
@@ -296,7 +297,7 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-01.1`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-01.2`; versionsvärdet ingår i ETag-underlaget.
 
 ## Publication revision, cache och kanaler
 
@@ -313,9 +314,9 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
 
 
-API-svaret innehåller `contract_schema_version=2026-08-01.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-08-01.2` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
 
-## Avgränsning mot Website Integration API 2026-08-01.1
+## Avgränsning mot Website Integration API 2026-08-01.2
 
 Den här guiden beskriver kundportal och Mina sidor. Website checkout, publicerade erbjudanden, elområdesresolution, aktuellt marknadspris och quote dokumenteras canonicalt i `website-integration-v1.json`.
 
@@ -334,6 +335,6 @@ Tenantens vanliga API-nyckel kan ha både kundportal- och website-scopes, men ko
 
 Efter en accepterad website-kundansökan returnerar API:t `next_step: automatic_processing`. Samma databastransaktion skapar ett persistent `customer_application_continuation`-jobb. OPS-workern, inte website-requesten, avgör därefter nästa steg för juridiska utskick, komplettering, nätägaruppgifter, Z01/Z03, leverantörsbyte, aktivering och webhooks.
 
-## Extern kontraktsändring 2026-08-01.1
+## Extern kontraktsändring 2026-08-01.2
 
 Website Integration API modellerar nu `energy_direction` explicit som `consumption` eller `production`. Produktionsavtal returnerar en immutable `production_pricing` och kan använda `settlement_mode=self_billing`; de får inte behandlas som konsumtionsleverans eller vanlig kundfaktura. Canonical juridikroute är `GET /api/v1/website/legal-bundle`; tenant hämtas från API-nyckelns integrationskontext och inget externt `company_id` används. Felmodellen innehåller top-level `ok=false`, `code`, `message`, `request_id`, `correlation_id` och strukturerade `blockers`.

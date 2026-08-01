@@ -13,6 +13,7 @@ import {
 } from '@/lib/pricing/websiteQuotes'
 import { resolvePublicContractOffer } from '@/lib/website/publicContracts'
 import { canonicalApiError } from '@/lib/api/apiError'
+import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,7 @@ const ALLOWED_FIELDS = new Set([
   'price_area',
   'grid_area_code',
   'postal_code',
-  'application_id',
+  'application_number',
   'price_option_reference',
   'invoice_delivery_method',
   'selected_component_references',
@@ -64,6 +65,30 @@ function stringArray(
     })
   }
   return value.map((entry) => String(entry).trim())
+}
+
+
+async function resolveInternalApplicationId(input: {
+  companyId: string
+  applicationNumber: string | null
+}): Promise<string | null> {
+  if (!input.applicationNumber) return null
+  const result = await supabaseService
+    .from('website_customer_applications')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('application_number', input.applicationNumber)
+    .maybeSingle()
+  if (result.error) throw result.error
+  if (!result.data?.id) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Kundansökan hittades inte för aktuell tenant.',
+      code: 'application_not_found',
+      status: 404,
+      field: 'application_number',
+    })
+  }
+  return String(result.data.id)
 }
 
 function retryableErrorCode(code: string): boolean {
@@ -184,6 +209,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const applicationId = await resolveInternalApplicationId({
+      companyId: auth.context.companyId,
+      applicationNumber: text(body, 'application_number'),
+    })
     const quote = await validateWebsiteQuote({
       client: auth.client,
       quoteReference,
@@ -196,7 +225,7 @@ export async function POST(request: NextRequest) {
       postalCode: text(body, 'postal_code'),
       annualConsumptionKwh: numeric(body, 'annual_consumption_kwh'),
       startDate: text(body, 'start_date'),
-      applicationId: text(body, 'application_id'),
+      applicationId,
       priceOptionReference: text(body, 'price_option_reference'),
       invoiceDeliveryMethod: text(body, 'invoice_delivery_method'),
       selectedComponentReferences: stringArray(

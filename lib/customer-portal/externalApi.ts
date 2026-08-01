@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import {
+  currentIntegrationApiResponseContext,
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
   type IntegrationApiClient,
+  type IntegrationScopeRequirement,
 } from '@/lib/integrations/apiAuth'
 import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers } from '@/lib/customer-portal/customerResolver'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
@@ -32,7 +34,7 @@ export type CustomerPortalApiContext = {
 
 export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
   const headers = new Headers(init.headers)
-  headers.set('Cache-Control', 'no-store')
+  if (!headers.has('Cache-Control')) headers.set('Cache-Control', 'no-store')
   headers.set('X-Gridex-Contract-Version', WEBSITE_INTEGRATION_CONTRACT_VERSION)
   const record =
     body && typeof body === 'object' && !Array.isArray(body)
@@ -115,6 +117,18 @@ export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
           contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
         }
       : envelope
+
+  headers.set('X-Request-ID', requestId)
+  const responseContext = currentIntegrationApiResponseContext()
+  const rateLimit = responseContext?.rateLimit
+  if (rateLimit) {
+    headers.set('X-RateLimit-Limit', String(rateLimit.limit))
+    headers.set('X-RateLimit-Remaining', String(rateLimit.remaining))
+    if (rateLimit.resetAt) headers.set('X-RateLimit-Reset', rateLimit.resetAt)
+  }
+  if (responseContext?.retryAfterSeconds) {
+    headers.set('Retry-After', String(responseContext.retryAfterSeconds))
+  }
   return NextResponse.json(versionedEnvelope, { ...init, headers })
 }
 
@@ -163,7 +177,7 @@ export function portalIdentifiersFromPayload(payload: unknown): Partial<Customer
 export async function requireCustomerPortalApiContextForIdentifiers(
   request: NextRequest,
   identifiers: Partial<CustomerPortalIdentifiers>,
-  scopes: string[] = ['customer_portal.read']
+  scopes: IntegrationScopeRequirement = ['customer_portal.read']
 ): Promise<
   | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
   | { ok: false; response: NextResponse; startedAt: number }
@@ -205,7 +219,7 @@ export async function resolveLinkedPortalIdentity(
 
 export async function requireCustomerPortalApiContext(
   request: NextRequest,
-  scopes: string[] = ['customer_portal.read']
+  scopes: IntegrationScopeRequirement = ['customer_portal.read']
 ): Promise<
   | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
   | { ok: false; response: NextResponse; startedAt: number }

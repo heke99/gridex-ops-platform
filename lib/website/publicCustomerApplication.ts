@@ -102,19 +102,22 @@ function publicCommunication(value: unknown): Record<string, unknown> | null {
   return output
 }
 
-function publicSupplierSwitch(input: Record<string, unknown>): Record<string, unknown> {
-  const requestId = text(input.supplier_switch_request_id)
-  const canCreate = input.can_start_switch === true && !requestId
+function publicSupplierSwitch(input: Record<string, unknown>, companyId?: string): Record<string, unknown> {
+  const internalRequestId = text(input.supplier_switch_request_id)
+  const requestReference = companyId && internalRequestId
+    ? publicReference('supplier_switch', companyId, internalRequestId)
+    : null
+  const canCreate = input.can_start_switch === true && !internalRequestId
   const blockers = publicStringArray(input.blocking_reasons)
   return {
-    request_id: requestId,
-    status: requestId ? 'created' : 'not_created',
+    request_reference: requestReference,
+    status: internalRequestId ? 'created' : 'not_created',
     can_create_request: canCreate,
     // Dispatch requires customer-specific POA, route, certificate and business
     // readiness. The application intake response must never infer it.
     can_dispatch: false,
     blockers,
-    next_action: requestId
+    next_action: internalRequestId
       ? 'await_supplier_switch_processing'
       : canCreate
         ? 'create_supplier_switch_request'
@@ -158,7 +161,7 @@ export function publicWebsiteCustomerApplicationData(
   if (nextAction) output.next_action = nextAction
   const communication = publicCommunication(input.communication)
   if (communication) output.communication = communication
-  output.supplier_switch = publicSupplierSwitch(input)
+  output.supplier_switch = publicSupplierSwitch(input, companyId)
 
   if (text(input.power_of_attorney_id)) {
     output.power_of_attorney = { status: 'signed' }

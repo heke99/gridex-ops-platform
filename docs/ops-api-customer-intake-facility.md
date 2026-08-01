@@ -230,16 +230,16 @@ API:t accepterar ett **strukturerat** `powerOfAttorney`-objekt – inte bara `po
 - **Fullmakt krävs när avtalet kräver det:** när det valda avtalet publicerar en `power_of_attorney`-version (`legal.power_of_attorney_required = true`) måste ett strukturerat `powerOfAttorney` med `accepted=true` skickas, annars `422 power_of_attorney_missing` (`error.stage = power_of_attorney`). `powerOfAttorney.accepted=false` ger `422 power_of_attorney_not_accepted`.
 - **Idempotens:** om en tidigare ansökan med samma `Idempotency-Key` lyckades utan fullmakt men det nya anropet innehåller `powerOfAttorney`, returneras `409 idempotent_application_missing_poa` (använd ny nyckel eller reparera via admin).
 - **Partiellt fel:** om kund/anläggning/avtal skapats men fullmakten misslyckas uppdateras ansökan in-place till status `partial`/`failed` med `error_stage = power_of_attorney`, `power_of_attorney_id = null` – ingen dubblettrad skapas och ingen falsk success kvarstår.
-- Alla API-fel returneras som JSON: `{ "error": { "code", "message", "stage", "field", "request_id" } }` – aldrig som HTML.
+- Alla API-fel returneras som JSON med canonical envelope: `{ "error": { "code", "message", "retryable", "field", "blockers" }, "request_id", "correlation_id", "contract_schema_version" }` – aldrig som HTML.
 
 ### Saknat anläggnings-ID (`facility_id`)
 
 Om `facility_id`/anläggnings-id saknas:
 
 - **Ingen PRODAT Z01 renderas och ingen `ediel_outbox` skapas.** Z01 blockeras före render (svenskt PRODAT-krav). Ingen `render_failed` skapas och inga tekniska EDIFACT-fel (LIN_MISSING / PROFILE_REQUIRED_SEGMENT_MISSING) visas för tenant.
-- Om en **externt sändbar** fullmakt, nätägarkontakt och en konfigurerad manuell brevlåda finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret returnerar ett `manualInformationRequest`-block.
-- Om fullmakten bara är legacy/svag skapas ingen `manual_email_outbox`; svaret får `nextAction.code = poa_not_externally_sendable`.
-- Saknas fullmakt returneras `nextAction.code = power_of_attorney_required`. Saknas nätägarkontakt returneras `grid_owner_contact_required`. Saknas manuell brevlåda returneras `manual_mailbox_required`.
+- Om en **externt sändbar** fullmakt, nätägarkontakt och en konfigurerad manuell brevlåda finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret exponerar den köade kommunikationen i det publika `communication`-blocket.
+- Om fullmakten bara är legacy/svag skapas ingen `manual_email_outbox`; svaret får `next_action.code = poa_not_externally_sendable`.
+- Saknas fullmakt returneras `next_action.code = power_of_attorney_required`. Saknas nätägarkontakt returneras `grid_owner_contact_required`. Saknas manuell brevlåda returneras `manual_mailbox_required`.
 
 ### Brevlådor och kontaktvägar (separata begrepp)
 
@@ -283,34 +283,34 @@ Manuell e-post levereransspåras via Resend-webhooken `POST /api/webhooks/resend
 - Negativ leverans (`bounced`/`complained`/`failed`/`suppressed`) sätter den länkade begäran till `needs_review` med tenant-meddelandet: `E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.`
 - Manuell `curl` utan giltiga Svix-huvuden misslyckas **avsiktligt** (401). Använd Resend-dashboardens testevent. `RESEND_WEBHOOK_SECRET` måste vara den exakta signeringshemligheten för exakt den endpoint som används, och Vercel måste deployas om efter att miljövariabeln ändrats.
 
-### Operativt svar (`nextAction` / `manualInformationRequest`)
+### Operativt publikt svar (`next_action` / `communication`)
 
 Svaret innehåller endast **operativ status** – aldrig tekniska Ediel-detaljer:
 
 ```json
 {
-  "applicationId": "...",
-  "customerId": "...",
-  "siteId": "...",
-  "powerOfAttorney": {
-    "status": "signed",
-    "scope": ["supplier_switch", "facility_information_lookup"],
-    "method": "website_acceptance"
+  "application_number": "APP-2026-000123",
+  "application_reference": "application_opaque_reference",
+  "customer_reference": "customer_opaque_reference",
+  "facility_reference": "facility_opaque_reference",
+  "power_of_attorney": {
+    "status": "signed"
   },
-  "nextAction": {
+  "next_action": {
     "code": "facility_identifier_requested",
     "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post."
   },
-  "manualInformationRequest": {
-    "status": "manual_email_queued",
-    "case_reference": "GX-FIR-AB12CD34",
-    "channel": "manual_email",
-    "request_id": "..."
+  "communication": {
+    "pending": true,
+    "source_of_truth": "communication_logs",
+    "queued": [{ "code": "facility_information_requested", "status": "queued" }],
+    "sent": [],
+    "failed": []
   }
 }
 ```
 
-Möjliga `nextAction.code`:
+Möjliga `next_action.code`:
 
 - `missing_customer_identity` – kundens person-/organisationsnummer saknas och måste kompletteras innan fullmakt kan skickas externt.
 - `missing_customer_details` – kundnamn eller andra obligatoriska kunduppgifter saknas.
@@ -336,7 +336,7 @@ Processregler:
 6. Kundavtal och låst avtalssnapshot skapas.
 7. Juridiska godkännanden och strukturerad fullmakt sparas med snapshot, dokument och händelser.
 8. Anläggnings-/nätägardata resolveras när information finns.
-9. Saknas anläggnings-ID blockeras Z01 och en manuell e-postbegäran köas (om fullmakt + kontakt finns); annars sätts `nextAction` till `power_of_attorney_required`/`grid_owner_contact_required`.
+9. Saknas anläggnings-ID blockeras Z01 och en manuell e-postbegäran köas (om fullmakt + kontakt finns); annars sätts `next_action` till `power_of_attorney_required`/`grid_owner_contact_required`.
 10. Domain events skapas och webhook-leveranser köas.
 
 ## Kundevents från hemsida
@@ -488,7 +488,7 @@ Fakturering sker per månadsunderlag. En fakturaperiod som omfattar flera månad
 
 `pricing.visibility.portfolio_price` och komponentens `website_card_visible` påverkar endast tenantens publika avtalskort. Dolda avgifter och priser finns fortfarande kvar i bindande prisöversikt, avtalssnapshot och fakturering.
 
-## Canonical fastpris, quote och teckningsflöde (`2026-08-01.1`)
+## Canonical fastpris, quote och teckningsflöde (`2026-08-01.2`)
 
 Den aktiva integrationsordningen är:
 
@@ -517,4 +517,4 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-01.1`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-01.2`; versionsvärdet ingår i ETag-underlaget.

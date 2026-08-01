@@ -32,7 +32,8 @@ assertIncludes('app/api/v1/website/customer-applications/route.ts', [
 ])
 
 assertIncludes('lib/website/customerApplications.ts', [
-  'reserveCustomerNumber',
+  'onboardCustomerGraph',
+  'canonicalIdempotencyKey',
   'upsertPortalIdentity',
   'website_customer_applications',
   'contract.application_received',
@@ -69,10 +70,11 @@ assertIncludes('app/developers/customer-portal-api/page.tsx', [
 
 assertIncludes('docs/external-website-api-integration-guide.md', [
   'POST /api/v1/website/customer-applications',
-  'webhooks',
-  'customer_number',
-  'Capway',
-  'debtRow amount = belopp exkl. moms',
+  'GET /api/v1/website/customer-applications/{application_number}',
+  'Idempotency-Key',
+  'Events och webhooks',
+  'customer_reference',
+  'contract_schema_version',
 ])
 
 console.log('Gridex Batch 7 website foundation regression OK')
