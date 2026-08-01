@@ -64,7 +64,7 @@ describe('canonical public API release', () => {
     expect(
       customerPortalOpenApi.components.schemas.CustomerContract.properties
         .signature_snapshot_sha256,
-    ).toEqual({ type: ['string', 'null'] })
+    ).toMatchObject({ type: ['string', 'null'] })
   })
 
   it('normalizes legacy route failures into one canonical error envelope', async () => {

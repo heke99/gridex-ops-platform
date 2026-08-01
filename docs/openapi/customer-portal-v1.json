@@ -1950,7 +1950,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-30.3"
+                  "const": "2026-08-01.1"
                 }
               }
             },
@@ -3211,7 +3211,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "configuration": {
             "type": "object",

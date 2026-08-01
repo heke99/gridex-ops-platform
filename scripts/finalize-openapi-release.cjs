@@ -48,9 +48,52 @@ function setResponse(spec, path, schema, method = 'get', status = '200') {
   spec.paths[path][method].responses[status].content['application/json'].schema = schema
 }
 
-for (const document of [website, portal]) {
+function normalizeContractVersionMetadata(document) {
   document.info.version = version
   document['x-contract-schema-version'] = version
+
+  function walk(value) {
+    if (!value || typeof value !== 'object') return
+
+    for (const [key, child] of Object.entries(value)) {
+      if (
+        key.toLowerCase() === 'x-gridex-contract-version' &&
+        child &&
+        typeof child === 'object' &&
+        child.schema &&
+        typeof child.schema === 'object'
+      ) {
+        child.schema.const = version
+      }
+
+      if (
+        (key === 'contract_schema_version' || key === 'contract_version') &&
+        typeof child === 'string' &&
+        /^\d{4}-\d{2}-\d{2}\.\d+$/.test(child)
+      ) {
+        value[key] = version
+        continue
+      }
+
+      if (
+        (key === 'contract_schema_version' || key === 'contract_version') &&
+        child &&
+        typeof child === 'object' &&
+        typeof child.const === 'string' &&
+        /^\d{4}-\d{2}-\d{2}\.\d+$/.test(child.const)
+      ) {
+        child.const = version
+      }
+
+      walk(child)
+    }
+  }
+
+  walk(document)
+}
+
+for (const document of [website, portal]) {
+  normalizeContractVersionMetadata(document)
 }
 
 const canonicalErrorEnvelope = {
