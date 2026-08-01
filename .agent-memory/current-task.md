@@ -1,37 +1,37 @@
 # Current task
 
-Last updated: 2026-08-01T01:25:00+02:00
+Last updated: 2026-08-01T14:45:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
 ## Active phase
 
-PHASE-36 — Public Contracts runtime/OpenAPI/legal parity and complete customer-portal developer documentation.
+PHASE-37 — Canonical multi-tenant platform hardening for all tenants.
 
 ## Implemented locally
 
-- Added strict canonical Public Contract price-option and legal serializers.
-- Made `is_default` canonical and `default` an identical deprecated alias.
-- Preserved and validated the exact locked legal bundle version at both public legal levels.
-- Added one forward migration with exact-relation legal snapshot generation and idempotent audited backfill.
-- Unified Website/API DTO mapping, safe route diagnostics, version/request headers and structured public failures.
-- Regenerated both OpenAPI files, release hashes and canonical production-like fixture at `2026-08-01.1`.
-- Added route-to-served-OpenAPI, serializer, fixture, docs, version, checksum and migration safety gates.
-- Rebuilt `/developers/customer-portal-api` as the complete human-readable integration guide.
+- Added explicit trusted `TenantContext` to integration auth and all implemented canonical onboarding channels.
+- Rejected mismatching client tenant claims and removed billing webhook payload/header tenant selection.
+- Added tenant-neutral onboarding, numbering and legal projection aliases while preserving legacy DB implementations only for compatibility.
+- Removed runtime-generated contract/application number fallbacks and hard-coded auth/manual-mail sender defaults.
+- Added fail-closed `company_capabilities`, tenant-qualified parent/child constraints and new-write tenant-not-null guards.
+- Added all-tenant preflight, dry-run, deterministic audited backfill and post-verification SQL.
+- Added architecture, rollout runbook and a precise NO-GO delivery report.
 
 ## Exact next action
 
-Restore or reconcile the inherited `20260730220000...` migration bytes from authoritative Git/applied-ledger evidence without changing its trusted manifest checksum. Then install dependencies under Node 22, run all project typechecks/Vitest/lint/build, apply `20260801003000...` in isolated staging, run preview/apply/second-dry-run, deploy and verify exact served response/OpenAPI/manifest/docs parity. Synchronize Gridex Web only from its current source repository.
+Reconcile the two inherited migration-manifest issues from authoritative Git/database evidence. Install dependencies from a complete registry and run all typechecks, Vitest, lint and build. Apply `20260801143000...` in isolated staging, run preflight/dry-run/apply/second verification, validate constraints, execute three-tenant RLS/idempotency/concurrency/E2E, and then synchronize all external tenant website/portal/partner repositories to the same authenticated tenant contract.
 
 ## Blockers
 
-- Uploaded historical migration `20260730220000...` hashes to `978de5e9...`, while its trusted manifest entry remains `0ab350f0...`.
-- No authorized PostgreSQL connection or Supabase deployment environment.
-- DNS cannot resolve `registry.npmjs.org`, so dependencies cannot be installed here.
-- No staging base URL, API key, isolated tenant fixture or deployment target.
-- No Gridex Web source was supplied.
-- Uploaded archive excludes Git metadata.
+- `20260730220000...` checksum drift remains unblessed.
+- `20260731210000...` is missing from the checksum manifest.
+- No authorized PostgreSQL/Supabase environment or staging deployment target.
+- `npm ci` fails with registry 404 for `zod-validation-error-4.0.2.tgz`.
+- Only the OPS repository was supplied; external platform repositories are absent.
+- Git metadata is absent.
+- Remaining legacy tenant-branded runtime inventory and distributed state/outbound paths are not fully remediated.
 
 ## Do not repeat
 
-Do not bless the historical migration drift by changing its checksum, infer a legal bundle by first/latest ordering, use recursive DTO spreads, make OpenAPI permissive, claim full build/database/staging success, or use `default` as new business logic.
+Do not add a fallback tenant, trust client `company_id`, restore runtime-generated business numbers, hard-code a tenant sender/domain, enable capabilities without readiness evidence, auto-move non-null cross-tenant rows, or claim database/build/platform GO without executed proof.

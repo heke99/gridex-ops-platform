@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const [revision, tenant] = await Promise.all([
-      loadPublicationRevision(auth.client.company_id, 'api'),
+      loadPublicationRevision(auth.context.companyId, 'api'),
       loadExternalTenantContext(auth.client),
     ])
     const headers = {
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await supabaseService.rpc('gridex_list_external_api_contracts', {
-      p_company_id: auth.client.company_id,
+      p_company_id: auth.context.companyId,
       p_customer_type: normalized.value,
     })
     if (error) throw error
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
           mapContractPublicationToPublicDto({
             publication,
             channel: 'api',
-            companyId: auth.client.company_id,
+            companyId: auth.context.companyId,
           }),
         )
       } catch (mappingError) {
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
         }
         console.error('[api-contracts] rejected malformed publication', {
           requestId,
-          companyId: auth.client.company_id,
+          companyId: auth.context.companyId,
           tenantReference: tenant.tenant_reference,
           apiClientId: auth.client.id,
           channel: 'api',
@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
     const classified = classifyPublicContractsError(error)
     console.error('[api-contracts] failed', {
       requestId,
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       endpoint: '/api/v1/public-contracts',
       channel: 'api',

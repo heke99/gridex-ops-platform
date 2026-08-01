@@ -5,12 +5,12 @@ function missingNumberSchema(error: unknown): boolean {
   return Boolean(
     maybe &&
       (['42883', '42P01', '42703', 'PGRST202', 'PGRST204', 'PGRST205'].includes(maybe.code ?? '') ||
-        /gridex_next_customer_number|gridex_next_contract_number|gridex_next_application_number|does not exist|schema cache|function .* not found/i.test(maybe.message ?? ''))
+        /canonical_next_customer_number|canonical_next_contract_number|canonical_next_application_number|does not exist|schema cache|function .* not found/i.test(maybe.message ?? ''))
   )
 }
 
 export async function reserveCustomerNumber(companyId: string): Promise<string> {
-  const { data, error } = await supabaseService.rpc('gridex_next_customer_number', {
+  const { data, error } = await supabaseService.rpc('canonical_next_customer_number', {
     p_company_id: companyId,
   })
 
@@ -78,16 +78,14 @@ export async function reserveContractNumber(input: {
   companyId: string
   customerNumber?: string | null
 }): Promise<string> {
-  const { data, error } = await supabaseService.rpc('gridex_next_contract_number', {
+  const { data, error } = await supabaseService.rpc('canonical_next_contract_number', {
     p_company_id: input.companyId,
     p_customer_number: input.customerNumber ?? null,
   })
 
   if (error) {
     if (missingNumberSchema(error)) {
-      const suffix = Date.now().toString().slice(-8)
-      const base = input.customerNumber?.trim() || 'KUND'
-      return `AVT-${base}-${suffix}`
+      throw new Error('Avtalsnummer-funktionen saknas. Kör canonical multi-tenant-migrationen innan avtal skapas.')
     }
     throw error
   }
@@ -98,13 +96,13 @@ export async function reserveContractNumber(input: {
 }
 
 export async function reserveApplicationNumber(companyId: string): Promise<string> {
-  const { data, error } = await supabaseService.rpc('gridex_next_application_number', {
+  const { data, error } = await supabaseService.rpc('canonical_next_application_number', {
     p_company_id: companyId,
   })
 
   if (error) {
     if (missingNumberSchema(error)) {
-      return `APP-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${Date.now().toString().slice(-6)}`
+      throw new Error('Ansökningsnummer-funktionen saknas. Kör canonical multi-tenant-migrationen innan ansökningar tas emot.')
     }
     throw error
   }

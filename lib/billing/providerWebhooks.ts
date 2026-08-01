@@ -74,18 +74,17 @@ function verifySignature(input: { body: string; signature: string | null; timest
   return true
 }
 
-async function resolveTarget(input: { provider: string; invoiceGuid: string; companyHint: string | null }) {
-  let query = supabaseService
+async function resolveTarget(input: { provider: string; invoiceGuid: string }) {
+  const query = supabaseService
     .from('invoice_export_items')
     .select('id,company_id,environment,provider,provider_invoice_guid')
     .eq('provider', input.provider)
     .eq('provider_invoice_guid', input.invoiceGuid)
     .limit(3)
-  if (input.companyHint) query = query.eq('company_id', input.companyHint)
   const itemResult = await query
   if (itemResult.error) throw itemResult.error
   const items = (itemResult.data ?? []) as JsonRecord[]
-  if (items.length !== 1) throw new Error(items.length === 0 ? 'Providerfakturan kan inte kopplas till Gridex.' : 'Providerfakturan matchar flera tenants.')
+  if (items.length !== 1) throw new Error(items.length === 0 ? 'Providerfakturan kan inte kopplas till exakt en tenant.' : 'Providerfakturan matchar flera tenants.')
   const item = items[0]
   const companyId = text(item.company_id)
   const itemId = text(item.id)
@@ -135,8 +134,9 @@ export async function receiveBillingProviderWebhook(input: {
   const provider = normalizedProvider(input.provider)
   const externalEventId = eventId(payload)
   const providerInvoiceGuid = invoiceGuid(payload)
-  const companyHint = input.headers.get('x-gridex-company-id') ?? text(payload.company_id) ?? text(payload.companyId)
-  const target = await resolveTarget({ provider, invoiceGuid: providerInvoiceGuid, companyHint })
+  // Tenant claims in headers or payload are intentionally ignored. The tenant is
+  // resolved exclusively from the persisted provider invoice relation.
+  const target = await resolveTarget({ provider, invoiceGuid: providerInvoiceGuid })
   const timestamp = timestampSeconds(input.headers)
   verifySignature({
     body: input.body,

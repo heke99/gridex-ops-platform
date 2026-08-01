@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const [revision, tenant] = await Promise.all([
-      loadPublicationRevision(auth.client.company_id, 'website'),
+      loadPublicationRevision(auth.context.companyId, 'website'),
       loadExternalTenantContext(auth.client),
     ])
     const headers = responseHeaders({
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
           mapContractPublicationToPublicDto({
             publication: publicContractResponse(offer),
             channel: 'website',
-            companyId: auth.client.company_id,
+            companyId: auth.context.companyId,
           }),
         )
       } catch (mappingError) {
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         }
         console.error('[public-contracts] rejected malformed publication', {
           requestId: currentRequestId,
-          companyId: auth.client.company_id,
+          companyId: auth.context.companyId,
           tenantReference: tenant.tenant_reference,
           apiClientId: auth.client.id,
           channel: 'website',
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       metadata: { request_id: currentRequestId, result_count: data.length, rejected_contracts: rejectedContracts, customer_type: query.customerType, diagnostics: query.diagnostics, publication_revision: revision.revision },
     })
     await logUsageEvent({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       entityType: 'api_client',
       entityId: auth.client.id,
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
     console.error('[public-contracts] failed', {
       traceId,
       requestId: currentRequestId,
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       endpoint: '/api/v1/website/public-contracts',
       channel: 'website',

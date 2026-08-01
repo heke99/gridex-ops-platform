@@ -168,3 +168,7 @@
 - Verified all dependency-free API/docs/release checks, focused domain regressions, changed TS/TSX syntax and isolated strict canonical-core typing.
 - Dependency installation could not complete because npm registry DNS is unavailable; full TS/Vitest/lint/build were not claimed.
 - Final history review found the uploaded `20260730220000...` bytes differ from the trusted manifest. Reverted the temporary attempted manifest blessing, preserved the trusted checksum and recorded the inherited release blocker.
+
+## 2026-08-01 14:45 CEST — PHASE-37 canonical multi-tenant hardening
+
+Reviewed the supplied OPS archive against the all-tenant canonical target. Implemented trusted tenant context propagation, client-tenant mismatch rejection, provider webhook tenant resolution from persisted relations, neutral canonical DB aliases, fail-closed numbers/senders, capability/readiness storage, tenant-qualified relational guards, all-tenant remediation SQL, tests and architecture/runbook/delivery documentation. Static and focused regressions pass. `npm ci` failed on a registry 404; migration integrity remains blocked by inherited history; database/staging and external repositories were unavailable. Final decision: NO-GO pending executed environment proof.

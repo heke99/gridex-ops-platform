@@ -454,10 +454,10 @@ export function serializePublicContractLegal(input: {
 
   const seenModuleKeys = new Set<string>()
   const modules = rawModules.map((item, index) => {
-    const module = record(item)
+    const moduleVersion = record(item)
     const path = `legal.module_versions[${index}]`
     const moduleBundleId = nullableUuid(
-      module.legal_bundle_version_id,
+      moduleVersion.legal_bundle_version_id,
       `${path}.legal_bundle_version_id`,
     )
     if (moduleBundleId !== bundleId) {
@@ -466,7 +466,7 @@ export function serializePublicContractLegal(input: {
         `${path}.legal_bundle_version_id`,
       )
     }
-    const moduleKey = requiredText(module.module_key, `${path}.module_key`)
+    const moduleKey = requiredText(moduleVersion.module_key, `${path}.module_key`)
     if (seenModuleKeys.has(moduleKey)) {
       throw new PublicContractSerializationError(
         PUBLIC_CONTRACT_ERROR_CODES.legalModuleVersionInvalid,
@@ -474,9 +474,9 @@ export function serializePublicContractLegal(input: {
       )
     }
     seenModuleKeys.add(moduleKey)
-    const id = requiredUuid(module.id, `${path}.id`)
+    const id = requiredUuid(moduleVersion.id, `${path}.id`)
     const documentReference =
-      nullableText(module.document_reference) ??
+      nullableText(moduleVersion.document_reference) ??
       publicReference('legal_document', input.companyId, id)
     if (!documentReference) {
       throw new PublicContractSerializationError(
@@ -490,17 +490,17 @@ export function serializePublicContractLegal(input: {
       document_reference: documentReference,
       module_key: moduleKey,
       version:
-        nullableText(module.version) ??
-        nullableText(module.template_version) ??
-        requiredText(module.created_at, `${path}.version`),
-      title: requiredText(module.title, `${path}.title`),
-      published_at: nullableText(module.published_at),
+        nullableText(moduleVersion.version) ??
+        nullableText(moduleVersion.template_version) ??
+        requiredText(moduleVersion.created_at, `${path}.version`),
+      title: requiredText(moduleVersion.title, `${path}.title`),
+      published_at: nullableText(moduleVersion.published_at),
       content_sha256: nullableSha256(
-        module.content_sha256,
+        moduleVersion.content_sha256,
         `${path}.content_sha256`,
       ),
-      origin: nullableText(module.origin) ?? 'canonical_bundle_document',
-      url: nullableText(module.url),
+      origin: nullableText(moduleVersion.origin) ?? 'canonical_bundle_document',
+      url: nullableText(moduleVersion.url),
     }
   })
 
@@ -519,7 +519,7 @@ export function serializePublicContractLegal(input: {
         : null),
     legal_bundle_version_id: bundleId,
     immutable: true,
-    required_modules: modules.map((module) => module.module_key),
+    required_modules: modules.map((moduleItem) => moduleItem.module_key),
     module_versions: modules,
   }
   for (const field of LEGAL_COMPATIBILITY_FIELDS) {

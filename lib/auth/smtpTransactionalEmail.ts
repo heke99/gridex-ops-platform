@@ -38,7 +38,7 @@ function numberEnv(name: string, fallback: number): number {
 }
 
 export function getTransactionalEmailFromAddress() {
-  return (process.env.AUTH_SMTP_FROM ?? process.env.AUTH_EMAIL_FROM ?? 'no-reply@gridex.se').trim()
+  return requiredEnv('AUTH_SMTP_FROM')
 }
 
 

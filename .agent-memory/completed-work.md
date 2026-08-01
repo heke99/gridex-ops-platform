@@ -188,3 +188,13 @@ Status: VERIFIED LOCALLY
 - Regenerated both OpenAPI artifacts and release hashes at `2026-08-01.1`; added canonical fixture and route/OpenAPI/docs/version/checksum/migration gates.
 - Rebuilt `/developers/customer-portal-api` into the complete integration guide.
 - Static/API/domain regressions and changed-file TypeScript checks pass. Full dependency-based build, database apply and staging remain unverified. Historical `20260730220000...` checksum drift remains explicit and unblessed.
+
+## 2026-08-01 canonical multi-tenant platform hardening
+
+- Added explicit trusted tenant context to integration API and every implemented canonical onboarding adapter.
+- Removed client-selected tenant hints from billing webhooks and public website payload processing.
+- Added tenant-neutral service aliases for onboarding, number generation and effective legal projection.
+- Removed unsafe number/sender fallbacks and Gridex-prefilled superadmin tenant configuration fields.
+- Added fail-closed tenant capabilities, tenant-qualified relational constraints and all-tenant remediation SQL.
+- Added architecture, runbook, focused tests and a static multi-tenant regression.
+- Static/focused checks pass; full install/build/database/staging/all-repository evidence remains blocked and production is NO-GO.

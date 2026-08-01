@@ -108,7 +108,7 @@ for (const eventKey of canonicalEvents) {
 }
 
 const tenantDefaults = read('lib/tenant/legalDefaults.ts')
-assert(tenantDefaults.includes("from('gridex_tenant_effective_legal_sources_v')"), 'Tenant legal status does not use the effective-source view')
+assert(tenantDefaults.includes("from('canonical_tenant_effective_legal_sources_v')"), 'Tenant legal status does not use the effective-source view')
 assert(tenantDefaults.includes('platformPublishedCount'), 'Platform legal source count is missing')
 assert(tenantDefaults.includes('tenantOverrideCount'), 'Tenant override count is missing')
 assert(tenantDefaults.includes('effectiveModuleCount'), 'Effective legal module count is missing')

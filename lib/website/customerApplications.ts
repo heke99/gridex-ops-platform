@@ -65,6 +65,7 @@ import {
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
+import { createTenantContext } from "@/lib/tenant/context";
 import {
   validateWebsiteQuote,
   WebsiteQuoteValidationError,
@@ -6323,6 +6324,14 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
   const contractStatus = WEBSITE_APPLICATION_READY_CONTRACT_STATUS;
   const now = new Date().toISOString();
 
+  const tenantContext = createTenantContext({
+    companyId,
+    actorType: "integration",
+    actorId: input.client.id,
+    scopes: input.client.scopes ?? [],
+    sourceChannel: "public_website",
+  });
+
   const result = await onboardCustomerGraph({
     company_id: companyId,
     channel: "website",
@@ -6677,7 +6686,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
           automation_key: `website-customer-application:${input.applicationRowId}`,
         }
       : null,
-  });
+  }, tenantContext);
 
   if (!result.ok) {
     throw new WebsiteApplicationError({

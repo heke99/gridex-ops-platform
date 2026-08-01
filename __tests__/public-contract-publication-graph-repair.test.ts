@@ -82,8 +82,12 @@ describe('public contract publication graph repair', () => {
     expect(migration).toContain(
       'left join public.tenant_contract_assignments assignment',
     )
-    expect(migration).toContain("then 'WEBSITE_CHANNEL_MISSING'")
-    expect(migration).toContain("then 'API_CHANNEL_MISSING'")
+    expect(migration).toContain(
+      "with channels(channel) as (values('website'::text),('api'::text))",
+    )
+    expect(migration).toContain(
+      "case when channel_id is null then upper(channel)||'_CHANNEL_MISSING' end",
+    )
   })
 
   it('provides idempotent preview/apply functions and ETag invalidation', () => {

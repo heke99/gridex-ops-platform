@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       metadata: { offer_reference: offerReference, complete: bundle.complete, missing_types: bundle.missing_types },
     })
     await logUsageEvent({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       entityType: 'api_client',
       entityId: auth.client.id,

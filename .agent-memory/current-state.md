@@ -1,14 +1,15 @@
 # Current state
 
-Last updated: 2026-08-01T01:25:00+02:00
+Last updated: 2026-08-01T14:45:00+02:00
 
-- PHASE-36 Public Contracts runtime/OpenAPI/legal parity is IMPLEMENTED and STATICALLY VERIFIED; dependency-based full build, PostgreSQL apply and staging E2E remain blocked.
-- Contract version is `2026-08-01.1` across the canonical runtime constant, response metadata/headers, integration context, both OpenAPI releases, release manifest, fixtures, tests and `/developers/customer-portal-api`.
-- `price_options[].is_default` is canonical. `default` is emitted only as an always-identical deprecated compatibility alias. Strict serializers reject conflicting values and require exactly one default option.
-- The exact locked `legal_bundle_version_id` is emitted on `legal` and every module row. Bundle mismatch, duplicate modules, mutable snapshots and missing new-publication IDs fail closed with structured codes.
-- Website and API feeds share the same external DTO boundary. The API RPC now includes canonical legal data.
-- Forward migration `20260801003000_public_contract_runtime_openapi_legal_parity.sql` has SHA-256 `19bbfbb56f3b150835e873200962d490dd043c7d2de51ded83e4460061659850` and an exact-relation, dry-run-first, idempotent audited backfill.
-- Website OpenAPI SHA-256 is `e15a170a38b0cecadb2b815c1387c2336f02da7a69c96af418acca3999952f5f`; Customer Portal OpenAPI SHA-256 is `72fe14799c971f34e172782972ae510c9817cc6e4b981fb5ec8a71326f49e628`.
-- Static API/docs/OpenAPI/release/migration semantic checks and focused domain regressions pass. All 16 changed TS/TSX files pass syntax/transpile validation; the canonical model/DTO/error boundary pass an isolated strict TypeScript check.
-- Full `npm ci`, Vitest, lint, complete typecheck and Next.js build were not rerun because this environment cannot resolve `registry.npmjs.org`.
-- Release remains NO-GO: the uploaded archive has an inherited checksum mismatch for historical migration `20260730220000...`; no historical checksum was silently rewritten. No authorized database, staging origin/API key, Gridex Web source or deployment target was supplied.
+- PHASE-37 canonical multi-tenant hardening is implemented in the supplied OPS archive and statically verified; environment and cross-repository proof remain blocked.
+- Integration authentication now returns a frozen `TenantContext`; v1 routes use `auth.context.companyId` rather than reading tenant directly from the client row.
+- Canonical onboarding requires explicit tenant context. Admin, website, external-contract and Ediel inbound adapters create and pass it.
+- Client tenant claims are stripped when matching and rejected when mismatching. Billing provider webhooks ignore payload/header tenant hints and resolve one persisted provider-invoice target.
+- Runtime calls tenant-neutral onboarding/numbering/legal aliases. Contract/application numbering and auth-mail sender configuration fail closed when canonical configuration is missing.
+- Forward migration `20260801143000_canonical_multitenant_platform_hardening.sql` has SHA-256 `4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0`.
+- Migration adds fail-closed capabilities, tenant-qualified candidate keys/FKs and new-write company guards. Constraints remain `NOT VALID` until legacy data is inspected.
+- All-tenant preflight, deterministic dry-run/apply and post-verification scripts plus architecture/runbook/delivery documentation are present.
+- Static multi-tenant regression, canonical onboarding regression, manual mailbox/Ediel regression, legal readiness regression and modified-file syntax checks pass.
+- Full dependency gates are blocked by registry 404. Database/staging and all-repository verification were not run.
+- Release decision remains NO-GO until migration history, database isolation, full build/tests and every external repository are verified.

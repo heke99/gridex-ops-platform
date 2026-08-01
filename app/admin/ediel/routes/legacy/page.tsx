@@ -500,7 +500,6 @@ placeholder="Message-subadress, t.ex. PRODAT"
 />
  <input
  name="mailbox"
-defaultValue="ediel@gridex.se"
  className={textInputClassName()}
  placeholder="Mailbox (tomt = aktörens standard)"
  />

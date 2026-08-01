@@ -738,11 +738,9 @@ function currentPortfolioPriceBlock(rows: Record<string, unknown>[]) {
         .filter((month): month is string => Boolean(month)),
     ),
   ).sort();
-  const selectedMonth =
-    (normalizedMonth && months.includes(normalizedMonth)
-      ? normalizedMonth
-      : months.find((month) => normalizedMonth && month >= normalizedMonth)) ??
-    null;
+  const selectedMonth = normalizedMonth
+    ? [...months].reverse().find((month) => month <= normalizedMonth) ?? null
+    : months.at(-1) ?? null;
   if (!selectedMonth) return null;
   const selected = rows.filter((row) => row.period_month === selectedMonth);
   return {

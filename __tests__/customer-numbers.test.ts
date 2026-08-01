@@ -55,7 +55,7 @@ describe('reserveCustomerNumber', () => {
     const number = await reserveCustomerNumber('company-1')
     expect(number).toBe('DX-100001')
     expect(state.rpcCalls).toEqual([
-      { name: 'gridex_next_customer_number', args: { p_company_id: 'company-1' } },
+      { name: 'canonical_next_customer_number', args: { p_company_id: 'company-1' } },
     ])
   })
 
@@ -115,6 +115,6 @@ describe('ensureCustomerNumberIfSupported', () => {
       customerId: 'customer-1',
     })
     expect(number).toBe('DX-100001')
-    expect(state.rpcCalls[0]?.name).toBe('gridex_next_customer_number')
+    expect(state.rpcCalls[0]?.name).toBe('canonical_next_customer_number')
   })
 })

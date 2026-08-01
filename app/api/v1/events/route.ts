@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const events = await listDomainEventsForCompany({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       eventType: request.nextUrl.searchParams.get('type'),
       customerId: request.nextUrl.searchParams.get('customer_id'),
       cursorOccurredBefore: request.nextUrl.searchParams.get('before'),

@@ -106,7 +106,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
             <textarea
               name="allowedOrigins"
               rows={4}
-              defaultValue={'https://gridex.se\nhttps://www.gridex.se'}
+              placeholder={'https://tenant.example\nhttps://www.tenant.example'}
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
             />
             <span className="text-xs text-slate-500">En per rad. Lämna tomt endast för ren server-to-server utan Origin-header.</span>
@@ -115,7 +115,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
           <label className="grid gap-2">
             <span className="text-sm font-semibold text-slate-800">Tillåtna IP-adresser</span>
             <textarea name="allowedIps" rows={4} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
-            <span className="text-xs text-slate-500">Valfritt. Använd endast om Gridex hemsidan har stabil outbound-IP.</span>
+            <span className="text-xs text-slate-500">Valfritt. Använd endast om tenantens webbplats har stabil outbound-IP.</span>
           </label>
         </div>
 

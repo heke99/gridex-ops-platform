@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { supabaseService } from "@/lib/supabase/service";
+import { isEdielReservedSender } from "@/lib/email/manualOperationsMailbox";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,7 +19,6 @@ const MAILBOX_TYPES = new Set([
 ]);
 
 const ENVIRONMENTS = new Set(["test", "production"]);
-const EDIEL_RESERVED = new Set(["ediel@gridex.se"]);
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key);
@@ -75,8 +75,8 @@ export async function saveManualMailboxAction(formData: FormData): Promise<void>
     const fromEmail = value(formData, "from_email");
     if (!fromEmail || !EMAIL_RE.test(fromEmail)) throw new Error("Ange en giltig avsändaradress.");
     // The Ediel transport sender must never be reused for manual operations.
-    if (EDIEL_RESERVED.has(fromEmail.toLowerCase())) {
-      throw new Error("ediel@gridex.se är reserverad för Ediel/EDIFACT och får inte användas som manuell avsändare.");
+    if (await isEdielReservedSender(fromEmail)) {
+      throw new Error("Adressen är konfigurerad för Ediel/EDIFACT och får inte användas som manuell avsändare.");
     }
 
     const replyToEmail = value(formData, "reply_to_email");

@@ -936,7 +936,6 @@ function SimpleCompanySetupPanel({
         />
         <input
           name="mailbox"
-          defaultValue="ediel@gridex.se"
           required
           placeholder="Teknisk mailbox"
           className="rounded-xl border border-slate-300 px-3 py-2 text-sm"

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: Props) {
   const { applicationId } = await params
   try {
     const [status, tenant] = await Promise.all([
-      loadWebsiteCustomerApplicationStatus({ companyId: auth.client.company_id, applicationId }),
+      loadWebsiteCustomerApplicationStatus({ companyId: auth.context.companyId, applicationId }),
       loadExternalTenantContext(auth.client),
     ])
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { application_id: applicationId, request_id: requestId } })

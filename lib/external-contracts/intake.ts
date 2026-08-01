@@ -12,6 +12,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { logUsageEvent } from "@/lib/audit/actionLogger";
 import { isBusinessCustomerType } from "@/lib/customers/normalizeCustomerType";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
+import { createTenantContext } from "@/lib/tenant/context";
 import {
   matchCustomerIdentity,
   type CustomerMatchDecision,
@@ -344,6 +345,13 @@ export async function createExternalContractIntake(
       phone: input.phone,
     });
 
+    const tenantContext = createTenantContext({
+      companyId,
+      actorType: "system",
+      actorId: "ops-public-contract-intake",
+      sourceChannel: "public_website",
+    });
+
     const result = await onboardCustomerGraph({
       company_id: companyId,
       channel: "external_contract",
@@ -472,7 +480,7 @@ export async function createExternalContractIntake(
         automation_origin: "external_contract_intake",
         automation_key: `external-contract-intake:${intakeId}`,
       },
-    });
+    }, tenantContext);
 
     if (!result.ok) {
       const { data: reviewCase } = await supabaseService

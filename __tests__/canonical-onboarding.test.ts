@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createTenantContext } from '@/lib/tenant/context'
 
 const state = vi.hoisted(() => ({
   data: null as unknown,
@@ -47,6 +48,17 @@ const success = {
   outbox_event_id: 'event-1',
 }
 
+
+function tenantContext(companyId = 'company-1') {
+  return createTenantContext({
+    companyId,
+    actorType: 'system',
+    actorId: 'canonical-onboarding-test',
+    correlationId: success.correlation_id,
+    sourceChannel: 'system',
+  })
+}
+
 beforeEach(() => {
   state.data = success
   state.error = null
@@ -61,11 +73,11 @@ describe('canonical customer onboarding client', () => {
       idempotency_key: 'website:application-1',
       correlation_id: success.correlation_id,
       customer: { full_name: 'Anna Andersson' },
-    })
+    }, tenantContext())
     expect(result).toEqual(success)
     expect(state.calls).toHaveLength(1)
     expect(state.calls[0]).toMatchObject({
-      name: 'gridex_onboard_customer_graph',
+      name: 'canonical_onboard_customer_graph',
       args: { p_command: expect.objectContaining({ matching_policy: 'link_unique' }) },
     })
   })
@@ -83,7 +95,7 @@ describe('canonical customer onboarding client', () => {
       channel: 'external_contract',
       idempotency_key: 'external:1',
       customer: { org_number: '5560000000' },
-    })
+    }, tenantContext())
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.candidate_customer_ids).toHaveLength(2)
   })
@@ -95,7 +107,7 @@ describe('canonical customer onboarding client', () => {
       channel: 'admin',
       idempotency_key: 'admin:1',
       customer: { full_name: 'Test' },
-    })).rejects.toMatchObject({ code: 'canonical_onboarding_incomplete_response' })
+    }, tenantContext())).rejects.toMatchObject({ code: 'canonical_onboarding_incomplete_response' })
   })
 
   it('maps a missing migration to a structured correlated error', async () => {
@@ -106,7 +118,7 @@ describe('canonical customer onboarding client', () => {
       idempotency_key: 'api:1',
       correlation_id: success.correlation_id,
       customer: { full_name: 'Test' },
-    })).rejects.toEqual(expect.objectContaining<Partial<CanonicalOnboardingError>>({
+    }, tenantContext())).rejects.toEqual(expect.objectContaining<Partial<CanonicalOnboardingError>>({
       code: 'canonical_onboarding_rpc_missing',
       correlationId: success.correlation_id,
     }))
@@ -123,10 +135,21 @@ describe('canonical customer onboarding client', () => {
       idempotency_key: 'api:dependency-error',
       correlation_id: success.correlation_id,
       customer: { full_name: 'Test' },
-    })).rejects.toEqual(expect.objectContaining<Partial<CanonicalOnboardingError>>({
+    }, tenantContext())).rejects.toEqual(expect.objectContaining<Partial<CanonicalOnboardingError>>({
       code: 'canonical_onboarding_dependency_missing',
       correlationId: success.correlation_id,
     }))
+  })
+
+
+  it('rejects a command that tries to cross the authenticated tenant boundary', async () => {
+    await expect(onboardCustomerGraph({
+      company_id: 'company-2',
+      channel: 'api',
+      idempotency_key: 'api:cross-tenant',
+      customer: { full_name: 'Test' },
+    }, tenantContext('company-1'))).rejects.toMatchObject({ code: 'TENANT_CONTEXT_MISMATCH' })
+    expect(state.calls).toHaveLength(0)
   })
 
 

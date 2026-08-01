@@ -16,6 +16,15 @@ vi.mock('@/lib/integrations/apiAuth', () => ({
       company_id: '00000000-0000-4000-8000-000000000021',
       scopes: ['website_contracts.read'],
     },
+    context: {
+      companyId: '00000000-0000-4000-8000-000000000021',
+      actorType: 'integration',
+      actorId: '00000000-0000-4000-8000-000000000020',
+      permissions: [],
+      scopes: ['website_contracts.read'],
+      correlationId: '00000000-0000-4000-8000-000000000022',
+      sourceChannel: 'partner_api',
+    },
     rateLimit: { limit: 100, remaining: 99, resetAt: null },
   })),
 }))

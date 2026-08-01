@@ -5,6 +5,7 @@ import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { describeProdatCaseType, edielCodeLabel } from '@/lib/ediel/codeLabels'
 import { canonicalIdempotencyKey, onboardCustomerGraph } from '@/lib/customers/canonicalOnboarding'
+import { createTenantContext } from '@/lib/tenant/context'
 
 type JsonRecord = Record<string, unknown>
 
@@ -638,6 +639,14 @@ export async function approveEdielInboundCase(params: {
     const gridOwnerId = await getGridOwnerIdByGridArea(inboundCase.company_id, trimOrNull(parsedSite.gridAreaCode))
     const siteType = production.isMicroProduction === true ? 'production' : trimOrNull(parsedSite.siteType) ?? 'consumption'
 
+    const tenantContext = createTenantContext({
+      companyId: inboundCase.company_id,
+      actorType: 'user',
+      actorId: params.actorUserId,
+      permissions: ['ediel.inbound.apply'],
+      sourceChannel: 'ediel_inbound',
+    })
+
     const result = await onboardCustomerGraph({
       company_id: inboundCase.company_id,
       actor_user_id: params.actorUserId,
@@ -726,7 +735,7 @@ export async function approveEdielInboundCase(params: {
           mode,
         },
       },
-    })
+    }, tenantContext)
 
     if (!result.ok) {
       throw new Error(`Tvetydig kundmatchning blockerade Ediel-caset. Referens: ${result.correlation_id}.`)

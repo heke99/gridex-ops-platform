@@ -1,0 +1,295 @@
+
+> gridex-ops-platform@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.2.6 (webpack)
+- Experiments (use with caution):
+  · cpus: 1
+  · serverActions
+  ✓ webpackBuildWorker
+  ✓ webpackMemoryOptimizations
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 22.4s
+  Running TypeScript ...
+  Finished TypeScript in 31.9s ...
+  Collecting page data using 1 worker ...
+  Generating static pages using 1 worker (0/7) ...
+  Generating static pages using 1 worker (1/7) 
+  Generating static pages using 1 worker (3/7) 
+  Generating static pages using 1 worker (5/7) 
+✓ Generating static pages using 1 worker (7/7) in 437ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)                                                   Revalidate  Expire
+┌ ○ /                                                                 1h      1y
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/agreements/grid-owners
+├ ƒ /admin/agreements/grid-owners/documents
+├ ƒ /admin/analytics
+├ ƒ /admin/analytics/deviations
+├ ƒ /admin/analytics/export
+├ ƒ /admin/analytics/forecast
+├ ƒ /admin/analytics/reports
+├ ƒ /admin/audit
+├ ƒ /admin/billing
+├ ƒ /admin/billing/ai-parser
+├ ƒ /admin/billing/export-center
+├ ƒ /admin/billing/export-center/[id]/download
+├ ƒ /admin/billing/import
+├ ƒ /admin/billing/integrations
+├ ƒ /admin/billing/quality
+├ ƒ /admin/billing/underlays
+├ ƒ /admin/billing/underlays/[id]
+├ ƒ /admin/companies
+├ ƒ /admin/companies/[id]
+├ ƒ /admin/companies/[id]/users
+├ ƒ /admin/company-actor-status
+├ ƒ /admin/company-settings
+├ ƒ /admin/contracts
+├ ƒ /admin/controltower
+├ ƒ /admin/customer-applications
+├ ƒ /admin/customer-cases
+├ ƒ /admin/customer-info-requests
+├ ƒ /admin/customers
+├ ƒ /admin/customers/[id]
+├ ƒ /admin/customers/duplicates
+├ ƒ /admin/customers/imports
+├ ƒ /admin/customers/intake
+├ ƒ /admin/customers/segments
+├ ƒ /admin/customers/tenant-test
+├ ƒ /admin/data-quality
+├ ƒ /admin/ediel
+├ ƒ /admin/ediel/actors
+├ ƒ /admin/ediel/agt
+├ ƒ /admin/ediel/agt/[testCaseCode]
+├ ƒ /admin/ediel/ai-list
+├ ƒ /admin/ediel/anvisningar
+├ ƒ /admin/ediel/auto-readiness
+├ ƒ /admin/ediel/automation
+├ ƒ /admin/ediel/certificates
+├ ƒ /admin/ediel/certification
+├ ƒ /admin/ediel/control-tower
+├ ƒ /admin/ediel/mail-readiness
+├ ƒ /admin/ediel/mailboxes
+├ ƒ /admin/ediel/masterdata-reconciliation
+├ ƒ /admin/ediel/messages
+├ ƒ /admin/ediel/messages/[id]
+├ ƒ /admin/ediel/outbox
+├ ƒ /admin/ediel/portal-feedback
+├ ƒ /admin/ediel/readiness
+├ ƒ /admin/ediel/route-readiness
+├ ƒ /admin/ediel/routes
+├ ƒ /admin/ediel/routes/legacy
+├ ƒ /admin/ediel/rule-profiles
+├ ƒ /admin/ediel/settings
+├ ƒ /admin/ediel/system-tests
+├ ƒ /admin/ediel/system-tests/cases/[id]
+├ ƒ /admin/ediel/test-center
+├ ƒ /admin/ediel/unresolved
+├ ƒ /admin/electricity-suppliers
+├ ƒ /admin/events
+├ ƒ /admin/external-contract-intakes
+├ ƒ /admin/facility-requests
+├ ƒ /admin/inbound-mail
+├ ƒ /admin/inbound-mail/[id]
+├ ƒ /admin/inbound-mail/diagnostics
+├ ƒ /admin/integrations/routes
+├ ƒ /admin/manual-mailboxes
+├ ƒ /admin/manual-requests
+├ ƒ /admin/messages
+├ ƒ /admin/messages/[id]
+├ ƒ /admin/metering
+├ ƒ /admin/navigation-mode
+├ ƒ /admin/network-owners
+├ ƒ /admin/network-owners/[id]/contact-channels
+├ ƒ /admin/operations
+├ ƒ /admin/operations/automation
+├ ƒ /admin/operations/grid-owner-requests/[id]
+├ ƒ /admin/operations/integrity
+├ ƒ /admin/operations/perioder
+├ ƒ /admin/operations/ready-to-execute
+├ ƒ /admin/operations/switches
+├ ƒ /admin/operations/switches/[id]
+├ ƒ /admin/operations/sync
+├ ƒ /admin/operations/tasks
+├ ƒ /admin/outbound
+├ ƒ /admin/outbound/missing-billing-underlays
+├ ƒ /admin/outbound/missing-meter-values
+├ ƒ /admin/outbound/ready-switches
+├ ƒ /admin/outbound/unresolved
+├ ƒ /admin/partner-exports
+├ ƒ /admin/platform/actor-testing
+├ ƒ /admin/platform/actor-testing/[companyId]
+├ ƒ /admin/platform/actor-testing/[companyId]/evidence
+├ ƒ /admin/platform/actor-testing/[companyId]/evidence/csv
+├ ƒ /admin/platform/actor-testing/[companyId]/evidence/pdf
+├ ƒ /admin/platform/actor-testing/[companyId]/evidence/raw
+├ ƒ /admin/platform/analytics
+├ ƒ /admin/platform/api-clients
+├ ƒ /admin/platform/companies/[companyId]/analytics
+├ ƒ /admin/platform/companies/[companyId]/testing
+├ ƒ /admin/platform/contract-trace
+├ ƒ /admin/platform/customers/archived
+├ ƒ /admin/platform/data-cleanup
+├ ƒ /admin/platform/ediel/messages
+├ ƒ /admin/platform/ediel/routes
+├ ƒ /admin/platform/ediel/rules
+├ ƒ /admin/platform/ediel/runtime
+├ ƒ /admin/platform/ediel/versions
+├ ƒ /admin/platform/go-live
+├ ƒ /admin/platform/go-live/[companyId]
+├ ƒ /admin/platform/go-live/[companyId]/route-wizard
+├ ƒ /admin/platform/legal-readiness
+├ ƒ /admin/platform/legal-templates
+├ ƒ /admin/platform/security
+├ ƒ /admin/platform/usage
+├ ƒ /admin/platform/white-labels
+├ ƒ /admin/platform/work-queue
+├ ƒ /admin/price-area-localities
+├ ƒ /admin/pricing
+├ ƒ /admin/pricing/campaigns
+├ ƒ /admin/pricing/components
+├ ƒ /admin/pricing/market-sources
+├ ƒ /admin/pricing/period-locks
+├ ƒ /admin/pricing/portfolio-prices
+├ ƒ /admin/pricing/portfolio-settlements
+├ ƒ /admin/pricing/price-plans
+├ ƒ /admin/pricing/spot-prices
+├ ƒ /admin/roles
+├ ƒ /admin/system-health
+├ ƒ /admin/system/auth-diagnostics
+├ ƒ /admin/users
+├ ƒ /admin/users/[id]
+├ ƒ /admin/webhooks/deliveries
+├ ƒ /admin/website-applications
+├ ƒ /admin/website-applications/[id]
+├ ƒ /admin/whitelabel/actor-testing
+├ ƒ /admin/whitelabel/actor-testing/[companyId]
+├ ƒ /admin/whitelabel/actor-testing/[companyId]/evidence/csv
+├ ƒ /admin/whitelabel/actor-testing/[companyId]/evidence/pdf
+├ ƒ /admin/whitelabel/actor-testing/[companyId]/evidence/raw
+├ ƒ /admin/whitelabel/companies
+├ ƒ /admin/whitelabel/go-live
+├ ƒ /admin/work-queue
+├ ƒ /api/admin/customer-contract-documents/[documentId]
+├ ƒ /api/admin/customer-documents/[documentId]
+├ ƒ /api/admin/customer-documents/relations
+├ ƒ /api/admin/customer-switch-form-options
+├ ƒ /api/admin/ediel/route-readiness/export
+├ ƒ /api/admin/ediel/supplier-contacts/export
+├ ƒ /api/cron/analytics/daily
+├ ƒ /api/cron/analytics/monthly
+├ ƒ /api/cron/billing/invoice-export-retry
+├ ƒ /api/cron/billing/monthly
+├ ƒ /api/cron/data-quality/scan
+├ ƒ /api/cron/ediel/actor-readiness
+├ ƒ /api/cron/forecast/run
+├ ƒ /api/cron/pricing/spot-prices
+├ ƒ /api/cron/pricing/spot-settlement
+├ ƒ /api/cron/reconciliation/daily
+├ ƒ /api/cron/reconciliation/end-to-end
+├ ƒ /api/ediel/outbox/process
+├ ƒ /api/ediel/outbox/process-company
+├ ƒ /api/internal/billing/generate-underlay
+├ ƒ /api/internal/billing/period-locks
+├ ƒ /api/internal/customer-operations/cron
+├ ƒ /api/internal/ediel/inbound-request-automation
+├ ƒ /api/internal/email/outbox/process
+├ ƒ /api/internal/inbound-mail/cron
+├ ƒ /api/internal/invoice-exports/[id]
+├ ƒ /api/internal/invoice-exports/[id]/retry
+├ ƒ /api/internal/invoice-exports/[id]/send
+├ ƒ /api/internal/invoice-exports/create
+├ ƒ /api/internal/invoices/[id]/credit
+├ ƒ /api/internal/invoices/[id]/dispute
+├ ƒ /api/internal/invoices/[id]/provider-status
+├ ƒ /api/internal/invoices/[id]/purchase
+├ ƒ /api/internal/manual-email/outbox/process
+├ ƒ /api/internal/manual-inbound/cron
+├ ƒ /api/internal/platform/grid-areas/import/cron
+├ ƒ /api/internal/pricing/lock-preview
+├ ƒ /api/internal/pricing/preview
+├ ƒ /api/internal/pricing/reprice
+├ ƒ /api/internal/spot/import-month
+├ ƒ /api/internal/spot/lock-month
+├ ƒ /api/internal/system/health
+├ ƒ /api/internal/webhooks/dispatch
+├ ƒ /api/internal/z01-repair
+├ ƒ /api/platform/energy/import/grid-areas
+├ ƒ /api/platform/energy/import/spot-prices
+├ ƒ /api/platform/energy/import/svk-geometries
+├ ƒ /api/platform/energy/resolve
+├ ƒ /api/public/energy-area
+├ ƒ /api/v1/contracts
+├ ƒ /api/v1/customer-portal/sync
+├ ƒ /api/v1/customer/contracts
+├ ƒ /api/v1/customer/documents
+├ ƒ /api/v1/customer/events
+├ ƒ /api/v1/customer/invoices
+├ ƒ /api/v1/customer/invoices/[id]
+├ ƒ /api/v1/customer/legal-acceptances
+├ ƒ /api/v1/customer/me
+├ ƒ /api/v1/customer/metering-values
+├ ƒ /api/v1/customer/move-out
+├ ƒ /api/v1/customer/notifications
+├ ƒ /api/v1/customer/notifications/read
+├ ƒ /api/v1/customer/portal-bundle
+├ ƒ /api/v1/customer/powers-of-attorney
+├ ƒ /api/v1/customer/profile-update
+├ ƒ /api/v1/customer/sites
+├ ƒ /api/v1/customer/sync
+├ ƒ /api/v1/events
+├ ƒ /api/v1/integration/context
+├ ƒ /api/v1/openapi/customer-portal-v1.json
+├ ƒ /api/v1/openapi/release-manifest.json
+├ ƒ /api/v1/openapi/website-integration-v1.json
+├ ƒ /api/v1/public-contracts
+├ ƒ /api/v1/public-contracts/diagnostics
+├ ƒ /api/v1/website/customer-applications
+├ ƒ /api/v1/website/customer-applications/[applicationId]
+├ ƒ /api/v1/website/customer-events
+├ ƒ /api/v1/website/energy-area/resolve
+├ ƒ /api/v1/website/legal-bundle
+├ ƒ /api/v1/website/market-price/current
+├ ƒ /api/v1/website/portfolio-prices
+├ ƒ /api/v1/website/public-contracts
+├ ƒ /api/v1/website/public-contracts/diagnostics
+├ ƒ /api/v1/website/quote
+├ ƒ /api/v1/website/quote/validate
+├ ƒ /api/v1/website/switch-status
+├ ƒ /api/webhooks/billing/[provider]
+├ ƒ /api/webhooks/manual-inbound
+├ ƒ /api/webhooks/resend
+├ ƒ /auth/action
+├ ƒ /auth/callback
+├ ƒ /auth/company-invite
+├ ƒ /auth/confirm
+├ ƒ /dashboard
+├ ○ /developers                                                       1h      1y
+├ ○ /developers/customer-portal-api                                   1h      1y
+├ ƒ /legal/[slug]/[type]/[versionId]
+├ ƒ /login
+├ ƒ /login/forgot-password
+├ ƒ /login/update-password
+├ ƒ /logout
+├ ƒ /portal
+├ ƒ /portal/anlaggningar
+├ ƒ /portal/arenden
+├ ƒ /portal/avtal
+├ ƒ /portal/fakturor
+├ ƒ /portal/fakturor/[id]
+├ ƒ /portal/forbrukning
+├ ƒ /portal/komplettera
+├ ƒ /portal/koppla-kund
+├ ƒ /portal/status
+└ ƒ /teckna-avtal
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -78,16 +78,31 @@ export function resolveManualMailboxEnvironment(): 'test' | 'production' {
   return String(process.env.NODE_ENV ?? '').toLowerCase() === 'production' ? 'production' : 'test'
 }
 
-// The Ediel transport sender must never be used for manual e-mail.
-export function isEdielReservedSender(email: string | null | undefined): boolean {
+// The Ediel transport sender must never be used for manual e-mail. Reserved
+// addresses come from verified server configuration, never from a tenant name
+// or a hard-coded production mailbox.
+export async function isEdielReservedSender(email: string | null | undefined): Promise<boolean> {
   const candidate = clean(email)?.toLowerCase()
   if (!candidate) return false
-  const reserved = new Set(
-    [process.env.EDIEL_SMTP_FROM, process.env.EDIEL_SMTP_REPLY_TO, 'ediel@gridex.se']
+
+  const configured = new Set(
+    [process.env.EDIEL_SMTP_FROM, process.env.EDIEL_SMTP_REPLY_TO]
       .map((value) => clean(value)?.toLowerCase())
       .filter((value): value is string => Boolean(value)),
   )
-  return reserved.has(candidate)
+  if (configured.has(candidate)) return true
+
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .select('email_address')
+    .eq('is_active', true)
+    .ilike('email_address', candidate)
+    .limit(1)
+  if (error) {
+    if (missingSchema(error)) return false
+    throw error
+  }
+  return (data ?? []).length > 0
 }
 
 function toMailbox(row: JsonRecord): ManualOperationsMailbox | null {
@@ -156,13 +171,16 @@ export async function resolveManualOperationsMailbox(input: {
     throw error
   }
 
-  const candidates = ((data ?? []) as JsonRecord[])
+  const mappedCandidates = ((data ?? []) as JsonRecord[])
     .map(toMailbox)
     .filter((mailbox): mailbox is ManualOperationsMailbox => Boolean(mailbox))
     .filter((mailbox) => mailbox.isVerified && mailbox.environment === environment)
     .filter((mailbox) => mailbox.mailboxType === preferredType || mailbox.mailboxType === 'general_manual_operations')
-    // Never use the reserved Ediel sender as a manual mailbox.
-    .filter((mailbox) => !isEdielReservedSender(mailbox.fromEmail))
+
+  const reservedChecks = await Promise.all(
+    mappedCandidates.map(async (mailbox) => ({ mailbox, reserved: await isEdielReservedSender(mailbox.fromEmail) })),
+  )
+  const candidates = reservedChecks.filter((entry) => !entry.reserved).map((entry) => entry.mailbox)
 
   if (candidates.length === 0) return null
 

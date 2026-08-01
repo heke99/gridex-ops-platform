@@ -154,7 +154,7 @@ ok(!/\bdrop table\b/i.test(mailboxMigration) && !/\bdelete from\b/i.test(mailbox
 // 17) Resolver: tenant override -> platform default by purpose; Ediel sender is reserved.
 const mailboxResolver = read('lib/email/manualOperationsMailbox.ts')
 ok(mailboxResolver.includes('resolveManualOperationsMailbox') && mailboxResolver.includes('CHANNEL_TO_MAILBOX_TYPE'), 'resolver maps channel -> manual mailbox purpose')
-ok(mailboxResolver.includes('isEdielReservedSender') && mailboxResolver.includes('ediel@gridex.se'), 'resolver treats ediel@gridex.se as a reserved (non-manual) sender')
+ok(mailboxResolver.includes('isEdielReservedSender') && mailboxResolver.includes(".from('ediel_mailboxes')"), 'resolver loads reserved Ediel senders from server configuration')
 ok(mailboxResolver.includes('manual_communication_mailboxes'), 'resolver reads manual_communication_mailboxes (not ediel_mailboxes, not grid_owner_contact_channels)')
 
 // 18) Outbound: orchestrator sends FROM the manual mailbox, never ediel@; blocks distinctly when missing.

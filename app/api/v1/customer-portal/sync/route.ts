@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
     const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
     if (identityFactors < 2) {
       const identity = await upsertIdentity({
-        companyId: auth.client.company_id,
+        companyId: auth.context.companyId,
         customerId: null,
         externalCustomerId,
         externalAccountId,
@@ -282,14 +282,14 @@ export async function POST(request: NextRequest) {
       return customerPortalJson({ data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } })
     }
 
-    const candidates = await loadCandidates(auth.client.company_id, {
+    const candidates = await loadCandidates(auth.context.companyId, {
       email,
       customer_number: customerNumber,
       facility_id: facilityId,
       identifier,
     })
 
-    const facilityMatches = facilityId ? await facilityCustomerIds(auth.client.company_id, facilityId) : new Set<string>()
+    const facilityMatches = facilityId ? await facilityCustomerIds(auth.context.companyId, facilityId) : new Set<string>()
 
     let best: { customer: CustomerCandidate; flags: Record<string, boolean>; isStrong: boolean } | null = null
     for (const customer of candidates) {
@@ -311,7 +311,7 @@ export async function POST(request: NextRequest) {
 
     if (best?.isStrong) {
       const identity = await upsertIdentity({
-        companyId: auth.client.company_id,
+        companyId: auth.context.companyId,
         customerId: best.customer.id,
         externalCustomerId,
         externalAccountId,
@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
     }
 
     const identity = await upsertIdentity({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       customerId: best?.customer.id ?? null,
       externalCustomerId,
       externalAccountId,

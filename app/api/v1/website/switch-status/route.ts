@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const [status, tenant] = await Promise.all([
-      loadWebsiteSwitchStatus({ companyId: auth.client.company_id, applicationNumber }),
+      loadWebsiteSwitchStatus({ companyId: auth.context.companyId, applicationNumber }),
       loadExternalTenantContext(auth.client),
     ])
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId, application_number: applicationNumber } })

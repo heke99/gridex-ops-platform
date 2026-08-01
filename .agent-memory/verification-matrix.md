@@ -105,3 +105,13 @@
 | VM-101 | Full project dependency gates | BLOCKED | npm registry DNS unavailable; full TS/Vitest/lint/build not rerun |
 | VM-102 | Migration history | BLOCKED | inherited `20260730220000...` manifest/file mismatch; trusted checksum preserved |
 | VM-103 | Database/staging Public Contracts parity | BLOCKED | no authorized DB, deployment, API key or tenant fixture |
+| VM-100 | Trusted TenantContext and API propagation | STATIC VERIFIED | v1 authenticated routes use `auth.context.companyId`; no direct `auth.client.company_id` bypass |
+| VM-101 | Canonical onboarding context | STATIC VERIFIED | admin, website, external contract and Ediel adapters pass explicit context; mismatch unit coverage added |
+| VM-102 | Provider webhook tenant resolution | STATIC VERIFIED | client tenant hints absent; exactly one persisted provider invoice target required |
+| VM-103 | Tenant-neutral number/legal aliases | STATIC VERIFIED | runtime uses canonical aliases; number fallback formats removed |
+| VM-104 | Multi-tenant migration semantic gate | VERIFIED | capabilities, candidate keys, not-null guards and composite tenant FKs present; SHA-256 registered |
+| VM-105 | All-tenant remediation scripts | STATIC VERIFIED | preflight, dry-run, safe apply, audit and post-verification present |
+| VM-106 | Full Node verification | BLOCKED | dependency registry 404 prevents install/typecheck/tests/lint/build |
+| VM-107 | Migration integrity | FAIL/BLOCKED | inherited checksum drift plus one missing manifest entry |
+| VM-108 | Database/RLS/backfill/three-tenant E2E | NOT RUN | no authorized database or staging environment |
+| VM-109 | Cross-repository platform parity | NOT RUN | external repositories not supplied |

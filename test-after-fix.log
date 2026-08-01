@@ -1,0 +1,472 @@
+
+> gridex-ops-platform@0.1.0 test
+> vitest run --reporter=verbose
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/Users/hekmath/Projects/gridex-ops-platform[39m
+
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mgenerates canonical public price text[32m 16[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mkeeps hidden fees in pricing but excludes them from website price text[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mblocks fixed contracts without fixed price[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mblocks mix weights that do not total 100[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mblocks negative fees[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mrequires a discount period[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mnormalizes price areas[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22muses one fixed price per kWh across all selected price areas[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mpreserves different fixed prices as canonical rows for each price area[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mmodels percentage discounts as a negative percentage campaign component[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mincludes lifecycle-correct optional charges in the public price text[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mlocks mixed contracts to monthly spot average plus monthly portfolio price[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22msupports a percentage portfolio management fee with an explicit base[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mkeeps settlement values out of the offer snapshot and rejects negative fees[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mrequires a canonical portfolio and rejects percentage values above 100[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-versioning.test.ts[2m > [22mcontract pricing versioning snapshot[2m > [22mrejects hourly or quarterly spot legs in mixed contracts[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/integration-ip-policy.test.ts[2m > [22mintegration API IP policy[2m > [22msupports exact IPv4 and CIDR[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/integration-ip-policy.test.ts[2m > [22mintegration API IP policy[2m > [22msupports IPv6 CIDR and mapped IPv4[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/integration-ip-policy.test.ts[2m > [22mintegration API IP policy[2m > [22mtrusts proxy headers only on Vercel or explicit opt-in[32m 13[2mms[22m[39m
+ [32m✓[39m __tests__/integration-ip-policy.test.ts[2m > [22mintegration API IP policy[2m > [22mfails closed for invalid rules and missing addresses[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-api-contract.test.ts[2m > [22mmarket-price public API contract[2m > [22mkeeps runtime, registry and OpenAPI on version 2026-08-01.1[32m 2[2mms[22m[39m
+ [31m×[39m __tests__/market-price-api-contract.test.ts[2m > [22mmarket-price public API contract[2m > [22mdocuments the current market-price endpoint only in website OpenAPI[32m 5[2mms[22m[39m
+[31m   → expected '2026-07-30.3' to be '2026-08-01.1' // Object.is equality[39m
+ [32m✓[39m __tests__/market-price-api-contract.test.ts[2m > [22mmarket-price public API contract[2m > [22mrequires direct numeric price and evidence fields in MarketReference[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-api-contract.test.ts[2m > [22mmarket-price public API contract[2m > [22msurfaces market-price readiness in system health[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-api-contract.test.ts[2m > [22mmarket-price public API contract[2m > [22mruns spot cron hourly and imports previous/current Stockholm days[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/spot-interval-coverage.test.ts[2m > [22mspot interval day coverage[2m > [22maccepts a normal 96 interval quarter-hour day[32m 21[2mms[22m[39m
+ [32m✓[39m __tests__/spot-interval-coverage.test.ts[2m > [22mspot interval day coverage[2m > [22maccepts 92 intervals on the spring DST day[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/spot-interval-coverage.test.ts[2m > [22mspot interval day coverage[2m > [22maccepts 100 intervals on the autumn DST day[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/spot-interval-coverage.test.ts[2m > [22mspot interval day coverage[2m > [22mrejects gaps, overlaps and duplicates[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22mcreates new contracts as drafts with one derived status source[32m 22[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22mrejects direct publication or archival through the editable form[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22muses type-specific canonical weights for portfolio, mixed and fixed[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22mrequires a positive discount period whenever a discount is entered[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22msupports explicit power-of-attorney mode without hidden truthy defaults[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22mparses structured optional fees without dropping visibility, VAT or order[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-admin-schema.test.ts[2m > [22madmin contract canonical form[2m > [22mblocks contradictory or invalid commercial values before RPC[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-commercial-selection.test.ts[2m > [22mcanonical commercial selection[2m > [22mkeeps 12/24/36 month options and selects the exact SE row[32m 7[2mms[22m[39m
+ [32m✓[39m __tests__/contract-commercial-selection.test.ts[2m > [22mcanonical commercial selection[2m > [22mnever treats array position as a choice[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-commercial-selection.test.ts[2m > [22mcanonical commercial selection[2m > [22mincludes paper fee only for paper invoice[32m 6[2mms[22m[39m
+ [32m✓[39m __tests__/contract-commercial-selection.test.ts[2m > [22mcanonical commercial selection[2m > [22maccepts a published customer option and rejects an admin-only client choice[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-commercial-selection.test.ts[2m > [22mcanonical commercial selection[2m > [22muses the same component calculator for the resolved invoice rows[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/contract-commercial-selection.test.ts[2m > [22mcanonical commercial selection[2m > [22mdoes not charge once-per-contract components after the first period[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/agreement-pdf.test.ts[2m > [22magreement PDF[2m > [22mcreates a valid deterministic PDF envelope with the frozen agreement content[32m 22[2mms[22m[39m
+ [32m✓[39m __tests__/agreement-pdf.test.ts[2m > [22magreement PDF[2m > [22mreturns a durable base64 email attachment[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-legal-profile-structured.test.ts[2m > [22mstructured tenant legal profile[2m > [22mbuilds a structured postal address with a stable display text[32m 14[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-legal-profile-structured.test.ts[2m > [22mstructured tenant legal profile[2m > [22mkeeps contact name separate from the actual communication channel[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-legal-profile-structured.test.ts[2m > [22mstructured tenant legal profile[2m > [22mbuilds structured billing and dispute information[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-legal-profile-structured.test.ts[2m > [22mstructured tenant legal profile[2m > [22mnormalizes and validates Swedish legal identifiers[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-legal-profile-structured.test.ts[2m > [22mstructured tenant legal profile[2m > [22mrejects malformed contact values[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mremoves the unsafe BEFORE trigger and inserts the parent before children[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mkeeps publication non-visible until finalization succeeds[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22muses supported fixed-price areas instead of always requiring SE1-SE4[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mblocks invalid or duplicated declared price areas[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mkeeps exposure diagnostics aligned with publication selection and area rules[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mseparates strict exposure from broad LEFT JOIN diagnostics[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mprovides idempotent preview/apply functions and ETag invalidation[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mblocks publication when invoice fee configuration is not canonical[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mreports missing publication versions and isolates unsafe backfill candidates[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mis self-contained for a partially applied historical migration[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mpreserves commercial locks and only allows relation-policy completion[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mrepairs locked derived snapshots without permitting commercial changes[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mrefuses ambiguous prior publication price sources[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mrequires the publication snapshot to point at the exact source offer[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mcopies missing area relations only from an identical stable template[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mrestores every missing template option without moving snapshot rows[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mshows canonical website and API channel states and blockers in admin[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mpublishes canonical and deprecated API routes with separate diagnostic scope[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mreturns explicit tenant and schema error classifications[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-publication-graph-repair.test.ts[2m > [22mpublic contract publication graph repair[2m > [22mpublishes canonical top-level price_options without internal IDs[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/elpriset-just-nu-client.test.ts[2m > [22mElpriset just nu client[2m > [22mbuilds the canonical SE1-SE4 URL format[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/elpriset-just-nu-client.test.ts[2m > [22mElpriset just nu client[2m > [22mretries 429 using Retry-After and then succeeds[32m 19[2mms[22m[39m
+ [32m✓[39m __tests__/elpriset-just-nu-client.test.ts[2m > [22mElpriset just nu client[2m > [22mretries 5xx but not a not-published 404[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/elpriset-just-nu-client.test.ts[2m > [22mElpriset just nu client[2m > [22mrejects invalid JSON schema and interval length[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22mexposes canonical price options only at the contract top level[32m 13[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22malways returns hidden fees to the tenant calculation contract[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22malways exposes and displays fixed price for fixed agreements[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22mexposes historical final settlements without presenting them as a future contract price[32m 8[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22mpreserves legacy visibility while still returning the fee for calculation[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22mnever exposes internal market-source or database metadata[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-website-visibility.test.ts[2m > [22mpublic contract calculation and website visibility[2m > [22mkeeps explicitly summary-hidden components in calculation only[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-canonical-gate.test.ts[2m > [22mcanonical billing gate[2m > [22mallows only complete, current and business-covered lineage[32m 19[2mms[22m[39m
+ [32m✓[39m __tests__/billing-canonical-gate.test.ts[2m > [22mcanonical billing gate[2m > [22mblocks Z04C-like missing supply and incomplete Ediel lineage[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22midentity normalization[2m > [22mnormalizes personal/org numbers to digits only[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22midentity normalization[2m > [22mnormalizes emails to trimmed lowercase[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22midentity normalization[2m > [22mnormalizes Swedish phone numbers to E.164[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mrequires a tenant (companyId)[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mmatches a private customer on normalized personal number[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mmatches a company customer on normalized org number[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mnever auto-matches on email alone (weak signal)[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mflags ambiguity (needs review) when a strong signal hits multiple customers[32m 11[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mnever auto-matches on phone alone (weak signal)[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/matching-service.test.ts[2m > [22mmatchCustomerIdentity[2m > [22mnever matches across tenants[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-envelope.test.ts[2m > [22mEdifactEnvelopeCodec[2m > [22mroundtrips application reference and test indicator in canonical UNB positions[32m 21[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-envelope.test.ts[2m > [22mEdifactEnvelopeCodec[2m > [22momits the production test indicator instead of writing zero[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-envelope.test.ts[2m > [22mEdifactEnvelopeCodec[2m > [22mrejects nested envelope segments from business builders[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mpublishes one version and a release-manifest operation[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mhashes the exact pretty-printed bytes served by the OpenAPI routes[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mpublishes document-bound legal acceptance and paired portal identity[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mpublishes closed quote, portfolio, event and portal sync envelopes[32m 0[2mms[22m[39m
+ [31m×[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mkeeps the portal contract signature evidence aligned with OpenAPI[32m 5[2mms[22m[39m
+[31m   → expected { type: [ 'string', 'null' ], …(1) } to deeply equal { type: [ 'string', 'null' ] }[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mnormalizes legacy route failures into one canonical error envelope[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mprojects webhook events without raw tenant or database identifiers[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/api-canonical-release.test.ts[2m > [22mcanonical customer events[2m > [22maccepts the documented event shape and rejects the legacy free-form shape[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/production-settlement.test.ts[2m > [22mproduction settlement[2m > [22mlocks production compensation and settlement mode in the contract snapshot[32m 17[2mms[22m[39m
+ [32m✓[39m __tests__/production-settlement.test.ts[2m > [22mproduction settlement[2m > [22mcreates a negative credit line from positive production quantity[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/production-settlement.test.ts[2m > [22mproduction settlement[2m > [22msupports self-billing with an explicit VAT rate[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/production-settlement.test.ts[2m > [22mproduction settlement[2m > [22mblocks production when no compensation is configured[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mis billable when all fourteen criteria are satisfied[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with contract_missing[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with contract_not_approved[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with invoice_issuer_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with delivery_not_started[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with contract_site_mismatch[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with metering_point_required[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with price_snapshot_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with price_area_missing[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with meter_values_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with estimated_values_not_allowed[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with invoice_recipient_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with invoice_distribution_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with vat_settings_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with payment_terms_missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks with billing_blocked[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks tenant mismatches on contract, site and metering point[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mreads VAT from the locked price snapshot when the column is null[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mwarns (not blocks) when payment terms use the documented provider default[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mwarns when no payment provider connection is configured[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks when the provider connection exists but is not usable[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mrequires the complete data-backed billing profile when the month gate supplies it[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22maccepts a complete invoice profile and provider environment[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mmerges structured contract blocker reasons and external blockers[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mnever treats a merely signed contract as billable[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks a billing period before supply start[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mblocks a billing period after supply end[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mallows a partial first month when the actual supply period overlaps[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateBillingReadinessCore[2m > [22mis idempotent: evaluating twice yields identical blockers and no duplicates[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateContractBillingAccountReadiness[2m > [22maccepts billing_address_same_as_site as a distribution channel[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateContractBillingAccountReadiness[2m > [22mfalls back to canonical customer data for recipient and distribution[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/billing-readiness.test.ts[2m > [22mevaluateContractBillingAccountReadiness[2m > [22mblocks a contract without recipient, distribution and VAT[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mconverts an öre/kWh markup to SEK and applies 25 % VAT[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mcharges a monthly fee exactly once per billing period by default[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mprorates a monthly fee only when the component explicitly opts in[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mcharges an invoice fee once[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mcalculates a hidden canonical invoice fee and preserves zero[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mapplies a per-kWh discount as a negative line with negative VAT[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mapplies a fixed discount as a negative amount even when configured positive[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mcomputes percent_of_spot from the spot base amount[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mblocks percent_of_spot with an explicit error when no spot base exists[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mskips VAT for components marked not VAT applicable[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mrequires kWh for per-kWh components and reports an error otherwise[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mreports unknown calculation types as warnings without producing a line[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mcalculatePriceComponents[2m > [22mstamps provenance metadata on every line[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mpercentage calculation bases[2m > [22mcalculates a portfolio fee from only the portfolio base[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mpercentage calculation bases[2m > [22mblocks a portfolio percentage when its exact base is missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-components.test.ts[2m > [22mpercentage calculation bases[2m > [22muses the running invoice subtotal for percentage discounts[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mcomputePayloadHash[2m > [22mis deterministic for identical payloads[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mcomputePayloadHash[2m > [22mdiffers for different payloads[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mcomputePayloadHash[2m > [22mtreats null and undefined payloads identically[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mgetOrCreateCustomerApplicationIntake[2m > [22mcreates a new intake on first call[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mgetOrCreateCustomerApplicationIntake[2m > [22mreturns the existing intake on replay with the same payload (no duplicate)[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mgetOrCreateCustomerApplicationIntake[2m > [22mrejects reuse of the same idempotency key with a different payload[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mgetOrCreateCustomerApplicationIntake[2m > [22mscopes idempotency to the tenant: same key in another tenant creates a new intake[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/idempotency.test.ts[2m > [22mgetOrCreateCustomerApplicationIntake[2m > [22mtreats different idempotency keys as separate intakes[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mis ready when POA is signed and the metering point is complete[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags power_of_attorney_missing[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags power_of_attorney_not_signed[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags an expired POA as not valid[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags metering_point_missing when the site has no metering points[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags meter_point_id_missing when the point lacks id and verified Ediel reference[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags grid owner / grid area / price area gaps[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mevaluateSiteSwitchReadiness (pure)[2m > [22mflags missing current supplier and move-in date as normal-priority issues[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mis ready and produces a versioned readiness snapshot when all systems pass[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mblocks when the site belongs to another tenant[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mblocks a duplicate switch when an open supplier switch already exists[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mallows re-validation of an existing switch without flagging itself as duplicate[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mblocks when the grid owner is not verified for supplier switches[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mpropagates EDIEL route blockers[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mblocks with authorization_scope_missing when the canonical scope chain does not cover the switch[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mskips the scope check (POA blocker already present) when no POA exists[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mfails closed when the authorization scope schema is missing[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/switch-readiness.test.ts[2m > [22mcheckSupplierSwitchReadiness (unified gate)[2m > [22mmerges scheduler blockers when re-validating a scheduled switch[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mreports complete when a single value covers the whole month[32m 5[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mblocks when a metering point has no values at all[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mblocks on coverage gaps[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mblocks on overlapping (duplicate) values that would double-bill[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mblocks estimated values for final invoicing by default[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mdowngrades estimated values to warnings when the company policy allows it[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mwarns when the value sum deviates from the underlay total[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mreturns no_data without issues when there are no metering points to validate[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mdegrades to a warning (not silent pass) when the table is missing[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/metering-validation.test.ts[2m > [22mevaluateMeteringCompletenessForMonth[2m > [22mrejects malformed billing months[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/offer-quote-invoice-fee.test.ts[2m > [22mwebsite quote invoice fee[2m > [22mincludes a hidden invoice fee in quote lines[32m 10[2mms[22m[39m
+ [32m✓[39m __tests__/offer-quote-invoice-fee.test.ts[2m > [22mwebsite quote invoice fee[2m > [22mpreserves a published zero invoice fee[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/offer-quote-invoice-fee.test.ts[2m > [22mwebsite quote invoice fee[2m > [22mrejects missing, conflicting and ambiguous invoice fees[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/offer-quote-invoice-fee.test.ts[2m > [22mwebsite quote invoice fee[2m > [22mrequires a valid start date and customer type[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-route-openapi-regression.test.ts[2m > [22mreal public contracts route against published OpenAPI[2m > [22mvalidates the actual route response and headers against the actual OpenAPI route[32m 12[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/inbound-mail/cron?envir…' resolves to an authenticated route[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/inbound-mail/cron?envir…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/ediel/outbox/process' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/email/outbox/process' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/manual-email/outbox/pro…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/manual-inbound/cron?env…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/manual-inbound/cron?env…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/pricing/spot-prices' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/pricing/spot-settlement' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/ediel/actor-readiness?mode=…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/webhooks/dispatch' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/customer-operations/cron' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/system/health' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/internal/platform/grid-areas/imp…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/billing/monthly?send_to_par…' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/billing/invoice-export-retry' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/analytics/daily' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/analytics/monthly' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/forecast/run' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/data-quality/scan' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/reconciliation/daily' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/vercel-cron-routes.test.ts[2m > [22mVercel cron route integrity[2m > [22m'/api/cron/reconciliation/end-to-end' resolves to an authenticated route[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mreserveCustomerNumber[2m > [22mreserves atomically through the canonical RPC[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mreserveCustomerNumber[2m > [22mthrows a migration hint when the generator is missing[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mensureCustomerNumber[2m > [22mreturns the existing number without reserving a new one[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mensureCustomerNumber[2m > [22massigns the reserved number when the row had none[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mensureCustomerNumber[2m > [22mreturns the persisted number when a concurrent writer or the DB trigger won the race[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mensureCustomerNumberIfSupported[2m > [22mfails closed when the generator migration is missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mensureCustomerNumberIfSupported[2m > [22mpropagates real errors[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/customer-numbers.test.ts[2m > [22mensureCustomerNumberIfSupported[2m > [22massigns through the canonical generator on migrated databases[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies 400/422 as rejected with no retry[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies 401/403 as configuration errors[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies 404 as a configuration error (wrong endpoint)[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies 409 as needs_review (conflict resolved via idempotency lookup)[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies 429 and 408 as retryable[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies 5xx as retryable server errors[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies timeout and network failures as retryable[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies missing connection configuration as configuration_error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies token endpoint failures by status[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mclassifies generic network errors as retryable and everything else as terminal failed[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mclassifyInvoiceExportError[2m > [22mpreserves the provider response excerpt for auditing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mcomputeNextRetryAt (exponential backoff)[2m > [22mdoubles the delay per attempt: 15m, 30m, 1h, 2h...[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mcomputeNextRetryAt (exponential backoff)[2m > [22mcaps the delay at 24 hours[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/export-classification.test.ts[2m > [22mcomputeNextRetryAt (exponential backoff)[2m > [22mhas a bounded number of attempts configured[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mcalls the single transactional RPC and accepts a verified permanent number[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mreturns ambiguity as a blocking domain result, never as a selected customer[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mfails closed when the RPC response lacks a persisted customer number[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mmaps a missing migration to a structured correlated error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mdoes not mislabel a missing dependency inside an existing RPC[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mrejects a command that tries to cross the authenticated tenant boundary[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mrecords an explicit manual resolution through the service-only RPC[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-onboarding.test.ts[2m > [22mcanonical customer onboarding client[2m > [22mgenerates stable idempotency keys from the same identity input[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-channel-publication-completion.test.ts[2m > [22mcanonical contract channel completion[2m > [22mfails closed when a mandatory permission column is absent[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/contract-channel-publication-completion.test.ts[2m > [22mcanonical contract channel completion[2m > [22mkeeps internal, website and API availability independent[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-channel-publication-completion.test.ts[2m > [22mcanonical contract channel completion[2m > [22mmaps an API publication to a strict public DTO without internal IDs[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/contract-channel-publication-completion.test.ts[2m > [22mcanonical contract channel completion[2m > [22mkeeps runtime, ETag metadata and OpenAPI on schema 2026-08-01.1[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract price options[2m > [22mmakes is_default canonical and emits an identical deprecated alias[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract price options[2m > [22mtemporarily accepts default-only snapshots but emits is_default[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract price options[2m > [22mblocks a mismatch between default and is_default[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract price options[2m > [22mkeeps a variable contract valid with area_prices: [][32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract price options[2m > [22mblocks unknown canonical enums instead of rewriting them silently[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract price options[2m > [22mrequires exactly one default option[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract legal snapshot[2m > [22memits the locked bundle id on legal and every module[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract legal snapshot[2m > [22mblocks a module from another bundle version[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract legal snapshot[2m > [22mblocks duplicate module keys[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract legal snapshot[2m > [22mblocks missing bundle version for a new publication[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract legal snapshot[2m > [22mserializes an explicitly approved historical null without omitting it[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-canonical-model.test.ts[2m > [22mcanonical public contract legal snapshot[2m > [22mdoes not accept a mutable legal snapshot[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-snapshot.test.ts[2m > [22mcanonical contract price snapshot[2m > [22mfreezes a 60/40 portfolio/spot mix and calculates it correctly[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-snapshot.test.ts[2m > [22mcanonical contract price snapshot[2m > [22mblocks a mix that does not total 100 percent[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-snapshot.test.ts[2m > [22mcanonical contract price snapshot[2m > [22mrequires a fixed price for fixed and fixed-share contracts[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-pricing-snapshot.test.ts[2m > [22mcanonical contract price snapshot[2m > [22mcreates a tenant-independent canonical snapshot shape without database ids[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/authorization-scope-coverage.test.ts[2m > [22mverifyAuthorizationScopeCoverage[2m > [22mis covered when an active scope row covers the operation[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/authorization-scope-coverage.test.ts[2m > [22mverifyAuthorizationScopeCoverage[2m > [22mdoes not count scopes whose valid_to has passed[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/authorization-scope-coverage.test.ts[2m > [22mverifyAuthorizationScopeCoverage[2m > [22mheals the chain idempotently from a signed POA and re-checks[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/authorization-scope-coverage.test.ts[2m > [22mverifyAuthorizationScopeCoverage[2m > [22mreports uncovered without healing when no POA id is provided[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/authorization-scope-coverage.test.ts[2m > [22mverifyAuthorizationScopeCoverage[2m > [22mfails closed with schemaAvailable=false when the scopes table is missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/authorization-scope-coverage.test.ts[2m > [22mverifyAuthorizationScopeCoverage[2m > [22mpropagates real database errors instead of swallowing them[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/external-pricing-boundary.test.ts[2m > [22mcanonical external pricing and area boundary[2m > [22mkeeps quote and OPS area resolver as authenticated tenant endpoints[32m 9[2mms[22m[39m
+ [32m✓[39m __tests__/external-pricing-boundary.test.ts[2m > [22mcanonical external pricing and area boundary[2m > [22mkeeps the unauthenticated legacy postal resolver removed[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/external-pricing-boundary.test.ts[2m > [22mcanonical external pricing and area boundary[2m > [22mprovisions only the tenant-scoped quote and resolver permissions[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-fixed-area-flow.test.ts[2m > [22mcanonical fixed price by SE area[2m > [22mcreates one product snapshot with four area rows[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-fixed-area-flow.test.ts[2m > [22mcanonical fixed price by SE area[2m > [22mselects and freezes only the customer's verified area row[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-fixed-area-flow.test.ts[2m > [22mcanonical fixed price by SE area[2m > [22mkeeps global base components while excluding other SE rows[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-fixed-area-flow.test.ts[2m > [22mcanonical fixed price by SE area[2m > [22mreturns one public contract with area_pricing instead of four offers[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-fixed-area-flow.test.ts[2m > [22mcanonical fixed price by SE area[2m > [22mrejects a fixed contract when an enabled area has no price[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mprices a pure spot contract from the monthly spot value[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22muses the resolved spot value for price area SE1[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22muses the resolved spot value for price area SE2[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22muses the resolved spot value for price area SE3[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22muses the resolved spot value for price area SE4[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mprices a fixed contract from the component fixed price[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mprices a portfolio contract from the confirmed portfolio monthly price[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mweights a 50/50 spot and fixed mix correctly[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mfails (blocks) when a required spot price is missing for the period/area[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mfails (blocks) when a required portfolio price is missing for the period/area[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mfails when mix weights do not sum to 100 %[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mfails when metering quantity is missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-base-price.test.ts[2m > [22mcalculateBasePrice[2m > [22mfails when no base price component is configured[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-api-hardening.test.ts[2m > [22mpublic contract API query contract[2m > [22maccepts the documented website filters[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-api-hardening.test.ts[2m > [22mpublic contract API query contract[2m > [22mrejects unknown, duplicate and widening parameters[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-contract-api-hardening.test.ts[2m > [22mpublic contract API query contract[2m > [22mmatches only the exact tenant/channel ETag token[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-invoice-fee.test.ts[2m > [22mcanonical invoice fee[2m > [22mpreserves zero as an explicit fee[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-invoice-fee.test.ts[2m > [22mcanonical invoice fee[2m > [22mpreserves a positive fee[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-invoice-fee.test.ts[2m > [22mcanonical invoice fee[2m > [22mrequires an explicit value for publication[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-invoice-fee.test.ts[2m > [22mcanonical invoice fee[2m > [22mkeeps a hidden fee canonical and calculation-ready[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-invoice-fee.test.ts[2m > [22mcanonical invoice fee[2m > [22mdetects missing, conflict and ambiguous components[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/canonical-invoice-fee.test.ts[2m > [22mcanonical invoice fee[2m > [22mreplaces legacy invoice fee components with one canonical component[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22mselects a complete fresh 30-day preview[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22mrejects a partial fallback when tenant policy forbids it[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22mallows an explicitly configured partial fallback[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22muses tenant provider priority before a newer lower-priority provider[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22maccepts negative spot prices[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22mnever selects quarter-hour evidence for an hourly quote[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-preview-selection.test.ts[2m > [22mcanonical market preview selection[2m > [22mrequires quarter-hour evidence for a quarterly quote[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnit[2m > [22mnormalizes öre/kWh spellings[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnit[2m > [22mnormalizes SEK/kWh spellings[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnit[2m > [22mnormalizes monthly and invoice units[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnit[2m > [22mfalls back to calculationType and componentType for legacy rows[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnit[2m > [22mreturns unknown for unrecognized units[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnitForComponent[2m > [22mreinterprets legacy plain-SEK monthly fees as SEK per month[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mnormalizePricingUnitForComponent[2m > [22mreinterprets legacy plain-SEK invoice fees as SEK per invoice[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22msekPerKwhFromComponent[2m > [22mconverts öre/kWh to SEK/kWh (divide by 100)[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22msekPerKwhFromComponent[2m > [22mkeeps SEK/kWh unchanged[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mdisplay and calculation-type mapping[2m > [22mmaps normalized units to Swedish display units[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-units.test.ts[2m > [22mdisplay and calculation-type mapping[2m > [22mmaps units to calculation types[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-completion-contract.test.ts[2m > [22mcanonical UTILTS profile contract[2m > [22mresolves the active E5SE5A profile with phase and role metadata[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-completion-contract.test.ts[2m > [22mcanonical UTILTS profile contract[2m > [22mkeeps S06 fail-closed behind bilateral capability[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-completion-contract.test.ts[2m > [22mcanonical UTILTS profile contract[2m > [22mrejects unsupported versions and pre-effective business dates[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-completion-contract.test.ts[2m > [22mEdiel completion migration compatibility[2m > [22mcreates market_process_policies before updating it[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-context.test.ts[2m > [22mcanonical tenant context[2m > [22mnormalizes and freezes trusted context values[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-context.test.ts[2m > [22mcanonical tenant context[2m > [22mrejects a cross-tenant relation before domain work begins[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-context.test.ts[2m > [22mcanonical tenant context[2m > [22maccepts a matching compatibility claim and strips all tenant keys[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-context.test.ts[2m > [22mcanonical tenant context[2m > [22mnever lets a client select another tenant[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mprefers the explicit created_by value over the env var[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mfalls back to GRIDEX_AUTOMATION_USER_ID when created_by is missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mnormalizes env values with whitespace and uppercase[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mthrows the typed configuration error when env is missing[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mthrows the typed configuration error when env is not a UUID[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mmarks the error as a non-retryable configuration blocker with the exact admin action[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mresolveAutomationActorId[2m > [22mdoes not classify generic errors as configuration errors[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mmissing_automation_user blocker contract[2m > [22mexposes the required blocker fields via the canonical blocker registry[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mmissing_automation_user blocker contract[2m > [22mmakeMissingAutomationUserBlocker matches the registry entry[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/automation-config.test.ts[2m > [22mmissing_automation_user blocker contract[2m > [22mmissingAutomationUserJobResult carries retryable=false and the admin action[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns missing when no POA row exists[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns valid for a signed POA with evidence inside its validity window[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns signed for an accepted POA whose validity has not started yet[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns awaiting_signature for draft/sent rows[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mfails closed: accepted status without any acceptance evidence is awaiting_signature[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns expired when valid_to has passed, regardless of stored status[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns revoked for revoked status or revoked_at evidence[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mrevocation wins over expiry and validity[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mreturns replaced for replaced/superseded rows[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/poa-lifecycle-status.test.ts[2m > [22mderivePowerOfAttorneyLifecycleStatus[2m > [22mtreats runtime statuses active/accepted/completed with evidence as valid[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/public-application-response.test.ts[2m > [22mpublic website application DTO[2m > [22mkeeps opaque public resources and removes internal implementation IDs[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-preview.test.ts[2m > [22mfinalizePricingPreview[2m > [22mapplies the default 25 % VAT to base lines that carry no VAT yet and sums totals[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-preview.test.ts[2m > [22mfinalizePricingPreview[2m > [22mhandles negative discount lines so VAT stays consistent[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-preview.test.ts[2m > [22mfinalizePricingPreview[2m > [22mrounds totals to öre (2 decimals)[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-preview.test.ts[2m > [22mfinalizePricingPreview[2m > [22msorts lines by sortOrder[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/pricing-preview.test.ts[2m > [22mfinalizePricingPreview[2m > [22mmarks the preview failed when blocking errors exist[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mCONTRL/null uses the required acknowledgement chain[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mAPERAK/null uses the required acknowledgement chain[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mUTILTS_ERR/null uses the required acknowledgement chain[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mPRODAT/Z01 uses the required acknowledgement chain[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mPRODAT/Z04 uses the required acknowledgement chain[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mUTILTS/E66 uses the required acknowledgement chain[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-canonical-ack.test.ts[2m > [22mcanonical ACK matrix[2m > [22mkeeps Z02 as the Z01 business response and negative APERAK as failure response[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/legal-defaults-readiness-repair.test.ts[2m > [22mcanonical legal source readiness[2m > [22mtreats the 28 OPS master modules as effective without tenant copies[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/legal-defaults-readiness-repair.test.ts[2m > [22mcanonical legal source readiness[2m > [22mlets a tenant replacement override exactly one OPS module[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/legal-defaults-readiness-repair.test.ts[2m > [22mcanonical legal source readiness[2m > [22mreports only the actually missing effective module[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/legal-defaults-readiness-repair.test.ts[2m > [22mcanonical tenant mail registry[2m > [22mhonors disabled and inactive event rules at dispatch time[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/legal-defaults-readiness-repair.test.ts[2m > [22mcanonical tenant mail registry[2m > [22mkeeps labels, rules and templates aligned for all 13 events[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/quote-validation-api-contract.test.ts[2m > [22mwebsite quote validation contract[2m > [22mrejects unknown and legacy alias fields at runtime[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/quote-validation-api-contract.test.ts[2m > [22mwebsite quote validation contract[2m > [22mpublishes one closed canonical request schema[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mallows only an operationally active tenant[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mblocks onboarding tenants with a stable public error[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mblocks paused tenants with a stable public error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mblocks suspended tenants with a stable public error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mblocks closed tenants with a stable public error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mblocks archived tenants with a stable public error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mblocks pending_deletion tenants with a stable public error[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/tenant-api-lifecycle-gate.test.ts[2m > [22mcentral tenant API lifecycle gate[2m > [22mfails closed when tenant status cannot be classified[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-prodat-lifecycle.test.ts[2m > [22mPRODAT exact profiles and state machines[2m > [22mdoes not create a supply period for Z04C[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-prodat-lifecycle.test.ts[2m > [22mPRODAT exact profiles and state machines[2m > [22mcreates supply only for accepted Z04L[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-prodat-lifecycle.test.ts[2m > [22mPRODAT exact profiles and state machines[2m > [22mcreates supply only for accepted Z04LK[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-prodat-lifecycle.test.ts[2m > [22mPRODAT exact profiles and state machines[2m > [22mrequires explicit Z08H end date and closure reason[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/company-legal-profile-sync.test.ts[2m > [22mcompany legal profile sync result[2m > [22mmaps database field codes to Swedish guidance and the single editor[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/company-legal-profile-sync.test.ts[2m > [22mcompany legal profile sync result[2m > [22mnormalizes an RPC result and fills missing structured details[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/consumption-correction-settlement.test.ts[2m > [22mnegative consumption correction settlement[2m > [22mreverses energy price and VAT into a credit line[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/consumption-correction-settlement.test.ts[2m > [22mnegative consumption correction settlement[2m > [22mkeeps variable energy components but excludes fixed invoice charges[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/portal-supplier-switch-status.test.ts[2m > [22mportal supplier switch status[2m > [22mseparates request creation from dispatch readiness[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/portal-supplier-switch-status.test.ts[2m > [22mportal supplier switch status[2m > [22mkeeps the deprecated alias equal to dispatch readiness[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/invoice-public-resource.test.ts[2m > [22mcustomer invoice public resource[2m > [22mnever treats export items or pricing runs as customer invoices[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-source-selection.test.ts[2m > [22mmarket price source selection[2m > [22muses tenant priority rather than a provider name[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-source-selection.test.ts[2m > [22mmarket price source selection[2m > [22mprefers locked evidence within the same source priority[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-source-selection.test.ts[2m > [22mmarket price source selection[2m > [22mrejects stale unlocked evidence but keeps locked final evidence[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/market-price-source-selection.test.ts[2m > [22mmarket price source selection[2m > [22mrejects providers that do not support the requested resolution[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/atomic-supply-activation.test.ts[2m > [22matomic customer supply activation[2m > [22mmoves every committed lifecycle write into one idempotent RPC[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/atomic-supply-activation.test.ts[2m > [22matomic customer supply activation[2m > [22muses the RPC instead of sequential completion writes in the inbound state machine[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/atomic-supply-activation.test.ts[2m > [22matomic customer supply activation[2m > [22mkeeps ready billing configuration snapshots immutable[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/energy-resolution-capabilities.test.ts[2m > [22mgranular energy resolution readiness[2m > [22mallows SE3 pricing and quote while switch dispatch is not ready[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/energy-resolution-capabilities.test.ts[2m > [22mgranular energy resolution readiness[2m > [22mdoes not describe a postal suggestion as pricing or switch ready[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/energy-resolution-capabilities.test.ts[2m > [22mgranular energy resolution readiness[2m > [22mblocks expired resolutions independently for pricing and quote[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/externalCustomerType.test.ts[2m > [22mnormalizeExternalCustomerType[2m > [22maccepts canonical values[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/externalCustomerType.test.ts[2m > [22mnormalizeExternalCustomerType[2m > [22mnormalizes the temporary company alias[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/externalCustomerType.test.ts[2m > [22mnormalizeExternalCustomerType[2m > [22mrejects unknown values[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-lifecycle-errors.test.ts[2m > [22mcontract lifecycle errors[2m > [22mprioritizes domain reason codes[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-lifecycle-errors.test.ts[2m > [22mcontract lifecycle errors[2m > [22mmaps the production FK failure to a safe repair message[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-lifecycle-errors.test.ts[2m > [22mcontract lifecycle errors[2m > [22mmaps explicit database reason before generic SQLSTATE[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-utilts-profiles.test.ts[2m > [22mUTILTS canonical profile coverage[2m > [22mcovers every production scope code[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/ediel-utilts-profiles.test.ts[2m > [22mUTILTS canonical profile coverage[2m > [22mrequires transactional validation for every non-error profile[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/contract-slug.test.ts[2m > [22mslugifyContract[2m > [22mtransliterates Swedish contract names[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/contract-slug.test.ts[2m > [22mslugifyContract[2m > [22mnormalizes separators without making slug an identity[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/spot-settlement-separation.test.ts[2m > [22mpreview and settlement separation[2m > [22maccepts locked historical settlement without a freshness window[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/spot-settlement-separation.test.ts[2m > [22mpreview and settlement separation[2m > [22mrejects indicative preview evidence as settlement[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/spot-settlement-separation.test.ts[2m > [22mpreview and settlement separation[2m > [22mrejects a legacy locked row without complete verification evidence[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/interval-pricing-resolution.test.ts[2m > [22minterval pricing source resolution[2m > [22muses only canonical hourly spot prices for hourly contracts[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/interval-pricing-resolution.test.ts[2m > [22minterval pricing source resolution[2m > [22muses only canonical quarter-hour spot prices for quarterly contracts[32m 0[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m __tests__/api-canonical-release.test.ts[2m > [22mcanonical public API release[2m > [22mkeeps the portal contract signature evidence aligned with OpenAPI
+[31m[1mAssertionError[22m: expected { type: [ 'string', 'null' ], …(1) } to deeply equal { type: [ 'string', 'null' ] }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[31m+   "description": "Stable external reference for the locked legal bundle version.",[39m
+[2m    "type": [[22m
+[2m      "string",[22m
+[2m      "null",[22m
+[2m    ],[22m
+[2m  }[22m
+
+[36m [2m❯[22m __tests__/api-canonical-release.test.ts:[2m67:7[22m[39m
+    [90m 65|[39m       customerPortalOpenApi.components.schemas.CustomerContract.proper…
+    [90m 66|[39m         [33m.[39msignature_snapshot_sha256[33m,[39m
+    [90m 67|[39m     )[33m.[39m[34mtoEqual[39m({ type[33m:[39m [[32m'string'[39m[33m,[39m [32m'null'[39m] })
+    [90m   |[39m       [31m^[39m
+    [90m 68|[39m   })
+    [90m 69|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/market-price-api-contract.test.ts[2m > [22mmarket-price public API contract[2m > [22mdocuments the current market-price endpoint only in website OpenAPI
+[31m[1mAssertionError[22m: expected '2026-07-30.3' to be '2026-08-01.1' // Object.is equality[39m
+
+Expected: [32m"2026-0[7m8-01.1[27m"[39m
+Received: [31m"2026-0[7m7-30.3[27m"[39m
+
+[36m [2m❯[22m __tests__/market-price-api-contract.test.ts:[2m36:64[22m[39m
+    [90m 34|[39m     const response = websiteSpec.components.schemas.CurrentMarketPrice…
+    [90m 35|[39m     [34mexpect[39m(response[33m.[39mrequired)[33m.[39m[34mtoContain[39m([32m'contract_schema_version'[39m)
+    [90m 36|[39m     expect(response.properties.contract_schema_version?.const).toBe('2…
+    [90m   |[39m                                                                [31m^[39m
+    [90m 37|[39m   })
+    [90m 38|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m60 passed[39m[22m[90m (62)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m412 passed[39m[22m[90m (414)[39m
+[2m   Start at [22m 14:48:57
+[2m   Duration [22m 1.68s[2m (transform 3.20s, setup 422ms, import 5.15s, tests 615ms, environment 4ms)[22m
+

@@ -12,6 +12,7 @@ import { logUsageEvent } from '@/lib/audit/actionLogger'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustomerApplication'
 import { canonicalApiError } from '@/lib/api/apiError'
+import { bindPayloadToTenant, TenantContextError } from '@/lib/tenant/context'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -97,7 +98,10 @@ export async function POST(request: NextRequest) {
         { status },
       )
     }
-    const body = (parsed.body ?? {}) as Record<string, unknown>
+    const body = bindPayloadToTenant(
+      auth.context,
+      (parsed.body ?? {}) as Record<string, unknown>,
+    )
     const result = await processWebsiteCustomerApplication({
       client: auth.client,
       rawBody: body,
@@ -124,7 +128,7 @@ export async function POST(request: NextRequest) {
       metadata: applicationMetadata,
     })
     await logUsageEvent({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       customerId: readStringField(result.ok ? result.body.data : null, 'customer_id'),
       entityType: 'website_customer_application',
@@ -142,7 +146,7 @@ export async function POST(request: NextRequest) {
           ...result.body,
           data: publicWebsiteCustomerApplicationData(
             result.body.data,
-            auth.client.company_id,
+            auth.context.companyId,
           ),
           request_id: requestId,
           correlation_id: requestId,
@@ -150,6 +154,25 @@ export async function POST(request: NextRequest) {
       : buildErrorBody(result.body as Record<string, unknown>, requestId)
     return customerPortalJson(responseBody, { status: result.status })
   } catch (error) {
+    if (error instanceof TenantContextError) {
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: error.status,
+        startedAt,
+        errorCode: error.code.toLowerCase(),
+        metadata: { request_id: requestId },
+      })
+      return customerPortalJson(
+        buildErrorBody({
+          error: error.message,
+          code: error.code.toLowerCase(),
+          error_stage: 'authorization',
+        }, requestId),
+        { status: error.status },
+      )
+    }
+
     console.error('[website-customer-application] failed', { requestId, error })
     await logIntegrationApiRequest({
       client: auth.client,

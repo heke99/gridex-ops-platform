@@ -245,7 +245,13 @@
     "gridex:public-contract-legal-backfill:preview": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -f scripts/gridex-public-contract-legal-backfill-preview.sql",
     "gridex:public-contract-legal-backfill:apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -f scripts/gridex-public-contract-legal-backfill-apply.sql",
     "db:migrations:integrity": "node scripts/check-migration-versions.cjs",
-    "db:public-contract-legal-migration:check": "node scripts/check-public-contract-legal-migration.cjs"
+    "db:public-contract-legal-migration:check": "node scripts/check-public-contract-legal-migration.cjs",
+    "tenant:multitenant:static": "node scripts/canonical-multitenant-platform-regression.cjs",
+    "tenant:preflight": "node scripts/run-tenant-sql.mjs scripts/canonical-multitenant-preflight.sql",
+    "tenant:backfill:dry-run": "node scripts/run-tenant-sql.mjs scripts/canonical-multitenant-backfill-dry-run.sql",
+    "tenant:backfill:apply": "node scripts/run-tenant-sql.mjs scripts/canonical-multitenant-backfill-apply.sql",
+    "tenant:post-verify": "node scripts/run-tenant-sql.mjs scripts/canonical-multitenant-post-verification.sql",
+    "verify:canonical-multitenant:static": "npm run tenant:multitenant:static && npm run typecheck && npm run typecheck:tests && vitest run __tests__/tenant-context.test.ts __tests__/canonical-onboarding.test.ts __tests__/public-contract-route-openapi-regression.test.ts && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertTenantContextCompany, type TenantContext } from '@/lib/tenant/context'
 
 export type CanonicalOnboardingChannel =
   | 'admin'
@@ -117,7 +118,7 @@ function dbErrorCode(error: unknown): string {
     code === 'PGRST202' ||
     (
       code === '42883' &&
-      message.includes('gridex_onboard_customer_graph') &&
+      message.includes('canonical_onboard_customer_graph') &&
       (message.includes('does not exist') || message.includes('could not find'))
     )
   ) {
@@ -153,10 +154,25 @@ function validateCommand(command: CanonicalOnboardingCommand) {
 
 export async function onboardCustomerGraph(
   input: CanonicalOnboardingCommand,
+  tenantContext: TenantContext,
 ): Promise<CanonicalOnboardingResult> {
-  const correlationId = clean(input.correlation_id) ?? randomUUID()
+  const companyId = assertTenantContextCompany(tenantContext, input.company_id)
+  if (
+    clean(input.actor_user_id) &&
+    tenantContext.actorType === 'user' &&
+    clean(input.actor_user_id) !== tenantContext.actorId
+  ) {
+    throw new CanonicalOnboardingError({
+      code: 'canonical_onboarding_actor_mismatch',
+      message: 'Kundregistreringens aktör matchar inte den betrodda tenantkontexten.',
+      correlationId: tenantContext.correlationId,
+    })
+  }
+
+  const correlationId = clean(input.correlation_id) ?? tenantContext.correlationId
   const command: CanonicalOnboardingCommand = {
     ...input,
+    company_id: companyId,
     correlation_id: correlationId,
     matching_policy: input.matching_policy ?? 'link_unique',
   }
@@ -172,7 +188,7 @@ export async function onboardCustomerGraph(
     })
   }
 
-  const { data, error } = await supabaseService.rpc('gridex_onboard_customer_graph', {
+  const { data, error } = await supabaseService.rpc('canonical_onboard_customer_graph', {
     p_command: command,
   })
 

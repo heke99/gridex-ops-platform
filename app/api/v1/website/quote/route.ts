@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
       },
     })
     await logUsageEvent({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       entityType: 'website_contract_quote',
       entityId: result.quote_reference,

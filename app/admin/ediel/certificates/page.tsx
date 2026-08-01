@@ -254,7 +254,6 @@ export default async function EdielCertificatesPage({
             />
             <input
               name="mailboxEmail"
-              defaultValue="ediel@gridex.se"
               placeholder="Mailbox/e-post"
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
             />

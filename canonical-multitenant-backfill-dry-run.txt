@@ -1,0 +1,4 @@
+
+> gridex-ops-platform@0.1.0 tenant:backfill:dry-run
+> psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/canonical-multitenant-backfill-dry-run.sql
+

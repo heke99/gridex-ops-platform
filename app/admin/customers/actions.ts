@@ -56,6 +56,7 @@ import {
   onboardCustomerGraph,
   signedAuthorizationScopes,
 } from "@/lib/customers/canonicalOnboarding";
+import { createTenantContext } from "@/lib/tenant/context";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -1737,6 +1738,14 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
     sourceId: buildAdminIntakeIdempotencyKey(params),
   });
 
+  const tenantContext = createTenantContext({
+    companyId: params.companyId,
+    actorType: "user",
+    actorId: params.actorUserId,
+    permissions: ["customers.write"],
+    sourceChannel: "admin",
+  });
+
   const result = await onboardCustomerGraph({
     company_id: params.companyId,
     actor_user_id: params.actorUserId,
@@ -1981,7 +1990,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
           updated_by: params.actorUserId,
         }
       : null,
-  });
+  }, tenantContext);
 
   if (!result.ok) {
     throw new IntakeValidationError(

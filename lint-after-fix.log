@@ -1,0 +1,209 @@
+
+> gridex-ops-platform@0.1.0 lint
+> eslint
+
+
+/Users/hekmath/Projects/gridex-ops-platform/__tests__/helpers/supabaseMock.ts
+  119:6  warning  '_expression' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/__tests__/pricing-base-price.test.ts
+  3:35  warning  'BasePriceSourceValues' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/customers/[id]/actions.ts
+  3158:16  warning  'insertLifecycleFollowUpTask' is defined but never used                   @typescript-eslint/no-unused-vars
+  3202:16  warning  'cancelOpenSwitchRequestsForLifecycleDecision' is defined but never used  @typescript-eslint/no-unused-vars
+  3259:16  warning  'blockBillingForLifecycleDecision' is defined but never used              @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/customers/[id]/page.tsx
+   111:3   warning  'missingFieldLabel' is defined but never used                     @typescript-eslint/no-unused-vars
+   222:10  warning  'customerTypeDescription' is defined but never used               @typescript-eslint/no-unused-vars
+   263:10  warning  'primaryContactHeading' is defined but never used                 @typescript-eslint/no-unused-vars
+   268:10  warning  'activeAddressHeading' is defined but never used                  @typescript-eslint/no-unused-vars
+   289:10  warning  'contractStatusUiLabel' is defined but never used                 @typescript-eslint/no-unused-vars
+   326:10  warning  'normalizeJsonList' is defined but never used                     @typescript-eslint/no-unused-vars
+   334:10  warning  'intakeStatusLabel' is defined but never used                     @typescript-eslint/no-unused-vars
+   355:10  warning  'intakeStatusTone' is defined but never used                      @typescript-eslint/no-unused-vars
+   371:10  warning  'lifecycleTone' is defined but never used                         @typescript-eslint/no-unused-vars
+  2261:9   warning  'activeSites' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+  2262:9   warning  'activeMeteringPoints' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  2266:9   warning  'lifecycleSummary' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  2348:9   warning  'hasUsablePowerOfAttorney' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  2363:9   warning  'legalLooksAccepted' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  2412:9   warning  'tenantCustomerView' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  2423:9   warning  'hasSwitchData' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  2460:9   warning  'primaryContact' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  2481:9   warning  'activeAddressDisplay' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  2502:9   warning  'customerTypeUiLabel' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  2503:9   warning  'primaryIdentityLabel' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  2504:9   warning  'primaryIdentityValue' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  2508:9   warning  'secondaryIdentityLabel' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  2509:9   warning  'secondaryIdentityValue' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  2514:9   warning  'openCustomerBlockers' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  2528:9   warning  'pendingCustomerInfoRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/ediel/actions.ts
+  1811:9   warning  'context' is assigned a value but never used              @typescript-eslint/no-unused-vars
+  2425:10  warning  'edielIlikeLiteral' is defined but never used             @typescript-eslint/no-unused-vars
+  3530:10  warning  'deriveS142LineItemReferences' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/ediel/system-tests/page.tsx
+  323:10  warning  'statusTone' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/messages/[id]/page.tsx
+  8:15  warning  'EdielMessageRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/messages/page.tsx
+  56:6  warning  'UnifiedRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/operations/ready-to-execute/page.tsx
+  53:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/outbound/missing-billing-underlays/page.tsx
+  65:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/outbound/missing-meter-values/page.tsx
+  95:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/outbound/page.tsx
+  139:45  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/outbound/ready-switches/page.tsx
+  15:2   warning  '_' is defined but never used              @typescript-eslint/no-unused-vars
+  28:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/admin/outbound/unresolved/page.tsx
+  27:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/app/api/public/energy-area/route.ts
+  7:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/components/admin/customers/CustomerBillingMeteringCard.tsx
+   18:2   warning  'createGridOwnerDataRequestAction' is defined but never used      @typescript-eslint/no-unused-vars
+   19:2   warning  'createPartnerExportAction' is defined but never used             @typescript-eslint/no-unused-vars
+   21:10  warning  'queueOutboundRequestAction' is defined but never used            @typescript-eslint/no-unused-vars
+   33:2   warning  'QuickActionButton' is defined but never used                     @typescript-eslint/no-unused-vars
+   37:2   warning  'SmartDataRequestForm' is defined but never used                  @typescript-eslint/no-unused-vars
+   38:2   warning  'SmartOutboundForm' is defined but never used                     @typescript-eslint/no-unused-vars
+   39:2   warning  'SmartPartnerExportForm' is defined but never used                @typescript-eslint/no-unused-vars
+   43:2   warning  'CustomerDataRequestsPanel' is defined but never used             @typescript-eslint/no-unused-vars
+   44:2   warning  'CustomerMeteringValuesPanel' is defined but never used           @typescript-eslint/no-unused-vars
+   45:2   warning  'CustomerOperationalSignalPanel' is defined but never used        @typescript-eslint/no-unused-vars
+   46:2   warning  'CustomerOutboundHistoryPanel' is defined but never used          @typescript-eslint/no-unused-vars
+   47:2   warning  'CustomerPartnerExportsPanel' is defined but never used           @typescript-eslint/no-unused-vars
+   65:2   warning  'customerId' is defined but never used                            @typescript-eslint/no-unused-vars
+   76:8   warning  'unresolvedOutbound' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   80:8   warning  'openDataRequests' is assigned a value but never used             @typescript-eslint/no-unused-vars
+   84:8   warning  'readyUnderlaysWithoutExport' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   94:8   warning  'openMeterValueRequests' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  100:8   warning  'openBillingRequests' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  106:8   warning  'openMasterdataRequests' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  112:8   warning  'queuedMeterValueOutbound' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  116:8   warning  'queuedBillingOutbound' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  120:10  warning  'billingExports' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  120:26  warning  'meteringExports' is assigned a value but never used              @typescript-eslint/no-unused-vars
+  120:43  warning  'customerSnapshotExports' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  123:8   warning  'underlayById' is assigned a value but never used                 @typescript-eslint/no-unused-vars
+  150:8   warning  'defaultSiteId' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  151:8   warning  'defaultMeteringPointId' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  152:8   warning  'defaultGridOwnerId' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  153:8   warning  'defaultPeriod' is assigned a value but never used                @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/components/admin/ediel/EdielOperationalBridgePanel.tsx
+  106:10  warning  'dataTone' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/auth/companyInvitationFlow.ts
+  387:9  warning  'now' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/customer-cases/db.ts
+  100:24  warning  '_customers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/ack.ts
+  113:10  warning  'swedishDateTimeFromEdifactUnb' is defined but never used  @typescript-eslint/no-unused-vars
+  162:10  warning  'normalizeAperakErrors' is defined but never used          @typescript-eslint/no-unused-vars
+  337:10  warning  'edielPartyCompositeFromUnb' is defined but never used     @typescript-eslint/no-unused-vars
+  349:10  warning  'fallbackPartyComposite' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/actorTestingEngine.ts
+    7:3   warning  'getEdielMessageById' is defined but never used       @typescript-eslint/no-unused-vars
+    8:3   warning  'listAckMessagesForSource' is defined but never used  @typescript-eslint/no-unused-vars
+  133:10  warning  'isUtiltsErr' is defined but never used               @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/core/referenceRegistry.ts
+  106:48  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/db.ts
+  175:10  warning  'isRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/flows/inboundProcessing.ts
+  550:9  warning  'facilityRecognition' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/operations/controlTower.ts
+  297:5  warning  'queuedOutbound' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  309:5  warning  'disabledRouteProfiles' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/portal/parsePortalValidationReport.ts
+  29:10  warning  'normalizeUpper' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/prodat.ts
+  234:10  warning  'preferredReferencePrefix' is defined but never used             @typescript-eslint/no-unused-vars
+  247:10  warning  'statusSegmentForCode' is defined but never used                 @typescript-eslint/no-unused-vars
+  295:10  warning  'portalNumberString' is defined but never used                   @typescript-eslint/no-unused-vars
+  302:10  warning  'portalRegisters' is defined but never used                      @typescript-eslint/no-unused-vars
+  309:10  warning  'portalBillingRecipient' is defined but never used               @typescript-eslint/no-unused-vars
+  357:10  warning  'date203AtStartOfDay' is defined but never used                  @typescript-eslint/no-unused-vars
+  363:10  warning  'partySegment' is defined but never used                         @typescript-eslint/no-unused-vars
+  367:10  warning  'normalizeProdatReasonForTransaction' is defined but never used  @typescript-eslint/no-unused-vars
+  385:10  warning  'customerNadSegment' is defined but never used                   @typescript-eslint/no-unused-vars
+  404:10  warning  'installationNadSegment' is defined but never used               @typescript-eslint/no-unused-vars
+  435:9   warning  'isAccessCode' is assigned a value but never used                @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/testing/aperakErrorRuleRegistry.ts
+  581:10  warning  'meterNumbersForMessage' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/testing/selftest.ts
+  78:10  warning  'ymd' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/testing/tgtAutoMatcher.ts
+  165:10  warning  'meterNumbersForLine' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/testing/tgtAutopilot.ts
+  14:3  warning  'getEdielTgtTestCaseByCode' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/testing/tgtEdifact.ts
+  1414:3   warning  'step' is defined but never used              @typescript-eslint/no-unused-vars
+  2312:10  warning  'buildProdatDraft' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/testing/tgtTestData.ts
+  2014:6  warning  'ProdatEscoColumnName' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/transport/index.ts
+    20:3   warning  'buildInboundUtiltsMessageInput' is defined but never used       @typescript-eslint/no-unused-vars
+    21:3   warning  'parseInboundUtilts' is defined but never used                   @typescript-eslint/no-unused-vars
+   182:10  warning  'normalizeEdifactSegments' is defined but never used             @typescript-eslint/no-unused-vars
+   630:16  warning  'resolveMailboxSecurityDefaults' is defined but never used       @typescript-eslint/no-unused-vars
+   865:10  warning  'extractInboundEdifactPayload' is defined but never used         @typescript-eslint/no-unused-vars
+   871:10  warning  'normalizeInboundSubject' is defined but never used              @typescript-eslint/no-unused-vars
+   878:10  warning  'isEdielPortalValidationReport' is defined but never used        @typescript-eslint/no-unused-vars
+   892:10  warning  'looksLikeCompleteEdifactInterchange' is defined but never used  @typescript-eslint/no-unused-vars
+  1137:10  warning  'buildInboundProdatMessageInput' is defined but never used       @typescript-eslint/no-unused-vars
+  1204:10  warning  'buildInboundAiListMessageInput' is defined but never used       @typescript-eslint/no-unused-vars
+  1261:16  warning  'buildInboundAckMessageInput' is defined but never used          @typescript-eslint/no-unused-vars
+  1380:16  warning  'withAcceptedInboundVersions' is defined but never used          @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/ediel/utiltsEngine.ts
+  1112:13  warning  'gridAreaId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/inbound-mail/inboundStatusUpdater.ts
+  325:9  warning  'matchedOutboundId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/onboarding/inboundEdielLinking.ts
+  222:16  warning  'tryQueueSupplierSwitchAfterZ02' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/website/applicationReview.ts
+  729:11  warning  'verificationDetail' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/hekmath/Projects/gridex-ops-platform/lib/website/publicContracts.ts
+  1533:16  warning  'listPublishedLegalVersions' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 124 problems (0 errors, 124 warnings)
+

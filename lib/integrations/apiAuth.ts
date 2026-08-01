@@ -3,6 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { ipAllowedByRules, trustedClientIp } from '@/lib/integrations/ipPolicy'
+import { tenantContextForIntegration, type TenantContext } from '@/lib/tenant/context'
 
 export type IntegrationApiClient = {
   id: string
@@ -37,7 +38,7 @@ export type IntegrationTenantApiStatus =
   | 'deleted_test_only'
 
 export type IntegrationApiAuthResult =
-  | { ok: true; client: IntegrationApiClient; rateLimit: IntegrationApiRateLimit }
+  | { ok: true; client: IntegrationApiClient; context: TenantContext; rateLimit: IntegrationApiRateLimit }
   | {
       ok: false
       status: number
@@ -416,7 +417,14 @@ export async function requireIntegrationApiAccess(
     .eq('id', client.id)
     .then(() => null)
 
-  return { ok: true, client, rateLimit: rateLimit.rateLimit }
+  const context = tenantContextForIntegration({
+    companyId: client.company_id,
+    clientId: client.id,
+    scopes: [...expandIntegrationApiScopes(client.scopes ?? [])],
+    correlationId: request.headers.get('x-request-id'),
+  })
+
+  return { ok: true, client, context, rateLimit: rateLimit.rateLimit }
 }
 
 export async function logIntegrationApiRequest(input: {

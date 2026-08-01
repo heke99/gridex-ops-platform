@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     const [publication, revision, tenant] = await Promise.all([
       diagnosePublicContractOffers({ client: auth.client, customerType: query.customerType }),
-      loadPublicationRevision(auth.client.company_id, 'website'),
+      loadPublicationRevision(auth.context.companyId, 'website'),
       loadExternalTenantContext(auth.client),
     ])
     const canonicalGraphConsistent = publication.offers.every(
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const classified = classifyPublicContractsError(error)
     console.error('[public-contracts-diagnostics] failed', {
       requestId: currentRequestId,
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       endpoint: '/api/v1/website/public-contracts/diagnostics',
       channel: 'website',

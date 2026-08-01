@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const classified = classifyPublicContractsError(error)
     console.error('[integration-context] failed', {
       requestId,
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       endpoint: '/api/v1/integration/context',
       errorCode: classified.code,

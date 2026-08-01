@@ -99,7 +99,7 @@ function emptyStatus(companyId: string): TenantLegalDefaultStatus {
 export async function getTenantLegalDefaultStatus(companyId: string): Promise<TenantLegalDefaultStatus> {
   const [{ data: effectiveRows, error: effectiveError }, { data: overrides, error: overridesError }] = await Promise.all([
     supabaseService
-      .from('gridex_tenant_effective_legal_sources_v')
+      .from('canonical_tenant_effective_legal_sources_v')
       .select('company_id,module_key,platform_template_version_id,platform_version,tenant_override_id,tenant_override_version,tenant_override_mode,effective_source,effective_available')
       .eq('company_id', companyId)
       .order('module_key', { ascending: true }),

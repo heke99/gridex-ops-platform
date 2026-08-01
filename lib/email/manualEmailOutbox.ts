@@ -269,7 +269,7 @@ export async function processManualEmailOutbox(input?: {
       if (!toEmail || !actualRecipient || toEmail.toLowerCase() !== actualRecipient.toLowerCase() || !fromEmail) {
         throw new Error('Mottagare/avsändare är inte verifierad för extern leverans.')
       }
-      if (isEdielReservedSender(fromEmail)) throw new Error('Manuell e-post får inte skickas från Ediel-brevlådan.')
+      if (await isEdielReservedSender(fromEmail)) throw new Error('Manuell e-post får inte skickas från Ediel-brevlådan.')
 
       const sent = await provider.sendEmail({
         from: fromEmail,

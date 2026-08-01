@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const [publication, revision, tenant] = await Promise.all([
       diagnosePublicContractOffers({ client: auth.client, channel: 'api' }),
-      loadPublicationRevision(auth.client.company_id, 'api'),
+      loadPublicationRevision(auth.context.companyId, 'api'),
       loadExternalTenantContext(auth.client),
     ])
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId, channel: 'api', result_count: publication.total } })
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const classified = classifyPublicContractsError(error)
     console.error('[api-public-contracts-diagnostics] failed', {
       requestId,
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       endpoint: '/api/v1/public-contracts/diagnostics',
       channel: 'api',

@@ -118,3 +118,19 @@ Status: BLOCKED_BY_ENVIRONMENT. `registry.npmjs.org` cannot be resolved from thi
 ## BLK-016 — Public Contracts parity staging proof
 
 Status: RELEASE_BLOCKER. The `2026-08-01.1` runtime, OpenAPI, manifest, fixture and docs are locally static-verified, but the new migration/backfill and exact served response/OpenAPI/checksum parity require an authorized staging database, deployment target, API key and isolated tenant fixture.
+
+## BLK-017 — Canonical multi-tenant database proof
+
+Status: RELEASE_BLOCKER. Migration `20260801143000...` and all-tenant remediation scripts are additive and statically checked, but no authorized database exists for clean/upgrade apply, RLS, composite-FK validation, backfill or three-tenant isolation proof.
+
+## BLK-018 — Incomplete package registry
+
+Status: BLOCKED_BY_ENVIRONMENT. `npm ci` returns HTTP 404 for `zod-validation-error-4.0.2.tgz` from the configured registry. Full typecheck, Vitest, lint and Next.js build remain unclaimed.
+
+## BLK-019 — Missing platform repositories
+
+Status: BLOCKED_BY_INPUT. Only OPS was supplied. Tenant websites, customer portals, partner services and other workers must adopt and verify the same tenant context/API contract before platform-wide approval.
+
+## BLK-020 — Remaining legacy tenant-specific inventory
+
+Status: RELEASE_BLOCKER. A lexical scan finds about 886 `gridex` occurrences across 220 runtime TS/TSX files. Many are namespaces/branding/fixtures, but every occurrence must be classified and prohibited defaults/branches removed before claiming zero tenant-specific production logic.

@@ -492,3 +492,17 @@ Files changed: canonical serializers, Website/API routes/sources, OpenAPI finali
 Migrations: `20260801003000_public_contract_runtime_openapi_legal_parity.sql`
 Last updated: 2026-08-01
 Exact next subtask: restore trusted `20260730220000...` bytes, run full dependency gates, then apply and staging-verify PHASE-36
+
+## WP-037: Canonical multi-tenant platform hardening
+Status: IMPLEMENTED_STATIC_VERIFIED_ENVIRONMENT_BLOCKED
+Phase: PHASE-37
+Priority: P0
+Depends on: WP-036
+Affected domains: tenant context, integration API, customer intake, provider webhooks, legal/number configuration, database constraints, RLS readiness, backfill, documentation
+Acceptance criteria: server-derived tenant context; no fallback tenant; shared onboarding; tenant-qualified DB relations; fail-closed capabilities; all-tenant remediation; full multi-repository and three-tenant proof
+Required verification: clean/full Node gates, migration integrity, clean/upgrade PostgreSQL apply, RLS/RBAC, backfill, constraints, idempotency/concurrency/workers/E2E, all external repositories
+Evidence: canonical static regression and focused legacy regressions pass; changed TS syntax and isolated context strict typecheck pass; migration checksum registered
+Files changed: tenant context/capabilities, API auth/routes, onboarding adapters, webhook/mail/number/legal runtime, migration, remediation scripts, tests and docs
+Migrations: `20260801143000_canonical_multitenant_platform_hardening.sql`
+Last updated: 2026-08-01
+Exact next subtask: reconcile migration history, restore dependency installation, apply in staging, run all-tenant database/E2E evidence and synchronize external repositories

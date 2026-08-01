@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     const resolution = await resolveEnergyContext({
-      companyId: auth.client.company_id,
+      companyId: auth.context.companyId,
       street: text(body, 'street'),
       streetNumber: text(body, 'street_number'),
       postalCode: text(body, 'postal_code'),
