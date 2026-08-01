@@ -97,3 +97,11 @@
 | VM-093 | Current API/OpenAPI release | VERIFIED LOCALLY | `2026-07-30.3`; reachability, fixture parity, docs, compatibility and exact local manifest SHA parity pass |
 | VM-094 | Current TypeScript/tests/lint/build | VERIFIED LOCALLY | All TS targets; 58/58 files and 376/376 tests; 0-error lint; Next.js build |
 | VM-095 | Price-option staging/live E2E | BLOCKED | No authorized DB, deployment, Gridex Web, tenant fixtures, API keys or provider/webhook environment |
+| VM-096 | Public Contract canonical serializers | VERIFIED LOCALLY | `is_default`/alias and exact legal bundle/module invariants covered by strict model tests and static runtime boundary |
+| VM-097 | Public Contract OpenAPI/docs release | VERIFIED LOCALLY | `2026-08-01.1`; 39 registry routes, 41 operations, 59 reachable schemas; fixture/docs/version/compatibility/exact local SHA gates pass |
+| VM-098 | Legal snapshot/backfill migration semantics | VERIFIED LOCALLY | Exact locked relation, dry run, counters, audit, hash update, service-role and no first/latest fallback pass semantic gate |
+| VM-099 | New migration checksum | VERIFIED | `20260801003000...` SHA-256 `19bbfbb56f3b150835e873200962d490dd043c7d2de51ded83e4460061659850` |
+| VM-100 | Changed TypeScript source | VERIFIED LOCALLY | 16 TS/TSX files transpile; canonical model/DTO/error boundary pass isolated strict TypeScript check |
+| VM-101 | Full project dependency gates | BLOCKED | npm registry DNS unavailable; full TS/Vitest/lint/build not rerun |
+| VM-102 | Migration history | BLOCKED | inherited `20260730220000...` manifest/file mismatch; trusted checksum preserved |
+| VM-103 | Database/staging Public Contracts parity | BLOCKED | no authorized DB, deployment, API key or tenant fixture |

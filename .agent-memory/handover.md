@@ -1,27 +1,31 @@
 # Handover
 
-Last updated: 2026-07-30T23:59:00+02:00
+Last updated: 2026-08-01T01:25:00+02:00
 
-## Verified locally
+## Implemented and statically verified
 
-- Publication-bound price options, deterministic backfill/review, publish validation and v3 commercial assertion binding.
-- New `20260730220000...` forward migration: exact registered SHA-256 `0ab350f0...`.
-- Migration integrity: 325 files / 229 version groups / checksums verified.
-- Full Vitest: 58 files / 376 tests.
-- App, script, test, EDIEL and contract TypeScript profiles: pass.
-- ESLint: zero errors (124 existing warnings).
-- API/OpenAPI/docs contract, parity, version, examples, shared boundaries, compatibility and local release artifacts: pass at `2026-07-30.3`.
-- API error-boundary and tenant/performance gates: pass.
-- Next.js 16.2.6 production build: pass with a temporary 4096 MB Node heap.
+- Public Contracts contract version `2026-08-01.1`.
+- Strict canonical price-option/legal model shared by Website and API DTOs.
+- Canonical `is_default`, identical deprecated `default`, strict mismatch/default-count checks and valid variable `area_prices: []` semantics.
+- Exact locked `legal_bundle_version_id` on legal and module rows, UUID/immutability/module consistency checks and public-safe diagnostics.
+- Forward migration `20260801003000...`, dry-run-first exact-relation backfill and service-role/audit controls.
+- Website OpenAPI SHA `e15a170a...`; portal SHA `72fe1479...`; canonical fixture, release manifest and developer page are synchronized.
+- Static parity/compatibility/docs/release gates, migration semantic gate and focused domain regressions pass.
+- Changed TS/TSX syntax/transpile and isolated canonical-core strict TypeScript check pass.
 
-## Implemented but not environment-verified
+## Unverified
 
-The forward migration, public price-option projection, immutable quote/application binding, legal identity and release artifacts are statically and locally tested. PostgreSQL clean/upgrade apply, post-apply, deployment, live hash parity, Gridex Web synchronization, two-tenant isolation, concurrency, provider delivery and webhook replay proof are not claimed.
+- Complete dependency installation, all project TypeScript targets, Vitest, lint and Next.js production build.
+- PostgreSQL migration apply, real backfill counts/idempotency and database transaction behavior.
+- Deployed runtime/OpenAPI/manifest/docs bytes and staging tenant behavior.
+- Gridex Web type/AJV regeneration and production client behavior.
 
-## Active blockers
+## Blocking evidence
 
-No authorized database, Gridex Web source, provider sandbox, webhook receiver, staging API keys, isolated tenants, deployment target or Git metadata is available. Three legacy duplicate migration timestamp groups are allowlisted and require actual applied-ledger provenance before any safe rename. No `2026-07-30.3` live deployment claim is made.
+- `registry.npmjs.org` cannot be resolved in this environment.
+- Historical `20260730220000...` expected SHA remains `0ab350f0...`; uploaded file hashes to `978de5e9...`. The trusted manifest entry was not rewritten.
+- No authorized DB/staging/deployment credentials or Git provenance are available.
 
 ## Exact continuation
 
-Use the authoritative staging/production migration ledger to resolve duplicate versions, then run clean and upgrade migration application through `20260730220000` on Node 22 and execute `scripts/gridex-canonical-price-options-post-apply.sql`. Deploy OPS, fetch the manifest and both specs as raw bytes and require exact SHA/version parity. Apply the separate Web sync only from the supplied Web repository, build it, and execute the full two-tenant/quote/application/webhook/provider staging matrix.
+Recover the trusted historical migration from canonical Git or reconcile against the applied ledger. With Node 22 and a working registry, run `npm ci`, lint, all typechecks, tests and build. Apply the new migration in isolated staging, run preview/apply/second dry-run, deploy, execute served-response-to-served-OpenAPI validation and verify exact release-manifest checksums. Then synchronize current Gridex Web source and rerun its generated type/AJV/build/E2E gates.

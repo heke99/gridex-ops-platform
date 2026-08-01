@@ -1,36 +1,37 @@
 # Current task
 
-Last updated: 2026-07-30T23:59:00+02:00
+Last updated: 2026-08-01T01:25:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
 ## Active phase
 
-PHASE-35 — canonical publication-bound price options, immutable website commercial selection and OpenAPI release completion.
+PHASE-36 — Public Contracts runtime/OpenAPI/legal parity and complete customer-portal developer documentation.
 
-## Completed locally
+## Implemented locally
 
-- Bound canonical price options to exact publication versions and added default/selection/customer-type rules.
-- Materialized deterministic publication copies, review-backed backfill and publish-time validation.
-- Exposed top-level `price_options` and bound quote, validate and application assertions end to end.
-- Harmonized legal document identity and closed public request/response schemas.
-- Regenerated both OpenAPI documents at `2026-07-30.3` and strengthened reachability, fixture and documentation checks.
-- Restored portal contract signature evidence parity found by the final go-live regression.
-- Verified all TypeScript profiles, 376 tests, API/docs/parity/compatibility/release, migration/error/tenant gates, zero-error lint and production build.
+- Added strict canonical Public Contract price-option and legal serializers.
+- Made `is_default` canonical and `default` an identical deprecated alias.
+- Preserved and validated the exact locked legal bundle version at both public legal levels.
+- Added one forward migration with exact-relation legal snapshot generation and idempotent audited backfill.
+- Unified Website/API DTO mapping, safe route diagnostics, version/request headers and structured public failures.
+- Regenerated both OpenAPI files, release hashes and canonical production-like fixture at `2026-08-01.1`.
+- Added route-to-served-OpenAPI, serializer, fixture, docs, version, checksum and migration safety gates.
+- Rebuilt `/developers/customer-portal-api` as the complete human-readable integration guide.
 
 ## Exact next action
 
-Review the three allowlisted duplicate migration version groups against the actual staging/production migration ledger. Do not rename any applied migration without that proof. Then use Node 22, run clean-database and upgraded-database applies through `20260730220000`, execute the canonical price-option post-apply SQL, deploy OPS, verify the live release manifest against the two served files, synchronize the separate Gridex Web repository and execute two-tenant, quote concurrency, application replay, webhook replay/idempotency and provider delivery scenarios.
+Restore or reconcile the inherited `20260730220000...` migration bytes from authoritative Git/applied-ledger evidence without changing its trusted manifest checksum. Then install dependencies under Node 22, run all project typechecks/Vitest/lint/build, apply `20260801003000...` in isolated staging, run preview/apply/second-dry-run, deploy and verify exact served response/OpenAPI/manifest/docs parity. Synchronize Gridex Web only from its current source repository.
 
 ## Blockers
 
-- No authorized PostgreSQL clean/staging/live connection or Supabase CLI is available.
-- The immutable historical file contains an intermediate text-rewrite sequence that appears unsafe on a clean replay; this must be proved with a real clean apply rather than declared passed.
-- Duplicate version groups `20260612193000`, `20260616123000` and `20260727150000` are allowlisted; safe resolution requires authoritative applied-ledger provenance.
-- Gridex Web source was not supplied, so its runtime sync/build cannot be changed or verified.
-- Staging API keys, isolated tenant fixtures, webhook receiver/secret and provider sandbox credentials are unavailable.
-- The `2026-07-30.3` deployment and exact live manifest hash parity are unverified.
+- Uploaded historical migration `20260730220000...` hashes to `978de5e9...`, while its trusted manifest entry remains `0ab350f0...`.
+- No authorized PostgreSQL connection or Supabase deployment environment.
+- DNS cannot resolve `registry.npmjs.org`, so dependencies cannot be installed here.
+- No staging base URL, API key, isolated tenant fixture or deployment target.
+- No Gridex Web source was supplied.
+- Uploaded archive excludes Git metadata.
 
 ## Do not repeat
 
-Do not modify trusted historical migration bytes or manifest checksums, rename applied duplicate migrations without ledger proof, claim database/staging/Web/provider verification from static checks, or mark production `GO` until the price-option migration, post-apply, exact deployed manifest and full environment gates pass.
+Do not bless the historical migration drift by changing its checksum, infer a legal bundle by first/latest ordering, use recursive DTO spreads, make OpenAPI permissive, claim full build/database/staging success, or use `default` as new business logic.

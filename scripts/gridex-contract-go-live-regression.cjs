@@ -342,7 +342,7 @@ includesAll(liveSchemaCheck, [
 check(db.includes('.not("lifecycle_status", "in", "(archived,superseded)")'), "archived/superseded hidden by default");
 check(runtime.includes('code: "offer_reference_mismatch"'), "canonical API mismatch code");
 check(runtime.includes('legacy_code: "offer_selector_mismatch"'), "legacy error code retained only as compatibility detail");
-check(openapi.info.version === "2026-07-30.3", "OpenAPI current version");
+check(openapi.info.version === "2026-08-01.1", "OpenAPI current version");
 check(JSON.stringify(openapi).includes("offer_reference_mismatch"), "OpenAPI documents canonical mismatch code");
 
 includesAll(migration, [

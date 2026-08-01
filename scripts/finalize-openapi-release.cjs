@@ -2,11 +2,14 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-07-30.3'
+const version = '2026-08-01.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
+const publicContractsExample = JSON.parse(
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-01.1.json', 'utf8'),
+)
 
 const string = { type: 'string' }
 const nullableString = { type: ['string', 'null'] }
@@ -288,6 +291,14 @@ website.components.schemas.ContractPriceOption = {
     'notice_months',
     'auto_renew_enabled',
     'renewal_term_months',
+    'price_type',
+    'resolution',
+    'currency',
+    'unit',
+    'fixed_price',
+    'markup',
+    'monthly_fee',
+    'is_default',
     'default',
     'selection_required',
     'valid_from',
@@ -306,7 +317,22 @@ website.components.schemas.ContractPriceOption = {
     notice_months: { type: 'integer', minimum: 0 },
     auto_renew_enabled: { type: 'boolean' },
     renewal_term_months: { type: ['integer', 'null'], minimum: 1 },
-    default: { type: 'boolean' },
+    price_type: contractType,
+    resolution: { type: 'string', enum: ['monthly', 'hourly', 'quarterly'] },
+    currency: { type: 'string', const: 'SEK' },
+    unit: { type: 'string', const: 'ore_per_kwh' },
+    fixed_price: { type: ['number', 'null'] },
+    markup: { type: ['number', 'null'] },
+    monthly_fee: { type: ['number', 'null'] },
+    is_default: {
+      type: 'boolean',
+      description: 'Canonical source of truth for whether this price option is the default.',
+    },
+    default: {
+      type: 'boolean',
+      deprecated: true,
+      description: 'Deprecated compatibility alias for is_default. Always identical to is_default.',
+    },
     selection_required: { type: 'boolean' },
     valid_from: nullableDate,
     valid_to: nullableDate,
@@ -323,15 +349,55 @@ website.components.schemas.ContractPriceOption = {
 
 const legalDocument = website.components.schemas.LegalBundleDocument
 legalDocument.additionalProperties = false
-legalDocument.properties.id = uuid
-legalDocument.properties.document_reference = string
-legalDocument.properties.legal_bundle_version_id = nullableUuid
-legalDocument.required = Array.from(new Set([
-  ...(legalDocument.required ?? []),
-  'id',
-  'document_reference',
-  'legal_bundle_version_id',
-]))
+legalDocument.properties = {
+  id: uuid,
+  legal_bundle_version_id: nullableUuid,
+  document_reference: string,
+  module_key: string,
+  version: string,
+  title: string,
+  published_at: { type: ['string', 'null'], format: 'date-time' },
+  content_sha256: {
+    type: ['string', 'null'],
+    pattern: '^[a-fA-F0-9]{64}$',
+  },
+  origin: string,
+  url: { type: ['string', 'null'], format: 'uri' },
+}
+legalDocument.required = Object.keys(legalDocument.properties)
+
+website.components.schemas.LegacyLegalVersion = {
+  type: 'object',
+  additionalProperties: false,
+  deprecated: true,
+  required: [
+    'id',
+    'type',
+    'version',
+    'title',
+    'published_at',
+    'content_sha256',
+    'legal_bundle_version_id',
+    'document_reference',
+    'origin',
+    'url',
+  ],
+  properties: {
+    id: uuid,
+    type: string,
+    version: string,
+    title: string,
+    published_at: { type: ['string', 'null'], format: 'date-time' },
+    content_sha256: {
+      type: ['string', 'null'],
+      pattern: '^[a-fA-F0-9]{64}$',
+    },
+    legal_bundle_version_id: nullableUuid,
+    document_reference: string,
+    origin: string,
+    url: { type: ['string', 'null'], format: 'uri' },
+  },
+}
 
 const legalBlock = website.components.schemas.WebsiteLegalBlock
 for (const field of [
@@ -353,12 +419,37 @@ for (const staleAlias of [
 ]) {
   delete legalBlock.properties[staleAlias]
 }
-legalBlock.properties.legal_bundle_version_id = nullableUuid
+legalBlock.properties.legal_bundle_version_id = {
+  ...nullableUuid,
+  description:
+    'Immutable legal bundle version locked into the publication snapshot. The property is always present; historical explicitly approved exceptions may be null.',
+}
+legalBlock.properties.legal_bundle_reference.description =
+  'Stable external reference for the locked legal bundle version.'
+legalBlock.properties.immutable = {
+  type: 'boolean',
+  const: true,
+  description: 'Published legal snapshots are immutable.',
+}
+legalBlock.properties.required_modules = {
+  type: 'array',
+  minItems: 1,
+  uniqueItems: true,
+  items: string,
+}
+legalBlock.properties.module_versions = {
+  type: 'array',
+  minItems: 1,
+  items: { $ref: '#/components/schemas/LegalBundleDocument' },
+}
 legalBlock.additionalProperties = false
 legalBlock.required = Array.from(new Set([
   ...(legalBlock.required ?? []),
   'legal_bundle_reference',
   'legal_bundle_version_id',
+  'immutable',
+  'required_modules',
+  'module_versions',
 ]))
 
 const pricingProperties = Object.fromEntries(
@@ -508,6 +599,24 @@ for (const field of ['id', 'contract_offer_id', 'publication_reference']) {
   }
 }
 publicContractProperties.offer_reference = stableReference
+publicContractProperties.name = string
+publicContractProperties.description = nullableString
+publicContractProperties.contract_type = contractType
+publicContractProperties.energy_direction = {
+  $ref: '#/components/schemas/EnergyDirection',
+}
+publicContractProperties.customer_type = customerType
+publicContractProperties.channel = { type: 'string', const: 'website' }
+publicContractProperties.valid_from = nullableDate
+publicContractProperties.valid_to = nullableDate
+publicContractProperties.product_code = nullableString
+publicContractProperties.legal_versions = {
+  type: 'array',
+  deprecated: true,
+  description:
+    'Deprecated compatibility view of legal.module_versions. New clients must use legal.module_versions.',
+  items: { $ref: '#/components/schemas/LegacyLegalVersion' },
+}
 publicContractProperties.area_pricing = {
   type: 'array',
   deprecated: true,
@@ -571,6 +680,7 @@ website.components.schemas.ApiPublicContract = {
     'customer_type',
     'price_options',
     'pricing',
+    'legal',
     'valid_from',
     'valid_to',
     'channel',
@@ -590,10 +700,109 @@ website.components.schemas.ApiPublicContract = {
       items: { $ref: '#/components/schemas/ContractPriceOption' },
     },
     pricing: publicPricing,
+    legal: { $ref: '#/components/schemas/WebsiteLegalBlock' },
     valid_from: nullableString,
     valid_to: nullableString,
     channel: { type: 'string', enum: ['website', 'api'] },
   },
+}
+
+
+const publicContractMeta = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'tenant_reference',
+    'api_version',
+    'channel',
+    'count',
+    'publication_revision',
+    'publication_updated_at',
+    'contract_schema_version',
+  ],
+  properties: {
+    tenant_reference: website.components.schemas.TenantMeta.properties.tenant_reference,
+    api_version: { const: 'v1' },
+    channel: { type: 'string', enum: ['website', 'api'] },
+    count: { type: 'integer', minimum: 0 },
+    publication_revision: { type: 'integer', minimum: 0 },
+    publication_updated_at: { type: ['string', 'null'], format: 'date-time' },
+    contract_schema_version: contractVersion,
+    deprecated_aliases: { type: 'array', items: string },
+    customer_type: { type: ['string', 'null'], enum: ['private', 'business', null] },
+    deprecated_customer_type_alias: { type: 'boolean' },
+  },
+}
+
+function publicContractsEnvelope(contractSchema) {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['data', 'contracts', 'meta', 'request_id'],
+    properties: {
+      data: { type: 'array', items: contractSchema },
+      contracts: {
+        type: 'array',
+        deprecated: true,
+        description: 'Deprecated compatibility alias for data.',
+        items: contractSchema,
+      },
+      meta: publicContractMeta,
+      diagnostics: { type: 'object', additionalProperties: true },
+      request_id: uuid,
+    },
+  }
+}
+
+setResponse(
+  website,
+  '/api/v1/website/public-contracts',
+  publicContractsEnvelope({ $ref: '#/components/schemas/PublicContract' }),
+)
+website.paths['/api/v1/website/public-contracts'].get.responses['200'].content[
+  'application/json'
+].example = publicContractsExample
+for (const path of ['/api/v1/public-contracts', '/api/v1/contracts']) {
+  setResponse(
+    website,
+    path,
+    publicContractsEnvelope({ $ref: '#/components/schemas/ApiPublicContract' }),
+  )
+}
+
+for (const path of [
+  '/api/v1/website/public-contracts',
+  '/api/v1/public-contracts',
+  '/api/v1/contracts',
+]) {
+  const responses = website.paths[path].get.responses
+  for (const response of Object.values(responses)) {
+    response.headers = {
+      ...(response.headers ?? {}),
+      'X-Gridex-Contract-Version': {
+        schema: contractVersion,
+        description: 'Canonical public contract schema version.',
+      },
+      'X-Request-ID': {
+        schema: uuid,
+        description: 'Correlation identifier returned in the response body and logs.',
+      },
+    }
+  }
+  for (const status of ['200', '304']) {
+    const response = responses[status]
+    if (!response) continue
+    response.headers = {
+      ...(response.headers ?? {}),
+      ETag: {
+        schema: string,
+        description: 'Tenant- and channel-specific publication revision token.',
+      },
+      'X-RateLimit-Limit': { schema: { type: 'integer', minimum: 0 } },
+      'X-RateLimit-Remaining': { schema: { type: 'integer', minimum: 0 } },
+      'X-RateLimit-Reset': { schema: nullableString },
+    }
+  }
 }
 
 const quoteRequest = website.components.schemas.WebsiteQuoteRequest

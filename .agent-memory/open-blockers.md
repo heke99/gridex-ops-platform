@@ -106,3 +106,15 @@ assertions and release `2026-07-30.3` pass local static, type, test, API and
 build gates. Clean/upgrade PostgreSQL apply, post-apply, two-tenant denial,
 quote/application concurrency and deployed manifest hash parity require an
 authorized staging environment, Gridex Web source and deployment.
+
+## BLK-014 — Public Contracts historical migration checksum drift
+
+Status: RELEASE_BLOCKER. The uploaded `20260730220000_canonical_price_option_publication_api_completion.sql` bytes hash to `978de5e9b29da9428cd138cea3e57fb1c3ea65e8f903b28b1fb6493dff4e3cd5`, while the trusted manifest remains `0ab350f0da6648a497a80aeaedc1688eb5ae88e6279d6ab486526c070ff8c505`. This task did not rewrite either historical bytes or trusted checksum. Restore the canonical file or reconcile it against the applied ledger before database release.
+
+## BLK-015 — Dependency installation unavailable
+
+Status: BLOCKED_BY_ENVIRONMENT. `registry.npmjs.org` cannot be resolved from this workspace. Full project typecheck, Vitest, lint and Next.js build cannot be rerun until dependencies are installed in an environment with working package-registry DNS/access.
+
+## BLK-016 — Public Contracts parity staging proof
+
+Status: RELEASE_BLOCKER. The `2026-08-01.1` runtime, OpenAPI, manifest, fixture and docs are locally static-verified, but the new migration/backfill and exact served response/OpenAPI/checksum parity require an authorized staging database, deployment target, API key and isolated tenant fixture.

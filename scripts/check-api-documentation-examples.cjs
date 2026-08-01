@@ -119,6 +119,76 @@ const schema = website.components?.schemas?.MarketReference
 for (const field of schema?.required ?? []) {
   if (!(field in (schema.properties ?? {}))) failures.push(`MarketReference required field ${field} has no property schema.`)
 }
+const publicContractsExample = JSON.parse(
+  fs.readFileSync(
+    'docs/fixtures/public-contracts-response-2026-08-01.1.json',
+    'utf8',
+  ),
+)
+const { validateResponse } = require('./lib/openapi-schema-validator.cjs')
+failures.push(
+  ...validateResponse(
+    website,
+    '/api/v1/website/public-contracts',
+    publicContractsExample,
+  ),
+)
+const documentedPublicContractsExample =
+  website.paths?.['/api/v1/website/public-contracts']?.get?.responses?.['200']
+    ?.content?.['application/json']?.example
+if (
+  JSON.stringify(documentedPublicContractsExample) !==
+  JSON.stringify(publicContractsExample)
+) {
+  failures.push(
+    'Published public-contracts example must be generated from the production-like fixture.',
+  )
+}
+
+
+const documentationPage = fs.readFileSync(
+  'app/developers/customer-portal-api/page.tsx',
+  'utf8',
+)
+for (const requiredTerm of [
+  'is_default',
+  'required · deprecated',
+  'legal.legal_bundle_version_id',
+  'legal.module_versions[].legal_bundle_version_id',
+  'area_prices: []',
+  'area_pricing',
+  'X-Request-ID',
+  'openapi_additionalProperties',
+  'openapi_required',
+  'PUBLICATION_LEGAL_BUNDLE_VERSION_MISSING',
+  'PUBLICATION_PRICE_OPTION_DEFAULT_MISMATCH',
+  'websiteOpenApiSha256',
+  'customerPortalOpenApiSha256',
+  'Avtal visas inte på hemsidan',
+]) {
+  if (!documentationPage.includes(requiredTerm)) {
+    failures.push(`Developer guide is missing ${requiredTerm}.`)
+  }
+}
+if (!documentationPage.includes('publicContractsFixture')) {
+  failures.push('Developer guide must import the canonical public-contracts fixture.')
+}
+if (!documentationPage.includes('JSON.stringify(publicContractsFixture')) {
+  failures.push('Developer guide response example must be generated from the canonical fixture.')
+}
+if (documentationPage.includes('"requirements": []')) {
+  failures.push('Developer guide still contains the obsolete simplified legal response.')
+}
+const canonicalOption = website.components?.schemas?.ContractPriceOption
+if (canonicalOption?.properties?.default?.deprecated !== true) {
+  failures.push('Developer guide/OpenAPI check requires default to remain deprecated.')
+}
+for (const enumValue of canonicalOption?.properties?.resolution?.enum ?? []) {
+  if (!documentationPage.includes(enumValue)) {
+    failures.push(`Developer guide does not mention documented resolution enum ${enumValue}.`)
+  }
+}
+
 if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)

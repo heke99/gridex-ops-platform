@@ -73,3 +73,15 @@ Templates may remain unbound, but publication materializes exact copies.
 Customer type, default and selection-required are canonical columns, and array
 position is never a selection rule. Quote, validate and application must assert
 the same stable option, area, invoice, component and site-count identity.
+
+## ADR-010 — Explicit public-contract serialization boundary
+
+Status: IMPLEMENTED_STATIC_VERIFIED
+
+Website and API Public Contracts responses use one explicit canonical DTO mapper. Public legal and price-option fields are rebuilt field by field; generic recursive database-object spreads/sanitizers may not decide the public contract. `is_default` is canonical and `default` is compatibility-only.
+
+## ADR-011 — Exact locked legal bundle relation
+
+Status: IMPLEMENTED_STATIC_VERIFIED
+
+Published legal data and historical backfill may use only the exact company-owned locked `contract_publication_versions.legal_bundle_version_id`. First/latest/min/max inference is forbidden. Every module bundle ID must equal the top-level legal bundle version.

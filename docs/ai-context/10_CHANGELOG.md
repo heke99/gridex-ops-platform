@@ -1,3 +1,12 @@
+## 2026-08-01 – Public Contracts runtime/OpenAPI/legal parity 2026-08-01.1
+
+- Made `price_options[].is_default` canonical and retained `default` as an always-identical deprecated compatibility alias.
+- Added the exact locked `legal_bundle_version_id` to the public legal object and every module row, with strict bundle/module invariants and safe error classification.
+- Added a forward-only exact-relation legal snapshot/backfill migration, strict DTO serializers, shared website/API mapping and route-to-served-OpenAPI regression coverage.
+- Regenerated Website Integration and Customer Portal OpenAPI at `2026-08-01.1`, with exact release-manifest checksums and a production-like canonical fixture.
+- Rebuilt `/developers/customer-portal-api` as the complete human-readable integration guide and added documentation parity gates.
+- Local static/API/domain regressions pass. Database apply, staging verification and dependency-based lint/typecheck/Vitest/build remain pending; the uploaded archive also contains an inherited checksum mismatch for historical migration `20260730220000` that was not silently blessed.
+
 
 ## 2026-07-28 – Live schema/code canonical synchronization and API contract 2026-07-30.3
 

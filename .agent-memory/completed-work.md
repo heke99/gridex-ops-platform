@@ -177,3 +177,14 @@ Status: VERIFIED LOCALLY
   tests, API gates, zero-error lint and production build.
 - Database apply, post-apply, deployment, live hashes, Gridex Web and
   environment E2E remain blocked and are not claimed.
+
+## 2026-08-01 Public Contracts runtime/OpenAPI/legal parity
+
+- Replaced recursive public-contract DTO leakage/filtering with explicit strict canonical price-option and legal serializers.
+- Made `is_default` canonical and retained `default` only as an identical deprecated compatibility alias.
+- Added exact locked legal bundle identity to the legal object and every module, with fail-closed UUID, immutable, bundle and duplicate-module invariants.
+- Added forward migration `20260801003000...`, exact-relation legal snapshot generation and dry-run-first idempotent audited backfill.
+- Unified Website/API DTOs, repaired API legal output, added request/version headers and structured safe diagnostics.
+- Regenerated both OpenAPI artifacts and release hashes at `2026-08-01.1`; added canonical fixture and route/OpenAPI/docs/version/checksum/migration gates.
+- Rebuilt `/developers/customer-portal-api` into the complete integration guide.
+- Static/API/domain regressions and changed-file TypeScript checks pass. Full dependency-based build, database apply and staging remain unverified. Historical `20260730220000...` checksum drift remains explicit and unblessed.

@@ -1,3 +1,8 @@
+import {
+  PUBLIC_CONTRACT_ERROR_CODES,
+  PublicContractSerializationError,
+  type PublicContractErrorCode,
+} from '@/lib/external-contracts/publicContractModel'
 import { ExternalTenantContextError } from '@/lib/integrations/tenantContext'
 
 type ErrorRecord = {
@@ -7,17 +12,21 @@ type ErrorRecord = {
   hint?: unknown
 }
 
+type PublicContractFailureCode =
+  | PublicContractErrorCode
+  | 'TENANT_NOT_FOUND'
+  | 'EXTERNAL_TENANT_REFERENCE_MISSING'
+  | 'TENANT_NOT_OPERATIONALLY_READY'
+  | 'PUBLICATION_GRAPH_INCOMPLETE'
+  | 'PUBLIC_CONTRACT_SCHEMA_OUTDATED'
+  | 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE'
+
 export type PublicApiErrorClassification = {
   status: number
-  code:
-    | 'TENANT_NOT_FOUND'
-    | 'EXTERNAL_TENANT_REFERENCE_MISSING'
-    | 'TENANT_NOT_OPERATIONALLY_READY'
-    | 'PUBLICATION_GRAPH_INCOMPLETE'
-    | 'PUBLIC_CONTRACT_SCHEMA_OUTDATED'
-    | 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE'
+  code: PublicContractFailureCode
   message: string
   databaseCode: string | null
+  path: string | null
 }
 
 function errorRecord(error: unknown): ErrorRecord {
@@ -33,6 +42,23 @@ export function classifyPublicContractsError(
       code: error.code,
       message: error.message,
       databaseCode: null,
+      path: null,
+    }
+  }
+
+  if (error instanceof PublicContractSerializationError) {
+    const infrastructureFailure = new Set<PublicContractErrorCode>([
+      PUBLIC_CONTRACT_ERROR_CODES.contractVersionMismatch,
+      PUBLIC_CONTRACT_ERROR_CODES.openApiChecksumMismatch,
+    ]).has(error.code)
+    return {
+      status: infrastructureFailure ? 503 : 409,
+      code: error.code,
+      message: infrastructureFailure
+        ? 'Public contracts-kontraktets version eller schemaevidens är inkonsekvent.'
+        : 'Publiceringssnapshoten är ofullständig eller inkonsekvent och exponeras inte.',
+      databaseCode: null,
+      path: error.path,
     }
   }
 
@@ -61,6 +87,23 @@ export function classifyPublicContractsError(
       code: 'PUBLIC_CONTRACT_SCHEMA_OUTDATED',
       message: 'Public contracts-schemat är inte uppdaterat.',
       databaseCode,
+      path: null,
+    }
+  }
+
+  for (const code of Object.values(PUBLIC_CONTRACT_ERROR_CODES)) {
+    if (technical.includes(code)) {
+      return {
+        status:
+          code === PUBLIC_CONTRACT_ERROR_CODES.contractVersionMismatch ||
+          code === PUBLIC_CONTRACT_ERROR_CODES.openApiChecksumMismatch
+            ? 503
+            : 409,
+        code,
+        message: 'Publiceringssnapshoten är ofullständig eller inkonsekvent och exponeras inte.',
+        databaseCode,
+        path: null,
+      }
     }
   }
 
@@ -74,6 +117,7 @@ export function classifyPublicContractsError(
       code: 'PUBLICATION_GRAPH_INCOMPLETE',
       message: 'Publiceringsgrafen är ofullständig och exponeras inte.',
       databaseCode,
+      path: null,
     }
   }
 
@@ -92,6 +136,7 @@ export function classifyPublicContractsError(
       code: 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE',
       message: 'Publicerade avtal är tillfälligt otillgängliga.',
       databaseCode,
+      path: null,
     }
   }
 
@@ -100,5 +145,6 @@ export function classifyPublicContractsError(
     code: 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE',
     message: 'Publicerade avtal kunde inte hämtas.',
     databaseCode,
+    path: null,
   }
 }

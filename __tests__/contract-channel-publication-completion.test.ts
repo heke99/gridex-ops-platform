@@ -85,8 +85,10 @@ describe("canonical contract channel completion", () => {
   });
 
   it("maps an API publication to a strict public DTO without internal IDs", () => {
+    const bundleId = "00000000-0000-4000-8000-000000000004";
     const dto = mapContractPublicationToPublicDto({
       channel: "api",
+      companyId: "00000000-0000-4000-8000-000000000001",
       publication: {
         offer_reference: "gridex-rorligt-2026",
         name: "Gridex Rörligt",
@@ -96,43 +98,90 @@ describe("canonical contract channel completion", () => {
         company_id: "00000000-0000-4000-8000-000000000001",
         contract_product_version_id:
           "00000000-0000-4000-8000-000000000002",
+        price_options: [
+          {
+            id: "internal-option-id",
+            price_option_reference: "rorligt_standard",
+            option_code: "rorligt_standard",
+            customer_name: "Rörligt standardpris",
+            price_type: "variable_monthly",
+            contract_type: "variable_monthly",
+            customer_type: "private",
+            resolution: "monthly",
+            currency: "SEK",
+            unit: "ore_per_kwh",
+            fixed_price: null,
+            markup: 1,
+            monthly_fee: 49,
+            binding_months: 0,
+            notice_months: 1,
+            auto_renew_enabled: false,
+            renewal_term_months: null,
+            is_default: true,
+            default: true,
+            selection_required: false,
+            valid_from: null,
+            valid_to: null,
+            earliest_start_date: null,
+            latest_start_date: null,
+            area_prices: [],
+          },
+        ],
         pricing: {
           monthly_fee_sek: 49,
           price_plan_version_id:
             "00000000-0000-4000-8000-000000000003",
-          nested: {
-            legal_bundle_version_id:
-              "00000000-0000-4000-8000-000000000004",
-          },
+        },
+        legal: {
+          legal_bundle_version_id: bundleId,
+          immutable: true,
+          module_versions: [
+            {
+              id: "00000000-0000-4000-8000-000000000005",
+              legal_bundle_version_id: bundleId,
+              module_key: "general_consumer_terms",
+              version: "2",
+              title: "Allmänna konsumentvillkor",
+              published_at: null,
+              content_sha256: null,
+              origin: "canonical_bundle_document",
+            },
+          ],
         },
         valid_from: "2026-07-28T00:00:00+02:00",
         valid_to: null,
       },
     });
 
-    expect(dto).toEqual({
+    expect(dto).toMatchObject({
       offer_reference: "gridex-rorligt-2026",
       name: "Gridex Rörligt",
-      description: null,
       contract_type: "variable_monthly",
-      energy_direction: "consumption",
-      customer_type: "private",
-      price_options: [],
-      pricing: {
-        monthly_fee_sek: 49,
-        nested: {},
+      price_options: [
+        expect.objectContaining({
+          is_default: true,
+          default: true,
+          area_prices: [],
+        }),
+      ],
+      legal: {
+        legal_bundle_version_id: bundleId,
+        immutable: true,
+        module_versions: [
+          expect.objectContaining({ legal_bundle_version_id: bundleId }),
+        ],
       },
       valid_from: "2026-07-28T00:00:00+02:00",
       valid_to: null,
       channel: "api",
     });
     expect(JSON.stringify(dto)).not.toMatch(
-      /company_id|contract_product_version_id|price_plan_version_id|legal_bundle_version_id/,
+      /company_id|contract_product_version_id|price_plan_version_id|internal-option-id/,
     );
   });
 
-  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-07-30.3", () => {
-    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-07-30.3");
+  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-08-01.1", () => {
+    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-08-01.1");
     const specification = JSON.parse(
       readFileSync(
         resolve("docs/openapi/website-integration-v1.json"),

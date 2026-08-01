@@ -48,7 +48,7 @@ No secrets in this file — env var *names* only.
 - Returns published offers only; `offer_reference` is HMAC-signed and is the
   only canonical selector (`WEBSITE_OFFER_REFERENCE_SECRET` — required in production)
 - `?diagnostics=1` returns tenant-scoped publication blockers for server-side support
-- `GET /api/public/energy-area?postal_code=` — removed before API 2026-07-30.3 and remains unavailable; returns `410 Gone`
+- `GET /api/public/energy-area?postal_code=` — removed before API 2026-08-01.1 and remains unavailable; returns `410 Gone`
   rate limit 60/min/IP
 
 ## 4. Resend (email provider)
@@ -107,7 +107,7 @@ No secrets in this file — env var *names* only.
 - Contract: bounded batches, safe re-entry (locks), JSON result summary
 - Smoke: call each with and without secret (staging checklist)
 
-## 11. Canonical fastpris, quote och kundkedja (`2026-07-30.3`)
+## 11. Canonical fastpris, quote och kundkedja (`2026-08-01.1`)
 
 - `GET /api/v1/website/public-contracts`: ett offer per produkt; SE1–SE4 ligger i `area_pricing`.
 - `POST /api/v1/website/energy-area/resolve`: kräver `website_energy_area.resolve` och tenantautentisering.

@@ -4,6 +4,22 @@ import {
   type PublicContractOffer,
 } from "@/lib/website/publicContracts";
 
+const LEGAL_BUNDLE_VERSION_ID =
+  "00000000-0000-4000-8000-000000000101";
+
+const LEGAL_VERSIONS = [
+  {
+    id: "00000000-0000-4000-8000-000000000102",
+    type: "general_consumer_terms",
+    version: "v1",
+    title: "Allmänna villkor",
+    published_at: "2026-08-01T00:00:00.000Z",
+    content_sha256: "a".repeat(64),
+    legal_bundle_version_id: LEGAL_BUNDLE_VERSION_ID,
+    origin: "canonical_bundle_document",
+  },
+];
+
 function offer(
   overrides: Partial<PublicContractOffer> = {},
 ): PublicContractOffer {
@@ -33,6 +49,8 @@ function offer(
     sort_order: 10,
     metadata: {},
     canonical_offer_reference: "offer_visibility_v1",
+    legal_bundle_version_id: LEGAL_BUNDLE_VERSION_ID,
+    legal_versions: LEGAL_VERSIONS,
     pricing_snapshot: {
       schema_version: 5,
       vat_rate: 0.25,
@@ -93,12 +111,20 @@ describe("public contract calculation and website visibility", () => {
         price_option_reference: "portfolio_default",
         option_code: "portfolio_default",
         customer_name: "Portfölj standard",
+        price_type: "portfolio" as const,
         contract_type: "portfolio" as const,
         customer_type: "both" as const,
+        resolution: "monthly" as const,
+        currency: "SEK" as const,
+        unit: "ore_per_kwh" as const,
+        fixed_price: null,
+        markup: null,
+        monthly_fee: 49,
         binding_months: 0,
         notice_months: 1,
         auto_renew_enabled: false,
         renewal_term_months: null,
+        is_default: true,
         default: true,
         selection_required: false,
         valid_from: null,

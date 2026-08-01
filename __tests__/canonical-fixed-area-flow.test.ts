@@ -12,6 +12,8 @@ import {
 } from "@/lib/website/publicContracts";
 
 function fixedOffer(snapshot: Record<string, unknown>): PublicContractOffer {
+  const legalBundleVersionId =
+    "00000000-0000-4000-8000-000000000201";
   return {
     id: "offer-row",
     company_id: "company-id",
@@ -39,6 +41,19 @@ function fixedOffer(snapshot: Record<string, unknown>): PublicContractOffer {
     sort_order: 10,
     metadata: {},
     canonical_offer_reference: "offer_fixed_12_v1",
+    legal_bundle_version_id: legalBundleVersionId,
+    legal_versions: [
+      {
+        id: "00000000-0000-4000-8000-000000000202",
+        type: "general_consumer_terms",
+        version: "v1",
+        title: "Allmänna villkor",
+        published_at: "2026-08-01T00:00:00.000Z",
+        content_sha256: "b".repeat(64),
+        legal_bundle_version_id: legalBundleVersionId,
+        origin: "canonical_bundle_document",
+      },
+    ],
     pricing_snapshot: snapshot,
     price_areas: ["SE1", "SE2", "SE3", "SE4"],
   };

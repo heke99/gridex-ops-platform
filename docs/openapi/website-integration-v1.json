@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-30.3",
+    "version": "2026-08-01.1",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -125,20 +125,56 @@
               "ETag": {
                 "schema": {
                   "type": "string"
-                }
+                },
+                "description": "Tenant- and channel-specific publication revision token."
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.3"
+                  "const": "2026-08-01.1"
                 },
-                "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
+                "description": "Canonical public contract schema version."
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Reset": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable external reference for the locked legal bundle version."
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data",
+                    "contracts",
+                    "meta",
+                    "request_id"
+                  ],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -146,36 +182,416 @@
                         "$ref": "#/components/schemas/PublicContract"
                       }
                     },
+                    "contracts": {
+                      "type": "array",
+                      "deprecated": true,
+                      "description": "Deprecated compatibility alias for data.",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicContract"
+                      }
+                    },
                     "meta": {
-                      "$ref": "#/components/schemas/TenantMeta",
-                      "properties": {
-                        "contract_schema_version": {
-                          "const": "2026-07-30.3"
-                        }
-                      },
+                      "type": "object",
+                      "additionalProperties": false,
                       "required": [
+                        "tenant_reference",
+                        "api_version",
+                        "channel",
+                        "count",
+                        "publication_revision",
+                        "publication_updated_at",
                         "contract_schema_version"
-                      ]
+                      ],
+                      "properties": {
+                        "tenant_reference": {
+                          "type": "string",
+                          "pattern": "^tenant_[0-9a-f]{36}$",
+                          "description": "Stable opaque tenant identity. It is not the internal company UUID."
+                        },
+                        "api_version": {
+                          "const": "v1"
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "website",
+                            "api"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "publication_revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "publication_updated_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "contract_schema_version": {
+                          "type": "string",
+                          "const": "2026-08-01.1"
+                        },
+                        "deprecated_aliases": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "customer_type": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "private",
+                            "business",
+                            null
+                          ]
+                        },
+                        "deprecated_customer_type_alias": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "diagnostics": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid"
                     }
                   }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "offer_variable_monthly_example",
+                      "offer_reference": "offer_variable_monthly_example",
+                      "contract_offer_id": "offer_variable_monthly_example",
+                      "publication_reference": "offer_variable_monthly_example",
+                      "product_code": "gridex_variable_monthly",
+                      "name": "Gridex Rörligt månadspris",
+                      "description": "Rörligt elavtal med månadsupplösning.",
+                      "contract_type": "variable_monthly",
+                      "energy_direction": "consumption",
+                      "customer_type": "private",
+                      "price_options": [
+                        {
+                          "price_option_reference": "variable_monthly_standard",
+                          "option_code": "variable_monthly_standard",
+                          "customer_name": "Standard",
+                          "price_type": "variable_monthly",
+                          "contract_type": "variable_monthly",
+                          "customer_type": "private",
+                          "resolution": "monthly",
+                          "currency": "SEK",
+                          "unit": "ore_per_kwh",
+                          "fixed_price": null,
+                          "markup": 10,
+                          "monthly_fee": 49,
+                          "binding_months": 0,
+                          "notice_months": 1,
+                          "auto_renew_enabled": false,
+                          "renewal_term_months": null,
+                          "is_default": true,
+                          "default": true,
+                          "selection_required": false,
+                          "valid_from": "2026-08-01",
+                          "valid_to": null,
+                          "earliest_start_date": "2026-08-15",
+                          "latest_start_date": null,
+                          "area_prices": []
+                        }
+                      ],
+                      "pricing": {
+                        "visibility": {},
+                        "calculation_components": [],
+                        "display_components": [],
+                        "calculation_contract": {
+                          "includes_all_applicable_components": true,
+                          "hidden_components_must_be_calculated": true,
+                          "market_price_supplied_by_ops": true
+                        },
+                        "summary_components": []
+                      },
+                      "legal": {
+                        "legal_bundle_reference": "legal_bundle_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                        "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+                        "immutable": true,
+                        "required_modules": [
+                          "general_consumer_terms",
+                          "price_terms"
+                        ],
+                        "module_versions": [
+                          {
+                            "id": "00000000-0000-4000-8000-000000000002",
+                            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+                            "document_reference": "legal_document_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                            "module_key": "general_consumer_terms",
+                            "version": "2",
+                            "title": "Allmänna konsumentvillkor",
+                            "published_at": "2026-08-01T00:00:00.000Z",
+                            "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                            "origin": "canonical_bundle_document",
+                            "url": "https://app.gridex.se/legal/example/general-consumer-terms"
+                          },
+                          {
+                            "id": "00000000-0000-4000-8000-000000000003",
+                            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+                            "document_reference": "legal_document_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                            "module_key": "price_terms",
+                            "version": "1",
+                            "title": "Prisvillkor",
+                            "published_at": "2026-08-01T00:00:00.000Z",
+                            "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                            "origin": "canonical_bundle_document",
+                            "url": "https://app.gridex.se/legal/example/price-terms"
+                          }
+                        ]
+                      },
+                      "valid_from": "2026-08-01",
+                      "valid_to": null,
+                      "channel": "website"
+                    }
+                  ],
+                  "contracts": [
+                    {
+                      "id": "offer_variable_monthly_example",
+                      "offer_reference": "offer_variable_monthly_example",
+                      "contract_offer_id": "offer_variable_monthly_example",
+                      "publication_reference": "offer_variable_monthly_example",
+                      "product_code": "gridex_variable_monthly",
+                      "name": "Gridex Rörligt månadspris",
+                      "description": "Rörligt elavtal med månadsupplösning.",
+                      "contract_type": "variable_monthly",
+                      "energy_direction": "consumption",
+                      "customer_type": "private",
+                      "price_options": [
+                        {
+                          "price_option_reference": "variable_monthly_standard",
+                          "option_code": "variable_monthly_standard",
+                          "customer_name": "Standard",
+                          "price_type": "variable_monthly",
+                          "contract_type": "variable_monthly",
+                          "customer_type": "private",
+                          "resolution": "monthly",
+                          "currency": "SEK",
+                          "unit": "ore_per_kwh",
+                          "fixed_price": null,
+                          "markup": 10,
+                          "monthly_fee": 49,
+                          "binding_months": 0,
+                          "notice_months": 1,
+                          "auto_renew_enabled": false,
+                          "renewal_term_months": null,
+                          "is_default": true,
+                          "default": true,
+                          "selection_required": false,
+                          "valid_from": "2026-08-01",
+                          "valid_to": null,
+                          "earliest_start_date": "2026-08-15",
+                          "latest_start_date": null,
+                          "area_prices": []
+                        }
+                      ],
+                      "pricing": {
+                        "visibility": {},
+                        "calculation_components": [],
+                        "display_components": [],
+                        "calculation_contract": {
+                          "includes_all_applicable_components": true,
+                          "hidden_components_must_be_calculated": true,
+                          "market_price_supplied_by_ops": true
+                        },
+                        "summary_components": []
+                      },
+                      "legal": {
+                        "legal_bundle_reference": "legal_bundle_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                        "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+                        "immutable": true,
+                        "required_modules": [
+                          "general_consumer_terms",
+                          "price_terms"
+                        ],
+                        "module_versions": [
+                          {
+                            "id": "00000000-0000-4000-8000-000000000002",
+                            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+                            "document_reference": "legal_document_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                            "module_key": "general_consumer_terms",
+                            "version": "2",
+                            "title": "Allmänna konsumentvillkor",
+                            "published_at": "2026-08-01T00:00:00.000Z",
+                            "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                            "origin": "canonical_bundle_document",
+                            "url": "https://app.gridex.se/legal/example/general-consumer-terms"
+                          },
+                          {
+                            "id": "00000000-0000-4000-8000-000000000003",
+                            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+                            "document_reference": "legal_document_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                            "module_key": "price_terms",
+                            "version": "1",
+                            "title": "Prisvillkor",
+                            "published_at": "2026-08-01T00:00:00.000Z",
+                            "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                            "origin": "canonical_bundle_document",
+                            "url": "https://app.gridex.se/legal/example/price-terms"
+                          }
+                        ]
+                      },
+                      "valid_from": "2026-08-01",
+                      "valid_to": null,
+                      "channel": "website"
+                    }
+                  ],
+                  "meta": {
+                    "tenant_reference": "tenant_0123456789abcdef0123456789abcdef0123",
+                    "api_version": "v1",
+                    "channel": "website",
+                    "count": 1,
+                    "publication_revision": 42,
+                    "publication_updated_at": "2026-08-01T00:00:00.000Z",
+                    "contract_schema_version": "2026-08-01.1",
+                    "deprecated_aliases": [
+                      "contracts",
+                      "contract_offer_id",
+                      "publication_reference"
+                    ]
+                  },
+                  "request_id": "00000000-0000-4000-8000-000000000099"
                 }
               }
             }
           },
           "304": {
-            "description": "Publication revision has not changed"
+            "description": "Publication revision has not changed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Tenant- and channel-specific publication revision token."
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Reset": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable external reference for the locked legal bundle version."
+                }
+              }
+            }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/BadRequest",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
+            "$ref": "#/components/responses/Unauthorized",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "$ref": "#/components/responses/Conflict",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "503": {
-            "$ref": "#/components/responses/InternalError"
+            "$ref": "#/components/responses/InternalError",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           }
         },
         "x-required-scopes": [
@@ -290,20 +706,56 @@
               "ETag": {
                 "schema": {
                   "type": "string"
-                }
+                },
+                "description": "Tenant- and channel-specific publication revision token."
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.3"
+                  "const": "2026-08-01.1"
                 },
-                "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
+                "description": "Canonical public contract schema version."
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Reset": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable external reference for the locked legal bundle version."
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data",
+                    "contracts",
+                    "meta",
+                    "request_id"
+                  ],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -311,23 +763,90 @@
                         "$ref": "#/components/schemas/ApiPublicContract"
                       }
                     },
+                    "contracts": {
+                      "type": "array",
+                      "deprecated": true,
+                      "description": "Deprecated compatibility alias for data.",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiPublicContract"
+                      }
+                    },
                     "meta": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/TenantMeta"
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tenant_reference",
+                        "api_version",
+                        "channel",
+                        "count",
+                        "publication_revision",
+                        "publication_updated_at",
+                        "contract_schema_version"
+                      ],
+                      "properties": {
+                        "tenant_reference": {
+                          "type": "string",
+                          "pattern": "^tenant_[0-9a-f]{36}$",
+                          "description": "Stable opaque tenant identity. It is not the internal company UUID."
                         },
-                        {
-                          "type": "object",
-                          "required": [
-                            "contract_schema_version"
+                        "api_version": {
+                          "const": "v1"
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "website",
+                            "api"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "publication_revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "publication_updated_at": {
+                          "type": [
+                            "string",
+                            "null"
                           ],
-                          "properties": {
-                            "contract_schema_version": {
-                              "const": "2026-07-30.3"
-                            }
+                          "format": "date-time"
+                        },
+                        "contract_schema_version": {
+                          "type": "string",
+                          "const": "2026-08-01.1"
+                        },
+                        "deprecated_aliases": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
                           }
+                        },
+                        "customer_type": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "private",
+                            "business",
+                            null
+                          ]
+                        },
+                        "deprecated_customer_type_alias": {
+                          "type": "boolean"
                         }
-                      ]
+                      }
+                    },
+                    "diagnostics": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid"
                     }
                   }
                 }
@@ -335,28 +854,183 @@
             }
           },
           "304": {
-            "description": "API publication revision has not changed"
+            "description": "API publication revision has not changed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Tenant- and channel-specific publication revision token."
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Reset": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable external reference for the locked legal bundle version."
+                }
+              }
+            }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/BadRequest",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
+            "$ref": "#/components/responses/Unauthorized",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
+            "$ref": "#/components/responses/Forbidden",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "410": {
-            "$ref": "#/components/responses/TenantGone"
+            "$ref": "#/components/responses/TenantGone",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "423": {
-            "$ref": "#/components/responses/TenantPaused"
+            "$ref": "#/components/responses/TenantPaused",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "429": {
-            "$ref": "#/components/responses/RateLimited"
+            "$ref": "#/components/responses/RateLimited",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "500": {
-            "$ref": "#/components/responses/InternalError"
+            "$ref": "#/components/responses/InternalError",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           }
         },
         "deprecated": true
@@ -442,7 +1116,7 @@
                     "site_count": 1
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-30.3"
+                  "contract_schema_version": "2026-08-01.1"
                 }
               }
             }
@@ -564,11 +1238,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -1315,11 +1990,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -1520,11 +2196,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -1633,20 +2310,56 @@
               "ETag": {
                 "schema": {
                   "type": "string"
-                }
+                },
+                "description": "Tenant- and channel-specific publication revision token."
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.3"
+                  "const": "2026-08-01.1"
                 },
-                "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
+                "description": "Canonical public contract schema version."
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Reset": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable external reference for the locked legal bundle version."
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data",
+                    "contracts",
+                    "meta",
+                    "request_id"
+                  ],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -1654,34 +2367,90 @@
                         "$ref": "#/components/schemas/ApiPublicContract"
                       }
                     },
-                    "meta": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/TenantMeta"
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "contract_schema_version",
-                            "count"
-                          ],
-                          "properties": {
-                            "contract_schema_version": {
-                              "const": "2026-07-30.3"
-                            },
-                            "count": {
-                              "type": "integer",
-                              "minimum": 0
-                            }
-                          }
-                        }
-                      ]
-                    },
                     "contracts": {
                       "type": "array",
+                      "deprecated": true,
+                      "description": "Deprecated compatibility alias for data.",
                       "items": {
                         "$ref": "#/components/schemas/ApiPublicContract"
                       }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tenant_reference",
+                        "api_version",
+                        "channel",
+                        "count",
+                        "publication_revision",
+                        "publication_updated_at",
+                        "contract_schema_version"
+                      ],
+                      "properties": {
+                        "tenant_reference": {
+                          "type": "string",
+                          "pattern": "^tenant_[0-9a-f]{36}$",
+                          "description": "Stable opaque tenant identity. It is not the internal company UUID."
+                        },
+                        "api_version": {
+                          "const": "v1"
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "website",
+                            "api"
+                          ]
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "publication_revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "publication_updated_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "contract_schema_version": {
+                          "type": "string",
+                          "const": "2026-08-01.1"
+                        },
+                        "deprecated_aliases": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "customer_type": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "private",
+                            "business",
+                            null
+                          ]
+                        },
+                        "deprecated_customer_type_alias": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "diagnostics": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid"
                     }
                   }
                 }
@@ -1689,34 +2458,221 @@
             }
           },
           "304": {
-            "description": "API publication revision has not changed"
+            "description": "API publication revision has not changed",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Tenant- and channel-specific publication revision token."
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-RateLimit-Reset": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable external reference for the locked legal bundle version."
+                }
+              }
+            }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/BadRequest",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
+            "$ref": "#/components/responses/Unauthorized",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "410": {
-            "$ref": "#/components/responses/TenantGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/TenantPaused"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
+            "$ref": "#/components/responses/Forbidden",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "$ref": "#/components/responses/Conflict",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/TenantGone",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
+          },
+          "423": {
+            "$ref": "#/components/responses/TenantPaused",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           },
           "503": {
-            "$ref": "#/components/responses/InternalError"
+            "$ref": "#/components/responses/InternalError",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-08-01.1"
+                },
+                "description": "Canonical public contract schema version."
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Correlation identifier returned in the response body and logs."
+              }
+            }
           }
         }
       }
@@ -2112,6 +3068,7 @@
           "customer_type",
           "price_options",
           "pricing",
+          "legal",
           "valid_from",
           "valid_to",
           "channel"
@@ -2127,7 +3084,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "contract_type": {
             "type": "string",
@@ -2206,17 +3164,22 @@
               "discount": {}
             }
           },
+          "legal": {
+            "$ref": "#/components/schemas/WebsiteLegalBlock"
+          },
           "valid_from": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "valid_to": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "channel": {
             "type": "string",
@@ -2263,13 +3226,39 @@
           },
           "offer_code": {},
           "code": {},
-          "product_code": {},
-          "name": {},
+          "product_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
+          },
+          "name": {
+            "type": "string"
+          },
           "public_name": {},
-          "description": {},
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
+          },
           "public_description": {},
-          "contract_type": {},
-          "energy_direction": {},
+          "contract_type": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "variable_monthly",
+              "variable_hourly",
+              "variable_quarterly",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
           "type": {},
           "billing_model": {},
           "area_pricing": {
@@ -2312,7 +3301,14 @@
               }
             }
           },
-          "customer_type": {},
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business",
+              "both"
+            ]
+          },
           "customer_types": {},
           "production_pricing": {},
           "portfolio_price_ore_per_kwh": {},
@@ -2337,13 +3333,35 @@
           "vat_rate": {},
           "mix": {},
           "withdrawal_version": {},
-          "legal_versions": {},
-          "valid_from": {},
-          "valid_to": {},
+          "legal_versions": {
+            "type": "array",
+            "deprecated": true,
+            "description": "Deprecated compatibility view of legal.module_versions. New clients must use legal.module_versions.",
+            "items": {
+              "$ref": "#/components/schemas/LegacyLegalVersion"
+            }
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
           "is_public": {},
           "is_active": {},
           "sort_order": {},
-          "channel": {},
+          "channel": {
+            "type": "string",
+            "const": "website"
+          },
           "price_options": {
             "type": "array",
             "minItems": 1,
@@ -3393,19 +4411,22 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "area_price_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "invoice_delivery_method": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "site_count": {
             "type": [
@@ -3590,13 +4611,15 @@
                 "type": [
                   "string",
                   "null"
-                ]
+                ],
+                "description": "Stable external reference for the locked legal bundle version."
               },
               "customer_number": {
                 "type": [
                   "string",
                   "null"
-                ]
+                ],
+                "description": "Stable external reference for the locked legal bundle version."
               }
             }
           },
@@ -3639,7 +4662,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         }
       },
@@ -4112,20 +5135,21 @@
           "notice_months",
           "auto_renew_enabled",
           "renewal_term_months",
-          "default",
-          "selection_required",
-          "valid_from",
-          "valid_to",
-          "earliest_start_date",
-          "latest_start_date",
-          "area_prices",
           "price_type",
           "resolution",
           "currency",
           "unit",
           "fixed_price",
           "markup",
-          "monthly_fee"
+          "monthly_fee",
+          "is_default",
+          "default",
+          "selection_required",
+          "valid_from",
+          "valid_to",
+          "earliest_start_date",
+          "latest_start_date",
+          "area_prices"
         ],
         "properties": {
           "price_option_reference": {
@@ -4176,46 +5200,6 @@
             ],
             "minimum": 1
           },
-          "default": {
-            "type": "boolean"
-          },
-          "selection_required": {
-            "type": "boolean"
-          },
-          "valid_from": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date"
-          },
-          "valid_to": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date"
-          },
-          "earliest_start_date": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date"
-          },
-          "latest_start_date": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date"
-          },
-          "area_prices": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ContractPriceOptionAreaPrice"
-            }
-          },
           "price_type": {
             "type": "string",
             "enum": [
@@ -4260,6 +5244,52 @@
               "number",
               "null"
             ]
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "Canonical source of truth for whether this price option is the default."
+          },
+          "default": {
+            "type": "boolean",
+            "deprecated": true,
+            "description": "Deprecated compatibility alias for is_default. Always identical to is_default."
+          },
+          "selection_required": {
+            "type": "boolean"
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "earliest_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "latest_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "area_prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractPriceOptionAreaPrice"
+            }
           }
         }
       },
@@ -4512,11 +5542,12 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         }
       },
@@ -5643,7 +6674,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -5653,17 +6684,30 @@
         "additionalProperties": false,
         "required": [
           "id",
+          "legal_bundle_version_id",
+          "document_reference",
           "module_key",
           "version",
           "title",
+          "published_at",
+          "content_sha256",
           "origin",
-          "document_reference",
-          "legal_bundle_version_id"
+          "url"
         ],
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "legal_bundle_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "document_reference": {
+            "type": "string"
           },
           "module_key": {
             "type": "string"
@@ -5685,17 +6729,11 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "pattern": "^[a-fA-F0-9]{64}$"
           },
           "origin": {
             "type": "string"
-          },
-          "legal_bundle_version_id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
           },
           "url": {
             "type": [
@@ -5703,9 +6741,6 @@
               "null"
             ],
             "format": "uri"
-          },
-          "document_reference": {
-            "type": "string"
           }
         }
       },
@@ -5755,7 +6790,8 @@
               "string",
               "null"
             ],
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Immutable legal bundle version locked into the publication snapshot. The property is always present; historical explicitly approved exceptions may be null."
           },
           "terms_url": {
             "type": [
@@ -5808,16 +6844,21 @@
             "type": "boolean"
           },
           "immutable": {
-            "type": "boolean"
+            "type": "boolean",
+            "const": true,
+            "description": "Published legal snapshots are immutable."
           },
           "required_modules": {
             "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
             "items": {
               "type": "string"
             }
           },
           "module_versions": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "$ref": "#/components/schemas/LegalBundleDocument"
             }
@@ -5826,37 +6867,43 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "privacy_policy_document_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "withdrawal_document_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "price_terms_document_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "power_of_attorney_document_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "legal_bundle_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           }
         }
       },
@@ -5971,7 +7018,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         }
       },
@@ -6136,13 +7183,15 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "geodata_version": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "market_reference": {
             "$ref": "#/components/schemas/MarketReference"
@@ -6154,13 +7203,15 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "area_price_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "invoice_delivery_method": {
             "type": "string",
@@ -6227,13 +7278,15 @@
                 "type": [
                   "string",
                   "null"
-                ]
+                ],
+                "description": "Stable external reference for the locked legal bundle version."
               },
               "area_price_reference": {
                 "type": [
                   "string",
                   "null"
-                ]
+                ],
+                "description": "Stable external reference for the locked legal bundle version."
               }
             },
             "required": [
@@ -6363,7 +7416,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "status": {
             "type": "string",
@@ -6407,7 +7461,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "data": {
             "type": "object"
@@ -6429,23 +7484,23 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "released_at": {
             "type": "string",
@@ -6485,7 +7540,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           },
           "url": {
             "type": "string",
@@ -6595,6 +7650,72 @@
             "format": "date"
           }
         }
+      },
+      "LegacyLegalVersion": {
+        "type": "object",
+        "additionalProperties": false,
+        "deprecated": true,
+        "required": [
+          "id",
+          "type",
+          "version",
+          "title",
+          "published_at",
+          "content_sha256",
+          "legal_bundle_version_id",
+          "document_reference",
+          "origin",
+          "url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "content_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "legal_bundle_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "document_reference": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
       }
     },
     "responses": {
@@ -6688,7 +7809,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-30.3",
+  "x-contract-schema-version": "2026-08-01.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-01.1.json";
+import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
+import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
 import {
   WEBSITE_INTEGRATION_BASE_URL,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
@@ -24,6 +27,148 @@ const documentationVersion = WEBSITE_INTEGRATION_CONTRACT_VERSION;
 const websiteOpenApiUrl = WEBSITE_INTEGRATION_OPENAPI_URL;
 const customerPortalOpenApiUrl = CUSTOMER_PORTAL_OPENAPI_URL;
 const releaseManifestUrl = OPENAPI_RELEASE_MANIFEST_URL;
+const openApiRelease = buildOpenApiReleaseManifest();
+const websiteOpenApiSha256 = openApiRelease.specifications.website.sha256;
+const customerPortalOpenApiSha256 =
+  openApiRelease.specifications.customer_portal.sha256;
+
+const documentationSections = [
+  ['overview', 'Introduktion och snabbstart'],
+  ['authentication', 'Autentisering och säkerhet'],
+  ['permissions', 'Behörigheter'],
+  ['endpoints', 'Endpoints'],
+  ['public-contracts', 'Public contracts'],
+  ['customer-applications', 'Kundansökan'],
+  ['portal-linking', 'Mina sidor-koppling'],
+  ['portal-data', 'Mina sidor-data'],
+  ['portal-sync', 'Synk till OPS'],
+  ['webhooks', 'Webhooks'],
+  ['errors', 'Fel och idempotency'],
+  ['canonical-contract', 'Canonical kontrakt'],
+  ['field-reference', 'Fältreferens'],
+  ['versioning-openapi', 'Version, OpenAPI och checksummor'],
+  ['client-logic', 'Rekommenderad klientlogik'],
+  ['error-model', 'Strukturella och semantiska fel'],
+  ['migration-guide', 'Migrering för befintliga klienter'],
+  ['troubleshooting', 'Avtal visas inte på hemsidan'],
+  ['changelog', 'Changelog'],
+] as const;
+
+const publicContractFields = [
+  ['offer_reference', 'string', 'required', 'Nej', 'Canonical referens som ska skickas tillbaka i quote och kundansökan. Konstruera aldrig en egen referens.'],
+  ['name', 'string', 'required', 'Nej', 'Publicerat visningsnamn.'],
+  ['description', 'string', 'required', 'Ja', 'Publicerad beskrivning eller null.'],
+  ['contract_type', 'enum', 'required', 'Nej', 'Avtalets kommersiella huvudtyp, exempelvis variable_monthly eller fixed.'],
+  ['customer_type', 'enum', 'required', 'Nej', 'private, business eller both.'],
+  ['energy_direction', 'enum', 'required', 'Nej', 'consumption eller production enligt publicerad produkt.'],
+  ['price_options', 'array', 'required', 'Nej', 'Canonical valbara prisalternativ. Minst ett alternativ och exakt ett is_default.'],
+  ['pricing', 'object', 'required', 'Nej', 'Publicerad presentation och beräkningsmetadata. Slutligt kundpris ska hämtas från quote.'],
+  ['legal', 'object', 'required', 'Nej', 'Immutable juridiksnapshot som hör till publiceringsversionen.'],
+  ['valid_from', 'date-time', 'required', 'Ja', 'När publiceringen börjar vara giltig.'],
+  ['valid_to', 'date-time', 'required', 'Ja', 'När publiceringen slutar vara giltig; null betyder inget angivet slutdatum.'],
+  ['channel', 'enum', 'required', 'Nej', 'website eller api.'],
+] as const;
+
+const priceOptionFields = [
+  ['price_option_reference', 'string', 'required', 'Canonical identifierare för kundens val.'],
+  ['price_type', 'enum', 'required', 'Prisalternativets modell.'],
+  ['contract_type', 'enum', 'required', 'Avtalstypen som alternativet gäller.'],
+  ['customer_type', 'enum', 'required', 'private, business eller both.'],
+  ['resolution', 'enum', 'required', 'monthly, hourly eller quarterly.'],
+  ['currency', 'SEK', 'required', 'Valutan för monetära värden.'],
+  ['unit', 'ore_per_kwh', 'required', 'Canonical energienhet.'],
+  ['markup', 'number | null', 'required', 'Påslag i angiven unit.'],
+  ['monthly_fee', 'number | null', 'required', 'Månadsavgift i SEK enligt kontraktets fältdefinition.'],
+  ['is_default', 'boolean', 'required · canonical', 'Source of truth för förvalt prisalternativ.'],
+  ['default', 'boolean', 'required · deprecated', 'Kompatibilitetsalias. Är alltid identiskt med is_default.'],
+  ['selection_required', 'boolean', 'required', 'Anger om kunden aktivt måste välja bland alternativen.'],
+  ['area_prices', 'array', 'required', 'Stabil array. [] är giltigt för rörliga avtal som inte kräver fasta områdespriser.'],
+] as const;
+
+const publicContractErrorRows = [
+  ['PUBLICATION_LEGAL_BUNDLE_VERSION_MISSING', '409', 'Blockerande', 'Den låsta juridikpaketsversionen saknas. Reparera publiceringsrelationen; retry hjälper först efter datakorrigering.'],
+  ['PUBLICATION_LEGAL_MODULE_BUNDLE_MISMATCH', '409', 'Blockerande', 'En juridikmodul tillhör ett annat bundle. Publicera inte avtalet.'],
+  ['PUBLICATION_LEGAL_SNAPSHOT_INCOMPLETE', '409', 'Blockerande', 'Juridiksnapshoten är tom, muterbar eller ofullständig.'],
+  ['PUBLICATION_LEGAL_MODULE_VERSION_INVALID', '409', 'Blockerande', 'En modul saknar giltig version, identifierare eller unik module_key.'],
+  ['PUBLICATION_PRICE_OPTION_DEFAULT_MISMATCH', '409', 'Blockerande', 'default och is_default skiljer sig. Reparera källdatan.'],
+  ['PUBLICATION_RUNTIME_SCHEMA_MISMATCH', '409', 'Blockerande per avtal', 'Runtime-DTO:n kan inte byggas strikt från snapshoten. Logga request_id/trace_id och reparera publiceringen.'],
+  ['PUBLICATION_CONTRACT_VERSION_MISMATCH', '503', 'Integrationsblockerande', 'Runtime och publicerat kontrakt rapporterar olika version. Deploya en sammanhängande release.'],
+  ['PUBLICATION_OPENAPI_CHECKSUM_MISMATCH', '503', 'Integrationsblockerande', 'Manifestets SHA-256 matchar inte publicerade OpenAPI-bytes.'],
+  ['PUBLIC_CONTRACT_SCHEMA_OUTDATED', '503', 'Integrationsblockerande', 'Databas/RPC är inte migrerad till den version som applikationen kräver.'],
+  ['PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE', '503', 'Tillfälligt', 'Databas- eller nätverksfel. Retry med exponentiell backoff och samma correlation ID.'],
+] as const;
+
+const robustPublicContractsClientExample = `type PriceOption = {
+  price_option_reference: string
+  is_default: boolean
+  /** @deprecated */ default: boolean
+  selection_required: boolean
+  area_prices: Array<unknown>
+}
+
+type LegalModule = {
+  legal_bundle_version_id: string | null
+  module_key: string
+  document_reference: string
+}
+
+const response = await fetch("${apiBaseUrl}/website/public-contracts?customer_type=private", {
+  headers: {
+    Authorization: \`Bearer \${process.env.GRIDEX_API_KEY}\`,
+    Accept: "application/json"
+  },
+  cache: "no-store"
+})
+
+const requestId = response.headers.get("x-request-id")
+const contractVersion = response.headers.get("x-gridex-contract-version")
+if (!response.ok) {
+  const failure = await response.json()
+  console.error("Gridex public contracts failed", {
+    requestId: failure?.error?.request_id ?? requestId,
+    traceId: failure?.error?.trace_id,
+    code: failure?.error?.code,
+    status: response.status
+  })
+  throw new Error(failure?.error?.code ?? "public_contracts_failed")
+}
+
+const payload = await response.json()
+if (payload.meta.contract_schema_version !== contractVersion) {
+  throw new Error("PUBLICATION_CONTRACT_VERSION_MISMATCH")
+}
+
+for (const contract of payload.data) {
+  const selected = contract.price_options.find((option: PriceOption) => option.is_default)
+  if (!selected) continue
+  if (selected.default !== selected.is_default) {
+    throw new Error("PUBLICATION_PRICE_OPTION_DEFAULT_MISMATCH")
+  }
+
+  // area_prices: [] är giltigt för vanliga rörliga avtal.
+  const bundleId = contract.legal.legal_bundle_version_id
+  const legalIsConsistent = contract.legal.module_versions.every(
+    (module: LegalModule) => module.legal_bundle_version_id === bundleId
+  )
+  if (!bundleId || !legalIsConsistent) continue
+
+  renderContract(contract, selected)
+}`;
+
+const checksumVerificationExample = `curl -sS "${websiteOpenApiUrl}" -o website-integration-v1.json
+printf "%s  %s\\n" "${websiteOpenApiSha256}" "website-integration-v1.json" | shasum -a 256 -c -
+
+curl -sS "${customerPortalOpenApiUrl}" -o customer-portal-v1.json
+printf "%s  %s\\n" "${customerPortalOpenApiSha256}" "customer-portal-v1.json" | shasum -a 256 -c -`;
+
+const migrationExample = `// Före: legacyfältet styrde klienten
+const selected = option.default
+
+// Efter: canonical source of truth
+const selected = option.is_default
+
+// Tillfällig tolerant läsning under en kontrollerad migrering
+const selectedDuringMigration = option.is_default ?? option.default ?? false`;
 
 const permissions = [
   [
@@ -208,92 +353,7 @@ const publicContractsExample = `curl -X GET "${apiBaseUrl}/website/public-contra
   -H "Authorization: Bearer $GRIDEX_API_KEY" \\
   -H "Accept: application/json"`;
 
-const publicContractsResponse = `{
-  "data": [
-    {
-      "offer_reference": "offer_...",
-      "name": "Fast elpris",
-      "contract_type": "fixed",
-      "energy_direction": "consumption",
-      "customer_type": "private",
-      "fixed_price_ore_per_kwh": 112,
-      "monthly_fee_sek": 49,
-      "invoice_fee_sek": 19,
-      "pricing": {
-        "fixed_price": {
-          "amount": 112,
-          "unit": "ore_per_kwh",
-          "vat_included": false,
-          "vat_rate": 0.25,
-          "calculation_inclusion": "included",
-          "website_visibility": "visible"
-        },
-        "monthly_fee": {
-          "amount": 49,
-          "currency": "SEK",
-          "unit": "month",
-          "calculation_inclusion": "included",
-          "website_visibility": "visible"
-        },
-        "invoice_fee": {
-          "amount": 19,
-          "currency": "SEK",
-          "unit": "invoice",
-          "calculation_inclusion": "included",
-          "website_visibility": "summary_only"
-        },
-        "market_price_responsibility": "not_applicable",
-        "calculation_contract": {
-          "includes_all_applicable_components": true,
-          "hidden_components_must_be_calculated": true,
-          "market_price_supplied_by_ops": false
-        },
-        "calculation_components": [
-          {
-            "component_code": "monthly_fee",
-            "amount": 49,
-            "unit": "sek_month",
-            "calculation_inclusion": "included",
-            "website_visibility": "visible"
-          },
-          {
-            "component_code": "invoice_fee",
-            "amount": 19,
-            "unit": "sek_invoice",
-            "calculation_inclusion": "included",
-            "website_visibility": "summary_only"
-          }
-        ],
-        "display_components": [
-          {
-            "component_code": "monthly_fee",
-            "amount": 49,
-            "unit": "sek_month",
-            "website_visibility": "visible"
-          }
-        ],
-        "summary_components": [
-          {
-            "component_code": "monthly_fee",
-            "amount": 49,
-            "unit": "sek_month",
-            "website_visibility": "visible"
-          },
-          {
-            "component_code": "invoice_fee",
-            "amount": 19,
-            "unit": "sek_invoice",
-            "website_visibility": "summary_only"
-          }
-        ]
-      },
-      "price_areas": ["SE1", "SE2", "SE3", "SE4"],
-      "legal": { "requirements": [] },
-      "valid_from": "2026-07-22",
-      "valid_to": null
-    }
-  ]
-}`;
+const publicContractsResponse = JSON.stringify(publicContractsFixture, null, 2);
 
 const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-price/current" \
   -H "Authorization: Bearer $GRIDEX_API_KEY" \
@@ -325,7 +385,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-30.3"
+  "contract_schema_version": "2026-08-01.1"
 }`;
 
 const marketReferenceExample = `{
@@ -413,7 +473,7 @@ if (!resolution.data.capabilities.quote_ready) {
 }
 
 const defaultPriceOption = contract.price_options.find(
-  option => option.default
+  option => option.is_default
 )
 const selectedPriceOption = defaultPriceOption?.selection_required
   ? await askCustomerToChoose(contract.price_options)
@@ -831,24 +891,21 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true })
 }`;
 
-function CodeBlock({ children }: { children: string }) {
-  return (
-    <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-      <code>{children}</code>
-    </pre>
-  );
-}
+const CodeBlock = CopyCodeBlock;
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-black text-slate-950">{title}</h2>
+    <section id={id} tabIndex={-1} className="scroll-mt-6 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <a href={`#${id}`} className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+        <h2 className="text-xl font-black text-slate-950">{title}</h2>
+      </a>
       <div className="mt-4 space-y-4 text-sm leading-6 text-slate-700">
         {children}
       </div>
     </section>
   );
 }
+
 
 export default function CustomerPortalApiDocsPage() {
   return (
@@ -899,7 +956,54 @@ export default function CustomerPortalApiDocsPage() {
           </div>
         </section>
 
-        <Section title="1. Autentisering och säkerhet">
+        <nav aria-label="Innehåll" className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-black text-slate-950">Innehåll</h2>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {documentationSections.map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none hover:border-emerald-300 hover:text-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                {label}
+              </a>
+            ))}
+          </div>
+        </nav>
+
+        <Section id="overview" title="Introduktion och snabbstart">
+          <p>
+            <strong>Website Integration API</strong> används av tenantens publika
+            hemsida för avtal, elområdesresolution, marknadspris, quote, juridik
+            och kundansökan. <strong>Customer Portal API</strong> används efter
+            inloggning för kundprofil, avtal, anläggningar, fakturor, dokument,
+            notiser och kompletteringar. Public contracts är publicerade
+            produkt- och avtalsdata; customer applications är kundens inskickade
+            affärshändelse och kräver write-scope, idempotency och validerade
+            canonical referenser.
+          </p>
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>Hämta <code>GET /api/v1/integration/context</code> och läs tenant-, capability- och kontraktsversion.</li>
+            <li>Hämta <code>GET /api/v1/website/public-contracts</code> och spara <code>x-gridex-contract-version</code>, ETag och request-ID.</li>
+            <li>Välj avtal med <code>offer_reference</code> och prisalternativ med <code>price_option_reference</code>. Använd <code>is_default</code>, inte legacyfältet <code>default</code>, som source of truth.</li>
+            <li>Visa juridiken från avtalets immutable <code>legal</code>-snapshot. Hämta inte en senare juridikversion separat.</li>
+            <li>Lös elområde och skapa quote när avtalsmodellen kräver en kundspecifik beräkning.</li>
+            <li>Skicka <code>POST /api/v1/website/customer-applications</code> med samma canonical referenser och en unik <code>Idempotency-Key</code>.</li>
+            <li>Spara <code>request_id</code>, <code>trace_id</code>, kontraktsversion och vald juridikversion för support och revisionsspår.</li>
+          </ol>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-bold text-slate-950">Produktion</h3>
+              <p className="mt-2">Canonical base URL: <code>{apiBaseUrl}</code>. API-prefix är <code>/api/v1</code>.</p>
+            </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <h3 className="font-bold text-amber-950">Staging</h3>
+              <p className="mt-2 text-amber-900">Ingen publik staging-URL är deklarerad i den canonical konfigurationen. Använd endast en staging-URL som Gridex uttryckligen provisionerat för tenantens testmiljö.</p>
+            </div>
+          </div>
+        </Section>
+
+        <Section id="authentication" title="1. Autentisering och säkerhet">
           <p>
             Tenantens enda obligatoriska miljövariabel är
             <code>GRIDEX_API_KEY</code>. API-nyckeln identifierar tenant, bolag
@@ -935,7 +1039,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="2. Behörigheter">
+        <Section id="permissions" title="2. Behörigheter">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -972,7 +1076,7 @@ export default function CustomerPortalApiDocsPage() {
           </ul>
         </Section>
 
-        <Section title="3. Endpoints">
+        <Section id="endpoints" title="3. Endpoints">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -1000,7 +1104,7 @@ export default function CustomerPortalApiDocsPage() {
           </div>
         </Section>
 
-        <Section title="4. Hämta publicerade avtal">
+        <Section id="public-contracts" title="4. Hämta publicerade avtal">
           <p>
             Svaret innehåller bara avtal som är publicerade, aktiva för
             hemsida/API, datumgiltiga, kopplade till aktiv prisversion/prislista
@@ -1164,7 +1268,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{publicContractsDiagnosticsExample}</CodeBlock>
         </Section>
 
-        <Section title="5. Skicka kundansökan">
+        <Section id="customer-applications" title="5. Skicka kundansökan">
           <p>
             Kundansökan ska innehålla canonical top-level
             <code>offer_reference</code>, <code>quote_reference</code> och
@@ -1238,7 +1342,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{applicationValidationErrors}</CodeBlock>
         </Section>
 
-        <Section title="6. Obligatoriskt: Mina sidor-koppling">
+        <Section id="portal-linking" title="6. Obligatoriskt: Mina sidor-koppling">
           <p>
             Det här flödet heter{" "}
             <strong>Customer Portal External Auth Linking</strong>. På svenska
@@ -1275,7 +1379,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="7. Hämta Mina sidor-data">
+        <Section id="portal-data" title="7. Hämta Mina sidor-data">
           <p>
             Tenantens Mina sidor ska anropa OPS server-side med exakt
             kundidentifiering från den inloggade kunden. Rekommenderad
@@ -1301,7 +1405,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="8. Synka dokument, fullmakt och juridiska godkännanden till OPS">
+        <Section id="portal-sync" title="8. Synka dokument, fullmakt och juridiska godkännanden till OPS">
           <p>
             Godkända fullmakter, juridiska godkännanden och dokument ska skickas
             till OPS så att OPS kan starta rätt automatiska processer. Använd{" "}
@@ -1319,7 +1423,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="9. Webhooks">
+        <Section id="webhooks" title="9. Webhooks">
           <p>
             Webhookar skickas som POST till konfigurerad HTTPS-URL. Leveransen
             signeras med HMAC SHA-256 över <code>timestamp.rawBody</code>.
@@ -1395,7 +1499,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{cronEndpoints}</CodeBlock>
         </Section>
 
-        <Section title="10. Fel, rate limits och idempotency">
+        <Section id="errors" title="10. Fel, rate limits och idempotency">
           <p>
             Rate limiting är per API-klient, endpoint och 60-sekundersfönster.
             Läs <code>X-RateLimit-Limit</code>,{" "}
@@ -1434,7 +1538,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title={`11. Canonical integrationskontrakt ${documentationVersion}`}>
+        <Section id="canonical-contract" title={`11. Canonical integrationskontrakt ${documentationVersion}`}>
           <h3 className="text-lg font-bold text-slate-900">Kundtyp och routes</h3>
           <p>
             Canonical kundtyper är <code>private</code> och <code>business</code>.
@@ -1522,6 +1626,239 @@ export default function CustomerPortalApiDocsPage() {
               {customerPortalOpenApiUrl}
             </a>. OpenAPI används för utveckling och typgenerering, aldrig som
             runtime-spärr eller tenantkonfiguration.
+          </p>
+        </Section>
+
+        <Section id="field-reference" title="12. Public Contract – komplett fältreferens">
+          <p>
+            OpenAPI-filerna är den maskinläsbara kontraktskällan. Tabellen nedan
+            förklarar den stabila kärnan som båda public contracts-kanalerna
+            återanvänder. Website-kanalen kan dessutom innehålla dokumenterade
+            kompatibilitetsfält; interna databas-ID:n, auditfält och råa
+            snapshotrelationer exponeras inte.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-[860px] w-full text-left text-sm">
+              <thead><tr className="border-b"><th className="py-2">Fält</th><th>Typ</th><th>Status</th><th>Nullable</th><th>Betydelse</th></tr></thead>
+              <tbody>
+                {publicContractFields.map((row) => (
+                  <tr key={row[0]} className="border-b last:border-0">
+                    <td className="py-2 font-mono text-xs">{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Prisalternativ</h3>
+          <p>
+            Ett avtal kan ha flera <code>price_options</code>. Klienten skickar
+            valt <code>price_option_reference</code> tillbaka till OPS. Exakt ett
+            alternativ är standard. <code>is_default</code> är canonical source
+            of truth. <code>default</code> är ett deprecated kompatibilitetsalias
+            och båda värdena är alltid identiska under övergångsperioden.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-[760px] w-full text-left text-sm">
+              <thead><tr className="border-b"><th className="py-2">Fält</th><th>Typ</th><th>Status</th><th>Semantik</th></tr></thead>
+              <tbody>
+                {priceOptionFields.map((row) => (
+                  <tr key={row[0]} className="border-b last:border-0">
+                    <td className="py-2 font-mono text-xs">{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>
+            <code>area_pricing</code> beskriver avtalets övergripande prismodell,
+            medan <code>price_options[].area_prices</code> innehåller konkreta
+            områdesrader när den valda pristypen kräver dem. Fälten är inte
+            utbytbara och klienten ska följa pristypens semantiska regler.
+          </p>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+            <strong>Rörliga avtal:</strong> <code>area_prices: []</code> är ett
+            strukturellt och semantiskt giltigt värde när pristypen inte kräver
+            förhandsberäknade fasta priser per elområde. Klienten får inte dölja
+            avtalet enbart för att arrayen är tom. Områdespriser blir
+            semantiskt obligatoriska först för en pristyp som uttryckligen
+            bygger på områdesspecifika fasta priser.
+          </div>
+
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Juridik</h3>
+          <p>
+            <code>legal</code> är den juridikpaketsversion som låstes i samma
+            publiceringssnapshot som avtalet. <code>legal_bundle_reference</code>
+            är en publik referens. <code>legal_bundle_version_id</code> är UUID:t
+            för den immutable versionen. Varje rad i <code>module_versions</code>
+            innehåller samma <code>legal_bundle_version_id</code>, ett publikt
+            <code>document_reference</code>, <code>module_key</code>, version,
+            titel, publiceringstid, innehållshash, origin och eventuell URL.
+          </p>
+          <CodeBlock>{`legal.module_versions[n].legal_bundle_version_id === legal.legal_bundle_version_id`}</CodeBlock>
+          <p>
+            Ett publicerat avtal får aldrig blanda moduler från olika bundles.
+            Klienten ska visa och lagra juridiken från denna snapshot vid
+            acceptans och ska inte ersätta den med den senast publicerade
+            juridikversionen. Nya publiceringar kräver UUID. Godkända historiska
+            undantag serialiseras uttryckligen som <code>null</code>; egenskapen
+            utelämnas aldrig.
+          </p>
+        </Section>
+
+        <Section id="versioning-openapi" title="13. Headers, versionering, OpenAPI och checksummor">
+          <h3 className="text-lg font-bold text-slate-900">Request headers</h3>
+          <ul className="list-disc space-y-1 pl-5">
+            <li><code>Authorization: Bearer &lt;GRIDEX_API_KEY&gt;</code> – obligatorisk på tenantbundna routes och endast server-side.</li>
+            <li><code>Accept: application/json</code> – rekommenderad på GET.</li>
+            <li><code>Content-Type: application/json</code> – obligatorisk på JSON-body.</li>
+            <li><code>Idempotency-Key</code> – obligatorisk på customer applications och rekommenderad på övriga writes.</li>
+            <li><code>If-None-Match</code> – använd public contracts- eller OpenAPI-responsens ETag för villkorad hämtning.</li>
+          </ul>
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Response headers</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-[720px] w-full text-left text-sm">
+              <thead><tr className="border-b"><th className="py-2">Header</th><th>Betydelse</th></tr></thead>
+              <tbody>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">x-gridex-contract-version</td><td>Samma canonical kontraktsversion som response metadata, integration context, OpenAPI info.version och release manifest.</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">X-Request-ID</td><td>Korrelations-ID för anropet. Spara värdet och ange det vid felsökning mot Gridex OPS.</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">ETag</td><td>Revision/hash för resursen. Skicka tillbaka i If-None-Match; 304 betyder att cachad body fortfarande gäller.</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">Cache-Control</td><td>Public contracts är private och måste revalideras. OpenAPI får publik kort cache med stale-while-revalidate.</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">Content-Type</td><td>application/json; OpenAPI publiceras med UTF-8.</td></tr>
+                <tr><td className="py-2 font-mono text-xs">X-RateLimit-*</td><td>Aktuell gräns, kvarvarande anrop och reset-tid för tenantens API-klient.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Aktuell kontraktsversion är <code>{documentationVersion}</code>.
+            Denna release är additiv: <code>is_default</code> är canonical,
+            <code>default</code> är kvar som deprecated alias och
+            <code>legal_bundle_version_id</code> finns på legal-objektet och varje
+            modulrad. En breaking change kräver en ny major contract version
+            enligt den faktiska releasepolicyn; ett deprecated fält tas inte
+            bort i en patchrelease.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-bold text-slate-950">Website Integration OpenAPI</h3>
+              <a className="mt-2 block break-all font-mono text-xs text-emerald-700 underline" href={websiteOpenApiUrl}>{websiteOpenApiUrl}</a>
+              <p className="mt-2 break-all font-mono text-xs">SHA-256: {websiteOpenApiSha256}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-bold text-slate-950">Customer Portal OpenAPI</h3>
+              <a className="mt-2 block break-all font-mono text-xs text-emerald-700 underline" href={customerPortalOpenApiUrl}>{customerPortalOpenApiUrl}</a>
+              <p className="mt-2 break-all font-mono text-xs">SHA-256: {customerPortalOpenApiSha256}</p>
+            </div>
+          </div>
+          <p>
+            Release manifest finns på <a className="font-mono text-emerald-700 underline" href={releaseManifestUrl}>{releaseManifestUrl}</a>.
+            Checksumman beräknas från exakt den canonical JSON-serialisering som
+            OpenAPI-routen publicerar. Lagra schemafil, SHA-256 och
+            kontraktsversion tillsammans; använd inte en gammal schemafil mot en
+            ny runtime-version.
+          </p>
+          <CodeBlock>{checksumVerificationExample}</CodeBlock>
+        </Section>
+
+        <Section id="client-logic" title="14. Rekommenderad klientlogik och körbara exempel">
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>Hämta integration context och kontrollera capabilities samt contract version.</li>
+            <li>Hämta public contracts och kontrollera HTTP-status, ETag, request-ID och versionsheader.</li>
+            <li>Validera responsen strukturellt mot rätt publicerad OpenAPI-fil.</li>
+            <li>Filtrera endast på verkliga semantiska blockers; ett additivt dokumenterat fält ska inte tömma hela sidan.</li>
+            <li>Använd <code>is_default</code> för förvalt prisalternativ och låt kunden välja när <code>selection_required</code> är true.</li>
+            <li>Acceptera <code>area_prices: []</code> för rörliga modeller som inte kräver områdespriser.</li>
+            <li>Kontrollera legal bundle-invarianten och visa juridiken från snapshoten.</li>
+            <li>Skicka samma offer-, price option-, quote- och juridikreferenser i kundansökan.</li>
+          </ol>
+          <CodeBlock>{robustPublicContractsClientExample}</CodeBlock>
+          <p>
+            Generera gärna TypeScript-typer och AJV-validator från OpenAPI, men
+            skilj strukturell validering från affärsregler. OpenAPI får inte
+            användas som generell runtime-kill switch för additiva kompatibla
+            fält. Verkligt saknade required-fält, fel typ, fel UUID eller
+            juridikmismatch ska däremot blockera det berörda avtalet.
+          </p>
+          <CodeBlock>{`npx openapi-typescript website-integration-v1.json -o src/generated/gridex-website-api.ts
+npx ajv-cli compile -s website-integration-v1.json --spec=draft2020`}</CodeBlock>
+        </Section>
+
+        <Section id="error-model" title="15. Strukturella och semantiska fel">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+              <h3 className="font-bold text-rose-950">Strukturella OpenAPI-fel</h3>
+              <p className="mt-2 text-rose-900"><code>openapi_required</code>, <code>openapi_additionalProperties</code>, <code>invalid_type</code> och <code>invalid_format</code> betyder att body inte matchar det publicerade maskinläsbara kontraktet.</p>
+            </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <h3 className="font-bold text-amber-950">Semantiska affärsfel</h3>
+              <p className="mt-2 text-amber-900"><code>offer_not_available</code>, <code>price_option_not_available</code>, <code>customer_type_not_supported</code>, <code>publication_not_selectable</code> och ofullständig juridiksnapshot betyder att strukturen kan vara korrekt men att affären inte får genomföras.</p>
+            </div>
+          </div>
+          <p>
+            En klient ska kunna visa övriga giltiga avtal om ett enskilt avtal
+            har en blockerande publiceringsdiagnostik. Hela integrationen ska
+            blockeras vid authfel, versionsdrift, checksummefel eller när ingen
+            kontraktsgiltig feed kan produceras. Logga aldrig API-nyckel,
+            bearer-token, personuppgifter eller fullständiga juridiska dokument;
+            logga status, felkod, JSON-path, request-ID och trace-ID.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-[920px] w-full text-left text-sm">
+              <thead><tr className="border-b"><th className="py-2">Felkod</th><th>HTTP</th><th>Klass</th><th>Klientåtgärd</th></tr></thead>
+              <tbody>
+                {publicContractErrorRows.map((row) => (
+                  <tr key={row[0]} className="border-b last:border-0"><td className="py-2 font-mono text-xs">{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        <Section id="migration-guide" title="16. Migrering för befintliga klienter">
+          <CodeBlock>{migrationExample}</CodeBlock>
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>Hämta OpenAPI för version <code>{documentationVersion}</code> och verifiera SHA-256 mot release manifest.</li>
+            <li>Regenerera TypeScript-typer och eventuell AJV-validator.</li>
+            <li>Byt intern source of truth från <code>default</code> till <code>is_default</code>. Behåll endast en tidsbegränsad fallback för äldre serverversioner.</li>
+            <li>Lägg tester som kräver <code>legal.legal_bundle_version_id</code> och identiskt ID på samtliga modulrader.</li>
+            <li>Ta bort generella klientspärrar som döljer hela feeden vid additiva dokumenterade fält.</li>
+            <li>Behåll strikt blockering för required-, typ-, UUID-, versions-, checksumme- och bundle mismatch-fel.</li>
+            <li>Verifiera att rörliga avtal med <code>area_prices: []</code> visas i staging innan produktion.</li>
+          </ol>
+        </Section>
+
+        <Section id="troubleshooting" title="17. Avtal visas inte på hemsidan">
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>Kontrollera HTTP-status och responsebody. Spara <code>request_id</code> och eventuell <code>trace_id</code>.</li>
+            <li>Kontrollera att Bearer-nyckeln är aktiv, server-side och har <code>website_contracts.read</code>.</li>
+            <li>Hämta integration context och kontrollera tenantens operational status samt capabilities.</li>
+            <li>Jämför <code>x-gridex-contract-version</code>, <code>meta.contract_schema_version</code>, OpenAPI <code>info.version</code> och release manifest.</li>
+            <li>Hämta OpenAPI på nytt och verifiera dess SHA-256. Använd inte en cachad fil med annan version.</li>
+            <li>Kontrollera att varje price option har <code>is_default</code>, att exakt ett alternativ är default och att <code>default === is_default</code>.</li>
+            <li>Kontrollera att <code>legal.legal_bundle_version_id</code> finns och att varje module row har exakt samma ID.</li>
+            <li>Vid <code>openapi_additionalProperties</code>: jämför JSON-path mot aktuell OpenAPI. Uppgradera gammal validator; gör inte schema generellt tillåtande.</li>
+            <li>Vid <code>openapi_required</code>: kontrollera om runtime, OpenAPI eller den låsta snapshoten saknar fältet. Ett required-fält får inte tyst defaultas i klienten.</li>
+            <li>Kontrollera semantiska blockers i diagnostics-routen. Hoppa över ett enskilt ogiltigt avtal men dölj inte övriga giltiga avtal.</li>
+            <li>Kontrollera att klienten inte kräver icke-tom <code>area_prices</code> för ett rörligt avtal.</li>
+            <li>Sök OPS-loggar på request-ID/trace-ID och jämför company, channel, offer reference, publication version, error code och JSON-path utan att logga känslig payload.</li>
+          </ol>
+        </Section>
+
+        <Section id="changelog" title={`18. Changelog – ${documentationVersion}`}>
+          <p>Release: <code>{openApiRelease.released_at}</code>. Kompatibilitet: additiv.</p>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>Added <code>legal.legal_bundle_version_id</code>.</li>
+            <li>Added <code>legal.module_versions[].legal_bundle_version_id</code>.</li>
+            <li>Made <code>price_options[].is_default</code> canonical.</li>
+            <li>Kept <code>price_options[].default</code> as a deprecated compatibility alias.</li>
+            <li>Updated Website Integration och Customer Portal OpenAPI samt deras checksummor och release manifest.</li>
+            <li>Added runtime-to-published-OpenAPI regression validation and documentation example validation.</li>
+            <li>Clarified that variable contracts do not require non-empty <code>area_prices</code>.</li>
+          </ul>
+          <p>
+            <code>default</code> kan tas bort först i en framtida major contract
+            version enligt Gridex faktiska deprecation-policy. Nya integrationer
+            ska använda <code>is_default</code> direkt.
           </p>
         </Section>
       </div>

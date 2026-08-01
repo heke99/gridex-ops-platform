@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const version = '2026-07-30.3'
+const version = '2026-08-01.1'
 const website = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
@@ -32,7 +32,6 @@ const publicBoundary = JSON.stringify({
   portalSchemas: portal.components.schemas,
   websiteApplication:
     website.components.schemas.CustomerApplicationResponse,
-  websiteLegal: website.components.schemas.WebsiteLegalBundle,
 })
 for (const forbidden of [
   '"customer_id"',
@@ -40,13 +39,30 @@ for (const forbidden of [
   '"site_id"',
   '"application_id"',
   '"document_id"',
-  '"legal_bundle_version_id"',
 ]) {
   assert(
     !publicBoundary.includes(forbidden),
     `public customer boundary leaks internal field ${forbidden}`,
   )
 }
+
+
+const publicContractLegal = website.components.schemas.WebsiteLegalBlock
+const publicContractLegalModule = website.components.schemas.LegalBundleDocument
+assert(
+  publicContractLegal?.properties?.legal_bundle_version_id,
+  'public contract legal bundle version is missing',
+)
+assert(
+  publicContractLegalModule?.properties?.legal_bundle_version_id,
+  'public contract legal module bundle version is missing',
+)
+const priceOption = website.components.schemas.ContractPriceOption
+assert(priceOption?.properties?.is_default, 'canonical is_default is missing')
+assert(
+  priceOption?.properties?.default?.deprecated === true,
+  'default compatibility alias is not deprecated',
+)
 
 const syncSchema =
   portal.components.schemas.CustomerSyncRequest

@@ -149,12 +149,13 @@ check(
   "website and API use the shared external DTO mapper",
 );
 check(
-  dto.includes(
-    `API_CONTRACT_RESPONSE_SCHEMA_VERSION = "${openapi.info.version}"`,
-  ) &&
+  /API_CONTRACT_RESPONSE_SCHEMA_VERSION\s*=\s*WEBSITE_INTEGRATION_CONTRACT_VERSION/.test(dto) &&
+    read("lib/integrations/websiteIntegrationContract.ts").includes(
+      `WEBSITE_INTEGRATION_CONTRACT_VERSION = '${openapi.info.version}'`,
+    ) &&
     /X-Gridex-Contract-Version/.test(apiRoute) &&
     /contract_schema_version/.test(apiRoute),
-  "API DTO version drives header and response metadata",
+  "canonical contract version drives DTO, header and response metadata",
 );
 check(
   !/company_id|contract_product_version_id/.test(

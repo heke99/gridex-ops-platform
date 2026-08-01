@@ -1,13 +1,14 @@
 # Current state
 
-Last updated: 2026-07-30T23:59:00+02:00
+Last updated: 2026-08-01T01:25:00+02:00
 
-- PHASE-35 canonical price-option/publication/API completion is IMPLEMENTED and LOCALLY VERIFIED; DATABASE/LIVE/WEB E2E REMAIN BLOCKED.
-- Publication-bound price options now carry canonical customer type, default and explicit-selection policy, with stable option/area references and deterministic review-backed backfill.
-- Public contracts expose top-level `price_options`; quote, validate and customer application bind the same immutable commercial assertions.
-- Legal document UUIDs and stable document references are aligned, central public schemas are closed, and release checks reject orphaned or drifting public schemas.
-- The forward migration `20260730220000_canonical_price_option_publication_api_completion.sql` is registered with SHA-256 `0ab350f0da6648a497a80aeaedc1688eb5ae88e6279d6ab486526c070ff8c505`.
-- Migration integrity passes: 325 files, 229 version groups and all registered checksums.
-- Website and Customer Portal OpenAPI documents are synchronized at `2026-07-30.3`; exact local SHA-256 values are website `fdabd8196ae94482cd22928bf624b69ffe6a246e47b0781d698ec1701c80d6b2` and portal `93d4cb523515948dae2f168b8cab629e1ef1d8238ddb8322b8ca75aa8a46d1f9`.
-- Verification: all TypeScript targets pass; 58 files/376 tests pass; API docs/parity/examples/shared boundaries, compatibility, release artifacts, migration integrity, API error boundaries, tenant/performance gates, zero-error lint and Next.js production build pass.
-- Release remains NO-GO: no authorized clean/upgrade PostgreSQL apply, deployment, staging API keys, two-tenant fixtures, provider/webhook round trip or Gridex Web source was supplied. Three pre-existing allowlisted duplicate migration timestamps remain unresolved pending authoritative migration-ledger provenance.
+- PHASE-36 Public Contracts runtime/OpenAPI/legal parity is IMPLEMENTED and STATICALLY VERIFIED; dependency-based full build, PostgreSQL apply and staging E2E remain blocked.
+- Contract version is `2026-08-01.1` across the canonical runtime constant, response metadata/headers, integration context, both OpenAPI releases, release manifest, fixtures, tests and `/developers/customer-portal-api`.
+- `price_options[].is_default` is canonical. `default` is emitted only as an always-identical deprecated compatibility alias. Strict serializers reject conflicting values and require exactly one default option.
+- The exact locked `legal_bundle_version_id` is emitted on `legal` and every module row. Bundle mismatch, duplicate modules, mutable snapshots and missing new-publication IDs fail closed with structured codes.
+- Website and API feeds share the same external DTO boundary. The API RPC now includes canonical legal data.
+- Forward migration `20260801003000_public_contract_runtime_openapi_legal_parity.sql` has SHA-256 `19bbfbb56f3b150835e873200962d490dd043c7d2de51ded83e4460061659850` and an exact-relation, dry-run-first, idempotent audited backfill.
+- Website OpenAPI SHA-256 is `e15a170a38b0cecadb2b815c1387c2336f02da7a69c96af418acca3999952f5f`; Customer Portal OpenAPI SHA-256 is `72fe14799c971f34e172782972ae510c9817cc6e4b981fb5ec8a71326f49e628`.
+- Static API/docs/OpenAPI/release/migration semantic checks and focused domain regressions pass. All 16 changed TS/TSX files pass syntax/transpile validation; the canonical model/DTO/error boundary pass an isolated strict TypeScript check.
+- Full `npm ci`, Vitest, lint, complete typecheck and Next.js build were not rerun because this environment cannot resolve `registry.npmjs.org`.
+- Release remains NO-GO: the uploaded archive has an inherited checksum mismatch for historical migration `20260730220000...`; no historical checksum was silently rewritten. No authorized database, staging origin/API key, Gridex Web source or deployment target was supplied.

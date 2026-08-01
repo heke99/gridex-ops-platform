@@ -123,9 +123,10 @@ requireProperties('WebsiteQuoteData', [
   'conditional_component_references',
 ])
 requireProperties('PublicContract', ['price_options', 'pricing', 'legal'])
-requireProperties('ApiPublicContract', ['price_options', 'pricing'])
+requireProperties('ApiPublicContract', ['price_options', 'pricing', 'legal'])
 requireProperties('ContractPriceOption', [
   'customer_type',
+  'is_default',
   'default',
   'selection_required',
   'area_prices',
@@ -135,6 +136,27 @@ requireProperties('LegalBundleDocument', [
   'document_reference',
   'legal_bundle_version_id',
 ])
+
+const priceOptionSchema = website.components.schemas.ContractPriceOption
+for (const field of ['is_default', 'default']) {
+  if (!priceOptionSchema.required?.includes(field)) {
+    failures.push(`ContractPriceOption required list missing ${field}`)
+  }
+}
+if (priceOptionSchema.properties.default?.deprecated !== true) {
+  failures.push('ContractPriceOption.default must be a deprecated alias.')
+}
+const legalSchema = website.components.schemas.WebsiteLegalBlock
+const legalModuleSchema = website.components.schemas.LegalBundleDocument
+if (!legalSchema.required?.includes('legal_bundle_version_id')) {
+  failures.push('WebsiteLegalBlock legal_bundle_version_id must be required.')
+}
+if (!legalModuleSchema.required?.includes('legal_bundle_version_id')) {
+  failures.push('LegalBundleDocument legal_bundle_version_id must be required.')
+}
+if (legalSchema.additionalProperties !== false || legalModuleSchema.additionalProperties !== false) {
+  failures.push('Legal schemas must remain closed to undocumented fields.')
+}
 
 const runtimeSources = {
   quote: fs.readFileSync('app/api/v1/website/quote/route.ts', 'utf8'),

@@ -65,7 +65,7 @@
     "gridex:batch-m-ops-master-regression": "node scripts/gridex-batch-m-ops-master-regression.cjs",
     "gridex:customer-operation-events-regression": "node scripts/gridex-customer-operation-events-regression.cjs",
     "ops:hardening-regression": "node scripts/ops-hardening-regression.cjs",
-    "db:migrations:check": "node scripts/check-migration-versions.cjs",
+    "db:migrations:check": "npm run db:migrations:integrity && npm run db:public-contract-legal-migration:check",
     "gridex:live-schema-code-sync-regression": "node scripts/gridex-live-schema-code-sync-regression.cjs",
     "security:audit-production": "npm audit --omit=dev --audit-level=high",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
@@ -226,7 +226,7 @@
     "api:docs-version": "node scripts/check-api-documentation-version.cjs",
     "api:docs-examples": "node scripts/check-api-documentation-examples.cjs",
     "api:shared-components": "node scripts/check-shared-openapi-components.cjs",
-    "api:docs": "npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components",
+    "api:docs": "npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components && npm run api:public-contract-runtime-openapi",
     "gridex:market-price-api-regression": "node scripts/gridex-market-price-api-regression.cjs",
     "verify:market-price-api:static": "npm run db:migrations:check && npm run gridex:market-price-api-regression && npm run gridex:canonical-market-flow-regression && npm run gridex:single-api-key-integration-regression && npm run api:docs",
     "verify:market-price-api": "npm run verify:market-price-api:static && npm run typecheck && npm run test:canonical-market-flow && npm run build",
@@ -240,7 +240,12 @@
     "gridex:public-contract-publication-graph-db-test": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v offer_id=\"$GRIDEX_CONTRACT_TEST_OFFER_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -f scripts/gridex-public-contract-publication-graph-db-test.sql",
     "gridex:public-contract-backfill:preview": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v offer_id=\"${GRIDEX_CONTRACT_TEST_OFFER_ID:-}\" -v publication_version_id=\"${GRIDEX_CONTRACT_TEST_PUBLICATION_VERSION_ID:-}\" -v channel=\"${GRIDEX_CONTRACT_TEST_CHANNEL:-}\" -f scripts/gridex-public-contract-backfill-preview.sql",
     "gridex:public-contract-backfill:apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -v offer_id=\"${GRIDEX_CONTRACT_TEST_OFFER_ID:-}\" -v publication_version_id=\"${GRIDEX_CONTRACT_TEST_PUBLICATION_VERSION_ID:-}\" -v channel=\"${GRIDEX_CONTRACT_TEST_CHANNEL:-}\" -f scripts/gridex-public-contract-backfill-apply.sql",
-    "gridex:public-contract-publication-graph:post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -f scripts/gridex-public-contract-publication-graph-post-apply.sql"
+    "gridex:public-contract-publication-graph:post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -f scripts/gridex-public-contract-publication-graph-post-apply.sql",
+    "api:public-contract-runtime-openapi": "node scripts/check-public-contract-runtime-openapi.cjs",
+    "gridex:public-contract-legal-backfill:preview": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -f scripts/gridex-public-contract-legal-backfill-preview.sql",
+    "gridex:public-contract-legal-backfill:apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -f scripts/gridex-public-contract-legal-backfill-apply.sql",
+    "db:migrations:integrity": "node scripts/check-migration-versions.cjs",
+    "db:public-contract-legal-migration:check": "node scripts/check-public-contract-legal-migration.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -115,7 +115,9 @@ describe('public contract publication graph repair', () => {
   it('reports missing publication versions and isolates unsafe backfill candidates', () => {
     expect(migration).toContain('MANUAL_CHANNEL_OR_PUBLICATION_REVIEW')
     expect(migration).toContain("when c.publication_version_id is null then 'PUBLICATION_VERSION_MISSING'")
-    expect(migration).toContain("when sqlstate '23503' or sqlstate '23514'")
+    expect(migration).toMatch(
+      /when sqlstate '23503'\s+or sqlstate '23505'\s+or sqlstate '23514'/,
+    )
     expect(migration).toContain("'PUBLICATION_BACKFILL_APPLY_BLOCKED'")
   })
 
@@ -223,8 +225,10 @@ describe('public contract publication graph repair', () => {
   })
 
   it('publishes canonical top-level price_options without internal IDs', () => {
+    const bundleId = '00000000-0000-4000-8000-000000000010'
     const dto = mapContractPublicationToPublicDto({
       channel: 'api',
+      companyId: '00000000-0000-4000-8000-000000000001',
       publication: {
         offer_reference: 'offer_fixed_se3',
         name: 'Fast SE3',
@@ -236,6 +240,7 @@ describe('public contract publication graph repair', () => {
             id: 'internal-option-id',
             price_option_reference: 'fixed_12_se3',
             option_code: 'fixed_12',
+            customer_name: 'Fastpris 12 månader',
             price_type: 'fixed',
             contract_type: 'fixed',
             customer_type: 'private',
@@ -245,8 +250,17 @@ describe('public contract publication graph repair', () => {
             fixed_price: 112,
             markup: null,
             monthly_fee: 49,
+            binding_months: 12,
+            notice_months: 1,
+            auto_renew_enabled: false,
+            renewal_term_months: null,
+            is_default: true,
             default: true,
             selection_required: false,
+            valid_from: null,
+            valid_to: null,
+            earliest_start_date: null,
+            latest_start_date: null,
             area_prices: [
               {
                 id: 'internal-area-id',
@@ -254,17 +268,37 @@ describe('public contract publication graph repair', () => {
                 price_area: 'SE3',
                 energy_price_ore_per_kwh: 112,
                 unit: 'ore_per_kwh',
+                valid_from: null,
+                valid_to: null,
               },
             ],
           },
         ],
         pricing: {},
+        legal: {
+          legal_bundle_version_id: bundleId,
+          immutable: true,
+          module_versions: [
+            {
+              id: '00000000-0000-4000-8000-000000000011',
+              legal_bundle_version_id: bundleId,
+              module_key: 'general_consumer_terms',
+              version: '2',
+              title: 'Allmänna konsumentvillkor',
+              published_at: null,
+              content_sha256: null,
+              origin: 'canonical_bundle_document',
+            },
+          ],
+        },
       },
     })
 
     expect(dto.price_options).toEqual([
       expect.objectContaining({
         price_option_reference: 'fixed_12_se3',
+        is_default: true,
+        default: true,
         area_prices: [
           expect.objectContaining({ area_price_reference: 'fixed_12_se3' }),
         ],
@@ -272,5 +306,11 @@ describe('public contract publication graph repair', () => {
     ])
     expect(JSON.stringify(dto)).not.toContain('internal-option-id')
     expect(JSON.stringify(dto)).not.toContain('internal-area-id')
+    expect(dto.legal).toMatchObject({
+      legal_bundle_version_id: bundleId,
+      module_versions: [
+        expect.objectContaining({ legal_bundle_version_id: bundleId }),
+      ],
+    })
   })
 })

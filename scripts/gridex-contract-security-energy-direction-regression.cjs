@@ -65,7 +65,14 @@ for (const field of ['contract_product_id','contract_product_version_id','contra
   check(quote.includes(field), `Quote binder ${field}`)
 }
 const application = read('lib/website/customerApplications.ts')
-check(/validateWebsiteQuote\([\s\S]*markWebsiteQuoteConsumed/.test(application), 'Quote valideras direkt före konsumering/ansökningscommit')
+check(
+  /validateWebsiteQuote\([\s\S]*onboardCanonicalWebsiteCustomerGraph/.test(application) &&
+    /onboardCustomerGraph\(\{[\s\S]*quote:\s*input\.websiteQuote/.test(application) &&
+    /consumed_at\s*=\s*now\(\)/.test(
+      read('supabase/migrations/20260727166000_atomic_quote_application_onboarding_commit.sql'),
+    ),
+  'Quote valideras före atomisk konsumering och ansökningscommit',
+)
 check(/energy_direction:\s*selected\.energyDirection/.test(application), 'Kundavtal skapas med publicerad energiriktning')
 check(!/energy_direction:\s*["']consumption["']/.test(read('lib/customer-contracts/db.ts')), 'Kundavtalsrepository saknar hårdkodad consumption')
 check(!/energy_direction:\s*["']consumption["']/.test(read('lib/billing/underlayEngine.ts')), 'Billing underlay saknar hårdkodad consumption')
@@ -81,7 +88,7 @@ const publicContracts = read('lib/website/publicContracts.ts')
 check(/energy_direction/.test(publicContracts) && /production_pricing/.test(publicContracts) && /self_billing/.test(publicContracts), 'Public Contract DTO modellerar consumption/production och settlement')
 
 const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
-check(openapi.info.version === '2026-07-30.3' && openapi['x-contract-schema-version'] === '2026-07-30.3', 'Website OpenAPI har höjd kontraktsversion')
+check(openapi.info.version === '2026-08-01.1' && openapi['x-contract-schema-version'] === '2026-08-01.1', 'Website OpenAPI har höjd kontraktsversion')
 check(Boolean(openapi.components.schemas.EnergyDirection && openapi.components.schemas.ProductionPricing), 'Website OpenAPI modellerar energiriktning och production pricing')
 check(Boolean(openapi.components.schemas.ApiError && openapi.components.schemas.ApiBlocker), 'Website OpenAPI har canonical strukturerad felmodell')
 check(Boolean(openapi.paths['/api/v1/website/legal-bundle']?.get) && !openapi.paths['/api/v1/website/legal/bundle'], 'GET /website/legal-bundle är enda canonical legal route')

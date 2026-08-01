@@ -84,3 +84,21 @@ The portal database projection selected `signature_snapshot_sha256` and the
 developer guide documented it, but the public DTO and Customer Portal OpenAPI
 omitted it. The final go-live regression exposed the mismatch. DTO, release
 generator, OpenAPI and a direct regression now agree.
+
+## KF-012 — Recursive sanitizer removed public legal bundle IDs
+
+Status: FIX_IMPLEMENTED_STATIC_VERIFIED
+
+The external DTO sanitizer removed nested keys ending in `_id`, including documented `legal_bundle_version_id`. Legal output is now rebuilt through an explicit strict serializer with parity coverage.
+
+## KF-013 — Public price-option canonical field drift
+
+Status: FIX_IMPLEMENTED_STATIC_VERIFIED
+
+Database publication rows use `is_default`, while prior public schema logic treated `default` as canonical. The public model now uses `is_default` everywhere and emits `default` only as an identical deprecated alias.
+
+## KF-014 — Uploaded historical price-option migration checksum mismatch
+
+Status: RELEASE_BLOCKER
+
+The trusted checksum for `20260730220000...` remains `0ab350f0...`, but uploaded bytes hash to `978de5e9...`. No historical checksum or bytes were rewritten by PHASE-36. Resolve from authoritative source/ledger.

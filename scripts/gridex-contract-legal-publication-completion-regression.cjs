@@ -97,7 +97,7 @@ const required = [
   ],
   [
     "canonical API source",
-    /from\([\'\"]canonical_public_contract_offers_v[\'\"]\)/.test(
+    /from\([\'\"]canonical_visible_public_contracts_v[\'\"]\)/.test(
       publicContracts,
     ),
   ],

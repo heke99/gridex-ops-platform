@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-30.3",
+    "version": "2026-08-01.1",
     "description": "Canonical V1 contract for the authenticated customer portal and customer self-service APIs. Website checkout, public contracts, energy-area resolution, current market price and quote are documented exclusively in website-integration-v1.json."
   },
   "servers": [
@@ -144,11 +144,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -940,11 +941,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -974,11 +976,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -1739,11 +1742,12 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Stable external reference for the locked legal bundle version."
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.3"
+                      "const": "2026-08-01.1"
                     }
                   }
                 }
@@ -2646,7 +2650,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -2666,25 +2670,29 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "offer_reference": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "contract_name": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "contract_type": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "energy_direction": {
             "type": "string"
@@ -2696,37 +2704,43 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "end_date": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "signed_at": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "withdrawal_deadline_at": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "signature_snapshot_sha256": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "price_area": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "monthly_fee_sek": {
             "type": [
@@ -2771,7 +2785,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           }
         }
       },
@@ -3094,19 +3109,22 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "period_start": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "period_end": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "total_kwh": {
             "type": [
@@ -3139,19 +3157,22 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "due_date": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "paid_at": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "status": {
             "type": "string"
@@ -3160,7 +3181,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           }
         }
       },
@@ -3437,7 +3459,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -3531,13 +3553,15 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "customer_number": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "external_customer_id": {
             "type": "string"
@@ -3603,11 +3627,12 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.3"
+            "const": "2026-08-01.1"
           }
         }
       },
@@ -3985,19 +4010,22 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "customer_number": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "external_customer_id": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "summary": {
             "type": "object"
@@ -4029,7 +4057,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stable external reference for the locked legal bundle version."
           },
           "requested_move_out_date": {
             "type": "string",
@@ -4046,7 +4075,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-30.3",
+  "x-contract-schema-version": "2026-08-01.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

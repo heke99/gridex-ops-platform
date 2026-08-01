@@ -478,3 +478,17 @@ Files changed: contract admin/runtime/DTOs, quote/application/legal flow, OpenAP
 Migrations: `20260730220000_canonical_price_option_publication_api_completion.sql`
 Last updated: 2026-07-30
 Exact next subtask: resolve duplicate migration provenance, apply through `20260730220000` on clean and upgraded Node 22 staging, run the post-apply, deploy and run the full environment matrix
+
+## WP-036: Public Contracts runtime/OpenAPI/legal parity
+Status: IMPLEMENTED_NOT_ENVIRONMENT_VERIFIED
+Phase: PHASE-36
+Priority: P0
+Depends on: WP-035
+Affected domains: database, publication snapshots, Public Contracts, legal, price options, OpenAPI, release manifest, developer documentation
+Acceptance criteria: one strict Website/API model; canonical `is_default`; identical deprecated alias; exact legal bundle identity; route response validates against served OpenAPI; version/checksum/docs parity
+Required verification: full Node 22 dependency gates, clean/upgrade PostgreSQL apply, dry-run/apply/idempotency backfill, deployed served-byte and two-tenant staging proof
+Evidence: static API/docs/release/migration checks, focused domain regressions, changed-file syntax and isolated core strict typecheck pass at `2026-08-01.1`
+Files changed: canonical serializers, Website/API routes/sources, OpenAPI finalizer/artifacts, release manifest, docs page, fixtures, tests and migration
+Migrations: `20260801003000_public_contract_runtime_openapi_legal_parity.sql`
+Last updated: 2026-08-01
+Exact next subtask: restore trusted `20260730220000...` bytes, run full dependency gates, then apply and staging-verify PHASE-36

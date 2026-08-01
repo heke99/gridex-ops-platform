@@ -15,6 +15,36 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value as Record<string, unknown>
+}
+
+function unwrapContractPublication(value: unknown): Record<string, unknown> {
+  const row = asRecord(value)
+  if (!row) {
+    throw new Error('PUBLICATION_RUNTIME_ROW_INVALID')
+  }
+
+  if (Object.prototype.hasOwnProperty.call(row, 'data')) {
+    const nested = asRecord(row.data)
+    if (!nested) {
+      throw new Error('PUBLICATION_RUNTIME_ROW_INVALID')
+    }
+    return nested
+  }
+
+  return row
+}
+
+
+function contractHeaders(requestId: string): Record<string, string> {
+  return {
+    'X-Gridex-Contract-Version': API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+    'X-Request-ID': requestId,
+  }
+}
+
 export async function GET(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
@@ -23,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (!supported.has(key)) {
       return customerPortalJson(
         { error: { code: 'invalid_query_parameter', message: `Query-parametern ${key} stöds inte.`, field: key, request_id: requestId } },
-        { status: 400 },
+        { status: 400, headers: contractHeaders(requestId) },
       )
     }
   }
@@ -32,7 +62,7 @@ export async function GET(request: NextRequest) {
   if (values.length > 1) {
     return customerPortalJson(
       { error: { code: 'invalid_query_parameter', message: 'customer_type får bara anges en gång.', field: 'customer_type', request_id: requestId } },
-      { status: 400 },
+      { status: 400, headers: contractHeaders(requestId) },
     )
   }
   const normalized = normalizeExternalCustomerType(values[0] ?? null)
@@ -46,14 +76,14 @@ export async function GET(request: NextRequest) {
           request_id: requestId,
         },
       },
-      { status: 400 },
+      { status: 400, headers: contractHeaders(requestId) },
     )
   }
 
   const auth = await requireIntegrationApiAccess(request, ['api_contracts.read'])
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    const headers = new Headers()
+    const headers = new Headers(contractHeaders(requestId))
     if (auth.retryAfterSeconds) {
       headers.set('Retry-After', String(auth.retryAfterSeconds))
     }
@@ -71,7 +101,7 @@ export async function GET(request: NextRequest) {
     const headers = {
       'Cache-Control': 'private, max-age=0, must-revalidate',
       ETag: revision.etag,
-      'X-Gridex-Contract-Version': API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+      ...contractHeaders(requestId),
       'X-RateLimit-Limit': String(auth.rateLimit.limit),
       'X-RateLimit-Remaining': String(auth.rateLimit.remaining),
       ...(auth.rateLimit.resetAt ? { 'X-RateLimit-Reset': auth.rateLimit.resetAt } : {}),
@@ -94,27 +124,50 @@ export async function GET(request: NextRequest) {
     if (error) throw error
     const contracts: Record<string, unknown>[] = []
     let rejectedContracts = 0
-    for (const row of (data ?? []) as Array<{ data?: Record<string, unknown> }>) {
+    let firstMappingError: unknown = null
+    if (data !== null && data !== undefined && !Array.isArray(data)) {
+      throw new Error('PUBLICATION_RUNTIME_RESPONSE_INVALID')
+    }
+    const rows = data ?? []
+    for (const row of rows) {
+      let publication: Record<string, unknown> | null = null
       try {
+        publication = unwrapContractPublication(row)
         contracts.push(
           mapContractPublicationToPublicDto({
-            publication: row.data ?? row,
+            publication,
             channel: 'api',
+            companyId: auth.client.company_id,
           }),
         )
       } catch (mappingError) {
         rejectedContracts += 1
+        firstMappingError ??= mappingError
+        const mapping = mappingError as {
+          name?: unknown
+          code?: unknown
+          path?: unknown
+        }
         console.error('[api-contracts] rejected malformed publication', {
           requestId,
           companyId: auth.client.company_id,
+          tenantReference: tenant.tenant_reference,
           apiClientId: auth.client.id,
           channel: 'api',
-          error: mappingError,
+          offerReference:
+            publication && typeof publication.offer_reference === 'string'
+              ? publication.offer_reference
+              : null,
+          contractVersion: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+          schema: 'website-integration-v1.json',
+          errorName: typeof mapping.name === 'string' ? mapping.name : null,
+          errorCode: typeof mapping.code === 'string' ? mapping.code : null,
+          errorPath: typeof mapping.path === 'string' ? mapping.path : null,
         })
       }
     }
     if (rejectedContracts > 0 && contracts.length === 0) {
-      throw new Error('PUBLICATION_GRAPH_INCOMPLETE')
+      throw firstMappingError ?? new Error('PUBLICATION_GRAPH_INCOMPLETE')
     }
 
     await logIntegrationApiRequest({
@@ -161,8 +214,14 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/v1/public-contracts',
       channel: 'api',
       errorCode: classified.code,
+      errorPath: classified.path,
       databaseCode: classified.databaseCode,
-      error,
+      contractVersion: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+      schema: 'website-integration-v1.json',
+      errorName:
+        error && typeof error === 'object' && 'name' in error
+          ? String((error as { name?: unknown }).name ?? '')
+          : null,
     })
     await logIntegrationApiRequest({
       client: auth.client,
@@ -174,6 +233,7 @@ export async function GET(request: NextRequest) {
         request_id: requestId,
         channel: 'api',
         database_code: classified.databaseCode,
+        error_path: classified.path,
       },
     })
     return customerPortalJson(
@@ -184,7 +244,10 @@ export async function GET(request: NextRequest) {
           request_id: requestId,
         },
       },
-      { status: classified.status },
+      {
+        status: classified.status,
+        headers: contractHeaders(requestId),
+      },
     )
   }
 }

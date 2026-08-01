@@ -14,6 +14,12 @@ import {
   fixedAreaPricesFromSnapshot,
 } from "@/lib/pricing/fixedAreaPricing";
 import { publicReference } from "@/lib/integrations/publicReferences";
+import {
+  PUBLIC_CONTRACT_ERROR_CODES,
+  PublicContractSerializationError,
+  type PublicContractPriceOption,
+  type PublicContractPriceOptionAreaPrice,
+} from "@/lib/external-contracts/publicContractModel";
 
 export type PublicLegalTextVersion = {
   id: string;
@@ -24,41 +30,6 @@ export type PublicLegalTextVersion = {
   content_sha256?: string | null;
   legal_bundle_version_id?: string | null;
   origin?: string | null;
-};
-
-export type PublicContractPriceOptionAreaPrice = {
-  area_price_reference: string;
-  price_area: "SE1" | "SE2" | "SE3" | "SE4";
-  energy_price_ore_per_kwh: number;
-  unit: "ore_per_kwh";
-  valid_from: string | null;
-  valid_to: string | null;
-};
-
-export type PublicContractPriceOption = {
-  price_option_reference: string;
-  option_code: string;
-  customer_name: string;
-  price_type: string;
-  contract_type: string;
-  customer_type: "private" | "business" | "both";
-  resolution: string;
-  currency: "SEK";
-  unit: "ore_per_kwh";
-  fixed_price: number | null;
-  markup: number | null;
-  monthly_fee: number | null;
-  binding_months: number;
-  notice_months: number;
-  auto_renew_enabled: boolean;
-  renewal_term_months: number | null;
-  default: boolean;
-  selection_required: boolean;
-  valid_from: string | null;
-  valid_to: string | null;
-  earliest_start_date: string | null;
-  latest_start_date: string | null;
-  area_prices: PublicContractPriceOptionAreaPrice[];
 };
 
 export type PublicContractOffer = {
@@ -202,6 +173,7 @@ export function buildPublicLegalBlock(input: {
   termsVersionFallback?: string | null;
   withdrawalVersionFallback?: string | null;
   tenantSlug?: string | null;
+  allowHistoricalNull?: boolean;
 }): Record<string, unknown> {
   const slug = input.tenantSlug ?? null;
   const byAcceptanceType = new Map<
@@ -239,18 +211,55 @@ export function buildPublicLegalBlock(input: {
   const url = (type: LegacyLegalAcceptanceType) =>
     urlForVersion(byAcceptanceType.get(type));
 
-  const moduleVersions = input.legalVersions.map((version) => ({
-    id: version.id,
-    document_reference: publicReference("legal_document", input.companyId, version.id),
-    module_key: version.type,
-    version: version.version,
-    title: version.title,
-    published_at: version.published_at,
-    content_sha256: version.content_sha256 ?? null,
-    origin: version.origin ?? "canonical_bundle_document",
-    legal_bundle_version_id: version.legal_bundle_version_id ?? null,
-    url: urlForVersion(version),
-  }));
+  const bundleIds = new Set(
+    input.legalVersions
+      .map((version) => version.legal_bundle_version_id ?? null)
+      .filter((value): value is string => Boolean(value)),
+  );
+  const hasMissingBundleId = input.legalVersions.some(
+    (version) => !version.legal_bundle_version_id,
+  );
+  if (input.legalVersions.length === 0 || (hasMissingBundleId && !input.allowHistoricalNull)) {
+    throw new PublicContractSerializationError(
+      PUBLIC_CONTRACT_ERROR_CODES.legalBundleVersionMissing,
+      "legal.legal_bundle_version_id",
+    );
+  }
+  if (bundleIds.size > 1) {
+    throw new PublicContractSerializationError(
+      PUBLIC_CONTRACT_ERROR_CODES.legalModuleBundleMismatch,
+      "legal.module_versions",
+    );
+  }
+  const legalBundleVersionId = bundleIds.values().next().value ?? null;
+  const seenModuleKeys = new Set<string>();
+  const moduleVersions = input.legalVersions.map((version, index) => {
+    if (seenModuleKeys.has(version.type)) {
+      throw new PublicContractSerializationError(
+        PUBLIC_CONTRACT_ERROR_CODES.legalModuleVersionInvalid,
+        `legal.module_versions[${index}].module_key`,
+      );
+    }
+    seenModuleKeys.add(version.type);
+    if ((version.legal_bundle_version_id ?? null) !== legalBundleVersionId) {
+      throw new PublicContractSerializationError(
+        PUBLIC_CONTRACT_ERROR_CODES.legalModuleBundleMismatch,
+        `legal.module_versions[${index}].legal_bundle_version_id`,
+      );
+    }
+    return {
+      id: version.id,
+      document_reference: publicReference("legal_document", input.companyId, version.id),
+      module_key: version.type,
+      version: version.version,
+      title: version.title,
+      published_at: version.published_at,
+      content_sha256: version.content_sha256 ?? null,
+      origin: version.origin ?? "canonical_bundle_document",
+      legal_bundle_version_id: legalBundleVersionId,
+      url: urlForVersion(version),
+    };
+  });
 
   return {
     terms_version: versionLabel("terms", input.termsVersionFallback),
@@ -278,14 +287,10 @@ export function buildPublicLegalBlock(input: {
     power_of_attorney_url: url("power_of_attorney"),
     required_modules: moduleVersions.map((version) => version.module_key),
     module_versions: moduleVersions,
-    legal_bundle_reference: (() => {
-      const id = input.legalVersions.find((version) => version.legal_bundle_version_id)
-        ?.legal_bundle_version_id;
-      return id ? publicReference("legal_bundle", input.companyId, id) : null;
-    })(),
-    legal_bundle_version_id:
-      input.legalVersions.find((version) => version.legal_bundle_version_id)
-        ?.legal_bundle_version_id ?? null,
+    legal_bundle_reference: legalBundleVersionId
+      ? publicReference("legal_bundle", input.companyId, legalBundleVersionId)
+      : null,
+    legal_bundle_version_id: legalBundleVersionId,
     immutable: moduleVersions.length > 0,
   };
 }
@@ -1508,13 +1513,23 @@ export async function buildWebsiteLegalBundle(
 function hasExactCanonicalLegalVersions(
   legalVersions: PublicLegalTextVersion[] | null,
 ): boolean {
-  // The canonical readiness view already validates the module set for the
-  // exact publication version. The API only needs to fail closed when that
-  // immutable document set cannot be materialized.
   if (!legalVersions || legalVersions.length === 0) return false;
-  return legalVersions.every((version) =>
-    Boolean(version.id && version.type && version.version),
-  );
+  const bundleIds = new Set<string>();
+  const moduleKeys = new Set<string>();
+  for (const version of legalVersions) {
+    if (
+      !version.id ||
+      !version.type ||
+      !version.version ||
+      !version.legal_bundle_version_id ||
+      moduleKeys.has(version.type)
+    ) {
+      return false;
+    }
+    moduleKeys.add(version.type);
+    bundleIds.add(version.legal_bundle_version_id);
+  }
+  return bundleIds.size === 1;
 }
 
 async function listPublishedLegalVersions(
@@ -1968,19 +1983,38 @@ async function loadPublishedPriceOptions(
       }
 
       const optionMetadata = objectValue(row.metadata);
-      const resolution =
+      const contractType = offer.contract_type as PublicContractPriceOption["contract_type"];
+      if (
+        ![
+          "fixed",
+          "variable_monthly",
+          "variable_hourly",
+          "variable_quarterly",
+          "portfolio",
+          "mixed",
+        ].includes(contractType)
+      ) {
+        code("price_option_contract_type_invalid", offer.contract_type);
+        continue;
+      }
+      const rawResolution =
         clean(optionMetadata.resolution) ??
-        (offer.contract_type === "variable_hourly"
+        (contractType === "variable_hourly"
           ? "hourly"
-          : offer.contract_type === "variable_quarterly"
+          : contractType === "variable_quarterly"
             ? "quarterly"
             : "monthly");
+      if (!["monthly", "hourly", "quarterly"].includes(rawResolution)) {
+        code("price_option_resolution_invalid", rawResolution);
+        continue;
+      }
+      const resolution = rawResolution as PublicContractPriceOption["resolution"];
       validOptions.push({
         price_option_reference: optionReference,
         option_code: clean(row.option_code) ?? optionReference,
         customer_name: clean(row.customer_name) ?? optionReference,
-        price_type: offer.contract_type,
-        contract_type: offer.contract_type,
+        price_type: contractType,
+        contract_type: contractType,
         customer_type: customerType as PublicContractPriceOption["customer_type"],
         resolution,
         currency: "SEK",
@@ -1992,6 +2026,7 @@ async function loadPublishedPriceOptions(
         notice_months: numberOrNull(row.notice_months) ?? 0,
         auto_renew_enabled: row.auto_renew_enabled === true,
         renewal_term_months: numberOrNull(row.renewal_term_months),
+        is_default: row.is_default === true,
         default: row.is_default === true,
         selection_required: row.selection_required === true,
         valid_from: validFrom,
@@ -2003,7 +2038,7 @@ async function loadPublishedPriceOptions(
     }
 
     if (validOptions.length > 0) {
-      const defaults = validOptions.filter((option) => option.default);
+      const defaults = validOptions.filter((option) => option.is_default);
       if (defaults.length === 0) {
         diagnostics.push({
           code: "price_option_default_missing",

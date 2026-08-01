@@ -156,3 +156,15 @@
   build with a temporary 4096 MB Node heap.
 - Preserved NO-GO for migration-ledger provenance, PostgreSQL apply/post-apply,
   deployment/live hashes, missing Gridex Web and full environment E2E.
+
+## 2026-08-01
+
+- Traced Public Contracts from database/publication snapshots through Website/API sources, shared DTO mapping, routes, OpenAPI finalization, release manifest, fixture, tests and `/developers/customer-portal-api`.
+- Identified recursive `_id` sanitization as the legal version loss, database/runtime/OpenAPI disagreement around `is_default`/`default`, and API-channel omission of canonical legal data.
+- Implemented strict explicit serializers, canonical alias/legal invariants, structured errors and safe correlation diagnostics.
+- Added forward migration `20260801003000...` with exact locked legal snapshot and idempotent dry-run-first audited backfill.
+- Regenerated release `2026-08-01.1`, exact OpenAPI hashes, production-like fixture and complete human documentation.
+- Added route-to-served-OpenAPI and static parity/version/checksum/docs/migration gates; aligned stale regressions to canonical imported versions, current views and atomic quote consumption.
+- Verified all dependency-free API/docs/release checks, focused domain regressions, changed TS/TSX syntax and isolated strict canonical-core typing.
+- Dependency installation could not complete because npm registry DNS is unavailable; full TS/Vitest/lint/build were not claimed.
+- Final history review found the uploaded `20260730220000...` bytes differ from the trusted manifest. Reverted the temporary attempted manifest blessing, preserved the trusted checksum and recorded the inherited release blocker.
