@@ -8,7 +8,7 @@ alter table public.canonical_command_results
   add column if not exists request_hash text;
 
 update public.canonical_command_results
-set request_hash = encode(digest(convert_to(request_payload::text, 'utf8'), 'sha256'), 'hex')
+set request_hash = encode(extensions.digest(convert_to(request_payload::text, 'utf8'), 'sha256'::text), 'hex')
 where request_hash is null;
 
 alter table public.canonical_command_results
@@ -18,7 +18,7 @@ alter table public.canonical_provisioning_requests
   add column if not exists request_hash text;
 
 update public.canonical_provisioning_requests
-set request_hash = encode(digest(convert_to(request_payload::text, 'utf8'), 'sha256'), 'hex')
+set request_hash = encode(extensions.digest(convert_to(request_payload::text, 'utf8'), 'sha256'::text), 'hex')
 where request_hash is null;
 
 create or replace function public.canonical_json_sha256(p_payload jsonb)
@@ -28,7 +28,7 @@ immutable
 strict
 set search_path = public, pg_temp
 as $$
-  select encode(digest(convert_to(p_payload::text, 'utf8'), 'sha256'), 'hex')
+  select encode(extensions.digest(convert_to(p_payload::text, 'utf8'), 'sha256'::text), 'hex')
 $$;
 
 create or replace function public.canonical_command_request_hash_guard()
@@ -161,22 +161,24 @@ grant execute on function public.canonical_actor_is_authorized(uuid, uuid, text,
 create table if not exists public.canonical_ediel_profile_identities (
   company_id uuid not null references public.companies(id) on delete cascade,
   environment text not null,
+  actor_role text not null,
   profile_id uuid not null references public.ediel_actor_settings(id) on delete restrict,
   bound_at timestamptz not null default now(),
   bound_by uuid references auth.users(id) on delete set null,
-  primary key (company_id, environment),
+  primary key (company_id, environment, actor_role),
   unique (profile_id),
   constraint canonical_ediel_profile_identity_environment_check
     check (environment in ('test', 'production'))
 );
 
-insert into public.canonical_ediel_profile_identities(company_id, environment, profile_id)
-select company_id, environment, min(id)
+insert into public.canonical_ediel_profile_identities(company_id, environment, actor_role, profile_id)
+select company_id, environment, lower(coalesce(role, actor_role)), min(id::text)::uuid
 from public.ediel_actor_settings
 where environment in ('test', 'production') and is_active = true
-group by company_id, environment
+  and nullif(lower(coalesce(role, actor_role)), '') is not null
+group by company_id, environment, lower(coalesce(role, actor_role))
 having count(*) = 1
-on conflict (company_id, environment) do nothing;
+on conflict (company_id, environment, actor_role) do nothing;
 
 alter table public.canonical_ediel_profile_identities enable row level security;
 drop policy if exists canonical_ediel_profile_identities_service_role_all
@@ -271,14 +273,18 @@ begin
 
   select count(*) into v_active_profile_count
   from public.ediel_actor_settings
-  where company_id = p_company_id and environment = 'production' and is_active = true;
+  where company_id = p_company_id and environment = 'production' and is_active = true
+    and lower(coalesce(role, actor_role)) in ('supplier', 'electricity_supplier');
   if v_active_profile_count <> 1 then
     v_blockers := v_blockers || jsonb_build_array('production_profile_identity_ambiguous');
   elsif not exists (
     select 1 from public.canonical_ediel_profile_identities i
     join public.ediel_actor_settings a on a.id = i.profile_id
     where i.company_id = p_company_id and i.environment = 'production'
-      and a.company_id = i.company_id and a.environment = i.environment and a.is_active = true
+      and i.actor_role in ('supplier', 'electricity_supplier')
+      and a.company_id = i.company_id and a.environment = i.environment
+      and lower(coalesce(a.role, a.actor_role)) = i.actor_role
+      and a.is_active = true
   ) then
     v_blockers := v_blockers || jsonb_build_array('production_profile_identity_missing');
   end if;
@@ -544,6 +550,228 @@ alter function public.canonical_save_ediel_actor_profile(jsonb)
 revoke all on function public.canonical_save_ediel_actor_profile_v1_unchecked(jsonb)
   from public, anon, authenticated, service_role;
 
+-- Replace the legacy single-profile-per-environment writer with a role-aware
+-- implementation. A tenant can be both supplier and ESCO in the same
+-- environment; one role must never deactivate another role's profile.
+create or replace function public.canonical_save_ediel_actor_profile_v1_unchecked(p_command jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_company_id uuid := nullif(p_command->>'company_id', '')::uuid;
+  v_actor_user_id uuid := nullif(p_command->>'actor_user_id', '')::uuid;
+  v_idempotency_key text := p_command->>'idempotency_key';
+  v_actor_role text := lower(nullif(btrim(p_command->>'actor_role'), ''));
+  v_environment text;
+  v_ediel_id text;
+  v_profile_id uuid;
+  v_snapshot public.ediel_configuration_snapshots%rowtype;
+  v_existing jsonb;
+  v_result jsonb;
+begin
+  if v_company_id is null or nullif(btrim(v_idempotency_key), '') is null then
+    raise exception 'company_id_and_idempotency_key_required';
+  end if;
+  if v_actor_role is null or v_actor_role not in (
+    'supplier', 'electricity_supplier', 'grid_owner', 'energy_service_company',
+    'balance_responsible_party', 'brp', 'system_supplier',
+    'metering_point_operator', 'metering_data_responsible'
+  ) then
+    raise exception 'unsupported_actor_role:%', coalesce(v_actor_role, 'null');
+  end if;
+
+  select result_payload into v_existing
+  from public.canonical_command_results
+  where company_id = v_company_id
+    and command_type = 'ediel.actor_profile.save'
+    and idempotency_key = v_idempotency_key;
+  if found then return v_existing; end if;
+
+  perform 1 from public.companies where id = v_company_id for update;
+  if not found then raise exception 'tenant_not_found'; end if;
+
+  perform set_config('gridex.skip_ediel_snapshot_trigger', 'on', true);
+
+  -- Company-level Ediel fields describe the primary supplier identity. Other
+  -- market roles are stored in actor profiles and must not overwrite it.
+  if v_actor_role in ('supplier', 'electricity_supplier') then
+    update public.companies set
+      org_number = nullif(p_command->>'organization_number', ''),
+      market_role = v_actor_role,
+      actor_role = v_actor_role,
+      ediel_id = nullif(upper(p_command->>'ediel_id'), ''),
+      test_ediel_id = nullif(upper(p_command->>'test_ediel_id'), ''),
+      production_ediel_id = nullif(upper(p_command->>'production_ediel_id'), ''),
+      test_sender_sub_address = nullif(p_command->>'test_sender_sub_address', ''),
+      production_sender_sub_address = nullif(p_command->>'production_sender_sub_address', ''),
+      test_mailbox = nullif(p_command->>'test_mailbox', ''),
+      production_mailbox = nullif(p_command->>'production_mailbox', ''),
+      test_application_reference = nullif(upper(p_command->>'test_application_reference'), ''),
+      production_application_reference = nullif(upper(p_command->>'production_application_reference'), ''),
+      test_counterparty_ediel_id = nullif(upper(p_command->>'test_counterparty_ediel_id'), ''),
+      production_counterparty_ediel_id = nullif(upper(p_command->>'production_counterparty_ediel_id'), ''),
+      brp_name = nullif(p_command->>'brp_name', ''),
+      brp_ediel_id = nullif(upper(p_command->>'brp_ediel_id'), ''),
+      brp_status = coalesce(nullif(p_command->>'brp_status', ''), 'missing'),
+      esett_status = coalesce(nullif(p_command->>'esett_status', ''), 'missing'),
+      technical_contact_name = nullif(p_command->>'technical_contact_name', ''),
+      technical_contact_email = nullif(p_command->>'technical_contact_email', ''),
+      support_email = nullif(p_command->>'support_email', ''),
+      billing_contact_email = nullif(p_command->>'billing_contact_email', ''),
+      updated_at = now()
+    where id = v_company_id;
+  end if;
+
+  foreach v_environment in array array['test', 'production'] loop
+    v_ediel_id := nullif(upper(p_command->>(v_environment || '_ediel_id')), '');
+
+    select a.id into v_profile_id
+    from public.canonical_ediel_profile_identities i
+    join public.ediel_actor_settings a on a.id = i.profile_id
+    where i.company_id = v_company_id
+      and i.environment = v_environment
+      and i.actor_role = v_actor_role
+      and a.company_id = i.company_id
+      and a.environment = i.environment
+      and lower(coalesce(a.role, a.actor_role)) = i.actor_role
+      and a.is_active = true
+    for update of a;
+
+    if v_profile_id is null then
+      select id into v_profile_id
+      from public.ediel_actor_settings
+      where company_id = v_company_id
+        and environment = v_environment
+        and lower(coalesce(role, actor_role)) = v_actor_role
+        and is_active = true
+      order by updated_at desc, id desc
+      limit 1
+      for update;
+    end if;
+
+    update public.ediel_actor_settings
+    set is_active = false, updated_by = v_actor_user_id, updated_at = now()
+    where company_id = v_company_id
+      and environment = v_environment
+      and lower(coalesce(role, actor_role)) = v_actor_role
+      and is_active = true
+      and id is distinct from v_profile_id;
+
+    if v_ediel_id is null then
+      update public.ediel_actor_settings
+      set is_active = false, updated_by = v_actor_user_id, updated_at = now()
+      where id = v_profile_id and company_id = v_company_id;
+      delete from public.canonical_ediel_profile_identities
+      where company_id = v_company_id and environment = v_environment
+        and actor_role = v_actor_role;
+      v_profile_id := null;
+      continue;
+    end if;
+
+    if v_profile_id is null then
+      insert into public.ediel_actor_settings(
+        company_id, actor_name, sender_name, actor_role, role,
+        actor_ediel_id, ediel_id, environment, is_active,
+        sender_sub_address, sender_subaddress,
+        default_application_reference, application_reference, mailbox,
+        default_charset, default_timezone, default_test_flag,
+        smtp_from_email, smtp_reply_to_email,
+        brp_name, brp_ediel_id, brp_status, esett_status,
+        created_by, updated_by, created_at, updated_at
+      ) values (
+        v_company_id, coalesce(nullif(p_command->>'company_name', ''), 'Aktör'),
+        coalesce(nullif(p_command->>'company_name', ''), 'Aktör'),
+        v_actor_role, v_actor_role, v_ediel_id, v_ediel_id,
+        v_environment, true,
+        nullif(p_command->>(v_environment || '_sender_sub_address'), ''),
+        nullif(p_command->>(v_environment || '_sender_sub_address'), ''),
+        nullif(upper(p_command->>(v_environment || '_application_reference')), ''),
+        nullif(upper(p_command->>(v_environment || '_application_reference')), ''),
+        nullif(p_command->>(v_environment || '_mailbox'), ''),
+        'UNOC', 1, case when v_environment = 'production' then 0 else 1 end,
+        nullif(p_command->>'smtp_from_email', ''),
+        nullif(p_command->>'smtp_from_email', ''),
+        nullif(p_command->>'brp_name', ''),
+        nullif(upper(p_command->>'brp_ediel_id'), ''),
+        coalesce(nullif(p_command->>'brp_status', ''), 'missing'),
+        coalesce(nullif(p_command->>'esett_status', ''), 'missing'),
+        v_actor_user_id, v_actor_user_id, now(), now()
+      ) returning id into v_profile_id;
+    else
+      update public.ediel_actor_settings set
+        actor_name = coalesce(nullif(p_command->>'company_name', ''), 'Aktör'),
+        sender_name = coalesce(nullif(p_command->>'company_name', ''), 'Aktör'),
+        actor_role = v_actor_role,
+        role = v_actor_role,
+        actor_ediel_id = v_ediel_id,
+        ediel_id = v_ediel_id,
+        is_active = true,
+        sender_sub_address = nullif(p_command->>(v_environment || '_sender_sub_address'), ''),
+        sender_subaddress = nullif(p_command->>(v_environment || '_sender_sub_address'), ''),
+        default_application_reference = nullif(upper(p_command->>(v_environment || '_application_reference')), ''),
+        application_reference = nullif(upper(p_command->>(v_environment || '_application_reference')), ''),
+        mailbox = nullif(p_command->>(v_environment || '_mailbox'), ''),
+        default_test_flag = case when v_environment = 'production' then 0 else 1 end,
+        smtp_from_email = nullif(p_command->>'smtp_from_email', ''),
+        smtp_reply_to_email = nullif(p_command->>'smtp_from_email', ''),
+        brp_name = nullif(p_command->>'brp_name', ''),
+        brp_ediel_id = nullif(upper(p_command->>'brp_ediel_id'), ''),
+        brp_status = coalesce(nullif(p_command->>'brp_status', ''), 'missing'),
+        esett_status = coalesce(nullif(p_command->>'esett_status', ''), 'missing'),
+        updated_by = v_actor_user_id,
+        updated_at = now()
+      where id = v_profile_id and company_id = v_company_id;
+    end if;
+
+    insert into public.canonical_ediel_profile_identities(
+      company_id, environment, actor_role, profile_id, bound_by
+    ) values (
+      v_company_id, v_environment, v_actor_role, v_profile_id, v_actor_user_id
+    )
+    on conflict (company_id, environment, actor_role) do update
+    set profile_id = excluded.profile_id, bound_at = now(), bound_by = excluded.bound_by;
+  end loop;
+
+  perform set_config('gridex.skip_ediel_snapshot_trigger', 'off', true);
+  v_snapshot := public.canonical_capture_ediel_configuration_snapshot_v1_unchecked(
+    v_company_id, v_actor_user_id, 'actor_profile_updated'
+  );
+
+  insert into public.canonical_audit_events(
+    company_id, event_type, aggregate_type, aggregate_id, actor_user_id,
+    reason, idempotency_key, after_state, metadata
+  ) values (
+    v_company_id, 'EDIEL_ACTOR_PROFILE_UPDATED', 'company', v_company_id,
+    v_actor_user_id, 'Aktörsprofil uppdaterad atomiskt.', v_idempotency_key,
+    jsonb_build_object(
+      'actor_role', v_actor_role,
+      'configuration_snapshot_id', v_snapshot.id,
+      'configuration_hash', v_snapshot.configuration_hash
+    ), p_command
+  );
+
+  v_result := jsonb_build_object(
+    'changed', true,
+    'company_id', v_company_id,
+    'actor_role', v_actor_role,
+    'configuration_snapshot_id', v_snapshot.id,
+    'configuration_hash', v_snapshot.configuration_hash
+  );
+  insert into public.canonical_command_results(
+    company_id, command_type, idempotency_key,
+    request_payload, result_payload, actor_user_id
+  ) values (
+    v_company_id, 'ediel.actor_profile.save', v_idempotency_key,
+    p_command, v_result, v_actor_user_id
+  );
+  return v_result;
+end;
+$$;
+revoke all on function public.canonical_save_ediel_actor_profile_v1_unchecked(jsonb)
+  from public, anon, authenticated, service_role;
+
 create function public.canonical_save_ediel_actor_profile(p_command jsonb)
 returns jsonb
 language plpgsql
@@ -555,6 +783,7 @@ declare
   v_actor_user_id uuid := nullif(p_command->>'actor_user_id', '')::uuid;
   v_idempotency_key text := p_command->>'idempotency_key';
   v_company public.companies%rowtype;
+  v_actor_role text;
   v_environment text;
   v_profile public.ediel_actor_settings%rowtype;
   v_profile_count bigint;
@@ -574,21 +803,30 @@ begin
   select * into v_company from public.companies where id = v_company_id for update;
   if not found then raise exception 'tenant_not_found'; end if;
 
+  v_actor_role := lower(nullif(btrim(p_command->>'actor_role'), ''));
+  if v_actor_role is null or v_actor_role not in (
+    'supplier', 'electricity_supplier', 'grid_owner', 'energy_service_company',
+    'balance_responsible_party', 'brp', 'system_supplier',
+    'metering_point_operator', 'metering_data_responsible'
+  ) then
+    raise exception 'unsupported_actor_role:%', coalesce(v_actor_role, 'null');
+  end if;
+
   v_defaults := jsonb_build_object(
     'company_id', v_company_id, 'company_name', v_company.name,
     'organization_number', v_company.org_number,
-    'actor_role', coalesce(v_company.actor_role, v_company.market_role),
+    'actor_role', v_actor_role,
     'ediel_id', v_company.ediel_id,
-    'test_ediel_id', v_company.test_ediel_id,
-    'production_ediel_id', v_company.production_ediel_id,
-    'test_sender_sub_address', v_company.test_sender_sub_address,
-    'production_sender_sub_address', v_company.production_sender_sub_address,
-    'test_mailbox', v_company.test_mailbox,
-    'production_mailbox', v_company.production_mailbox,
-    'test_application_reference', v_company.test_application_reference,
-    'production_application_reference', v_company.production_application_reference,
-    'test_counterparty_ediel_id', v_company.test_counterparty_ediel_id,
-    'production_counterparty_ediel_id', v_company.production_counterparty_ediel_id,
+    'test_ediel_id', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.test_ediel_id end,
+    'production_ediel_id', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.production_ediel_id end,
+    'test_sender_sub_address', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.test_sender_sub_address end,
+    'production_sender_sub_address', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.production_sender_sub_address end,
+    'test_mailbox', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.test_mailbox end,
+    'production_mailbox', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.production_mailbox end,
+    'test_application_reference', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.test_application_reference end,
+    'production_application_reference', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.production_application_reference end,
+    'test_counterparty_ediel_id', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.test_counterparty_ediel_id end,
+    'production_counterparty_ediel_id', case when v_actor_role in ('supplier', 'electricity_supplier') then v_company.production_counterparty_ediel_id end,
     'brp_name', v_company.brp_name, 'brp_ediel_id', v_company.brp_ediel_id,
     'brp_status', v_company.brp_status, 'esett_status', v_company.esett_status,
     'technical_contact_name', v_company.technical_contact_name,
@@ -599,7 +837,8 @@ begin
 
   foreach v_environment in array array['test', 'production'] loop
     select count(*) into v_profile_count from public.ediel_actor_settings
-    where company_id = v_company_id and environment = v_environment and is_active = true;
+    where company_id = v_company_id and environment = v_environment and is_active = true
+      and lower(coalesce(role, actor_role)) = v_actor_role;
     if v_profile_count > 1 then
       raise exception 'active_ediel_profile_identity_ambiguous:%', v_environment;
     end if;
@@ -607,13 +846,17 @@ begin
     from public.canonical_ediel_profile_identities i
     join public.ediel_actor_settings a on a.id = i.profile_id
     where i.company_id = v_company_id and i.environment = v_environment
-      and a.company_id = i.company_id and a.environment = i.environment and a.is_active = true;
+      and i.actor_role = v_actor_role
+      and a.company_id = i.company_id and a.environment = i.environment
+      and lower(coalesce(a.role, a.actor_role)) = i.actor_role
+      and a.is_active = true;
     if not found and v_profile_count = 1 then
       select * into v_profile from public.ediel_actor_settings
-      where company_id = v_company_id and environment = v_environment and is_active = true;
-      insert into public.canonical_ediel_profile_identities(company_id, environment, profile_id, bound_by)
-      values(v_company_id, v_environment, v_profile.id, v_actor_user_id)
-      on conflict (company_id, environment) do update
+      where company_id = v_company_id and environment = v_environment and is_active = true
+        and lower(coalesce(role, actor_role)) = v_actor_role;
+      insert into public.canonical_ediel_profile_identities(company_id, environment, actor_role, profile_id, bound_by)
+      values(v_company_id, v_environment, v_actor_role, v_profile.id, v_actor_user_id)
+      on conflict (company_id, environment, actor_role) do update
       set profile_id = excluded.profile_id, bound_at = now(), bound_by = excluded.bound_by;
     end if;
     if p_command ? (v_environment || '_profile_id') then
@@ -700,21 +943,25 @@ begin
         updated_at = now()
     from public.canonical_ediel_profile_identities i
     where i.company_id = v_company_id and i.environment = v_environment
+      and i.actor_role = v_actor_role
       and i.profile_id = a.id and a.company_id = i.company_id and a.environment = i.environment;
 
     select count(*) into v_profile_count from public.ediel_actor_settings
-    where company_id = v_company_id and environment = v_environment and is_active = true;
+    where company_id = v_company_id and environment = v_environment and is_active = true
+      and lower(coalesce(role, actor_role)) = v_actor_role;
     if v_profile_count > 1 then raise exception 'active_ediel_profile_identity_ambiguous:%', v_environment; end if;
     if v_profile_count = 1 then
       select * into v_profile from public.ediel_actor_settings
-      where company_id = v_company_id and environment = v_environment and is_active = true;
-      insert into public.canonical_ediel_profile_identities(company_id, environment, profile_id, bound_by)
-      values(v_company_id, v_environment, v_profile.id, v_actor_user_id)
-      on conflict (company_id, environment) do update
+      where company_id = v_company_id and environment = v_environment and is_active = true
+        and lower(coalesce(role, actor_role)) = v_actor_role;
+      insert into public.canonical_ediel_profile_identities(company_id, environment, actor_role, profile_id, bound_by)
+      values(v_company_id, v_environment, v_actor_role, v_profile.id, v_actor_user_id)
+      on conflict (company_id, environment, actor_role) do update
       set profile_id = excluded.profile_id, bound_at = now(), bound_by = excluded.bound_by;
     else
       delete from public.canonical_ediel_profile_identities
-      where company_id = v_company_id and environment = v_environment;
+      where company_id = v_company_id and environment = v_environment
+        and actor_role = v_actor_role;
     end if;
     v_profile := null;
   end loop;

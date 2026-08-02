@@ -203,3 +203,29 @@ and security regressions, zero-vulnerability audit and the Node 22 production
 build pass. Delivery/runbook artifacts and a guarded staging sync script are
 present. Release remains NO-GO pending deterministic staging cleanup, exact
 ledger/schema reconciliation, controlled apply and environment proof.
+
+## 2026-08-02 — A-C parity and multi-role Ediel identity correction
+
+- Verified complete A-C catalog, grants and seed invariants read-only against
+  `gridex-ops-dev`; guarded ledger repair is now authorized for that inspected
+  project state.
+- Identified the supplier/test duplicate as an unreferenced 21660 legacy row;
+  canonical 92825/test and 21660/production rows already exist.
+- Found and fixed an additional convergence defect: environment-only identity
+  collapsed supplier and ESCO profiles. Identity and mutations are now scoped
+  by company, environment and actor role.
+- Added safe preflight, deterministic Gridex profile repair and post-apply SQL.
+- PostgreSQL parsing, canonical hardening regression, migration integrity and
+  `git diff --check` pass. No remote mutation was performed.
+
+## 2026-08-02 15:59 CEST — PostgreSQL UUID aggregate repair
+
+- Reproduced the preflight failure as unsupported `min(uuid)` and found the
+  same defect in the pending convergence migration before staging apply.
+- Changed the preflight to accept a child-message tenant only when exactly one
+  distinct non-null tenant exists, using `min(company_id::text)::uuid`.
+- Changed the single-row profile identity seed to `min(id::text)::uuid` and
+  added a static regression preventing reintroduction of `min(id)`.
+- The full corrected preflight and the corrected aggregate query execute
+  read-only on `gridex-ops-dev`; migration integrity, canonical hardening and
+  RBAC audit pass. No remote database mutation was performed.

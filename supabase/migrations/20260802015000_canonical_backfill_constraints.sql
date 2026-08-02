@@ -105,8 +105,8 @@ begin
   insert into public.canonical_hardening_preflight_results(check_key,status,affected_rows,details)
   select 'companies_noncanonical_status',case when count(*)=0 then 'pass' else 'blocked' end,count(*),
     jsonb_build_object('action','review_each_tenant_status_without_active_fallback')
-  from public.companies
-  where status is null or status not in (
+  from public.companies c
+  where c.status is null or c.status not in (
     'onboarding','active','paused','suspended','archived','pending_deletion','closed','deleted_test_only'
   );
 

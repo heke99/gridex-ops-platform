@@ -236,7 +236,7 @@ begin
     'engine_version','canonical-evidence-v2'
   );
 
-  v_hash:=encode(digest(convert_to(v_payload::text,'utf8'),'sha256'),'hex');
+  v_hash:=encode(extensions.digest(convert_to(v_payload::text,'utf8'),'sha256'::text),'hex');
   select * into v_existing from public.ediel_configuration_snapshots
   where company_id=p_company_id and configuration_hash=v_hash;
   if found then return v_existing; end if;

@@ -6,7 +6,6 @@ readonly ACTION="${1:-help}"
 readonly PROJECT_REF="${SUPABASE_PROJECT_REF:-}"
 readonly TARGET_ENVIRONMENT="${GRIDEX_TARGET_ENVIRONMENT:-staging}"
 readonly PARITY_TOKEN="I_HAVE_REVIEWED_EXACT_A_C_PARITY"
-readonly APPLY_TOKEN="I_UNDERSTAND_THIS_APPLIES_TO_STAGING"
 readonly NPM_CACHE_DIR="${GRIDEX_NPM_CACHE_DIR:-/tmp/gridex-supabase-npx}"
 
 run_supabase() {
@@ -14,12 +13,18 @@ run_supabase() {
 }
 
 require_non_production_target() {
+  local normalized_target_environment
+
   if [[ -z "${PROJECT_REF}" ]]; then
     echo "SUPABASE_PROJECT_REF must name the isolated staging/dev project." >&2
     exit 2
   fi
 
-  case "${TARGET_ENVIRONMENT,,}" in
+  normalized_target_environment="$(
+    printf '%s' "${TARGET_ENVIRONMENT}" | LC_ALL=C tr '[:upper:]' '[:lower:]'
+  )"
+
+  case "${normalized_target_environment}" in
     production|prod|live)
       echo "Refusing to operate on a production-labelled target." >&2
       exit 2
@@ -80,21 +85,9 @@ case "${ACTION}" in
     ;;
 
   apply-staging)
-    require_non_production_target
-    if [[ "${GRIDEX_SCHEMA_PARITY_APPROVED:-}" != "${PARITY_TOKEN}" ]]; then
-      echo "Blocked: exact A-C parity approval is required." >&2
-      exit 2
-    fi
-    if [[ "${GRIDEX_APPLY_STAGING:-}" != "${APPLY_TOKEN}" ]]; then
-      echo "Blocked: explicit staging apply approval is required." >&2
-      exit 2
-    fi
-
-    link_target
-    run_supabase migration list
-    run_supabase db push --dry-run
-    run_supabase db push
-    echo "Apply finished. Run the database/JWT/concurrency checks in docs/canonical-hardening/VERIFICATION_PROTOCOL.md."
+    echo "Blocked: the full local migration directory does not match remote history." >&2
+    echo "Use scripts/apply-canonical-hardening-isolated.sh after reviewing its exact plan." >&2
+    exit 2
     ;;
 
   help|*)
@@ -108,11 +101,9 @@ After exact A-C parity has been independently approved:
     GRIDEX_SCHEMA_PARITY_APPROVED=I_HAVE_REVIEWED_EXACT_A_C_PARITY \
     ./scripts/sync-canonical-hardening.sh repair-ledger
 
-After the repaired plan is reviewed and staging apply is approved:
-  GRIDEX_TARGET_ENVIRONMENT=staging SUPABASE_PROJECT_REF=<staging-ref> \
-    GRIDEX_SCHEMA_PARITY_APPROVED=I_HAVE_REVIEWED_EXACT_A_C_PARITY \
-    GRIDEX_APPLY_STAGING=I_UNDERSTAND_THIS_APPLIES_TO_STAGING \
-    ./scripts/sync-canonical-hardening.sh apply-staging
+The legacy apply-staging action is intentionally blocked because the full local
+migration directory does not match remote history. Use the separately reviewed
+scripts/apply-canonical-hardening-isolated.sh workflow.
 USAGE
     ;;
 esac

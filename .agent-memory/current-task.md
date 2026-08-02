@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-02T14:45:37+02:00
+Last updated: 2026-08-02T16:30:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
@@ -10,12 +10,16 @@ PHASE-39 — Canonical security convergence, verified invitations and guarded st
 
 ## Verified locally
 
-- Added the registered forward-only convergence migration with request-payload-bound idempotency, actor authentication, last-owner/admin protection, explicit Ediel profile identity, read-only readiness and least-privilege/RLS hardening.
+- Added the registered forward-only convergence migration with request-payload-bound idempotency, actor authentication, last-owner/admin protection, actor-role-qualified Ediel profile identity, read-only readiness and least-privilege/RLS hardening.
+- Verified complete A-C table/column/constraint/index/RLS/policy/trigger/grant and seed parity read-only against `gridex-ops-dev`; guarded A-C ledger repair is now authorized for that inspected project state.
+- Corrected the convergence model so supplier and ESCO profiles coexist under `(company_id, environment, actor_role)` and profile writes never deactivate another role.
+- Added assertion-guarded Gridex profile reconciliation SQL: obsolete 21660/test profile is deactivated, 92825/test and 21660/production remain canonical, and snapshot capture fail-closes stale live production.
 - Routed company provisioning, lifecycle, production, first-send, profile and route writers through the canonical database boundary.
 - Replaced temporary-password provisioning with verified Supabase invitation/OTP acceptance and no access before acceptance.
 - Made unknown/missing roles and incomplete tenant context fail closed in the touched flows.
 - PostgreSQL parser, every TypeScript target, 417 tests, 337-file/241-group migration integrity, hardening/security regressions, zero-vulnerability production audit and full Node 22 build pass.
 - Added complete baseline, schema/ledger, RLS/security, preflight/backfill/quarantine, staging/rollback/cutover/verification documentation and a guarded synchronization script.
+- Replaced both unsupported `min(uuid)` aggregates with deterministic text-cast UUID aggregation; the repaired preflight executed successfully read-only against the connected development project.
 
 - Repaired the Ediel evidence migration against the actual `gridex-ops-dev` schema and transaction-compiled it with a confirmed rollback.
 - Evidence pass/fail is server-derived from run, definition, snapshot, messages, portal identity, correlation, ACK outcome, transport and rulebook data.
@@ -28,13 +32,13 @@ PHASE-39 — Canonical security convergence, verified invitations and guarded st
 
 ## Exact next action
 
-Run only the guarded dry-run plan. Reconcile every A-C table, constraint, index, policy, trigger, function and grant before ledger repair. Resolve the 153 unscoped runs, duplicate active profile group and missing production snapshot in isolated staging without guessing; then apply D-F, `20260802160000` and `20260802170000`, and run the full DB/JWT/RLS/concurrency/worker verification protocol.
+Run the supplied safe preflight, guarded A-C ledger repair and deterministic Gridex profile reconciliation in isolated staging. Then review/apply D-F, `20260802160000` and the corrected `20260802170000`, quarantine the 153 unscoped runs without assigning a tenant, and run the full DB/JWT/RLS/concurrency/worker verification protocol.
 
 ## Blockers
 
-- Remote ledger contains only nine recorded versions while parts of A–C exist in schema; exact definition/ledger parity is not yet proven.
+- Remote ledger still contains only nine recorded versions; exact A-C parity is proven but the guarded ledger repair has not yet been executed.
 - 153 legacy `ediel_test_runs` have no deterministic tenant owner and must remain quarantined/manual-review candidates.
-- One duplicate active actor-profile group and one prepared/live production state without a snapshot require explicit staging remediation.
+- The duplicate supplier/test profile and missing-snapshot live state have a deterministic, assertion-guarded repair but it has not yet been applied.
 - D–F, the website canonical-event migration and the convergence migration are not applied to staging.
 - Authenticated two-tenant RLS, service-role cross-tenant, concurrency and full evidence-chain fixtures have not run after apply.
 - External Gridex Web/portal/partner repositories and deployment targets were not supplied.

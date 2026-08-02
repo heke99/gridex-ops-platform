@@ -2,14 +2,12 @@
 
 ## BLK-021 — Canonical hardening ledger/schema drift
 
-Status: RELEASE_BLOCKER. The connected `gridex-ops-dev` ledger records only
-nine historical versions while canonical A–C objects exist and D–F are not
-recorded. Compare exact definitions before any `migration repair`; do not run a
-global push over the drift.
-
-Principal A-C function bodies match exactly, but full tables, constraints,
-indexes, policies, triggers and grants are not verified. Function equality alone
-does not authorize ledger repair.
+Status: READY_FOR_GUARDED_REPAIR. The connected `gridex-ops-dev` ledger records
+only nine historical versions while canonical A-C objects exist and D-F are not
+recorded. Complete read-only table, column, constraint, index, RLS, policy,
+trigger, grant, function and seed parity is now verified for project
+`piidsfebjqjmnepdpnas`. Use only the guarded A-C repair command; do not run a
+global push first or edit the ledger table directly.
 
 ## BLK-022 — Ambiguous legacy Ediel test-run ownership
 
@@ -18,9 +16,11 @@ Customer and actor-setting relations resolve none of those 153 deterministically
 They must remain quarantined until manually reviewed; no default/latest tenant
 assignment is permitted.
 
-The same read-only preflight also found one duplicate active actor-profile group
-and one prepared/live production state without a configuration snapshot. Both
-must be deterministically remediated before apply/postflight can pass.
+The same read-only preflight found one obsolete 21660 supplier profile in the
+test environment and one live production state without a snapshot. A guarded
+repair is prepared: retain 92825/test and the existing 21660/production profile,
+deactivate only the unreferenced duplicate, capture a snapshot and block stale
+live production. It remains a blocker until executed and verified.
 
 ## BLK-023 — Post-apply security and evidence proof
 

@@ -837,7 +837,7 @@ begin
     'configuration_hash',v_snapshot.configuration_hash,
     'rulebook_version',v_run.rulebook_version
   );
-  v_evidence_digest:=encode(digest(convert_to(v_evidence::text,'utf8'),'sha256'),'hex');
+  v_evidence_digest:=encode(extensions.digest(convert_to(v_evidence::text,'utf8'),'sha256'::text),'hex');
 
   insert into public.actor_test_attempts(
     company_id,test_run_id,test_case_code,environment_type,actor_role,role_code,
@@ -862,7 +862,7 @@ begin
       'message_reference',m.message_reference,'transaction_reference',m.transaction_reference,
       'sender_ediel_id',m.sender_ediel_id,'receiver_ediel_id',m.receiver_ediel_id,'ack_outcome',m.ack_outcome
     ),coalesce(m.status,'unknown'),
-    coalesce(m.raw_payload_hash,encode(digest(convert_to(coalesce(m.raw_payload,''),'utf8'),'sha256'),'hex')),
+    coalesce(m.raw_payload_hash,encode(extensions.digest(convert_to(coalesce(m.raw_payload,''),'utf8'),'sha256'::text),'hex')),
     v_snapshot.id
   from (values
     (v_source.id,'source_message'::text),(v_source.id,'portal_identity'::text),
@@ -1088,7 +1088,7 @@ begin
     raise exception 'manual_attestation_canonical_identity_incomplete';
   end if;
 
-  v_digest:=encode(digest(convert_to(v_attestation.reason||'|'||v_attestation.evidence_reference||'|'||v_decision_reason,'utf8'),'sha256'),'hex');
+  v_digest:=encode(extensions.digest(convert_to(v_attestation.reason||'|'||v_attestation.evidence_reference||'|'||v_decision_reason,'utf8'),'sha256'::text),'hex');
   insert into public.actor_test_attempts(
     company_id,test_run_id,test_case_code,environment_type,actor_role,role_code,
     test_suite,setup_package,message_family,message_variant,status,machine_verified,

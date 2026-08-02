@@ -1,17 +1,19 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-02T14:45:37+02:00",
+  "updated_at": "2026-08-02T16:30:00+02:00",
   "branch": null,
   "last_verified_commit": null,
   "active_phase": "PHASE-39",
   "active_task": "WP-039",
-  "active_subtask": "Reconcile exact A-C catalog parity and deterministic staging cleanup before guarded apply",
+  "active_subtask": "Execute approved A-C ledger repair and deterministic Gridex profile cleanup before guarded staging apply",
   "status": "LOCALLY_VERIFIED_DATABASE_BLOCKED",
   "implemented_not_environment_verified": [
     "actor-authenticated canonical lifecycle, production, profile and provisioning boundaries",
     "request-payload-bound command idempotency and one-time first-live approval",
     "verified link invitations without temporary passwords or pre-acceptance access",
-    "explicit Ediel profile identity, read-only readiness and least-privilege/RLS hardening",
+    "actor-role-qualified Ediel profile identity, read-only readiness and least-privilege/RLS hardening",
+    "complete read-only A-C catalog and seed parity verification for gridex-ops-dev",
+    "assertion-guarded Gridex supplier profile and snapshot reconciliation SQL",
     "server-derived immutable Ediel evidence v2",
     "matching-attempt protection for passed and manual_verified projections",
     "tenant-qualified test child relations and service-role-resistant constraints",
@@ -21,9 +23,9 @@
     "production dependency security upgrades"
   ],
   "active_blockers": [
-    "Remote ledger omits A-C versions although related objects exist; exact definition parity is not proven",
+    "Remote ledger omits A-C versions; exact parity is proven but guarded ledger repair is not executed",
     "153 legacy test runs have null company_id and no deterministic ownership resolution",
-    "One duplicate active actor-profile group and one production state lacks a snapshot",
+    "One deterministic obsolete supplier profile and missing-snapshot live state await the prepared guarded repair",
     "D-F, the website event migration and the convergence migration are not applied in staging",
     "Two-tenant JWT RLS, service-role cross-tenant, concurrency and evidence-chain tests require post-apply fixtures",
     "External repositories and deployment targets were not supplied",
@@ -79,9 +81,14 @@
       "name": "database rollout and environment regressions",
       "status": "BLOCKED",
       "evidence": "ledger reconciliation and controlled staging apply required"
+    },
+    {
+      "name": "PostgreSQL UUID aggregate repair",
+      "status": "VERIFIED_READ_ONLY",
+      "evidence": "corrected preflight and profile aggregate execute on gridex-ops-dev; migration integrity, canonical hardening and RBAC audit pass"
     }
   ],
-  "next_action": "Compare every installed A-C catalog object to source, resolve all preflight blockers without guessing, repair only exact ledger matches, then apply D-F, 20260802160000 and 20260802170000 in isolated staging and run quarantine, constraint, JWT RLS, service-role, concurrency and evidence-chain regressions.",
+  "next_action": "Run the safe preflight, guarded A-C ledger repair and deterministic Gridex profile reconciliation, then apply D-F, 20260802160000 and the role-qualified 20260802170000 in isolated staging and run quarantine, constraint, JWT RLS, service-role, concurrency and evidence-chain regressions.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
     "Do not run supabase db push before ledger/schema reconciliation",

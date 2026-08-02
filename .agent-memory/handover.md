@@ -2,7 +2,7 @@
 
 PHASE-39 is implemented and locally verified but not applied. Release remains **NO-GO**.
 
-The registered forward migration is `20260802170000_canonical_security_convergence.sql` with SHA-256 `a1e53c8ebc71e00d1a5eac0005d1a50264be01a02070518b6bdde7406b57cbc6`. It adds actor-authenticated canonical wrappers, request-hash idempotency, one-time first-live approval, explicit profile identity, read-only readiness and least-privilege/RLS hardening. Runtime provisioning, invitation, lifecycle, production, profile and route writers use those canonical boundaries.
+The registered forward migration is `20260802170000_canonical_security_convergence.sql` with SHA-256 `8ef36f7d8c5b8bc3913d3a739d631de6e8f609594e70e320336233ac87935dfd`. It adds actor-authenticated canonical wrappers, request-hash idempotency, one-time first-live approval, actor-role-qualified profile identity, read-only readiness and least-privilege/RLS hardening. The checksum includes the PostgreSQL 17-compatible replacement of unsupported `min(uuid)`. Runtime provisioning, invitation, lifecycle, production, profile and route writers use those canonical boundaries.
 
 Local proof under Node 22: PostgreSQL parser; app/script/test typechecks; 62 Vitest files and 417 tests; 337 migration files/241 version groups; canonical, tenant and RBAC regressions; zero production vulnerabilities; full Next.js 16.2.12 build. ESLint has 0 errors and 126 inherited unused-variable warnings.
 

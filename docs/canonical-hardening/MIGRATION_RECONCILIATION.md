@@ -17,13 +17,27 @@ The local repository contains a long forward-only history, while the connected S
 | `canonical_save_ediel_actor_profile` | `6f3c34e67ba68c7432d93849b60faf38` | 7897 | MATCH |
 | `ediel_configuration_change_snapshot_trigger` | `9c595ef286ac6eaec1a97e7e231c79c8` | 510 | MATCH |
 
-This proves function-body parity only. Full table, constraint, policy, trigger and data parity for A–C is **NOT VERIFIED**. Therefore `supabase migration repair` must not be executed until the full schema diff is reviewed and signed off.
+## A-C catalog and seed comparison
+
+Read-only catalog inspection on 2026-08-02 additionally verified the complete
+A-C relation/column shapes, primary/foreign/unique/check constraints, indexes,
+RLS flags, policies, configuration triggers and role grants. Seed invariants
+also match: all four companies have production-state rows, every required
+permission and company capability exists, and no duplicate capability key is
+present.
+
+Result: **EXACT A-C PARITY APPROVED FOR `gridex-ops-dev`**. The three missing
+ledger entries may be repaired with the guarded script. This approval applies
+only to project `piidsfebjqjmnepdpnas` at the inspected state; it is not a
+general production approval.
 
 ## Forward-only sequence
 
 1. Preserve registered files unchanged.
-2. Reconcile A–C against catalog definitions and checksums.
-3. Repair ledger state only after exact parity approval.
+2. Reconcile A–C against catalog definitions and checksums. **DONE for the
+   inspected development project.**
+3. Repair ledger state with the guarded command; do not insert directly into
+   the ledger table.
 4. Apply D–F, `20260802160000`, then `20260802170000` on an isolated staging branch.
 5. Run preflight, backfill/quarantine review, RLS/JWT and concurrency tests.
 6. Promote only after all required gates pass.

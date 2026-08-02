@@ -126,9 +126,13 @@
 | VM-118 | Remote ledger/schema reconciliation | BLOCKED | A-C objects exist without ledger rows; exact definition comparison required |
 | VM-119 | Post-apply DB/RLS/evidence E2E | NOT RUN | requires controlled staging apply and real tenant/JWT fixtures |
 | VM-120 | Canonical convergence PostgreSQL parse | VERIFIED LOCALLY | registered `20260802170000...` accepted by PostgreSQL parser |
+| VM-121 | A-C full catalog and seed parity | VERIFIED READ-ONLY | gridex-ops-dev tables, columns, constraints, indexes, RLS, policies, triggers, grants, functions and required seed invariants match |
+| VM-122 | Multi-role Ediel profile identity | VERIFIED LOCALLY | PostgreSQL parser, hardening regression and migration integrity pass with `(company_id, environment, actor_role)` identity |
+| VM-123 | Gridex staging reconciliation SQL | VERIFIED LOCALLY | all three SQL files accepted by the PostgreSQL parser; mutation remains unapplied |
 | VM-121 | Current migration integrity | VERIFIED LOCALLY | 337 files; 241 version groups and registered checksums pass |
 | VM-122 | Canonical/runtime security regressions | VERIFIED LOCALLY | production hardening, behavior, tenant, routing, inbound and RBAC gates pass |
 | VM-123 | Current Node 22 app gates | VERIFIED LOCALLY | all TypeScript targets; 62 files/417 tests; zero-vulnerability audit; full Next.js build |
 | VM-124 | Remote read-only preflight | BLOCKED | 153 unscoped runs, one duplicate profile group and one missing production snapshot |
 | VM-125 | A-C exact catalog parity | PARTIAL/BLOCKED | principal function bodies match; tables, constraints, indexes, policies, triggers and grants not fully proven |
 | VM-126 | D-F/event/convergence staging apply | NOT RUN | guarded apply requires parity sign-off and deterministic cleanup |
+| VM-127 | UUID aggregate repair | VERIFIED READ-ONLY | Corrected preflight executes on gridex-ops-dev; corrected profile identity aggregate executes; migration integrity, canonical hardening and RBAC audit pass |

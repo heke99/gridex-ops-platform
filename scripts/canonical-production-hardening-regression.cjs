@@ -93,6 +93,7 @@ const requiredMigrations = [
   'supabase/migrations/20260802015000_canonical_backfill_constraints.sql',
   'supabase/migrations/20260802160000_website_application_committed_canonical_event.sql',
   'supabase/migrations/20260802170000_canonical_security_convergence.sql',
+  'supabase/migrations/20260802180000_canonical_provisioning_privilege_convergence.sql',
 ]
 for (const relative of requiredMigrations) assert(exists(relative), `Forward-only migration is missing: ${relative}`)
 
@@ -111,6 +112,7 @@ const snapshotMigration = read(requiredMigrations[2])
 assert(snapshotMigration.includes('ediel_configuration_snapshots'), 'Configuration snapshot table is missing')
 assert(snapshotMigration.includes('configuration_hash'), 'Configuration snapshot hash is missing')
 assert(snapshotMigration.includes('is_stale'), 'Snapshot invalidation fields are missing')
+assert(snapshotMigration.includes("extensions.digest(convert_to(v_payload::text,'utf8'),'sha256'::text)"), 'Configuration snapshot hash must resolve pgcrypto explicitly')
 for (const required of ['active_test_configurations', 'active_rule_versions', 'canonical-evidence-v2']) {
   assert(snapshotMigration.includes(required), `Configuration snapshot payload is missing ${required}`)
 }
@@ -141,6 +143,7 @@ assert(!evidenceMigration.includes("p_command->'message_ids'"), 'Evidence RPC st
 assert(!evidenceMigration.includes("p_command->'evidence'"), 'Evidence RPC still trusts client-supplied evidence JSON')
 assert(!evidenceMigration.includes("set_config('gridex.machine_evidence_rpc'"), 'Machine pass guard still depends on a GUC flag')
 assert(!evidenceMigration.includes("set_config('gridex.manual_attestation_rpc'"), 'Manual attestation guard still depends on a GUC flag')
+assert((evidenceMigration.match(/extensions\.digest\(/g) ?? []).length === 3, 'Evidence migration must schema-qualify every pgcrypto digest call')
 
 const websiteCommitMigration = read(requiredMigrations[6])
 assert(websiteCommitMigration.includes('WEBSITE_APPLICATION_COMMITTED'), 'Canonical website application commit event is missing')
@@ -162,7 +165,28 @@ for (const required of [
 ]) assert(convergenceMigration.includes(required), `Security convergence migration is missing ${required}`)
 assert(convergenceMigration.includes("ur.company_id is null"), 'Platform-admin resolution must reject tenant-bound global roles')
 assert(convergenceMigration.includes("p_target_state in ('prepared', 'live')"), 'Canonical readiness must gate prepared and live transitions')
+assert(convergenceMigration.includes('primary key (company_id, environment, actor_role)'), 'Canonical Ediel profile identity must be role-qualified')
+assert(convergenceMigration.includes('on conflict (company_id, environment, actor_role)'), 'Canonical Ediel profile upsert must be role-qualified')
+assert(convergenceMigration.includes('min(id::text)::uuid'), 'UUID profile selection must use a PostgreSQL-supported deterministic aggregate')
+assert(!convergenceMigration.includes('min(id)'), 'Migration must not call unsupported min(uuid)')
+assert(convergenceMigration.includes("lower(coalesce(role, actor_role)) = v_actor_role"), 'Canonical Ediel profile mutation must not deactivate another actor role')
+assert(!convergenceMigration.includes('primary key (company_id, environment),'), 'Environment-only profile identity incorrectly collapses supplier and ESCO roles')
 assert(!convergenceMigration.includes('drop policy if exists %I'), 'Security convergence must not blindly drop policies')
+assert((convergenceMigration.match(/extensions\.digest\(/g) ?? []).length === 3, 'Security convergence must schema-qualify every pgcrypto digest call')
+
+const privilegeConvergenceMigration = read(requiredMigrations[8])
+assert(
+  privilegeConvergenceMigration.includes('revoke insert, update, delete, truncate, references, trigger'),
+  'Provisioning privilege convergence must revoke authenticated mutation privileges',
+)
+assert(
+  privilegeConvergenceMigration.includes('grant select'),
+  'Provisioning privilege convergence must preserve authenticated SELECT',
+)
+assert(
+  privilegeConvergenceMigration.includes("privilege_type <> 'SELECT'"),
+  'Provisioning privilege convergence must fail closed on unexpected grants',
+)
 
 const companyActions = read('app/admin/companies/actions.ts')
 assert(companyActions.includes("rpc('canonical_provision_company'"), 'Company creation must use canonical provisioning')
