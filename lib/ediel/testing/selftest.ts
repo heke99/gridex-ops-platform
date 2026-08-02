@@ -313,6 +313,8 @@ async function runProdatInboundScenario(
   const supabase = await createSupabaseServerClient()
   const switchRequest = await getSupplierSwitchRequestById(supabase, input.switchRequestId)
   if (!switchRequest) throw new Error('Switch request hittades inte')
+  const companyId = (switchRequest as { company_id?: string | null }).company_id ?? null
+  if (!companyId) throw new Error('Switch request saknar tenantkoppling')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Kunde inte hitta anläggning för switch request')
@@ -325,7 +327,7 @@ async function runProdatInboundScenario(
     : null
 
   const receiverEdielId = await resolveSelfTestReceiverEdielId({
-    companyId: (switchRequest as { company_id?: string | null }).company_id ?? null,
+    companyId,
     explicitReceiverEdielId: input.receiverEdielId ?? null,
   })
 
@@ -356,6 +358,7 @@ async function runProdatInboundScenario(
 
   const testRun = await createEdielTestRun({
     actorUserId: input.actorUserId,
+    companyId,
     approvalVersion: 'ACTIVE_SCOPE_R1',
     roleCode: 'supplier',
     testSuite: 'PRODAT',
@@ -377,6 +380,7 @@ async function runProdatInboundScenario(
       actorUserId: input.actorUserId,
       input: {
         actorUserId: input.actorUserId,
+        companyId,
         direction: 'inbound',
         messageStandard: 'edifact',
         messageFamily: parsed.messageFamily,
@@ -411,6 +415,7 @@ async function runProdatInboundScenario(
     createdMessageIds.push(inboundMessage.id)
 
     await attachEdielMessageToTestRun({
+      companyId,
       testRunId: testRun.id,
       edielMessageId: inboundMessage.id,
       stepNo: 1,
@@ -484,6 +489,7 @@ async function runProdatInboundScenario(
 
     for (const [index, ackMessageId] of ackMessageIds.entries()) {
       await attachEdielMessageToTestRun({
+        companyId,
         testRunId: testRun.id,
         edielMessageId: ackMessageId,
         stepNo: index + 2,
@@ -547,6 +553,8 @@ async function runUtiltsInboundScenario(
 
   if (error) throw error
   if (!request) throw new Error('Grid owner data request hittades inte')
+  const companyId = (request as { company_id?: string | null }).company_id ?? null
+  if (!companyId) throw new Error('Grid owner data request saknar tenantkoppling')
 
   const meteringPoint = request.metering_point_id
     ? await getMeteringPointById(supabase, request.metering_point_id)
@@ -569,7 +577,7 @@ async function runUtiltsInboundScenario(
         : undefined
 
   const receiverEdielId = await resolveSelfTestReceiverEdielId({
-    companyId: (request as { company_id?: string | null }).company_id ?? null,
+    companyId,
     explicitReceiverEdielId: input.receiverEdielId ?? null,
   })
 
@@ -595,6 +603,7 @@ async function runUtiltsInboundScenario(
 
   const testRun = await createEdielTestRun({
     actorUserId: input.actorUserId,
+    companyId,
     approvalVersion: 'ACTIVE_SCOPE_R1',
     roleCode: 'supplier',
     testSuite: 'UTILTS',
@@ -648,6 +657,7 @@ async function runUtiltsInboundScenario(
       actorUserId: input.actorUserId,
       input: {
         ...inboundInput,
+        companyId,
         rawPayload,
         processType: 'selftest',
         testFlag: 1,
@@ -667,6 +677,7 @@ async function runUtiltsInboundScenario(
     createdMessageIds.push(inboundMessage.id)
 
     await attachEdielMessageToTestRun({
+      companyId,
       testRunId: testRun.id,
       edielMessageId: inboundMessage.id,
       stepNo: 1,
@@ -767,6 +778,7 @@ async function runUtiltsInboundScenario(
       createdMessageIds.push(utiltsErrId)
 
       await attachEdielMessageToTestRun({
+        companyId,
         testRunId: testRun.id,
         edielMessageId: utiltsErrId,
         stepNo: 2,
@@ -786,6 +798,7 @@ async function runUtiltsInboundScenario(
 
       for (const [index, ackMessageId] of ackMessageIds.entries()) {
         await attachEdielMessageToTestRun({
+          companyId,
           testRunId: testRun.id,
           edielMessageId: ackMessageId,
           stepNo: index + 2,

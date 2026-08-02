@@ -7,6 +7,7 @@ import {
 import { getEmailProvider } from "./providers";
 import type { EmailAttachment } from "./providers/types";
 import { emitCommunicationSentDomainEvents } from "./emailDomainEvents";
+import { getTenantOperationDecision } from "@/lib/tenant/operationPolicy";
 
 type TenantEmailOutboxRow = {
   id: string;
@@ -21,7 +22,7 @@ type TenantEmailOutboxRow = {
   subject: string;
   html_body: string;
   text_body: string | null;
-  status: "queued" | "processing" | "delivery_uncertain" | "sent" | "failed" | "cancelled";
+  status: "queued" | "processing" | "delivery_uncertain" | "sent" | "failed" | "cancelled" | "blocked_tenant_state";
   attempts: number | null;
   max_attempts: number | null;
   next_attempt_at: string | null;
@@ -38,6 +39,9 @@ type TenantEmailOutboxRow = {
   locked_at?: string | null;
   locked_by?: string | null;
   lock_token?: string | null;
+  blocked_reason?: string | null;
+  blocked_at?: string | null;
+  company_status_snapshot?: string | null;
 };
 
 type EnqueueTenantEmailInput = {
@@ -245,7 +249,35 @@ async function loadDueRows(input: ProcessTenantEmailOutboxInput) {
   return (data ?? []) as TenantEmailOutboxRow[];
 }
 
+async function markOutboxBlockedByTenantState(
+  row: TenantEmailOutboxRow,
+  reason: string,
+  companyStatus: string | null
+) {
+  const now = new Date().toISOString();
+  const { error } = await supabaseService
+    .from("tenant_email_outbox")
+    .update({
+      status: "blocked_tenant_state",
+      blocked_reason: reason,
+      blocked_at: now,
+      company_status_snapshot: companyStatus,
+      locked_at: null,
+      locked_by: null,
+      lock_token: null,
+      updated_at: now,
+    })
+    .eq("id", row.id)
+    .eq("company_id", row.company_id);
+  if (error) throw error;
+}
+
 async function claimRow(row: TenantEmailOutboxRow) {
+  const decision = await getTenantOperationDecision(row.company_id, 'email.send');
+  if (!decision.allowed) {
+    await markOutboxBlockedByTenantState(row, decision.reason_code, decision.company_status);
+    return null;
+  }
   const now = new Date().toISOString();
   const lockToken = randomUUID();
   const { data, error } = await supabaseService
@@ -383,6 +415,11 @@ async function markOutboxFailed(
 }
 
 export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
+  const decision = await getTenantOperationDecision(row.company_id, 'email.send');
+  if (!decision.allowed) {
+    await markOutboxBlockedByTenantState(row, decision.reason_code, decision.company_status);
+    throw new Error(`blocked_tenant_state:${decision.reason_code}`);
+  }
   if (!clean(row.from_email))
     throw new Error("Avsändare saknas för e-postutskicket.");
   if (!clean(row.to_email))
@@ -442,6 +479,11 @@ export async function processTenantEmailOutbox(
       }
     } catch (error) {
       const message = safeError(error);
+      if (message.startsWith('blocked_tenant_state:')) {
+        result.skipped += 1;
+        result.errors.push({ id: claimed.id, error: message });
+        continue;
+      }
       await markOutboxFailed(claimed, message);
       const attempts = Number(claimed.attempts ?? 0) + 1;
       const maxAttempts = Number(claimed.max_attempts ?? 5);

@@ -1201,7 +1201,9 @@ export default async function EdielSystemTestsPage({
   const status = normalizeStatus(query.status);
 
   const [testRuns, messages] = await Promise.all([
-    listEdielTestRuns({ companyId: selectedCompanyId }).catch(() => []),
+    selectedCompanyId
+      ? listEdielTestRuns({ scope: 'tenant', companyId: selectedCompanyId }).catch(() => [])
+      : Promise.resolve([]),
     listEdielMessages({ companyId: selectedCompanyId, limit: 300 }).catch(
       () => [],
     ),

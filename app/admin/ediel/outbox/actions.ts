@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requireEdielSendActionAccess } from '@/lib/ediel/actionAccess'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
 
@@ -15,7 +15,7 @@ function formNumber(value: FormDataEntryValue | null, fallback: number): number 
 }
 
 export async function processEdielOutboxAction(formData: FormData) {
-  const context = await requireAdminActionAccess({ anyOf: ['communication.send', 'communication.write'] })
+  const context = await requireEdielSendActionAccess()
   const environment = formString(formData.get('environment'))
   const companyId = formString(formData.get('companyId'))
   const limit = formNumber(formData.get('limit'), 10)
@@ -33,7 +33,7 @@ export async function processEdielOutboxAction(formData: FormData) {
 }
 
 export async function sendSingleEdielOutboxItemAction(formData: FormData) {
-  const context = await requireAdminActionAccess({ anyOf: ['communication.send', 'communication.write'] })
+  const context = await requireEdielSendActionAccess()
   const outboxItemId = formString(formData.get('outboxItemId'))
   if (!outboxItemId) throw new Error('outboxItemId saknas')
 

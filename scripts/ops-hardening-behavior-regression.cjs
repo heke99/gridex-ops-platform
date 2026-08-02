@@ -97,6 +97,9 @@ function makeThenableBuilder(result, recorder) {
 // app-level fallback claim path that could race and double-send.
 const edielRecorder = { updates: [], selects: 0, rpcCalls: [] }
 const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOutboxItems.ts', {
+  '@/lib/tenant/operationPolicy': {
+    getTenantOperationDecision: async () => ({ allowed: true, reasonCode: 'allowed', companyStatus: 'active', capabilityStatus: 'ready', productionStatus: 'live', stateVersion: 1 }),
+  },
   '@/lib/supabase/service': {
     supabaseService: {
       rpc: async (name, args) => {

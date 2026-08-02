@@ -4,6 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { getEdielOutboundReadinessBlocker } from '@/lib/ediel/outbox/readinessGuard'
 import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
 import { claimEdielOutboxItem } from '@/lib/ediel/outbox/claimOutboxItems'
+import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -109,6 +110,25 @@ export async function sendOutboxItem(params: {
 
   const companyId = clean(item.company_id)
   const environment = clean(item.environment)
+  if (!companyId) {
+    await updateOutboxStatus({
+      outboxItemId: params.outboxItemId, sendAttemptId, workerId,
+      payload: { status: 'blocked_tenant_state', blocked_reason: 'missing_company_scope', blocked_at: new Date().toISOString(), locked_at: null, locked_by: null, updated_at: new Date().toISOString() },
+    })
+    return { status: 'blocked', messageId: null, error: 'missing_company_scope' }
+  }
+  const operation = environment === 'production' ? 'ediel.production.send' : 'ediel.test.process'
+  const tenantDecision = await getTenantOperationDecision(companyId, operation)
+  if (!tenantDecision.allowed) {
+    await updateOutboxStatus({
+      outboxItemId: params.outboxItemId, sendAttemptId, workerId,
+      payload: {
+        status: 'blocked_tenant_state', blocked_reason: tenantDecision.reason_code, blocked_at: new Date().toISOString(),
+        company_status_snapshot: tenantDecision.company_status, locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
+      },
+    })
+    return { status: 'blocked', messageId: null, error: tenantDecision.reason_code }
+  }
   const sendLockReason = await assertNoActiveSendLock({ companyId, environment, outboxItemId: params.outboxItemId })
   if (sendLockReason) {
     await updateOutboxStatus({
@@ -166,6 +186,26 @@ export async function sendOutboxItem(params: {
         updated_at: new Date().toISOString(),
       },
     })
+    // Re-evaluate immediately before the irreversible external SMTP call. The
+    // tenant may have been paused after claim or during route/readiness work.
+    const transportDecision = await getTenantOperationDecision(companyId, operation)
+    if (!transportDecision.allowed) {
+      await updateOutboxStatus({
+        outboxItemId: params.outboxItemId,
+        sendAttemptId,
+        workerId,
+        payload: {
+          status: 'blocked_tenant_state',
+          blocked_reason: transportDecision.reason_code,
+          blocked_at: new Date().toISOString(),
+          company_status_snapshot: transportDecision.company_status,
+          locked_at: null,
+          locked_by: null,
+          updated_at: new Date().toISOString(),
+        },
+      })
+      return { status: 'blocked', messageId: null, error: transportDecision.reason_code }
+    }
     const result = await sendEdielMessageViaSmtp(message, { actorUserId: params.actorUserId, smtpMimeMode: params.smtpMimeMode ?? null })
     try {
       await updateOutboxStatus({
@@ -200,7 +240,7 @@ export async function sendOutboxItem(params: {
           updated_by: params.actorUserId,
           updated_at: new Date().toISOString(),
         },
-      }).catch(() => undefined)
+      })
       return { status: 'delivery_uncertain', messageId: result.messageId ?? null, error: statusMessage }
     }
     return { status: 'sent', messageId: result.messageId ?? null }

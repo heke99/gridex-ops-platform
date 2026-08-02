@@ -38,3 +38,17 @@ export async function requireAnyPermissionServer(permissions: string[]) {
 
   return context
 }
+
+export async function requireAllPermissionsServer(permissions: string[]) {
+  const context = await getCurrentUserPermissionContext()
+
+  if (isPlatformAdminContext(context)) {
+    return context
+  }
+
+  if (!permissions.every((permission) => context.permissions.includes(permission))) {
+    redirect('/admin')
+  }
+
+  return context
+}

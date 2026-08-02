@@ -3,6 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import {
+  requireEdielProductionActivateActionAccess,
+  requireEdielTestAttestActionAccess,
+  requireEdielWriteActionAccess,
+  requireEdielProductionPauseActionAccess,
+  requireEdielProfileWriteActionAccess,
+} from '@/lib/ediel/actionAccess'
 import { supabaseService } from '@/lib/supabase/service'
 import { updateEdielTestRunStatus } from '@/lib/ediel/db'
 import {
@@ -25,25 +32,29 @@ function readRequiredString(formData: FormData, key: string): string {
   return value
 }
 
+
+function readIdempotencyKey(formData: FormData, fallback: string): string {
+  const supplied = String(formData.get('idempotency_key') ?? '').trim()
+  return supplied || fallback
+}
+
+async function assertActorTestingCompanyAccess(
+  admin: Awaited<ReturnType<typeof requireAdminActionAccess>>,
+  companyId: string
+) {
+  const isPlatformAdmin = isPlatformAdminContext(admin)
+  const allowed = await userCanManageActorTestingForCompany(admin.userId, companyId, isPlatformAdmin)
+  if (!allowed) throw new Error('Du saknar behörighet att hantera Ediel för detta bolag.')
+}
 function normalizeResultStatus(value: string): ActorTestStatus {
-  if (value === 'passed' || value === 'failed' || value === 'blocked' || value === 'manual_verified') return value
+  if (value === 'passed') throw new Error('passed kan endast sättas av den maskinella evidensmotorn.')
+  if (value === 'failed' || value === 'blocked' || value === 'manual_verified') return value
   return 'running'
 }
 
 async function requireActorTestingWriteAccess(companyId: string) {
-  const admin = await requireAdminActionAccess({ anyOf: ['tenants.write', 'whitelabel.write'] })
-  const isPlatformAdmin = isPlatformAdminContext(admin)
-
-  if (!isPlatformAdmin && !admin.permissions.includes('whitelabel.write')) {
-    throw new Error('Endast plattformsadmin eller white-label-admin kan hantera aktörstester för andra bolag.')
-  }
-
-  const allowed = await userCanManageActorTestingForCompany(admin.userId, companyId, isPlatformAdmin)
-
-  if (!allowed) {
-    throw new Error('Du saknar behörighet att hantera aktörstester för detta bolag.')
-  }
-
+  const admin = await requireEdielWriteActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   return admin
 }
 
@@ -69,45 +80,61 @@ async function insertGoLiveEvent(input: {
   readinessCheckId?: string | null
   metadata?: Record<string, unknown>
 }) {
-  try {
-    await supabaseService.from('ediel_go_live_events').insert({
-      company_id: input.companyId,
-      event_type: input.eventType,
-      from_status: input.fromStatus ?? null,
-      to_status: input.toStatus ?? null,
-      reason: input.reason ?? null,
-      actor_user_id: input.actorUserId,
-      readiness_check_id: input.readinessCheckId ?? null,
-      metadata: input.metadata ?? {},
-    })
-  } catch (error) {
-    console.warn('Could not store go-live event', error)
-  }
+  const { error } = await supabaseService.from('ediel_go_live_events').insert({
+    company_id: input.companyId,
+    event_type: input.eventType,
+    from_status: input.fromStatus ?? null,
+    to_status: input.toStatus ?? null,
+    reason: input.reason ?? null,
+    actor_user_id: input.actorUserId,
+    readiness_check_id: input.readinessCheckId ?? null,
+    metadata: input.metadata ?? {},
+  })
+  if (error) throw error
 }
 
-async function upsertProductionSendLock(input: {
+type CanonicalProductionTarget = 'prepared' | 'live' | 'paused' | 'blocked' | 'retired'
+
+async function transitionCanonicalEdielProduction(input: {
   companyId: string
-  locked: boolean
-  reason: string | null
+  targetState: CanonicalProductionTarget
   actorUserId: string
+  reason: string
+  readinessCheckId?: string | null
+  dryRunId?: string | null
+  configurationSnapshotId?: string | null
+  expectedStateVersion?: number | null
+  idempotencyKey: string
 }) {
-  const now = new Date().toISOString()
-  try {
-    const { error } = await supabaseService.from('ediel_send_locks').upsert({
-      company_id: input.companyId,
-      environment: 'production',
-      locked: input.locked,
-      locked_reason: input.reason,
-      locked_by: input.locked ? input.actorUserId : null,
-      locked_at: input.locked ? now : null,
-      unlocked_by: input.locked ? null : input.actorUserId,
-      unlocked_at: input.locked ? null : now,
-      updated_at: now,
-    }, { onConflict: 'company_id,environment' })
-    if (error) console.warn('Could not upsert production send lock', error)
-  } catch (error) {
-    console.warn('Could not upsert production send lock', error)
-  }
+  const { data, error } = await supabaseService.rpc('canonical_transition_ediel_production', {
+    p_company_id: input.companyId,
+    p_target_state: input.targetState,
+    p_expected_state_version: input.expectedStateVersion ?? null,
+    p_configuration_snapshot_id: input.configurationSnapshotId ?? null,
+    p_readiness_check_id: input.readinessCheckId ?? null,
+    p_dry_run_id: input.dryRunId ?? null,
+    p_reason: input.reason,
+    p_actor_user_id: input.actorUserId,
+    p_idempotency_key: input.idempotencyKey,
+  })
+  if (error) throw error
+  return data
+}
+
+async function approveCanonicalFirstLiveSend(input: {
+  companyId: string
+  actorUserId: string
+  readinessCheckId?: string | null
+  idempotencyKey: string
+}) {
+  const { data, error } = await supabaseService.rpc('canonical_approve_first_live_send', {
+    p_company_id: input.companyId,
+    p_readiness_check_id: input.readinessCheckId ?? null,
+    p_actor_user_id: input.actorUserId,
+    p_idempotency_key: input.idempotencyKey,
+  })
+  if (error) throw error
+  return data
 }
 
 export async function startActorTestAction(formData: FormData) {
@@ -127,7 +154,7 @@ export async function startActorTestAction(formData: FormData) {
     })
 
     await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_COMPANY_REACTIVATED',
+      action: 'EDIEL_TEST_ATTEMPT_COMPLETED',
       actorUserId: admin.userId,
       companyId,
       reason: `Automatiserat aktörstest kördes: ${testCase.label}`,
@@ -179,7 +206,7 @@ export async function startActorTestAction(formData: FormData) {
     if (resultError) throw resultError
 
     await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_COMPANY_PAUSED',
+      action: 'EDIEL_TEST_ATTEMPT_COMPLETED',
       actorUserId: admin.userId,
       companyId,
       reason: `Automatiserat aktörstest blockerades: ${testCase.label}`,
@@ -206,15 +233,40 @@ export async function saveActorTestResultAction(formData: FormData) {
   const testCase = getActorTestCase(testKey)
   if (!testCase) throw new Error('Okänt aktörstest.')
 
-  const admin = await requireActorTestingWriteAccess(companyId)
+  const admin = status === 'manual_verified'
+    ? await requireEdielTestAttestActionAccess()
+    : await requireActorTestingWriteAccess(companyId)
+  if (status === 'manual_verified') await assertActorTestingCompanyAccess(admin, companyId)
+
   const now = new Date().toISOString()
   const failureReason = String(formData.get('failure_reason') ?? '').trim() || null
   const portalStatus = String(formData.get('portal_status') ?? '').trim() || null
   const rawPayload = String(formData.get('raw_payload') ?? '').trim() || null
+  const evidenceReference = String(formData.get('evidence_reference') ?? '').trim() || null
   const runId = String(formData.get('ediel_test_run_id') ?? '').trim() || null
 
-  if ((status === 'failed' || status === 'blocked') && !failureReason) {
-    throw new Error('Felorsak krävs när testet nekas eller blockeras.')
+  if ((status === 'failed' || status === 'blocked' || status === 'manual_verified') && !failureReason) {
+    throw new Error('Orsak krävs för misslyckat, blockerat eller manuellt verifierat test.')
+  }
+  if (status === 'manual_verified' && (!evidenceReference || !runId)) {
+    throw new Error('Extern evidensreferens och tenantägt test-run krävs för manuell attestering.')
+  }
+
+  if (status === 'manual_verified') {
+    const { error } = await supabaseService.rpc('canonical_request_actor_test_attestation', {
+      p_command: {
+        company_id: companyId,
+        test_run_id: runId,
+        test_case_key: testCase.key,
+        reason: failureReason,
+        evidence_reference: evidenceReference,
+        actor_user_id: admin.userId,
+        idempotency_key: readIdempotencyKey(formData, `manual-attestation-request:${companyId}:${runId}:${testCase.key}:${evidenceReference}`),
+      },
+    })
+    if (error) throw error
+    revalidateActorTestingViews(companyId)
+    return
   }
 
   const payload = {
@@ -228,7 +280,7 @@ export async function saveActorTestResultAction(formData: FormData) {
     direction: testCase.direction,
     status,
     latest_run_at: now,
-    passed_at: status === 'passed' || status === 'manual_verified' ? now : null,
+    passed_at: null,
     failure_reason: failureReason,
     portal_status: portalStatus,
     raw_payload: rawPayload,
@@ -248,35 +300,39 @@ export async function saveActorTestResultAction(formData: FormData) {
   const { error } = await supabaseService
     .from('actor_test_results')
     .upsert(payload, { onConflict: 'company_id,test_key' })
-
   if (error) throw error
 
   if (runId) {
     await updateEdielTestRunStatus({
       actorUserId: admin.userId,
+      companyId,
       testRunId: runId,
       status: mapTestStatusToRunStatus(status),
       failureReason,
       completedAt: status === 'running' ? null : now,
-    }).catch(() => null)
+    })
   }
 
-  await logTenantGovernanceEvent({
-    action: status === 'passed' || status === 'manual_verified' ? 'SUPERADMIN_COMPANY_REACTIVATED' : 'SUPERADMIN_COMPANY_PAUSED',
-    actorUserId: admin.userId,
-    companyId,
-    reason: `${testCase.label}: ${status}`,
-    metadata: {
-      actorTesting: true,
-      action: 'ACTOR_TEST_RESULT_UPDATED',
-      testKey: testCase.key,
-      testId: testCase.testId,
-      status,
-      portalStatus,
-      failureReason,
+  revalidateActorTestingViews(companyId)
+}
+
+export async function approveActorTestAttestationAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const attestationId = readRequiredString(formData, 'attestation_id')
+  const decisionReason = readRequiredString(formData, 'decision_reason')
+  const admin = await requireEdielTestAttestActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
+
+  const { error } = await supabaseService.rpc('canonical_approve_actor_test_attestation', {
+    p_command: {
+      company_id: companyId,
+      attestation_id: attestationId,
+      decision_reason: decisionReason,
+      actor_user_id: admin.userId,
+      idempotency_key: readIdempotencyKey(formData, `manual-attestation-approve:${companyId}:${attestationId}`),
     },
   })
-
+  if (error) throw error
   revalidateActorTestingViews(companyId)
 }
 
@@ -293,7 +349,7 @@ export async function syncActorTestsAction(formData: FormData) {
   })
 
   await logTenantGovernanceEvent({
-    action: 'SUPERADMIN_COMPANY_REACTIVATED',
+    action: 'EDIEL_TEST_RESULTS_SYNCED',
     actorUserId: admin.userId,
     companyId,
     reason: 'Aktörstestresultat synkades från verkliga Ediel-meddelanden.',
@@ -305,114 +361,6 @@ export async function syncActorTestsAction(formData: FormData) {
   })
 
   revalidateActorTestingViews(companyId)
-}
-
-function normalizeActorNotes(input: string | null | undefined, brpEdielId: string | null): string | null {
-  const cleanBrp = brpEdielId?.trim() || null
-  let base: Record<string, unknown> = {}
-
-  if (input?.trim()) {
-    try {
-      const parsed = JSON.parse(input) as unknown
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        base = parsed as Record<string, unknown>
-      } else {
-        base = { legacyNotes: input }
-      }
-    } catch {
-      base = { legacyNotes: input }
-    }
-  }
-
-  if (cleanBrp) {
-    base.balanceResponsibleEdielId = cleanBrp.toUpperCase()
-    base.brpEdielId = cleanBrp.toUpperCase()
-  }
-
-  base.updatedAt = new Date().toISOString()
-  return Object.keys(base).length > 0 ? JSON.stringify(base) : null
-}
-
-async function syncActorProfileRuntime(input: {
-  companyId: string
-  actorUserId: string
-  environment: 'test' | 'production'
-  actorName: string
-  actorRole: string | null
-  actorEdielId: string | null
-  senderSubAddress: string | null
-  applicationReference: string | null
-  mailbox: string | null
-  brpName: string | null
-  brpEdielId: string | null
-  brpStatus: string | null
-  esettStatus: string | null
-  smtpFromEmail: string | null
-}) {
-  const now = new Date().toISOString()
-  const allowedActorRoles = new Set(['supplier', 'grid_owner', 'balance_responsible', 'service_provider'])
-  const requestedActorRole = input.actorRole?.trim() || 'supplier'
-  const actorRole = allowedActorRoles.has(requestedActorRole) ? requestedActorRole : 'supplier'
-  const actorEdielId = input.actorEdielId?.trim() || null
-
-  if (!actorEdielId) return
-
-  const { data: existing, error: existingError } = await supabaseService
-    .from('ediel_actor_settings')
-    .select('id,notes')
-    .eq('company_id', input.companyId)
-    .eq('environment', input.environment)
-    .eq('actor_role', actorRole)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (existingError) throw existingError
-
-  const payload = {
-    company_id: input.companyId,
-    actor_name: input.actorName,
-    sender_name: input.actorName,
-    actor_role: actorRole,
-    actor_ediel_id: actorEdielId,
-    environment: input.environment,
-    is_active: true,
-    sender_sub_address: input.senderSubAddress,
-    default_application_reference: input.applicationReference,
-    mailbox: input.mailbox,
-    default_charset: 'UNOC',
-    default_timezone: 1,
-    default_test_flag: input.environment === 'production' ? 0 : 1,
-    smtp_from_email: input.smtpFromEmail,
-    smtp_reply_to_email: input.smtpFromEmail,
-    brp_name: input.brpName,
-    brp_ediel_id: input.brpEdielId?.toUpperCase() ?? null,
-    brp_status: input.brpStatus ?? 'missing',
-    esett_status: input.esettStatus ?? 'missing',
-    notes: normalizeActorNotes((existing as { notes?: string | null } | null)?.notes ?? null, input.brpEdielId),
-    updated_by: input.actorUserId,
-    updated_at: now,
-  }
-
-  if (existing?.id) {
-    const { error } = await supabaseService
-      .from('ediel_actor_settings')
-      .update(payload)
-      .eq('id', existing.id)
-      .eq('company_id', input.companyId)
-    if (error) throw error
-    return
-  }
-
-  const { error } = await supabaseService
-    .from('ediel_actor_settings')
-    .insert({
-      ...payload,
-      created_by: input.actorUserId,
-      created_at: now,
-    })
-
-  if (error) throw error
 }
 
 function readReturnPath(formData: FormData, companyId: string): string {
@@ -428,171 +376,84 @@ function goLiveRedirect(companyId: string, status: 'blocked' | 'error' | 'prepar
   const params = new URLSearchParams({ status, message })
   const target = returnPath && returnPath.trim().startsWith('/admin/') ? returnPath.trim() : `/admin/platform/go-live/${companyId}`
   redirect(`${target}?${params.toString()}`)
+  throw new Error('redirect_failed')
 }
 
 export async function saveActorProfileAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
-  const admin = await requireActorTestingWriteAccess(companyId)
+  const admin = await requireEdielProfileWriteActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
 
   const read = (key: string) => {
     const value = String(formData.get(key) ?? '').trim()
     return value.length > 0 ? value : null
   }
 
-  const { error } = await supabaseService
-    .from('companies')
-    .update({
-      org_number: read('org_number'),
-      market_role: read('market_role'),
-      actor_role: read('actor_role'),
-      ediel_id: read('ediel_id'),
-      test_ediel_id: read('test_ediel_id'),
-      production_ediel_id: read('production_ediel_id'),
-      test_sender_sub_address: read('test_sender_sub_address'),
-      production_sender_sub_address: read('production_sender_sub_address'),
-      test_mailbox: read('test_mailbox'),
-      production_mailbox: read('production_mailbox'),
-      test_application_reference: read('test_application_reference'),
-      production_application_reference: read('production_application_reference'),
-      test_counterparty_ediel_id: read('test_counterparty_ediel_id'),
-      production_counterparty_ediel_id: read('production_counterparty_ediel_id'),
-      brp_name: read('brp_name'),
-      brp_ediel_id: read('brp_ediel_id'),
-      brp_status: read('brp_status') ?? 'missing',
-      esett_status: read('esett_status') ?? 'missing',
-      technical_contact_name: read('technical_contact_name'),
-      technical_contact_email: read('technical_contact_email'),
-      support_email: read('support_email'),
-      billing_contact_email: read('billing_contact_email'),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', companyId)
+  const command = {
+    company_id: companyId,
+    company_name: read('company_name'),
+    organization_number: read('org_number'),
+    market_role: read('market_role'),
+    actor_role: read('actor_role'),
+    ediel_id: read('ediel_id'),
+    test_ediel_id: read('test_ediel_id'),
+    production_ediel_id: read('production_ediel_id'),
+    test_sender_sub_address: read('test_sender_sub_address'),
+    production_sender_sub_address: read('production_sender_sub_address'),
+    test_mailbox: read('test_mailbox'),
+    production_mailbox: read('production_mailbox'),
+    test_application_reference: read('test_application_reference'),
+    production_application_reference: read('production_application_reference'),
+    test_counterparty_ediel_id: read('test_counterparty_ediel_id'),
+    production_counterparty_ediel_id: read('production_counterparty_ediel_id'),
+    brp_name: read('brp_name'),
+    brp_ediel_id: read('brp_ediel_id'),
+    brp_status: read('brp_status') ?? 'missing',
+    esett_status: read('esett_status') ?? 'missing',
+    technical_contact_name: read('technical_contact_name'),
+    technical_contact_email: read('technical_contact_email'),
+    support_email: read('support_email'),
+    billing_contact_email: read('billing_contact_email'),
+    smtp_from_email: read('smtp_from_email') ?? 'ediel@gridex.se',
+    actor_user_id: admin.userId,
+    idempotency_key: readIdempotencyKey(formData, `actor-profile:${companyId}:${read('actor_role') ?? 'none'}:${read('production_ediel_id') ?? 'none'}`),
+  }
 
+  const { error } = await supabaseService.rpc('canonical_save_ediel_actor_profile', { p_command: command })
   if (error) throw error
-
-  const companyName = read('company_name') ?? 'Aktör'
-  const brpName = read('brp_name')
-  const brpEdielId = read('brp_ediel_id')
-  const brpStatus = read('brp_status') ?? 'missing'
-  const esettStatus = read('esett_status') ?? 'missing'
-  const smtpFromEmail = read('smtp_from_email') ?? 'ediel@gridex.se'
-
-  await Promise.all([
-    syncActorProfileRuntime({
-      companyId,
-      actorUserId: admin.userId,
-      environment: 'test',
-      actorName: companyName,
-      actorRole: read('actor_role'),
-      actorEdielId: read('test_ediel_id') ?? read('ediel_id'),
-      senderSubAddress: read('test_sender_sub_address'),
-      applicationReference: read('test_application_reference'),
-      mailbox: read('test_mailbox'),
-      brpName,
-      brpEdielId,
-      brpStatus,
-      esettStatus,
-      smtpFromEmail,
-    }),
-    syncActorProfileRuntime({
-      companyId,
-      actorUserId: admin.userId,
-      environment: 'production',
-      actorName: companyName,
-      actorRole: read('actor_role'),
-      actorEdielId: read('production_ediel_id') ?? read('ediel_id'),
-      senderSubAddress: read('production_sender_sub_address'),
-      applicationReference: read('production_application_reference'),
-      mailbox: read('production_mailbox'),
-      brpName,
-      brpEdielId,
-      brpStatus,
-      esettStatus,
-      smtpFromEmail,
-    }),
-  ])
-
-  await logTenantGovernanceEvent({
-    action: 'SUPERADMIN_COMPANY_REACTIVATED',
-    actorUserId: admin.userId,
-    companyId,
-    reason: 'Aktörsprofil och Ediel-runtime uppdaterades inför aktörstest/produktion.',
-    metadata: {
-      actorTesting: true,
-      action: 'ACTOR_PROFILE_AND_RUNTIME_UPDATED',
-      brpEdielId,
-    },
-  })
 
   revalidateActorTestingViews(companyId)
 }
 
 export async function prepareProductionAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
-  const admin = await requireActorTestingWriteAccess(companyId)
+  const admin = await requireEdielProductionActivateActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
   const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
 
-  const status = readiness.blockingIssues.length === 0 ? 'production_prepared' : 'blocked'
-  const reason = readiness.blockingIssues.map((issue) => issue.message).join(' · ') || null
+  const prepared = readiness.blockingIssues.length === 0
+  const targetState: CanonicalProductionTarget = prepared ? 'prepared' : 'blocked'
+  const reason = readiness.blockingIssues.map((issue) => issue.message).join(' · ') || 'Produktionsförberedelse verifierad.'
 
-  const { error } = await supabaseService
-    .from('companies')
-    .update({
-      production_status: status,
-      ediel_production_status: status,
-      live_blocked_reason: reason,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', companyId)
-
-  if (error) throw error
-
-  try {
-    const { error: reviewError } = await supabaseService.from('company_go_live_reviews').insert({
-      company_id: companyId,
-      status,
-      blocker_summary: readiness.blockingIssues,
-      reviewed_by: admin.userId,
-      metadata: { readinessCheckId: readiness.latestCheck.id, score: readiness.score },
-    })
-    if (reviewError) {
-      console.warn('Could not store go-live preparation review', reviewError)
-    }
-  } catch (reviewError) {
-    console.warn('Could not store go-live preparation review', reviewError)
-  }
-
-  await logTenantGovernanceEvent({
-    action: 'SUPERADMIN_COMPANY_REACTIVATED',
+  await transitionCanonicalEdielProduction({
+    companyId,
+    targetState,
     actorUserId: admin.userId,
-    companyId,
-    reason: status === 'production_prepared' ? 'Produktionsförberedelse markerad.' : 'Produktionsförberedelse blockerad.',
-    metadata: {
-      actorTesting: true,
-      action: 'PRODUCTION_PREPARATION_REVIEWED',
-      productionStatus: status,
-      blockers: readiness.blockingIssues,
-      readinessCheckId: readiness.latestCheck.id,
-    },
-  })
-
-  await insertGoLiveEvent({
-    companyId,
-    eventType: 'readiness_check_run',
-    fromStatus: readiness.summary.productionStatus,
-    toStatus: status,
     reason,
-    actorUserId: admin.userId,
     readinessCheckId: readiness.latestCheck.id,
-    metadata: { readiness },
+    dryRunId: readiness.latestDryRun.id,
+    configurationSnapshotId: readiness.configurationSnapshot.id,
+    idempotencyKey: readIdempotencyKey(formData, `production-prepare:${companyId}:${readiness.latestCheck.id ?? 'none'}`),
   })
 
   revalidateActorTestingViews(companyId)
   goLiveRedirect(
     companyId,
-    status === 'production_prepared' ? 'prepared' : 'blocked',
-    status === 'production_prepared' ? 'Produktionsförberedelse klar. Slutlig live-aktivering kräver separat bekräftelse.' : `Produktionsförberedelsen är blockerad: ${reason ?? 'Kontrollera blockerlistan.'}`,
+    prepared ? 'prepared' : 'blocked',
+    prepared
+      ? 'Produktionsförberedelse klar. Slutlig live-aktivering kräver separat bekräftelse.'
+      : `Produktionsförberedelsen är blockerad: ${reason}`,
     returnPath
   )
 }
@@ -600,7 +461,8 @@ export async function prepareProductionAction(formData: FormData) {
 export async function activateLiveEdielAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const confirmation = String(formData.get('confirmation') ?? '').trim()
-  const admin = await requirePlatformAdminActionAccess()
+  const admin = await requireEdielProductionActivateActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
 
   if (confirmation !== 'ACTIVATE PRODUCTION') {
@@ -608,124 +470,35 @@ export async function activateLiveEdielAction(formData: FormData) {
   }
 
   const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
-
   if (readiness.blockingIssues.length > 0) {
     const reason = readiness.blockingIssues.map((issue) => issue.message).join(' · ')
-    const now = new Date().toISOString()
-    await supabaseService
-      .from('companies')
-      .update({
-        production_status: 'blocked',
-        ediel_production_status: 'blocked',
-        live_ediel_enabled: false,
-        ediel_production_enabled: false,
-        live_blocked_reason: reason,
-        updated_at: now,
-      })
-      .eq('id', companyId)
-
-    try {
-      await supabaseService.from('company_go_live_reviews').insert({
-        company_id: companyId,
-        status: 'blocked',
-        blocker_summary: readiness.blockingIssues,
-        reviewed_by: admin.userId,
-        metadata: { source: 'activateLiveEdielAction', blockedAt: now, readinessCheckId: readiness.latestCheck.id },
-      })
-    } catch (reviewError) {
-      console.warn('Could not store blocked live activation review', reviewError)
-    }
-
+    await transitionCanonicalEdielProduction({
+      companyId,
+      targetState: 'blocked',
+      actorUserId: admin.userId,
+      reason,
+      readinessCheckId: readiness.latestCheck.id,
+      dryRunId: readiness.latestDryRun.id,
+      configurationSnapshotId: readiness.configurationSnapshot.id,
+      idempotencyKey: readIdempotencyKey(formData, `production-blocked:${companyId}:${readiness.latestCheck.id ?? 'none'}`),
+    })
     revalidateActorTestingViews(companyId)
     goLiveRedirect(companyId, 'blocked', `Live är blockerat: ${reason}`, returnPath)
   }
 
   if (!['allowed', 'warning'].includes(readiness.latestDryRun.status ?? '')) {
-    const reason = 'Kör production dry run utan blockerare innan live aktiveras.'
-    await supabaseService
-      .from('companies')
-      .update({
-        production_status: 'blocked',
-        ediel_production_status: 'blocked',
-        live_ediel_enabled: false,
-        ediel_production_enabled: false,
-        live_blocked_reason: reason,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', companyId)
-    revalidateActorTestingViews(companyId)
-    goLiveRedirect(companyId, 'blocked', `Live är blockerat: ${reason}`, returnPath)
+    goLiveRedirect(companyId, 'blocked', 'Live är blockerat: kör production dry run utan blockerare innan aktivering.', returnPath)
   }
 
-  const now = new Date().toISOString()
-  const previousStatus = readiness.summary.productionStatus
-  const { error } = await supabaseService
-    .from('companies')
-    .update({
-      operating_environment: 'production',
-      production_status: 'live',
-      live_ediel_enabled: true,
-      live_approved_by: admin.userId,
-      live_approved_at: now,
-      live_blocked_reason: null,
-      ediel_production_status: 'live',
-      ediel_production_enabled: true,
-      ediel_production_enabled_by: admin.userId,
-      ediel_production_enabled_at: now,
-      ediel_production_paused_at: null,
-      ediel_production_paused_by: null,
-      ediel_production_pause_reason: null,
-      ediel_primary_production_route_profile_id: readiness.summary.activeProductionRouteProfileId,
-      updated_at: now,
-    })
-    .eq('id', companyId)
-
-  if (error) throw error
-
-  try {
-    const { error: reviewError } = await supabaseService.from('company_go_live_reviews').insert({
-      company_id: companyId,
-      status: 'live',
-      blocker_summary: [],
-      reviewed_by: admin.userId,
-      approved_by: admin.userId,
-      approved_at: now,
-      metadata: { readinessCheckId: readiness.latestCheck.id, score: readiness.score },
-    })
-    if (reviewError) {
-      console.warn('Could not store live activation review', reviewError)
-    }
-  } catch (reviewError) {
-    console.warn('Could not store live activation review', reviewError)
-  }
-
-  await logTenantGovernanceEvent({
-    action: 'SUPERADMIN_COMPANY_REACTIVATED',
-    actorUserId: admin.userId,
+  await transitionCanonicalEdielProduction({
     companyId,
-    reason: 'Live Ediel aktiverad av superadmin.',
-    metadata: {
-      actorTesting: true,
-      action: 'LIVE_EDIEL_ACTIVATED',
-      approvedAt: now,
-      readinessCheckId: readiness.latestCheck.id,
-    },
-  })
-
-  await upsertProductionSendLock({ companyId, locked: false, reason: null, actorUserId: admin.userId })
-  await insertGoLiveEvent({
-    companyId,
-    eventType: 'production_activated',
-    fromStatus: previousStatus,
-    toStatus: 'live',
-    reason: 'Production Ediel aktiverad av superadmin.',
+    targetState: 'live',
     actorUserId: admin.userId,
+    reason: 'Production Ediel aktiverad efter aktuell readiness och dry run.',
     readinessCheckId: readiness.latestCheck.id,
-    metadata: {
-      readinessSnapshot: readiness,
-      routeProfileId: readiness.summary.activeProductionRouteProfileId,
-      environment: 'production',
-    },
+    dryRunId: readiness.latestDryRun.id,
+    configurationSnapshotId: readiness.configurationSnapshot.id,
+    idempotencyKey: readIdempotencyKey(formData, `production-live:${companyId}:${readiness.latestDryRun.id ?? 'none'}`),
   })
 
   revalidateActorTestingViews(companyId)
@@ -765,37 +538,20 @@ export async function runProductionDryRunAction(formData: FormData) {
 export async function pauseProductionEdielAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const reason = readRequiredString(formData, 'reason')
-  const admin = await requirePlatformAdminActionAccess()
+  const admin = await requireEdielProductionPauseActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
   const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
-  const now = new Date().toISOString()
 
-  const { error } = await supabaseService
-    .from('companies')
-    .update({
-      production_status: 'paused',
-      ediel_production_status: 'paused',
-      ediel_production_enabled: false,
-      live_ediel_enabled: false,
-      live_blocked_reason: reason,
-      ediel_production_paused_at: now,
-      ediel_production_paused_by: admin.userId,
-      ediel_production_pause_reason: reason,
-      updated_at: now,
-    })
-    .eq('id', companyId)
-  if (error) throw error
-
-  await upsertProductionSendLock({ companyId, locked: true, reason, actorUserId: admin.userId })
-  await insertGoLiveEvent({
+  await transitionCanonicalEdielProduction({
     companyId,
-    eventType: 'production_paused',
-    fromStatus: readiness.summary.productionStatus,
-    toStatus: 'paused',
-    reason,
+    targetState: 'paused',
     actorUserId: admin.userId,
+    reason,
     readinessCheckId: readiness.latestCheck.id,
-    metadata: { inboundReceivingRemainsActive: true },
+    dryRunId: readiness.latestDryRun.id,
+    configurationSnapshotId: readiness.configurationSnapshot.id,
+    idempotencyKey: readIdempotencyKey(formData, `production-pause:${companyId}:${reason}`),
   })
 
   revalidateActorTestingViews(companyId)
@@ -805,46 +561,27 @@ export async function pauseProductionEdielAction(formData: FormData) {
 export async function resumeProductionEdielAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const confirmation = String(formData.get('confirmation') ?? '').trim()
-  const admin = await requirePlatformAdminActionAccess()
+  const admin = await requireEdielProductionActivateActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
   if (confirmation !== 'RESUME PRODUCTION') {
     goLiveRedirect(companyId, 'error', 'Skriv “RESUME PRODUCTION” för att återuppta production sending.', returnPath)
   }
 
-  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true, ignorePaused: true })
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
   if (readiness.blockingIssues.length > 0) {
     goLiveRedirect(companyId, 'blocked', `Production kan inte återupptas: ${readiness.blockingIssues.map((issue) => issue.message).join(' · ')}`, returnPath)
   }
 
-  const now = new Date().toISOString()
-  const { error } = await supabaseService
-    .from('companies')
-    .update({
-      production_status: 'live',
-      ediel_production_status: 'live',
-      ediel_production_enabled: true,
-      live_ediel_enabled: true,
-      live_blocked_reason: null,
-      ediel_production_enabled_by: admin.userId,
-      ediel_production_enabled_at: now,
-      ediel_production_paused_at: null,
-      ediel_production_paused_by: null,
-      ediel_production_pause_reason: null,
-      updated_at: now,
-    })
-    .eq('id', companyId)
-  if (error) throw error
-
-  await upsertProductionSendLock({ companyId, locked: false, reason: null, actorUserId: admin.userId })
-  await insertGoLiveEvent({
+  await transitionCanonicalEdielProduction({
     companyId,
-    eventType: 'production_resumed',
-    fromStatus: readiness.summary.productionStatus,
-    toStatus: 'live',
-    reason: 'Production sending återupptogs efter readiness check.',
+    targetState: 'live',
     actorUserId: admin.userId,
+    reason: 'Production sending återupptogs efter aktuell readiness-kontroll.',
     readinessCheckId: readiness.latestCheck.id,
-    metadata: { readinessSnapshot: readiness },
+    dryRunId: readiness.latestDryRun.id,
+    configurationSnapshotId: readiness.configurationSnapshot.id,
+    idempotencyKey: readIdempotencyKey(formData, `production-resume:${companyId}:${readiness.latestCheck.id ?? 'none'}`),
   })
 
   revalidateActorTestingViews(companyId)
@@ -854,7 +591,8 @@ export async function resumeProductionEdielAction(formData: FormData) {
 export async function approveFirstLiveSendAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const confirmation = String(formData.get('confirmation') ?? '').trim()
-  const admin = await requirePlatformAdminActionAccess()
+  const admin = await requireEdielProductionActivateActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
   if (confirmation !== 'APPROVE FIRST LIVE SEND') {
     goLiveRedirect(companyId, 'error', 'Skriv “APPROVE FIRST LIVE SEND” för att godkänna första live-send.', returnPath)
@@ -865,30 +603,11 @@ export async function approveFirstLiveSendAction(formData: FormData) {
     goLiveRedirect(companyId, 'blocked', 'Första live-send kan inte godkännas innan readiness saknar blockerare.', returnPath)
   }
 
-  const now = new Date().toISOString()
-  const { error } = await supabaseService
-    .from('companies')
-    .update({
-      ediel_first_live_send_approved_at: now,
-      ediel_first_live_send_approved_by: admin.userId,
-      updated_at: now,
-    })
-    .eq('id', companyId)
-  if (error) throw error
-
-  await insertGoLiveEvent({
+  await approveCanonicalFirstLiveSend({
     companyId,
-    eventType: 'first_live_send_approved',
-    fromStatus: readiness.summary.productionStatus,
-    toStatus: readiness.summary.productionStatus,
-    reason: 'Första production outbound-send godkänd av superadmin.',
     actorUserId: admin.userId,
     readinessCheckId: readiness.latestCheck.id,
-    metadata: {
-      edielId: readiness.summary.edielId,
-      routeProfileId: readiness.summary.activeProductionRouteProfileId,
-      mailboxId: readiness.summary.productionMailboxId,
-    },
+    idempotencyKey: readIdempotencyKey(formData, `first-live-send:${companyId}:${readiness.latestCheck.id ?? 'none'}`),
   })
 
   revalidateActorTestingViews(companyId)

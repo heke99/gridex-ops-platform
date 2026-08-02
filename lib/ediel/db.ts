@@ -22,6 +22,32 @@ import type {
   UpdateEdielTestRunStatusInput,
 } from '@/lib/ediel/types'
 
+
+export type EdielQueryScope =
+  | { scope: 'tenant'; companyId: string }
+  | { scope: 'platform'; platformReason: string }
+
+function requireCompanyId(value: unknown, context: string): string {
+  const companyId = typeof value === 'string' ? value.trim() : ''
+  if (!companyId) throw new Error(`${context}: company_id_required`)
+  return companyId
+}
+
+function applyEdielQueryScope<T>(query: T, scope: EdielQueryScope): T {
+  if (scope.scope === 'tenant') {
+    return (query as unknown as { eq: (column: string, value: string) => T }).eq(
+      'company_id',
+      requireCompanyId(scope.companyId, 'ediel_query_scope'),
+    )
+  }
+
+  if (!scope.platformReason.trim()) {
+    throw new Error('ediel_platform_scope_reason_required')
+  }
+
+  return query
+}
+
 export type DuplicateAckCandidateRow = {
   related_message_id: string
   message_family: string
@@ -990,9 +1016,25 @@ export async function linkEdielMessage(
   return row
 }
 
+async function captureCurrentEdielConfigurationSnapshot(companyId: string, actorUserId: string) {
+  const { data, error } = await supabaseService.rpc('canonical_capture_ediel_configuration_snapshot', {
+    p_company_id: companyId,
+    p_actor_user_id: actorUserId,
+    p_reason: 'test_run_created',
+  })
+  if (error) throw error
+  const snapshot = data as unknown as { id?: string; configuration_hash?: string } | null
+  if (!snapshot?.id || !snapshot.configuration_hash) {
+    throw new Error('canonical_configuration_snapshot_missing')
+  }
+  return { id: snapshot.id, hash: snapshot.configuration_hash }
+}
+
 export async function createEdielTestRun(
   input: CreateEdielTestRunInput
 ): Promise<EdielTestRunRow> {
+  const companyId = requireCompanyId(input.companyId, 'create_ediel_test_run')
+  const configurationSnapshot = await captureCurrentEdielConfigurationSnapshot(companyId, input.actorUserId)
   const legacyTransportMetadata = {
     actorRole: input.actorRole ?? null,
     messageFamily: input.messageFamily ?? null,
@@ -1008,7 +1050,14 @@ export async function createEdielTestRun(
     productionLike: input.productionLike ?? false,
   }
   const basePayload = cleanObject({
-    company_id: input.companyId ?? null,
+    company_id: companyId,
+    configuration_snapshot_id: configurationSnapshot.id,
+    configuration_hash: configurationSnapshot.hash,
+    rulebook_version: input.approvalVersion ?? 'runtime-current',
+    engine_version: 'actor-testing-evidence-v2',
+    environment: 'test',
+    message_variant: input.messageVariant ?? null,
+    setup_package: input.setupPackage ?? input.testSuite,
     approval_version: input.approvalVersion ?? null,
     role_code: input.roleCode,
     test_suite: input.testSuite,
@@ -1069,9 +1118,10 @@ export async function createEdielTestRun(
 
   const rulebookCase = findRulebookTestCase(input.testCaseCode)
   if (rulebookCase) {
-    await supabaseService
+    const { error: stepError } = await supabaseService
       .from('ediel_test_run_steps')
       .insert({
+        company_id: companyId,
         test_run_id: row.id,
         step_no: 1,
         name: rulebookCase.title,
@@ -1090,22 +1140,18 @@ export async function createEdielTestRun(
           subtype: rulebookCase.subtype,
         },
       })
-      .then(({ error: stepError }) => {
-        if (stepError && stepError.code !== '23505') {
-          console.warn('Rulebook test step could not be created', stepError)
-        }
-      })
+    if (stepError && stepError.code !== '23505') throw stepError
   }
 
   return row
 }
 
-export async function listEdielTestRuns(options?: { companyId?: string | null }): Promise<EdielTestRunRow[]> {
+export async function listEdielTestRuns(scope: EdielQueryScope): Promise<EdielTestRunRow[]> {
   let query = supabaseService
     .from('ediel_test_runs')
     .select('*')
 
-  query = applyCompanyScope(query, options?.companyId)
+  query = applyEdielQueryScope(query, scope)
 
   const { data, error } = await query
     .order('created_at', { ascending: false })
@@ -1116,11 +1162,13 @@ export async function listEdielTestRuns(options?: { companyId?: string | null })
 
 
 export async function listEdielTestRunMessages(params: {
+  companyId: string
   testRunId: string
 }): Promise<EdielTestRunMessageRow[]> {
   const { data, error } = await supabaseService
     .from('ediel_test_run_messages')
     .select('*')
+    .eq('company_id', requireCompanyId(params.companyId, 'list_ediel_test_run_messages'))
     .eq('test_run_id', params.testRunId)
     .order('step_no', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
@@ -1155,6 +1203,7 @@ export async function listEdielMessagesByIds(
 
 export async function updateEdielTestRunNotes(input: {
   actorUserId: string
+  companyId: string
   testRunId: string
   notes: string | null
 }): Promise<EdielTestRunRow> {
@@ -1167,6 +1216,7 @@ export async function updateEdielTestRunNotes(input: {
   const { data, error } = await supabaseService
     .from('ediel_test_runs')
     .update(payload)
+    .eq('company_id', requireCompanyId(input.companyId, 'update_ediel_test_run_notes'))
     .eq('id', input.testRunId)
     .select('*')
     .single()
@@ -1178,10 +1228,14 @@ export async function updateEdielTestRunNotes(input: {
 export async function updateEdielTestRunStatus(
   input: UpdateEdielTestRunStatusInput
 ): Promise<EdielTestRunRow> {
+  if (input.status === 'passed') {
+    throw new Error('manual_pass_forbidden_use_machine_evidence_rpc')
+  }
+  const companyId = requireCompanyId(input.companyId, 'update_ediel_test_run_status')
   const payload = cleanObject({
     status: input.status,
     failure_reason: input.failureReason ?? null,
-    completed_at: input.completedAt ?? (input.status === 'passed' || input.status === 'failed' || input.status === 'cancelled' ? new Date().toISOString() : null),
+    completed_at: input.completedAt ?? (input.status === 'failed' || input.status === 'cancelled' ? new Date().toISOString() : null),
     updated_by: input.actorUserId,
     updated_at: new Date().toISOString(),
   })
@@ -1189,6 +1243,7 @@ export async function updateEdielTestRunStatus(
   const { data, error } = await supabaseService
     .from('ediel_test_runs')
     .update(payload)
+    .eq('company_id', companyId)
     .eq('id', input.testRunId)
     .select('*')
     .single()
@@ -1222,6 +1277,7 @@ function isPreferredLinkedMessage(
 }
 
 async function createRulebookValidationArtifactForTestRun(input: {
+  companyId: string
   testRunId: string
   edielMessageId: string
   message?: Partial<EdielMessageRow> | null
@@ -1229,9 +1285,10 @@ async function createRulebookValidationArtifactForTestRun(input: {
   const message = input.message ?? (await supabaseService
     .from('ediel_messages')
     .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'create_rulebook_validation_artifact'))
     .eq('id', input.edielMessageId)
     .maybeSingle()
-    .then(({ data }) => data as Partial<EdielMessageRow> | null))
+    .then(({ data }: { data: unknown }) => data as Partial<EdielMessageRow> | null))
 
   if (!message || typeof message.raw_payload !== 'string') return
 
@@ -1247,21 +1304,22 @@ async function createRulebookValidationArtifactForTestRun(input: {
     mode: 'test',
   })
 
-  await supabaseService.from('ediel_test_artifacts').insert({
+  const { error: artifactError } = await supabaseService.from('ediel_test_artifacts').insert({
+    company_id: requireCompanyId(input.companyId, 'create_rulebook_validation_artifact'),
     test_run_id: input.testRunId,
     ediel_message_id: input.edielMessageId,
     artifact_type: 'rulebook_message_validation',
     title: 'Rulebook-validering för kopplat Ediel-meddelande',
     payload: { parsed, validation },
-  }).then(({ error: artifactError }) => {
-    if (artifactError && artifactError.code !== '23505') console.warn('Rulebook artifact could not be created', artifactError)
   })
+  if (artifactError && artifactError.code !== '23505') throw artifactError
 }
 
 async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTestRunInput): Promise<EdielTestRunMessageRow | null> {
   const { data: currentMessage, error: currentError } = await supabaseService
     .from('ediel_messages')
     .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
     .eq('id', input.edielMessageId)
     .maybeSingle()
 
@@ -1277,6 +1335,7 @@ async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTe
   let linkQuery = supabaseService
     .from('ediel_test_run_messages')
     .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
     .eq('test_run_id', input.testRunId)
 
   if (input.stepNo !== undefined && input.stepNo !== null) linkQuery = linkQuery.eq('step_no', input.stepNo)
@@ -1299,6 +1358,7 @@ async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTe
   const { data: existingMessages, error: existingMessagesError } = await supabaseService
     .from('ediel_messages')
     .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
     .in('id', existingIds)
 
   if (existingMessagesError) {
@@ -1335,8 +1395,9 @@ async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTe
     const { error } = await supabaseService
       .from('ediel_test_run_messages')
       .delete()
+      .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
       .in('id', replaceableIds)
-    if (error) console.warn('Could not remove duplicate inbound test-run links', error)
+    if (error) throw error
   }
 
   const exact = duplicates.find((link) => link.ediel_message_id === input.edielMessageId)
@@ -1346,10 +1407,39 @@ async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTe
 export async function attachEdielMessageToTestRun(
   input: AttachEdielMessageToTestRunInput
 ): Promise<EdielTestRunMessageRow> {
+  const companyId = requireCompanyId(input.companyId, 'attach_ediel_message_to_test_run')
+  const [{ data: run, error: runError }, { data: message, error: messageError }] = await Promise.all([
+    supabaseService
+      .from('ediel_test_runs')
+      .select('id,company_id,started_at,status')
+      .eq('id', input.testRunId)
+      .eq('company_id', companyId)
+      .maybeSingle(),
+    supabaseService
+      .from('ediel_messages')
+      .select('id,company_id,environment,test_flag,created_at')
+      .eq('id', input.edielMessageId)
+      .eq('company_id', companyId)
+      .maybeSingle(),
+  ])
+  if (runError) throw runError
+  if (messageError) throw messageError
+  if (!run) throw new Error('test_run_not_found_in_company_scope')
+  if (!message) throw new Error('ediel_message_not_found_in_company_scope')
+  if (String(message.environment ?? '').toLowerCase() !== 'test' || Number(message.test_flag ?? 0) !== 1) {
+    throw new Error('production_message_cannot_be_test_evidence')
+  }
+  const runStartedAt = Date.parse(String(run.started_at ?? ''))
+  const messageCreatedAt = Date.parse(String(message.created_at ?? ''))
+  if (!Number.isNaN(runStartedAt) && !Number.isNaN(messageCreatedAt) && messageCreatedAt < runStartedAt) {
+    throw new Error('message_predates_test_run')
+  }
+
   const existingDuplicateLink = await resolveExistingDuplicateTestRunLink(input)
   if (existingDuplicateLink) return existingDuplicateLink
 
   const payload = cleanObject({
+    company_id: companyId,
     test_run_id: input.testRunId,
     ediel_message_id: input.edielMessageId,
     step_no: input.stepNo ?? null,
@@ -1367,6 +1457,7 @@ export async function attachEdielMessageToTestRun(
   if (!error) {
     const row = data as EdielTestRunMessageRow
     await createRulebookValidationArtifactForTestRun({
+      companyId,
       testRunId: input.testRunId,
       edielMessageId: input.edielMessageId,
     })
@@ -1378,6 +1469,7 @@ export async function attachEdielMessageToTestRun(
     let exactQuery = supabaseService
       .from('ediel_test_run_messages')
       .select('*')
+      .eq('company_id', companyId)
       .eq('test_run_id', input.testRunId)
       .eq('ediel_message_id', input.edielMessageId)
 
@@ -1393,7 +1485,8 @@ export async function attachEdielMessageToTestRun(
       const byStep = await supabaseService
         .from('ediel_test_run_messages')
         .select('*')
-        .eq('test_run_id', input.testRunId)
+        .eq('company_id', companyId)
+      .eq('test_run_id', input.testRunId)
         .eq('step_no', input.stepNo)
         .order('created_at', { ascending: false })
         .limit(1)

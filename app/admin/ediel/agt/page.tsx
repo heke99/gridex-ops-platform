@@ -178,7 +178,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
       : null;
   const [runtime, testRuns, systemTestSettings] = await Promise.all([
     getEdielAgtSupplierRuntime(companyId),
-    listEdielTestRuns({ companyId }),
+    companyId ? listEdielTestRuns({ scope: 'tenant', companyId }) : Promise.resolve([]),
     getEdielSystemTestSettings({ companyId, testSuite: "AGT" }),
   ]);
 

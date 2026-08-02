@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
 import {
   isPlatformAdminContext,
   requireAdminActionAccess,
 } from "@/lib/admin/guards";
+import { requireEdielSendActionAccess, requireEdielWriteActionAccess } from "@/lib/ediel/actionAccess";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
@@ -164,10 +164,10 @@ function messageTime(message: EdielMessageRow): number {
 async function ensureAgtRunForCase(params: {
   actorUserId: string;
   testCase: EdielAgtTestCaseDefinition;
-  companyId?: string | null;
+  companyId: string;
   testRunId?: string | null;
 }): Promise<EdielTestRunRow> {
-  const runs = await listEdielTestRuns({ companyId: params.companyId ?? null });
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId: params.companyId });
   const explicitRun = params.testRunId
     ? runs.find((run) => run.id === params.testRunId)
     : null;
@@ -192,7 +192,7 @@ async function ensureAgtRunForCase(params: {
 
   return createEdielTestRun({
     actorUserId: params.actorUserId,
-    companyId: params.companyId ?? null,
+    companyId: params.companyId,
     testSuite: params.testCase.suite,
     roleCode: params.testCase.roleCode,
     testCaseCode: params.testCase.testCaseCode,
@@ -206,6 +206,7 @@ async function ensureAgtRunForCase(params: {
 
 async function attachExpectedAgtMessage(params: {
   actorUserId: string;
+  companyId: string;
   testRunId: string;
   testCase: EdielAgtTestCaseDefinition;
   message: EdielMessageRow;
@@ -214,6 +215,7 @@ async function attachExpectedAgtMessage(params: {
   if (!step) return null;
 
   await attachEdielMessageToTestRun({
+    companyId: params.companyId,
     testRunId: params.testRunId,
     edielMessageId: params.message.id,
     stepNo: step.stepNo,
@@ -243,6 +245,7 @@ async function attachExpectedAgtMessage(params: {
 
 async function createAgtResponsesIfBusinessInbound(params: {
   actorUserId: string;
+  companyId: string;
   testRunId: string;
   testCase: EdielAgtTestCaseDefinition;
   message: EdielMessageRow;
@@ -252,6 +255,7 @@ async function createAgtResponsesIfBusinessInbound(params: {
 
   return createEdielSupplierAgtResponsesForInbound({
     actorUserId: params.actorUserId,
+    companyId: params.companyId,
     sourceMessageId: params.message.id,
     testRunId: params.testRunId,
     testCaseCode: params.testCase.testCaseCode,
@@ -299,14 +303,16 @@ async function getCurrentUserId(): Promise<string> {
 async function resolveAgtCompanyIdForAction(
   context: { userId: string; roles: string[]; permissions: string[] },
   formData: FormData,
-): Promise<string | null> {
+): Promise<string> {
   const explicitCompanyId = value(formData, "company_id");
-  if (isPlatformAdminContext(context)) {
-    return explicitCompanyId;
-  }
-
   const scope = await getOperationalCompanyScope(context.userId);
-  return scope.companyId;
+  const companyId = isPlatformAdminContext(context)
+    ? (explicitCompanyId ?? scope.companyId)
+    : scope.companyId;
+  if (!companyId) {
+    throw new Error("Välj bolag innan AGT-åtgärden körs");
+  }
+  return companyId;
 }
 
 function agtCaseRedirect(
@@ -563,10 +569,7 @@ async function upsertAgtRoute(input: {
 }
 
 export async function saveAgtSupplierRuntimeAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   if (!companyId) throw new Error("Välj bolag innan AGT-runtime sparas.");
@@ -678,10 +681,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
 }
 
 export async function createAgtSupplierTestRunAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCaseCode = upper(formData, "test_case_code") ?? "";
@@ -699,7 +699,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode}`);
   }
 
-  const runs = await listEdielTestRuns({ companyId });
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId });
   for (const run of runs) {
     if (
       run.role_code === testCase.roleCode &&
@@ -710,6 +710,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     ) {
       await updateEdielTestRunStatus({
         actorUserId,
+        companyId,
         testRunId: run.id,
         status: "cancelled",
         failureReason:
@@ -747,10 +748,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
 export async function createAgtSupplierOutboundCommandAction(
   formData: FormData,
 ) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCaseCode = upper(formData, "test_case_code") ?? "";
@@ -789,16 +787,14 @@ export const createAgtSupplierOutboundDraftAction =
   createAgtSupplierOutboundCommandAction;
 
 export async function createAllAgtSupplierTestRunsAction(formData: FormData) {
-  void formData;
-  await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
-  const actorUserId = await getCurrentUserId();
+  const context = await requireEdielWriteActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
 
   for (const testCase of EDIEL_AGT_SUPPLIER_2026A_CASES) {
     await createEdielTestRun({
       actorUserId,
+      companyId,
       testSuite: testCase.suite,
       roleCode: testCase.roleCode,
       testCaseCode: testCase.testCaseCode,
@@ -813,10 +809,7 @@ export async function createAllAgtSupplierTestRunsAction(formData: FormData) {
 }
 
 export async function pollAgtMailboxForCaseAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
@@ -868,6 +861,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
   for (const message of messagesToAttach) {
     const step = await attachExpectedAgtMessage({
       actorUserId,
+      companyId,
       testRunId: testRun.id,
       testCase,
       message,
@@ -878,6 +872,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
 
     await createAgtResponsesIfBusinessInbound({
       actorUserId,
+      companyId,
       testRunId: testRun.id,
       testCase,
       message,
@@ -898,7 +893,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
         importedCount: imported.length,
         matchedCount: matched,
       },
-    }).catch(() => null);
+    });
   }
 
   revalidateAgt();
@@ -906,10 +901,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
 }
 
 export async function importAgtRawInboundForCaseAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
@@ -950,6 +942,7 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
 
   const step = await attachExpectedAgtMessage({
     actorUserId,
+    companyId,
     testRunId: testRun.id,
     testCase,
     message,
@@ -963,6 +956,7 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
 
   await createAgtResponsesIfBusinessInbound({
     actorUserId,
+    companyId,
     testRunId: testRun.id,
     testCase,
     message,
@@ -974,7 +968,7 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
     explicitTestCaseCode: testCase.testCaseCode,
     autoRespond: true,
     autoSend: false,
-  }).catch(() => null);
+  });
 
   revalidateAgt();
   redirect(agtCaseRedirect(testCase.testCaseCode, companyId));
@@ -983,10 +977,7 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
 export async function attachAgtInboundAndCreateResponsesAction(
   formData: FormData,
 ) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
@@ -1005,6 +996,7 @@ export async function attachAgtInboundAndCreateResponsesAction(
 
   const step = await attachExpectedAgtMessage({
     actorUserId,
+    companyId,
     testRunId: testRun.id,
     testCase,
     message,
@@ -1018,6 +1010,7 @@ export async function attachAgtInboundAndCreateResponsesAction(
 
   await createAgtResponsesIfBusinessInbound({
     actorUserId,
+    companyId,
     testRunId: testRun.id,
     testCase,
     message,
@@ -1029,23 +1022,20 @@ export async function attachAgtInboundAndCreateResponsesAction(
     explicitTestCaseCode: testCase.testCaseCode,
     autoRespond: true,
     autoSend: false,
-  }).catch(() => null);
+  });
 
   revalidateAgt();
   redirect(agtCaseRedirect(testCase.testCaseCode, companyId));
 }
 
 export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
   const keepRunId = value(formData, "test_run_id");
 
-  const runs = await listEdielTestRuns({ companyId });
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId });
   const sameCaseRuns = runs.filter(
     (run) =>
       run.role_code === testCase.roleCode &&
@@ -1056,7 +1046,7 @@ export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
   );
 
   for (const run of sameCaseRuns) {
-    const links = await listEdielTestRunMessages({ testRunId: run.id });
+    const links = await listEdielTestRunMessages({ companyId, testRunId: run.id });
     const messages = await listEdielMessagesByIds(
       links.map((link) => link.ediel_message_id),
       { companyId },
@@ -1100,6 +1090,7 @@ export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
     ) {
       await updateEdielTestRunStatus({
         actorUserId,
+        companyId,
         testRunId: run.id,
         status: "cancelled",
         failureReason: `Rensad från AGT ${testCase.testCaseCode}; aktuell run behölls: ${keepRunId}.`,

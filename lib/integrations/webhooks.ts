@@ -1,6 +1,7 @@
 import { createHash, createHmac } from 'node:crypto'
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import type { DomainEventRow } from '@/lib/events/domainEvents'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
@@ -273,7 +274,7 @@ async function updateSubscriptionSuccess(subscriptionId: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', subscriptionId)
-    .then((result) => {
+    .then((result: { error: unknown | null }) => {
       if (result.error && !missingSchema(result.error)) throw result.error
     })
 }
@@ -288,7 +289,7 @@ async function updateSubscriptionFailure(subscription: WebhookSubscriptionRow, d
       updated_at: new Date().toISOString(),
     })
     .eq('id', subscription.id)
-    .then((result) => {
+    .then((result: { error: unknown | null }) => {
       if (result.error && !missingSchema(result.error)) throw result.error
     })
 }
@@ -387,7 +388,7 @@ async function claimDueDeliveries(limit: number) {
     .limit(Math.min(Math.max(limit, 1), 100))
 
   if (due.error) throw due.error
-  const ids = (due.data ?? []).map((row) => row.id).filter(Boolean)
+  const ids = (due.data ?? []).map((row: { id?: string | null }) => row.id).filter((id: string | null | undefined): id is string => Boolean(id))
   if (ids.length === 0) return [] as WebhookDeliveryRow[]
 
   const claimed = await supabaseService
@@ -404,7 +405,22 @@ async function claimDueDeliveries(limit: number) {
     .select('*')
 
   if (claimed.error) throw claimed.error
-  return (claimed.data ?? []) as WebhookDeliveryRow[]
+  const allowed: WebhookDeliveryRow[] = []
+  for (const delivery of (claimed.data ?? []) as WebhookDeliveryRow[]) {
+    const decision = await getTenantOperationDecision(delivery.company_id, 'webhook.deliver')
+    if (!decision.allowed) {
+      await finalizeClaimedDelivery(delivery, {
+        status: 'blocked_tenant_state',
+        blocked_reason: decision.reason_code,
+        blocked_at: new Date().toISOString(),
+        company_status_snapshot: decision.company_status,
+        locked_at: null, locked_by: null,
+      })
+      continue
+    }
+    allowed.push(delivery)
+  }
+  return allowed
 }
 
 export async function dispatchDueWebhookDeliveries(limit = 25) {
@@ -429,6 +445,16 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     const subscription = subscriptions.get(delivery.webhook_subscription_id)
     const attempts = delivery.attempts + 1
     const targetUrl = delivery.target_url || subscription?.endpoint_url || null
+    const tenantDecision = await getTenantOperationDecision(delivery.company_id, 'webhook.deliver')
+    if (!tenantDecision.allowed) {
+      await finalizeClaimedDelivery(delivery, {
+        status: 'blocked_tenant_state', blocked_reason: tenantDecision.reason_code,
+        blocked_at: new Date().toISOString(), company_status_snapshot: tenantDecision.company_status,
+        locked_at: null, locked_by: null,
+      })
+      failed += 1
+      continue
+    }
 
     if (!subscription || subscription.status !== 'active' || !targetUrl) {
       await finalizeClaimedDelivery(delivery, {
@@ -457,7 +483,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_by: null,
         target_url: targetUrl,
       })
-      await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
+      await updateSubscriptionFailure(subscription, deadLetter)
       failed += 1
       continue
     }
@@ -504,7 +530,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           locked_by: null,
           target_url: targetUrl,
         })
-        await updateSubscriptionSuccess(subscription.id).catch(() => null)
+        await updateSubscriptionSuccess(subscription.id)
         sent += 1
       } else {
         const deadLetter = attempts >= delivery.max_attempts
@@ -521,7 +547,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           locked_by: null,
           target_url: targetUrl,
         })
-        await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
+        await updateSubscriptionFailure(subscription, deadLetter)
         failed += 1
       }
     } catch (error) {
@@ -537,7 +563,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_by: null,
         target_url: targetUrl,
       })
-      await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
+      await updateSubscriptionFailure(subscription, deadLetter)
       failed += 1
     } finally {
       clearTimeout(timeout)

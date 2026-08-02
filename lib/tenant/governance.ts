@@ -34,6 +34,8 @@ export type GovernanceEventAction =
   | 'SUPERADMIN_ROLE_CHANGED'
   | 'SUPERADMIN_COMPANY_CONTACTS_ANONYMIZED'
   | 'SUPERADMIN_OPEN_TASKS_TRANSFERRED'
+  | 'EDIEL_TEST_ATTEMPT_COMPLETED'
+  | 'EDIEL_TEST_RESULTS_SYNCED'
 
 export type GovernanceCount = {
   table: string

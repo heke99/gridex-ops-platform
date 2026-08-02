@@ -4,13 +4,16 @@ import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOve
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
 import {
   isPlatformAdminContext,
   requireAdminActionAccess,
   requirePlatformAdminActionAccess,
   type GuardResult,
 } from "@/lib/admin/guards";
+import {
+  requireEdielSendActionAccess,
+  requireEdielWriteActionAccess,
+} from "@/lib/ediel/actionAccess";
 import {
   assertUserCanOperateCompany,
   getOperationalCompanyScope,
@@ -1109,6 +1112,23 @@ async function revalidateRelatedMessage(messageId?: string | null) {
   revalidateEdiel(message.id);
 }
 
+async function requireScopedEdielTestRunForAction(
+  testRunId: string,
+  context: GuardResult,
+) {
+  const { data, error } = await supabaseService
+    .from("ediel_test_runs")
+    .select("*")
+    .eq("id", testRunId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || typeof data.company_id !== "string" || !data.company_id) {
+    throw new Error("Testkörningen saknar giltig tenantkoppling");
+  }
+  await assertUserCanOperateCompany(context.userId, data.company_id);
+  return data as import("@/lib/ediel/types").EdielTestRunRow;
+}
+
 async function requireScopedEdielMessageForAction(
   messageId: string,
   context: GuardResult,
@@ -1133,10 +1153,7 @@ async function requireScopedEdielMessageForAction(
 }
 
 export async function cancelEdielMessageAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
   const reason =
     formString(formData.get("reason")) ??
@@ -1191,10 +1208,7 @@ async function deleteEdielMessagesByIds(params: {
 }
 
 export async function deleteEdielMessageAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
@@ -1220,7 +1234,7 @@ export async function deleteEdielMessageAction(formData: FormData) {
 
   await deleteEdielMessagesByIds({
     actorUserId: context.userId,
-    messageIds: (relatedRows ?? []).map((row) => String(row.id)),
+    messageIds: (relatedRows ?? []).map((row: { id: string }) => String(row.id)),
     reason: "Raderad från /admin/ediel/messages.",
   });
 
@@ -1248,7 +1262,15 @@ export async function deleteAllEdielMessagesAction(formData?: FormData) {
 
   if (rowsError) throw rowsError;
 
-  const testRows = (rows ?? []).filter((row) => {
+  const testRows = (rows ?? []).filter((row: {
+    id: string;
+    environment?: string | null;
+    test_flag?: number | null;
+    receiver_ediel_id?: string | null;
+    receiver_email?: string | null;
+    application_reference?: string | null;
+    mailbox?: string | null;
+  }) => {
     const applicationReference = String(row.application_reference ?? "").toUpperCase();
     const receiverEmail = String(row.receiver_email ?? "").toLowerCase();
     const mailbox = String(row.mailbox ?? "").toLowerCase();
@@ -1279,14 +1301,14 @@ export async function deleteAllEdielMessagesAction(formData?: FormData) {
     finished_at: new Date().toISOString(),
   };
 
-  await supabaseService.from("ediel_cleanup_runs").insert(cleanupRun).then(({ error }) => {
+  await supabaseService.from("ediel_cleanup_runs").insert(cleanupRun).then(({ error }: { error: { code?: string } | null }) => {
     if (error && error.code !== "42P01" && error.code !== "PGRST205") throw error;
   });
 
   if (!dryRun) {
     await deleteEdielMessagesByIds({
       actorUserId: context.userId,
-      messageIds: testRows.map((row) => String(row.id)),
+      messageIds: testRows.map((row: { id: string }) => String(row.id)),
       reason: "Ediel-testdata rensades från /admin/ediel/messages.",
     });
   }
@@ -1295,9 +1317,7 @@ export async function deleteAllEdielMessagesAction(formData?: FormData) {
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
-  const context = await requireAdminActionAccess({
-    anyOf: ["communication.send", "communication.write"],
-  });
+  const context = await requireEdielSendActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
@@ -1436,10 +1456,7 @@ export async function sendEdielMessageAction(formData: FormData) {
 }
 
 export async function pollMailboxAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const scope = await getOperationalCompanyScope(context.userId);
   const requestedCompanyId = formString(formData.get("companyId"));
   const mailbox = formString(formData.get("mailbox"));
@@ -1485,10 +1502,7 @@ export async function pollMailboxAction(formData: FormData) {
 }
 
 export async function registerEdielFileAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const scope = await getOperationalCompanyScope(context.userId);
   const requestedCompanyId = formString(formData.get("companyId"));
   const mode = parseFileEngineMode(formData.get("mode"));
@@ -1523,7 +1537,7 @@ export async function registerEdielFileAction(formData: FormData) {
       : null;
   const agtRuntime =
     mode === "agt"
-      ? await getEdielAgtSupplierRuntime(companyId).catch(() => null)
+      ? await getEdielAgtSupplierRuntime(companyId)
       : null;
 
   const message = await registerEdielFile({
@@ -1557,24 +1571,29 @@ export async function registerEdielFileAction(formData: FormData) {
 
   const createdMessage = await getEdielMessageById(message.id, { companyId });
   if (createdMessage) {
-    const autoAttachResult = await autoAttachImportedMessageToActiveTgtRun({
-      edielMessage: createdMessage,
-    });
-
-    if (autoAttachResult) {
-      await runTgtAutopilotForRun({
-        actorUserId: context.userId,
-        testRunId: autoAttachResult.testRunId,
+    if (mode === "tgt") {
+      const autoAttachResult = await autoAttachImportedMessageToActiveTgtRun({
+        companyId,
+        edielMessage: createdMessage,
       });
+
+      if (autoAttachResult) {
+        await runTgtAutopilotForRun({
+          actorUserId: context.userId,
+          companyId,
+          testRunId: autoAttachResult.testRunId,
+        });
+      }
     }
 
-    await autoAttachImportedMessageToActiveAgtRun({
-      actorUserId: context.userId,
-      edielMessage: createdMessage,
-      explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
-    });
-
     if (mode === "agt") {
+      await autoAttachImportedMessageToActiveAgtRun({
+        actorUserId: context.userId,
+        companyId,
+        edielMessage: createdMessage,
+        explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
+      });
+
       await syncActorTestingForMessage({
         actorUserId: context.userId,
         edielMessage: createdMessage,
@@ -1593,6 +1612,7 @@ export async function registerEdielFileAction(formData: FormData) {
             error: error instanceof Error ? error.message : String(error),
           },
         });
+        throw error;
       });
     }
   }
@@ -1602,10 +1622,7 @@ export async function registerEdielFileAction(formData: FormData) {
 }
 
 export async function createEdielAgtRunAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
 
   const testCaseCode = formString(formData.get("testCaseCode"));
   const suite = parseEdielTestSuite(formData.get("testSuite"));
@@ -1614,8 +1631,13 @@ export async function createEdielAgtRunAction(formData: FormData) {
 
   if (!testCaseCode) throw new Error("testCaseCode saknas");
 
+  const companyId = formString(formData.get("companyId")) ??
+    (await getOperationalCompanyScope(context.userId)).companyId;
+  if (!companyId) throw new Error("Välj bolag innan AGT-körningen skapas");
+
   await createEdielSupplierAgtRun({
     actorUserId: context.userId,
+    companyId,
     testCaseCode,
     suite: suite === "PRODAT" || suite === "UTILTS" ? suite : null,
     actorName,
@@ -1626,10 +1648,7 @@ export async function createEdielAgtRunAction(formData: FormData) {
 }
 
 export async function createEdielAgtOutboundCommandAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
 
   const testRunId = formString(formData.get("testRunId"));
   const testCaseCode = formString(formData.get("testCaseCode"));
@@ -1638,8 +1657,14 @@ export async function createEdielAgtOutboundCommandAction(formData: FormData) {
 
   if (!testCaseCode) throw new Error("testCaseCode saknas");
 
+  const companyId = testRunId
+    ? (await requireScopedEdielTestRunForAction(testRunId, context)).company_id
+    : (formString(formData.get("companyId")) ?? (await getOperationalCompanyScope(context.userId)).companyId);
+  if (!companyId) throw new Error("Välj bolag innan AGT-meddelandet skapas");
+
   const message = await createEdielSupplierAgtOutboundCommand({
     actorUserId: context.userId,
+    companyId,
     testRunId,
     testCaseCode,
     actorName,
@@ -1662,19 +1687,19 @@ export const createEdielAgtOutboundDraftAction =
 export async function createEdielAgtResponsesForInboundAction(
   formData: FormData,
 ) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
 
   const sourceMessageId = formString(formData.get("sourceMessageId"));
   const testRunId = formString(formData.get("testRunId"));
   const testCaseCode = formString(formData.get("testCaseCode"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
+  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
+  if (!sourceMessage.company_id) throw new Error("Källmeddelandet saknar tenantkoppling");
 
   const created = await createEdielSupplierAgtResponsesForInbound({
     actorUserId: context.userId,
+    companyId: sourceMessage.company_id,
     sourceMessageId,
     testRunId,
     testCaseCode,
@@ -1760,41 +1785,41 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     expectedFlow: definition.expectedSteps,
   });
 
-  const autopilotResult = await runTgtAutopilotForRun({
-    actorUserId: context.userId,
-    testRunId: testRun.id,
-  }).catch(async (error) => {
+  let autopilotResult: Awaited<ReturnType<typeof runTgtAutopilotForRun>>;
+  try {
+    autopilotResult = await runTgtAutopilotForRun({
+      actorUserId: context.userId,
+      companyId,
+      testRunId: testRun.id,
+    });
+  } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await updateEdielTestRunStatus({
       actorUserId: context.userId,
+      companyId,
       testRunId: testRun.id,
-      status: "running",
+      status: "failed",
       failureReason: `Autopilot kunde inte skapa nästa steg automatiskt: ${message}`,
-    }).catch(() => undefined);
-    return null;
-  });
+    });
+    throw error;
+  }
 
-  if (autopilotResult) {
-    await supabaseService
-      .from("audit_logs")
-      .insert({
-        action: "ediel.tgt_run.started",
-        entity_type: "ediel_test_run",
-        entity_id: testRun.id,
-        actor_user_id: context.userId,
-        metadata: {
-          testSuite: definition.suite,
-          roleCode: definition.roleCode,
-          testCaseCode: definition.testCaseCode,
-          autopilot: autopilotResult,
-        },
-      })
-      .then((result: { error?: { code?: string } | null }) => {
-        const error = result.error ?? null;
-        if (error && error.code !== "42P01" && error.code !== "42703") {
-          console.warn("Audit log kunde inte sparas för TGT-start", error);
-        }
-      });
+  const auditResult = await supabaseService
+    .from("audit_logs")
+    .insert({
+      action: "ediel.tgt_run.started",
+      entity_type: "ediel_test_run",
+      entity_id: testRun.id,
+      actor_user_id: context.userId,
+      metadata: {
+        testSuite: definition.suite,
+        roleCode: definition.roleCode,
+        testCaseCode: definition.testCaseCode,
+        autopilot: autopilotResult,
+      },
+    });
+  if (auditResult.error && auditResult.error.code !== "42P01" && auditResult.error.code !== "42703") {
+    throw auditResult.error;
   }
 
   revalidateEdiel();
@@ -1808,10 +1833,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
 }
 
 export async function attachEdielMessageToTestRunAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testRunId = formString(formData.get("testRunId"));
   const edielMessageId = formString(formData.get("edielMessageId"));
   const stepNo = formNumber(formData.get("stepNo"));
@@ -1822,7 +1844,14 @@ export async function attachEdielMessageToTestRunAction(formData: FormData) {
   if (!testRunId) throw new Error("testRunId saknas");
   if (!edielMessageId) throw new Error("Välj ett Ediel-meddelande att koppla");
 
+  const run = await requireScopedEdielTestRunForAction(testRunId, context);
+  const message = await requireScopedEdielMessageForAction(edielMessageId, context);
+  if (message.company_id !== run.company_id) {
+    throw new Error("Meddelande och testkörning tillhör olika tenants");
+  }
+
   await attachEdielMessageToTestRun({
+    companyId: run.company_id,
     testRunId,
     edielMessageId,
     stepNo,
@@ -1836,10 +1865,7 @@ export async function attachEdielMessageToTestRunAction(formData: FormData) {
 }
 
 export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode")) ?? "";
@@ -1876,10 +1902,7 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
 export async function saveEdielInboundMessageTestDataAction(
   formData: FormData,
 ) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
@@ -1958,10 +1981,7 @@ export async function saveEdielInboundMessageTestDataAction(
 }
 
 export async function createEdielTgtDraftAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode")) ?? "";
@@ -2028,6 +2048,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   if (testRunId) {
     await attachEdielMessageToTestRun({
+      companyId,
       testRunId,
       edielMessageId: message.id,
       stepNo: draft.step.stepNo,
@@ -2042,16 +2063,15 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 }
 
 export async function runEdielTgtAutopilotAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testRunId = formString(formData.get("testRunId"));
 
   if (!testRunId) throw new Error("testRunId saknas");
 
+  const run = await requireScopedEdielTestRunForAction(testRunId, context);
   await runTgtAutopilotForRun({
     actorUserId: context.userId,
+    companyId: run.company_id,
     testRunId,
   });
 
@@ -2061,16 +2081,15 @@ export async function runEdielTgtAutopilotAction(formData: FormData) {
 export async function createMockPortalMessageForNextTgtStepAction(
   formData: FormData,
 ) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testRunId = formString(formData.get("testRunId"));
 
   if (!testRunId) throw new Error("testRunId saknas");
 
+  const run = await requireScopedEdielTestRunForAction(testRunId, context);
   const result = await createMockPortalMessageForNextStep({
     actorUserId: context.userId,
+    companyId: run.company_id,
     testRunId,
   });
 
@@ -2079,10 +2098,7 @@ export async function createMockPortalMessageForNextTgtStepAction(
 }
 
 export async function markEdielTgtRunStatusAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testRunId = formString(formData.get("testRunId"));
   const statusRaw = formString(formData.get("status"));
   const failureReason = formString(formData.get("failureReason"));
@@ -2090,20 +2106,20 @@ export async function markEdielTgtRunStatusAction(formData: FormData) {
   if (!testRunId) throw new Error("testRunId saknas");
   if (
     statusRaw !== "running" &&
-    statusRaw !== "passed" &&
     statusRaw !== "failed" &&
     statusRaw !== "cancelled"
   ) {
     throw new Error("Ogiltig TGT-status");
   }
 
+  const run = await requireScopedEdielTestRunForAction(testRunId, context);
   await updateEdielTestRunStatus({
     actorUserId: context.userId,
+    companyId: run.company_id,
     testRunId,
     status: statusRaw,
     failureReason,
     completedAt:
-      statusRaw === "passed" ||
       statusRaw === "failed" ||
       statusRaw === "cancelled"
         ? new Date().toISOString()
@@ -2113,18 +2129,17 @@ export async function markEdielTgtRunStatusAction(formData: FormData) {
   revalidateEdiel();
 }
 export async function archiveEdielTgtRunAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const testRunId = formString(formData.get("testRunId"));
   const reason =
     formString(formData.get("reason")) ?? "Arkiverad från TGT workbench.";
 
   if (!testRunId) throw new Error("testRunId saknas");
 
+  const run = await requireScopedEdielTestRunForAction(testRunId, context);
   await updateEdielTestRunStatus({
     actorUserId: context.userId,
+    companyId: run.company_id,
     testRunId,
     status: "cancelled",
     failureReason: reason,
@@ -2137,10 +2152,7 @@ export async function archiveEdielTgtRunAction(formData: FormData) {
 export async function archiveOlderEdielTgtRunsForCaseAction(
   formData: FormData,
 ) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const keepTestRunId = formString(formData.get("keepTestRunId"));
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
@@ -2149,7 +2161,8 @@ export async function archiveOlderEdielTgtRunsForCaseAction(
   if (!keepTestRunId) throw new Error("keepTestRunId saknas");
   if (!testCaseCode) throw new Error("testCaseCode saknas");
 
-  const runs = await listEdielTestRuns();
+  const keepRun = await requireScopedEdielTestRunForAction(keepTestRunId, context);
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId: keepRun.company_id });
   const sameCaseRuns = runs.filter(
     (run) =>
       run.id !== keepTestRunId &&
@@ -2163,6 +2176,7 @@ export async function archiveOlderEdielTgtRunsForCaseAction(
     sameCaseRuns.map((run) =>
       updateEdielTestRunStatus({
         actorUserId: context.userId,
+        companyId: keepRun.company_id,
         testRunId: run.id,
         status: "cancelled",
         failureReason: `Arkiverad automatiskt från TGT workbench. Nyare/vald run behölls: ${keepTestRunId}.`,
@@ -2197,10 +2211,7 @@ function isOperationalAckMessage(message: EdielMessageRow): boolean {
 
 
 export async function recalculateInboundAckAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
@@ -2275,10 +2286,7 @@ export async function recalculateInboundAckAction(formData: FormData) {
 }
 
 export async function processEdielOperationalMessageAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
@@ -2771,10 +2779,7 @@ async function resolveBackendAperakDecision(params: {
 }
 
 export async function createSafeMasterdataProposalAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
@@ -2790,10 +2795,7 @@ export async function createSafeMasterdataProposalAction(formData: FormData) {
 }
 
 export async function createAckDraftAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
   const ackType = formString(formData.get("ackType")) as AckFamily | null;
   const outcome =
@@ -2913,10 +2915,7 @@ export async function createAckDraftAction(formData: FormData) {
 }
 
 export async function createAndSendRecommendedAckAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
@@ -3171,10 +3170,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
 }
 
 export async function createAndSendAckAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
   const ackType = formString(formData.get("ackType")) as AckFamily | null;
   const outcome =
@@ -3537,10 +3533,7 @@ function deriveS142LineItemReferences(
 }
 
 export async function createAndSendTgtS142AperakAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
@@ -3592,10 +3585,7 @@ const TGT_S142B_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
 ];
 
 export async function createAndSendTgtS142BAperakAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
@@ -3623,10 +3613,7 @@ const TGT_S143_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
 ];
 
 export async function createAndSendTgtS143AperakAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielSendActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
@@ -3643,10 +3630,7 @@ export async function createAndSendTgtS143AperakAction(formData: FormData) {
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
   const messageText = formString(formData.get("messageText"));
 
@@ -3698,10 +3682,7 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
 }
 
 export async function createProdatDraftAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const switchRequestId = formString(formData.get("switchRequestId"));
   const communicationRouteId = formString(formData.get("communicationRouteId"));
   const messageCodeRaw = formString(formData.get("messageCode"));
@@ -3835,10 +3816,7 @@ async function prepareSwitchProdatAction(
   formData: FormData,
   messageCode: ProdatSwitchCode,
 ) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const switchRequestId = formString(formData.get("switchRequestId"));
   const communicationRouteId = formString(formData.get("communicationRouteId"));
   const environment = (
@@ -3891,12 +3869,9 @@ async function prepareSwitchProdatAction(
 }
 
 export async function createEdielPortalTestCustomerAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "masterdata.write",
-    "switching.write",
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireAdminActionAccess({
+    allOf: ["masterdata.write", "switching.write", "communication.write"],
+  });
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode"));
@@ -4035,12 +4010,9 @@ function normalizeCustomerIdQualifier(
 export async function updateEdielPortalSwitchTestDataAction(
   formData: FormData,
 ) {
-  const context = await requireAnyPermissionServer([
-    "masterdata.write",
-    "switching.write",
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireAdminActionAccess({
+    allOf: ["masterdata.write", "switching.write", "communication.write"],
+  });
   const switchRequestId = formString(formData.get("switchRequestId"));
   if (!switchRequestId) throw new Error("switchRequestId saknas");
 
@@ -4185,10 +4157,7 @@ export async function prepareSwitchZ18Action(formData: FormData) {
 }
 
 export async function prepareUtiltsE73Action(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const gridOwnerDataRequestId = formString(
     formData.get("gridOwnerDataRequestId"),
   );
@@ -4205,10 +4174,7 @@ export async function prepareUtiltsE73Action(formData: FormData) {
 }
 
 export async function prepareUtiltsE66Action(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const gridOwnerDataRequestId = formString(
     formData.get("gridOwnerDataRequestId"),
   );
@@ -4233,10 +4199,7 @@ export async function prepareUtiltsE66Action(formData: FormData) {
 }
 
 export async function prepareAiListAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
 
   const listType = formString(formData.get("listType")) as "AI" | "BI" | null;
   const customerId = formString(formData.get("customerId"));
@@ -4279,10 +4242,7 @@ export async function prepareAiListAction(formData: FormData) {
 }
 
 export async function registerInboundUtiltsAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
 
   const messageCode = formString(formData.get("messageCode")) as
     | "E66"
@@ -4346,10 +4306,7 @@ export async function registerInboundUtiltsAction(formData: FormData) {
 }
 
 export async function runEdielSelfTestAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
 
   await runEdielSelfTest({
     actorUserId: context.userId,
@@ -4369,13 +4326,14 @@ export async function runEdielSelfTestAction(formData: FormData) {
 }
 
 export async function createEdielTestRunAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
+  const companyId = formString(formData.get("companyId")) ??
+    (await getOperationalCompanyScope(context.userId)).companyId;
+  if (!companyId) throw new Error("Välj bolag innan testkörningen skapas");
 
   await createEdielTestRun({
     actorUserId: context.userId,
+    companyId,
     testSuite: parseEdielTestSuite(formData.get("testSuite")),
     roleCode: parseEdielTestRoleCode(formData.get("roleCode")),
     testCaseCode: formString(formData.get("testCaseCode")) ?? "",
@@ -4389,10 +4347,7 @@ export async function createEdielTestRunAction(formData: FormData) {
 }
 
 export async function approveEdielSafeApplyAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
@@ -4405,10 +4360,7 @@ export async function approveEdielSafeApplyAction(formData: FormData) {
 }
 
 export async function rejectEdielSafeApplyAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
@@ -4422,10 +4374,7 @@ export async function rejectEdielSafeApplyAction(formData: FormData) {
 }
 
 export async function processEdielUtiltsBillingAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
@@ -4446,10 +4395,9 @@ function parseInboundCaseMode(
 }
 
 export async function approveEdielInboundCaseAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "masterdata.write",
-  ]);
+  const context = await requireAdminActionAccess({
+    allOf: ["communication.write", "masterdata.write"],
+  });
   const caseId = formString(formData.get("caseId"));
   if (!caseId) throw new Error("caseId saknas");
 
@@ -4470,10 +4418,9 @@ export async function approveEdielInboundCaseAction(formData: FormData) {
 }
 
 export async function rejectEdielInboundCaseAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "masterdata.write",
-  ]);
+  const context = await requireAdminActionAccess({
+    allOf: ["communication.write", "masterdata.write"],
+  });
   const caseId = formString(formData.get("caseId"));
   if (!caseId) throw new Error("caseId saknas");
 

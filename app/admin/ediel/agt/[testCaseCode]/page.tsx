@@ -363,7 +363,7 @@ export default async function AgtCasePage({
 
   const [runtime, runs, recentInbound] = await Promise.all([
     getEdielAgtSupplierRuntime(companyId),
-    listEdielTestRuns({ companyId }),
+    companyId ? listEdielTestRuns({ scope: 'tenant', companyId }) : Promise.resolve([]),
     listEdielMessages({ direction: "inbound", companyId, limit: 80 }),
   ]);
 
@@ -378,7 +378,7 @@ export default async function AgtCasePage({
     ) ?? null;
 
   const links = run
-    ? await listEdielTestRunMessages({ testRunId: run.id })
+    ? await listEdielTestRunMessages({ companyId: run.company_id, testRunId: run.id })
     : [];
   const linkedIds = links.map((link) => link.ediel_message_id);
   const linkedMessages = await listEdielMessagesByIds(linkedIds, { companyId });

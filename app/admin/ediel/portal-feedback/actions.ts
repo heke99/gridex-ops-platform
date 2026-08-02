@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requireEdielWriteActionAccess } from '@/lib/ediel/actionAccess'
 import { portalValidationReportStorageRows } from '@/lib/ediel/portal/parsePortalValidationReport'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -10,7 +10,7 @@ function formString(value: FormDataEntryValue | null): string | null {
 }
 
 export async function importPortalValidationFeedbackAction(formData: FormData) {
-  const context = await requireAdminActionAccess({ anyOf: ['communication.write', 'communication.read'] })
+  const context = await requireEdielWriteActionAccess()
   const rawReport = formString(formData.get('rawReport'))
   if (!rawReport) throw new Error('Klistra in portalrapporten först.')
 

@@ -20,7 +20,10 @@ export type EdielMessageStatus =
   | "draft"
   | "prepared"
   | "queued"
+  | "dispatching"
+  | "provider_accepted"
   | "sent"
+  | "delivered"
   | "received"
   | "parsed"
   | "validated"
@@ -263,7 +266,10 @@ export type EdielMessageEventType =
   | "created"
   | "prepared"
   | "queued"
+  | "dispatching"
+  | "provider_accepted"
   | "sent"
+  | "delivered"
   | "received"
   | "parsed"
   | "validated"
@@ -316,7 +322,7 @@ export type EdielTestRunStatus =
 
 export type EdielTestRunRow = {
   id: string;
-  company_id?: string | null;
+  company_id: string;
   approval_version: string | null;
   role_code: EdielTestRoleCode;
   test_suite: EdielTestSuite;
@@ -345,6 +351,15 @@ export type EdielTestRunRow = {
   raw_edifact?: string | null;
   encrypted_payload_ref?: string | null;
   production_like?: boolean | null;
+  configuration_snapshot_id?: string | null;
+  configuration_hash?: string | null;
+  rulebook_version?: string | null;
+  engine_version?: string | null;
+  message_variant?: string | null;
+  setup_package?: string | null;
+  environment?: EdielEnvironment | string | null;
+  is_stale?: boolean | null;
+  stale_reason?: string | null;
 
   created_at: string;
   updated_at: string;
@@ -354,6 +369,7 @@ export type EdielTestRunRow = {
 
 export type EdielTestRunMessageRow = {
   id: string;
+  company_id: string;
   test_run_id: string;
   ediel_message_id: string;
   step_no: number | null;
@@ -609,7 +625,7 @@ export type CreateEdielMessageEventInput = {
 
 export type CreateEdielTestRunInput = {
   actorUserId: string;
-  companyId?: string | null;
+  companyId: string;
   approvalVersion?: string | null;
   roleCode: EdielTestRoleCode;
   testSuite: EdielTestSuite;
@@ -637,10 +653,13 @@ export type CreateEdielTestRunInput = {
   rawEdifact?: string | null;
   encryptedPayloadRef?: string | null;
   productionLike?: boolean | null;
+  messageVariant?: string | null;
+  setupPackage?: string | null;
 };
 
 export type UpdateEdielTestRunStatusInput = {
   actorUserId: string;
+  companyId: string;
   testRunId: string;
   status: EdielTestRunStatus;
   failureReason?: string | null;
@@ -648,6 +667,7 @@ export type UpdateEdielTestRunStatusInput = {
 };
 
 export type AttachEdielMessageToTestRunInput = {
+  companyId: string;
   testRunId: string;
   edielMessageId: string;
   stepNo?: number | null;

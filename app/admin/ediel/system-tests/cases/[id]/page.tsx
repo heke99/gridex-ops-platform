@@ -834,7 +834,9 @@ export default async function SystemTestCasePage({
   }).catch(() => null);
 
   const [runs, messages] = await Promise.all([
-    listEdielTestRuns({ companyId: selectedCompanyId }).catch(() => []),
+    selectedCompanyId
+      ? listEdielTestRuns({ scope: 'tenant', companyId: selectedCompanyId }).catch(() => [])
+      : Promise.resolve([]),
     listEdielMessages({ companyId: selectedCompanyId, limit: 300 }).catch(() => []),
   ]);
 
@@ -847,7 +849,7 @@ export default async function SystemTestCasePage({
   );
   const runDetails = await Promise.all(
     matchingRuns.map(async (run) => {
-      const links = await listEdielTestRunMessages({ testRunId: run.id }).catch(
+      const links = await listEdielTestRunMessages({ companyId: run.company_id, testRunId: run.id }).catch(
         () => [],
       );
       const linkMessageRows = await listEdielMessagesByIds(

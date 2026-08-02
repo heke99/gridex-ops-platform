@@ -339,20 +339,21 @@ function buildMockPortalInput(params: {
 }
 
 async function getRunEvaluation(
+  companyId: string,
   testRunId: string,
 ): Promise<EdielTgtRunEvaluation> {
   const [runs, messages, links] = await Promise.all([
-    listEdielTestRuns(),
-    listEdielMessages({ limit: 300 }),
-    listEdielTestRunMessages({ testRunId }).catch(() => []),
+    listEdielTestRuns({ scope: "tenant", companyId }),
+    listEdielMessages({ companyId, limit: 300 }),
+    listEdielTestRunMessages({ companyId, testRunId }),
   ]);
   const run = runs.find((candidate) => candidate.id === testRunId);
   if (!run) throw new Error("TGT-run saknas eller är arkiverad.");
 
   const linkedRows = await listEdielMessagesByIds(
     links.map((link) => link.ediel_message_id),
-    { companyId: run.company_id ?? null },
-  ).catch(() => []);
+    { companyId },
+  );
   const byId = new Map(messages.map((message) => [message.id, message]));
   for (const linkedMessage of linkedRows) byId.set(linkedMessage.id, linkedMessage);
 
@@ -370,7 +371,7 @@ async function createDraftForStep(params: {
 
   const runtimeSuite = runtimeSuiteForRun(params.evaluation.testRun);
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
-    companyId: params.evaluation.testRun.company_id ?? null,
+    companyId: params.evaluation.testRun.company_id,
     testSuite: runtimeSuite,
     actorRole: params.evaluation.definition.roleCode,
   });
@@ -433,6 +434,7 @@ async function createDraftForStep(params: {
 
   const message = await createEdielMessage(draft.messageInput);
   await attachEdielMessageToTestRun({
+    companyId: params.evaluation.testRun.company_id,
     testRunId: params.evaluation.testRun.id,
     edielMessageId: message.id,
     stepNo: draft.step.stepNo,
@@ -445,9 +447,10 @@ async function createDraftForStep(params: {
 
 export async function runTgtAutopilotForRun(params: {
   actorUserId: string;
+  companyId: string;
   testRunId: string;
 }): Promise<EdielTgtAutopilotResult> {
-  const evaluation = await getRunEvaluation(params.testRunId);
+  const evaluation = await getRunEvaluation(params.companyId, params.testRunId);
   const nextAction = getEdielTgtNextAction(evaluation);
 
   if (!evaluation.definition) {
@@ -529,9 +532,10 @@ export async function runTgtAutopilotForRun(params: {
 
 export async function createMockPortalMessageForNextStep(params: {
   actorUserId: string;
+  companyId: string;
   testRunId: string;
 }): Promise<EdielTgtAutopilotResult> {
-  const evaluation = await getRunEvaluation(params.testRunId);
+  const evaluation = await getRunEvaluation(params.companyId, params.testRunId);
   const nextAction = getEdielTgtNextAction(evaluation);
 
   if (!evaluation.definition || !nextAction.stepNo) {
@@ -562,7 +566,7 @@ export async function createMockPortalMessageForNextStep(params: {
 
   const runtimeSuite = runtimeSuiteForRun(evaluation.testRun);
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
-    companyId: evaluation.testRun.company_id ?? null,
+    companyId: evaluation.testRun.company_id,
     testSuite: runtimeSuite,
     actorRole: evaluation.definition.roleCode,
   });
@@ -578,6 +582,7 @@ export async function createMockPortalMessageForNextStep(params: {
   );
 
   await attachEdielMessageToTestRun({
+    companyId: evaluation.testRun.company_id,
     testRunId: evaluation.testRun.id,
     edielMessageId: message.id,
     stepNo: step.stepNo,
@@ -588,6 +593,7 @@ export async function createMockPortalMessageForNextStep(params: {
 
   const afterMock = await runTgtAutopilotForRun({
     actorUserId: params.actorUserId,
+    companyId: evaluation.testRun.company_id,
     testRunId: evaluation.testRun.id,
   });
 
@@ -608,11 +614,17 @@ export async function createMockPortalMessageForNextStep(params: {
 
 export async function autoAttachImportedMessageToActiveTgtRun(params: {
   edielMessage: EdielMessageRow;
-  companyId?: string | null;
+  companyId: string;
   explicitTestCaseCode?: string | null;
 }): Promise<EdielTgtAutopilotResult | null> {
+  if (params.edielMessage.company_id !== params.companyId) {
+    throw new Error("imported_message_company_mismatch");
+  }
+  if (params.edielMessage.environment !== "test" || params.edielMessage.test_flag !== 1) {
+    throw new Error("production_message_cannot_be_tgt_evidence");
+  }
   const [runs, messages] = await Promise.all([
-    listEdielTestRuns({ companyId: params.companyId }),
+    listEdielTestRuns({ scope: "tenant", companyId: params.companyId }),
     listEdielMessages({ companyId: params.companyId, limit: 300 }),
   ]);
   const explicitCode = String(params.explicitTestCaseCode ?? "")
@@ -664,6 +676,7 @@ export async function autoAttachImportedMessageToActiveTgtRun(params: {
       continue;
 
     await attachEdielMessageToTestRun({
+      companyId: params.companyId,
       testRunId: run.id,
       edielMessageId: params.edielMessage.id,
       stepNo: matchingStep.stepNo,

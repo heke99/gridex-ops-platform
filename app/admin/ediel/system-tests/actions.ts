@@ -1322,7 +1322,7 @@ async function auditSystemTestMaintenance(params: {
         testRunId: params.testRunId ?? null,
         ...(params.payload ?? {}),
       },
-    }).catch(() => undefined);
+    });
   }
 
   await supabaseService
@@ -1343,25 +1343,40 @@ async function auditSystemTestMaintenance(params: {
     .then((result: { error?: { code?: string } | null }) => {
       const error = result.error ?? null;
       if (error && error.code !== "42P01" && error.code !== "42703") {
-        console.warn(
-          "Audit log kunde inte sparas för systemtest-action",
-          error,
-        );
+        throw error;
       }
     });
 }
 
+async function requireSystemTestRun(testRunId: string) {
+  const { data, error } = await supabaseService
+    .from("ediel_test_runs")
+    .select("*")
+    .eq("id", testRunId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || typeof data.company_id !== "string" || !data.company_id) {
+    throw new Error("Systemtestkörningen saknar giltig tenantkoppling");
+  }
+  return data as import("@/lib/ediel/types").EdielTestRunRow;
+}
+
 async function findBestActiveRunForMessage(params: {
+  companyId: string;
   testRunId?: string | null;
   testCaseCode?: string | null;
   sourceMessageId?: string | null;
 }) {
-  if (params.testRunId) return params.testRunId;
+  if (params.testRunId) {
+    const run = await requireSystemTestRun(params.testRunId);
+    if (run.company_id !== params.companyId) throw new Error("Systemtest-run tillhör annan tenant");
+    return params.testRunId;
+  }
 
   const testCaseCode = normalizeCode(params.testCaseCode);
   if (!testCaseCode) return null;
 
-  const runs = await listEdielTestRuns().catch(() => []);
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId: params.companyId });
   const candidate =
     runs.find(
       (run) =>
@@ -1735,7 +1750,9 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     throw new Error("APERAK får inte skickas på APERAK.");
   }
 
+  if (!sourceMessage.company_id) throw new Error("Källmeddelandet saknar tenantkoppling");
   const testRunId = await findBestActiveRunForMessage({
+    companyId: sourceMessage.company_id,
     testRunId: testRunIdInput,
     testCaseCode,
     sourceMessageId,
@@ -1796,7 +1813,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         attemptedOutcome: backendDecision.outcome,
         blockReason: "blocked_final_ack_exists",
       },
-    }).catch(() => undefined);
+    });
     revalidateSystemTests(testCaseCode);
     redirectToSystemTestAckResult({
       testCaseCode,
@@ -1827,13 +1844,14 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     });
     if (testRunId) {
       await attachEdielMessageToTestRun({
+        companyId: sourceMessage.company_id,
         testRunId,
         edielMessageId: finalSameAck.id,
         stepNo,
         expectedDirection: "outbound",
         expectedFamily: ackFamily,
         expectedCode: ackFamily,
-      }).catch(() => undefined);
+      });
     }
     revalidateSystemTests(testCaseCode);
     redirectToSystemTestAckResult({
@@ -1863,7 +1881,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
       status: "cancelled",
       failureReason:
         "Superseded by a new Systemtest ACK decision for the same inbound/test step.",
-    }).catch(() => undefined);
+    });
   }
 
   const reusableAck = existingAcks.find(
@@ -1890,20 +1908,13 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
 
   if (testRunId) {
     await attachEdielMessageToTestRun({
+      companyId: sourceMessage.company_id,
       testRunId,
       edielMessageId: ackMessageId,
       stepNo,
       expectedDirection: "outbound",
       expectedFamily: ackFamily,
       expectedCode: ackFamily,
-    }).catch(async (error) => {
-      await auditSystemTestMaintenance({
-        actorUserId: context.userId,
-        action: "ediel.system_test.ack_attach_failed",
-        testRunId,
-        edielMessageId: ackMessageId,
-        reason: errorMessage(error),
-      });
     });
   }
 
@@ -1982,7 +1993,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         status: "failed",
         failureReason: `Systemtest kunde skapa men inte skicka ${ackFamily}: ${sendFailure}`,
         failedAt: new Date().toISOString(),
-      }).catch(() => undefined);
+      });
 
       await createEdielMessageEvent({
         actorUserId: context.userId,
@@ -1999,7 +2010,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
           testCaseCode: testCaseCode ?? null,
           error: sendFailure,
         },
-      }).catch(() => undefined);
+      });
 
       await auditSystemTestMaintenance({
         actorUserId: context.userId,
@@ -2112,11 +2123,13 @@ export async function deleteSystemTestRunAction(formData: FormData) {
 
   if (!testRunId) throw new Error("testRunId saknas");
 
+  const run = await requireSystemTestRun(testRunId);
   await safeDeleteWhere("ediel_test_run_messages", "test_run_id", testRunId);
   await safeDeleteWhere("ediel_test_run_steps", "test_run_id", testRunId);
   await safeDeleteWhere("ediel_test_artifacts", "test_run_id", testRunId);
   await updateEdielTestRunStatus({
     actorUserId: context.userId,
+    companyId: run.company_id,
     testRunId,
     status: "cancelled",
     failureReason: reason,
@@ -2189,8 +2202,15 @@ export async function validateSystemTestPayloadAction(formData: FormData) {
   });
 
   let targetRunId = testRunId;
+  let companyId = formString(formData.get("companyId"));
+  if (targetRunId) {
+    const existingRun = await requireSystemTestRun(targetRunId);
+    companyId = existingRun.company_id;
+  }
+  if (!companyId) throw new Error("Välj bolag innan payload valideras mot ett systemtest");
   if (!targetRunId && definition) {
     targetRunId = await findBestActiveRunForMessage({
+      companyId,
       testCaseCode: definition.testCaseCode,
     });
   }
@@ -2198,6 +2218,7 @@ export async function validateSystemTestPayloadAction(formData: FormData) {
   if (!targetRunId && definition) {
     const run = await createEdielTestRun({
       actorUserId: context.userId,
+      companyId,
       testSuite: definition.suite,
       roleCode: definition.roleCode,
       testCaseCode: definition.testCaseCode,
@@ -2295,13 +2316,14 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
   if (!testCaseCode || !definition) {
     throw new Error(`Okänt TGT-testfall: ${testCaseCode || "saknas"}`);
   }
+  if (!companyId) throw new Error("Välj bolag innan systemtestets IMAP-poll körs");
 
   let targetRunId: string | null = null;
   const redirectParams = new URLSearchParams();
   if (companyId) redirectParams.set("companyId", companyId);
 
   try {
-    const existingRuns = await listEdielTestRuns({ companyId }).catch(() => []);
+    const existingRuns = await listEdielTestRuns({ scope: "tenant", companyId });
     const activeRun = existingRuns.find(
       (run) =>
         normalizeCode(run.test_suite) === normalizeCode(definition.suite) &&
@@ -2400,16 +2422,17 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
       });
       targetRunId = attachResult.testRunId;
 
-      await runTgtAutopilotForRun({
-        actorUserId: context.userId,
-        testRunId: attachResult.testRunId,
-      }).catch(async (error) => {
-        skipped.push({
+      try {
+        await runTgtAutopilotForRun({
+          actorUserId: context.userId,
+          companyId,
           testRunId: attachResult.testRunId,
-          messageId: attachResult.messageId,
-          reason: `Autopilot kunde inte skapa nästa steg: ${errorMessage(error)}`,
         });
-      });
+      } catch (error) {
+        throw new Error(
+          `Autopilot kunde inte skapa nästa steg för run ${attachResult.testRunId}: ${errorMessage(error)}`,
+        );
+      }
     }
 
     const pollStatus =
@@ -2475,16 +2498,18 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
     if (targetRunId) {
       await updateEdielTestRunStatus({
         actorUserId: context.userId,
+        companyId,
         testRunId: targetRunId,
         status: "failed",
         failureReason: pollError,
         completedAt: new Date().toISOString(),
-      }).catch(() => undefined);
+      });
     }
 
     if (!targetRunId) {
       const failedRun = await createEdielTestRun({
         actorUserId: context.userId,
+        companyId,
         testSuite: definition.suite,
         roleCode: definition.roleCode,
         testCaseCode: definition.testCaseCode,
@@ -2522,7 +2547,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
         error: errorMessage(error),
         createdAt: new Date().toISOString(),
       },
-    }).catch(() => undefined);
+    });
   }
 
   revalidateSystemTests(definition.testCaseCode);
@@ -3131,7 +3156,7 @@ async function findLinkedSystemTestOutboundBusinessMessage(params: {
   preferredMessageId?: string | null;
 }): Promise<EdielMessageRow | null> {
   if (params.preferredMessageId) {
-    const preferred = await getEdielMessageById(params.preferredMessageId).catch(() => null);
+    const preferred = await getEdielMessageById(params.preferredMessageId);
     if (isSystemTestOutboundBusinessMessageSendable(preferred)) return preferred;
   }
 
@@ -3146,7 +3171,7 @@ async function findLinkedSystemTestOutboundBusinessMessage(params: {
   const messageIds = Array.from(
     new Set(
       (links ?? [])
-        .map((link) => String(link.ediel_message_id ?? "").trim())
+        .map((link: { ediel_message_id?: string | null }) => String(link.ediel_message_id ?? "").trim())
         .filter(Boolean),
     ),
   );
@@ -3158,8 +3183,8 @@ async function findLinkedSystemTestOutboundBusinessMessage(params: {
     .in("id", messageIds);
   if (messageError) throw messageError;
 
-  const stepByMessageId = new Map(
-    (links ?? []).map((link) => [
+  const stepByMessageId = new Map<string, number>(
+    (links ?? []).map((link: { ediel_message_id?: string | null; step_no?: number | null }) => [
       String(link.ediel_message_id ?? ""),
       typeof link.step_no === "number" ? link.step_no : 9999,
     ]),
@@ -3234,14 +3259,18 @@ export async function sendSystemTestOutboundMessageAction(formData: FormData) {
   }
 
   if (testRunId) {
+    if (!message.company_id) throw new Error("Outbound-meddelandet saknar tenantkoppling");
+    const run = await requireSystemTestRun(testRunId);
+    if (run.company_id !== message.company_id) throw new Error("Meddelande och run tillhör olika tenants");
     await attachEdielMessageToTestRun({
+      companyId: message.company_id,
       testRunId,
       edielMessageId,
       stepNo,
       expectedDirection: "outbound",
       expectedFamily: message.message_family,
       expectedCode: String(message.message_code ?? ""),
-    }).catch(() => undefined);
+    });
   }
 
   await markSystemTestOutboundSendIntent({
@@ -3329,7 +3358,8 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
   if (!runRow) throw new Error("Testkörningen hittades inte");
 
   const runCompanyId = typeof runRow.company_id === "string" ? runRow.company_id : null;
-  if (runCompanyId) redirectParams.set("companyId", runCompanyId);
+  if (!runCompanyId) throw new Error("Testkörningen saknar tenantkoppling");
+  redirectParams.set("companyId", runCompanyId);
   const effectiveTestCaseCode = testCaseCode ?? String(runRow.test_case_code ?? "");
 
   let message = await findLinkedSystemTestOutboundBusinessMessage({
@@ -3341,6 +3371,7 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
   if (!message) {
     const autopilot = await runTgtAutopilotForRun({
       actorUserId: context.userId,
+      companyId: runCompanyId,
       testRunId,
     });
     autopilotDescription = autopilot.description ?? null;
@@ -3366,14 +3397,17 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
     );
   }
 
+  if (!message) throw new Error("Systemtest saknar outbound-meddelande efter autopilot");
+
   await attachEdielMessageToTestRun({
+    companyId: runCompanyId,
     testRunId,
     edielMessageId: message.id,
     stepNo: null,
     expectedDirection: "outbound",
     expectedFamily: message.message_family,
     expectedCode: String(message.message_code ?? ""),
-  }).catch(() => undefined);
+  });
 
   await markSystemTestOutboundSendIntent({
     actorUserId: context.userId,

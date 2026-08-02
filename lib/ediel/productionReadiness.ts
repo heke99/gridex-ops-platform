@@ -6,6 +6,7 @@ import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting";
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus";
 import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth";
 import { EdifactEnvelopeCodec } from "@/lib/ediel/core/edifactEnvelopeCodec";
+import { requireTenantOperationAllowed } from '@/lib/tenant/operationPolicy'
 
 export type ProductionReadinessStatus =
   | "ready"
@@ -73,6 +74,10 @@ export type ProductionReadinessResult = {
     failedMessages: number;
     negativeAperaks: number;
     firstLiveSendApprovedAt: string | null;
+  };
+  configurationSnapshot: {
+    id: string;
+    hash: string;
   };
   latestCheck: {
     id: string | null;
@@ -248,6 +253,7 @@ type QueryLike = {
   select: (...args: unknown[]) => QueryLike;
   eq: (column: string, value: unknown) => QueryLike;
   in: (column: string, values: readonly unknown[]) => QueryLike;
+  gt: (column: string, value: unknown) => QueryLike;
   order: (column: string, options?: Record<string, unknown>) => QueryLike;
   limit: (count: number) => QueryLike;
 };
@@ -598,7 +604,6 @@ export async function getCompanyProductionReadiness(
   options: {
     checkedBy?: string | null;
     persist?: boolean;
-    ignorePaused?: boolean;
   } = {},
 ): Promise<ProductionReadinessResult> {
   const company = await getCompany(companyId);
@@ -654,10 +659,21 @@ export async function getCompanyProductionReadiness(
         negativeAperaks: 0,
         firstLiveSendApprovedAt: null,
       },
+      configurationSnapshot: { id: '', hash: '' },
       latestCheck: { id: null, checkedAt: null, checkedBy: null },
       latestDryRun: { id: null, status: null, createdAt: null, metadata: null },
       auditEvents: [],
     };
+  }
+
+  const { data: snapshotData, error: snapshotError } = await supabaseService.rpc(
+    'canonical_capture_ediel_configuration_snapshot',
+    { p_company_id: companyId, p_actor_user_id: options.checkedBy ?? null, p_reason: 'production_readiness_evaluated' }
+  )
+  if (snapshotError) throw snapshotError
+  const configurationSnapshot = snapshotData as unknown as { id?: string; configuration_hash?: string } | null
+  if (!configurationSnapshot?.id || !configurationSnapshot.configuration_hash) {
+    throw new Error('canonical_configuration_snapshot_missing')
   }
 
   const [
@@ -710,16 +726,21 @@ export async function getCompanyProductionReadiness(
       "ediel_production_readiness_checks",
       (query) =>
         query
-          .select("id,status,checked_at,checked_by")
+          .select("id,status,checked_at,checked_by,configuration_snapshot_id,configuration_hash,is_stale")
           .eq("company_id", companyId)
+          .eq("configuration_snapshot_id", configurationSnapshot.id)
+          .eq("is_stale", false)
           .order("checked_at", { ascending: false })
           .limit(1),
     ),
     safeSelect<Record<string, unknown>>("ediel_go_live_events", (query) =>
       query
-        .select("id,event_type,to_status,metadata,created_at")
+        .select("id,event_type,to_status,metadata,created_at,expires_at,configuration_snapshot_id,configuration_hash,is_stale")
         .eq("company_id", companyId)
         .eq("event_type", "production_dry_run")
+        .eq("configuration_snapshot_id", configurationSnapshot.id)
+        .eq("is_stale", false)
+        .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(1),
     ),
@@ -813,7 +834,7 @@ export async function getCompanyProductionReadiness(
   const latestClockHealth = (await getLatestSystemClockHealth({
     companyId,
     environmentType: "production",
-  }).catch(() => null)) as Record<string, unknown> | null;
+  })) as Record<string, unknown> | null;
 
   const [
     latestInbound,
@@ -935,7 +956,7 @@ export async function getCompanyProductionReadiness(
       "Bolaget är aktivt",
       "Bolaget är inte pausat, suspenderat eller arkiverat.",
     );
-  else if (!options.ignorePaused)
+  else
     block(
       "company",
       "company_not_active",
@@ -1592,10 +1613,7 @@ export async function getCompanyProductionReadiness(
     blockingIssues: blocking,
     warnings,
     companyStatus: text(company.status),
-    productionStatus:
-      options.ignorePaused && companyProductionStatus === "paused"
-        ? "live"
-        : companyProductionStatus,
+    productionStatus: companyProductionStatus,
     productionEnabled,
     liveApprovedAt:
       text(company.live_approved_at) ??
@@ -1664,6 +1682,10 @@ export async function getCompanyProductionReadiness(
       negativeAperaks,
       firstLiveSendApprovedAt: text(company.ediel_first_live_send_approved_at),
     },
+    configurationSnapshot: {
+      id: configurationSnapshot.id,
+      hash: configurationSnapshot.configuration_hash,
+    },
     latestCheck: {
       id: text(latestCheck?.id),
       checkedAt: text(latestCheck?.checked_at),
@@ -1694,12 +1716,18 @@ export async function getCompanyProductionReadiness(
         missing_items: result.missingItems,
         next_actions: result.nextActions,
         readiness_snapshot: result,
+        configuration_snapshot_id: configurationSnapshot.id,
+        configuration_hash: configurationSnapshot.configuration_hash,
+        target_state: 'ediel_production_live',
+        is_stale: false,
+        stale_reason: null,
         checked_by: options.checkedBy ?? null,
       })
       .select("id,checked_at,checked_by")
       .maybeSingle();
 
-    if (!error && data) {
+    if (error) throw error
+    if (data) {
       result.latestCheck = {
         id: text((data as Record<string, unknown>).id),
         checkedAt: text((data as Record<string, unknown>).checked_at),
@@ -1769,22 +1797,31 @@ export async function runProductionDryRun(
         : null,
   };
 
-  try {
-    await supabaseService.from("ediel_go_live_events").insert({
-      company_id: companyId,
-      event_type: "production_dry_run",
-      from_status: readiness.summary.productionStatus,
-      to_status: result.status,
-      reason: result.success
-        ? "Production dry run passerade utan blockerare."
-        : "Production dry run blockerades.",
-      actor_user_id: actorUserId,
-      readiness_check_id: readiness.latestCheck.id,
-      metadata: result,
-    });
-  } catch {
-    // Dry run result is still returned even if optional audit persistence is unavailable.
-  }
+  const { data: readinessRow, error: readinessRowError } = await supabaseService
+    .from('ediel_production_readiness_checks')
+    .select('configuration_snapshot_id,configuration_hash')
+    .eq('id', readiness.latestCheck.id)
+    .eq('company_id', companyId)
+    .single()
+  if (readinessRowError) throw readinessRowError
+  const { error: dryRunError } = await supabaseService.from("ediel_go_live_events").insert({
+    company_id: companyId,
+    event_type: "production_dry_run",
+    from_status: readiness.summary.productionStatus,
+    to_status: result.status,
+    reason: result.success
+      ? "Production dry run passerade utan blockerare."
+      : "Production dry run blockerades.",
+    actor_user_id: actorUserId,
+    readiness_check_id: readiness.latestCheck.id,
+    configuration_snapshot_id: (readinessRow as Record<string, unknown>).configuration_snapshot_id,
+    configuration_hash: (readinessRow as Record<string, unknown>).configuration_hash,
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    is_stale: false,
+    stale_reason: null,
+    metadata: result,
+  });
+  if (dryRunError) throw dryRunError
 
   return result;
 }
@@ -1795,6 +1832,7 @@ export async function assertCompanyCanSendProductionEdiel(params: {
   message: EdielMessageRow;
 }): Promise<void> {
   if (params.message.environment !== "production") return;
+  await requireTenantOperationAllowed(params.companyId, 'ediel.production.send')
   const readiness = await getCompanyProductionReadiness(params.companyId);
   let routeBelongsToCompany = !params.message.communication_route_id;
   if (params.message.communication_route_id) {
@@ -1834,23 +1872,17 @@ export async function assertCompanyCanSendProductionEdiel(params: {
   });
 
   if (issues.length > 0) {
-    try {
-      await supabaseService.from("ediel_go_live_events").insert({
-        company_id: params.companyId,
-        event_type: "production_outbound_blocked",
-        from_status: readiness.summary.productionStatus,
-        to_status: "blocked",
-        reason: issues.map((issue) => issue.message).join(" · "),
-        actor_user_id: params.actorUserId ?? null,
-        readiness_check_id: readiness.latestCheck.id,
-        metadata: {
-          edielMessageId: params.message.id,
-          issues,
-        },
-      });
-    } catch {
-      // Blocking the send is the important invariant; audit is best-effort here.
-    }
+    const { error: auditError } = await supabaseService.from("ediel_go_live_events").insert({
+      company_id: params.companyId,
+      event_type: "production_outbound_blocked",
+      from_status: readiness.summary.productionStatus,
+      to_status: "blocked",
+      reason: issues.map((issue) => issue.message).join(" · "),
+      actor_user_id: params.actorUserId ?? null,
+      readiness_check_id: readiness.latestCheck.id,
+      metadata: { edielMessageId: params.message.id, issues },
+    });
+    if (auditError) throw auditError
 
     throw new Error(
       `Production send är låst för detta bolag. ${issues.map((issue) => issue.message).join(" ")}`,

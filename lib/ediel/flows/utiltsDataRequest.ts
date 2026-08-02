@@ -783,8 +783,8 @@ function readTgtCaseCodeFromMessageContext(message: EdielMessageRow): string | n
   )
 }
 
-async function resolveActiveUtiltsTgtCaseCodeFromRuns(): Promise<string | null> {
-  const runs = await listEdielTestRuns()
+async function resolveActiveUtiltsTgtCaseCodeFromRuns(companyId: string): Promise<string | null> {
+  const runs = await listEdielTestRuns({ scope: 'tenant', companyId })
   const active = runs.find((run) => {
     const suite = String(run.test_suite ?? '').toUpperCase()
     const code = normalizeTgtCaseCode(run.test_case_code)
@@ -815,7 +815,9 @@ async function resolveUtiltsRuntimeTestCaseCode(params: {
   // In TGT the portal does not put "U2.1.8b" in the EDIFACT payload itself.
   // Therefore the production-safe resolver can only infer b-test behavior from
   // the currently active UTILTS test run stored in our own TGT runner context.
-  return resolveActiveUtiltsTgtCaseCodeFromRuns()
+  const companyId = params.sourceMessage.company_id
+  if (!companyId) throw new Error('UTILTS testmeddelande saknar tenantkoppling')
+  return resolveActiveUtiltsTgtCaseCodeFromRuns(companyId)
 }
 
 function isUtiltsBTestCaseMessage(message: EdielMessageRow): boolean {
