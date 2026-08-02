@@ -130,8 +130,6 @@ async function resolveRouteProfile(input: {
       .select('*')
       .eq('company_id', input.companyId)
       .eq('is_enabled', true)
-      .order('updated_at', { ascending: false })
-      .limit(1)
 
     query = useEnvironmentType
       ? query.eq('environment_type', input.environmentType)
@@ -139,19 +137,21 @@ async function resolveRouteProfile(input: {
 
     if (input.messageFamily) query = query.eq('message_family', input.messageFamily)
     if (input.businessCode) query = query.or(`business_code.eq.${input.businessCode},message_code.eq.${input.businessCode},business_code.is.null,message_code.is.null`)
-    return query
+    return query.order('id', { ascending: true }).limit(2)
   }
 
-  let { data, error } = await buildQuery(true).maybeSingle()
+  let response = await buildQuery(true)
 
-  if (error && ['42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
-    const fallback = await buildQuery(false).maybeSingle()
-    data = fallback.data
-    error = fallback.error
+  if (response.error && ['42703', 'PGRST204', 'PGRST205'].includes(response.error.code ?? '')) {
+    response = await buildQuery(false)
   }
 
-  if (error) throw error
-  return data as Record<string, unknown> | null
+  if (response.error) throw response.error
+  const rows = (response.data ?? []) as Array<Record<string, unknown>>
+  if (rows.length > 1) {
+    throw new Error('ambiguous_tenant_ediel_route_profile')
+  }
+  return rows[0] ?? null
 }
 
 async function resolveCertificate(certificateId?: string | null) {
@@ -177,11 +177,12 @@ async function resolveMailboxSecurity(input: {
     .eq('environment', input.environment)
     .eq('is_active', true)
     .ilike('email_address', mailbox)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .order('id', { ascending: true })
+    .limit(2)
   if (error) throw error
-  return data as { encryption_mode?: string | null; certificate_id?: string | null } | null
+  const rows = (data ?? []) as Array<{ encryption_mode?: string | null; certificate_id?: string | null }>
+  if (rows.length > 1) throw new Error('ambiguous_active_ediel_mailbox_binding')
+  return rows[0] ?? null
 }
 
 async function acquireAgtRunLock(input: {

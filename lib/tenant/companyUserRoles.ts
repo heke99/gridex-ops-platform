@@ -141,3 +141,14 @@ export function parseCompanyAssignableRoleKey(value: string | null | undefined):
   }
   return normalized
 }
+
+
+export function resolveCanonicalCompanyAccessRole(value: string | null | undefined): {
+  roleKey: string
+  membershipRole: string
+} {
+  const roleKey = parseCompanyAssignableRoleKey(value)
+  const option = COMPANY_USER_ROLE_OPTIONS.find((candidate) => candidate.value === roleKey)
+  if (!option) throw new Error('Systemrollen saknar canonical medlemskapsmappning.')
+  return { roleKey, membershipRole: option.recommendedMembershipRole }
+}

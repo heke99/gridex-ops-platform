@@ -263,14 +263,15 @@ export async function validateActorSettingAction(formData: FormData) {
     .eq('company_id', companyId)
     .eq('environment', environment)
     .eq('is_active', true)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .order('id', { ascending: true })
+    .limit(2)
 
   if (error) throw error
-  if (!data) throw new Error('Bolaget saknar aktiv Ediel-aktör för vald miljö.')
+  const rows = data ?? []
+  if (rows.length > 1) throw new Error('Flera aktiva Ediel-aktörsprofiler finns för bolaget och miljön.')
+  if (!rows[0]) throw new Error('Bolaget saknar aktiv Ediel-aktör för vald miljö.')
 
-  const row = data as {
+  const row = rows[0] as {
     id: string
     ediel_id?: string | null
     actor_ediel_id?: string | null

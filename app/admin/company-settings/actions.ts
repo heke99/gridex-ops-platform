@@ -6,10 +6,7 @@ import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { getCompanyById } from '@/lib/tenant/governance'
 import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
-import {
-  COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES,
-  COMPANY_ASSIGNABLE_ROLE_KEYS,
-} from '@/lib/tenant/companyUserRoles'
+import { resolveCanonicalCompanyAccessRole } from '@/lib/tenant/companyUserRoles'
 import {
   normalizeCountryCode,
   normalizeEmail as normalizeLegalEmail,
@@ -248,20 +245,14 @@ export async function updateCompanyResponsibleUserAction(
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
     const phone = normalizeText(formData.get('phone')) || null
-    const membershipRole = normalizeText(formData.get('membership_role')) || 'admin'
-    const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
+    const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(
+      normalizeText(formData.get('role_key')) || 'company_admin',
+    )
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
     if (!email) return { ok: false, message: 'E-post krävs.' }
-    if (!COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES.has(membershipRole)) {
-      return { ok: false, message: 'Bolagsrollen är inte tillåten på bolagsnivå.' }
-    }
-    if (!COMPANY_ASSIGNABLE_ROLE_KEYS.has(roleKey)) {
-      return { ok: false, message: 'Systemrollen är inte tillåten på bolagsnivå.' }
-    }
-
-    await assertCanManageCompany(companyId)
+    const admin = await assertCanManageCompany(companyId)
 
     const { data: membership, error: membershipLookupError } = await supabaseService
       .from('company_memberships')
@@ -312,6 +303,7 @@ export async function updateCompanyResponsibleUserAction(
       fullName,
       membershipRole,
       roleKey,
+      actorUserId: admin.userId,
       source: 'company_settings_responsible_user_update',
     })
 

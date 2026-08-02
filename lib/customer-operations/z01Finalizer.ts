@@ -376,18 +376,20 @@ async function findRouteProfileForRoute(
     )
     .eq("communication_route_id", communicationRouteId);
   if (environment) query = query.eq("environment", environment);
-  query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
+  query = query.eq("company_id", companyId);
   const { data, error } = await query
     .order("is_enabled", { ascending: false })
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(2);
   if (
     error &&
     !["42703", "PGRST204", "PGRST205"].includes(postgrestCode(error))
   )
     throw error;
-  return (data as RouteProfileSummary | null) ?? null;
+  const rows = (data ?? []) as RouteProfileSummary[];
+  if (rows.length > 1) {
+    throw new Error(`ediel_route_profile_ambiguous:${communicationRouteId}`);
+  }
+  return rows[0] ?? null;
 }
 
 async function findEdielMessageForGodr(

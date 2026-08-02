@@ -8,6 +8,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 import { assertSupabaseAdminHealth } from '@/lib/supabase/adminHealth'
+import { runCanonicalPlatformAccessCommand } from '@/lib/admin/platformUserAccess'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -47,45 +48,6 @@ async function getCurrentActorUserId(): Promise<string | null> {
     return null
   }
 }
-
-async function insertActiveUserRole(input: { userId: string; roleId: string }) {
-  // Platform-level role rows have company_id = null. Tenant-scoped role rows
-  // (created by the company invite flow) always carry a company_id and must
-  // never be touched from the platform users screen.
-  const existing = await supabaseService
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', input.userId)
-    .eq('role_id', input.roleId)
-    .is('company_id', null)
-    .limit(1)
-    .maybeSingle()
-
-  if (existing.error) throw existing.error
-
-  if (existing.data?.id) {
-    const { error } = await supabaseService
-      .from('user_roles')
-      .update({ role_id: input.roleId, status: 'active', is_active: true })
-      .eq('id', existing.data.id)
-
-    if (error) throw error
-    return
-  }
-
-  const { error } = await supabaseService
-    .from('user_roles')
-    .insert({
-      user_id: input.userId,
-      role_id: input.roleId,
-      company_id: null,
-      status: 'active',
-      is_active: true,
-    })
-
-  if (error) throw error
-}
-
 
 async function resolveRoleId(input: { roleId?: string; roleKey?: string }) {
   if (input.roleId) {
@@ -187,7 +149,15 @@ export async function inviteAdminUserAction(
     }
 
     if (resolvedRoleId) {
-      await insertActiveUserRole({ userId, roleId: resolvedRoleId })
+      if (!actorUserId) throw new Error('Aktörens Auth-identitet kunde inte verifieras.')
+      await runCanonicalPlatformAccessCommand({
+        actorUserId,
+        targetUserId: userId,
+        action: 'set_primary_role',
+        roleId: resolvedRoleId,
+        preserveOverrides: true,
+        reason: 'Platform user invited or linked',
+      })
     }
 
     revalidatePath('/admin/users')
@@ -253,9 +223,14 @@ export async function createDirectAdminUserAction(
     })
 
     if (roleId || roleKey) {
-      await insertActiveUserRole({
-        userId: data.user.id,
+      if (!actorUserId) throw new Error('Aktörens Auth-identitet kunde inte verifieras.')
+      await runCanonicalPlatformAccessCommand({
+        actorUserId,
+        targetUserId: data.user.id,
+        action: 'set_primary_role',
         roleId: await resolveRoleId({ roleId, roleKey }),
+        preserveOverrides: true,
+        reason: 'Direct platform account role assignment',
       })
     }
 
@@ -351,20 +326,18 @@ export async function setUserRoleAction(
 
     if (previousError) throw previousError
 
-    // Only replace the user's platform-level roles (company_id IS NULL).
-    // Tenant-scoped roles managed via company invites must survive platform
-    // role changes.
-    const { error: deleteError } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-      .is('company_id', null)
-
-    if (deleteError) throw deleteError
-
-    await insertActiveUserRole({ userId, roleId: resolvedRoleId })
-
     const actorUserId = await getCurrentActorUserId()
+    if (!actorUserId) throw new Error('Aktörens Auth-identitet kunde inte verifieras.')
+
+    await runCanonicalPlatformAccessCommand({
+      actorUserId,
+      targetUserId: userId,
+      action: 'set_primary_role',
+      roleId: resolvedRoleId,
+      preserveOverrides: true,
+      reason: 'Platform role changed from admin users',
+    })
+
     if (actorUserId) {
       await logAdminActionAndUsage({
         actorUserId,
@@ -426,34 +399,18 @@ export async function setUserPermissionOverridesAction(
       throw new Error(`Behörigheten hittades inte: ${missing.join(', ')}`)
     }
 
-    const { error: deleteError } = await supabaseService
-      .from('user_permission_overrides')
-      .delete()
-      .eq('user_id', userId)
-
-    if (deleteError) throw deleteError
-
-    const rows = [
-      ...allowKeys.map((permissionKey) => ({
-        user_id: userId,
-        permission_key: permissionKey,
-        effect: 'allow',
-        is_active: true,
-      })),
-      ...denyKeys.map((permissionKey) => ({
-        user_id: userId,
-        permission_key: permissionKey,
-        effect: 'deny',
-        is_active: true,
-      })),
-    ]
-
-    if (rows.length > 0) {
-      const { error: insertError } = await supabaseService.from('user_permission_overrides').insert(rows)
-      if (insertError) throw insertError
-    }
-
     const actorUserId = await getCurrentActorUserId()
+    if (!actorUserId) throw new Error('Aktörens Auth-identitet kunde inte verifieras.')
+
+    await runCanonicalPlatformAccessCommand({
+      actorUserId,
+      targetUserId: userId,
+      action: 'replace_overrides',
+      allowPermissions: allowKeys,
+      denyPermissions: denyKeys,
+      reason: 'Platform permission overrides replaced from admin users',
+    })
+
     if (actorUserId) {
       await logAdminActionAndUsage({
         actorUserId,
@@ -488,17 +445,16 @@ export async function deactivateUserAccessAction(
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) return { ok: false, message: 'Användar-id saknas.' }
 
-    const { error: roleDeleteError } = await supabaseService.from('user_roles').delete().eq('user_id', userId)
-    if (roleDeleteError) throw roleDeleteError
-
-    const { error: permissionDeleteError } = await supabaseService
-      .from('user_permission_overrides')
-      .delete()
-      .eq('user_id', userId)
-
-    if (permissionDeleteError) throw permissionDeleteError
-
     const actorUserId = await getCurrentActorUserId()
+    if (!actorUserId) throw new Error('Aktörens Auth-identitet kunde inte verifieras.')
+
+    await runCanonicalPlatformAccessCommand({
+      actorUserId,
+      targetUserId: userId,
+      action: 'disable_platform_access',
+      reason: 'Platform access revoked from admin users',
+    })
+
     if (actorUserId) {
       await logAdminActionAndUsage({
         actorUserId,

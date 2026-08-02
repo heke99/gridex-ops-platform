@@ -3,6 +3,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { runCanonicalPlatformAccessCommand } from '@/lib/admin/platformUserAccess'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 
@@ -27,6 +29,13 @@ function normalizeCheckbox(value: FormDataEntryValue | null) {
   return value === 'on' || value === 'true' || value === '1'
 }
 
+async function getCurrentActorUserId(): Promise<string> {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user?.id) throw new Error('Aktörens Auth-identitet kunde inte verifieras.')
+  return user.id
+}
+
 async function resolveRoleIdByKey(roleKey: string) {
   return requireRoleIdByKeyOrName(roleKey)
 }
@@ -43,38 +52,6 @@ async function resolveRoleIdFromFormOrKey(formData: FormData): Promise<string> {
   const roleKey = formText(formData, 'role_key', 'role')
   if (!roleKey) throw new Error('Roll saknas.')
   return resolveRoleIdByKey(roleKey)
-}
-
-async function activateUserRole(input: { userId: string; roleId: string }) {
-  const existingById = await supabaseService
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', input.userId)
-    .eq('role_id', input.roleId)
-    .limit(1)
-    .maybeSingle()
-
-  if (existingById.error) throw existingById.error
-
-  if (existingById.data?.id) {
-    const { error } = await supabaseService
-      .from('user_roles')
-      .update({ role_id: input.roleId, status: 'active', is_active: true })
-      .eq('id', existingById.data.id)
-    if (error) throw error
-    return
-  }
-
-  const { error } = await supabaseService
-    .from('user_roles')
-    .insert({
-      user_id: input.userId,
-      role_id: input.roleId,
-      status: 'active',
-      is_active: true,
-    })
-
-  if (error) throw error
 }
 
 async function resolvePermissionKeyFromForm(formData: FormData): Promise<string> {
@@ -96,69 +73,11 @@ async function resolvePermissionKeyFromForm(formData: FormData): Promise<string>
   return key
 }
 
-async function ensurePermissionKeys(permissionKeys: string[]) {
-  if (permissionKeys.length === 0) return []
-
-  const { data, error } = await supabaseService
-    .from('permissions')
-    .select('key')
-    .in('key', permissionKeys)
-
-  if (error) throw error
-
-  const existing = new Set((data ?? []).map((row) => String(row.key)))
-  const missing = permissionKeys.filter((key) => !existing.has(key))
-
-  if (missing.length > 0) {
-    throw new Error(`Permissions not found: ${missing.join(', ')}`)
-  }
-
-  return permissionKeys
-}
-
 function parsePermissionList(raw: string) {
   return raw
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean)
-}
-
-async function replacePermissionOverrides(input: {
-  userId: string
-  allowKeys: string[]
-  denyKeys: string[]
-}) {
-  await ensurePermissionKeys([...input.allowKeys, ...input.denyKeys])
-
-  const { error: deleteError } = await supabaseService
-    .from('user_permission_overrides')
-    .delete()
-    .eq('user_id', input.userId)
-
-  if (deleteError) throw deleteError
-
-  const rows = [
-    ...input.allowKeys.map((permissionKey) => ({
-      user_id: input.userId,
-      permission_key: permissionKey,
-      effect: 'allow',
-      is_active: true,
-    })),
-    ...input.denyKeys.map((permissionKey) => ({
-      user_id: input.userId,
-      permission_key: permissionKey,
-      effect: 'deny',
-      is_active: true,
-    })),
-  ]
-
-  if (rows.length > 0) {
-    const { error: insertError } = await supabaseService
-      .from('user_permission_overrides')
-      .insert(rows)
-
-    if (insertError) throw insertError
-  }
 }
 
 export async function updateUserRoleAction(
@@ -177,23 +96,14 @@ export async function updateUserRoleAction(
 
     const roleId = await resolveRoleIdFromFormOrKey(formData)
 
-    const { error: deleteRolesError } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-
-    if (deleteRolesError) throw deleteRolesError
-
-    await activateUserRole({ userId, roleId })
-
-    if (!preserveOverrides) {
-      const { error: deleteOverridesError } = await supabaseService
-        .from('user_permission_overrides')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deleteOverridesError) throw deleteOverridesError
-    }
+    await runCanonicalPlatformAccessCommand({
+      actorUserId: await getCurrentActorUserId(),
+      targetUserId: userId,
+      action: 'set_primary_role',
+      roleId,
+      preserveOverrides,
+      reason: 'Platform role changed from user detail',
+    })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -235,7 +145,14 @@ export async function updateUserPermissionOverridesAction(
       }
     }
 
-    await replacePermissionOverrides({ userId, allowKeys, denyKeys })
+    await runCanonicalPlatformAccessCommand({
+      actorUserId: await getCurrentActorUserId(),
+      targetUserId: userId,
+      action: 'replace_overrides',
+      allowPermissions: allowKeys,
+      denyPermissions: denyKeys,
+      reason: 'Platform permission overrides replaced from user detail',
+    })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -267,12 +184,12 @@ export async function clearUserPermissionOverridesAction(
       return { ok: false, message: 'User ID saknas.' }
     }
 
-    const { error } = await supabaseService
-      .from('user_permission_overrides')
-      .delete()
-      .eq('user_id', userId)
-
-    if (error) throw error
+    await runCanonicalPlatformAccessCommand({
+      actorUserId: await getCurrentActorUserId(),
+      targetUserId: userId,
+      action: 'clear_overrides',
+      reason: 'Platform permission overrides cleared from user detail',
+    })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -304,19 +221,12 @@ export async function disableUserInternalAccessAction(
       return { ok: false, message: 'User ID saknas.' }
     }
 
-    const { error: roleDeleteError } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-
-    if (roleDeleteError) throw roleDeleteError
-
-    const { error: permissionsDeleteError } = await supabaseService
-      .from('user_permission_overrides')
-      .delete()
-      .eq('user_id', userId)
-
-    if (permissionsDeleteError) throw permissionsDeleteError
+    await runCanonicalPlatformAccessCommand({
+      actorUserId: await getCurrentActorUserId(),
+      targetUserId: userId,
+      action: 'disable_platform_access',
+      reason: 'Platform access disabled from user detail',
+    })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -349,7 +259,13 @@ export async function addSecondaryRoleAction(
     }
 
     const roleId = await resolveRoleIdFromFormOrKey(formData)
-    await activateUserRole({ userId, roleId })
+    await runCanonicalPlatformAccessCommand({
+      actorUserId: await getCurrentActorUserId(),
+      targetUserId: userId,
+      action: 'add_role',
+      roleId,
+      reason: 'Secondary platform role added',
+    })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -380,13 +296,13 @@ export async function removeSecondaryRoleAction(
 
     const roleId = await resolveRoleIdFromFormOrKey(formData)
 
-    const { error } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-      .eq('role_id', roleId)
-
-    if (error) throw error
+    await runCanonicalPlatformAccessCommand({
+      actorUserId: await getCurrentActorUserId(),
+      targetUserId: userId,
+      action: 'remove_role',
+      roleId,
+      reason: 'Secondary platform role removed',
+    })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -413,7 +329,13 @@ export async function assignUserRoleAction(formData: FormData): Promise<void> {
   if (!userId) throw new Error('User ID saknas.')
 
   const roleId = await resolveRoleIdFromFormOrKey(formData)
-  await activateUserRole({ userId, roleId })
+  await runCanonicalPlatformAccessCommand({
+    actorUserId: await getCurrentActorUserId(),
+    targetUserId: userId,
+    action: 'add_role',
+    roleId,
+    reason: 'Platform role assigned through compatibility action',
+  })
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)
@@ -427,24 +349,15 @@ export async function removeUserRoleAction(formData: FormData): Promise<void> {
 
   if (!userId) throw new Error('User ID saknas.')
 
-  if (userRoleId) {
-    const { error } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('id', userRoleId)
-      .eq('user_id', userId)
-
-    if (error) throw error
-  } else {
-    const roleId = await resolveRoleIdFromFormOrKey(formData)
-    const { error } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-      .eq('role_id', roleId)
-
-    if (error) throw error
-  }
+  const roleId = userRoleId ? null : await resolveRoleIdFromFormOrKey(formData)
+  await runCanonicalPlatformAccessCommand({
+    actorUserId: await getCurrentActorUserId(),
+    targetUserId: userId,
+    action: 'remove_role',
+    userRoleId: userRoleId || null,
+    roleId,
+    reason: 'Platform role removed through compatibility action',
+  })
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)
@@ -462,25 +375,14 @@ export async function addUserPermissionOverrideAction(formData: FormData): Promi
   const permissionKey = await resolvePermissionKeyFromForm(formData)
   const effect = effectRaw === 'deny' ? 'deny' : 'allow'
 
-  const { error: deleteError } = await supabaseService
-    .from('user_permission_overrides')
-    .delete()
-    .eq('user_id', userId)
-    .eq('permission_key', permissionKey)
-
-  if (deleteError) throw deleteError
-
-  const { error } = await supabaseService
-    .from('user_permission_overrides')
-    .insert({
-      user_id: userId,
-      permission_key: permissionKey,
-      effect,
-      reason,
-      is_active: true,
-    })
-
-  if (error) throw error
+  await runCanonicalPlatformAccessCommand({
+    actorUserId: await getCurrentActorUserId(),
+    targetUserId: userId,
+    action: 'upsert_override',
+    permissionKey,
+    effect,
+    reason,
+  })
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)
@@ -496,24 +398,29 @@ export async function removeUserPermissionOverrideAction(
 
   if (!userId) throw new Error('User ID saknas.')
 
+  let permissionKey: string
   if (overrideId) {
-    const { error } = await supabaseService
+    const { data, error } = await supabaseService
       .from('user_permission_overrides')
-      .delete()
+      .select('permission_key')
       .eq('id', overrideId)
       .eq('user_id', userId)
-
+      .is('company_id', null)
+      .maybeSingle()
     if (error) throw error
+    permissionKey = String(data?.permission_key ?? '').trim()
+    if (!permissionKey) throw new Error('Permission-override hittades inte.')
   } else {
-    const permissionKey = await resolvePermissionKeyFromForm(formData)
-    const { error } = await supabaseService
-      .from('user_permission_overrides')
-      .delete()
-      .eq('user_id', userId)
-      .eq('permission_key', permissionKey)
-
-    if (error) throw error
+    permissionKey = await resolvePermissionKeyFromForm(formData)
   }
+
+  await runCanonicalPlatformAccessCommand({
+    actorUserId: await getCurrentActorUserId(),
+    targetUserId: userId,
+    action: 'remove_override',
+    permissionKey,
+    reason: 'Platform permission override removed',
+  })
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)

@@ -117,12 +117,13 @@ async function getProductionActorSetting(companyId: string): Promise<{
     .eq("company_id", companyId)
     .eq("environment", "production")
     .eq("is_active", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(2);
 
   if (error) throw error;
-  const row = data as Record<string, unknown> | null;
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  if (rows.length > 1) throw new Error("Flera aktiva production-profiler finns för bolaget.");
+  const row = rows[0] ?? null;
   const edielId = String(row?.ediel_id ?? row?.actor_ediel_id ?? "")
     .trim()
     .toUpperCase();

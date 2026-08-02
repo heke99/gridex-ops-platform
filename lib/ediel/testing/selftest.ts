@@ -202,7 +202,7 @@ function buildUtiltsInboundRaw(params: {
 
 async function setTestRunStatus(params: {
   testRunId: string
-  status: 'running' | 'passed' | 'failed' | 'cancelled'
+  status: 'running' | 'completed' | 'failed' | 'cancelled'
   notes?: string | null
   failureReason?: string | null
 }) {
@@ -219,7 +219,7 @@ async function setTestRunStatus(params: {
     patch.started_at = new Date().toISOString()
   }
 
-  if (params.status === 'passed' || params.status === 'failed' || params.status === 'cancelled') {
+  if (params.status === 'completed' || params.status === 'failed' || params.status === 'cancelled') {
     patch.completed_at = new Date().toISOString()
   }
 
@@ -513,7 +513,7 @@ async function runProdatInboundScenario(
 
     await setTestRunStatus({
       testRunId: testRun.id,
-      status: 'passed',
+      status: 'completed',
       notes: notes.join(' '),
     })
 
@@ -823,7 +823,7 @@ async function runUtiltsInboundScenario(
 
     await setTestRunStatus({
       testRunId: testRun.id,
-      status: 'passed',
+      status: 'completed',
       notes: notes.join(' '),
     })
 

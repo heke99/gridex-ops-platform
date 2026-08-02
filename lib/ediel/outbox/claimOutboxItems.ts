@@ -15,10 +15,35 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+const BLOCKED_TENANT_STATE = 'blocked_tenant_state' as const
+
 function assertWorkerId(workerId: string): string {
   const value = clean(workerId)
   if (!value) throw new Error('ediel_outbox_worker_id_required')
   return value
+}
+
+async function blockClaimedOutboxItem(input: {
+  outboxItemId: string
+  workerId: string
+  reason: string
+  companyStatus?: string | null
+  operationDecision?: Record<string, unknown> | null
+}): Promise<void> {
+  const { data, error } = await supabaseService.rpc(
+    'canonical_block_claimed_ediel_outbox_item',
+    {
+      p_outbox_item_id: input.outboxItemId,
+      p_worker_id: input.workerId,
+      p_reason: input.reason,
+      p_company_status: input.companyStatus ?? null,
+      p_operation_decision: input.operationDecision ?? {},
+    },
+  )
+  if (error) throw error
+  if (data !== BLOCKED_TENANT_STATE) {
+    throw new Error('ediel_outbox_claim_block_lock_lost')
+  }
 }
 
 export async function claimEdielOutboxItems(params: {
@@ -39,21 +64,23 @@ export async function claimEdielOutboxItems(params: {
   const allowed: ClaimedEdielOutboxItem[] = []
   for (const item of claimed) {
     if (!item.company_id) {
-      await supabaseService.from('ediel_outbox').update({
-        status: 'blocked_tenant_state', blocked_reason: 'missing_company_scope',
-        blocked_at: new Date().toISOString(), locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
-      }).eq('id', item.id).eq('locked_by', params.workerId)
+      await blockClaimedOutboxItem({
+        outboxItemId: item.id,
+        workerId: params.workerId,
+        reason: 'missing_company_scope',
+      })
       continue
     }
     const operation = item.environment === 'production' ? 'ediel.production.send' : 'ediel.test.process'
     const decision = await getTenantOperationDecision(item.company_id, operation)
     if (!decision.allowed) {
-      const { error: blockError } = await supabaseService.from('ediel_outbox').update({
-        status: 'blocked_tenant_state', blocked_reason: decision.reason_code,
-        blocked_at: new Date().toISOString(), company_status_snapshot: decision.company_status,
-        locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
-      }).eq('id', item.id).eq('locked_by', params.workerId)
-      if (blockError) throw blockError
+      await blockClaimedOutboxItem({
+        outboxItemId: item.id,
+        workerId: params.workerId,
+        reason: decision.reason_code,
+        companyStatus: decision.company_status,
+        operationDecision: decision as unknown as Record<string, unknown>,
+      })
       continue
     }
     allowed.push(item)
@@ -82,22 +109,23 @@ export async function claimEdielOutboxItem(params: {
   const claimed = (rows[0] as ClaimedEdielOutboxItem | undefined) ?? null
   if (!claimed) return null
   if (!claimed.company_id) {
-    const { error: blockError } = await supabaseService.from('ediel_outbox').update({
-      status: 'blocked_tenant_state', blocked_reason: 'missing_company_scope',
-      blocked_at: new Date().toISOString(), locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
-    }).eq('id', claimed.id).eq('locked_by', params.workerId)
-    if (blockError) throw blockError
+    await blockClaimedOutboxItem({
+      outboxItemId: claimed.id,
+      workerId: params.workerId,
+      reason: 'missing_company_scope',
+    })
     return null
   }
   const operation = claimed.environment === 'production' ? 'ediel.production.send' : 'ediel.test.process'
   const decision = await getTenantOperationDecision(claimed.company_id, operation)
   if (!decision.allowed) {
-    const { error: blockError } = await supabaseService.from('ediel_outbox').update({
-      status: 'blocked_tenant_state', blocked_reason: decision.reason_code,
-      blocked_at: new Date().toISOString(), company_status_snapshot: decision.company_status,
-      locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
-    }).eq('id', claimed.id).eq('locked_by', params.workerId)
-    if (blockError) throw blockError
+    await blockClaimedOutboxItem({
+      outboxItemId: claimed.id,
+      workerId: params.workerId,
+      reason: decision.reason_code,
+      companyStatus: decision.company_status,
+      operationDecision: decision as unknown as Record<string, unknown>,
+    })
     return null
   }
   return claimed

@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { supabaseService } from '@/lib/supabase/service'
+import { projectCanonicalActorTestState } from '@/lib/ediel/actorTestProjection'
 import {
   attachEdielMessageToTestRun,
   createEdielMessageEvent,
@@ -8,13 +9,11 @@ import {
   listAckMessagesForSource,
   listEdielTestRunMessages,
   listEdielMessagesByIds,
-  updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import {
   ACTOR_TEST_CASES,
   buildActorTestResultEvidence,
   getActorTestCase,
-  mapTestStatusToRunStatus,
   type ActorTestCaseDefinition,
   type ActorTestResultRow,
   type ActorTestStatus,
@@ -147,24 +146,11 @@ async function getCompany(companyId: string): Promise<ActorTestingCompanyRow> {
 }
 
 async function findCompanyForMessage(message: EdielMessageRow): Promise<ActorTestingCompanyRow | null> {
-  if (message.company_id) return getCompany(message.company_id)
-
-  const ownEdielId = message.direction === 'inbound'
-    ? trimOrNull(message.receiver_ediel_id)
-    : trimOrNull(message.sender_ediel_id)
-
-  if (!ownEdielId) return null
-
-  const { data, error } = await supabaseService
-    .from('companies')
-    .select('*')
-    .or(`ediel_id.eq.${ownEdielId},test_ediel_id.eq.${ownEdielId},production_ediel_id.eq.${ownEdielId}`)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as unknown as ActorTestingCompanyRow | null) ?? null
+  // Tenant resolution must have happened before actor-test processing. Choosing
+  // a company from an Ediel identifier or updated_at can attach evidence to the
+  // wrong tenant. Unresolved/ambiguous inbound messages remain quarantined.
+  if (!message.company_id) return null
+  return getCompany(message.company_id)
 }
 
 function actorIdentityForCompany(company: ActorTestingCompanyRow) {
@@ -291,51 +277,33 @@ async function upsertActorResult(params: {
     return getLatestResult(params.companyId, params.testCase.key)
   }
 
-  const payload = {
-    company_id: params.companyId,
-    test_key: params.testCase.key,
-    test_name: params.testCase.label,
-    test_id: params.testCase.testId,
-    package_key: params.testCase.packageKey,
-    message_family: params.testCase.messageFamily,
-    message_code: params.testCase.messageCode,
+  if (params.status === 'manual_verified') {
+    throw new Error('manual_verified_requires_canonical_attestation_rpc')
+  }
+  if (params.status !== 'running' && params.status !== 'failed' && params.status !== 'blocked') {
+    throw new Error('unsupported_non_authoritative_actor_test_status')
+  }
+
+  await projectCanonicalActorTestState({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    testCaseCode: params.testCase.key,
+    testName: params.testCase.label,
+    testId: params.testCase.testId,
+    packageKey: params.testCase.packageKey,
+    messageFamily: params.testCase.messageFamily,
+    messageCode: params.testCase.messageCode,
     direction: params.testCase.direction,
     status: params.status,
-    latest_run_at: timestamp,
-    passed_at: params.status === 'manual_verified' ? timestamp : null,
-    failure_reason: params.failureReason ?? null,
-    portal_status: params.portalStatus ?? null,
-    raw_payload: params.rawPayload ?? null,
-    ediel_test_run_id: params.runId ?? null,
-    contrl_message_id: params.contrlMessageId ?? null,
-    aperak_message_id: params.aperakMessageId ?? null,
-    utilts_err_message_id: params.utiltsErrMessageId ?? null,
+    testRunId: params.runId ?? null,
+    failureReason: params.failureReason ?? null,
+    portalStatus: params.portalStatus ?? null,
+    rawPayload: params.rawPayload ?? null,
     evidence,
-    created_by: params.actorUserId,
-    updated_by: params.actorUserId,
-    updated_at: timestamp,
-  }
+    idempotencyKey: `actor-test-projection:${params.companyId}:${params.runId ?? 'none'}:${params.testCase.key}:${params.status}:${timestamp}`,
+  })
 
-  const { data, error } = await supabaseService
-    .from('actor_test_results')
-    .upsert(payload, { onConflict: 'company_id,test_key' })
-    .select('*')
-    .maybeSingle()
-
-  if (error) throw error
-
-  if (params.runId) {
-    await updateEdielTestRunStatus({
-      actorUserId: params.actorUserId,
-      companyId: params.companyId,
-      testRunId: params.runId,
-      status: mapTestStatusToRunStatus(params.status),
-      failureReason: params.failureReason ?? null,
-      completedAt: isTerminalStatus(params.status) ? timestamp : null,
-    })
-  }
-
-  return (data as unknown as ActorTestResultRow | null) ?? null
+  return getLatestResult(params.companyId, params.testCase.key)
 }
 
 function expectedStepForMessage(params: {

@@ -23,8 +23,8 @@ import {
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { seedCompanyOnboardingTasks } from '@/lib/onboarding/companyReadiness'
 import {
-  parseCompanyAssignableMembershipRole,
   parseCompanyAssignableRoleKey,
+  resolveCanonicalCompanyAccessRole,
 } from '@/lib/tenant/companyUserRoles'
 
 export type CompanyActionState = {
@@ -63,54 +63,6 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 
-type DbErrorLike = { code?: string | null; message?: string | null }
-
-function missingColumnName(error: DbErrorLike | null | undefined): string | null {
-  if (!error || !['42703', 'PGRST204'].includes(error.code ?? '')) return null
-  const message = error.message ?? ''
-  return (
-    message.match(/column\s+"([^"]+)"\s+does not exist/i)?.[1] ??
-    message.match(/'([^']+)'\s+column/i)?.[1] ??
-    message.match(/column\s+([^\s]+)\s+does not exist/i)?.[1] ??
-    null
-  )
-}
-
-function dropMissingOptionalColumn(payload: Record<string, unknown>, error: DbErrorLike | null | undefined, requiredColumns: string[]) {
-  const missing = missingColumnName(error)
-  if (!missing || !(missing in payload)) return false
-  if (requiredColumns.includes(missing)) {
-    throw new Error(`Databasen saknar obligatoriska kolumnen ${missing}. Kör senaste användar-/tenant-migrationen innan åtgärden körs.`)
-  }
-  delete payload[missing]
-  return true
-}
-
-async function markCompanyMembershipRemoved(input: {
-  companyId: string
-  userId: string
-  actorUserId: string
-  reason: string | null
-}) {
-  const payload: Record<string, unknown> = {
-    status: 'removed_from_company',
-    removed_at: new Date().toISOString(),
-    removed_by: input.actorUserId,
-    status_reason: input.reason,
-  }
-
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const { error } = await supabaseService
-      .from('company_memberships')
-      .update(payload)
-      .eq('company_id', input.companyId)
-      .eq('user_id', input.userId)
-
-    if (!error) return
-    if (dropMissingOptionalColumn(payload, error, ['status'])) continue
-    throw error
-  }
-}
 
 function slugify(value: string): string {
   return value
@@ -237,10 +189,12 @@ export async function createCompanyAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   let createdCompanyId: string | null = null
+  let provisioningActorUserId: string | null = null
 
   try {
     await requirePlatformAdminActionAccess()
     const actorUserId = await getCurrentUserId()
+    provisioningActorUserId = actorUserId
 
     const name = normalizeText(formData.get('name'))
     const orgNumber = normalizeText(formData.get('org_number')) || null
@@ -332,21 +286,15 @@ export async function createCompanyAction(
         })
         .eq('company_id', createdCompanyId)
 
-      await supabaseService
-        .from('company_memberships')
-        .update({
-          status: 'removed_from_company',
-          status_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
-          removed_at: new Date().toISOString(),
-        })
-        .eq('company_id', createdCompanyId)
-
+      if (!provisioningActorUserId) {
+        throw new Error('Canonical provisioning compensation saknar verifierad aktör.')
+      }
       await supabaseService.rpc('canonical_transition_tenant_lifecycle', {
         p_company_id: createdCompanyId,
         p_target_status: 'archived',
         p_expected_state_version: null,
         p_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
-        p_actor_user_id: await getCurrentUserId().catch(() => null),
+        p_actor_user_id: provisioningActorUserId,
         p_idempotency_key: `tenant-provision-compensation:${createdCompanyId}`,
       })
     }
@@ -364,8 +312,10 @@ export async function inviteCompanyUserAction(
     const companyId = normalizeText(formData.get('company_id'))
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
-    const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
-    const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
+    const requestedRoleKey = parseCompanyAssignableRoleKey(
+      normalizeText(formData.get('role_key')) || 'company_admin',
+    )
+    const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(requestedRoleKey)
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     await assertCanManageCompanyUsers(companyId)
@@ -525,7 +475,6 @@ export async function removeUserFromCompanyAction(
     await assertCanManageCompanyUsers(companyId)
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
-    await markCompanyMembershipRemoved({ companyId, userId, actorUserId, reason })
     await deactivateCompanyUserAccess({ companyId, userId, actorUserId, reason })
 
     await supabaseService
@@ -562,8 +511,10 @@ export async function setCompanyUserRoleAction(
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
     const userId = normalizeText(formData.get('user_id'))
-    const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
-    const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
+    const requestedRoleKey = parseCompanyAssignableRoleKey(
+      normalizeText(formData.get('role_key')) || 'company_admin',
+    )
+    const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(requestedRoleKey)
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     await assertCanManageCompanyUsers(companyId)

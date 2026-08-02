@@ -239,16 +239,15 @@ export async function getActiveEdielActorSettings(
       .eq('environment', environment)
       .eq('company_id', scopedCompanyId)
       .eq('is_active', true)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .order('id', { ascending: true })
+      .limit(2)
 
-    if (scoped.error) {
-      throw scoped.error
-    }
+    if (scoped.error) throw scoped.error
+    const scopedRows = (scoped.data ?? []) as EdielActorSettingsRow[]
+    if (scopedRows.length > 1) throw new Error('ambiguous_active_tenant_ediel_actor_setting')
 
     // SaaS rule: tenant runtime must never silently borrow a global/other-company actor profile.
-    return (scoped.data as EdielActorSettingsRow | null) ?? null
+    return scopedRows[0] ?? null
   }
 
   const { data, error } = await supabaseService
@@ -257,25 +256,27 @@ export async function getActiveEdielActorSettings(
     .eq('environment', environment)
     .is('company_id', null)
     .eq('is_active', true)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .order('id', { ascending: true })
+    .limit(2)
 
   if (error) {
     const fallback = await supabaseService
       .from('ediel_active_actor_settings_v')
       .select('*')
       .eq('environment', environment)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .is('company_id', null)
+      .order('id', { ascending: true })
+      .limit(2)
 
     if (fallback.error) throw fallback.error
-    const row = (fallback.data as EdielActorSettingsRow | null) ?? null
-    return row && !row.company_id ? row : null
+    const rows = (fallback.data ?? []) as EdielActorSettingsRow[]
+    if (rows.length > 1) throw new Error('ambiguous_active_global_ediel_actor_setting')
+    return rows[0] ?? null
   }
 
-  return (data as EdielActorSettingsRow | null) ?? null
+  const rows = (data ?? []) as EdielActorSettingsRow[]
+  if (rows.length > 1) throw new Error('ambiguous_active_global_ediel_actor_setting')
+  return rows[0] ?? null
 }
 
 export async function getActiveEdielMessageRule(params: {

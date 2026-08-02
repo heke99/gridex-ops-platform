@@ -1,0 +1,274 @@
+===== npm run typecheck:tests =====
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+
+__tests__/agreement-pdf.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/agreement-pdf.test.ts(59,12): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/api-canonical-release.test.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+__tests__/api-canonical-release.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/atomic-supply-activation.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/atomic-supply-activation.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/atomic-supply-activation.test.ts(4,14): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/authorization-scope-coverage.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/automation-config.test.ts(1,61): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/automation-config.test.ts(18,23): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(21,12): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(25,43): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(26,10): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(30,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(35,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(42,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/automation-config.test.ts(51,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/billing-canonical-gate.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/billing-readiness.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/billing-readiness.test.ts(157,25): error TS7006: Parameter 'code' implicitly has an 'any' type.
+__tests__/billing-readiness.test.ts(157,31): error TS7006: Parameter 'input' implicitly has an 'any' type.
+__tests__/billing-readiness.test.ts(286,37): error TS7006: Parameter '_label' implicitly has an 'any' type.
+__tests__/billing-readiness.test.ts(286,45): error TS7006: Parameter 'billingPeriod' implicitly has an 'any' type.
+__tests__/canonical-fixed-area-flow.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/canonical-invoice-fee.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/canonical-onboarding.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/company-legal-profile-sync.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/consumption-correction-settlement.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-admin-schema.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-channel-publication-completion.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/contract-channel-publication-completion.test.ts(2,25): error TS2307: Cannot find module 'node:path' or its corresponding type declarations.
+__tests__/contract-channel-publication-completion.test.ts(4,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-commercial-selection.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-commercial-selection.test.ts(178,38): error TS7006: Parameter 'option' implicitly has an 'any' type.
+__tests__/contract-lifecycle-errors.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-pricing-snapshot.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-pricing-versioning.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/contract-slug.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/customer-numbers.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/ediel-canonical-ack.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/ediel-canonical-ack.test.ts(12,56): error TS7006: Parameter 'family' implicitly has an 'any' type.
+__tests__/ediel-canonical-ack.test.ts(12,64): error TS7006: Parameter 'code' implicitly has an 'any' type.
+__tests__/ediel-canonical-ack.test.ts(12,70): error TS7006: Parameter 'expected' implicitly has an 'any' type.
+__tests__/ediel-canonical-envelope.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/ediel-completion-contract.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/ediel-completion-contract.test.ts(2,25): error TS2307: Cannot find module 'node:path' or its corresponding type declarations.
+__tests__/ediel-completion-contract.test.ts(3,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/ediel-completion-contract.test.ts(10,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/ediel-prodat-lifecycle.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/ediel-prodat-lifecycle.test.ts(13,76): error TS7006: Parameter 'subtype' implicitly has an 'any' type.
+__tests__/ediel-utilts-profiles.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/elpriset-just-nu-client.test.ts(1,42): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/energy-resolution-capabilities.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/export-classification.test.ts(1,42): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/external-pricing-boundary.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/external-pricing-boundary.test.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+__tests__/externalCustomerType.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/idempotency.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/integration-ip-policy.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/interval-pricing-resolution.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/invoice-public-resource.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/invoice-public-resource.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/invoice-public-resource.test.ts(4,14): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/legal-defaults-readiness-repair.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/market-preview-selection.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/market-price-api-contract.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/market-price-api-contract.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/market-price-api-contract.test.ts(6,14): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/market-price-source-selection.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/matching-service.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/metering-validation.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/offer-quote-invoice-fee.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/offer-quote-invoice-fee.test.ts(12,49): error TS7006: Parameter 'importOriginal' implicitly has an 'any' type.
+__tests__/offer-quote-invoice-fee.test.ts(14,11): error TS2347: Untyped function calls may not accept type arguments.
+__tests__/poa-lifecycle-status.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/portal-supplier-switch-status.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/pricing-base-price.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/pricing-base-price.test.ts(51,57): error TS7006: Parameter 'priceArea' implicitly has an 'any' type.
+__tests__/pricing-base-price.test.ts(51,68): error TS7006: Parameter 'spotSekPerKwh' implicitly has an 'any' type.
+__tests__/pricing-components.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/pricing-preview.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/pricing-units.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/production-settlement.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/public-application-response.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/public-contract-api-hardening.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/public-contract-api-hardening.test.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+__tests__/public-contract-canonical-model.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/public-contract-publication-graph-repair.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/public-contract-publication-graph-repair.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/public-contract-route-openapi-regression.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/public-contract-route-openapi-regression.test.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+__tests__/public-contract-route-openapi-regression.test.ts(49,51): error TS7006: Parameter 'importOriginal' implicitly has an 'any' type.
+__tests__/public-contract-route-openapi-regression.test.ts(50,24): error TS2347: Untyped function calls may not accept type arguments.
+__tests__/public-contract-website-visibility.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/quote-validation-api-contract.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/quote-validation-api-contract.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/quote-validation-api-contract.test.ts(4,14): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/setup.ts(3,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/setup.ts(4,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/setup.ts(5,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/spot-interval-coverage.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/spot-settlement-separation.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/switch-readiness.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/switch-readiness.test.ts(157,19): error TS7006: Parameter 'code' implicitly has an 'any' type.
+__tests__/switch-readiness.test.ts(157,25): error TS7006: Parameter 'overrides' implicitly has an 'any' type.
+__tests__/tenant-api-lifecycle-gate.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/tenant-api-lifecycle-gate.test.ts(16,55): error TS7006: Parameter 'status' implicitly has an 'any' type.
+__tests__/tenant-api-lifecycle-gate.test.ts(16,63): error TS7006: Parameter 'code' implicitly has an 'any' type.
+__tests__/tenant-api-lifecycle-gate.test.ts(16,69): error TS7006: Parameter 'httpStatus' implicitly has an 'any' type.
+__tests__/tenant-context.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/tenant-legal-profile-structured.test.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/vercel-cron-routes.test.ts(1,42): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+__tests__/vercel-cron-routes.test.ts(2,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+__tests__/vercel-cron-routes.test.ts(4,14): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+__tests__/vercel-cron-routes.test.ts(11,72): error TS7031: Binding element 'path' implicitly has an 'any' type.
+app/api/public/energy-area/route.ts(1,43): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+app/api/v1/openapi/website-integration-v1.json/route.ts(1,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+app/api/v1/website/energy-area/resolve/route.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+app/api/v1/website/energy-area/resolve/route.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+app/api/v1/website/public-contracts/route.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+app/api/v1/website/public-contracts/route.ts(2,43): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+app/api/v1/website/quote/route.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+app/api/v1/website/quote/route.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+app/api/v1/website/quote/validate/route.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+app/api/v1/website/quote/validate/route.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/api/strictRequest.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/api/strictRequest.ts(2,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/api/strictRequest.ts(25,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(3,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(4,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(5,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(6,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(7,6): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(7,42): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/auth/urls.ts(10,9): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/contracts/adminContractSchema.ts(1,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+lib/contracts/adminContractSchema.ts(405,26): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/contracts/adminContractSchema.ts(412,24): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/contracts/adminContractSchema.ts(419,23): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/contracts/adminContractSchema.ts(423,8): error TS7006: Parameter 'reference' implicitly has an 'any' type.
+lib/contracts/adminContractSchema.ts(440,6): error TS7006: Parameter 'component' implicitly has an 'any' type.
+lib/contracts/adminContractSchema.ts(476,19): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/customer-contracts/agreementPdf.ts(57,17): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(194,10): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(197,68): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(204,18): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(205,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(206,18): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(206,49): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(217,33): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(218,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(220,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(226,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(227,26): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(229,17): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(229,29): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(234,20): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(235,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(237,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(250,15): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/agreementPdf.ts(251,10): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-contracts/db.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/customer-operations/automationConfig.ts(85,51): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-operations/automationConfig.ts(122,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-operations/automationConfig.ts(123,7): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-portal/customerEvents.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/customer-portal/customerEvents.ts(2,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/customer-portal/customerEvents.ts(3,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+lib/customer-portal/customerEvents.ts(18,26): error TS7006: Parameter 'value' implicitly has an 'any' type.
+lib/customer-portal/customerEvents.ts(18,33): error TS7006: Parameter 'context' implicitly has an 'any' type.
+lib/customer-portal/customerResolver.ts(1,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/customer-portal/externalApi.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/customer-portal/externalApi.ts(2,43): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/customer-portal/publicDto.ts(432,23): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customer-portal/publicDto.ts(450,11): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/customers/canonicalOnboarding.ts(1,40): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/ediel/rulebook/fieldRuleRegistry.ts(319,31): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/ediel/rulebook/fieldRuleRegistry.ts(319,66): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/ediel/rulebook/fieldRuleRegistry.ts(326,31): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/ediel/rulebook/fieldRuleRegistry.ts(326,66): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/email/companyEmailSettings.ts(73,26): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/email/emailOutbox.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/email/emailOutbox.ts(167,77): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/email/providers/index.ts(5,21): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/email/providers/resendProvider.ts(1,24): error TS2307: Cannot find module 'resend' or its corresponding type declarations.
+lib/email/providers/resendProvider.ts(36,18): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/canonicalEnergyEvents.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/energy/resolver.ts(146,24): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(147,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(148,23): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(252,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(253,23): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(360,21): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(386,9): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(386,73): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(487,32): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(627,24): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(628,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(642,25): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/energy/resolver.ts(873,26): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/env/supabasePublic.ts(11,10): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/env/supabasePublic.ts(15,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/env/supabaseServer.ts(4,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/env/supabaseServer.ts(6,9): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/http/payloadLimit.ts(1,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/http/payloadLimit.ts(38,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/intakes/customerApplicationIntakes.ts(1,20): error TS2307: Cannot find module 'crypto' or its corresponding type declarations.
+lib/integrations/apiAuth.ts(1,35): error TS2307: Cannot find module 'node:async_hooks' or its corresponding type declarations.
+lib/integrations/apiAuth.ts(2,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/integrations/apiAuth.ts(286,12): error TS7006: Parameter 'result' implicitly has an 'any' type.
+lib/integrations/apiClientSecrets.ts(1,41): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/integrations/billing/capway/auth.ts(24,10): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/billing/capway/auth.ts(63,112): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/billing/capway/auth.ts(64,109): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/billing/capway/auth.ts(65,77): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/billing/capway/auth.ts(66,85): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/ipPolicy.ts(1,22): error TS2307: Cannot find module 'node:net' or its corresponding type declarations.
+lib/integrations/ipPolicy.ts(81,24): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/ipPolicy.ts(93,24): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/openApiReleaseManifest.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/integrations/openApiResponse.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/integrations/openApiResponse.ts(2,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/integrations/openApiResponse.ts(33,36): error TS7006: Parameter 'value' implicitly has an 'any' type.
+lib/integrations/publicReferences.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/integrations/webhooks.ts(1,40): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/integrations/webhooks.ts(2,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/integrations/webhooks.ts(58,7): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/integrations/webhooks.ts(60,19): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/legal/platformLegalTemplates.ts(1,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/masterdata/selfSupplier.ts(1,37): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+lib/operations/db.ts(1,37): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+lib/operations/switchLifecycleBlocks.ts(1,37): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+lib/pricing/commercialModel.ts(1,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+lib/pricing/commercialModel.ts(75,12): error TS7006: Parameter 'value' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(100,17): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(100,22): error TS7006: Parameter 'context' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(137,17): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(137,25): error TS7006: Parameter 'context' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(189,43): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(198,8): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(296,17): error TS7006: Parameter 'component' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(296,28): error TS7006: Parameter 'context' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(384,17): error TS7006: Parameter 'model' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(384,24): error TS7006: Parameter 'context' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(386,8): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(395,50): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(403,56): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(413,34): error TS7006: Parameter 'option' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(424,8): error TS7006: Parameter 'component' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(434,8): error TS7006: Parameter 'component' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(699,10): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(742,6): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/pricing/commercialModel.ts(763,33): error TS7006: Parameter 'component' implicitly has an 'any' type.
+lib/pricing/intervalPricing.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/pricing/websiteQuotes.ts(1,41): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/pricing/websiteQuotes.ts(77,29): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+lib/supabase/service.ts(1,30): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+lib/tenant/context.ts(1,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/website/publicContractApi.ts(1,40): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+lib/website/publicContractApi.ts(2,34): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+lib/website/publicContractApi.ts(96,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+lib/website/publicContracts.ts(1431,27): error TS7006: Parameter 'version' implicitly has an 'any' type.
+lib/website/publicContracts.ts(1434,6): error TS7006: Parameter 'type' implicitly has an 'any' type.
+lib/website/publicContracts.ts(1439,47): error TS7006: Parameter 'requirementCode' implicitly has an 'any' type.
+lib/website/publicContracts.ts(1493,5): error TS2322: Type 'unknown[]' is not assignable to type 'string[]'.
+  Type 'unknown' is not assignable to type 'string'.
+lib/website/publicContracts.ts(1574,38): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/website/publicContracts.ts(1618,8): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/website/publicContracts.ts(1622,11): error TS7006: Parameter 'row' implicitly has an 'any' type.

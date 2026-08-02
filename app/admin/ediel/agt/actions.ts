@@ -398,11 +398,13 @@ async function upsertRouteProfile(input: {
     .select("id")
     .eq("communication_route_id", input.routeId)
     .eq("company_id", input.companyId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(2);
 
   if (existing.error) throw existing.error;
+  const existingRows = (existing.data ?? []) as Array<{ id?: string | null }>;
+  if (existingRows.length > 1) throw new Error("Flera routeprofiler matchar samma tenant och kommunikationsroute.");
+  const existingId = String(existingRows[0]?.id ?? "").trim() || null;
 
   const isProdat = input.family === "PRODAT";
   const payload = {
@@ -451,11 +453,11 @@ async function upsertRouteProfile(input: {
     updated_at: new Date().toISOString(),
   };
 
-  if (existing.data?.id) {
+  if (existingId) {
     const { error } = await supabaseService
       .from("ediel_route_profiles")
       .update(payload)
-      .eq("id", existing.data.id);
+      .eq("id", existingId);
 
     if (error) throw error;
     return;
@@ -490,16 +492,18 @@ async function upsertAgtRoute(input: {
     .select("id")
     .eq("route_name", routeName)
     .eq("company_id", input.companyId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(2);
 
   if (existing.error) throw existing.error;
+  const existingRows = (existing.data ?? []) as Array<{ id?: string | null }>;
+  if (existingRows.length > 1) throw new Error("Flera kommunikationsrutter har samma canonical tenantnamn.");
+  const existingId = String(existingRows[0]?.id ?? "").trim() || null;
 
   const route = await saveCommunicationRoute({
     actorUserId: input.actorUserId,
     companyId: input.companyId,
-    id: existing.data?.id ?? undefined,
+    id: existingId ?? undefined,
     routeName,
     isActive: true,
     routeScope: input.family === "PRODAT" ? "supplier_switch" : "meter_values",

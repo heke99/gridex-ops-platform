@@ -1,0 +1,58 @@
+===== npm run typecheck:scripts =====
+
+> gridex-ops-platform@0.1.0 typecheck:scripts
+> tsc --noEmit -p tsconfig.scripts.json
+
+scripts/backfill-spot-price-coverage.ts(9,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+scripts/backfill-spot-price-coverage.ts(10,30): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+scripts/backfill-spot-price-coverage.ts(32,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(32,41): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(33,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(36,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(42,18): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(42,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(44,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(45,23): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/backfill-spot-price-coverage.ts(250,41): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(266,43): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(342,37): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(342,42): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(343,30): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(343,35): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(344,53): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(346,73): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(354,37): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(355,55): error TS7006: Parameter 'row' implicitly has an 'any' type.
+scripts/backfill-spot-price-coverage.ts(400,49): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(10,28): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+scripts/gridex/cleanWebsiteFlowRegression.ts(11,51): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+scripts/gridex/cleanWebsiteFlowRegression.ts(15,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(16,16): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(17,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(17,43): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(18,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(22,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(26,19): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(27,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(190,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/cleanWebsiteFlowRegression.ts(197,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(28,51): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+scripts/gridex/inspectCustomerFlow.ts(32,14): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(43,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(43,41): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(44,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(47,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(51,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(154,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(159,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(164,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/inspectCustomerFlow.ts(283,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(44,51): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(48,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(49,26): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(50,44): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(52,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(52,41): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(53,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(57,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+scripts/gridex/repairMissingFacilityZ01Rows.ts(380,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.

@@ -73,63 +73,50 @@ function parseAgtActorNotes(actor?: Pick<EdielActorSettingsRow, 'notes' | 'brp_e
 }
 
 async function getActiveTestSupplierActor(companyId?: string | null): Promise<EdielActorSettingsRow | null> {
-  let query = supabaseService
+  if (!companyId) return null
+  const { data, error } = await supabaseService
     .from('ediel_actor_settings')
     .select('*')
+    .eq('company_id', companyId)
     .eq('environment', 'test')
     .eq('is_active', true)
-
-  if (companyId) {
-    query = query.eq('company_id', companyId)
-  }
-
-  const { data, error } = await query
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(2)
 
   if (error) throw error
-  return (data as EdielActorSettingsRow | null) ?? null
+  const rows = (data ?? []) as EdielActorSettingsRow[]
+  if (rows.length > 1) throw new Error('agt_active_test_actor_ambiguous')
+  return rows[0] ?? null
 }
 
 async function getRouteByName(routeName: string, companyId?: string | null): Promise<CommunicationRouteLite | null> {
-  let query = supabaseService
+  if (!companyId) return null
+  const { data, error } = await supabaseService
     .from('communication_routes')
     .select('id,company_id,route_name,is_active,route_scope,route_type,target_system,target_email,endpoint,supported_payload_version,notes,updated_at')
+    .eq('company_id', companyId)
     .eq('route_name', routeName)
-
-  if (companyId) {
-    query = query.or(`company_id.is.null,company_id.eq.${companyId}`)
-  }
-
-  const { data, error } = await query
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(2)
 
   if (error) throw error
-  return (data as CommunicationRouteLite | null) ?? null
+  const rows = (data ?? []) as CommunicationRouteLite[]
+  if (rows.length > 1) throw new Error(`agt_route_ambiguous:${routeName}`)
+  return rows[0] ?? null
 }
 
 async function getRouteProfile(routeId: string | null, companyId?: string | null): Promise<EdielRouteProfileRow | null> {
-  if (!routeId) return null
+  if (!routeId || !companyId) return null
 
-  let query = supabaseService
+  const { data, error } = await supabaseService
     .from('ediel_route_profiles')
     .select('*')
+    .eq('company_id', companyId)
     .eq('communication_route_id', routeId)
-
-  if (companyId) {
-    query = query.or(`company_id.is.null,company_id.eq.${companyId}`)
-  }
-
-  const { data, error } = await query
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(2)
 
   if (error) throw error
-  return (data as EdielRouteProfileRow | null) ?? null
+  const rows = (data ?? []) as EdielRouteProfileRow[]
+  if (rows.length > 1) throw new Error(`agt_route_profile_ambiguous:${routeId}`)
+  return rows[0] ?? null
 }
 
 function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIssue[] {

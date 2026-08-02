@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
-import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
+import { acceptCompanyInvitationAccess } from '@/lib/auth/companyUserAccess'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   findAuthUserByEmail,
@@ -246,13 +246,19 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     })
 
     if (userId) {
-      await supabaseService.from('company_invitations').delete().eq('company_id', input.companyId).eq('invited_user_id', userId)
-      await supabaseService.from('company_memberships').delete().eq('company_id', input.companyId).eq('user_id', userId)
+      await supabaseService
+        .from('company_invitations')
+        .update({
+          status: 'invitation_revoked',
+          revoked_at: new Date().toISOString(),
+          metadata: { provisioning_failed: true, error: error instanceof Error ? error.message : String(error) },
+        })
+        .eq('company_id', input.companyId)
+        .eq('invited_user_id', userId)
+        .eq('status', 'pending')
     }
 
     if (createdAuthUserId) {
-      await supabaseService.from('user_roles').delete().eq('user_id', createdAuthUserId)
-      await supabaseService.from('user_profiles').delete().eq('id', createdAuthUserId)
       await supabaseService.auth.admin.deleteUser(createdAuthUserId)
     }
 
@@ -323,35 +329,13 @@ export async function acceptCompanyInvitationByToken(token: string) {
 
   const authUser = auth.user
 
-  const now = new Date().toISOString()
-
-  await grantCompanyUserAccess({
+  await acceptCompanyInvitationAccess({
     companyId: invitation.company_id,
+    invitationId: invitation.id,
     userId: authUser.id,
     email,
-    fullName: null,
-    membershipRole: invitation.membership_role ?? 'member',
-    roleKey: invitation.role_key ?? 'customer_service_agent',
-    actorUserId: null,
-    source: 'company_invite_token',
-    invitationId: invitation.id,
+    idempotencyKey: `tenant-invitation-accept:${invitation.company_id}:${invitation.id}:${authUser.id}`,
   })
-
-  const { error: invitationUpdateError } = await supabaseService
-    .from('company_invitations')
-    .update({
-      status: 'accepted',
-      accepted_at: now,
-      invited_user_id: authUser.id,
-      metadata: {
-        access_source: 'verified_auth_invitation_link',
-        accepted_by_verified_user: true,
-      },
-    })
-    .eq('id', invitation.id)
-    .eq('company_id', invitation.company_id)
-    .eq('status', 'pending')
-  if (invitationUpdateError && !isIgnorableSchemaError(invitationUpdateError)) throw invitationUpdateError
 
   await recordAuthEmailEvent({
     userId: authUser.id,

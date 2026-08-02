@@ -11,16 +11,15 @@ import {
   requireEdielProfileWriteActionAccess,
 } from '@/lib/ediel/actionAccess'
 import { supabaseService } from '@/lib/supabase/service'
-import { updateEdielTestRunStatus } from '@/lib/ediel/db'
 import {
   buildActorTestResultEvidence,
   getActorTestCase,
-  mapTestStatusToRunStatus,
   userCanManageActorTestingForCompany,
   type ActorTestStatus,
 } from '@/lib/ediel/actorTesting'
 import { logTenantGovernanceEvent } from '@/lib/tenant/governance'
 import { runActorTestAutomation, syncAllActorTestsForCompany } from '@/lib/ediel/actorTestingEngine'
+import { projectCanonicalActorTestState } from '@/lib/ediel/actorTestProjection'
 import {
   getCompanyProductionReadiness,
   runProductionDryRun,
@@ -175,35 +174,28 @@ export async function startActorTestAction(formData: FormData) {
     const now = new Date().toISOString()
     const message = error instanceof Error ? error.message : 'Aktörstestet kunde inte köras automatiskt.'
 
-    const { error: resultError } = await supabaseService.from('actor_test_results').upsert(
-      {
-        company_id: companyId,
-        test_key: testCase.key,
-        test_name: testCase.label,
-        test_id: testCase.testId,
-        package_key: testCase.packageKey,
-        message_family: testCase.messageFamily,
-        message_code: testCase.messageCode,
-        direction: testCase.direction,
+    await projectCanonicalActorTestState({
+      actorUserId: admin.userId,
+      companyId,
+      testCaseCode: testCase.key,
+      testName: testCase.label,
+      testId: testCase.testId,
+      packageKey: testCase.packageKey,
+      messageFamily: testCase.messageFamily,
+      messageCode: testCase.messageCode,
+      direction: testCase.direction,
+      status: 'blocked',
+      failureReason: message,
+      portalStatus: 'Automatiserad körning stoppades före komplett beviskedja.',
+      evidence: buildActorTestResultEvidence({
+        testCase,
         status: 'blocked',
-        latest_run_at: now,
-        failure_reason: message,
-        portal_status: 'Automatiserad körning stoppades före komplett beviskedja.',
-        evidence: buildActorTestResultEvidence({
-          testCase,
-          status: 'blocked',
-          portalStatus: 'Automatiserad körning stoppades före komplett beviskedja.',
-          failureReason: message,
-          actorUserId: admin.userId,
-        }),
-        created_by: admin.userId,
-        updated_by: admin.userId,
-        updated_at: now,
-      },
-      { onConflict: 'company_id,test_key' }
-    )
-
-    if (resultError) throw resultError
+        portalStatus: 'Automatiserad körning stoppades före komplett beviskedja.',
+        failureReason: message,
+        actorUserId: admin.userId,
+      }),
+      idempotencyKey: `actor-test-automation-blocked:${companyId}:${testCase.key}:${now}`,
+    })
 
     await logTenantGovernanceEvent({
       action: 'EDIEL_TEST_ATTEMPT_COMPLETED',
@@ -269,22 +261,25 @@ export async function saveActorTestResultAction(formData: FormData) {
     return
   }
 
-  const payload = {
-    company_id: companyId,
-    test_key: testCase.key,
-    test_name: testCase.label,
-    test_id: testCase.testId,
-    package_key: testCase.packageKey,
-    message_family: testCase.messageFamily,
-    message_code: testCase.messageCode,
+  if (status !== 'running' && status !== 'failed' && status !== 'blocked') {
+    throw new Error('Icke-auktoritativ teststatus måste vara running, failed eller blocked.')
+  }
+
+  await projectCanonicalActorTestState({
+    actorUserId: admin.userId,
+    companyId,
+    testCaseCode: testCase.key,
+    testName: testCase.label,
+    testId: testCase.testId,
+    packageKey: testCase.packageKey,
+    messageFamily: testCase.messageFamily,
+    messageCode: testCase.messageCode,
     direction: testCase.direction,
     status,
-    latest_run_at: now,
-    passed_at: null,
-    failure_reason: failureReason,
-    portal_status: portalStatus,
-    raw_payload: rawPayload,
-    ediel_test_run_id: runId,
+    testRunId: runId,
+    failureReason,
+    portalStatus,
+    rawPayload,
     evidence: buildActorTestResultEvidence({
       testCase,
       status,
@@ -293,25 +288,11 @@ export async function saveActorTestResultAction(formData: FormData) {
       failureReason,
       actorUserId: admin.userId,
     }),
-    updated_by: admin.userId,
-    updated_at: now,
-  }
-
-  const { error } = await supabaseService
-    .from('actor_test_results')
-    .upsert(payload, { onConflict: 'company_id,test_key' })
-  if (error) throw error
-
-  if (runId) {
-    await updateEdielTestRunStatus({
-      actorUserId: admin.userId,
-      companyId,
-      testRunId: runId,
-      status: mapTestStatusToRunStatus(status),
-      failureReason,
-      completedAt: status === 'running' ? null : now,
-    })
-  }
+    idempotencyKey: readIdempotencyKey(
+      formData,
+      `actor-test-projection:${companyId}:${runId ?? 'none'}:${testCase.key}:${status}:${now}`,
+    ),
+  })
 
   revalidateActorTestingViews(companyId)
 }

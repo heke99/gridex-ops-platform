@@ -1,0 +1,135 @@
+
+===== node scripts/check-migration-versions.cjs =====
+Migration integrity check passed (340 files; 244 version groups; checksums verified).
+EXIT_CODE=0
+
+===== node scripts/canonical-runtime-consistency-regression.cjs =====
+Canonical runtime consistency regression passed (access atomicity, tenant resolution, route priority and delivery uncertainty).
+EXIT_CODE=0
+
+===== node scripts/canonical-emergency-access-regression.cjs =====
+Canonical emergency access regression passed (views, RPCs, defaults, internal tables and global-role scope).
+EXIT_CODE=0
+
+===== node scripts/canonical-production-hardening-regression.cjs =====
+Canonical production hardening regression passed (permissions, tenant scope, evidence, lifecycle, workers, migrations).
+EXIT_CODE=0
+
+===== node scripts/ops-hardening-behavior-regression.cjs =====
+OPS behavior regression passed (6 Swedish address cases).
+OPS behavior regression passed (address parsing and SSRF allowlist).
+OPS behavior regression passed (UUID normalization).
+OPS behavior regression passed (Ediel outbox claim is RPC-only and fail-closed).
+EXIT_CODE=0
+
+===== node scripts/ops-hardening-regression.cjs =====
+OPS hardening regression passed (18 checks).
+EXIT_CODE=0
+
+===== node scripts/ediel-routing-security-regression.cjs =====
+ediel-routing-security-regression: ok
+EXIT_CODE=0
+
+===== node scripts/ediel-inbound-tenant-resolution-regression.cjs =====
+ediel inbound tenant-resolution regression checks passed
+EXIT_CODE=0
+
+===== node scripts/canonical-multitenant-platform-regression.cjs =====
+PASS explicit server-side TenantContext exists
+PASS client tenant mismatch fails closed
+PASS API authentication returns verified tenant context
+PASS app/api/v1/contracts/route.ts does not bypass authenticated context
+PASS app/api/v1/events/route.ts does not bypass authenticated context
+PASS app/api/v1/customer-portal/sync/route.ts does not bypass authenticated context
+PASS app/api/v1/integration/context/route.ts does not bypass authenticated context
+PASS app/api/v1/public-contracts/diagnostics/route.ts does not bypass authenticated context
+PASS app/api/v1/website/customer-applications/route.ts does not bypass authenticated context
+PASS app/api/v1/website/customer-events/route.ts does not bypass authenticated context
+PASS app/api/v1/website/legal-bundle/route.ts does not bypass authenticated context
+PASS app/api/v1/website/portfolio-prices/route.ts does not bypass authenticated context
+PASS app/api/v1/website/public-contracts/route.ts does not bypass authenticated context
+PASS app/api/v1/website/quote/route.ts does not bypass authenticated context
+PASS app/api/v1/website/switch-status/route.ts does not bypass authenticated context
+PASS app/api/v1/website/customer-applications/[applicationId]/route.ts does not bypass authenticated context
+PASS app/api/v1/website/energy-area/resolve/route.ts does not bypass authenticated context
+PASS app/api/v1/website/market-price/current/route.ts does not bypass authenticated context
+PASS app/api/v1/website/public-contracts/diagnostics/route.ts does not bypass authenticated context
+PASS app/api/v1/website/quote/validate/route.ts does not bypass authenticated context
+PASS public website intake binds payload to authenticated tenant
+PASS canonical onboarding requires context and neutral RPC
+PASS app/admin/customers/actions.ts passes explicit tenant context to onboarding
+PASS lib/website/customerApplications.ts passes explicit tenant context to onboarding
+PASS lib/external-contracts/intake.ts passes explicit tenant context to onboarding
+PASS lib/ediel/inboundCases.ts passes explicit tenant context to onboarding
+PASS billing webhook ignores client-selected tenant hints
+PASS billing webhook resolves one persisted tenant target
+PASS transactional auth mail has no tenant-specific fallback sender
+PASS number generation uses tenant-neutral database aliases
+PASS number generation has no runtime fallback format
+PASS legal readiness uses the tenant-neutral projection alias
+PASS reserved Ediel sender comes from secure configuration
+PASS tenant capability model is migrated
+PASS new parent-child writes receive tenant-qualified database guards
+PASS new tenant-owned writes cannot omit company_id
+PASS neutral onboarding RPC is service-only
+PASS scripts/canonical-multitenant-preflight.sql exists
+PASS scripts/canonical-multitenant-backfill-dry-run.sql exists
+PASS scripts/canonical-multitenant-backfill-apply.sql exists
+PASS scripts/canonical-multitenant-post-verification.sql exists
+PASS docs/canonical-multitenant-architecture.md exists
+PASS docs/canonical-multitenant-runbook.md exists
+
+Canonical multi-tenant static regression passed.
+EXIT_CODE=0
+
+===== node scripts/ediel-canonical-consolidation-regression.cjs =====
+Ediel canonical consolidation regression passed (309 TypeScript files inspected).
+EXIT_CODE=0
+
+===== node scripts/security-audit-rbac.mjs =====
+RBAC audit passed: 24 checks, 0 warning(s).
+EXIT_CODE=0
+
+===== node scripts/gridex-route-runtime-selection-regression.cjs =====
+✅ routeDecisionEngine: passes messageCode to routeScopeForBusinessProcess
+✅ routeDecisionEngine: queries communication_routes by route_scope
+✅ routeDecisionEngine: queries communication_routes by grid_owner_id (counterparty)
+✅ routeDecisionEngine: queries communication_routes tenant-scoped (tenant rows preferred over platform-global)
+✅ routeDecisionEngine: queries only active routes
+✅ routeDecisionEngine: queries ediel_route_profiles by environment
+✅ routeDecisionEngine: applies production guard checks
+✅ routeDecisionEngine: rejects known test EDIEL IDs in production
+✅ routeDecisionEngine: route lookup requires company_id match or null (platform-wide)
+✅ routeMatrix: Z01 maps to customer_masterdata
+✅ routeMatrix: Z03 maps to supplier_switch
+✅ routeMatrix: UTILTS maps to meter_values (not PRODAT scope)
+✅ routeMatrix: PRODAT fallback maps to customer_masterdata (not UTILTS scope)
+✅ routeReadiness: does not return literal ediel_ack as DB scope
+✅ routeDecisionEngine: inspects target_system to guard test/production lanes
+✅ routeDecisionEngine: calls routeScopeForBusinessProcess with messageCode
+
+Route runtime selection regression passed.
+EXIT_CODE=0
+
+===== node scripts/ediel-two-tenant-route-isolation-regression.cjs =====
+✓ explicit materializer scopes every write to requested company
+✓ materializer resolves sender settings inside same tenant
+✓ Z01 dispatch passes request company into materializer
+✓ route decision receives company scope
+✓ company route uniqueness is tenant-scoped
+EXIT_CODE=0
+
+===== node scripts/gridex-test-production-separation-regression.cjs =====
+✅ senderSettingsResolver.ts: filters actor settings by exact environment
+✅ routeDecisionEngine.ts: route profile lookup filters by environment
+✅ db-outbound.ts: createOutboundRequest passes environment into decideCommunicationRoute
+✅ shared.ts: findOrCreateDataRequestOutbound threads environment
+✅ prodatCustomerMasterdata.ts: outbound route_decision_payload carries explicit environment
+✅ routeDecisionEngine.ts: blocks cross-environment route profile selection both ways
+✅ routeDecisionEngine.ts: failOnMissingEnvironment emits environment_missing
+✅ prodatCustomerMasterdata.ts: Z01 outbound creation requires explicit environment
+✅ senderSettingsResolver.ts: returns environment_missing instead of defaulting to test
+✅ routeDecisionEngine.ts: first production send remains guarded by production send lock
+
+✓ Test/production separation regression passed.
+EXIT_CODE=0

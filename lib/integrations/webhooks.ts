@@ -33,6 +33,9 @@ type WebhookDeliveryRow = {
   target_url?: string | null
   locked_at?: string | null
   locked_by?: string | null
+  delivery_uncertain_at?: string | null
+  public_delivery_id?: string | null
+  request_body_hash?: string | null
 }
 
 type EnqueueOptions = {
@@ -265,6 +268,10 @@ function nextAttempt(attempts: number): string {
   return new Date(Date.now() + delaySeconds * 1000).toISOString()
 }
 
+function providerAcceptedWebhook(status: number | null): boolean {
+  return status !== null && status >= 200 && status < 300
+}
+
 async function updateSubscriptionSuccess(subscriptionId: string) {
   await supabaseService
     .from('webhook_subscriptions')
@@ -350,8 +357,9 @@ async function recoverStaleDeliveries() {
   const { error } = await supabaseService
     .from('webhook_deliveries')
     .update({
-      status: 'failed',
-      failure_reason: 'stale_processing_lock_recovered',
+      status: 'delivery_uncertain',
+      failure_reason: 'delivery_uncertain_after_stale_processing_lock',
+      delivery_uncertain_at: now,
       next_attempt_at: now,
       locked_at: null,
       locked_by: null,
@@ -373,6 +381,38 @@ async function finalizeClaimedDelivery(delivery: WebhookDeliveryRow, patch: Reco
     .maybeSingle()
   if (error) throw error
   if (!data?.id) throw new Error('webhook_delivery_lock_lost')
+}
+
+async function markDeliveryUncertain(input: {
+  delivery: WebhookDeliveryRow
+  publicDeliveryId: string | null
+  requestBodyHash: string | null
+  responseStatus: number | null
+  responseBody: string | null
+  reason: string
+}) {
+  const now = new Date().toISOString()
+  const { data, error } = await supabaseService
+    .from('webhook_deliveries')
+    .update({
+      status: 'delivery_uncertain',
+      delivery_uncertain_at: now,
+      public_delivery_id: input.publicDeliveryId,
+      request_body_hash: input.requestBodyHash,
+      response_status: input.responseStatus,
+      response_body: input.responseBody?.slice(0, 4000) ?? null,
+      failure_reason: input.reason.slice(0, 1000),
+      locked_at: null,
+      locked_by: null,
+      updated_at: now,
+    })
+    .eq('id', input.delivery.id)
+    .eq('company_id', input.delivery.company_id)
+    .in('status', ['processing', 'failed'])
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  if (!data?.id) throw new Error('webhook_delivery_uncertain_status_not_persisted')
 }
 
 async function claimDueDeliveries(limit: number) {
@@ -414,6 +454,7 @@ async function claimDueDeliveries(limit: number) {
         blocked_reason: decision.reason_code,
         blocked_at: new Date().toISOString(),
         company_status_snapshot: decision.company_status,
+        operation_decision_snapshot: decision,
         locked_at: null, locked_by: null,
       })
       continue
@@ -425,7 +466,7 @@ async function claimDueDeliveries(limit: number) {
 
 export async function dispatchDueWebhookDeliveries(limit = 25) {
   const deliveries = await claimDueDeliveries(limit)
-  if (deliveries.length === 0) return { processed: 0, sent: 0, failed: 0 }
+  if (deliveries.length === 0) return { processed: 0, sent: 0, failed: 0, deliveryUncertain: 0 }
 
   const subscriptionIds = Array.from(new Set(deliveries.map((delivery) => delivery.webhook_subscription_id)))
   const { data: subscriptionRows, error: subscriptionError } = await supabaseService
@@ -440,6 +481,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
   )
   let sent = 0
   let failed = 0
+  let deliveryUncertain = 0
 
   for (const delivery of deliveries) {
     const subscription = subscriptions.get(delivery.webhook_subscription_id)
@@ -450,6 +492,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
       await finalizeClaimedDelivery(delivery, {
         status: 'blocked_tenant_state', blocked_reason: tenantDecision.reason_code,
         blocked_at: new Date().toISOString(), company_status_snapshot: tenantDecision.company_status,
+        operation_decision_snapshot: tenantDecision,
         locked_at: null, locked_by: null,
       })
       failed += 1
@@ -490,10 +533,15 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), subscription.timeout_ms)
+    let providerResponded = false
+    let publicDeliveryId: string | null = null
+    let requestBodyHash: string | null = null
+    let responseStatus: number | null = null
+    let responseBody: string | null = null
 
     try {
       const publicPayload = await publicPayloadForDelivery(delivery)
-      const publicDeliveryId = opaqueReference(
+      publicDeliveryId = opaqueReference(
         'delivery',
         String(publicPayload.tenant_reference),
         delivery.id,
@@ -502,6 +550,25 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         ...publicPayload,
         delivery_id: publicDeliveryId,
       })
+      requestBodyHash = createHash('sha256').update(body).digest('hex')
+
+      const transportDecision = await getTenantOperationDecision(delivery.company_id, 'webhook.deliver')
+      if (!transportDecision.allowed) {
+        await finalizeClaimedDelivery(delivery, {
+          status: 'blocked_tenant_state',
+          blocked_reason: transportDecision.reason_code,
+          blocked_at: new Date().toISOString(),
+          company_status_snapshot: transportDecision.company_status,
+          operation_decision_snapshot: transportDecision,
+          public_delivery_id: publicDeliveryId,
+          request_body_hash: requestBodyHash,
+          locked_at: null,
+          locked_by: null,
+        })
+        failed += 1
+        continue
+      }
+
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: signedHeaders(
@@ -515,7 +582,9 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         body,
         signal: controller.signal,
       })
-      const responseBody = await response.text()
+      providerResponded = true
+      responseStatus = response.status
+      responseBody = await response.text()
 
       if (response.ok) {
         await finalizeClaimedDelivery(delivery, {
@@ -523,15 +592,26 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           attempts,
           last_attempt_at: new Date().toISOString(),
           delivered_at: new Date().toISOString(),
-          response_status: response.status,
+          response_status: responseStatus,
           response_body: responseBody.slice(0, 4000),
+          public_delivery_id: publicDeliveryId,
+          request_body_hash: requestBodyHash,
+          delivery_uncertain_at: null,
           failure_reason: null,
           locked_at: null,
           locked_by: null,
           target_url: targetUrl,
         })
-        await updateSubscriptionSuccess(subscription.id)
         sent += 1
+        try {
+          await updateSubscriptionSuccess(subscription.id)
+        } catch (subscriptionError) {
+          console.error('[webhooks] delivery sent but subscription success projection failed', {
+            deliveryId: delivery.id,
+            subscriptionId: subscription.id,
+            error: subscriptionError,
+          })
+        }
       } else {
         const deadLetter = attempts >= delivery.max_attempts
         await finalizeClaimedDelivery(delivery, {
@@ -540,35 +620,70 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           last_attempt_at: new Date().toISOString(),
           failed_at: new Date().toISOString(),
           next_attempt_at: deadLetter ? new Date().toISOString() : nextAttempt(attempts),
-          response_status: response.status,
+          response_status: responseStatus,
           response_body: responseBody.slice(0, 4000),
-          failure_reason: `HTTP ${response.status}`,
+          public_delivery_id: publicDeliveryId,
+          request_body_hash: requestBodyHash,
+          failure_reason: `HTTP ${responseStatus}`,
           locked_at: null,
           locked_by: null,
           target_url: targetUrl,
         })
-        await updateSubscriptionFailure(subscription, deadLetter)
         failed += 1
+        try {
+          await updateSubscriptionFailure(subscription, deadLetter)
+        } catch (subscriptionError) {
+          console.error('[webhooks] rejected delivery persisted but subscription failure projection failed', {
+            deliveryId: delivery.id,
+            subscriptionId: subscription.id,
+            error: subscriptionError,
+          })
+        }
       }
     } catch (error) {
-      const deadLetter = attempts >= delivery.max_attempts
-      await finalizeClaimedDelivery(delivery, {
-        status: deadLetter ? 'dead_letter' : 'failed',
-        attempts,
-        last_attempt_at: new Date().toISOString(),
-        failed_at: new Date().toISOString(),
-        next_attempt_at: deadLetter ? new Date().toISOString() : nextAttempt(attempts),
-        failure_reason: error instanceof Error ? error.message : String(error),
-        locked_at: null,
-        locked_by: null,
-        target_url: targetUrl,
-      })
-      await updateSubscriptionFailure(subscription, deadLetter)
-      failed += 1
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (providerResponded && providerAcceptedWebhook(responseStatus)) {
+        await markDeliveryUncertain({
+          delivery,
+          publicDeliveryId,
+          requestBodyHash,
+          responseStatus,
+          responseBody,
+          reason: `delivery_uncertain_after_provider_acceptance: ${errorMessage}`,
+        })
+        deliveryUncertain += 1
+      } else {
+        const deadLetter = attempts >= delivery.max_attempts
+        await finalizeClaimedDelivery(delivery, {
+          status: deadLetter ? 'dead_letter' : 'failed',
+          attempts,
+          last_attempt_at: new Date().toISOString(),
+          failed_at: new Date().toISOString(),
+          next_attempt_at: deadLetter ? new Date().toISOString() : nextAttempt(attempts),
+          response_status: responseStatus,
+          response_body: responseBody?.slice(0, 4000) ?? null,
+          public_delivery_id: publicDeliveryId,
+          request_body_hash: requestBodyHash,
+          failure_reason: errorMessage,
+          locked_at: null,
+          locked_by: null,
+          target_url: targetUrl,
+        })
+        failed += 1
+        try {
+          await updateSubscriptionFailure(subscription, deadLetter)
+        } catch (subscriptionError) {
+          console.error('[webhooks] failure persisted but subscription projection failed', {
+            deliveryId: delivery.id,
+            subscriptionId: subscription.id,
+            error: subscriptionError,
+          })
+        }
+      }
     } finally {
       clearTimeout(timeout)
     }
   }
 
-  return { processed: deliveries.length, sent, failed }
+  return { processed: deliveries.length, sent, failed, deliveryUncertain }
 }

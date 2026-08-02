@@ -122,13 +122,15 @@ async function upsertTestCounterparty(params: {
     .eq("environment", "test")
     .eq("counterparty_role", params.role)
     .eq("counterparty_ediel_id", edielId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(2);
 
   if (existing.error) {
     if (!isMissingRelationError(existing.error)) throw existing.error;
   }
+  const existingRows = (existing.data ?? []) as Array<{ id?: string | null }>;
+  if (existingRows.length > 1) throw new Error("Flera aktiva systemtestmotparter matchar samma tenantidentitet.");
+  const existingId = clean(existingRows[0]?.id);
 
   const payload = {
     company_id: params.companyId,
@@ -156,13 +158,13 @@ async function upsertTestCounterparty(params: {
     updated_at: new Date().toISOString(),
   };
 
-  if (existing.data?.id) {
+  if (existingId) {
     const { error } = await supabaseService
       .from("ediel_counterparties")
       .update(payload)
-      .eq("id", existing.data.id);
+      .eq("id", existingId);
     if (error) throw error;
-    return existing.data.id as string;
+    return existingId;
   }
 
   const { data, error } = await supabaseService
@@ -191,16 +193,17 @@ export async function getEdielSystemTestSettings(params: {
     .eq("environment", "test")
     .eq("test_suite", suite)
     .eq("is_active", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(2);
 
   if (error) {
     if (isMissingRelationError(error)) return null;
     throw error;
   }
 
-  const row = (data as Record<string, unknown> | null) ?? null;
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  if (rows.length > 1) throw new Error("Flera aktiva systemtestinställningar finns för samma tenant och suite.");
+  const row = rows[0] ?? null;
   if (!row) return null;
 
   const [portal, brp] = await Promise.all([
@@ -407,16 +410,17 @@ async function getActiveTestActorSetting(
   }
 
   const { data, error } = await query
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(2);
 
   if (error) {
     if (isMissingRelationError(error)) return null;
     throw error;
   }
 
-  return (data as Record<string, unknown> | null) ?? null;
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  if (rows.length > 1) throw new Error("Flera aktiva Ediel-aktörsprofiler matchar systemtestkontexten.");
+  return rows[0] ?? null;
 }
 
 export async function getEdielSystemTestRuntimeContext(params: {

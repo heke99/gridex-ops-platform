@@ -415,7 +415,7 @@ export async function sendQueuedEdielMessage(params: {
       routeProfileId: sendConsistency.routeProfileId,
       communicationRouteId: sendConsistency.communicationRouteId,
     },
-  }).catch(() => null)
+  })
 
   await sendEdielMessageViaSmtp(message, {
     actorUserId,
@@ -451,8 +451,33 @@ export async function sendQueuedEdielMessage(params: {
         },
       }).catch(() => null)
     }
-  } catch {
-    // Bridge is best-effort: a failure here must not mask a successful send.
+  } catch (bridgeError) {
+    // SMTP may already have been accepted. Never throw into a caller that could
+    // retry the direct send; the outbox worker also checks the message's
+    // terminal transport status before sending. Surface the reconciliation
+    // failure loudly so operations can repair the projection.
+    console.error('[ediel] direct-send outbox reconciliation failed', {
+      edielMessageId: message.id,
+      companyId: message.company_id ?? null,
+      error: bridgeError,
+    })
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'error',
+      message: 'Direktskick lyckades men outbox-projektionen kunde inte verifieras.',
+      payload: {
+        phase: 'direct_send_outbox_bridge',
+        reconciliationRequired: true,
+        error: bridgeError instanceof Error ? bridgeError.message : String(bridgeError),
+      },
+    }).catch((eventError) => {
+      console.error('[ediel] failed to persist direct-send reconciliation event', {
+        edielMessageId: message.id,
+        error: eventError,
+      })
+    })
   }
 
   await recordEdielExchangeLog({
@@ -480,7 +505,13 @@ export async function sendQueuedEdielMessage(params: {
       statusBeforeSend: message.status,
     },
     actorUserId,
-  }).catch(() => null)
+  }).catch((exchangeLogError) => {
+    console.error('[ediel] SMTP accepted but exchange log persistence failed', {
+      edielMessageId: message.id,
+      companyId: message.company_id ?? null,
+      error: exchangeLogError,
+    })
+  })
 
   const refreshed = await getEdielMessageById(message.id)
   if (!refreshed) {

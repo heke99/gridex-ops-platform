@@ -90,7 +90,15 @@ export async function resendWebhookDeliveryAction(formData: FormData) {
     entity_id: deliveryId,
   }).then(() => null)
 
-  await dispatchDueWebhookDeliveries(10).catch(() => null)
+  try {
+    await dispatchDueWebhookDeliveries(10)
+  } catch (dispatchError) {
+    console.error('[webhooks] manual resend was queued but immediate dispatch failed', {
+      deliveryId,
+      companyId,
+      error: dispatchError,
+    })
+  }
   revalidatePath('/admin/webhooks/deliveries')
   redirectBack('/admin/webhooks/deliveries', 'Webhook delivery köades om.')
 }
