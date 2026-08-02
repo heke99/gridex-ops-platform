@@ -1,0 +1,203 @@
+{
+  "data": [
+    {
+      "id": "offer_variable_monthly_example",
+      "offer_reference": "offer_variable_monthly_example",
+      "contract_offer_id": "offer_variable_monthly_example",
+      "publication_reference": "offer_variable_monthly_example",
+      "product_code": "gridex_variable_monthly",
+      "name": "Gridex Rörligt månadspris",
+      "description": "Rörligt elavtal med månadsupplösning.",
+      "contract_type": "variable_monthly",
+      "energy_direction": "consumption",
+      "customer_type": "private",
+      "price_options": [
+        {
+          "price_option_reference": "variable_monthly_standard",
+          "option_code": "variable_monthly_standard",
+          "customer_name": "Standard",
+          "price_type": "variable_monthly",
+          "contract_type": "variable_monthly",
+          "customer_type": "private",
+          "resolution": "monthly",
+          "currency": "SEK",
+          "unit": "ore_per_kwh",
+          "fixed_price": null,
+          "markup": 10,
+          "monthly_fee": 49,
+          "binding_months": 0,
+          "notice_months": 1,
+          "auto_renew_enabled": false,
+          "renewal_term_months": null,
+          "is_default": true,
+          "default": true,
+          "selection_required": false,
+          "valid_from": "2026-08-01",
+          "valid_to": null,
+          "earliest_start_date": "2026-08-15",
+          "latest_start_date": null,
+          "area_prices": []
+        }
+      ],
+      "pricing": {
+        "visibility": {},
+        "calculation_components": [],
+        "display_components": [],
+        "calculation_contract": {
+          "includes_all_applicable_components": true,
+          "hidden_components_must_be_calculated": true,
+          "market_price_supplied_by_ops": true
+        },
+        "summary_components": []
+      },
+      "legal": {
+        "legal_bundle_reference": "legal_bundle_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+        "immutable": true,
+        "required_modules": [
+          "general_consumer_terms",
+          "price_terms"
+        ],
+        "module_versions": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+            "document_reference": "legal_document_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "module_key": "general_consumer_terms",
+            "version": "2",
+            "title": "Allmänna konsumentvillkor",
+            "published_at": "2026-08-01T00:00:00.000Z",
+            "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin": "canonical_bundle_document",
+            "url": "https://app.gridex.se/legal/example/general-consumer-terms"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+            "document_reference": "legal_document_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+            "module_key": "price_terms",
+            "version": "1",
+            "title": "Prisvillkor",
+            "published_at": "2026-08-01T00:00:00.000Z",
+            "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "origin": "canonical_bundle_document",
+            "url": "https://app.gridex.se/legal/example/price-terms"
+          }
+        ],
+        "power_of_attorney_version_id": null
+      },
+      "valid_from": "2026-08-01",
+      "valid_to": null,
+      "channel": "website"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "offer_variable_monthly_example",
+      "offer_reference": "offer_variable_monthly_example",
+      "contract_offer_id": "offer_variable_monthly_example",
+      "publication_reference": "offer_variable_monthly_example",
+      "product_code": "gridex_variable_monthly",
+      "name": "Gridex Rörligt månadspris",
+      "description": "Rörligt elavtal med månadsupplösning.",
+      "contract_type": "variable_monthly",
+      "energy_direction": "consumption",
+      "customer_type": "private",
+      "price_options": [
+        {
+          "price_option_reference": "variable_monthly_standard",
+          "option_code": "variable_monthly_standard",
+          "customer_name": "Standard",
+          "price_type": "variable_monthly",
+          "contract_type": "variable_monthly",
+          "customer_type": "private",
+          "resolution": "monthly",
+          "currency": "SEK",
+          "unit": "ore_per_kwh",
+          "fixed_price": null,
+          "markup": 10,
+          "monthly_fee": 49,
+          "binding_months": 0,
+          "notice_months": 1,
+          "auto_renew_enabled": false,
+          "renewal_term_months": null,
+          "is_default": true,
+          "default": true,
+          "selection_required": false,
+          "valid_from": "2026-08-01",
+          "valid_to": null,
+          "earliest_start_date": "2026-08-15",
+          "latest_start_date": null,
+          "area_prices": []
+        }
+      ],
+      "pricing": {
+        "visibility": {},
+        "calculation_components": [],
+        "display_components": [],
+        "calculation_contract": {
+          "includes_all_applicable_components": true,
+          "hidden_components_must_be_calculated": true,
+          "market_price_supplied_by_ops": true
+        },
+        "summary_components": []
+      },
+      "legal": {
+        "legal_bundle_reference": "legal_bundle_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+        "immutable": true,
+        "required_modules": [
+          "general_consumer_terms",
+          "price_terms"
+        ],
+        "module_versions": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+            "document_reference": "legal_document_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "module_key": "general_consumer_terms",
+            "version": "2",
+            "title": "Allmänna konsumentvillkor",
+            "published_at": "2026-08-01T00:00:00.000Z",
+            "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin": "canonical_bundle_document",
+            "url": "https://app.gridex.se/legal/example/general-consumer-terms"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "legal_bundle_version_id": "00000000-0000-4000-8000-000000000001",
+            "document_reference": "legal_document_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+            "module_key": "price_terms",
+            "version": "1",
+            "title": "Prisvillkor",
+            "published_at": "2026-08-01T00:00:00.000Z",
+            "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "origin": "canonical_bundle_document",
+            "url": "https://app.gridex.se/legal/example/price-terms"
+          }
+        ],
+        "power_of_attorney_version_id": null
+      },
+      "valid_from": "2026-08-01",
+      "valid_to": null,
+      "channel": "website"
+    }
+  ],
+  "meta": {
+    "tenant_reference": "tenant_0123456789abcdef0123456789abcdef0123",
+    "api_version": "v1",
+    "channel": "website",
+    "count": 1,
+    "publication_revision": 42,
+    "publication_updated_at": "2026-08-01T00:00:00.000Z",
+    "contract_schema_version": "2026-08-02.1",
+    "deprecated_aliases": [
+      "contracts",
+      "contract_offer_id",
+      "publication_reference"
+    ],
+    "feed_state": "contracts_present",
+    "empty_feed_authorization": null
+  },
+  "request_id": "00000000-0000-4000-8000-000000000099"
+}

@@ -1,0 +1,7 @@
+✓ production send approval blocker helper exists
+✓ production approval helper returns canonical fail-closed production-state blockers
+✓ outbound readiness checks production lock before route contract send
+✓ send path uses outbound readiness guard before SMTP
+✓ route contract blocks missing S/MIME receiver certificate
+✓ platform admin approval action exists
+✓ SQL approval audit/function exists

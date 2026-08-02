@@ -56,6 +56,49 @@ export function parsePublicContractsQuery(request: NextRequest): PublicContracts
 
 export const PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION = WEBSITE_INTEGRATION_CONTRACT_VERSION
 
+function canonicalizeJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeJson)
+  if (!value || typeof value !== 'object') return value
+  const source = value as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(source).sort()) {
+    const item = source[key]
+    if (item !== undefined) result[key] = canonicalizeJson(item)
+  }
+  return result
+}
+
+export function canonicalJson(value: unknown): string {
+  return JSON.stringify(canonicalizeJson(value))
+}
+
+export function buildPublicContractRepresentationEtag(input: {
+  tenantReference: string
+  channel: 'website' | 'api'
+  customerType: 'private' | 'business' | null
+  contractSchemaVersion: string
+  contracts: unknown[]
+  feedState: 'contracts_present' | 'canonical_empty'
+  emptyFeedAuthorization: unknown | null
+  diagnostics?: unknown
+}): string {
+  const representation = canonicalJson({
+    tenant_reference: input.tenantReference,
+    channel: input.channel,
+    customer_type: input.customerType,
+    contract_schema_version: input.contractSchemaVersion,
+    contracts: input.contracts,
+    feed_state: input.feedState,
+    empty_feed_authorization: input.emptyFeedAuthorization,
+    ...(input.diagnostics === undefined ? {} : { diagnostics: input.diagnostics }),
+  })
+  const opaque = createHash('sha256')
+    .update(representation)
+    .digest('base64url')
+    .slice(0, 43)
+  return `"contracts-${opaque}"`
+}
+
 export type PublicationRevision = {
   revision: number
   token: string

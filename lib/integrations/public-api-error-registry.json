@@ -1,0 +1,218 @@
+{
+  "missing_api_token": {
+    "http_status": 401,
+    "public_message": "API-token saknas.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "invalid_api_token": {
+    "http_status": 401,
+    "public_message": "API-token är ogiltig.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_token_expired": {
+    "http_status": 403,
+    "public_message": "API-token har gått ut.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_client_inactive": {
+    "http_status": 403,
+    "public_message": "API-klienten är inte aktiv.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_scope_missing": {
+    "http_status": 403,
+    "public_message": "Begäran saknar nödvändigt scope.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_ip_not_allowed": {
+    "http_status": 403,
+    "public_message": "IP-adressen är inte tillåten.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_origin_not_allowed": {
+    "http_status": 403,
+    "public_message": "Domänen är inte tillåten.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "rate_limited": {
+    "http_status": 429,
+    "public_message": "Trafikgränsen har överskridits.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_rate_limit_invalid": {
+    "http_status": 503,
+    "public_message": "API-klientens trafikgräns är felkonfigurerad.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_rate_limiter_unavailable": {
+    "http_status": 503,
+    "public_message": "API:ts trafikskydd kunde inte verifieras.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "api_auth_unavailable": {
+    "http_status": 503,
+    "public_message": "API-åtkomst kunde inte verifieras.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "tenant_status_unavailable": {
+    "http_status": 503,
+    "public_message": "Tenantens driftstatus kunde inte verifieras.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "tenant_not_operationally_ready": {
+    "http_status": 403,
+    "public_message": "Tenantens onboarding är inte klar.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "tenant_paused": {
+    "http_status": 423,
+    "public_message": "Tenantens API-åtkomst är pausad.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "tenant_closed": {
+    "http_status": 410,
+    "public_message": "Tenantens konto är stängt.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "tenant_suspended": {
+    "http_status": 403,
+    "public_message": "Tenantens konto är avstängt.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "tenant_inactive": {
+    "http_status": 410,
+    "public_message": "Tenantens konto är inte aktivt.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "platform_schema_not_ready": {
+    "http_status": 503,
+    "public_message": "Databasschemat är inte verifierat.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "tenant_authenticated"
+    ]
+  },
+  "PUBLIC_CONTRACT_FEED_INCONSISTENT": {
+    "http_status": 503,
+    "public_message": "Det kanoniska avtalsflödet är tillfälligt inkonsekvent.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "GET /api/v1/website/public-contracts"
+    ]
+  },
+  "PUBLICATION_GRAPH_INCONSISTENT": {
+    "http_status": 409,
+    "public_message": "Publiceringsgrafen är inkonsekvent.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "public_contracts"
+    ]
+  },
+  "PUBLIC_CONTRACT_SCHEMA_INVALID": {
+    "http_status": 503,
+    "public_message": "Avtalsrepresentationen matchar inte publicerat schema.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "public_contracts"
+    ]
+  },
+  "PUBLIC_CONTRACT_SCHEMA_OUTDATED": {
+    "http_status": 503,
+    "public_message": "Public contracts-schemat är inte uppdaterat.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "public_contracts"
+    ]
+  },
+  "PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE": {
+    "http_status": 503,
+    "public_message": "Publicerade avtal är tillfälligt otillgängliga.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "public_contracts"
+    ]
+  },
+  "offer_reference_mismatch": {
+    "http_status": 409,
+    "public_message": "Erbjudandereferensen matchar inte övriga val.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "POST /api/v1/website/customer-applications"
+    ]
+  }
+}

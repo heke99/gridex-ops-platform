@@ -1,0 +1,821 @@
+PASS both public OpenAPI documents use one canonical release version
+PASS website application status is documented by public application_number
+PASS application status lookup is tenant-bound and uses application_number
+PASS status HTTP route never treats the public path value as an internal database UUID
+PASS application status response matches the closed public envelope without undocumented metadata
+PASS quote validation accepts application_number and resolves its internal relation inside the authenticated tenant
+PASS application create response requires application_number
+PASS website application DTO does not publish internal field customer_id
+PASS website application DTO does not publish internal field application_id
+PASS website application DTO does not publish internal field customer_site_id
+PASS website application DTO does not publish internal field metering_point_id
+PASS website application DTO does not publish internal field contract_id
+PASS website application DTO does not publish internal field workflow_id
+PASS website application DTO does not publish internal field continuation_job_id
+PASS website application DTO does not publish internal field site_id
+PASS website application DTO does not publish internal field resolution_id
+PASS website application DTO publishes tenant-bound external resource references
+PASS supplier-switch application projection does not expose a raw request UUID
+PASS ErrorEnvelope uses the closed canonical error envelope
+PASS ErrorEnvelope requires canonical nested error details
+PASS ApiError uses the closed canonical error envelope
+PASS ApiError requires canonical nested error details
+PASS ErrorResponse uses the closed canonical error envelope
+PASS ErrorResponse requires canonical nested error details
+PASS MarketPriceErrorEnvelope uses the closed canonical error envelope
+PASS MarketPriceErrorEnvelope requires canonical nested error details
+PASS shared response helper preserves explicit route cache policy
+PASS shared response helper returns X-Request-ID
+PASS shared response helper returns canonical rate-limit headers
+PASS integration auth supports explicit OR scope requirements
+PASS profile-update documents operation-dependent OR scope semantics
+PASS profile-update requires the relevant scope and both scopes when both mutations are submitted
+PASS profile-update runtime uses a closed operation-specific request contract
+PASS profile and facility address updates reject empty mutation objects in OpenAPI
+PASS profile and facility writes remain tenant/customer scoped
+PASS notification read request has one canonical notification_ids field
+PASS notification runtime reads the documented notification_ids field
+PASS notification write requires durable tenant-bound idempotency
+PASS notification runtime response matches the operation-specific OpenAPI data object
+PASS customer event POST uses one closed canonical event request schema
+PASS event writes require durable idempotency and payload conflict detection
+PASS website event route uses the canonical event service
+PASS website customer-event OpenAPI requires Idempotency-Key
+PASS partner event route uses the same canonical event service
+PASS event list returns the canonical versioned response envelope
+PASS event list does not accept an internal customer_id query parameter
+PASS event list documents external_customer_id filtering
+PASS event list OpenAPI does not expose internal customer_id filtering
+PASS event list OpenAPI contains no duplicate parameters after repeatable generation
+PASS legal bundle OpenAPI declares alternative scopes explicitly
+PASS legal bundle runtime accepts either documented read scope
+PASS website GET /api/v1/integration/context 200 documents contract-version header
+PASS website GET /api/v1/integration/context 200 documents request-id header
+PASS website GET /api/v1/integration/context 401 uses the canonical error envelope
+PASS website GET /api/v1/integration/context 401 documents contract-version header
+PASS website GET /api/v1/integration/context 401 documents request-id header
+PASS website GET /api/v1/integration/context 403 uses the canonical error envelope
+PASS website GET /api/v1/integration/context 403 documents contract-version header
+PASS website GET /api/v1/integration/context 403 documents request-id header
+PASS website GET /api/v1/website/public-contracts 200 documents contract-version header
+PASS website GET /api/v1/website/public-contracts 200 documents request-id header
+PASS website GET /api/v1/website/public-contracts 400 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts 400 documents contract-version header
+PASS website GET /api/v1/website/public-contracts 400 documents request-id header
+PASS website GET /api/v1/website/public-contracts 401 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts 401 documents contract-version header
+PASS website GET /api/v1/website/public-contracts 401 documents request-id header
+PASS website GET /api/v1/website/public-contracts 409 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts 409 documents contract-version header
+PASS website GET /api/v1/website/public-contracts 409 documents request-id header
+PASS website GET /api/v1/website/public-contracts 503 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts 503 documents contract-version header
+PASS website GET /api/v1/website/public-contracts 503 documents request-id header
+PASS website GET /api/v1/website/public-contracts/diagnostics 200 documents contract-version header
+PASS website GET /api/v1/website/public-contracts/diagnostics 200 documents request-id header
+PASS website GET /api/v1/website/public-contracts/diagnostics 400 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts/diagnostics 400 documents contract-version header
+PASS website GET /api/v1/website/public-contracts/diagnostics 400 documents request-id header
+PASS website GET /api/v1/website/public-contracts/diagnostics 403 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts/diagnostics 403 documents contract-version header
+PASS website GET /api/v1/website/public-contracts/diagnostics 403 documents request-id header
+PASS website GET /api/v1/website/public-contracts/diagnostics 409 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts/diagnostics 409 documents contract-version header
+PASS website GET /api/v1/website/public-contracts/diagnostics 409 documents request-id header
+PASS website GET /api/v1/website/public-contracts/diagnostics 503 uses the canonical error envelope
+PASS website GET /api/v1/website/public-contracts/diagnostics 503 documents contract-version header
+PASS website GET /api/v1/website/public-contracts/diagnostics 503 documents request-id header
+PASS website GET /api/v1/contracts 200 documents contract-version header
+PASS website GET /api/v1/contracts 200 documents request-id header
+PASS website GET /api/v1/contracts 400 uses the canonical error envelope
+PASS website GET /api/v1/contracts 400 documents contract-version header
+PASS website GET /api/v1/contracts 400 documents request-id header
+PASS website GET /api/v1/contracts 401 uses the canonical error envelope
+PASS website GET /api/v1/contracts 401 documents contract-version header
+PASS website GET /api/v1/contracts 401 documents request-id header
+PASS website GET /api/v1/contracts 403 uses the canonical error envelope
+PASS website GET /api/v1/contracts 403 documents contract-version header
+PASS website GET /api/v1/contracts 403 documents request-id header
+PASS website GET /api/v1/contracts 410 uses the canonical error envelope
+PASS website GET /api/v1/contracts 410 documents contract-version header
+PASS website GET /api/v1/contracts 410 documents request-id header
+PASS website GET /api/v1/contracts 423 uses the canonical error envelope
+PASS website GET /api/v1/contracts 423 documents contract-version header
+PASS website GET /api/v1/contracts 423 documents request-id header
+PASS website GET /api/v1/contracts 429 uses the canonical error envelope
+PASS website GET /api/v1/contracts 429 documents contract-version header
+PASS website GET /api/v1/contracts 429 documents request-id header
+PASS website GET /api/v1/contracts 500 uses the canonical error envelope
+PASS website GET /api/v1/contracts 500 documents contract-version header
+PASS website GET /api/v1/contracts 500 documents request-id header
+PASS website POST /api/v1/website/quote 201 documents contract-version header
+PASS website POST /api/v1/website/quote 201 documents request-id header
+PASS website POST /api/v1/website/quote 400 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 400 documents contract-version header
+PASS website POST /api/v1/website/quote 400 documents request-id header
+PASS website POST /api/v1/website/quote 401 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 401 documents contract-version header
+PASS website POST /api/v1/website/quote 401 documents request-id header
+PASS website POST /api/v1/website/quote 404 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 404 documents contract-version header
+PASS website POST /api/v1/website/quote 404 documents request-id header
+PASS website POST /api/v1/website/quote 409 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 409 documents contract-version header
+PASS website POST /api/v1/website/quote 409 documents request-id header
+PASS website POST /api/v1/website/quote 413 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 413 documents contract-version header
+PASS website POST /api/v1/website/quote 413 documents request-id header
+PASS website POST /api/v1/website/quote 422 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 422 documents contract-version header
+PASS website POST /api/v1/website/quote 422 documents request-id header
+PASS website POST /api/v1/website/quote 500 uses the canonical error envelope
+PASS website POST /api/v1/website/quote 500 documents contract-version header
+PASS website POST /api/v1/website/quote 500 documents request-id header
+PASS website POST /api/v1/website/quote/validate 200 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 200 documents request-id header
+PASS website POST /api/v1/website/quote/validate 400 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 400 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 400 documents request-id header
+PASS website POST /api/v1/website/quote/validate 401 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 401 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 401 documents request-id header
+PASS website POST /api/v1/website/quote/validate 404 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 404 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 404 documents request-id header
+PASS website POST /api/v1/website/quote/validate 409 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 409 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 409 documents request-id header
+PASS website POST /api/v1/website/quote/validate 413 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 413 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 413 documents request-id header
+PASS website POST /api/v1/website/quote/validate 422 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 422 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 422 documents request-id header
+PASS website POST /api/v1/website/quote/validate 500 uses the canonical error envelope
+PASS website POST /api/v1/website/quote/validate 500 documents contract-version header
+PASS website POST /api/v1/website/quote/validate 500 documents request-id header
+PASS website POST /api/v1/website/customer-applications 200 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 200 documents request-id header
+PASS website POST /api/v1/website/customer-applications 400 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 400 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 400 documents request-id header
+PASS website POST /api/v1/website/customer-applications 401 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 401 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 401 documents request-id header
+PASS website POST /api/v1/website/customer-applications 403 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 403 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 403 documents request-id header
+PASS website POST /api/v1/website/customer-applications 404 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 404 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 404 documents request-id header
+PASS website POST /api/v1/website/customer-applications 409 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 409 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 409 documents request-id header
+PASS website POST /api/v1/website/customer-applications 422 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 422 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 422 documents request-id header
+PASS website POST /api/v1/website/customer-applications 503 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-applications 503 documents contract-version header
+PASS website POST /api/v1/website/customer-applications 503 documents request-id header
+PASS website POST /webhooks/contracts.publication.changed 200 documents contract-version header
+PASS website POST /webhooks/contracts.publication.changed 200 documents request-id header
+PASS website POST /api/v1/website/energy-area/resolve 200 documents contract-version header
+PASS website POST /api/v1/website/energy-area/resolve 200 documents request-id header
+PASS website POST /api/v1/website/energy-area/resolve 400 uses the canonical error envelope
+PASS website POST /api/v1/website/energy-area/resolve 400 documents contract-version header
+PASS website POST /api/v1/website/energy-area/resolve 400 documents request-id header
+PASS website POST /api/v1/website/energy-area/resolve 401 uses the canonical error envelope
+PASS website POST /api/v1/website/energy-area/resolve 401 documents contract-version header
+PASS website POST /api/v1/website/energy-area/resolve 401 documents request-id header
+PASS website POST /api/v1/website/energy-area/resolve 413 uses the canonical error envelope
+PASS website POST /api/v1/website/energy-area/resolve 413 documents contract-version header
+PASS website POST /api/v1/website/energy-area/resolve 413 documents request-id header
+PASS website POST /api/v1/website/energy-area/resolve 422 uses the canonical error envelope
+PASS website POST /api/v1/website/energy-area/resolve 422 documents contract-version header
+PASS website POST /api/v1/website/energy-area/resolve 422 documents request-id header
+PASS website POST /api/v1/website/energy-area/resolve 500 uses the canonical error envelope
+PASS website POST /api/v1/website/energy-area/resolve 500 documents contract-version header
+PASS website POST /api/v1/website/energy-area/resolve 500 documents request-id header
+PASS website GET /api/v1/website/switch-status 200 documents contract-version header
+PASS website GET /api/v1/website/switch-status 200 documents request-id header
+PASS website GET /api/v1/website/switch-status 400 uses the canonical error envelope
+PASS website GET /api/v1/website/switch-status 400 documents contract-version header
+PASS website GET /api/v1/website/switch-status 400 documents request-id header
+PASS website GET /api/v1/website/switch-status 404 uses the canonical error envelope
+PASS website GET /api/v1/website/switch-status 404 documents contract-version header
+PASS website GET /api/v1/website/switch-status 404 documents request-id header
+PASS website GET /api/v1/website/switch-status 500 uses the canonical error envelope
+PASS website GET /api/v1/website/switch-status 500 documents contract-version header
+PASS website GET /api/v1/website/switch-status 500 documents request-id header
+PASS website GET /api/v1/openapi/website-integration-v1.json 200 documents contract-version header
+PASS website GET /api/v1/openapi/website-integration-v1.json 200 documents request-id header
+PASS website GET /api/v1/openapi/customer-portal-v1.json 200 documents contract-version header
+PASS website GET /api/v1/openapi/customer-portal-v1.json 200 documents request-id header
+PASS website POST /api/v1/website/market-price/current 200 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 200 documents request-id header
+PASS website POST /api/v1/website/market-price/current 400 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 400 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 400 documents request-id header
+PASS website POST /api/v1/website/market-price/current 401 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 401 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 401 documents request-id header
+PASS website POST /api/v1/website/market-price/current 403 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 403 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 403 documents request-id header
+PASS website POST /api/v1/website/market-price/current 404 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 404 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 404 documents request-id header
+PASS website POST /api/v1/website/market-price/current 409 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 409 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 409 documents request-id header
+PASS website POST /api/v1/website/market-price/current 413 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 413 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 413 documents request-id header
+PASS website POST /api/v1/website/market-price/current 429 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 429 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 429 documents request-id header
+PASS website POST /api/v1/website/market-price/current 500 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 500 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 500 documents request-id header
+PASS website POST /api/v1/website/market-price/current 503 uses the canonical error envelope
+PASS website POST /api/v1/website/market-price/current 503 documents contract-version header
+PASS website POST /api/v1/website/market-price/current 503 documents request-id header
+PASS website GET /api/v1/website/portfolio-prices 200 documents contract-version header
+PASS website GET /api/v1/website/portfolio-prices 200 documents request-id header
+PASS website GET /api/v1/website/portfolio-prices 400 uses the canonical error envelope
+PASS website GET /api/v1/website/portfolio-prices 400 documents contract-version header
+PASS website GET /api/v1/website/portfolio-prices 400 documents request-id header
+PASS website GET /api/v1/website/portfolio-prices 401 uses the canonical error envelope
+PASS website GET /api/v1/website/portfolio-prices 401 documents contract-version header
+PASS website GET /api/v1/website/portfolio-prices 401 documents request-id header
+PASS website GET /api/v1/website/portfolio-prices 403 uses the canonical error envelope
+PASS website GET /api/v1/website/portfolio-prices 403 documents contract-version header
+PASS website GET /api/v1/website/portfolio-prices 403 documents request-id header
+PASS website GET /api/v1/website/portfolio-prices 404 uses the canonical error envelope
+PASS website GET /api/v1/website/portfolio-prices 404 documents contract-version header
+PASS website GET /api/v1/website/portfolio-prices 404 documents request-id header
+PASS website GET /api/v1/website/portfolio-prices 422 uses the canonical error envelope
+PASS website GET /api/v1/website/portfolio-prices 422 documents contract-version header
+PASS website GET /api/v1/website/portfolio-prices 422 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 200 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 200 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 400 uses the canonical error envelope
+PASS website GET /api/v1/website/legal-bundle 400 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 400 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 401 uses the canonical error envelope
+PASS website GET /api/v1/website/legal-bundle 401 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 401 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 403 uses the canonical error envelope
+PASS website GET /api/v1/website/legal-bundle 403 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 403 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 404 uses the canonical error envelope
+PASS website GET /api/v1/website/legal-bundle 404 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 404 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 422 uses the canonical error envelope
+PASS website GET /api/v1/website/legal-bundle 422 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 422 documents request-id header
+PASS website GET /api/v1/website/legal-bundle 503 uses the canonical error envelope
+PASS website GET /api/v1/website/legal-bundle 503 documents contract-version header
+PASS website GET /api/v1/website/legal-bundle 503 documents request-id header
+PASS website POST /api/v1/website/customer-events 200 documents contract-version header
+PASS website POST /api/v1/website/customer-events 200 documents request-id header
+PASS website POST /api/v1/website/customer-events 400 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-events 400 documents contract-version header
+PASS website POST /api/v1/website/customer-events 400 documents request-id header
+PASS website POST /api/v1/website/customer-events 401 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-events 401 documents contract-version header
+PASS website POST /api/v1/website/customer-events 401 documents request-id header
+PASS website POST /api/v1/website/customer-events 403 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-events 403 documents contract-version header
+PASS website POST /api/v1/website/customer-events 403 documents request-id header
+PASS website POST /api/v1/website/customer-events 409 uses the canonical error envelope
+PASS website POST /api/v1/website/customer-events 409 documents contract-version header
+PASS website POST /api/v1/website/customer-events 409 documents request-id header
+PASS website GET /api/v1/openapi/release-manifest.json 200 documents contract-version header
+PASS website GET /api/v1/openapi/release-manifest.json 200 documents request-id header
+PASS website GET /api/v1/public-contracts 200 documents contract-version header
+PASS website GET /api/v1/public-contracts 200 documents request-id header
+PASS website GET /api/v1/public-contracts 400 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 400 documents contract-version header
+PASS website GET /api/v1/public-contracts 400 documents request-id header
+PASS website GET /api/v1/public-contracts 401 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 401 documents contract-version header
+PASS website GET /api/v1/public-contracts 401 documents request-id header
+PASS website GET /api/v1/public-contracts 403 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 403 documents contract-version header
+PASS website GET /api/v1/public-contracts 403 documents request-id header
+PASS website GET /api/v1/public-contracts 409 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 409 documents contract-version header
+PASS website GET /api/v1/public-contracts 409 documents request-id header
+PASS website GET /api/v1/public-contracts 410 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 410 documents contract-version header
+PASS website GET /api/v1/public-contracts 410 documents request-id header
+PASS website GET /api/v1/public-contracts 423 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 423 documents contract-version header
+PASS website GET /api/v1/public-contracts 423 documents request-id header
+PASS website GET /api/v1/public-contracts 429 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 429 documents contract-version header
+PASS website GET /api/v1/public-contracts 429 documents request-id header
+PASS website GET /api/v1/public-contracts 500 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 500 documents contract-version header
+PASS website GET /api/v1/public-contracts 500 documents request-id header
+PASS website GET /api/v1/public-contracts 503 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts 503 documents contract-version header
+PASS website GET /api/v1/public-contracts 503 documents request-id header
+PASS website GET /api/v1/public-contracts/diagnostics 200 documents contract-version header
+PASS website GET /api/v1/public-contracts/diagnostics 200 documents request-id header
+PASS website GET /api/v1/public-contracts/diagnostics 400 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts/diagnostics 400 documents contract-version header
+PASS website GET /api/v1/public-contracts/diagnostics 400 documents request-id header
+PASS website GET /api/v1/public-contracts/diagnostics 403 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts/diagnostics 403 documents contract-version header
+PASS website GET /api/v1/public-contracts/diagnostics 403 documents request-id header
+PASS website GET /api/v1/public-contracts/diagnostics 409 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts/diagnostics 409 documents contract-version header
+PASS website GET /api/v1/public-contracts/diagnostics 409 documents request-id header
+PASS website GET /api/v1/public-contracts/diagnostics 503 uses the canonical error envelope
+PASS website GET /api/v1/public-contracts/diagnostics 503 documents contract-version header
+PASS website GET /api/v1/public-contracts/diagnostics 503 documents request-id header
+PASS website GET /api/v1/website/customer-applications/{application_number} 200 documents contract-version header
+PASS website GET /api/v1/website/customer-applications/{application_number} 200 documents request-id header
+PASS website GET /api/v1/website/customer-applications/{application_number} 404 uses the canonical error envelope
+PASS website GET /api/v1/website/customer-applications/{application_number} 404 documents contract-version header
+PASS website GET /api/v1/website/customer-applications/{application_number} 404 documents request-id header
+PASS website GET /api/v1/openapi/2026-08-02.1/website-integration-v1.json 200 documents contract-version header
+PASS website GET /api/v1/openapi/2026-08-02.1/website-integration-v1.json 200 documents request-id header
+PASS website GET /api/v1/openapi/2026-08-02.1/customer-portal-v1.json 200 documents contract-version header
+PASS website GET /api/v1/openapi/2026-08-02.1/customer-portal-v1.json 200 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 200 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 200 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 400 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 400 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 401 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 401 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 403 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 403 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 409 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 409 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 422 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 422 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 429 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 429 documents request-id header
+PASS customer portal POST /api/v1/customer-portal/sync 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer-portal/sync 500 documents contract-version header
+PASS customer portal POST /api/v1/customer-portal/sync 500 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 200 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 400 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 401 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 403 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 409 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 422 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 429 documents request-id header
+PASS customer portal GET /api/v1/customer/contracts 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/contracts 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/contracts 500 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 200 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 400 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 401 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 403 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 409 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 422 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 429 documents request-id header
+PASS customer portal GET /api/v1/customer/documents 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/documents 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/documents 500 documents request-id header
+PASS customer portal GET /api/v1/customer/events 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 200 documents request-id header
+PASS customer portal GET /api/v1/customer/events 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 400 documents request-id header
+PASS customer portal GET /api/v1/customer/events 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 401 documents request-id header
+PASS customer portal GET /api/v1/customer/events 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 403 documents request-id header
+PASS customer portal GET /api/v1/customer/events 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 409 documents request-id header
+PASS customer portal GET /api/v1/customer/events 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 422 documents request-id header
+PASS customer portal GET /api/v1/customer/events 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 429 documents request-id header
+PASS customer portal GET /api/v1/customer/events 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/events 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/events 500 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 200 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 400 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 401 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 403 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 409 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 422 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 429 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices 500 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 200 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 400 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 401 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 403 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 409 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 422 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 429 documents request-id header
+PASS customer portal GET /api/v1/customer/invoices/{id} 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/invoices/{id} 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/invoices/{id} 500 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 200 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 400 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 401 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 403 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 409 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 422 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 429 documents request-id header
+PASS customer portal GET /api/v1/customer/legal-acceptances 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/legal-acceptances 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/legal-acceptances 500 documents request-id header
+PASS customer portal GET /api/v1/customer/me 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 200 documents request-id header
+PASS customer portal GET /api/v1/customer/me 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 400 documents request-id header
+PASS customer portal GET /api/v1/customer/me 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 401 documents request-id header
+PASS customer portal GET /api/v1/customer/me 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 403 documents request-id header
+PASS customer portal GET /api/v1/customer/me 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 409 documents request-id header
+PASS customer portal GET /api/v1/customer/me 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 422 documents request-id header
+PASS customer portal GET /api/v1/customer/me 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 429 documents request-id header
+PASS customer portal GET /api/v1/customer/me 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/me 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/me 500 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 200 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 400 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 401 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 403 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 409 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 422 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 429 documents request-id header
+PASS customer portal GET /api/v1/customer/metering-values 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/metering-values 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/metering-values 500 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 200 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 200 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 201 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 201 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 400 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 400 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 401 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 401 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 403 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 403 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 409 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 409 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 422 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 422 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 429 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 429 documents request-id header
+PASS customer portal POST /api/v1/customer/move-out 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/move-out 500 documents contract-version header
+PASS customer portal POST /api/v1/customer/move-out 500 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 200 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 400 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 401 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 403 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 409 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 422 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 429 documents request-id header
+PASS customer portal GET /api/v1/customer/notifications 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/notifications 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/notifications 500 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 200 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 200 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 400 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 400 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 401 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 401 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 403 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 403 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 409 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 409 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 422 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 422 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 429 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 429 documents request-id header
+PASS customer portal POST /api/v1/customer/notifications/read 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/notifications/read 500 documents contract-version header
+PASS customer portal POST /api/v1/customer/notifications/read 500 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 200 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 400 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 401 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 403 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 409 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 422 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 429 documents request-id header
+PASS customer portal GET /api/v1/customer/portal-bundle 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/portal-bundle 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/portal-bundle 500 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 200 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 200 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 400 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 400 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 401 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 401 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 403 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 403 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 409 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 409 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 422 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 422 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 429 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 429 documents request-id header
+PASS customer portal POST /api/v1/customer/portal-bundle 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/portal-bundle 500 documents contract-version header
+PASS customer portal POST /api/v1/customer/portal-bundle 500 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 200 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 400 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 401 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 403 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 409 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 422 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 429 documents request-id header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/powers-of-attorney 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/powers-of-attorney 500 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 200 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 200 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 400 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 400 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 401 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 401 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 403 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 403 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 409 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 409 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 422 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 422 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 429 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 429 documents request-id header
+PASS customer portal POST /api/v1/customer/profile-update 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/profile-update 500 documents contract-version header
+PASS customer portal POST /api/v1/customer/profile-update 500 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 200 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 200 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 400 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 400 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 401 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 401 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 403 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 403 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 409 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 409 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 422 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 422 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 429 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 429 documents request-id header
+PASS customer portal GET /api/v1/customer/sites 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/customer/sites 500 documents contract-version header
+PASS customer portal GET /api/v1/customer/sites 500 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 200 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 200 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 400 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 400 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 401 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 401 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 403 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 403 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 409 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 409 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 422 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 422 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 429 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 429 documents request-id header
+PASS customer portal POST /api/v1/customer/sync 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/customer/sync 500 documents contract-version header
+PASS customer portal POST /api/v1/customer/sync 500 documents request-id header
+PASS customer portal GET /api/v1/events 200 documents contract-version header
+PASS customer portal GET /api/v1/events 200 documents request-id header
+PASS customer portal GET /api/v1/events 400 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 400 documents contract-version header
+PASS customer portal GET /api/v1/events 400 documents request-id header
+PASS customer portal GET /api/v1/events 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 401 documents contract-version header
+PASS customer portal GET /api/v1/events 401 documents request-id header
+PASS customer portal GET /api/v1/events 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 403 documents contract-version header
+PASS customer portal GET /api/v1/events 403 documents request-id header
+PASS customer portal GET /api/v1/events 409 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 409 documents contract-version header
+PASS customer portal GET /api/v1/events 409 documents request-id header
+PASS customer portal GET /api/v1/events 422 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 422 documents contract-version header
+PASS customer portal GET /api/v1/events 422 documents request-id header
+PASS customer portal GET /api/v1/events 429 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 429 documents contract-version header
+PASS customer portal GET /api/v1/events 429 documents request-id header
+PASS customer portal GET /api/v1/events 500 uses the canonical error envelope
+PASS customer portal GET /api/v1/events 500 documents contract-version header
+PASS customer portal GET /api/v1/events 500 documents request-id header
+PASS customer portal POST /api/v1/events 200 documents contract-version header
+PASS customer portal POST /api/v1/events 200 documents request-id header
+PASS customer portal POST /api/v1/events 400 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 400 documents contract-version header
+PASS customer portal POST /api/v1/events 400 documents request-id header
+PASS customer portal POST /api/v1/events 401 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 401 documents contract-version header
+PASS customer portal POST /api/v1/events 401 documents request-id header
+PASS customer portal POST /api/v1/events 403 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 403 documents contract-version header
+PASS customer portal POST /api/v1/events 403 documents request-id header
+PASS customer portal POST /api/v1/events 409 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 409 documents contract-version header
+PASS customer portal POST /api/v1/events 409 documents request-id header
+PASS customer portal POST /api/v1/events 422 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 422 documents contract-version header
+PASS customer portal POST /api/v1/events 422 documents request-id header
+PASS customer portal POST /api/v1/events 429 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 429 documents contract-version header
+PASS customer portal POST /api/v1/events 429 documents request-id header
+PASS customer portal POST /api/v1/events 500 uses the canonical error envelope
+PASS customer portal POST /api/v1/events 500 documents contract-version header
+PASS customer portal POST /api/v1/events 500 documents request-id header
+PASS customer portal GET /api/v1/integration/context 200 documents contract-version header
+PASS customer portal GET /api/v1/integration/context 200 documents request-id header
+PASS customer portal GET /api/v1/integration/context 401 uses the canonical error envelope
+PASS customer portal GET /api/v1/integration/context 401 documents contract-version header
+PASS customer portal GET /api/v1/integration/context 401 documents request-id header
+PASS customer portal GET /api/v1/integration/context 403 uses the canonical error envelope
+PASS customer portal GET /api/v1/integration/context 403 documents contract-version header
+PASS customer portal GET /api/v1/integration/context 403 documents request-id header
+PASS customer portal GET /api/v1/openapi/customer-portal-v1.json 200 documents contract-version header
+PASS customer portal GET /api/v1/openapi/customer-portal-v1.json 200 documents request-id header
+
+Canonical external API runtime/OpenAPI parity passed.

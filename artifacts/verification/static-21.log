@@ -1,0 +1,57 @@
+PASS gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid) är service-only
+PASS gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid) är service-only
+PASS gridex_publish_contract_version(uuid,uuid,text,jsonb,jsonb,uuid) är service-only
+PASS gridex_publish_internal_contract_version(uuid,uuid,uuid) är service-only
+PASS gridex_publish_contract_channel(uuid,uuid,text,uuid) är service-only
+PASS gridex_unpublish_contract_channel(uuid,uuid,text,uuid) är service-only
+PASS gridex_pause_contract_channels(uuid,uuid,uuid) är service-only
+PASS gridex_close_contract_product(uuid,uuid,uuid,text) är service-only
+PASS gridex_archive_contract_product(uuid,uuid,uuid) är service-only
+PASS gridex_preview_delete_unused_contract(uuid,uuid) är service-only
+PASS gridex_delete_unused_contract(uuid,uuid,uuid) är service-only
+PASS gridex_remove_internal_contract_offer(uuid,uuid,text,uuid) är service-only
+PASS Ny SECURITY DEFINER-funktion har explicit search_path
+PASS gridex_contract_delete_dependency_graph_v2(uuid,uuid) är service-only
+PASS gridex_preview_delete_unused_contract_v2(uuid,uuid,uuid) är service-only
+PASS gridex_delete_unused_contract_v2(uuid,uuid,uuid,text) är service-only
+PASS gridex_remove_internal_contract_offer_v2(uuid,uuid,text,uuid,text) är service-only
+PASS Delete v2 SECURITY DEFINER-funktioner har explicit search_path
+PASS Delete v2 upprepar dependency graph under advisory- och radlås
+PASS Delete v2 har canonical idempotent resultat
+PASS Produkt, immutable version, publicering och quote får explicit canonical energiriktning och prisidentiteter
+PASS Kundansökan binds till publiceringsversion, prisbok och energiriktning
+PASS Databasen stoppar quote/application/contract mismatch
+PASS Databasen håller energiriktningen identisk genom hela immutable publiceringsgrafen
+PASS public_contract_offers använder endast kolumner som finns i canonical schemat
+PASS Public-offer-triggern följer canonical version/source/metadata utan saknad commercial_snapshot-kolumn
+PASS Nya quotes kräver fullständig canonical produkt-, pris-, juridik- och publiceringsidentitet
+PASS Ansökan och kundavtal kan inte utelämna quote-bindningens canonical identiteter
+PASS Arkiverad produkt är terminal och hänvisar till efterföljare
+PASS Audit normaliserar actor och request/correlation context
+PASS Kontrakts-RPC skickar request context till databasen
+PASS UI-statusmaskinen har inga actions eller övergångar från archived
+PASS Server action stoppar versionering av arkiverat avtal
+PASS Adminmutation verifierar sessionens tenant före service-role-RPC
+PASS Quote binder contract_product_id
+PASS Quote binder contract_product_version_id
+PASS Quote binder contract_publication_version_id
+PASS Quote binder price_plan_id
+PASS Quote binder price_plan_version_id
+PASS Quote binder price_book_id
+PASS Quote binder legal_bundle_version_id
+PASS Quote binder energy_direction
+PASS Quote valideras före atomisk konsumering och ansökningscommit
+PASS Kundavtal skapas med publicerad energiriktning
+PASS Kundavtalsrepository saknar hårdkodad consumption
+PASS Billing underlay saknar hårdkodad consumption
+PASS Företagssidan använder riktig server-side pagination med total count
+PASS Globalt 5000-tak är borttaget
+PASS Diagnostik hämtar valt avtal direkt med tenant och ID
+PASS Publikt ansökningssvar exponerar energiriktning
+PASS Public Contract DTO modellerar consumption/production och settlement
+PASS Website OpenAPI har höjd kontraktsversion
+PASS Website OpenAPI modellerar energiriktning och production pricing
+PASS Website OpenAPI har canonical strukturerad felmodell
+PASS GET /website/legal-bundle är enda canonical legal route
+PASS Gammal externa kontraktsversionen är borttagen från website OpenAPI
+Gridex contract security/energy-direction regression passed.

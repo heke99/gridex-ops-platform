@@ -39,9 +39,12 @@ mustInclude(chain, 'export async function ensureAuthorizationScopes', 'idempoten
 mustInclude(chain, 'export async function ensureAuthorizationDocumentFromPowerOfAttorney', 'full chain helper')
 mustInclude(chain, 'export async function resolveAuthorizationDocumentIdForPowerOfAttorney', 'read-only chain resolution for downstream flows')
 
-// Manual admin intake produces the same chain as website intake.
-mustInclude(adminActions, 'ensureAuthorizationDocumentFromPowerOfAttorney', 'manual intake POA must create authorization document + scopes')
-mustInclude(adminActions, 'ensureAuthorizationScopes', 'uploaded intake POA must create authorization scopes')
+// Manual admin intake delegates atomically to canonical_onboard_customer_graph,
+// whose transaction creates the POA, document and exact authorization scope.
+mustInclude(adminActions, 'onboardCustomerGraph', 'manual intake must use canonical atomic onboarding')
+mustInclude(adminActions, 'authorization_document:', 'manual intake must pass the authorization document command')
+mustInclude('supabase/migrations/20260720110000_canonical_customer_onboarding_transaction.sql', "'public.customer_authorization_documents'::regclass", 'canonical onboarding creates authorization document')
+mustInclude('supabase/migrations/20260720110000_canonical_customer_onboarding_transaction.sql', "'public.authorization_scopes'::regclass", 'canonical onboarding creates authorization scopes')
 
 // Website chain remains intact (canonical implementation).
 mustInclude(website, 'ensureWebsiteAuthorizationChainFromPowerOfAttorney', 'website chain implementation')

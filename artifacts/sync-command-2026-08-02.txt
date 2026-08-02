@@ -1,0 +1,10 @@
+set -euo pipefail
+ZIP="/Users/hekmath/Downloads/gridex-ops-production-correction-2026-08-02-changed-files.zip"
+TARGET="/Users/hekmath/Projects/gridex-ops-platform"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+unzip -q "$ZIP" -d "$TMP"
+rsync -a --checksum --itemize-changes "$TMP/" "$TARGET/"
+cd "$TARGET"
+npm run db:migrations:check
+npm run api:error-registry

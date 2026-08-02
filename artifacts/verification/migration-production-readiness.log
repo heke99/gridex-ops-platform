@@ -1,0 +1,9 @@
+
+> gridex-ops-platform@0.1.0 db:migrations:production-readiness
+> node scripts/check-production-migration-readiness.cjs
+
+Migration integrity check passed (344 files; 248 version groups; checksums verified).
+Migration inventory generated: 344 SQL files, 251 ledger-eligible versions.
+artifacts/migration-inventory-2026-08-02.json
+artifacts/canonical-migration-manifest-after-verification.sql
+PRODUCTION MIGRATION READINESS FAILED: historical duplicate Supabase migration versions remain: 20260612193000 (2 files), 20260616123000 (2 files), 20260727150000 (2 files). Do not repair the live ledger until a clean reconstruction proves a canonical alias/normalization plan.

@@ -94,6 +94,7 @@ export type PublicContractLegal = {
   privacy_policy_version?: unknown
   withdrawal_version?: unknown
   power_of_attorney_version?: unknown
+  power_of_attorney_version_id: string | null
   price_terms_version?: unknown
   terms_required?: unknown
   privacy_policy_required?: unknown
@@ -511,6 +512,31 @@ export function serializePublicContractLegal(input: {
     )
   }
 
+  const powerOfAttorneyModule = modules.find(
+    (moduleItem) => moduleItem.module_key === 'power_of_attorney',
+  )
+  const suppliedPowerOfAttorneyVersionId = nullableUuid(
+    legal.power_of_attorney_version_id,
+    'legal.power_of_attorney_version_id',
+  )
+  if (
+    suppliedPowerOfAttorneyVersionId &&
+    suppliedPowerOfAttorneyVersionId !== powerOfAttorneyModule?.id
+  ) {
+    throw new PublicContractSerializationError(
+      PUBLIC_CONTRACT_ERROR_CODES.legalModuleVersionInvalid,
+      'legal.power_of_attorney_version_id',
+      'Power-of-attorney version id must reference the canonical module-version row',
+    )
+  }
+  if (legal.power_of_attorney_required === true && !powerOfAttorneyModule) {
+    throw new PublicContractSerializationError(
+      PUBLIC_CONTRACT_ERROR_CODES.legalModuleVersionInvalid,
+      'legal.power_of_attorney_version_id',
+      'A required power of attorney must have a canonical module version',
+    )
+  }
+
   const result: PublicContractLegal = {
     legal_bundle_reference:
       nullableText(legal.legal_bundle_reference) ??
@@ -521,6 +547,7 @@ export function serializePublicContractLegal(input: {
     immutable: true,
     required_modules: modules.map((moduleItem) => moduleItem.module_key),
     module_versions: modules,
+    power_of_attorney_version_id: powerOfAttorneyModule?.id ?? null,
   }
   for (const field of LEGAL_COMPATIBILITY_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(legal, field)) {

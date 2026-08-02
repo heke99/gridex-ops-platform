@@ -1,0 +1,6 @@
+npm-ci	FAIL	1	npm ci
+lint	FAIL	127	npm run lint
+typecheck	FAIL	2	npm run typecheck
+test	FAIL	127	npm test
+build	FAIL	1	npm run build
+migration-production-readiness	FAIL	1	npm run db:migrations:production-readiness

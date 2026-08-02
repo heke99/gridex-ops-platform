@@ -1,0 +1,22 @@
+1	PASS	0	node scripts/check-migration-versions.cjs
+2	PASS	0	node scripts/check-public-contract-legal-migration.cjs
+3	PASS	0	node scripts/check-public-api-contract.cjs
+4	PASS	0	node scripts/check-openapi-runtime-parity.cjs
+5	PASS	0	node scripts/check-api-documentation-version.cjs
+6	PASS	0	node scripts/check-api-documentation-examples.cjs
+7	PASS	0	node scripts/check-shared-openapi-components.cjs
+8	PASS	0	node scripts/check-public-contract-runtime-openapi.cjs
+9	PASS	0	node scripts/canonical-external-api-runtime-parity.cjs
+10	PASS	0	node scripts/verify-openapi-release.cjs
+11	PASS	0	node scripts/ediel-production-send-guard-regression.cjs
+12	PASS	0	node scripts/ediel-utilts-reason-regression.cjs
+13	PASS	0	node scripts/energy-resolver-grid-owner-regression.cjs
+14	PASS	0	node scripts/gridex-website-application-idempotency-hardening-regression.cjs
+15	PASS	0	node scripts/gridex-poa-authorization-chain-regression.cjs
+16	PASS	0	node scripts/gridex-communication-source-of-truth-regression.cjs
+17	PASS	0	node scripts/gridex-launch-regression.cjs billing-readiness-regression
+18	PASS	0	node scripts/gridex-contract-go-live-regression.cjs
+19	PASS	0	node scripts/gridex-contract-channel-publication-regression.cjs
+20	PASS	0	node scripts/gridex-contract-commercial-selection-regression.cjs
+21	PASS	0	node scripts/gridex-contract-security-energy-direction-regression.cjs
+22	PASS	0	node scripts/gridex-single-api-key-tenant-integration-regression.cjs

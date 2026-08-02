@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-01.2.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-02.1.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
@@ -385,7 +385,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }`;
 
 const marketReferenceExample = `{
@@ -433,7 +433,7 @@ const marketPriceErrorExample = `{
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }`;
 
 const marketPriceErrors = [
@@ -644,7 +644,7 @@ const applicationResponse = `{
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }
 
 # accepted betyder att canonical kund/site/avtal/juridiksnapshot och quote
@@ -675,7 +675,7 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }
 
 Vanliga 422-koder:
@@ -853,7 +853,7 @@ const webhookPayload = `{
     "application_number": "APP-20260801-0001",
     "status": "application_received"
   },
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }`;
 
 const webhookHeaders = `X-Gridex-Event-Id: event_123
@@ -1253,7 +1253,10 @@ export default function CustomerPortalApiDocsPage() {
             <code>GET /api/v1/website/legal-bundle</code>. Tenant härleds från
             API-nyckeln; endpointen accepterar inget <code>company_id</code>.
             Den äldre sökvägen <code>/website/legal/bundle</code> finns inte och
-            ska inte användas.
+            ska inte användas. Canonical scope är <code>website_legal.read</code>.
+            <code>website_contracts.read</code> accepteras endast som deprecated
+            V1-kompatibilitet till och med kontraktsversion 2026-10-31.1 och tas
+            bort i nästa majorversion.
           </p>
           <p>
             Juridiken i <code>legal</code> är OPS source of truth. Visa
@@ -1573,12 +1576,23 @@ export default function CustomerPortalApiDocsPage() {
             <li><code>api</code>: separat partnerfeed via <code>GET /api/v1/public-contracts</code> och scope <code>api_contracts.read</code>. Diagnostik använder <code>GET /api/v1/public-contracts/diagnostics</code> och <code>api_contracts.diagnostics</code>.</li>
           </ul>
           <p>
-            Revision, ETag och cache är bundna till <code>tenant + channel</code>.
-            Skicka <code>If-None-Match</code> med föregående ETag; oförändrad feed
-            ger <code>304 Not Modified</code>. Publish, unpublish, pause,
-            republish, archive, delete samt publiceringspåverkande pris-, juridik-
-            och avgiftsändringar höjer revisionen.
+            Public-contracts läser och validerar alltid hela den aktuella feeden
+            innan en villkorad respons avgörs. ETag är en SHA-256-fingerprint av
+            tenant, kanal, kundtyp, schemasversion och canonical JSON för den
+            faktiska representationen. Svaret använder <code>private, no-store,
+            max-age=0</code>. Publication revision och webhook är operativa
+            signaler, men korrektheten för <code>valid_from</code>,
+            <code>valid_to</code> och synlighet beror aldrig enbart på trigger
+            eller cron.
           </p>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+            Tenantens backend måste lagra senaste fullständigt verifierade feed i
+            ett hållbart server-side lager. Timeout, 5xx, ogiltig JSON,
+            schemasfel eller partiell mappning får inte ersätta snapshoten. En
+            tom feed får endast ersätta tidigare data när svaret uttryckligen
+            anger <code>feed_state=canonical_empty</code> och en auktoriserad
+            <code>empty_feed_authorization</code>.
+          </div>
 
           <h3 className="mt-6 text-lg font-bold text-slate-900">Pris- och elområdesansvar</h3>
           <p>
@@ -1709,9 +1723,13 @@ export default function CustomerPortalApiDocsPage() {
             Ett publicerat avtal får aldrig blanda moduler från olika bundles.
             Klienten ska visa och lagra juridiken från denna snapshot vid
             acceptans och ska inte ersätta den med den senast publicerade
-            juridikversionen. Nya publiceringar kräver UUID. Godkända historiska
-            undantag serialiseras uttryckligen som <code>null</code>; egenskapen
-            utelämnas aldrig.
+            juridikversionen. <code>legal.power_of_attorney_version_id</code> är
+            samma UUID som <code>module_versions[].id</code> för raden där
+            <code>module_key=power_of_attorney</code>. Ett
+            <code>document_reference</code> får aldrig användas som
+            <code>textVersionId</code>. Nya publiceringar kräver UUID. Godkända
+            historiska undantag serialiseras uttryckligen som <code>null</code>;
+            egenskapen utelämnas aldrig.
           </p>
         </Section>
 
@@ -1731,8 +1749,8 @@ export default function CustomerPortalApiDocsPage() {
               <tbody>
                 <tr className="border-b"><td className="py-2 font-mono text-xs">x-gridex-contract-version</td><td>Samma canonical kontraktsversion som response metadata, integration context, OpenAPI info.version och release manifest.</td></tr>
                 <tr className="border-b"><td className="py-2 font-mono text-xs">X-Request-ID</td><td>Korrelations-ID för anropet. Spara värdet och ange det vid felsökning mot Gridex OPS.</td></tr>
-                <tr className="border-b"><td className="py-2 font-mono text-xs">ETag</td><td>Revision/hash för resursen. Skicka tillbaka i If-None-Match; 304 betyder att cachad body fortfarande gäller.</td></tr>
-                <tr className="border-b"><td className="py-2 font-mono text-xs">Cache-Control</td><td>Public contracts är private och måste revalideras. OpenAPI får publik kort cache med stale-while-revalidate.</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">ETag</td><td>Hash över den faktiska validerade representationen. 304 kan endast returneras efter att aktuell feed har byggts och matchat exakt.</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">Cache-Control</td><td>Public contracts och current OpenAPI använder no-store. Versionsbundna OpenAPI-artefakter är immutable i ett år.</td></tr>
                 <tr className="border-b"><td className="py-2 font-mono text-xs">Content-Type</td><td>application/json; OpenAPI publiceras med UTF-8.</td></tr>
                 <tr><td className="py-2 font-mono text-xs">X-RateLimit-*</td><td>Aktuell gräns, kvarvarande anrop och reset-tid för tenantens API-klient.</td></tr>
               </tbody>

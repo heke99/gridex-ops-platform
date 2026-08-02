@@ -18,6 +18,7 @@ type PublicContractFailureCode =
   | 'EXTERNAL_TENANT_REFERENCE_MISSING'
   | 'TENANT_NOT_OPERATIONALLY_READY'
   | 'PUBLICATION_GRAPH_INCOMPLETE'
+  | 'PUBLIC_CONTRACT_FEED_INCONSISTENT'
   | 'PUBLIC_CONTRACT_SCHEMA_OUTDATED'
   | 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE'
 
@@ -63,6 +64,16 @@ export function classifyPublicContractsError(
   }
 
   const record = errorRecord(error)
+  if (record.code === 'PUBLIC_CONTRACT_FEED_INCONSISTENT') {
+    return {
+      status: 503,
+      code: 'PUBLIC_CONTRACT_FEED_INCONSISTENT',
+      message:
+        'Det kanoniska avtalsflödet är tillfälligt inkonsekvent. Ingen partiell lista returneras.',
+      databaseCode: null,
+      path: null,
+    }
+  }
   const databaseCode =
     typeof record.code === 'string' && record.code.trim()
       ? record.code.trim()

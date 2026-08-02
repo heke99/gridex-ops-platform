@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-01.2'
+const version = '2026-08-02.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-01.2.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-02.1.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -1711,7 +1711,7 @@ portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
   portal.paths['/api/v1/customer/move-out'].post.responses['200']
 
 
-// Runtime/OpenAPI hardening for release 2026-08-01.2. These overrides are
+// Runtime/OpenAPI hardening for release 2026-08-02.1. These overrides are
 // deliberately placed after legacy schema construction so the public contract
 // has one source of truth even while deprecated components remain resolvable.
 for (const document of [website, portal]) {

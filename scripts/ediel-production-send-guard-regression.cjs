@@ -13,7 +13,7 @@ const actions = read('app/admin/ediel/route-readiness/actions.ts')
 const migration = read('supabase/migrations/20260621143000_company_route_materialization_production_readiness.sql')
 
 assert(approval.includes('getProductionSendApprovalBlocker'), 'production send approval blocker helper exists')
-assert(approval.includes('production_send_locked'), 'production approval helper returns production_send_locked')
+assert(approval.includes('canonical_production_state_missing') && approval.includes('canonical_production_not_live') && approval.includes('first_live_send_approval_required'), 'production approval helper returns canonical fail-closed production-state blockers')
 assert(guard.includes('const productionApprovalBlocker = await getProductionSendApprovalBlocker') && guard.indexOf('const productionApprovalBlocker = await getProductionSendApprovalBlocker') < guard.indexOf('const routeContract = await evaluateEdielRouteContract'), 'outbound readiness checks production lock before route contract send')
 assert(send.includes('getEdielOutboundReadinessBlocker'), 'send path uses outbound readiness guard before SMTP')
 assert(routeContract.includes('receiver_certificate_missing') && routeContract.includes('certificateRequired'), 'route contract blocks missing S/MIME receiver certificate')

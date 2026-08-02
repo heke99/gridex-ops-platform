@@ -1,0 +1,5 @@
+
+> gridex-ops-platform@0.1.0 test
+> vitest run
+
+sh: 1: vitest: not found

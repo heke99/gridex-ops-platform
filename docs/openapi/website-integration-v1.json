@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-08-01.2",
+    "version": "2026-08-02.1",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -255,7 +255,9 @@
                         "count",
                         "publication_revision",
                         "publication_updated_at",
-                        "contract_schema_version"
+                        "contract_schema_version",
+                        "feed_state",
+                        "empty_feed_authorization"
                       ],
                       "properties": {
                         "tenant_reference": {
@@ -290,7 +292,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-01.2"
+                          "const": "2026-08-02.1"
                         },
                         "deprecated_aliases": {
                           "type": "array",
@@ -311,6 +313,69 @@
                         },
                         "deprecated_customer_type_alias": {
                           "type": "boolean"
+                        },
+                        "feed_state": {
+                          "type": "string",
+                          "enum": [
+                            "contracts_present",
+                            "canonical_empty"
+                          ],
+                          "description": "Explicit canonical feed state. Temporary failures never produce canonical_empty."
+                        },
+                        "empty_feed_authorization": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "authorized",
+                                "reason",
+                                "publication_revision",
+                                "canonical_source",
+                                "affected_offer_references",
+                                "blockers"
+                              ],
+                              "properties": {
+                                "authorized": {
+                                  "type": "boolean",
+                                  "const": true
+                                },
+                                "reason": {
+                                  "type": "string",
+                                  "enum": [
+                                    "no_canonical_publications",
+                                    "canonical_unpublished_or_archived",
+                                    "publication_validity_ended",
+                                    "canonical_no_visible_contracts"
+                                  ]
+                                },
+                                "publication_revision": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "canonical_source": {
+                                  "type": "string",
+                                  "const": "canonical_public_contract_delivery_readiness_v"
+                                },
+                                "affected_offer_references": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "blockers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          ],
+                          "description": "Proof required before a tenant may replace a durable verified snapshot with an empty feed."
                         }
                       }
                     },
@@ -409,7 +474,8 @@
                             "origin": "canonical_bundle_document",
                             "url": "https://app.gridex.se/legal/example/price-terms"
                           }
-                        ]
+                        ],
+                        "power_of_attorney_version_id": null
                       },
                       "valid_from": "2026-08-01",
                       "valid_to": null,
@@ -500,7 +566,8 @@
                             "origin": "canonical_bundle_document",
                             "url": "https://app.gridex.se/legal/example/price-terms"
                           }
-                        ]
+                        ],
+                        "power_of_attorney_version_id": null
                       },
                       "valid_from": "2026-08-01",
                       "valid_to": null,
@@ -514,12 +581,14 @@
                     "count": 1,
                     "publication_revision": 42,
                     "publication_updated_at": "2026-08-01T00:00:00.000Z",
-                    "contract_schema_version": "2026-08-01.2",
+                    "contract_schema_version": "2026-08-02.1",
                     "deprecated_aliases": [
                       "contracts",
                       "contract_offer_id",
                       "publication_reference"
-                    ]
+                    ],
+                    "feed_state": "contracts_present",
+                    "empty_feed_authorization": null
                   },
                   "request_id": "00000000-0000-4000-8000-000000000099"
                 }
@@ -990,7 +1059,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-01.2"
+                          "const": "2026-08-02.1"
                         },
                         "deprecated_aliases": {
                           "type": "array",
@@ -1336,7 +1405,7 @@
                     "site_count": 1
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-08-01.2"
+                  "contract_schema_version": "2026-08-02.1"
                 }
               }
             },
@@ -1605,7 +1674,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -2691,7 +2760,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-08-01.2"
+                  "contract_schema_version": "2026-08-02.1"
                 }
               }
             },
@@ -3031,7 +3100,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -3484,7 +3553,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -3797,7 +3866,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-01.2"
+                          "const": "2026-08-02.1"
                         },
                         "deprecated_aliases": {
                           "type": "array",
@@ -4334,7 +4403,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -4397,6 +4466,90 @@
           }
         ]
       }
+    },
+    "/api/v1/openapi/2026-08-02.1/website-integration-v1.json": {
+      "get": {
+        "summary": "Hämta immutable Website Integration OpenAPI 2026-08-02.1",
+        "description": "Immutable releaseartefakt för 2026-08-02.1. Svaret får cachas i ett år och bytesinnehållet ändras aldrig efter publicering.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/2026-08-02.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Hämta immutable Customer Portal OpenAPI 2026-08-02.1",
+        "description": "Immutable releaseartefakt för 2026-08-02.1. Svaret får cachas i ett år och bytesinnehållet ändras aldrig efter publicering.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4430,7 +4583,28 @@
             ],
             "properties": {
               "code": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_token_expired",
+                  "api_client_inactive",
+                  "api_scope_missing",
+                  "api_ip_not_allowed",
+                  "api_origin_not_allowed",
+                  "rate_limited",
+                  "api_rate_limit_invalid",
+                  "api_rate_limiter_unavailable",
+                  "api_auth_unavailable",
+                  "tenant_not_operationally_ready",
+                  "tenant_paused",
+                  "tenant_closed",
+                  "platform_schema_not_ready",
+                  "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+                  "PUBLICATION_GRAPH_INCONSISTENT",
+                  "PUBLIC_CONTRACT_SCHEMA_INVALID"
+                ],
+                "description": "Canonical runtime error code. The registry is release-versioned."
               },
               "message": {
                 "type": "string"
@@ -4476,7 +4650,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -4541,7 +4715,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "configuration": {
             "type": "object",
@@ -6128,7 +6302,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         }
       },
@@ -6310,7 +6484,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         }
       },
@@ -7194,7 +7368,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         }
       },
@@ -7532,7 +7706,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "additionalProperties": false
@@ -8016,7 +8190,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "additionalProperties": false
@@ -8089,7 +8263,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -8276,7 +8450,28 @@
             ],
             "properties": {
               "code": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_token_expired",
+                  "api_client_inactive",
+                  "api_scope_missing",
+                  "api_ip_not_allowed",
+                  "api_origin_not_allowed",
+                  "rate_limited",
+                  "api_rate_limit_invalid",
+                  "api_rate_limiter_unavailable",
+                  "api_auth_unavailable",
+                  "tenant_not_operationally_ready",
+                  "tenant_paused",
+                  "tenant_closed",
+                  "platform_schema_not_ready",
+                  "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+                  "PUBLICATION_GRAPH_INCONSISTENT",
+                  "PUBLIC_CONTRACT_SCHEMA_INVALID"
+                ],
+                "description": "Canonical runtime error code. The registry is release-versioned."
               },
               "message": {
                 "type": "string"
@@ -8322,7 +8517,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -8400,7 +8595,8 @@
           "module_versions",
           "immutable",
           "legal_bundle_reference",
-          "legal_bundle_version_id"
+          "legal_bundle_version_id",
+          "power_of_attorney_version_id"
         ],
         "properties": {
           "terms_version": {
@@ -8546,6 +8742,14 @@
               "string",
               "null"
             ]
+          },
+          "power_of_attorney_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Canonical legal module-version row id where module_key is power_of_attorney. Never use document_reference as textVersionId."
           }
         }
       },
@@ -8660,7 +8864,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         }
       },
@@ -9136,23 +9340,23 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "released_at": {
             "type": "string",
@@ -9192,7 +9396,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "url": {
             "type": "string",
@@ -9391,7 +9595,28 @@
             ],
             "properties": {
               "code": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_token_expired",
+                  "api_client_inactive",
+                  "api_scope_missing",
+                  "api_ip_not_allowed",
+                  "api_origin_not_allowed",
+                  "rate_limited",
+                  "api_rate_limit_invalid",
+                  "api_rate_limiter_unavailable",
+                  "api_auth_unavailable",
+                  "tenant_not_operationally_ready",
+                  "tenant_paused",
+                  "tenant_closed",
+                  "platform_schema_not_ready",
+                  "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+                  "PUBLICATION_GRAPH_INCONSISTENT",
+                  "PUBLIC_CONTRACT_SCHEMA_INVALID"
+                ],
+                "description": "Canonical runtime error code. The registry is release-versioned."
               },
               "message": {
                 "type": "string"
@@ -9437,7 +9662,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -9756,7 +9981,7 @@
         "description": "Canonical contract version used for this response.",
         "schema": {
           "type": "string",
-          "const": "2026-08-01.2"
+          "const": "2026-08-02.1"
         }
       },
       "RequestId": {
@@ -9804,7 +10029,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-08-01.2",
+  "x-contract-schema-version": "2026-08-02.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"
@@ -9817,5 +10042,32 @@
     "application_reference_location": "top_level",
     "website_openapi_url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
     "customer_portal_openapi_url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
-  }
+  },
+  "x-gridex-release-version": "2026-08-02.1",
+  "x-error-codes": [
+    "missing_api_token",
+    "invalid_api_token",
+    "api_token_expired",
+    "api_client_inactive",
+    "api_scope_missing",
+    "api_ip_not_allowed",
+    "api_origin_not_allowed",
+    "rate_limited",
+    "api_rate_limit_invalid",
+    "api_rate_limiter_unavailable",
+    "api_auth_unavailable",
+    "tenant_status_unavailable",
+    "tenant_not_operationally_ready",
+    "tenant_paused",
+    "tenant_closed",
+    "tenant_suspended",
+    "tenant_inactive",
+    "platform_schema_not_ready",
+    "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+    "PUBLICATION_GRAPH_INCONSISTENT",
+    "PUBLIC_CONTRACT_SCHEMA_INVALID",
+    "PUBLIC_CONTRACT_SCHEMA_OUTDATED",
+    "PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE",
+    "offer_reference_mismatch"
+  ]
 }

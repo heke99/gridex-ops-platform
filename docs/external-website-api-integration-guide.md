@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-08-01.2**
+> **Canonical API-version: 2026-08-02.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -95,7 +95,7 @@ Scope: website_contracts.read
 
 Canonical kundtyper är `private` och `business`. Aliaset `company` normaliseras till `business` under dokumenterad övergångsperiod.
 
-Feedens ETag är bunden till `tenant + channel + contract_schema_version`. Skicka `If-None-Match`; oförändrad feed ger `304 Not Modified`.
+Feeden läses och valideras alltid innan en villkorad respons avgörs. ETag är en SHA-256-fingerprint av den faktiska canonicala representationen: tenantreferens, kanal, kundtyp, schemasversion, sorterad JSON för hela avtalslistan och eventuell blockerrepresentation. En gammal revisions-ETag får därför aldrig ge ett felaktigt `304 Not Modified`. Svaret använder `Cache-Control: private, no-store, max-age=0`, `Pragma: no-cache` och `Expires: 0`; tenantens backend får endast använda ETag tillsammans med en egen verifierad, hållbar snapshot.
 
 ### En fastprisprodukt med flera områdesrader
 
@@ -134,6 +134,14 @@ Ett fastprisavtal publiceras en gång. SE1–SE4 är prisrader under samma produ
 
 `calculation_components` innehåller alla publicerade pris- och avgiftsvillkor, även dolda komponenter. Dolda komponenter filtreras inte bort från kalkylunderlaget: en rad med `website_visibility=hidden` ska fortfarande ingå när `calculation_inclusion=included`. `display_components` styr endast presentation. Produktfeeden är inte en ersättning för kundens canonical quote.
 
+### Hållbar last-known-good-snapshot
+
+Tenantintegrationen ska spara den senaste **fullständigt verifierade** feeden i ett hållbart server-side lager. Minnescache är inte tillräcklig. Timeout, HTTP 5xx, ogiltig JSON, schemasfel, partiell mappningsrisk eller storagefel får aldrig skriva över snapshoten med tom eller förkortad data. Under ett tillfälligt fel visas den tidigare snapshoten med `stale/degraded`, senaste lyckade hämtningstid och aktuellt fel.
+
+En tom färsk feed får ersätta snapshoten endast när `meta.feed_state === "canonical_empty"` och `meta.empty_feed_authorization.authorized === true`. Auktoriseringen ska beskriva en verifierad canonical övergång, exempelvis archive, unpublish, expiry eller tenantstängning. Nätverksfel och serializerfel är aldrig en avpublicering.
+
+Referensimplementationen finns i `lib/integrations/publicContractFeedSnapshot.ts` och kräver ett tenantägt durable store. API-nyckeln får aldrig lagras i snapshoten.
+
 ## 4. Lös elområdet
 
 ```http
@@ -166,7 +174,7 @@ Content-Type: application/json
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }
 ```
 
@@ -398,6 +406,19 @@ Web ska hämta paketet igen. När fullmakt krävs ska tenant även skicka den
 strukturerade `powerOfAttorney`-modellen med signerande namn, identitet, metod,
 exakt scope och publicerat `textVersionId`.
 
+Canonical `textVersionId` är modulversionsradens UUID, aldrig `document_reference`:
+
+```ts
+const powerOfAttorneyVersion = contract.legal.module_versions.find(
+  (version) => version.module_key === "power_of_attorney",
+);
+
+const textVersionId =
+  contract.legal.power_of_attorney_version_id ?? powerOfAttorneyVersion?.id;
+```
+
+När avtalet kräver fullmakt men inget sådant canonicalt modul-ID finns ska teckningen stoppas och feeden behandlas som inkonsekvent.
+
 Ett accepterat svar betyder att OPS har committat kund, anläggning, avtal, juridik och ett persistent fortsättningsjobb. Därefter äger OPS hela processen. Tenant ska inte själv skicka nätägarbegäran, skapa Z01/Z03, starta leverantörsbyte eller skicka juridiska avtalsmail.
 
 Exempel på accepterat svar:
@@ -428,7 +449,7 @@ Exempel på accepterat svar:
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-01.2"
+  "contract_schema_version": "2026-08-02.1"
 }
 ```
 
@@ -531,20 +552,24 @@ GET /api/v1/website/public-contracts/diagnostics
 Scope: website_contracts.diagnostics
 ```
 
-Publication-event: `contracts.publication.changed`. När revisionen ändras invalidierar tenantens backend sin cache och hämtar feeden igen med ETag.
+Publication-eventet `contracts.publication.changed` är ett observations- och invalidationssignal, inte korrekthetskällan. Tenantens backend hämtar alltid en ny fullständig representation och ersätter sin hållbara snapshot först efter lyckad validering. Tidsgränser som `valid_from` och `valid_to` verifieras vid varje request och korrektheten beror inte på att en trigger eller cron råkar köras i exakt rätt sekund.
 
 Publika OpenAPI-kontrakt:
 
 ```text
 https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-02.1/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-02.1/customer-portal-v1.json
 ```
+
+De två `current`-pekarnas svar använder `no-store`; de två versionsbundna artefakterna är immutabla och får `public, max-age=31536000, immutable`.
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-08-01.2` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-08-02.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-08-01.2
+## Canonical marknadsprisflöde i API 2026-08-02.1
 
 Det finns tre separata operationer:
 
@@ -604,12 +629,12 @@ Canonical juridikroute är:
 
 ```http
 GET /api/v1/website/legal-bundle
-Scope: website_legal.read eller website_contracts.read
+Canonical scope: website_legal.read. `website_contracts.read` accepteras endast som deprecated V1-kompatibilitet till och med kontraktsversion 2026-10-31.1 och tas bort i nästa majorversion.
 ```
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-08-01.2
+## Migrering till kontraktsversion 2026-08-02.1
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

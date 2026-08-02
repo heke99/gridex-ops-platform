@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-08-02T22:45:00+02:00",
+  "items": [
+    {
+      "test": "check-public-api-contract.cjs",
+      "classification": "DOCUMENTATION_DRIFT",
+      "decision": "Added immutable versioned OpenAPI routes to the canonical public route registry."
+    },
+    {
+      "test": "ediel-production-send-guard-regression.cjs",
+      "classification": "OBSOLETE_TEST",
+      "decision": "Updated expectation from legacy production_send_locked to the current fail-closed canonical production-state blocker set; runtime path was already correct."
+    },
+    {
+      "test": "ediel-utilts-reason-regression.cjs",
+      "classification": "OBSOLETE_TEST",
+      "decision": "Updated source location from removed testing override to canonical rulebook utiltsAckPolicy."
+    },
+    {
+      "test": "energy-resolver-grid-owner-regression.cjs",
+      "classification": "OBSOLETE_TEST",
+      "decision": "Updated trace to the shared intake orchestrator and z01 prerequisite service where the request is now created."
+    },
+    {
+      "test": "gridex-poa-authorization-chain-regression.cjs",
+      "classification": "OBSOLETE_TEST",
+      "decision": "Updated trace to canonical_onboard_customer_graph, which atomically creates authorization document and scopes."
+    },
+    {
+      "test": "gridex-contract-go-live-regression.cjs",
+      "classification": "DOCUMENTATION_DRIFT",
+      "decision": "Updated immutable API release expectation from 2026-08-01.2 to 2026-08-02.1 and retained behavior checks."
+    },
+    {
+      "test": "npm ci",
+      "classification": "ENVIRONMENT_FAILURE",
+      "decision": "The uploaded lockfile resolves through npmjs, but this execution environment redirected zod-validation-error@4.0.2 to an internal registry that returned 404."
+    },
+    {
+      "test": "clean Supabase reconstruction",
+      "classification": "UNVERIFIED",
+      "decision": "No Docker, psql or Supabase CLI was available; three historical duplicate migration version groups also block a trustworthy clean-chain claim."
+    }
+  ]
+}

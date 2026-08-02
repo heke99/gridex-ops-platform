@@ -8,7 +8,7 @@ const systemTestActionsPath = path.join(root, 'app/admin/ediel/system-tests/acti
 const adminActionsPath = path.join(root, 'app/admin/ediel/actions.ts')
 const decisionEnginePath = path.join(root, 'lib/ediel/decisionEngine.ts')
 const tgtRegistryPath = path.join(root, 'lib/ediel/testing/tgtRegistry.ts')
-const utiltsAckOverridesPath = path.join(root, 'lib/ediel/testing/utiltsAckOverrides.ts')
+const utiltsAckOverridesPath = path.join(root, 'lib/ediel/rulebook/utiltsAckPolicy.ts')
 const utiltsErrCodesPath = path.join(root, 'lib/ediel/utilts/utiltsErr.ts')
 const docsPath = path.join(root, 'docs/ai-context/06_UTILTS_RULES.md')
 

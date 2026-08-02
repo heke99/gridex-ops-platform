@@ -1,0 +1,58 @@
+OK: normalized payload is SHA-256 hashed
+OK: Idempotency-Key is mandatory
+OK: Idempotency-Key format is validated
+OK: same key with a different payload is rejected
+OK: legacy rows without payload_hash are compared using their stored normalized payload
+OK: concurrent replay returns an in-progress conflict
+OK: idempotency row is reserved before side effects
+OK: reservation helper is part of the intake path
+OK: duplicate-key loser never overwrites the winner
+OK: application row persists payload_hash
+OK: committed replay statuses are centrally classified
+OK: replay validates status-specific durable resources
+OK: replay preserves stored warnings
+OK: communication snapshot is stored in replay payload
+OK: identical committed application under a new key is rejected
+OK: same business event already processing returns a distinct in-progress conflict
+OK: same customer/site/offer/start business event cannot create a parallel application
+OK: business duplicate policy uses a stable indexed key
+OK: requested_start_mode is enum validated
+OK: calendar dates are validated
+OK: POA acceptedAt timestamp is validated
+OK: unknown top-level and nested business fields are rejected
+OK: current supplier Ediel id is accepted and persisted
+OK: response hands downstream switch readiness to the durable continuation worker
+OK: missing current supplier is a concrete continuation blocker
+OK: resolved business blocker is identified
+OK: managed lifecycle blocker is cleared when resolved
+OK: unblock operation event is emitted
+OK: unrelated lifecycle/legal blocks are preserved
+OK: business review never overwrites an unrelated lifecycle block source
+OK: supplier contract risks remain dispatch blockers during reconcile
+OK: shared data-change reconcile helper exists
+OK: site save triggers switch reconcile
+OK: metering point save triggers switch reconcile
+OK: supplier response triggers switch reconcile
+OK: signed POA triggers switch reconcile
+OK: signed uploaded POA document triggers switch reconcile
+OK: database status constraint allows processing reservation
+OK: database stores current supplier Ediel id
+OK: payload-hash lookup is indexed
+OK: business-key duplicate lookup is indexed
+OK: database enforces one active business event even under concurrent idempotency keys
+OK: API documentation covers payload mismatch
+OK: API documentation covers concurrent in-progress replay
+OK: API documentation covers duplicate application policy
+OK: API documentation covers an already-processing business event
+OK: API documentation covers business-level duplicate policy
+OK: API documentation covers current supplier fields
+OK: API documentation explains durable downstream processing
+OK: API documentation covers payload mismatch
+OK: API documentation covers concurrent in-progress replay
+OK: API documentation covers duplicate application policy
+OK: API documentation covers an already-processing business event
+OK: API documentation covers business-level duplicate policy
+OK: API documentation covers current supplier fields
+OK: API documentation explains durable downstream processing
+
+Website application idempotency hardening regression passed.

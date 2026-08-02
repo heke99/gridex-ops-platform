@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-08-01.2",
+    "version": "2026-08-02.1",
     "description": "Canonical V1 contract for the authenticated customer portal and customer self-service APIs. Website checkout, public contracts, energy-area resolution, current market price and quote are documented exclusively in website-integration-v1.json."
   },
   "servers": [
@@ -148,7 +148,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -2636,7 +2636,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -2687,7 +2687,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -3264,7 +3264,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -4431,7 +4431,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -5019,7 +5019,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -5330,7 +5330,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -5608,7 +5608,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-01.2"
+                      "const": "2026-08-02.1"
                     }
                   }
                 }
@@ -6760,7 +6760,28 @@
             ],
             "properties": {
               "code": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_token_expired",
+                  "api_client_inactive",
+                  "api_scope_missing",
+                  "api_ip_not_allowed",
+                  "api_origin_not_allowed",
+                  "rate_limited",
+                  "api_rate_limit_invalid",
+                  "api_rate_limiter_unavailable",
+                  "api_auth_unavailable",
+                  "tenant_not_operationally_ready",
+                  "tenant_paused",
+                  "tenant_closed",
+                  "platform_schema_not_ready",
+                  "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+                  "PUBLICATION_GRAPH_INCONSISTENT",
+                  "PUBLIC_CONTRACT_SCHEMA_INVALID"
+                ],
+                "description": "Canonical runtime error code. The registry is release-versioned."
               },
               "message": {
                 "type": "string"
@@ -6806,7 +6827,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -7349,7 +7370,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           },
           "configuration": {
             "type": "object",
@@ -7557,7 +7578,28 @@
             ],
             "properties": {
               "code": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_token_expired",
+                  "api_client_inactive",
+                  "api_scope_missing",
+                  "api_ip_not_allowed",
+                  "api_origin_not_allowed",
+                  "rate_limited",
+                  "api_rate_limit_invalid",
+                  "api_rate_limiter_unavailable",
+                  "api_auth_unavailable",
+                  "tenant_not_operationally_ready",
+                  "tenant_paused",
+                  "tenant_closed",
+                  "platform_schema_not_ready",
+                  "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+                  "PUBLICATION_GRAPH_INCONSISTENT",
+                  "PUBLIC_CONTRACT_SCHEMA_INVALID"
+                ],
+                "description": "Canonical runtime error code. The registry is release-versioned."
               },
               "message": {
                 "type": "string"
@@ -7603,7 +7645,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -7773,7 +7815,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         }
       },
@@ -8232,7 +8274,28 @@
             ],
             "properties": {
               "code": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "missing_api_token",
+                  "invalid_api_token",
+                  "api_token_expired",
+                  "api_client_inactive",
+                  "api_scope_missing",
+                  "api_ip_not_allowed",
+                  "api_origin_not_allowed",
+                  "rate_limited",
+                  "api_rate_limit_invalid",
+                  "api_rate_limiter_unavailable",
+                  "api_auth_unavailable",
+                  "tenant_not_operationally_ready",
+                  "tenant_paused",
+                  "tenant_closed",
+                  "platform_schema_not_ready",
+                  "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+                  "PUBLICATION_GRAPH_INCONSISTENT",
+                  "PUBLIC_CONTRACT_SCHEMA_INVALID"
+                ],
+                "description": "Canonical runtime error code. The registry is release-versioned."
               },
               "message": {
                 "type": "string"
@@ -8278,7 +8341,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -8351,7 +8414,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -8777,7 +8840,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-01.2"
+            "const": "2026-08-02.1"
           }
         }
       },
@@ -8793,7 +8856,7 @@
         "description": "Canonical contract version used for this response.",
         "schema": {
           "type": "string",
-          "const": "2026-08-01.2"
+          "const": "2026-08-02.1"
         }
       },
       "RequestId": {
@@ -8828,7 +8891,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-08-01.2",
+  "x-contract-schema-version": "2026-08-02.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"
@@ -8847,5 +8910,32 @@
       "name": "Integration context",
       "description": "Verifiera API-nyckelns tenantkontext, fasta base URL och one-secret readiness."
     }
+  ],
+  "x-gridex-release-version": "2026-08-02.1",
+  "x-error-codes": [
+    "missing_api_token",
+    "invalid_api_token",
+    "api_token_expired",
+    "api_client_inactive",
+    "api_scope_missing",
+    "api_ip_not_allowed",
+    "api_origin_not_allowed",
+    "rate_limited",
+    "api_rate_limit_invalid",
+    "api_rate_limiter_unavailable",
+    "api_auth_unavailable",
+    "tenant_status_unavailable",
+    "tenant_not_operationally_ready",
+    "tenant_paused",
+    "tenant_closed",
+    "tenant_suspended",
+    "tenant_inactive",
+    "platform_schema_not_ready",
+    "PUBLIC_CONTRACT_FEED_INCONSISTENT",
+    "PUBLICATION_GRAPH_INCONSISTENT",
+    "PUBLIC_CONTRACT_SCHEMA_INVALID",
+    "PUBLIC_CONTRACT_SCHEMA_OUTDATED",
+    "PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE",
+    "offer_reference_mismatch"
   ]
 }

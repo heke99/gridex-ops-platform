@@ -1,0 +1,60 @@
+{
+  "captured_at": "2026-08-02T22:45:00+02:00",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "project_name": "gridex-ops-dev",
+  "mode": "read_only",
+  "migration_ledger": {
+    "registered_count": 18,
+    "first_version": "20260531075508",
+    "last_version": "20260802180000"
+  },
+  "repository_migrations": {
+    "sql_file_count": 344,
+    "distinct_version_groups": 248,
+    "ledger_eligible_files": 251,
+    "historical_duplicate_version_groups": [
+      "20260612193000",
+      "20260616123000",
+      "20260727150000"
+    ]
+  },
+  "canonical_manifest": {
+    "row_count": 0
+  },
+  "platform_schema_state": {
+    "is_ready": true,
+    "current_version": "20260713150000-api-performance-tenant-hardening",
+    "verified_at": "2026-07-13T14:53:18.496370+00:00",
+    "assessment": "stale_false_positive"
+  },
+  "duplicate_primary_website_clients": {
+    "company_id": "b3ad1bf6-fa45-41a6-8054-2e0862e82aca",
+    "count": 2,
+    "client_ids": [
+      "67cb32e0-9b0c-4a2d-a357-b86bafb5c4ce",
+      "bf2f3755-4a84-446a-b361-b6aa7149c39a"
+    ]
+  },
+  "public_contracts": {
+    "website_visible": 1,
+    "website_offer_reference": "offer_1e802ecb0b4dc40445653807d0e73731f2de476d7d39a9f9cbf5f6cb27fea74c",
+    "api_visible": 0,
+    "api_blockers": [
+      "PUBLICATION_PRICE_OPTIONS_MISSING",
+      "PUBLICATION_PRICE_OPTION_DEFAULT_INVALID",
+      "INVOICE_FEE_CONFIGURATION_MISSING"
+    ]
+  },
+  "security_definer": {
+    "total": 291,
+    "anon_executable": 22,
+    "authenticated_executable": 33,
+    "public_executable": 22,
+    "exposed_trigger_functions": 18,
+    "without_fixed_search_path": 0
+  },
+  "auth": {
+    "leaked_password_protection": "disabled"
+  },
+  "production_writes_performed": false
+}

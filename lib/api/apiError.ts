@@ -1,3 +1,5 @@
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+
 export type ApiBlocker = {
   code: string
   message: string
@@ -22,6 +24,7 @@ export type ApiErrorBody = {
   }
   request_id: string
   correlation_id: string
+  contract_schema_version: typeof WEBSITE_INTEGRATION_CONTRACT_VERSION
 }
 
 function text(value: unknown): string | null {
@@ -82,5 +85,6 @@ export function canonicalApiError(input: {
     },
     request_id: input.requestId,
     correlation_id: correlationId,
+    contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
   }
 }

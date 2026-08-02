@@ -67,6 +67,16 @@ function legal(overrides: Record<string, unknown> = {}) {
         content_sha256: null,
         origin: 'canonical_bundle_document',
       },
+      {
+        id: '00000000-0000-4000-8000-000000000005',
+        legal_bundle_version_id: bundleId,
+        module_key: 'power_of_attorney',
+        version: '3',
+        title: 'Fullmakt',
+        published_at: null,
+        content_sha256: null,
+        origin: 'canonical_bundle_document',
+      },
     ],
     ...overrides,
   }
@@ -138,7 +148,10 @@ describe('canonical public contract legal snapshot', () => {
     })
     expect(result.legal_bundle_version_id).toBe(bundleId)
     expect(result.immutable).toBe(true)
-    expect(result.module_versions).toHaveLength(2)
+    expect(result.module_versions).toHaveLength(3)
+    expect(result.power_of_attorney_version_id).toBe(
+      '00000000-0000-4000-8000-000000000005',
+    )
     expect(
       result.module_versions.every(
         (module) => module.legal_bundle_version_id === bundleId,
@@ -215,6 +228,37 @@ describe('canonical public contract legal snapshot', () => {
     expect(result.module_versions[0]).toHaveProperty(
       'legal_bundle_version_id',
       null,
+    )
+  })
+
+  it('rejects document references and mismatched ids as fullmakt version ids', () => {
+    expect(() =>
+      serializePublicContractLegal({
+        value: legal({
+          power_of_attorney_version_id:
+            '00000000-0000-4000-8000-000000000099',
+        }),
+        companyId,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: PUBLIC_CONTRACT_ERROR_CODES.legalModuleVersionInvalid,
+        path: 'legal.power_of_attorney_version_id',
+      }),
+    )
+  })
+
+  it('fails clearly when fullmakt is required but no module version exists', () => {
+    const value = legal({ power_of_attorney_required: true })
+    value.module_versions = (value.module_versions as Array<Record<string, unknown>>)
+      .filter((module) => module.module_key !== 'power_of_attorney')
+    expect(() =>
+      serializePublicContractLegal({ value, companyId }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: PUBLIC_CONTRACT_ERROR_CODES.legalModuleVersionInvalid,
+        path: 'legal.power_of_attorney_version_id',
+      }),
     )
   })
 

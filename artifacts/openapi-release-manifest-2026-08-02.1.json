@@ -1,0 +1,37 @@
+{
+  "release_version": "2026-08-02.1",
+  "website_openapi_version": "2026-08-02.1",
+  "customer_portal_openapi_version": "2026-08-02.1",
+  "runtime_contract_version": "2026-08-02.1",
+  "guide_version": "2026-08-02.1",
+  "released_at": "2026-08-02T20:16:00.000Z",
+  "generated_at": "2026-08-02T20:16:00.000Z",
+  "build_commit": "unavailable-in-uploaded-zip",
+  "compatibility_classification": "additive-with-cache-correctness-fix",
+  "deprecated_features": [
+    {
+      "feature": "diagnostics=true on public-contracts",
+      "replacement": "/api/v1/website/public-contracts/diagnostics",
+      "sunset_at": "2026-10-31T23:59:59.000Z"
+    }
+  ],
+  "minimum_tenant_integration_version": "2026-08-02.1",
+  "specifications": {
+    "website": {
+      "contract_name": "website-integration-v1",
+      "contract_version": "2026-08-02.1",
+      "url": "/api/v1/openapi/website-integration-v1.json",
+      "immutable_url": "/api/v1/openapi/2026-08-02.1/website-integration-v1.json",
+      "sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+      "compatibility": "additive"
+    },
+    "customer_portal": {
+      "contract_name": "customer-portal-v1",
+      "contract_version": "2026-08-02.1",
+      "url": "/api/v1/openapi/customer-portal-v1.json",
+      "immutable_url": "/api/v1/openapi/2026-08-02.1/customer-portal-v1.json",
+      "sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779",
+      "compatibility": "additive"
+    }
+  }
+}

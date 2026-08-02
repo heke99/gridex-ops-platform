@@ -12,6 +12,8 @@ export type PublicApiRouteContract = {
 export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Maskinläsbart release-manifest med versioner och SHA-256 för båda publika OpenAPI-kontrakten.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för tenantens websiteintegration.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-02.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-02.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för kundportalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verifiera opak tenantreferens för den autentiserade API-nyckeln.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Canonical feed för avtal som tenant har publicerat till API-kanalen.', rateLimitClass: 'read' },

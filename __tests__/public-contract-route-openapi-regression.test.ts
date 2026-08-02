@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-01.2.json'
+import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-02.1.json'
 
 const mocks = vi.hoisted(() => ({
   logIntegrationApiRequest: vi.fn(async () => undefined),
   logUsageEvent: vi.fn(async () => undefined),
+  listPublicContractOffers: vi.fn(),
+  diagnosePublicContractOffers: vi.fn(),
+  publicContractResponse: vi.fn(),
 }))
 
 vi.mock('@/lib/integrations/apiAuth', () => ({
@@ -40,11 +43,17 @@ vi.mock('@/lib/audit/actionLogger', () => ({
   logUsageEvent: mocks.logUsageEvent,
 }))
 
-vi.mock('@/lib/website/publicContracts', () => ({
-  listPublicContractOffers: vi.fn(async () => [{}]),
-  diagnosePublicContractOffers: vi.fn(async () => null),
-  publicContractResponse: vi.fn(() => publicContractsFixture.data[0]),
-}))
+vi.mock('@/lib/website/publicContracts', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('@/lib/website/publicContracts')
+  >()
+  return {
+    ...actual,
+    listPublicContractOffers: mocks.listPublicContractOffers,
+    diagnosePublicContractOffers: mocks.diagnosePublicContractOffers,
+    publicContractResponse: mocks.publicContractResponse,
+  }
+})
 
 vi.mock('@/lib/website/publicContractApi', async (importOriginal) => {
   const actual = await importOriginal<
@@ -161,6 +170,9 @@ function validate(
 describe('real public contracts route against published OpenAPI', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.listPublicContractOffers.mockResolvedValue([{}])
+    mocks.diagnosePublicContractOffers.mockResolvedValue(null)
+    mocks.publicContractResponse.mockReturnValue(publicContractsFixture.data[0])
   })
 
   it('validates the actual route response and headers against the actual OpenAPI route', async () => {
@@ -171,9 +183,14 @@ describe('real public contracts route against published OpenAPI', () => {
     const runtimeResponse = await getPublicContracts(request)
     expect(runtimeResponse.status).toBe(200)
     expect(runtimeResponse.headers.get('x-gridex-contract-version')).toBe(
-      '2026-08-01.2',
+      '2026-08-02.1',
     )
-    expect(runtimeResponse.headers.get('etag')).toBe('"contracts-test"')
+    expect(runtimeResponse.headers.get('etag')).toMatch(/^"contracts-[A-Za-z0-9_-]{43}"$/)
+    expect(runtimeResponse.headers.get('cache-control')).toBe(
+      'private, no-store, max-age=0',
+    )
+    expect(runtimeResponse.headers.get('pragma')).toBe('no-cache')
+    expect(runtimeResponse.headers.get('expires')).toBe('0')
     expect(runtimeResponse.headers.get('x-request-id')).toBe(
       publicContractsFixture.request_id,
     )
@@ -186,7 +203,7 @@ describe('real public contracts route against published OpenAPI', () => {
     )
     expect(openApiResponse.status).toBe(200)
     expect(openApiResponse.headers.get('x-gridex-contract-version')).toBe(
-      '2026-08-01.2',
+      '2026-08-02.1',
     )
     const openApi = (await openApiResponse.json()) as JsonObject
     const schema = (
@@ -213,5 +230,26 @@ describe('real public contracts route against published OpenAPI', () => {
         (module) => module.legal_bundle_version_id === bundleId,
       ),
     ).toBe(true)
+  })
+
+  it('fails the entire feed when one visible contract cannot be serialized', async () => {
+    mocks.listPublicContractOffers.mockResolvedValue([{ id: 'valid' }, { id: 'invalid' }])
+    mocks.publicContractResponse.mockImplementation((offer: { id?: string }) =>
+      offer.id === 'valid'
+        ? publicContractsFixture.data[0]
+        : { ...publicContractsFixture.data[0], offer_reference: null, id: null },
+    )
+
+    const response = await getPublicContracts(
+      new NextRequest(
+        'https://app.gridex.se/api/v1/website/public-contracts?customer_type=private',
+        { headers: { Authorization: 'Bearer test-only-token' } },
+      ),
+    )
+    expect(response.status).toBe(503)
+    const body = await response.json()
+    expect(body.error.code).toBe('PUBLIC_CONTRACT_FEED_INCONSISTENT')
+    expect(body.error.details ?? body.error.affected_contracts).not.toEqual([])
+    expect(body.data).toBeUndefined()
   })
 })

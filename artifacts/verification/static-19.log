@@ -1,0 +1,44 @@
+PASS canonical read model exposes contract_offer_id
+PASS canonical read model exposes company_id
+PASS canonical read model exposes assignment_id
+PASS canonical read model exposes lifecycle_status
+PASS canonical read model exposes offer_status
+PASS canonical read model exposes assignment_status
+PASS canonical read model exposes internal_sales_allowed
+PASS canonical read model exposes website_publication_allowed
+PASS canonical read model exposes api_publication_allowed
+PASS canonical read model exposes internal_channel_status
+PASS canonical read model exposes website_channel_status
+PASS canonical read model exposes api_channel_status
+PASS canonical read model exposes internal_channel_valid_from
+PASS canonical read model exposes internal_channel_valid_to
+PASS canonical read model exposes website_channel_valid_from
+PASS canonical read model exposes website_channel_valid_to
+PASS canonical read model exposes api_channel_valid_from
+PASS canonical read model exposes api_channel_valid_to
+PASS canonical read model exposes active_publication_version_count
+PASS canonical read model exposes internally_sellable_now
+PASS canonical read model exposes website_available_now
+PASS canonical read model exposes api_available_now
+PASS grant and revoke are explicit, idempotent audited operations
+PASS publish RPC fails closed on missing channel grant
+PASS publish RPC enforces the granular channel permission
+PASS forward migration removes publish-time self-grant
+PASS publication is protected by transaction lock and one-active-version index
+PASS channel readiness separates API publication from external API access
+PASS calendar validity is owned by the database in Europe/Stockholm
+PASS publication audit chain contains start, version, success, failure and unpublish
+PASS read model throws on missing mandatory booleans
+PASS all admin surfaces route channel publication through the canonical action and service
+PASS disabled website controls display an explicit blocker
+PASS website and API use the shared external DTO mapper
+PASS canonical contract version drives DTO, header and response metadata
+PASS OpenAPI API DTO has a strict public top-level allowlist
+PASS OpenAPI declares api_contracts.read
+PASS OpenAPI documents 401 for GET /api/v1/contracts
+PASS OpenAPI documents 403 for GET /api/v1/contracts
+PASS OpenAPI documents 410 for GET /api/v1/contracts
+PASS OpenAPI documents 423 for GET /api/v1/contracts
+PASS OpenAPI documents 429 for GET /api/v1/contracts
+PASS OpenAPI documents 500 for GET /api/v1/contracts
+Gridex contract channel publication regression passed.

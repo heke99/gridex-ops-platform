@@ -6,5 +6,5 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  return openApiDocumentResponse(request, websiteIntegrationOpenApi, 'gridex-website-integration-v1.json')
+  return openApiDocumentResponse(request, websiteIntegrationOpenApi, 'gridex-website-integration-v1.json', { cacheControl: 'no-store, max-age=0, must-revalidate' })
 }

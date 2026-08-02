@@ -10,6 +10,7 @@ import {
 } from '@/lib/integrations/apiClientSecrets'
 import { recommendedPermissionGroups, scopesForPermissionGroups } from '@/lib/integrations/apiClientScopes'
 import { missingIntegrationApiScopes } from '@/lib/integrations/apiAuth'
+import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
 import {
   TENANT_WEBSITE_RECOMMENDED_SCOPES,
   WEBSITE_APPLICATION_REFERENCE_LOCATION,
@@ -105,142 +106,122 @@ export async function createIntegrationApiClientAction(
   try {
     const context = await requirePlatformAdminActionAccess()
     const companyId = text(formData, 'companyId')
-    const name = text(formData, 'name')
+    const name = text(formData, 'name') || 'Tenant website integration'
     if (!companyId) return { ok: false, message: 'Välj bolag.' }
-    if (!name) return { ok: false, message: 'Ange namn på API-klienten.' }
-
-    const permissionGroups = formData.getAll('permissionGroups').length > 0
-      ? formData.getAll('permissionGroups').map((value) => String(value))
-      : recommendedPermissionGroups()
-    const groupedScopes = scopesForPermissionGroups(permissionGroups)
-    const directScopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
-    const scopes = Array.from(new Set([...groupedScopes, ...directScopes]))
-    if (scopes.length === 0) return { ok: false, message: 'Välj minst en behörighetsgrupp.' }
-    const missingRecommendedScopes = missingRecommendedTenantWebsiteScopes(scopes)
 
     const allowedOrigins = parseMultiValueText(formData.get('allowedOrigins'))
-    const allowedIps = parseMultiValueText(formData.get('allowedIps'))
-    const intendedUse = text(formData, 'intendedUse') || 'gridex_customer_portal'
-    const frontendApp = text(formData, 'frontendApp') || 'Gridex hemsida'
-    const notes = text(formData, 'notes')
+    if (allowedOrigins.length === 0) {
+      return {
+        ok: false,
+        message: 'Ange minst en tillåten HTTPS-origin för tenantens webbplats.',
+      }
+    }
     const rateLimit = intValue(formData, 'rateLimitPerMinute', 120)
-    const expiresAt = nullableDate(formData, 'expiresAt')
     const webhookUrlInput = text(formData, 'webhookUrl')
     const webhookUrl = validWebhookUrl(webhookUrlInput)
     const webhookEventTypes = parseMultiValueText(formData.get('webhookEventTypes'))
-    const webhookSigningSecretRef = normalizedWebhookRef(text(formData, 'webhookSigningSecretRef'))
-
+    const webhookSigningSecretRef = normalizedWebhookRef(
+      text(formData, 'webhookSigningSecretRef'),
+    )
     if (webhookUrlInput && !webhookUrl) {
       return { ok: false, message: 'Webhook URL måste börja med https://.' }
     }
 
-    const { data: company, error: companyError } = await supabaseService
-      .from('companies')
-      .select('id,name,status')
-      .eq('id', companyId)
-      .maybeSingle()
+    const provisioned = await provisionTenantWebsiteIntegration({
+      companyId,
+      actorUserId: context.userId,
+      idempotencyKey: `tenant-website:${companyId}:production`,
+      environment: 'production',
+      clientName: name,
+      allowedOrigins,
+      rateLimitPerMinute: rateLimit,
+    })
 
-    if (companyError) throw companyError
-    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
-
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const tokenData = generateIntegrationApiToken()
-      const { data, error } = await supabaseService
-        .from('integration_api_clients')
-        .insert({
-          company_id: companyId,
-          name,
-          status: 'active',
-          key_prefix: tokenData.keyPrefix,
-          secret_hash: tokenData.secretHash,
-          scopes,
-          permission_groups: permissionGroups,
-          profile_key: 'tenant_website',
-          launch_ready: missingRecommendedScopes.length === 0,
-          launch_blockers: missingRecommendedScopes.length === 0
-            ? []
-            : [{ code: 'missing_recommended_scope', scopes: missingRecommendedScopes }],
-          purpose_label: frontendApp,
-          allowed_origins: allowedOrigins,
-          allowed_ips: allowedIps,
-          rate_limit_per_minute: rateLimit,
-          expires_at: expiresAt,
-          created_by: context.userId,
-          metadata: {
-            frontend_app: frontendApp,
-            intended_use: intendedUse,
-            allowed_origins: allowedOrigins,
-            notes,
-            permission_groups: permissionGroups,
-            token_display: 'shown_once_on_create',
-            created_from: 'superadmin_api_client_ui',
-            recommended_header: 'Authorization: Bearer <GRIDEX_API_KEY>',
-            required_environment_variables: WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES,
-            api_base_url: WEBSITE_INTEGRATION_BASE_URL,
-            openapi_url: WEBSITE_INTEGRATION_OPENAPI_URL,
-            application_reference_location: WEBSITE_APPLICATION_REFERENCE_LOCATION,
-            tenant_identity_source: 'api_key',
-            missing_recommended_scopes: missingRecommendedScopes,
-          },
-        })
-        .select('id')
-        .single()
-
-      if (error) {
-        if (error.code === '23505') continue
-        throw error
-      }
-
-      await auditApiClient({
-        action: 'api_client.created',
-        actorUserId: context.userId,
-        companyId,
-        clientId: data.id,
-        metadata: { scopes, permissionGroups, allowedOrigins, frontendApp, intendedUse },
-      })
-
-      if (webhookUrl) {
+    if (webhookUrl) {
+      const { data: existingWebhook, error: existingWebhookError } =
+        await supabaseService
+          .from('webhook_subscriptions')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('api_client_id', provisioned.apiClientId)
+          .eq('endpoint_url', webhookUrl)
+          .neq('status', 'revoked')
+          .maybeSingle()
+      if (existingWebhookError) throw existingWebhookError
+      if (!existingWebhook) {
         const { error: webhookError } = await supabaseService
           .from('webhook_subscriptions')
           .insert({
             company_id: companyId,
-            api_client_id: data.id,
+            api_client_id: provisioned.apiClientId,
             name: `${name} · webhook`,
             endpoint_url: webhookUrl,
-            event_types: webhookEventTypes.length > 0 ? webhookEventTypes : ['customer.created', 'customer.updated', 'customer_number.assigned', 'contract.application_received', 'contract.confirmation_sent', 'contract.cooling_off_sent', 'invoice.created', 'invoice.sent', 'invoice.disputed', 'metering_values.updated'],
+            event_types:
+              webhookEventTypes.length > 0
+                ? webhookEventTypes
+                : [
+                    'customer.created',
+                    'customer.updated',
+                    'customer_number.assigned',
+                    'contract.application_received',
+                    'contract.confirmation_sent',
+                    'contract.cooling_off_sent',
+                    'invoice.created',
+                    'invoice.sent',
+                    'invoice.disputed',
+                    'metering_values.updated',
+                  ],
             status: 'active',
             signing_secret_ref: webhookSigningSecretRef,
             description: `Webhook skapad tillsammans med API-klienten ${name}.`,
             created_by: context.userId,
             updated_by: context.userId,
             metadata: {
-              created_from: 'superadmin_api_client_ui',
-              api_client_id: data.id,
+              created_from: 'canonical_tenant_website_provisioning',
+              provisioning_receipt_id: provisioned.receiptId,
+              api_client_id: provisioned.apiClientId,
               signing_secret_ref: webhookSigningSecretRef,
             },
           })
-
         if (webhookError) throw webhookError
-        await auditApiClient({
-          action: 'api_client.webhook_created',
-          actorUserId: context.userId,
-          companyId,
-          clientId: data.id,
-          metadata: { webhookUrl, webhookEventTypes, webhookSigningSecretRef },
-        })
-      }
-
-      revalidatePath('/admin/platform/api-clients')
-      return {
-        ok: true,
-        message: 'API-klient skapad. Kopiera token nu; den visas bara en gång.',
-        token: tokenData.token,
-        keyPrefix: tokenData.keyPrefix,
-        clientId: data.id,
       }
     }
 
-    return { ok: false, message: 'Kunde inte skapa unik API-token. Försök igen.' }
+    await auditApiClient({
+      action: provisioned.reusedExistingClient
+        ? 'api_client.provisioning_resumed'
+        : 'api_client.provisioned',
+      actorUserId: context.userId,
+      companyId,
+      clientId: provisioned.apiClientId,
+      metadata: {
+        receipt_id: provisioned.receiptId,
+        tenant_reference: provisioned.tenantReference,
+        environment: provisioned.environment,
+        contract_schema_version: provisioned.contractSchemaVersion,
+        visible_contract_count: provisioned.visibleContractCount,
+        allowed_origins: allowedOrigins,
+      },
+    })
+
+    revalidatePath('/admin/platform/api-clients')
+    revalidatePath(`/admin/companies/${companyId}`)
+    if (!provisioned.credential) {
+      return {
+        ok: true,
+        message:
+          'Befintlig primär tenant-klient verifierades och återanvändes. Ingen ny token skapades.',
+        clientId: provisioned.apiClientId,
+      }
+    }
+    return {
+      ok: true,
+      message:
+        'Tenantintegrationen skapades och verifierades. Kopiera token nu; den visas bara en gång.',
+      token: provisioned.credential.token,
+      keyPrefix: provisioned.credential.keyPrefix,
+      clientId: provisioned.apiClientId,
+    }
   } catch (error) {
     return { ok: false, message: errorMessage(error) }
   }
