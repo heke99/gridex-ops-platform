@@ -136,3 +136,13 @@
 | VM-125 | A-C exact catalog parity | PARTIAL/BLOCKED | principal function bodies match; tables, constraints, indexes, policies, triggers and grants not fully proven |
 | VM-126 | D-F/event/convergence staging apply | NOT RUN | guarded apply requires parity sign-off and deterministic cleanup |
 | VM-127 | UUID aggregate repair | VERIFIED READ-ONLY | Corrected preflight executes on gridex-ops-dev; corrected profile identity aggregate executes; migration integrity, canonical hardening and RBAC audit pass |
+| VM-128 | Authoritative remote migration ledger | PASS / VERIFIED READ-ONLY | `gridex-ops-dev` records every canonical version through `20260802180000`; obsolete nine-version drift claim superseded |
+| VM-129 | Emergency access baseline | FAIL / VERIFIED READ-ONLY | Four SECURITY DEFINER views, 63 anon/auth SECURITY DEFINER execution findings, two public tables without RLS and unsafe default grants observed |
+| VM-130 | Emergency-lockdown migration | PASS / VERIFIED LOCALLY | `20260802190000...` checksum registered; emergency regression, 339-file/243-group integrity and 24-check RBAC audit pass |
+| VM-131 | Emergency-lockdown remote apply | NOT VERIFIED / BLOCKED | Persistent ACL/view/RLS/helper/trigger mutation requires explicit user blast-radius approval; no remote mutation performed |
+| VM-132 | Post-lockdown advisors and JWT/runtime proof | NOT VERIFIED | Requires controlled apply before catalog, advisor and real-role/JWT tests |
+| VM-133 | V2 data invariants | FAIL / VERIFIED READ-ONLY | 153 unscoped runs; 11 passed actor results lack snapshot/run; three active owner memberships lack active role; 96 NOT VALID constraints; zero active Ediel configs |
+| VM-134 | GitHub provenance | PARTIAL / VERIFIED READ-ONLY | Private repo and `main` head observed; archive lacks `.git`, so exact byte parity is unproven; no GitHub write |
+| VM-135 | Current local app gates | PASS / VERIFIED LOCALLY | Clean 446-package install; all TypeScript targets; 62 files/417 tests; lint 0 errors/125 warnings; audit 0 vulnerabilities; full Next.js build on Node 24.14.0 |
+| VM-136 | Declared Node 22 parity | NOT VERIFIED | Available runtime is Node 24.14.0 while package engines require `>=22 <23`; repeat CI/build on Node 22 |
+| VM-137 | Emergency migration PostgreSQL compile | NOT VERIFIED | Local `psql`/usable Supabase CLI unavailable; remote compile would evade the explicit persistent-apply approval gate |

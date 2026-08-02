@@ -1,10 +1,10 @@
 # Canonical hardening delivery
 
-Date: 2026-08-02
+Date: 2026-08-02 (V2 continuation)
 Target inspected: Supabase project `gridex-ops-dev` (`piidsfebjqjmnepdpnas`)
 Release decision: **NO-GO**
 
-## Delivered
+## Previously delivered and now registered remotely
 
 - Registered forward-only migration `20260802170000_canonical_security_convergence.sql`.
 - Actor-authenticated canonical lifecycle, production, first-send, profile and provisioning RPC boundaries.
@@ -17,58 +17,57 @@ Release decision: **NO-GO**
 - Guarded sync script that refuses production-labelled targets and blocks ledger repair/apply until
   explicit parity and staging approvals are supplied.
 
+## V2 emergency delta prepared locally
+
+- `20260802190000_canonical_emergency_access_lockdown.sql`.
+- Static emergency-access regression and read-only postflight SQL.
+- Actual remote inventory proving the view/RPC/default-ACL/system-table/helper
+  exposures still exist after `20260802180000`.
+- Current Security and Performance Advisor baseline.
+
+Remote apply status: **BLOCKED / NOT APPLIED** pending explicit blast-radius
+approval. The connected database was not mutated in this continuation.
+
 ## Local evidence
 
 | Gate | Result |
 |---|---|
-| PostgreSQL parser | PASS |
-| ESLint | PASS: 0 errors; 126 inherited `no-unused-vars` warnings |
+| PostgreSQL parser / remote compile for `20260802190000` | NOT VERIFIED: local `psql`/Supabase CLI unavailable; remote compile would violate the blocked apply gate |
+| ESLint | PASS: 0 errors; 125 inherited `no-unused-vars` warnings |
 | TypeScript app/scripts/tests | PASS |
 | Vitest | PASS: 62 files, 417 tests |
-| Migration integrity | PASS: 337 files, 241 version groups/checksums |
+| Emergency access static regression | PASS |
+| Migration integrity | PASS: 339 files, 243 version groups/checksums |
 | Canonical/behavior/tenant/security regressions | PASS |
 | Production dependency audit | PASS: 0 vulnerabilities |
-| Next.js production build on Node 22 | PASS |
+| Next.js production build | PASS on available Node 24.14.0; package contract requires Node `>=22 <23`, so Node 22 CI remains required |
 
 ## Release blockers
 
-Read-only preflight found:
+Read-only V2 preflight confirms:
 
 - 153 legacy `ediel_test_runs` without deterministic tenant ownership;
-- one duplicate active actor-profile group;
-- one prepared/live production state without a configuration snapshot;
-- only function-body parity, not full schema parity, for ledger-missing migrations A-C.
+- 15 nonterminal null-tenant runs (`draft=4`, `running=11`);
+- 11 legacy `passed` results without run or snapshot;
+- 3 active owner memberships without an active system role;
+- 96 `NOT VALID` constraints;
+- empty canonical migration manifest;
+- four unsafe views, four publicly executable mutating definer functions, two
+  open system tables and unsafe default ACLs.
 
-No database mutation was performed. D-F and the new convergence migration are not claimed as
-applied. Real JWT/RLS, service-role negative, concurrency, worker and external transport tests remain
-required after a controlled isolated-staging apply.
+Versions through `20260802180000` are registered, but their presence is not
+accepted as behavioral proof. Real JWT/RLS, service-role negative, concurrency,
+worker and external transport tests remain required.
 
-## Safe synchronization sequence
+## Controlled next step
 
-```bash
-export PATH=/path/to/node-22/bin:$PATH
-./scripts/sync-canonical-hardening.sh verify-local
+The obsolete A-C ledger-repair sequence must not be run: the authoritative
+remote ledger is current through `20260802180000`.
 
-SUPABASE_PROJECT_REF=piidsfebjqjmnepdpnas \
-  ./scripts/sync-canonical-hardening.sh plan
-```
-
-Stop after the dry-run until every A-C table, constraint, index, policy, trigger, function and grant
-matches and a reviewer approves `docs/canonical-hardening/MIGRATION_RECONCILIATION.md`.
-
-Only after that approval, on isolated staging:
-
-```bash
-GRIDEX_TARGET_ENVIRONMENT=staging \
-SUPABASE_PROJECT_REF=piidsfebjqjmnepdpnas \
-GRIDEX_SCHEMA_PARITY_APPROVED=I_HAVE_REVIEWED_EXACT_A_C_PARITY \
-  ./scripts/sync-canonical-hardening.sh repair-ledger
-
-GRIDEX_TARGET_ENVIRONMENT=staging \
-SUPABASE_PROJECT_REF=piidsfebjqjmnepdpnas \
-GRIDEX_SCHEMA_PARITY_APPROVED=I_HAVE_REVIEWED_EXACT_A_C_PARITY \
-GRIDEX_APPLY_STAGING=I_UNDERSTAND_THIS_APPLIES_TO_STAGING \
-  ./scripts/sync-canonical-hardening.sh apply-staging
-```
-
-Then execute the checks in `VERIFICATION_PROTOCOL.md`. Never use this first apply against production.
+After explicit user approval of the documented persistent blast radius, apply
+only `20260802190000_canonical_emergency_access_lockdown.sql` to the inspected
+development project. Immediately execute
+`scripts/sql/05_emergency_access_lockdown_verification.sql`, rerun Security
+Advisor, and exercise anonymous, authenticated, tenant-A, tenant-B and
+service-role runtime smoke tests. Stop and forward-fix on any regression before
+starting later V2 phases. Never use the first apply against production.

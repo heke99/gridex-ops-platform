@@ -1,13 +1,38 @@
 # Open blockers
 
+## BLK-024 — Emergency access lockdown approval and postflight
+
+Status: RELEASE_BLOCKER / AWAITING_EXPLICIT_APPROVAL. Read-only inspection of
+`gridex-ops-dev` proves unsafe access defaults, four SECURITY DEFINER views,
+broad execution of four mutating SECURITY DEFINER functions, two internal
+tables without RLS and tenant-bindable global platform-admin semantics. The
+forward-only `20260802190000...` lockdown and read-only postflight are locally
+verified, but the controlled apply was rejected until the user explicitly
+approves its persistent access-control blast radius. Do not split, disguise or
+otherwise work around that approval requirement.
+
+## BLK-025 — V2 data and invariant failures
+
+Status: RELEASE_BLOCKER. Remote read-only evidence shows 153 unscoped test runs,
+11 passed actor results without a canonical snapshot/run chain, three active
+owner memberships without an active role, 96 NOT VALID constraints and no
+active Ediel test configuration. Quarantine/reconciliation and constraint
+validation must follow emergency-lockdown verification; no tenant, evidence or
+role may be guessed.
+
+## BLK-026 — Archive/GitHub provenance parity
+
+Status: PARTIAL. GitHub repository `heke99/gridex-ops-platform` is connected and
+`main` head `8374b70ef902caac1510b85d1f01f3630629a09e` was observed read-only. The
+uploaded archive excludes `.git`, so branch/commit identity and exact byte parity
+cannot be proved from the archive alone. No branch, commit or PR was created.
+
 ## BLK-021 — Canonical hardening ledger/schema drift
 
-Status: READY_FOR_GUARDED_REPAIR. The connected `gridex-ops-dev` ledger records
-only nine historical versions while canonical A-C objects exist and D-F are not
-recorded. Complete read-only table, column, constraint, index, RLS, policy,
-trigger, grant, function and seed parity is now verified for project
-`piidsfebjqjmnepdpnas`. Use only the guarded A-C repair command; do not run a
-global push first or edit the ledger table directly.
+Status: SUPERSEDED BY AUTHORITATIVE LEDGER RECHECK. The connected
+`gridex-ops-dev` ledger now records all local canonical versions through
+`20260802180000`. Do not run the obsolete A-C ledger repair. Continue with the
+new emergency-lockdown preflight/postflight sequence only.
 
 ## BLK-022 — Ambiguous legacy Ediel test-run ownership
 

@@ -534,3 +534,17 @@ Files changed: company/auth/Ediel admin runtime, canonical production approval/t
 Migrations: `20260802170000_canonical_security_convergence.sql`
 Last updated: 2026-08-02
 Exact next subtask: finish exact A-C catalog diff and deterministically resolve all preflight blockers before guarded ledger repair and isolated-staging apply
+
+## WP-040: V2 emergency access lockdown and release triage
+Status: LOCALLY_VERIFIED_AWAITING_EXPLICIT_APPLY_APPROVAL
+Phase: PHASE-40
+Priority: P0
+Depends on: WP-039
+Affected domains: default privileges, readiness views, SECURITY DEFINER execution, internal system tables, global platform roles, Supabase advisors, release evidence
+Acceptance criteria: emergency access migration applied without runtime regression; postflight and advisors prove least privilege; global platform roles are tenant-null only; no remote claim without real JWT/service-role evidence
+Required verification: exact migration checksum, static regression, migration integrity, controlled Supabase apply, catalog postflight, advisors, real-role/JWT runtime smoke tests and rollback/forward-fix decision
+Evidence: remote read-only catalog/advisor/data inventory; local emergency-access regression; 339 migration files/243 version groups; 24-check RBAC audit; GitHub repository/head orientation
+Files changed: registered emergency-lockdown migration, static regression, package script, read-only postflight, hardening reports and agent memory
+Migrations: `20260802190000_canonical_emergency_access_lockdown.sql`
+Last updated: 2026-08-02
+Exact next subtask: obtain explicit blast-radius approval, then apply only `20260802190000` and execute immediate postflight/advisor/JWT verification

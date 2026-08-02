@@ -1,6 +1,17 @@
 # Current state
 
-Last updated: 2026-08-02T16:30:00+02:00
+Last updated: 2026-08-02T18:56:00+02:00
+
+- PHASE-40 emergency access lockdown is implemented locally and release remains NO-GO.
+- Read-only inspection of `gridex-ops-dev` proves four `security_definer` views, 63 anon/authenticated-executable SECURITY DEFINER findings, two internal system tables without RLS, broad public default privileges, and a tenant-bindable global platform-role helper/policy surface.
+- Registered forward migration `20260802190000_canonical_emergency_access_lockdown.sql` sets the four readiness views to `security_invoker`, removes anon/authenticated access to them and four mutating SECURITY DEFINER functions, enables/forces RLS on the two internal tables, replaces the platform-admin helper with a global-only check, and rejects tenant-bound global platform roles.
+- Local emergency-access regression, 339-file/243-group migration integrity and the 24-check RBAC audit pass. The migration SHA-256 is `9f5071e87c0689feb84f8701cbbeef72f65fb1c227862fb1ba628da47bb40d43`.
+- After a clean 446-package install, app/script/test TypeScript, 62 files/417 tests, ESLint (0 errors/125 warnings), zero-vulnerability production audit and the full Next.js build pass on the available Node 24.14.0. The package declares Node `>=22 <23`, so Node 22 CI parity remains required.
+- PostgreSQL parse/compile of `20260802190000` is NOT VERIFIED: local `psql` and a writable Supabase CLI home are unavailable, and remote compilation would evade the blocked persistent apply gate.
+- The controlled database apply was rejected pending explicit user approval of the access-control blast radius. No workaround and no remote mutation occurred; post-apply SQL/JWT verification is therefore NOT VERIFIED.
+- The remote ledger is current through `20260802180000`; earlier memory claiming only nine versions is superseded by the authoritative ledger inspection.
+- Data blockers remain: 153/232 Ediel test runs have no tenant, 11 passed actor results lack canonical snapshot/run proof, three active memberships (all owners) lack active roles, 96 constraints remain NOT VALID, and active Ediel configuration is empty.
+- GitHub repository `heke99/gridex-ops-platform` is connected; `main` head observed as `8374b70ef902caac1510b85d1f01f3630629a09e`. The uploaded archive has no `.git`, so exact archive-to-commit byte parity remains unproven and no GitHub write was performed.
 
 - PHASE-39 canonical security convergence is implemented and locally green; database rollout remains NO-GO pending exact A-C schema parity and staging cleanup.
 - Corrected unsupported PostgreSQL `min(uuid)` calls in the external safe preflight and the pending convergence migration; the preflight now executes read-only against `gridex-ops-dev`, and migration integrity/canonical/RBAC regressions pass with the new checksum.

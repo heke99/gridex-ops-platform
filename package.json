@@ -254,6 +254,7 @@
     "tenant:post-verify": "node scripts/run-tenant-sql.mjs scripts/canonical-multitenant-post-verification.sql",
     "verify:canonical-multitenant:static": "npm run tenant:multitenant:static && npm run typecheck && npm run typecheck:tests && vitest run __tests__/tenant-context.test.ts __tests__/canonical-onboarding.test.ts __tests__/public-contract-route-openapi-regression.test.ts && npm run build",
     "ops:canonical-production-hardening": "node scripts/canonical-production-hardening-regression.cjs",
+    "ops:emergency-access-regression": "node scripts/canonical-emergency-access-regression.cjs",
     "ops:canonical-production-preflight": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/canonical-production-hardening-preflight.sql",
     "ops:canonical-production-db-regression": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v run_a_id=\"$GRIDEX_TEST_RUN_A_ID\" -v message_b_id=\"$GRIDEX_TEST_MESSAGE_B_ID\" -v production_message_a_id=\"$GRIDEX_PRODUCTION_MESSAGE_A_ID\" -f scripts/canonical-production-hardening-db-regression.sql",
     "ops:canonical-production-rls-regression": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_a_id=\"$GRIDEX_TEST_COMPANY_A_ID\" -v company_b_id=\"$GRIDEX_TEST_COMPANY_B_ID\" -v user_a_id=\"$GRIDEX_TEST_USER_A_ID\" -v user_b_id=\"$GRIDEX_TEST_USER_B_ID\" -f scripts/canonical-production-hardening-rls-regression.sql"

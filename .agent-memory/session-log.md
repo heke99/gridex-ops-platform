@@ -229,3 +229,24 @@ ledger/schema reconciliation, controlled apply and environment proof.
 - The full corrected preflight and the corrected aggregate query execute
   read-only on `gridex-ops-dev`; migration integrity, canonical hardening and
   RBAC audit pass. No remote database mutation was performed.
+
+## 2026-08-02 18:56 CEST — PHASE-40 V2 emergency access lockdown
+
+- Reconciled the real `gridex-ops-dev` ledger and superseded stale memory: all
+  canonical migrations through `20260802180000` are registered.
+- Captured read-only catalog, privilege, RLS, advisor and data evidence. The
+  pre-lockdown release decision is FAIL/NO-GO.
+- Added and registered `20260802190000_canonical_emergency_access_lockdown.sql`,
+  a static regression, a read-only metadata postflight and focused reports.
+- Emergency regression, 339-file/243-group migration integrity and the 24-check
+  RBAC audit pass locally.
+- A safety review rejected the persistent remote ACL/view/RLS/helper/trigger
+  mutation pending explicit user approval. No workaround and no remote or
+  GitHub mutation occurred.
+- Located connected GitHub repository `heke99/gridex-ops-platform` and observed
+  `main` head `8374b70ef902caac1510b85d1f01f3630629a09e`; archive parity remains unproven.
+- Installed 446 locked dependencies in a writable cache and reran the complete
+  local app gates: all TypeScript targets, 62 files/417 tests, lint with 0
+  errors/125 inherited warnings, 0-vulnerability production audit and the full
+  Next.js build pass on Node 24.14.0. Node 22 parity and PostgreSQL compile of
+  the pending migration remain NOT VERIFIED.

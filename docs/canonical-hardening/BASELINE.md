@@ -5,10 +5,10 @@ Release decision: **NO-GO**
 
 ## Source integrity
 
-- Uploaded archive SHA-256: `e81980ee20c0b0ce5eb8d1eff6ca2e8bdc1a2971226a08821d90122dbbc32891`
+- Uploaded archive SHA-256: `e623976d333a3d4686e01ddd3ead83e599c21284a983347efaf7939dbaefd0d3`
 - `package-lock.json` SHA-256 before changes: `3e5c2cba116d338c48c8acc0a889e41b0ed720436ec4d6c6dc860f2748f842c0`
-- Original archive contained no Git metadata. Local comparison baseline: `14a476339c89ad6c40e16c721f434d6119239d2a`.
-- Baseline migration aggregate SHA-256: `375341af13b0231870b2119f6bf6b7d1d9772cc8d19c767244cd04cd8ff2f2a6`.
+- Original archive contained no Git metadata; branch and commit are **NOT VERIFIED**.
+- Migration aggregate after the prepared emergency migration: `127e738a3e2f24368b8fd8758745fd93f886c2db788efb8ae2767fafb71fa16c`.
 
 ## Verified baseline
 
@@ -18,7 +18,7 @@ Release decision: **NO-GO**
 | Next.js | PASS — 16.2.12 build |
 | TypeScript | PASS |
 | Tests | PASS — 62 files, 417 tests |
-| Migration integrity | PASS — 336 files before this change |
+| Migration integrity | PASS — 339 files / 243 version groups after the prepared emergency migration |
 | Production hardening static regression | PASS |
 | Dependency production audit | PASS — 0 vulnerabilities |
 
@@ -30,4 +30,7 @@ Release decision: **NO-GO**
 - Health observed: `ACTIVE_HEALTHY`
 - Remote writes performed in this work: none
 
-External staging, JWT/RLS, concurrency and transport verification remain **NOT VERIFIED**.
+The remote ledger now contains all canonical versions through
+`20260802180000`. The prepared `20260802190000` emergency migration is **not
+applied**. External REST/JWT RLS, concurrency and transport verification remain
+**NOT VERIFIED**.

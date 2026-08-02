@@ -2,7 +2,9 @@
 
 Release decision: **NO-GO**
 
-The local repository contains a long forward-only history, while the connected Supabase ledger reports only nine applied migrations. Versions `20260802010000`, `20260802011000` and `20260802012000` are absent from the ledger although their principal function bodies are present in the schema.
+The connected Supabase ledger was re-read on 2026-08-02. It now records all
+canonical versions `20260802010000` through `20260802180000`; the earlier
+nine-version/A-C drift statement is **SUPERSEDED** for this project state.
 
 ## A–C body comparison
 
@@ -26,20 +28,17 @@ also match: all four companies have production-state rows, every required
 permission and company capability exists, and no duplicate capability key is
 present.
 
-Result: **EXACT A-C PARITY APPROVED FOR `gridex-ops-dev`**. The three missing
-ledger entries may be repaired with the guarded script. This approval applies
-only to project `piidsfebjqjmnepdpnas` at the inspected state; it is not a
-general production approval.
+Result: **A-C LEDGER RECONCILIATION IS NO LONGER PENDING** on the inspected
+project. This does not validate the definitions or behavior of D-F and later
+migrations, and it is not a production approval.
 
 ## Forward-only sequence
 
-1. Preserve registered files unchanged.
-2. Reconcile A–C against catalog definitions and checksums. **DONE for the
-   inspected development project.**
-3. Repair ledger state with the guarded command; do not insert directly into
-   the ledger table.
-4. Apply D–F, `20260802160000`, then `20260802170000` on an isolated staging branch.
-5. Run preflight, backfill/quarantine review, RLS/JWT and concurrency tests.
-6. Promote only after all required gates pass.
+1. Preserve every registered file unchanged.
+2. Apply only the new `20260802190000` emergency repair after explicit approval.
+3. Run its postflight and Security Advisor before any later phase.
+4. Continue datapreflight/quarantine, RLS/JWT and concurrency work only after
+   the emergency access surface is actually closed.
+5. Promote only after all Definition-of-Done gates pass.
 
 The attempted transactional full-migration probe was rejected by the environment's risk controls and was not retried.

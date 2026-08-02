@@ -1,14 +1,22 @@
 # Current task
 
-Last updated: 2026-08-02T16:30:00+02:00
+Last updated: 2026-08-02T18:56:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
 ## Active phase
 
-PHASE-39 — Canonical security convergence, verified invitations and guarded staging synchronization.
+PHASE-40 — V2 emergency access lockdown and evidence-backed release triage.
 
 ## Verified locally
+
+- Added and registered forward-only migration `20260802190000_canonical_emergency_access_lockdown.sql` with checksum `9f5071e87c0689feb84f8701cbbeef72f65fb1c227862fb1ba628da47bb40d43`.
+- Added a static emergency-access regression and a read-only metadata postflight.
+- Migration integrity passes for 339 files/243 version groups; emergency-access and RBAC regressions pass.
+- Clean install, all three TypeScript targets, 62 files/417 tests, ESLint with 0 errors/125 inherited warnings, zero-vulnerability production audit and the full Next.js build pass on available Node 24.14.0; Node 22 parity remains required by `engines`.
+- Reconciled the connected Supabase migration ledger: every local canonical version through `20260802180000` is registered remotely.
+- Captured advisor and SQL evidence for the four unsafe views, four broadly executable mutating functions, two unprotected internal tables, unsafe defaults, legacy platform-admin policies and current data-quality blockers.
+- Located the connected private GitHub repository and current `main` head without changing the repository.
 
 - Added the registered forward-only convergence migration with request-payload-bound idempotency, actor authentication, last-owner/admin protection, actor-role-qualified Ediel profile identity, read-only readiness and least-privilege/RLS hardening.
 - Verified complete A-C table/column/constraint/index/RLS/policy/trigger/grant and seed parity read-only against `gridex-ops-dev`; guarded A-C ledger repair is now authorized for that inspected project state.
@@ -32,11 +40,15 @@ PHASE-39 — Canonical security convergence, verified invitations and guarded st
 
 ## Exact next action
 
-Run the supplied safe preflight, guarded A-C ledger repair and deterministic Gridex profile reconciliation in isolated staging. Then review/apply D-F, `20260802160000` and the corrected `20260802170000`, quarantine the 153 unscoped runs without assigning a tenant, and run the full DB/JWT/RLS/concurrency/worker verification protocol.
+Obtain explicit user approval for the documented emergency-lockdown blast radius. If approved, apply only `20260802190000` to `gridex-ops-dev`, immediately run `scripts/sql/05_emergency_access_lockdown_verification.sql`, rerun Supabase security advisors and real-role/JWT smoke tests, and stop on any application regression before later canonical/data work.
 
 ## Blockers
 
-- Remote ledger still contains only nine recorded versions; exact A-C parity is proven but the guarded ledger repair has not yet been executed.
+- Remote apply of the emergency access-control migration is not authorized; the safety review requires explicit approval because privileges, view semantics, RLS, an authorization helper and a trigger change persistently.
+- Post-lockdown catalog, advisor, JWT, service-role and runtime proof cannot be claimed before that controlled apply.
+- The V2 prompt requires phase ordering, so later write-path/data/UI mutations are intentionally paused at Phase 0 rather than claiming a skipped lockdown.
+
+- The prior nine-version ledger blocker is superseded: the remote ledger now records all canonical versions through `20260802180000`.
 - 153 legacy `ediel_test_runs` have no deterministic tenant owner and must remain quarantined/manual-review candidates.
 - The duplicate supplier/test profile and missing-snapshot live state have a deterministic, assertion-guarded repair but it has not yet been applied.
 - D–F, the website canonical-event migration and the convergence migration are not applied to staging.
@@ -46,4 +58,4 @@ Run the supplied safe preflight, guarded A-C ledger repair and deterministic Gri
 
 ## Release decision
 
-NO-GO until exact ledger/schema reconciliation, deterministic staging cleanup, controlled apply and environment regressions are green.
+NO-GO until emergency lockdown is explicitly approved, applied and verified, followed by deterministic cleanup and the remaining V2 database/runtime/UI/environment gates.
