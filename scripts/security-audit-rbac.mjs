@@ -215,6 +215,9 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
   "app/admin/companies/[id]/tenant-platform-actions.ts",
   "app/admin/company-settings/actions.ts",
+  // Reviewed 2026-08-02: platform-admin guard precedes the service-only
+  // canonical profile RPC; the RPC independently verifies actor and tenant.
+  "app/admin/ediel/settings/actions.ts",
   "app/admin/contracts/actions.ts",
   "app/admin/customers/[id]/actions.ts",
   "app/admin/customers/[id]/email-actions.ts",

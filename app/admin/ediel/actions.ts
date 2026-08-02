@@ -2685,10 +2685,14 @@ async function resolveBackendAperakDecision(params: {
     };
   }
 
+  if (!params.roleCode) {
+    throw new Error("Aktörsroll saknas för TGT/APERAK-beslutet.");
+  }
+
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: params.sourceMessage,
     testSuite: params.testSuite ?? "PRODAT",
-    roleCode: params.roleCode ?? "supplier",
+    roleCode: params.roleCode,
     requestedTestCaseCode: params.testCaseCode ?? null,
   });
 

@@ -92,7 +92,9 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
     if (!companyId) throw new Error('Bolag saknas.')
     const name = await companyName(companyId)
     const environment = normalizeEnvironment(text(formData.get('environment')) || 'test')
-    const actorRole = normalizeActorRole(text(formData.get('actor_role')) || 'supplier')
+    const actorRoleValue = text(formData.get('actor_role'))
+    if (!actorRoleValue) throw new Error('Aktörsroll måste väljas explicit.')
+    const actorRole = normalizeActorRole(actorRoleValue)
     const edielId = assertEdielId(text(formData.get('ediel_id')), 'Ediel ID')
     const senderSubaddress = assertSubaddress(nullableText(formData.get('sender_subaddress')))
     // Per-family sender subaddresses are the actual schema columns used by the
@@ -122,46 +124,25 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
       throw new Error('Ediel ID används redan av ett annat bolag i samma miljö och roll.')
     }
 
-    const existing = await supabaseService
-      .from('ediel_actor_settings')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('environment', environment)
-      .eq('actor_role', actorRole)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (existing.error) throw existing.error
-
-    const payload = {
+    const command = {
       company_id: companyId,
-      actor_name: name,
-      actor_ediel_id: edielId,
-      ediel_id: edielId,
+      company_name: name,
       actor_role: actorRole,
-      role: actorRole,
-      environment,
-      sender_sub_address: senderSubaddress,
-      sender_subaddress: senderSubaddress,
-      sender_subaddress_prodat: senderSubaddressProdat,
-      sender_subaddress_utilts: senderSubaddressUtilts,
-      receiver_subaddress: receiverSubaddress,
-      default_application_reference: applicationReference,
-      application_reference: applicationReference,
-      is_active: isActive,
-      valid_from: dateOrNull(formData.get('valid_from')),
-      valid_to: dateOrNull(formData.get('valid_to')),
-      metadata: { managedFrom: 'company_card', batch: 'batch_1_2' },
-      updated_by: admin.userId,
-      updated_at: new Date().toISOString(),
+      [`${environment}_ediel_id`]: edielId,
+      [`${environment}_sender_sub_address`]: senderSubaddress,
+      [`${environment}_sender_subaddress_prodat`]: senderSubaddressProdat,
+      [`${environment}_sender_subaddress_utilts`]: senderSubaddressUtilts,
+      [`${environment}_receiver_subaddress`]: receiverSubaddress,
+      [`${environment}_application_reference`]: applicationReference,
+      [`${environment}_is_active`]: isActive,
+      [`${environment}_valid_from`]: dateOrNull(formData.get('valid_from')),
+      [`${environment}_valid_to`]: dateOrNull(formData.get('valid_to')),
+      actor_user_id: admin.userId,
+      idempotency_key: `company-card-profile:${companyId}:${environment}:${crypto.randomUUID()}`,
     }
-
-    const query = existing.data?.id
-      ? supabaseService.from('ediel_actor_settings').update(payload).eq('id', existing.data.id)
-      : supabaseService.from('ediel_actor_settings').insert({ ...payload, created_by: admin.userId })
-
-    const { data, error } = await query.select('id').single()
+    const { data, error } = await supabaseService.rpc('canonical_save_ediel_actor_profile', {
+      p_command: command,
+    })
     if (error) throw error
 
     await audit({
@@ -169,8 +150,8 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
       actorUserId: admin.userId,
       action: 'SUPERADMIN_EDIEL_ACTOR_SETTINGS_SAVED',
       entityType: 'ediel_actor_settings',
-      entityId: (data as { id?: string }).id ?? null,
-      payload,
+      entityId: null,
+      payload: { command, result: data },
     })
 
     // Recalculate the onboarding readiness checklist (does not auto-send or
@@ -323,29 +304,38 @@ async function updateActorSettingStatus(formData: FormData, status: 'test_active
   const environment = status === 'test_active' ? 'test' : 'production'
   if (!companyId) throw new Error('Bolag saknas.')
 
-  const payload = status === 'test_active'
-    ? { test_status: 'active', is_active: true, updated_by: admin.userId, updated_at: new Date().toISOString() }
-    : { production_status: 'live', is_active: true, updated_by: admin.userId, updated_at: new Date().toISOString() }
-
-  const { data, error } = await supabaseService
+  if (status === 'production_live') {
+    throw new Error('Produktionsaktivering måste köras via canonical go-live med aktuell readiness och dry-run.')
+  }
+  const profile = await supabaseService
     .from('ediel_actor_settings')
-    .update(payload)
+    .select('id,actor_role,role')
     .eq('company_id', companyId)
     .eq('environment', environment)
-    .select('id')
-    .limit(1)
     .maybeSingle()
-
+  if (profile.error) throw profile.error
+  if (!profile.data?.id) throw new Error('Aktörsinställningen hittades inte.')
+  const actorRole = String(profile.data.actor_role ?? profile.data.role ?? '').trim()
+  if (!actorRole) throw new Error('Aktörsrollen saknas och kan inte antas.')
+  const command = {
+    company_id: companyId,
+    actor_role: actorRole,
+    test_profile_id: profile.data.id,
+    test_is_active: true,
+    test_test_status: 'active',
+    actor_user_id: admin.userId,
+    idempotency_key: `activate-test-profile:${companyId}:${crypto.randomUUID()}`,
+  }
+  const { error } = await supabaseService.rpc('canonical_save_ediel_actor_profile', { p_command: command })
   if (error) throw error
-  if (!data) throw new Error('Aktörsinställningen hittades inte.')
 
   await audit({
     companyId,
     actorUserId: admin.userId,
     action: status === 'test_active' ? 'SUPERADMIN_EDIEL_TEST_ACTOR_ACTIVATED' : 'SUPERADMIN_EDIEL_PRODUCTION_ACTOR_ACTIVATED',
     entityType: 'ediel_actor_settings',
-    entityId: (data as { id?: string }).id ?? null,
-    payload,
+    entityId: profile.data.id,
+    payload: command,
   })
 
   revalidatePath(`/admin/companies/${companyId}`)
@@ -365,26 +355,19 @@ async function setProductionSendLock(formData: FormData, locked: boolean) {
   const companyId = text(formData.get('company_id'))
   const reason = nullableText(formData.get('reason'))
   if (!companyId) throw new Error('Bolag saknas.')
-  const now = new Date().toISOString()
-
-  const { error } = await supabaseService
-    .from('ediel_actor_settings')
-    .update({ production_send_lock_enabled: locked, updated_by: admin.userId, updated_at: now })
-    .eq('company_id', companyId)
-    .eq('environment', 'production')
+  if (!locked) throw new Error('Upplåsning måste köras via canonical go-live/resume med aktuell readiness och dry-run.')
+  const { error } = await supabaseService.rpc('canonical_transition_ediel_production', {
+    p_company_id: companyId,
+    p_target_state: 'paused',
+    p_expected_state_version: null,
+    p_configuration_snapshot_id: null,
+    p_readiness_check_id: null,
+    p_dry_run_id: null,
+    p_reason: reason ?? 'Manuell produktionspaus.',
+    p_actor_user_id: admin.userId,
+    p_idempotency_key: `production-pause:${companyId}:${crypto.randomUUID()}`,
+  })
   if (error) throw error
-
-  await supabaseService.from('ediel_send_locks').upsert({
-    company_id: companyId,
-    environment: 'production',
-    locked,
-    locked_reason: reason,
-    locked_by: locked ? admin.userId : null,
-    locked_at: locked ? now : null,
-    unlocked_by: locked ? null : admin.userId,
-    unlocked_at: locked ? null : now,
-    updated_at: now,
-  }, { onConflict: 'company_id,environment' }).then(() => null)
 
   await audit({
     companyId,
@@ -413,35 +396,30 @@ export async function approveFirstProductionSendAction(formData: FormData) {
   const messageId = text(formData.get('message_id'))
   if (!companyId) throw new Error('Bolag saknas.')
   if (!messageId) throw new Error('Meddelande saknas för första produktionsgodkännande.')
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabaseService
-    .from('ediel_actor_settings')
-    .update({
-      first_production_send_approved: true,
-      first_production_message_id: messageId,
-      approved_by: admin.userId,
-      approved_at: now,
-      production_send_lock_enabled: false,
-      updated_by: admin.userId,
-      updated_at: now,
-    })
+  const state = await supabaseService
+    .from('ediel_production_state')
+    .select('state,readiness_check_id')
     .eq('company_id', companyId)
-    .eq('environment', 'production')
-    .select('id')
-    .limit(1)
     .maybeSingle()
-
+  if (state.error) throw state.error
+  if (state.data?.state !== 'live' || !state.data.readiness_check_id) {
+    throw new Error('Canonical live-state och aktuell readiness krävs.')
+  }
+  const { error } = await supabaseService.rpc('canonical_approve_first_live_send', {
+    p_company_id: companyId,
+    p_readiness_check_id: state.data.readiness_check_id,
+    p_actor_user_id: admin.userId,
+    p_idempotency_key: `first-live-send:${companyId}:${crypto.randomUUID()}`,
+  })
   if (error) throw error
-  if (!data) throw new Error('Produktionsaktör saknas.')
 
   await audit({
     companyId,
     actorUserId: admin.userId,
     action: 'SUPERADMIN_EDIEL_FIRST_PRODUCTION_SEND_APPROVED',
     entityType: 'ediel_actor_settings',
-    entityId: (data as { id?: string }).id ?? null,
-    payload: { messageId, approvedAt: now },
+    entityId: companyId,
+    payload: { messageId, readinessCheckId: state.data.readiness_check_id },
   })
 
   revalidatePath(`/admin/companies/${companyId}`)

@@ -107,11 +107,12 @@ async function getProductionActorSetting(companyId: string): Promise<{
   edielId: string;
   senderSubAddress: string | null;
   actorSettingId: string;
+  actorRole: string;
 } | null> {
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")
     .select(
-      "id,ediel_id,actor_ediel_id,sender_subaddress,sender_sub_address,is_active",
+      "id,ediel_id,actor_ediel_id,sender_subaddress,sender_sub_address,actor_role,role,is_active",
     )
     .eq("company_id", companyId)
     .eq("environment", "production")
@@ -126,6 +127,8 @@ async function getProductionActorSetting(companyId: string): Promise<{
     .trim()
     .toUpperCase();
   if (!row || !edielId) return null;
+  const actorRole = String(row.actor_role ?? row.role ?? "").trim();
+  if (!actorRole) throw new Error("Production-aktörens roll saknas och kan inte antas.");
 
   return {
     edielId,
@@ -134,6 +137,7 @@ async function getProductionActorSetting(companyId: string): Promise<{
         null,
     ),
     actorSettingId: String(row.id),
+    actorRole,
   };
 }
 
@@ -550,20 +554,24 @@ export async function createProductionRouteFromWizardAction(
               created.find((item) => item.family === "PRODAT")?.family ??
               created[0]?.family ??
               "PRODAT";
-            const { error: updateError } = await supabaseService
-              .from("companies")
-              .update({
-                production_ediel_id: senderEdielId,
-                production_sender_sub_address: senderSubAddress,
-                production_mailbox: targetEmail,
-                production_application_reference:
-                  FAMILY_CONFIG[primaryFamily].applicationReference,
-                production_counterparty_ediel_id: null,
-                ediel_primary_production_route_profile_id: primaryProfileId,
-                live_blocked_reason: null,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", companyId);
+            const { error: updateError } = await supabaseService.rpc(
+              "canonical_save_ediel_actor_profile",
+              {
+                p_command: {
+                  company_id: companyId,
+                  actor_role: actorSetting.actorRole,
+                  production_profile_id: actorSetting.actorSettingId,
+                  production_ediel_id: senderEdielId,
+                  production_sender_sub_address: senderSubAddress,
+                  production_mailbox: targetEmail,
+                  production_application_reference: FAMILY_CONFIG[primaryFamily].applicationReference,
+                  production_counterparty_ediel_id: null,
+                  production_primary_route_id: primaryProfileId,
+                  actor_user_id: admin.userId,
+                  idempotency_key: `route-wizard-profile:${companyId}:${crypto.randomUUID()}`,
+                },
+              },
+            );
             if (updateError) throw updateError;
 
             try {

@@ -21,13 +21,14 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     const context = await requirePlatformAdminActionAccess()
     const companyId = stringValue(formData, 'companyId')
     const testSuite = stringValue(formData, 'testSuite') ?? 'PRODAT'
-    const roleCode = stringValue(formData, 'roleCode') ?? 'supplier'
+    const roleCode = stringValue(formData, 'roleCode')
     const testCaseCode = stringValue(formData, 'testCaseCode')
     const environmentType = stringValue(formData, 'environmentType') ?? 'agt_test'
     const environment = environmentType === 'production' ? 'production' : 'test'
     const encryptionMode = stringValue(formData, 'encryptionMode') ?? 'none'
 
     if (!companyId) throw new Error('Välj bolag/tenant.')
+    if (!roleCode || !['supplier', 'esco'].includes(roleCode)) throw new Error('Välj en giltig aktörsroll explicit.')
     if (!testCaseCode) throw new Error('Välj testfall.')
 
     await prepareEdielTestRunTransportMetadata({

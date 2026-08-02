@@ -1,6 +1,13 @@
 # Current state
 
-Last updated: 2026-08-02T12:45:00+02:00
+Last updated: 2026-08-02T14:45:37+02:00
+
+- PHASE-39 canonical security convergence is implemented and locally green; database rollout remains NO-GO pending exact A-C schema parity and staging cleanup.
+- Registered migration `20260802170000_canonical_security_convergence.sql` adds actor-authenticated canonical boundaries, request-hash idempotency, one-time first-live approval, explicit profile identity, read-only readiness and least-privilege/RLS hardening.
+- Company provisioning, lifecycle, Ediel production/profile/route and invitation paths now use canonical fail-closed boundaries; temporary-password and pre-verification membership/access paths are removed.
+- Read-only remote preflight passes company-status and cross-tenant message checks, but blocks on 153 unscoped test runs, one duplicate active actor-profile group and one production state without a snapshot.
+- PostgreSQL parsing, all TypeScript targets, 417 tests, 337-file/241-group migration integrity, canonical/security regressions, zero-vulnerability production audit and the full Node 22 build pass.
+- No remote database mutation was performed. Real JWT/RLS, service-role negative, concurrency, worker and external transport proof remain post-apply requirements.
 
 - PHASE-38 canonical production hardening is locally green under Node 22 but database rollout is blocked by remote ledger/schema drift; release is NO-GO.
 - Ediel evidence v2 now derives the result entirely in PostgreSQL and binds it to tenant, run, canonical test identity, active configuration snapshot, portal identity, exact message relations, ACK outcomes, transport, variant and rulebook.

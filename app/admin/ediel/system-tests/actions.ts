@@ -468,104 +468,34 @@ async function upsertSimpleActorSetting(params: {
   mailbox: string;
   actorName: string;
 }) {
-  const actorSubrole = params.actorRole === "esco" ? "DGI" : "DDQ";
-  const payload = {
+  const actorRole = params.actorRole === "esco" ? "energy_service_company" : "supplier";
+  const applicationReference = params.actorRole === "esco" ? "23-DGI-PRODAT" : "23-DDQ-PRODAT";
+  const { error } = await supabaseService.rpc("canonical_save_ediel_actor_profile", {
+    p_command: {
     company_id: params.companyId,
-    environment: "test",
-    actor_name: params.actorName,
-    legal_name: params.actorName,
-    sender_name: params.actorName,
-    actor_role:
-      params.actorRole === "esco" ? "energy_service_company" : "supplier",
-    role: params.actorRole,
-    actor_ediel_id: params.edielId,
-    ediel_id: params.edielId,
-    sender_subaddress: null,
-    sender_sub_address: null,
-    mailbox: params.mailbox,
-    is_active: true,
-    default_application_reference:
-      params.actorRole === "esco" ? "23-DGI-PRODAT" : "23-DDQ-PRODAT",
-    application_reference:
-      params.actorRole === "esco" ? "23-DGI-PRODAT" : "23-DDQ-PRODAT",
-    metadata: {
-      source: "admin_ediel_system_tests_simple_setup",
-      simpleSystemTestsSetup: true,
-      actorSubrole,
+      company_name: params.actorName,
+      actor_role: actorRole,
+      test_actor_name: params.actorName,
+      test_sender_name: params.actorName,
+      test_ediel_id: params.edielId,
+      test_sender_sub_address: null,
+      test_mailbox: params.mailbox,
+      test_is_active: true,
+      test_application_reference: applicationReference,
+      actor_user_id: params.actorUserId,
+      idempotency_key: `system-test-profile:${params.companyId}:${crypto.randomUUID()}`,
     },
-    updated_by: params.actorUserId,
-    updated_at: new Date().toISOString(),
-  };
-
-  const existing = await supabaseService
-    .from("ediel_actor_settings")
-    .select("id")
+  });
+  if (error) throw error;
+  const identity = await supabaseService
+    .from("canonical_ediel_profile_identities")
+    .select("profile_id")
     .eq("company_id", params.companyId)
     .eq("environment", "test")
-    .eq("role", params.actorRole)
-    .limit(1)
     .maybeSingle();
-  if (
-    existing.error &&
-    !["42P01", "42703", "PGRST204"].includes(existing.error.code ?? "")
-  )
-    throw existing.error;
-
-  if (existing.data?.id) {
-    await updateWithFallback({
-      table: "ediel_actor_settings",
-      id: String(existing.data.id),
-      richPayload: payload,
-      fallbackPayload: pickPayload(payload, [
-        "company_id",
-        "environment",
-        "actor_name",
-        "legal_name",
-        "sender_name",
-        "actor_role",
-        "role",
-        "actor_ediel_id",
-        "ediel_id",
-        "sender_subaddress",
-        "sender_sub_address",
-        "is_active",
-        "default_application_reference",
-        "application_reference",
-        "metadata",
-        "updated_by",
-        "updated_at",
-      ]),
-    });
-    return String(existing.data.id);
-  }
-
-  return insertWithFallback({
-    table: "ediel_actor_settings",
-    richPayload: { ...payload, created_by: params.actorUserId },
-    fallbackPayload: pickPayload(
-      { ...payload, created_by: params.actorUserId },
-      [
-        "company_id",
-        "environment",
-        "actor_name",
-        "legal_name",
-        "sender_name",
-        "actor_role",
-        "role",
-        "actor_ediel_id",
-        "ediel_id",
-        "sender_subaddress",
-        "sender_sub_address",
-        "is_active",
-        "default_application_reference",
-        "application_reference",
-        "metadata",
-        "created_by",
-        "updated_by",
-        "updated_at",
-      ],
-    ),
-  });
+  if (identity.error) throw identity.error;
+  if (!identity.data?.profile_id) throw new Error("Canonical testprofil kunde inte verifieras efter sparning.");
+  return String(identity.data.profile_id);
 }
 
 async function upsertSimpleSystemTestRoute(params: {

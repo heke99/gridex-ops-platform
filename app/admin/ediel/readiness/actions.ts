@@ -18,10 +18,11 @@ function boolValue(formData: FormData, key: string): boolean {
 export async function saveAgtReadinessAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const companyId = stringValue(formData, 'companyId')
-  const actorRole = stringValue(formData, 'actorRole') ?? 'supplier'
+  const actorRole = stringValue(formData, 'actorRole')
   const messageFamily = stringValue(formData, 'messageFamily') ?? 'PRODAT'
 
   if (!companyId) throw new Error('Bolag saknas.')
+  if (!actorRole || !['supplier', 'esco'].includes(actorRole)) throw new Error('Välj en giltig aktörsroll explicit.')
 
   const readinessStatus = [
     boolValue(formData, 'testResourceConfirmed'),

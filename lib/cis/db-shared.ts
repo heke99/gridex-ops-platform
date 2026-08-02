@@ -197,9 +197,9 @@ function resolveTenantConsistency(params: {
     { source: 'site', companyId: normalizeCompanyId(params.site?.company_id) },
     { source: 'metering_point', companyId: normalizeCompanyId(params.meteringPoint?.company_id) },
     { source: 'contract', companyId: normalizeCompanyId(params.contract?.company_id) },
-  ].filter((row) => row.companyId)
+  ].filter((row): row is { source: string; companyId: string } => row.companyId !== null)
 
-  const uniqueCompanyIds = Array.from(new Set(candidates.map((row) => row.companyId as string)))
+  const uniqueCompanyIds = Array.from(new Set(candidates.map((row) => row.companyId)))
 
   if (uniqueCompanyIds.length > 1) {
     return {

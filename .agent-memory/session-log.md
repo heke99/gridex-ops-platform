@@ -186,3 +186,20 @@ candidates. Both migrations compiled inside confirmed rolled-back database
 transactions. Clean Node 22 install, all TypeScript targets, 417 tests, migration
 integrity, hardening regressions and full build pass. Release remains NO-GO for
 ledger reconciliation, controlled apply and environment security/E2E proof.
+
+## 2026-08-02 14:45 CEST — PHASE-39 canonical security convergence
+
+Added and registered the forward-only canonical convergence migration, then
+routed company provisioning, verified invitations, lifecycle, Ediel production,
+first-send, profile and route writes through actor-authenticated fail-closed
+database boundaries. Added request-hash idempotency, one-time first-live approval,
+explicit profile identity, read-only readiness, last-owner/admin protection and
+least-privilege/RLS hardening. Read-only Supabase reconciliation proved principal
+A-C function-body parity but not complete catalog parity; preflight retained 153
+unscoped test runs and found one duplicate active profile group plus one missing
+production snapshot. No database mutation was performed. PostgreSQL parsing, all
+TypeScript targets, 417 tests, 337-file/241-group migration integrity, canonical
+and security regressions, zero-vulnerability audit and the Node 22 production
+build pass. Delivery/runbook artifacts and a guarded staging sync script are
+present. Release remains NO-GO pending deterministic staging cleanup, exact
+ledger/schema reconciliation, controlled apply and environment proof.

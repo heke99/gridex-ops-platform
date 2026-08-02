@@ -520,3 +520,17 @@ Files changed: evidence/event migrations, Ediel actions/engine, tests/regression
 Migrations: `20260802013000_ediel_test_evidence_v2.sql`, `20260802160000_website_application_committed_canonical_event.sql`
 Last updated: 2026-08-02
 Exact next subtask: reconcile exact A–C definitions with the remote ledger before controlled staging apply of D–F and the website event migration
+
+## WP-039: Canonical security convergence and guarded synchronization
+Status: LOCALLY_VERIFIED_DATABASE_BLOCKED
+Phase: PHASE-39
+Priority: P0
+Depends on: WP-038
+Affected domains: canonical RPC boundaries, actor authorization, invitations, idempotency, Ediel profiles/readiness, RLS/grants, staging synchronization
+Acceptance criteria: one actor-authenticated canonical write boundary; payload-bound idempotency; verified access invitation; no temporary credentials; fail-closed roles/tenants; least privilege; guarded forward-only staging apply
+Required verification: exact A-C catalog parity, deterministic preflight cleanup, isolated staging apply, real JWT/service-role denial, idempotency collision, concurrency, worker pause and external transport E2E
+Evidence: PostgreSQL parser; all TypeScript targets; 62 files/417 tests; 337 migration files/241 groups; canonical, tenant and RBAC regressions; zero-vulnerability audit; full Node 22 build
+Files changed: company/auth/Ediel admin runtime, canonical production approval/testing helpers, RBAC and hardening regressions, registered migration, reports/runbooks, guarded sync script and memory
+Migrations: `20260802170000_canonical_security_convergence.sql`
+Last updated: 2026-08-02
+Exact next subtask: finish exact A-C catalog diff and deterministically resolve all preflight blockers before guarded ledger repair and isolated-staging apply

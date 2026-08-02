@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseService } from "@/lib/supabase/service";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { formatErrorMessage } from "@/lib/errors";
@@ -91,7 +92,7 @@ function revalidateEdielPaths() {
 export async function saveEdielActorSettingsAction(formData: FormData) {
   await requirePlatformAdminActionAccess();
 
-  const { supabase, userId, companyId } = await getActorContext();
+  const { userId, companyId } = await getActorContext();
 
   const id = stringValue(formData, "id");
   const environment =
@@ -163,35 +164,38 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
     );
   }
 
-  if (isActive) {
-    const { error: deactivateError } = await supabase
-      .from("ediel_actor_settings")
-      .update({
-        is_active: false,
-        updated_by: userId,
-      })
-      .eq("environment", environment)
-      .eq("company_id", companyId);
-
-    if (deactivateError) throw deactivateError;
-  }
-
-  if (id) {
-    const { error } = await supabase
-      .from("ediel_actor_settings")
-      .update(payload)
-      .eq("id", id)
-      .eq("company_id", companyId);
-
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from("ediel_actor_settings").insert({
-      ...payload,
-      created_by: userId,
-    });
-
-    if (error) throw error;
-  }
+  const command = {
+    company_id: companyId,
+    company_name: actorName,
+    organization_number: payload.organization_number,
+    actor_role: actorRole,
+    [`${environment}_profile_id`]: id,
+    [`${environment}_actor_name`]: actorName,
+    [`${environment}_sender_name`]: payload.sender_name,
+    [`${environment}_ediel_id`]: actorEdielId,
+    [`${environment}_sender_sub_address`]: senderSubAddress,
+    [`${environment}_sender_subaddress_prodat`]: senderSubAddress,
+    [`${environment}_sender_subaddress_utilts`]: senderSubAddress,
+    [`${environment}_application_reference`]: payload.default_application_reference,
+    [`${environment}_mailbox`]: payload.mailbox,
+    [`${environment}_is_active`]: isActive,
+    [`${environment}_organization_number`]: payload.organization_number,
+    [`${environment}_production_status`]: payload.production_status,
+    [`${environment}_test_status`]: payload.test_status,
+    [`${environment}_default_transport_channel`]: payload.default_transport_channel,
+    [`${environment}_default_timezone`]: payload.default_timezone,
+    [`${environment}_default_charset`]: payload.default_charset,
+    [`${environment}_default_test_flag`]: payload.default_test_flag,
+    [`${environment}_smtp_reply_to_email`]: payload.smtp_reply_to_email,
+    [`${environment}_notes`]: payload.notes,
+    smtp_from_email: payload.smtp_from_email,
+    actor_user_id: userId,
+    idempotency_key: `ediel-settings-profile:${companyId}:${environment}:${crypto.randomUUID()}`,
+  };
+  const { error } = await supabaseService.rpc("canonical_save_ediel_actor_profile", {
+    p_command: command,
+  });
+  if (error) throw error;
 
   revalidateEdielPaths();
 }

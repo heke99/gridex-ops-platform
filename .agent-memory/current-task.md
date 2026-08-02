@@ -1,14 +1,21 @@
 # Current task
 
-Last updated: 2026-08-02T12:45:00+02:00
+Last updated: 2026-08-02T14:45:37+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
 ## Active phase
 
-PHASE-38 — Canonical production hardening, Ediel evidence v2 and migration-ledger reconciliation.
+PHASE-39 — Canonical security convergence, verified invitations and guarded staging synchronization.
 
 ## Verified locally
+
+- Added the registered forward-only convergence migration with request-payload-bound idempotency, actor authentication, last-owner/admin protection, explicit Ediel profile identity, read-only readiness and least-privilege/RLS hardening.
+- Routed company provisioning, lifecycle, production, first-send, profile and route writers through the canonical database boundary.
+- Replaced temporary-password provisioning with verified Supabase invitation/OTP acceptance and no access before acceptance.
+- Made unknown/missing roles and incomplete tenant context fail closed in the touched flows.
+- PostgreSQL parser, every TypeScript target, 417 tests, 337-file/241-group migration integrity, hardening/security regressions, zero-vulnerability production audit and full Node 22 build pass.
+- Added complete baseline, schema/ledger, RLS/security, preflight/backfill/quarantine, staging/rollback/cutover/verification documentation and a guarded synchronization script.
 
 - Repaired the Ediel evidence migration against the actual `gridex-ops-dev` schema and transaction-compiled it with a confirmed rollback.
 - Evidence pass/fail is server-derived from run, definition, snapshot, messages, portal identity, correlation, ACK outcome, transport and rulebook data.
@@ -21,18 +28,18 @@ PHASE-38 — Canonical production hardening, Ediel evidence v2 and migration-led
 
 ## Exact next action
 
-Do not run `supabase db push`. First reconcile the remote migration ledger with exact schema-definition comparisons for `20260802010000`–`20260802012000`. Then apply D–F and `20260802160000` in an isolated staging branch, execute preflight/quarantine review, validate eligible constraints, run the supplied DB/RLS regressions with real two-tenant JWT fixtures, and repeat all Node 22 gates.
+Run only the guarded dry-run plan. Reconcile every A-C table, constraint, index, policy, trigger, function and grant before ledger repair. Resolve the 153 unscoped runs, duplicate active profile group and missing production snapshot in isolated staging without guessing; then apply D-F, `20260802160000` and `20260802170000`, and run the full DB/JWT/RLS/concurrency/worker verification protocol.
 
 ## Blockers
 
 - Remote ledger contains only nine recorded versions while parts of A–C exist in schema; exact definition/ledger parity is not yet proven.
 - 153 legacy `ediel_test_runs` have no deterministic tenant owner and must remain quarantined/manual-review candidates.
-- D–F and the website canonical-event migration are not applied to staging.
+- One duplicate active actor-profile group and one prepared/live production state without a snapshot require explicit staging remediation.
+- D–F, the website canonical-event migration and the convergence migration are not applied to staging.
 - Authenticated two-tenant RLS, service-role cross-tenant, concurrency and full evidence-chain fixtures have not run after apply.
 - External Gridex Web/portal/partner repositories and deployment targets were not supplied.
 - Git provenance is absent.
 
 ## Release decision
 
-NO-GO until ledger reconciliation, controlled staging apply and environment regressions are green.
-
+NO-GO until exact ledger/schema reconciliation, deterministic staging cleanup, controlled apply and environment regressions are green.

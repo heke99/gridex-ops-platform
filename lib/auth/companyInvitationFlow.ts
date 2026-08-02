@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -12,7 +13,6 @@ import {
 export type CompanyInviteProvisionResult = {
   userId: string
   email: string
-  temporaryPassword: string | null
   wasCreated: boolean
   invitationToken: string
   acceptUrl: string
@@ -29,8 +29,6 @@ type CompanyInviteInput = {
   roleKey: string
   actorUserId: string | null
   source: string
-  issueTemporaryPassword?: boolean
-  temporaryPassword?: string | null
   sendEmail?: boolean
 }
 
@@ -51,27 +49,9 @@ function normalizeEmail(value: string | null | undefined) {
   return String(value ?? '').trim().toLowerCase()
 }
 
-function normalizeText(value: string | null | undefined) {
-  return String(value ?? '').trim()
-}
-
 function isIgnorableSchemaError(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false
   return ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')
-}
-
-function createTemporaryPassword() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%'
-  const bytes = crypto.randomBytes(18)
-  let password = ''
-  for (const byte of bytes) password += alphabet[byte % alphabet.length]
-  return `${password}9!`
-}
-
-function assertValidTemporaryPassword(password: string) {
-  if (password.length < 8) {
-    throw new Error('Temporärt lösenord måste vara minst 8 tecken.')
-  }
 }
 
 function createInvitationToken() {
@@ -94,11 +74,10 @@ async function safeRecordAuthEmailEvent(input: Parameters<typeof recordAuthEmail
   }
 }
 
-async function upsertUserProfileWithTemporaryState(input: {
+async function upsertInvitedUserProfile(input: {
   user: User
   email: string
   fullName: string | null
-  temporaryPassword: string | null
   source: string
 }) {
   const now = new Date().toISOString()
@@ -107,7 +86,9 @@ async function upsertUserProfileWithTemporaryState(input: {
     userId: input.user.id,
     email: input.email,
     fullName: input.fullName,
-    emailConfirmedAt: input.user.email_confirmed_at ?? now,
+    emailConfirmedAt: input.user.email_confirmed_at ?? undefined,
+    lastInviteSentAt: now,
+    lastAction: 'invite_sent',
   })
 
   const payload: Record<string, unknown> = {
@@ -117,71 +98,48 @@ async function upsertUserProfileWithTemporaryState(input: {
     updated_at: now,
   }
 
-  if (input.temporaryPassword) {
-    payload.must_change_password = true
-    payload.temporary_password_set_at = now
-    payload.temporary_password_expires_at = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
-  }
-
   const { error } = await supabaseService.from('user_profiles').upsert(payload, { onConflict: 'id' })
   if (error && !isIgnorableSchemaError(error)) throw error
 }
 
-async function createOrUpdateAuthUser(input: {
+async function createOrResolveInvitedAuthUser(input: {
   email: string
   fullName: string | null
-  issueTemporaryPassword: boolean
-  temporaryPassword?: string | null
-}): Promise<{ user: User; temporaryPassword: string | null; wasCreated: boolean }> {
+  redirectTo: string
+  sendEmail: boolean
+}): Promise<{ user: User; wasCreated: boolean; emailSent: boolean }> {
   const existing = await findAuthUserByEmail(input.email)
-  const manualTemporaryPassword = normalizeText(input.temporaryPassword)
-  const temporaryPassword = input.issueTemporaryPassword
-    ? manualTemporaryPassword || createTemporaryPassword()
-    : null
-
-  if (temporaryPassword) assertValidTemporaryPassword(temporaryPassword)
 
   if (existing) {
-    const updatePayload: {
-      user_metadata: Record<string, unknown>
-      password?: string
-      email_confirm?: boolean
-    } = {
+    const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, {
       user_metadata: {
         ...(existing.user_metadata ?? {}),
         full_name: input.fullName ?? existing.user_metadata?.full_name ?? null,
-        must_change_password: Boolean(temporaryPassword) || Boolean(existing.user_metadata?.must_change_password),
-        temporary_password_set_at: temporaryPassword ? new Date().toISOString() : existing.user_metadata?.temporary_password_set_at ?? null,
       },
-    }
-
-    if (temporaryPassword) {
-      updatePayload.password = temporaryPassword
-      updatePayload.email_confirm = true
-    }
-
-    const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, updatePayload)
+    })
     if (error) throw error
-
-    return { user: data.user ?? existing, temporaryPassword, wasCreated: false }
+    if (input.sendEmail) {
+      const otp = await supabaseService.auth.signInWithOtp({
+        email: input.email,
+        options: { emailRedirectTo: input.redirectTo, shouldCreateUser: false },
+      })
+      if (otp.error) throw otp.error
+    }
+    return { user: data.user ?? existing, wasCreated: false, emailSent: input.sendEmail }
   }
 
-  const finalPassword = temporaryPassword ?? createTemporaryPassword()
-  const { data, error } = await supabaseService.auth.admin.createUser({
-    email: input.email,
-    password: finalPassword,
-    email_confirm: true,
-    user_metadata: {
-      full_name: input.fullName ?? null,
-      must_change_password: Boolean(temporaryPassword),
-      temporary_password_set_at: temporaryPassword ? new Date().toISOString() : null,
-    },
+  if (!input.sendEmail) {
+    throw new Error('Nya användare måste få en verifierad inbjudningslänk.')
+  }
+  const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(input.email, {
+    redirectTo: input.redirectTo,
+    data: { full_name: input.fullName ?? null },
   })
 
   if (error) throw error
   if (!data.user) throw new Error('Auth-kontot skapades inte korrekt.')
 
-  return { user: data.user, temporaryPassword, wasCreated: true }
+  return { user: data.user, wasCreated: true, emailSent: true }
 }
 
 export async function provisionCompanyInvitation(input: CompanyInviteInput): Promise<CompanyInviteProvisionResult> {
@@ -190,33 +148,31 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
 
   let createdAuthUserId: string | null = null
   let userId: string | null = null
-  let token = ''
-  let acceptUrl = ''
+  const token = createInvitationToken()
+  const acceptUrl = buildAcceptUrl(token)
+  const authRedirectTo = `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(token)}`)}`
 
   try {
-    const authResult = await createOrUpdateAuthUser({
+    const authResult = await createOrResolveInvitedAuthUser({
       email,
       fullName: input.fullName ?? null,
-      issueTemporaryPassword: input.issueTemporaryPassword !== false,
-      temporaryPassword: input.temporaryPassword ?? null,
+      redirectTo: authRedirectTo,
+      sendEmail: input.sendEmail !== false,
     })
 
-    const { user, wasCreated, temporaryPassword } = authResult
+    const { user, wasCreated, emailSent } = authResult
     userId = user.id
     if (wasCreated) createdAuthUserId = user.id
 
-    await upsertUserProfileWithTemporaryState({
+    await upsertInvitedUserProfile({
       user,
       email,
       fullName: input.fullName ?? null,
-      temporaryPassword,
       source: input.source,
     })
 
-    token = createInvitationToken()
     const tokenHash = hashCompanyInvitationToken(token)
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
-    const now = new Date().toISOString()
 
     const invitationPayload: Record<string, unknown> = {
       company_id: input.companyId,
@@ -224,22 +180,18 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       full_name: input.fullName ?? null,
       membership_role: input.membershipRole,
       role_key: input.roleKey,
-      status: 'accepted',
+      status: 'pending',
       invited_by: input.actorUserId,
       invited_user_id: user.id,
       expires_at: expiresAt,
-      accepted_at: now,
+      accepted_at: null,
       revoked_at: null,
       accept_token_hash: tokenHash,
-      temporary_password_issued_at: temporaryPassword ? now : null,
-      temporary_password_expires_at: temporaryPassword ? expiresAt : null,
       metadata: {
         invite_source: input.source,
-        access_source: 'direct_temporary_password',
-        force_password_change: Boolean(temporaryPassword),
-        login_ready: true,
-        invite_mail_skipped: true,
-        admin_supplied_temporary_password: Boolean(input.temporaryPassword),
+        access_source: 'verified_auth_invitation_link',
+        login_ready: false,
+        invitation_email_sent: emailSent,
       },
     }
 
@@ -253,46 +205,28 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       throw inviteInsert.error
     }
 
-    await grantCompanyUserAccess({
-      companyId: input.companyId,
-      userId: user.id,
-      email,
-      fullName: input.fullName ?? null,
-      membershipRole: input.membershipRole,
-      roleKey: input.roleKey,
-      actorUserId: input.actorUserId,
-      source: input.source,
-      passwordVerified: Boolean(temporaryPassword),
-      createdAuthUser: Boolean(createdAuthUserId),
-      invitationId: inviteInsert.data?.id ? String(inviteInsert.data.id) : null,
-    })
-
-    acceptUrl = buildAcceptUrl(token)
-    const emailSent = false
     const emailError: string | null = null
 
     await safeRecordAuthEmailEvent({
       userId: user.id,
       email,
-      eventType: 'direct_user_created',
-      status: 'created',
+      eventType: 'invite_sent',
+      status: emailSent ? 'sent' : 'created',
       source: input.source,
       actorUserId: input.actorUserId,
       companyId: input.companyId,
       metadata: {
         membershipRole: input.membershipRole,
         roleKey: input.roleKey,
-        temporaryPasswordIssued: Boolean(temporaryPassword),
         existingUser: !createdAuthUserId,
-        loginReady: true,
-        inviteMailSkipped: true,
+        loginReady: false,
+        inviteLinkRequired: true,
       },
     })
 
     return {
       userId: user.id,
       email,
-      temporaryPassword,
       wasCreated: Boolean(createdAuthUserId),
       invitationToken: token,
       acceptUrl,
@@ -303,12 +237,12 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     await safeRecordAuthEmailEvent({
       userId,
       email,
-      eventType: 'direct_user_created',
+      eventType: 'invite_sent',
       status: 'failed',
       source: input.source,
       actorUserId: input.actorUserId,
       companyId: input.companyId,
-      metadata: { error: error instanceof Error ? error.message : String(error), loginReady: false },
+      metadata: { error: error instanceof Error ? error.message : String(error), loginReady: false, inviteLinkRequired: true },
     })
 
     if (userId) {
@@ -364,6 +298,15 @@ export async function acceptCompanyInvitationByToken(token: string) {
   if (!invitation) throw new Error('Inbjudningslänken är ogiltig eller saknar aktiv token.')
 
   const email = normalizeEmail(invitation.email)
+  const supabase = await createSupabaseServerClient()
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError || !auth.user) throw new Error('Logga in via den verifierade inbjudningslänken innan du accepterar.')
+  if (normalizeEmail(auth.user.email) !== email) {
+    throw new Error('Den inloggade användaren matchar inte inbjudans e-postadress.')
+  }
+  if (invitation.invited_user_id && invitation.invited_user_id !== auth.user.id) {
+    throw new Error('Den inloggade användaren matchar inte inbjudans Auth-identitet.')
+  }
 
   if (invitation.status === 'accepted') {
     return {
@@ -378,11 +321,7 @@ export async function acceptCompanyInvitationByToken(token: string) {
   const expiresAt = invitation.expires_at ? new Date(invitation.expires_at).getTime() : null
   if (expiresAt && expiresAt < Date.now()) throw new Error('Inbjudan har gått ut. Be administratören skicka en ny inbjudan.')
 
-  const authUser = invitation.invited_user_id
-    ? (await supabaseService.auth.admin.getUserById(invitation.invited_user_id)).data.user
-    : await findAuthUserByEmail(email)
-
-  if (!authUser?.id) throw new Error('Auth-kontot för inbjudan hittades inte.')
+  const authUser = auth.user
 
   const now = new Date().toISOString()
 
@@ -397,6 +336,22 @@ export async function acceptCompanyInvitationByToken(token: string) {
     source: 'company_invite_token',
     invitationId: invitation.id,
   })
+
+  const { error: invitationUpdateError } = await supabaseService
+    .from('company_invitations')
+    .update({
+      status: 'accepted',
+      accepted_at: now,
+      invited_user_id: authUser.id,
+      metadata: {
+        access_source: 'verified_auth_invitation_link',
+        accepted_by_verified_user: true,
+      },
+    })
+    .eq('id', invitation.id)
+    .eq('company_id', invitation.company_id)
+    .eq('status', 'pending')
+  if (invitationUpdateError && !isIgnorableSchemaError(invitationUpdateError)) throw invitationUpdateError
 
   await recordAuthEmailEvent({
     userId: authUser.id,

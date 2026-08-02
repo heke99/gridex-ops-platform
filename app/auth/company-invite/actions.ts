@@ -3,8 +3,10 @@
 import { redirect } from 'next/navigation'
 import { acceptCompanyInvitationByToken } from '@/lib/auth/companyInvitationFlow'
 
-function redirectWithError(message: string): never {
-  redirect(`/auth/company-invite?error=${encodeURIComponent(message)}`)
+function redirectWithError(message: string, token?: string): never {
+  const params = new URLSearchParams({ error: message })
+  if (token) params.set('token', token)
+  redirect(`/auth/company-invite?${params.toString()}`)
 }
 
 export async function acceptCompanyInvitationAction(formData: FormData) {
@@ -17,12 +19,12 @@ export async function acceptCompanyInvitationAction(formData: FormData) {
     companyName = accepted.companyName || 'bolaget'
   } catch (error) {
     console.warn('[company-invite] invitation acceptance failed', error)
-    redirectWithError('Inbjudan kunde inte accepteras. Be administratören kontrollera eller skicka en ny inbjudan.')
+    redirectWithError('Inbjudan kunde inte accepteras. Kontrollera att du är inloggad med rätt e-post eller be administratören skicka en ny länk.', token)
   }
 
   redirect(
     `/login?message=${encodeURIComponent(
-      `Inbjudan till ${companyName} är accepterad. Logga in med e-post och temporärt lösenord.`
+      `Inbjudan till ${companyName} är accepterad. Din verifierade Auth-identitet har nu fått åtkomst.`
     )}`
   )
 }

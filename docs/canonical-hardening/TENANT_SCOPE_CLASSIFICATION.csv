@@ -1,0 +1,26 @@
+object,scope,tenant_key,write_authority,external_effect,notes
+companies,tenant,id,canonical_provision_company/canonical_transition_tenant_lifecycle,no,lifecycle writes are command-only
+company_memberships,tenant,company_id,canonical_change_tenant_user_access,no,last functioning owner/admin guarded
+canonical_command_results,tenant,company_id,service_role RPC,no,request hash binds idempotency key to payload
+canonical_audit_events,tenant,company_id,service_role RPC,no,append-only audit evidence
+canonical_domain_events,tenant,company_id,service_role RPC,no,domain event source
+canonical_event_outbox,tenant,company_id,canonical workers,yes,claim and pre-transport guard required
+canonical_provisioning_requests,platform/tenant,company_id,canonical_provision_company,no,global idempotency registry
+company_provisioning_jobs,tenant,company_id,provisioning worker,no,idempotent saga jobs
+ediel_actor_settings,tenant,company_id,canonical_save_ediel_actor_profile,no,explicit profile identity
+canonical_ediel_profile_identities,tenant,company_id,canonical_save_ediel_actor_profile,no,one identity per environment
+ediel_configuration_snapshots,tenant,company_id,canonical snapshot RPC,no,immutable configuration evidence
+ediel_production_state,tenant,company_id,canonical production transition,no,only production truth
+ediel_production_readiness_checks,tenant,company_id,readiness engine,no,must bind current snapshot
+ediel_go_live_events,tenant,company_id,dry-run engine,no,dry run must be current and unexpired
+ediel_test_runs,tenant,company_id,canonical test engine,no,153 ambiguous historical rows remain
+actor_test_attempts,tenant,company_id,canonical evidence RPC,no,immutable attempt
+actor_test_attempt_evidence,tenant,company_id,canonical evidence RPC,no,test-only machine evidence
+actor_test_manual_attestations,tenant,company_id,attestation RPC,no,never creates machine pass
+ediel_outbox,tenant,company_id,outbox worker,yes,guard at claim and transport
+tenant_email_outbox,tenant,company_id,email worker,yes,blocked_tenant_state is preserved
+webhook_deliveries,tenant,company_id,webhook worker,yes,guard at claim and HTTP transport
+manual_email_outbox,tenant,company_id,manual email worker,yes,guard before claim and provider call
+roles,platform,,controlled migrations,no,role definition
+permissions,platform,,controlled migrations,no,permission definition
+role_permissions,platform,,controlled migrations,no,explicit permission mapping

@@ -7,6 +7,10 @@ nine historical versions while canonical A–C objects exist and D–F are not
 recorded. Compare exact definitions before any `migration repair`; do not run a
 global push over the drift.
 
+Principal A-C function bodies match exactly, but full tables, constraints,
+indexes, policies, triggers and grants are not verified. Function equality alone
+does not authorize ledger repair.
+
 ## BLK-022 — Ambiguous legacy Ediel test-run ownership
 
 Status: RELEASE_BLOCKER. Of 232 `ediel_test_runs`, 153 have null `company_id`.
@@ -14,9 +18,14 @@ Customer and actor-setting relations resolve none of those 153 deterministically
 They must remain quarantined until manually reviewed; no default/latest tenant
 assignment is permitted.
 
+The same read-only preflight also found one duplicate active actor-profile group
+and one prepared/live production state without a configuration snapshot. Both
+must be deterministically remediated before apply/postflight can pass.
+
 ## BLK-023 — Post-apply security and evidence proof
 
-Status: BLOCKED_BY_ENVIRONMENT. D–F and `20260802160000...` are not applied.
+Status: BLOCKED_BY_ENVIRONMENT. D–F, `20260802160000...` and
+`20260802170000...` are not applied.
 Real JWT RLS, service-role cross-tenant denial, evidence-chain, idempotency and
 concurrency regressions require isolated staging fixtures after controlled apply.
 

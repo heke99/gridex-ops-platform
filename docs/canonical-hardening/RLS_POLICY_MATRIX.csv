@@ -1,0 +1,15 @@
+object,rls_enabled,anon,authenticated,service_role,post_migration_intent,verification
+canonical_command_results,true,none,none,all,internal command result only,JWT NOT VERIFIED
+canonical_audit_events,true,none,tenant select,all,tenant-readable immutable audit,JWT NOT VERIFIED
+canonical_domain_events,true,none,tenant select,all,tenant-readable domain events,JWT NOT VERIFIED
+canonical_event_outbox,true,none,none,all,worker internal only,JWT NOT VERIFIED
+canonical_provisioning_requests,true,none,platform select,all,platform-only request visibility,JWT NOT VERIFIED
+canonical_ediel_profile_identities,true,none,tenant select,all,explicit profile identity,JWT NOT VERIFIED
+canonical_readiness_shadow_comparisons,true,none,platform select,all,comparison evidence,JWT NOT VERIFIED
+ediel_production_state,true,none,tenant select,all,canonical state read-only to tenant,JWT NOT VERIFIED
+ediel_configuration_snapshots,true,none,tenant select,all,immutable tenant snapshots,JWT NOT VERIFIED
+ediel_active_test_configurations,true,none,tenant select,all,test configuration read-only,JWT NOT VERIFIED
+actor_test_attempts,true,none,tenant select,all,attempt writes through RPC,JWT NOT VERIFIED
+actor_test_attempt_evidence,true,none,tenant select,all,evidence writes through RPC,JWT NOT VERIFIED
+actor_test_manual_attestations,true,none,tenant select,all,attestation writes through RPC,JWT NOT VERIFIED
+company_memberships,true,none,existing scoped policies,all,explicit anon policies removed; command guard added,JWT NOT VERIFIED

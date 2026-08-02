@@ -125,3 +125,10 @@
 | VM-117 | Current production build | VERIFIED | Next.js 16.2.12 full route build on Node 22 with 4096 MB heap |
 | VM-118 | Remote ledger/schema reconciliation | BLOCKED | A-C objects exist without ledger rows; exact definition comparison required |
 | VM-119 | Post-apply DB/RLS/evidence E2E | NOT RUN | requires controlled staging apply and real tenant/JWT fixtures |
+| VM-120 | Canonical convergence PostgreSQL parse | VERIFIED LOCALLY | registered `20260802170000...` accepted by PostgreSQL parser |
+| VM-121 | Current migration integrity | VERIFIED LOCALLY | 337 files; 241 version groups and registered checksums pass |
+| VM-122 | Canonical/runtime security regressions | VERIFIED LOCALLY | production hardening, behavior, tenant, routing, inbound and RBAC gates pass |
+| VM-123 | Current Node 22 app gates | VERIFIED LOCALLY | all TypeScript targets; 62 files/417 tests; zero-vulnerability audit; full Next.js build |
+| VM-124 | Remote read-only preflight | BLOCKED | 153 unscoped runs, one duplicate profile group and one missing production snapshot |
+| VM-125 | A-C exact catalog parity | PARTIAL/BLOCKED | principal function bodies match; tables, constraints, indexes, policies, triggers and grants not fully proven |
+| VM-126 | D-F/event/convergence staging apply | NOT RUN | guarded apply requires parity sign-off and deterministic cleanup |

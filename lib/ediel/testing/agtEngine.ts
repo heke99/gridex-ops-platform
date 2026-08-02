@@ -673,6 +673,8 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   })
   const routeProfileId = String(run?.route_profile_id ?? '').trim()
   if (routeProfileId) {
+    const lockedRoleCode = String(run?.role_code ?? '').trim()
+    if (!lockedRoleCode) throw new Error('agt_run_role_code_required')
     const { data: routeProfile, error } = await supabaseService
       .from('ediel_route_profiles')
       .select('id,communication_route_id,mailbox,encryption_mode,transport_security_mode,certificate_id,receiver_certificate_id,party_id,party_address_id')
@@ -694,7 +696,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
           testRunId: run?.id ?? null,
           testSuite: run?.test_suite ?? null,
           testCaseCode: run?.test_case_code ?? definition.testCaseCode,
-          roleCode: run?.role_code ?? 'supplier',
+          roleCode: lockedRoleCode,
           encryptionMode: run?.encryption_mode ?? null,
           routeProfileId,
           communicationRouteId: String(routeProfile.communication_route_id),

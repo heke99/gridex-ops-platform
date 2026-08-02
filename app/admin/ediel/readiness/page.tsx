@@ -105,7 +105,8 @@ export default async function EdielReadinessPage() {
               <option value="">Välj bolag</option>
               {companies.map((company) => <option key={company.id} value={company.id}>{company.name ?? company.id}</option>)}
             </select>
-            <select name="actorRole" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <select name="actorRole" required defaultValue="" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="">Välj aktörsroll</option>
               <option value="supplier">supplier / DDQ</option>
               <option value="esco">energy_service_company / DGI</option>
             </select>

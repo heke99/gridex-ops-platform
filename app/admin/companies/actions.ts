@@ -1,5 +1,6 @@
 'use server'
 
+import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
@@ -8,8 +9,8 @@ import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
 import {
   deactivateCompanyUserAccess,
   grantCompanyUserAccess,
-  provisionCompanyUserWithTemporaryPassword,
 } from '@/lib/auth/companyUserAccess'
+import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -19,8 +20,6 @@ import {
   type CompanyOperationalStatus,
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
-import { getTenantEmailBranding, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
-import { sendTransactionalEmail, getAuthSmtpReadiness } from '@/lib/auth/smtpTransactionalEmail'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { seedCompanyOnboardingTasks } from '@/lib/onboarding/companyReadiness'
 import {
@@ -111,17 +110,6 @@ async function markCompanyMembershipRemoved(input: {
     if (dropMissingOptionalColumn(payload, error, ['status'])) continue
     throw error
   }
-}
-
-function normalizeTemporaryPassword(value: FormDataEntryValue | null): string {
-  return String(value ?? '').trim()
-}
-
-function assertTemporaryPasswordForUser(email: string, password: string): string | null {
-  if (!email) return null
-  if (!password) return 'Temporärt lösenord krävs när en bolagsansvarig/användare ska skapas.'
-  if (password.length < 8) return 'Temporärt lösenord måste vara minst 8 tecken.'
-  return null
 }
 
 function slugify(value: string): string {
@@ -244,75 +232,6 @@ async function verifyCompanyCreated(companyId: string) {
   return data
 }
 
-function escapeEmailHtml(value: string) {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\"', '&quot;')
-}
-
-async function trySendTenantInviteEmail(input: {
-  companyId: string
-  email: string
-  fullName?: string | null
-  temporaryPassword?: string | null
-  actorUserId?: string | null
-}): Promise<{ ok: boolean; message: string }> {
-  try {
-    const readiness = getAuthSmtpReadiness()
-    if (!readiness.ready) return { ok: false, message: readiness.message }
-
-    const branding = await getTenantEmailBranding(input.companyId)
-    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/login`
-    const html = renderTenantEmailLayout({
-      branding,
-      title: `Välkommen till ${branding.displayName}`,
-      intro: `Du har fått åtkomst till ${branding.displayName}s administrativa arbetsyta.`,
-      body: `
-        <p>Använd e-postadressen <strong>${escapeEmailHtml(input.email)}</strong> för att logga in.</p>
-        ${input.temporaryPassword ? `<p>Ditt temporära lösenord är:</p><p style="font-size:18px;font-weight:700;background:#f1f5f9;padding:12px;border-radius:12px;">${escapeEmailHtml(input.temporaryPassword)}</p><p>Byt lösenord efter första inloggning.</p>` : ''}
-        <p>Kontakta ${branding.supportEmail ?? branding.displayName} om något inte stämmer.</p>
-      `,
-      ctaLabel: 'Logga in',
-      ctaUrl: loginUrl,
-    })
-
-    await sendTransactionalEmail({
-      to: input.email,
-      subject: `Din åtkomst till ${branding.displayName}`,
-      html,
-      text: `Du har fått åtkomst till ${branding.displayName}. Logga in: ${loginUrl}${input.temporaryPassword ? '\nTemporärt lösenord finns i detta konto-mail. Byt lösenord efter första inloggning.' : ''}`,
-      replyTo: branding.supportEmail ?? undefined,
-    })
-
-    await supabaseService.from('auth_email_events').insert({
-      email: input.email,
-      company_id: input.companyId,
-      actor_user_id: input.actorUserId ?? null,
-      event_type: 'company_invite_sent',
-      status: 'sent',
-      source: 'company_user_access_smtp',
-      metadata: { has_temporary_password: Boolean(input.temporaryPassword) },
-    }).then(({ error }) => {
-      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
-    })
-
-    return { ok: true, message: 'Konto-mail skickades via SMTP.' }
-  } catch (error) {
-    const message = errorMessage(error, 'Konto-mail kunde inte skickas.')
-    await supabaseService.from('auth_email_events').insert({
-      email: input.email,
-      company_id: input.companyId,
-      actor_user_id: input.actorUserId ?? null,
-      event_type: 'company_invite_sent',
-      status: 'failed',
-      source: 'company_user_access_smtp',
-      metadata: { reason: message, has_temporary_password: Boolean(input.temporaryPassword) },
-    }).then(({ error }) => {
-      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
-    })
-    return { ok: false, message }
-  }
-}
-
-
 export async function createCompanyAction(
   _prevState: CompanyActionState,
   formData: FormData
@@ -332,36 +251,31 @@ export async function createCompanyAction(
     const website = normalizeText(formData.get('website')) || null
     const initialAdminEmail = normalizeEmail(formData.get('admin_email'))
     const initialAdminName = normalizeText(formData.get('admin_name')) || primaryContactName
-    const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
-    const temporaryPasswordError = assertTemporaryPasswordForUser(initialAdminEmail, temporaryPassword)
-    if (temporaryPasswordError) return { ok: false, message: temporaryPasswordError }
-
     const slug = slugify(normalizeText(formData.get('slug')) || name)
-
-    const { data: company, error: companyError } = await supabaseService
-      .from('companies')
-      .insert({
+    const idempotencyKey = `tenant-provision:${randomUUID()}`
+    const { data: provisionedCompany, error: companyError } = await supabaseService.rpc('canonical_provision_company', {
+      p_command: {
         name,
         slug,
-        org_number: orgNumber,
+        organization_number: orgNumber,
         customer_number_prefix: customerNumberPrefix,
-        status: 'onboarding',
         primary_contact_email: primaryContactEmail,
         primary_contact_name: primaryContactName,
         phone,
         website,
         industry: 'electricity_supplier',
         metadata: {},
-        created_by: actorUserId,
-      })
-      .select('*')
-      .single()
-
+        actor_user_id: actorUserId,
+        idempotency_key: idempotencyKey,
+      },
+    })
     if (companyError) throw companyError
-    createdCompanyId = company.id as string
+    const provisionedResult = provisionedCompany as { company_id?: string | null } | null
+    createdCompanyId = provisionedResult?.company_id ?? null
+    if (!createdCompanyId) throw new Error('Canonical provisioning returnerade inget company_id.')
     await verifyCompanyCreated(createdCompanyId)
     await seedDefaultCompanyEmailConfiguration(createdCompanyId)
     // Seed the onboarding readiness checklist so the tenant has an explicit
@@ -370,43 +284,31 @@ export async function createCompanyAction(
       console.warn('Company onboarding checklist could not be seeded', error),
     )
 
-    let provisionedProjectRef: string | null = null
-
     if (initialAdminEmail) {
-      const provisionedAdmin = await provisionCompanyUserWithTemporaryPassword({
-        companyId: company.id,
+      await provisionCompanyInvitation({
+        companyId: createdCompanyId,
         companyName: name,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
-        temporaryPassword,
         membershipRole: 'company_admin',
         roleKey: 'company_admin',
         actorUserId,
         source: 'create_company_initial_admin',
+        sendEmail: true,
       })
-
-      provisionedProjectRef = provisionedAdmin.supabaseProjectRef
-
-      const inviteMail = await trySendTenantInviteEmail({
-        companyId: company.id,
-        email: initialAdminEmail,
-        fullName: initialAdminName || null,
-        temporaryPassword: provisionedAdmin.createdAuthUser ? temporaryPassword : null,
-        actorUserId,
-      })
-      if (!inviteMail.ok) console.warn('Tenant invite email could not be sent', inviteMail.message)
     }
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_COMPANY_CREATED',
       actorUserId,
-      companyId: company.id,
+      companyId: createdCompanyId,
       reason: 'Bolag skapades',
       metadata: {
         name,
         orgNumber,
         customerNumberPrefix,
-        accountFlow: initialAdminEmail ? 'direct_temporary_password' : 'company_without_initial_admin',
+        accountFlow: initialAdminEmail ? 'verified_auth_invitation_link' : 'company_without_initial_admin',
+        canonicalProvisioningIdempotencyKey: idempotencyKey,
       },
     })
 
@@ -416,7 +318,7 @@ export async function createCompanyAction(
     return {
       ok: true,
       message: initialAdminEmail
-        ? `Elhandelsbolaget skapades i databasen och bolagsansvarig skapades/kopplades i Supabase Auth${provisionedProjectRef ? ` (${provisionedProjectRef})` : ''}. Konto-mail skickas via SMTP om AUTH_SMTP_* är redo.`
+        ? 'Elhandelsbolaget skapades via canonical provisioning. Bolagsansvarig får åtkomst först efter verifierad Auth-inbjudan.'
         : 'Elhandelsbolaget skapades i databasen och verifierades.',
     }
   } catch (error) {
@@ -439,17 +341,14 @@ export async function createCompanyAction(
         })
         .eq('company_id', createdCompanyId)
 
-      await supabaseService
-        .from('companies')
-        .update({
-          status: 'archived',
-          is_active: false,
-          is_paused: true,
-          pause_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
-          metadata: { db3_create_company_rollback: true },
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', createdCompanyId)
+      await supabaseService.rpc('canonical_transition_tenant_lifecycle', {
+        p_company_id: createdCompanyId,
+        p_target_status: 'archived',
+        p_expected_state_version: null,
+        p_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
+        p_actor_user_id: await getCurrentUserId().catch(() => null),
+        p_idempotency_key: `tenant-provision-compensation:${createdCompanyId}`,
+      })
     }
 
     return { ok: false, message: errorMessage(error, 'Bolaget kunde inte skapas.') }
@@ -465,7 +364,6 @@ export async function inviteCompanyUserAction(
     const companyId = normalizeText(formData.get('company_id'))
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
-    const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
     const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
     const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
 
@@ -473,40 +371,29 @@ export async function inviteCompanyUserAction(
     await assertCanManageCompanyUsers(companyId)
     if (!email) return { ok: false, message: 'E-post saknas.' }
 
-    const temporaryPasswordError = assertTemporaryPasswordForUser(email, temporaryPassword)
-    if (temporaryPasswordError) return { ok: false, message: temporaryPasswordError }
-
     await requireCompanyOperationalForWrites(companyId)
     const company = await getCompanyById(companyId)
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
-    const provisioned = await provisionCompanyUserWithTemporaryPassword({
+    const invitation = await provisionCompanyInvitation({
       companyId,
       companyName: company.name,
       email,
       fullName,
-      temporaryPassword,
       membershipRole,
       roleKey,
       actorUserId,
       source: 'company_users_dashboard',
-    })
-
-    const inviteMail = await trySendTenantInviteEmail({
-      companyId,
-      email,
-      fullName,
-      temporaryPassword: provisioned.createdAuthUser ? temporaryPassword : null,
-      actorUserId,
+      sendEmail: true,
     })
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',
       actorUserId,
       companyId,
-      targetUserId: provisioned.userId,
-      reason: 'Användare skapades/kopplades med temporärt lösenord',
-      metadata: { membershipRole, roleKey, email, accountFlow: 'direct_temporary_password' },
+      targetUserId: invitation.userId,
+      reason: 'Verifierad Auth-inbjudan skapades',
+      metadata: { membershipRole, roleKey, email, accountFlow: 'verified_auth_invitation_link' },
     })
 
     revalidatePath('/admin/companies')
@@ -516,7 +403,7 @@ export async function inviteCompanyUserAction(
 
     return {
       ok: true,
-      message: `Användaren skapades/kopplades i Supabase Auth${provisioned.supabaseProjectRef ? ` (${provisioned.supabaseProjectRef})` : ''} och visas nu i bolagets användarlista. ${inviteMail.message}`,
+      message: 'Inbjudningslänken skickades. Åtkomst skapas först när rätt Auth-användare har verifierat och accepterat länken.',
     }
   } catch (error) {
     return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }

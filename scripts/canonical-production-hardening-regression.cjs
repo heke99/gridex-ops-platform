@@ -92,6 +92,7 @@ const requiredMigrations = [
   'supabase/migrations/20260802014000_canonical_provisioning_access.sql',
   'supabase/migrations/20260802015000_canonical_backfill_constraints.sql',
   'supabase/migrations/20260802160000_website_application_committed_canonical_event.sql',
+  'supabase/migrations/20260802170000_canonical_security_convergence.sql',
 ]
 for (const relative of requiredMigrations) assert(exists(relative), `Forward-only migration is missing: ${relative}`)
 
@@ -145,6 +146,45 @@ const websiteCommitMigration = read(requiredMigrations[6])
 assert(websiteCommitMigration.includes('WEBSITE_APPLICATION_COMMITTED'), 'Canonical website application commit event is missing')
 assert(websiteCommitMigration.includes('customer_application_workflow_committed_canonical_v1'), 'Website commit event is not transactionally projected from the workflow commit')
 assert(websiteCommitMigration.includes('canonical_event_outbox'), 'Website commit event does not reach the canonical outbox')
+
+const convergenceMigration = read(requiredMigrations[7])
+for (const required of [
+  'request_hash',
+  'idempotency_key_payload_mismatch',
+  'canonical_actor_is_authorized',
+  'canonical_company_readiness',
+  'canonical_ediel_profile_identities',
+  'canonical_readiness_shadow_comparisons',
+  'last_functioning_owner_cannot_be_removed_or_downgraded',
+  'canonical_transition_tenant_lifecycle_v1_unchecked',
+  'canonical_transition_ediel_production_v1_unchecked',
+  'canonical_save_ediel_actor_profile_v1_unchecked',
+]) assert(convergenceMigration.includes(required), `Security convergence migration is missing ${required}`)
+assert(convergenceMigration.includes("ur.company_id is null"), 'Platform-admin resolution must reject tenant-bound global roles')
+assert(convergenceMigration.includes("p_target_state in ('prepared', 'live')"), 'Canonical readiness must gate prepared and live transitions')
+assert(!convergenceMigration.includes('drop policy if exists %I'), 'Security convergence must not blindly drop policies')
+
+const companyActions = read('app/admin/companies/actions.ts')
+assert(companyActions.includes("rpc('canonical_provision_company'"), 'Company creation must use canonical provisioning')
+assert(companyActions.includes('provisionCompanyInvitation'), 'Company access must use verified invitation links')
+assert(!companyActions.includes('temporary_password'), 'Company actions still accept temporary passwords')
+assert(!companyActions.includes('provisionCompanyUserWithTemporaryPassword'), 'Retired temporary-password provisioning is still reachable')
+const invitationFlow = read('lib/auth/companyInvitationFlow.ts')
+assert(invitationFlow.includes('inviteUserByEmail'), 'New tenant users must receive an Auth invitation link')
+assert(invitationFlow.includes('supabase.auth.getUser()'), 'Invitation acceptance must verify the current Auth user')
+assert(invitationFlow.includes("status: 'pending'"), 'Invitation access must remain pending until acceptance')
+assert(!invitationFlow.includes('password:'), 'Invitation flow must never assign a password')
+
+for (const relative of [
+  'app/admin/companies/[id]/ediel-actions.ts',
+  'app/admin/ediel/settings/actions.ts',
+  'app/admin/ediel/agt/actions.ts',
+  'app/admin/ediel/system-tests/actions.ts',
+]) {
+  const source = read(relative)
+  assert(source.includes('canonical_save_ediel_actor_profile'), `${relative} bypasses the canonical profile RPC`)
+  assert(!/from\(["']ediel_actor_settings["']\)[\s\S]{0,180}\.(?:insert|update|upsert)/.test(source), `${relative} still writes actor settings directly`)
+}
 
 const provisioningMigration = read(requiredMigrations[4])
 assert(provisioningMigration.includes('canonical_provisioning_requests'), 'Global provisioning idempotency registry is missing')

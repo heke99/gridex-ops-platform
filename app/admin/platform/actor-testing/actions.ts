@@ -389,34 +389,37 @@ export async function saveActorProfileAction(formData: FormData) {
     return value.length > 0 ? value : null
   }
 
+  const actorRole = read('actor_role')
+  if (!actorRole) throw new Error('Aktörsroll måste anges explicit.')
+  const mutableFields = [
+    ['company_name', 'company_name'], ['organization_number', 'org_number'],
+    ['market_role', 'market_role'], ['actor_role', 'actor_role'], ['ediel_id', 'ediel_id'],
+    ['test_profile_id', 'test_profile_id'], ['production_profile_id', 'production_profile_id'],
+    ['test_ediel_id', 'test_ediel_id'], ['production_ediel_id', 'production_ediel_id'],
+    ['test_sender_sub_address', 'test_sender_sub_address'],
+    ['production_sender_sub_address', 'production_sender_sub_address'],
+    ['test_mailbox', 'test_mailbox'], ['production_mailbox', 'production_mailbox'],
+    ['test_application_reference', 'test_application_reference'],
+    ['production_application_reference', 'production_application_reference'],
+    ['test_counterparty_ediel_id', 'test_counterparty_ediel_id'],
+    ['production_counterparty_ediel_id', 'production_counterparty_ediel_id'],
+    ['brp_name', 'brp_name'], ['brp_ediel_id', 'brp_ediel_id'],
+    ['brp_status', 'brp_status'], ['esett_status', 'esett_status'],
+    ['technical_contact_name', 'technical_contact_name'],
+    ['technical_contact_email', 'technical_contact_email'],
+    ['support_email', 'support_email'], ['billing_contact_email', 'billing_contact_email'],
+    ['smtp_from_email', 'smtp_from_email'],
+  ] as const
+  const patch = Object.fromEntries(
+    mutableFields.filter(([, formKey]) => formData.has(formKey)).map(([commandKey, formKey]) => [commandKey, read(formKey)]),
+  )
+
   const command = {
     company_id: companyId,
-    company_name: read('company_name'),
-    organization_number: read('org_number'),
-    market_role: read('market_role'),
-    actor_role: read('actor_role'),
-    ediel_id: read('ediel_id'),
-    test_ediel_id: read('test_ediel_id'),
-    production_ediel_id: read('production_ediel_id'),
-    test_sender_sub_address: read('test_sender_sub_address'),
-    production_sender_sub_address: read('production_sender_sub_address'),
-    test_mailbox: read('test_mailbox'),
-    production_mailbox: read('production_mailbox'),
-    test_application_reference: read('test_application_reference'),
-    production_application_reference: read('production_application_reference'),
-    test_counterparty_ediel_id: read('test_counterparty_ediel_id'),
-    production_counterparty_ediel_id: read('production_counterparty_ediel_id'),
-    brp_name: read('brp_name'),
-    brp_ediel_id: read('brp_ediel_id'),
-    brp_status: read('brp_status') ?? 'missing',
-    esett_status: read('esett_status') ?? 'missing',
-    technical_contact_name: read('technical_contact_name'),
-    technical_contact_email: read('technical_contact_email'),
-    support_email: read('support_email'),
-    billing_contact_email: read('billing_contact_email'),
-    smtp_from_email: read('smtp_from_email') ?? 'ediel@gridex.se',
+    ...patch,
+    actor_role: actorRole,
     actor_user_id: admin.userId,
-    idempotency_key: readIdempotencyKey(formData, `actor-profile:${companyId}:${read('actor_role') ?? 'none'}:${read('production_ediel_id') ?? 'none'}`),
+    idempotency_key: readIdempotencyKey(formData, `actor-profile:${companyId}:${actorRole}:${read('production_ediel_id') ?? 'none'}`),
   }
 
   const { error } = await supabaseService.rpc('canonical_save_ediel_actor_profile', { p_command: command })

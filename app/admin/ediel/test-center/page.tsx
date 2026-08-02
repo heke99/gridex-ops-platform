@@ -173,7 +173,8 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
                 <option key={company.id} value={company.id}>{company.name ?? company.id}</option>
               ))}
             </select>
-            <select name="roleCode" defaultValue="supplier" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <select name="roleCode" required defaultValue="" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="">Välj aktörsroll</option>
               <option value="supplier">Elleverantör</option>
               <option value="esco">Energitjänsteföretag / DGI</option>
             </select>

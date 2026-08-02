@@ -348,68 +348,31 @@ async function saveActiveSupplierActor(input: {
     );
   }
 
-  const deactivate = await supabaseService
-    .from("ediel_actor_settings")
-    .update({
-      is_active: false,
-      updated_by: input.actorUserId,
-    })
-    .eq("environment", "test")
-    .eq("company_id", input.companyId);
-
-  if (deactivate.error) throw deactivate.error;
-
-  const existing = await supabaseService
-    .from("ediel_actor_settings")
-    .select("id")
-    .eq("environment", "test")
-    .eq("company_id", input.companyId)
-    .eq("actor_ediel_id", input.actorEdielId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (existing.error) throw existing.error;
-
-  const payload = {
+  const command = {
     company_id: input.companyId,
-    actor_name: input.actorName,
-    actor_ediel_id: input.actorEdielId,
-    ediel_id: input.actorEdielId,
+    company_name: input.actorName,
     actor_role: "supplier",
-    environment: "test",
-    is_active: true,
-    sender_name: input.senderName,
-    sender_sub_address: input.senderSubAddress,
-    sender_subaddress: input.senderSubAddress,
-    default_application_reference: null,
-    default_timezone: 1,
-    default_charset: "UNOC",
-    default_test_flag: 1,
+    test_actor_name: input.actorName,
+    test_sender_name: input.senderName,
+    test_ediel_id: input.actorEdielId,
+    test_sender_sub_address: input.senderSubAddress,
+    test_application_reference: null,
+    test_mailbox: input.mailbox,
+    test_is_active: true,
+    test_default_timezone: 1,
+    test_default_charset: "UNOC",
+    test_default_test_flag: 1,
+    test_smtp_reply_to_email: input.smtpReplyToEmail,
+    test_notes: input.notes,
     smtp_from_email: input.smtpFromEmail,
-    smtp_reply_to_email: input.smtpReplyToEmail,
-    mailbox: input.mailbox,
     brp_ediel_id: input.balanceResponsibleEdielId,
     brp_status: input.balanceResponsibleEdielId ? "active" : "missing",
-    notes: input.notes,
-    updated_by: input.actorUserId,
+    actor_user_id: input.actorUserId,
+    idempotency_key: `agt-supplier-profile:${input.companyId}:${crypto.randomUUID()}`,
   };
-
-  if (existing.data?.id) {
-    const { error } = await supabaseService
-      .from("ediel_actor_settings")
-      .update(payload)
-      .eq("id", existing.data.id);
-
-    if (error) throw error;
-    return;
-  }
-
-  const { error } = await supabaseService.from("ediel_actor_settings").insert({
-    ...payload,
-    created_by: input.actorUserId,
+  const { error } = await supabaseService.rpc("canonical_save_ediel_actor_profile", {
+    p_command: command,
   });
-
   if (error) throw error;
 }
 

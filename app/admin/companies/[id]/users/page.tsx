@@ -190,11 +190,10 @@ export default async function CompanyUsersPage({
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Bjud in användare till bolaget</h2>
           <p className="mt-1 text-sm text-slate-700">Inbjudan skickas med bolagets varumärke, avsändare och supportuppgifter när e-postmiljön är konfigurerad.</p>
-          <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_190px_180px_180px_140px]">
+          <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_180px_180px_140px]">
             <input type="hidden" name="company_id" value={company.id} />
             <input name="email" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             <input name="full_name" placeholder="Namn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <input name="temporary_password" type="text" minLength={8} required placeholder="Temporärt lösenord" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             <select name="membership_role" defaultValue="admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
               <option value="owner">Ägare</option>
               <option value="admin">Admin</option>

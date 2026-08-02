@@ -1,8 +1,4 @@
 import { supabaseService } from '@/lib/supabase/service'
-import {
-  provisionDirectTemporaryPasswordUser,
-  type ProvisionDirectTemporaryPasswordUserResult,
-} from '@/lib/auth/directAccountProvisioning'
 import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 import { normalizeRoleKey } from '@/lib/rbac/roleKeys'
 import { COMPANY_PRIMARY_USER_ROLE_KEYS } from '@/lib/tenant/companyUserRoles'
@@ -23,23 +19,6 @@ export type GrantCompanyUserAccessInput = {
   passwordVerified?: boolean
   createdAuthUser?: boolean
   invitationId?: string | null
-}
-
-export type ProvisionCompanyUserWithTemporaryPasswordInput = Omit<
-  GrantCompanyUserAccessInput,
-  'userId' | 'passwordVerified' | 'createdAuthUser' | 'source'
-> & {
-  email: string
-  temporaryPassword: string
-  companyName?: string | null
-  source?: string
-}
-
-export type ProvisionCompanyUserResult = ProvisionDirectTemporaryPasswordUserResult & {
-  companyId: string
-  membershipId: string
-  roleId: string
-  invitationId: string | null
 }
 
 function normalizeEmail(value: string | null | undefined) {
@@ -419,34 +398,6 @@ export async function grantCompanyUserAccess(input: GrantCompanyUserAccessInput)
   })
 
   return { membershipId, roleId, roleRowId, invitationId }
-}
-
-export async function provisionCompanyUserWithTemporaryPassword(
-  input: ProvisionCompanyUserWithTemporaryPasswordInput
-): Promise<ProvisionCompanyUserResult> {
-  const provisioned = await provisionDirectTemporaryPasswordUser({
-    email: input.email,
-    fullName: input.fullName ?? null,
-    temporaryPassword: input.temporaryPassword,
-    companyId: input.companyId,
-    companyName: input.companyName ?? null,
-    actorUserId: input.actorUserId ?? null,
-  })
-
-  const access = await grantCompanyUserAccess({
-    companyId: input.companyId,
-    userId: provisioned.userId,
-    email: provisioned.email,
-    fullName: input.fullName ?? null,
-    membershipRole: input.membershipRole,
-    roleKey: input.roleKey,
-    actorUserId: input.actorUserId ?? null,
-    source: input.source ?? 'direct_temporary_password',
-    passwordVerified: provisioned.passwordVerified,
-    createdAuthUser: provisioned.createdAuthUser,
-  })
-
-  return { ...provisioned, companyId: input.companyId, ...access }
 }
 
 async function deactivateAllTenantUserRoles(input: {

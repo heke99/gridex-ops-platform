@@ -174,7 +174,7 @@ export default async function CompaniesPage({
 
             <h2 className="mt-5 text-lg font-semibold text-slate-950">Skapa nytt elhandelsbolag</h2>
             <p className="mt-1 text-sm leading-6 text-slate-700">
-              Skapa tenant, koppla första bolagsansvarig och sätt temporärt lösenord.
+              Skapa tenant och skicka en verifierad Auth-inbjudan till första bolagsansvarig.
             </p>
 
             <form action={createCompanyFormAction} className="mt-5 space-y-4">
@@ -220,7 +220,7 @@ export default async function CompaniesPage({
                 <div className="mt-4 grid gap-3">
                   <input name="admin_name" className="min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="Namn" />
                   <input name="admin_email" type="email" className="min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="namn@bolag.se" />
-                  <input name="temporary_password" type="text" minLength={8} className="min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="Temporärt lösenord" />
+                  <p className="text-xs leading-5 text-slate-600">Administratören anger aldrig användarens lösenord. Åtkomst aktiveras först efter verifiering via länken.</p>
                 </div>
               </div>
 

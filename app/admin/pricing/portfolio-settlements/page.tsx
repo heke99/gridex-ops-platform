@@ -84,8 +84,9 @@ export default async function PortfolioSettlementsPage({
   const companiesResult = await companyQuery;
   if (companiesResult.error) throw companiesResult.error;
   const companies = companiesResult.data ?? [];
-  const companyId = companies.some((company) => company.id === params.companyId)
-    ? params.companyId!
+  const requestedCompanyId = typeof params.companyId === "string" ? params.companyId : "";
+  const companyId = companies.some((company) => company.id === requestedCompanyId)
+    ? requestedCompanyId
     : String(companies[0]?.id ?? "");
   if (!companyId) redirect("/admin");
 

@@ -966,10 +966,11 @@ export default async function AdminContractsPage({
   }
   const previousOfferById = new Map<string, ContractOfferRow | null>();
   if (scope.companyId && offers.length > 0) {
+    const scopedCompanyId = scope.companyId;
     const historyResults = await Promise.allSettled(
       offers.map((offer) =>
         getPreviousContractOfferVersion({
-          companyId: scope.companyId!,
+          companyId: scopedCompanyId,
           versionSeriesId: offer.version_series_id,
           versionNumber: offer.version_number,
         }),
