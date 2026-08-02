@@ -103,14 +103,18 @@ describe('canonical public API release', () => {
   it('keeps website application lookup public and tenant-bound', () => {
     const path = websiteOpenApi.paths['/api/v1/website/customer-applications/{application_number}']
     expect(path?.get).toBeDefined()
-    expect(websiteOpenApi.paths['/api/v1/website/customer-applications/{application_id}']).toBeUndefined()
+    expect(
+      '/api/v1/website/customer-applications/{application_id}' in
+        websiteOpenApi.paths,
+    ).toBe(false)
     const data = websiteOpenApi.components.schemas.WebsiteCustomerApplicationData
-    expect(data.properties.application_number).toBeDefined()
+    const properties = data.properties as Record<string, unknown>
+    expect(properties.application_number).toBeDefined()
     for (const internalField of [
       'customer_id', 'application_id', 'customer_site_id', 'metering_point_id',
       'contract_id', 'workflow_id', 'continuation_job_id', 'site_id', 'resolution_id',
     ]) {
-      expect(data.properties[internalField]).toBeUndefined()
+      expect(properties[internalField]).toBeUndefined()
     }
   })
 

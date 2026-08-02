@@ -172,3 +172,17 @@
 ## 2026-08-01 14:45 CEST — PHASE-37 canonical multi-tenant hardening
 
 Reviewed the supplied OPS archive against the all-tenant canonical target. Implemented trusted tenant context propagation, client-tenant mismatch rejection, provider webhook tenant resolution from persisted relations, neutral canonical DB aliases, fail-closed numbers/senders, capability/readiness storage, tenant-qualified relational guards, all-tenant remediation SQL, tests and architecture/runbook/delivery documentation. Static and focused regressions pass. `npm ci` failed on a registry 404; migration integrity remains blocked by inherited history; database/staging and external repositories were unavailable. Final decision: NO-GO pending executed environment proof.
+
+## 2026-08-02 12:45 CEST — PHASE-38 canonical production hardening
+
+Inspected the uploaded archive and complete master target, then compared the
+implementation with the connected `gridex-ops-dev` schema and migration ledger.
+Fixed five TypeScript errors, removed all high/critical production dependency
+findings, repaired Ediel evidence v2 so PostgreSQL derives and immutably records
+the complete tenant/run/snapshot/message chain, replaced GUC-only pass guards,
+and added the atomic website application commit event projection. Preflight
+found 153 unresolved null-tenant legacy runs, which remain fail-closed quarantine
+candidates. Both migrations compiled inside confirmed rolled-back database
+transactions. Clean Node 22 install, all TypeScript targets, 417 tests, migration
+integrity, hardening regressions and full build pass. Release remains NO-GO for
+ledger reconciliation, controlled apply and environment security/E2E proof.

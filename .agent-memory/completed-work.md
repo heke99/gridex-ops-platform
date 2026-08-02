@@ -198,3 +198,11 @@ Status: VERIFIED LOCALLY
 - Added fail-closed tenant capabilities, tenant-qualified relational constraints and all-tenant remediation SQL.
 - Added architecture, runbook, focused tests and a static multi-tenant regression.
 - Static/focused checks pass; full install/build/database/staging/all-repository evidence remains blocked and production is NO-GO.
+# PHASE-38 locally verified work — 2026-08-02
+
+- Fixed the three app and two test TypeScript failures without casts or non-null assertions.
+- Upgraded Next/PostCSS/Sharp and verified zero high/critical production dependency findings.
+- Repaired Ediel evidence v2 syntax, quarantine RLS, tenant-qualified relations, immutable attempts/evidence/attestations, server-derived evidence verification and matching-attempt projection guards.
+- Added atomic `WEBSITE_APPLICATION_COMMITTED` audit/domain/outbox projection.
+- Verified clean Node 22 install, all TypeScript targets, 417 tests, hardening regressions, migration integrity and full production build.
+- Transaction-compiled both changed migrations against the connected development schema and confirmed rollback left no objects.

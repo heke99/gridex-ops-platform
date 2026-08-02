@@ -1,74 +1,82 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-01T14:45:00+02:00",
+  "updated_at": "2026-08-02T12:45:00+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-37",
-  "active_task": "WP-037",
-  "active_subtask": "Apply and environment-verify canonical multi-tenant hardening across all repositories",
-  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "active_phase": "PHASE-38",
+  "active_task": "WP-038",
+  "active_subtask": "Reconcile remote migration ledger, then apply and environment-verify canonical production hardening",
+  "status": "LOCALLY_VERIFIED_DATABASE_BLOCKED",
   "implemented_not_environment_verified": [
-    "explicit trusted TenantContext for integration API and canonical onboarding",
-    "client tenant claim rejection and webhook tenant-hint removal",
-    "tenant-neutral onboarding, numbering and legal projection aliases",
-    "fail-closed tenant capabilities model",
-    "tenant-qualified parent-child database constraints for new writes",
-    "all-tenant preflight, deterministic backfill and post-verification scripts",
-    "multi-tenant architecture, runbook and delivery audit"
+    "server-derived immutable Ediel evidence v2",
+    "matching-attempt protection for passed and manual_verified projections",
+    "tenant-qualified test child relations and service-role-resistant constraints",
+    "quarantine-only handling of ambiguous legacy tenant ownership",
+    "two-person database-authorized manual attestation",
+    "atomic WEBSITE_APPLICATION_COMMITTED audit/domain/outbox projection",
+    "production dependency security upgrades"
   ],
   "active_blockers": [
-    "Historical migration 20260730220000 bytes do not match the trusted manifest checksum",
-    "Migration 20260731210000 is absent from the checksum manifest",
-    "Authorized PostgreSQL staging/production connection is unavailable",
-    "Dependency installation fails because the configured package registry returns 404 for zod-validation-error 4.0.2",
-    "Tenant website, portal, partner and other repository sources were not supplied",
-    "Git metadata is absent from the uploaded archive",
-    "Remaining tenant-branded runtime occurrences and distributed state/outbound logic are not fully classified"
+    "Remote ledger omits A-C versions although related objects exist; exact definition parity is not proven",
+    "153 legacy test runs have null company_id and no deterministic ownership resolution",
+    "D-F and the website event migration are not applied in staging",
+    "Two-tenant JWT RLS, service-role cross-tenant, concurrency and evidence-chain tests require post-apply fixtures",
+    "External repositories and deployment targets were not supplied",
+    "Git metadata is absent from the uploaded archive"
   ],
   "verification": [
     {
-      "name": "canonical multi-tenant static regression",
+      "name": "clean Node runtime and install",
       "status": "VERIFIED",
-      "evidence": "API context routes, intake context, webhook resolution, number generation, sender safety, capabilities, migration and runbook checks pass"
+      "evidence": "Node v22.22.0 and clean npm ci completed"
     },
     {
-      "name": "focused legacy regressions",
+      "name": "TypeScript",
       "status": "VERIFIED",
-      "evidence": "canonical onboarding, manual mailbox/Ediel separation and legal-default readiness static regressions pass"
+      "evidence": "app, scripts and tests typecheck pass"
     },
     {
-      "name": "changed TypeScript syntax",
+      "name": "tests",
       "status": "VERIFIED",
-      "evidence": "modified TS/TSX transpile with TypeScript 5.8.3; tenant context passes isolated strict check"
+      "evidence": "62 files and 417 tests pass"
     },
     {
-      "name": "new migration checksum",
+      "name": "production build",
       "status": "VERIFIED",
-      "evidence": "20260801143000 SHA-256 4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0"
+      "evidence": "Next.js 16.2.12 full build passes with explicit 4096 MB heap"
     },
     {
-      "name": "migration history integrity",
+      "name": "migration integrity",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "336 files, 240 version groups and checksums pass"
+    },
+    {
+      "name": "changed migration compile",
+      "status": "VERIFIED_NONPERSISTENT",
+      "evidence": "both migrations compiled against gridex-ops-dev in rolled-back transactions; absence confirmed after rollback"
+    },
+    {
+      "name": "production dependency audit",
+      "status": "VERIFIED",
+      "evidence": "0 high/critical vulnerabilities"
+    },
+    {
+      "name": "lint",
+      "status": "PARTIAL",
+      "evidence": "0 errors; 126 warnings, all @typescript-eslint/no-unused-vars and none security-critical"
+    },
+    {
+      "name": "database rollout and environment regressions",
       "status": "BLOCKED",
-      "evidence": "20260730220000 checksum drift and 20260731210000 missing manifest entry"
-    },
-    {
-      "name": "full dependency-based verification",
-      "status": "BLOCKED",
-      "evidence": "npm ci registry 404; full typecheck, Vitest, lint and Next.js build not run"
-    },
-    {
-      "name": "database/staging/all-repository verification",
-      "status": "BLOCKED",
-      "evidence": "no database, staging credentials, deployment target or external repository sources"
+      "evidence": "ledger reconciliation and controlled staging apply required"
     }
   ],
-  "next_action": "Reconcile historical migration provenance, install dependencies from a complete registry, run all gates, apply 20260801143000 in isolated staging, execute preflight/dry-run/apply/post-verify and three-tenant RLS/concurrency/E2E, then propagate the same tenant contract to every external repository.",
-  "resume_from": "docs/canonical-multitenant-delivery-2026-08-01.md",
+  "next_action": "Compare installed A-C definitions to source, repair only exact ledger matches, then apply D-F and 20260802160000 in isolated staging and run quarantine, constraint, JWT RLS, service-role, concurrency and evidence-chain regressions.",
+  "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Never accept tenant selection from client payload/header when authenticated context exists",
-    "Never rewrite historical migration checksums without authoritative Git/applied-ledger evidence",
-    "New company capabilities default disabled/not_configured and cannot bypass security",
-    "Automatic backfill only fills null tenant IDs from one verified parent",
-    "Do not claim full platform GO until all repositories and database/staging evidence are green"
+    "Do not run supabase db push before ledger/schema reconciliation",
+    "Do not assign the 153 unresolved legacy runs to a default/latest company",
+    "Client message IDs, evidence JSON, result and role never determine passed",
+    "Release remains NO-GO until environment proof is green"
   ]
 }

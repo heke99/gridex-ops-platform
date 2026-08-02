@@ -269,7 +269,7 @@ async function upsertActorResult(params: {
     const command = {
       company_id: params.companyId,
       test_run_id: params.runId,
-      test_case_key: params.testCase.key,
+      test_case_code: params.testCase.key,
       test_name: params.testCase.label,
       test_id: params.testCase.testId,
       package_key: params.testCase.packageKey,

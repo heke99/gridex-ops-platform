@@ -13,7 +13,7 @@ const checks = [
   ['lib/opsMaster/readiness.ts', 'routeReadyBySiteId'],
   ['lib/customer-operations/automation.ts', 'site_address_changed_after_operation_started'],
   ['lib/customer-operations/automation.ts', 'customer_operation_request_snapshots'],
-  ['lib/website/customerApplications.ts', 'website_application_committed'],
+  ['supabase/migrations/20260802160000_website_application_committed_canonical_event.sql', 'WEBSITE_APPLICATION_COMMITTED'],
   ['lib/email/emailOutbox.ts', 'delivery_uncertain'],
   ['app/api/internal/email/outbox/process/route.ts', 'timingSafeEqual'],
   ['app/api/internal/webhooks/dispatch/route.ts', 'timingSafeEqual'],

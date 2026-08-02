@@ -1,6 +1,15 @@
 # Current state
 
-Last updated: 2026-08-01T14:45:00+02:00
+Last updated: 2026-08-02T12:45:00+02:00
+
+- PHASE-38 canonical production hardening is locally green under Node 22 but database rollout is blocked by remote ledger/schema drift; release is NO-GO.
+- Ediel evidence v2 now derives the result entirely in PostgreSQL and binds it to tenant, run, canonical test identity, active configuration snapshot, portal identity, exact message relations, ACK outcomes, transport, variant and rulebook.
+- Terminal attempts/evidence and approved/rejected attestations are immutable; direct `passed`/`manual_verified` projections require matching canonical rows rather than a GUC flag.
+- `WEBSITE_APPLICATION_COMMITTED` is atomically projected to canonical audit, domain event and outbox from `workflow.committed`.
+- The five TypeScript failures are fixed. Next 16.2.12, PostCSS 8.5.25 and Sharp 0.35.3 remove all high/critical production audit findings.
+- Clean Node 22 install, every TypeScript target, 417 tests, migration integrity and the full production build pass. Lint is 0 errors/126 classified unused-variable warnings.
+- Both changed migrations compiled against the connected development schema inside rolled-back transactions; explicit post-checks confirmed no persistent database mutation.
+- Remote ledger reconciliation, D–F apply, quarantine review, constraint validation, RLS/JWT and concurrency/E2E remain outstanding.
 
 - PHASE-37 canonical multi-tenant hardening is implemented in the supplied OPS archive and statically verified; environment and cross-repository proof remain blocked.
 - Integration authentication now returns a frozen `TenantContext`; v1 routes use `auth.context.companyId` rather than reading tenant directly from the client row.

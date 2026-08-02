@@ -1,37 +1,38 @@
 # Current task
 
-Last updated: 2026-08-01T14:45:00+02:00
+Last updated: 2026-08-02T12:45:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
 ## Active phase
 
-PHASE-37 — Canonical multi-tenant platform hardening for all tenants.
+PHASE-38 — Canonical production hardening, Ediel evidence v2 and migration-ledger reconciliation.
 
-## Implemented locally
+## Verified locally
 
-- Added explicit trusted `TenantContext` to integration auth and all implemented canonical onboarding channels.
-- Rejected mismatching client tenant claims and removed billing webhook payload/header tenant selection.
-- Added tenant-neutral onboarding, numbering and legal projection aliases while preserving legacy DB implementations only for compatibility.
-- Removed runtime-generated contract/application number fallbacks and hard-coded auth/manual-mail sender defaults.
-- Added fail-closed `company_capabilities`, tenant-qualified parent/child constraints and new-write tenant-not-null guards.
-- Added all-tenant preflight, dry-run, deterministic audited backfill and post-verification SQL.
-- Added architecture, rollout runbook and a precise NO-GO delivery report.
+- Repaired the Ediel evidence migration against the actual `gridex-ops-dev` schema and transaction-compiled it with a confirmed rollback.
+- Evidence pass/fail is server-derived from run, definition, snapshot, messages, portal identity, correlation, ACK outcome, transport and rulebook data.
+- Replaced GUC-only pass protection with matching immutable attempt/evidence and approved two-person attestation checks.
+- Added tenant-qualified child relations, fail-closed quarantine access, explicit actor-role mapping and service-role-resistant tenant constraints.
+- Added atomic `WEBSITE_APPLICATION_COMMITTED` audit/domain/outbox projection from the durable workflow commit.
+- Fixed all five TypeScript failures and upgraded vulnerable production dependencies.
+- Clean Node 22 install, all TypeScript targets, 417 tests, static hardening regressions, migration integrity, production audit and full Next.js build pass.
+- Lint remains 0 errors/126 warnings; all warnings are `@typescript-eslint/no-unused-vars` and none are security rules.
 
 ## Exact next action
 
-Reconcile the two inherited migration-manifest issues from authoritative Git/database evidence. Install dependencies from a complete registry and run all typechecks, Vitest, lint and build. Apply `20260801143000...` in isolated staging, run preflight/dry-run/apply/second verification, validate constraints, execute three-tenant RLS/idempotency/concurrency/E2E, and then synchronize all external tenant website/portal/partner repositories to the same authenticated tenant contract.
+Do not run `supabase db push`. First reconcile the remote migration ledger with exact schema-definition comparisons for `20260802010000`–`20260802012000`. Then apply D–F and `20260802160000` in an isolated staging branch, execute preflight/quarantine review, validate eligible constraints, run the supplied DB/RLS regressions with real two-tenant JWT fixtures, and repeat all Node 22 gates.
 
 ## Blockers
 
-- `20260730220000...` checksum drift remains unblessed.
-- `20260731210000...` is missing from the checksum manifest.
-- No authorized PostgreSQL/Supabase environment or staging deployment target.
-- `npm ci` fails with registry 404 for `zod-validation-error-4.0.2.tgz`.
-- Only the OPS repository was supplied; external platform repositories are absent.
-- Git metadata is absent.
-- Remaining legacy tenant-branded runtime inventory and distributed state/outbound paths are not fully remediated.
+- Remote ledger contains only nine recorded versions while parts of A–C exist in schema; exact definition/ledger parity is not yet proven.
+- 153 legacy `ediel_test_runs` have no deterministic tenant owner and must remain quarantined/manual-review candidates.
+- D–F and the website canonical-event migration are not applied to staging.
+- Authenticated two-tenant RLS, service-role cross-tenant, concurrency and full evidence-chain fixtures have not run after apply.
+- External Gridex Web/portal/partner repositories and deployment targets were not supplied.
+- Git provenance is absent.
 
-## Do not repeat
+## Release decision
 
-Do not add a fallback tenant, trust client `company_id`, restore runtime-generated business numbers, hard-code a tenant sender/domain, enable capabilities without readiness evidence, auto-move non-null cross-tenant rows, or claim database/build/platform GO without executed proof.
+NO-GO until ledger reconciliation, controlled staging apply and environment regressions are green.
+

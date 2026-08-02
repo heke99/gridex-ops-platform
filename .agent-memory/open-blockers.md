@@ -1,5 +1,34 @@
 # Open blockers
 
+## BLK-021 — Canonical hardening ledger/schema drift
+
+Status: RELEASE_BLOCKER. The connected `gridex-ops-dev` ledger records only
+nine historical versions while canonical A–C objects exist and D–F are not
+recorded. Compare exact definitions before any `migration repair`; do not run a
+global push over the drift.
+
+## BLK-022 — Ambiguous legacy Ediel test-run ownership
+
+Status: RELEASE_BLOCKER. Of 232 `ediel_test_runs`, 153 have null `company_id`.
+Customer and actor-setting relations resolve none of those 153 deterministically.
+They must remain quarantined until manually reviewed; no default/latest tenant
+assignment is permitted.
+
+## BLK-023 — Post-apply security and evidence proof
+
+Status: BLOCKED_BY_ENVIRONMENT. D–F and `20260802160000...` are not applied.
+Real JWT RLS, service-role cross-tenant denial, evidence-chain, idempotency and
+concurrency regressions require isolated staging fixtures after controlled apply.
+
+## Resolved in PHASE-38
+
+- Package installation works; clean Node 22 `npm ci` passes.
+- App/script/test TypeScript, 417 tests and the production build pass.
+- Local migration integrity passes for 336 files/240 version groups.
+- Production dependency audit has 0 high/critical findings.
+- The repaired and new migrations compile against the connected schema inside
+  confirmed rolled-back transactions.
+
 ## BLK-001 — Repository provenance
 
 Status: BLOCKED. The uploaded ZIP excludes `.git`; branch, commit and original

@@ -257,7 +257,7 @@ export async function saveActorTestResultAction(formData: FormData) {
       p_command: {
         company_id: companyId,
         test_run_id: runId,
-        test_case_key: testCase.key,
+        test_case_code: testCase.key,
         reason: failureReason,
         evidence_reference: evidenceReference,
         actor_user_id: admin.userId,

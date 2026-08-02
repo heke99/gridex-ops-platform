@@ -115,3 +115,13 @@
 | VM-107 | Migration integrity | FAIL/BLOCKED | inherited checksum drift plus one missing manifest entry |
 | VM-108 | Database/RLS/backfill/three-tenant E2E | NOT RUN | no authorized database or staging environment |
 | VM-109 | Cross-repository platform parity | NOT RUN | external repositories not supplied |
+| VM-110 | Clean Node 22 install | VERIFIED | Node v22.22.0; clean npm ci installed 446 packages |
+| VM-111 | Current TypeScript | VERIFIED | app, scripts and tests targets pass |
+| VM-112 | Current full tests | VERIFIED | 62 files; 417 tests |
+| VM-113 | Current lint | PARTIAL | 0 errors; 126 classified no-unused-vars warnings; no security rules |
+| VM-114 | Production dependencies | VERIFIED | npm audit omit-dev: 0 high/critical vulnerabilities |
+| VM-115 | Current migration integrity | VERIFIED LOCALLY | 336 files; 240 version groups; checksums verified |
+| VM-116 | Evidence/event migration compile | VERIFIED NONPERSISTENT | actual dev schema accepted both inside rollback; object absence confirmed after rollback |
+| VM-117 | Current production build | VERIFIED | Next.js 16.2.12 full route build on Node 22 with 4096 MB heap |
+| VM-118 | Remote ledger/schema reconciliation | BLOCKED | A-C objects exist without ledger rows; exact definition comparison required |
+| VM-119 | Post-apply DB/RLS/evidence E2E | NOT RUN | requires controlled staging apply and real tenant/JWT fixtures |

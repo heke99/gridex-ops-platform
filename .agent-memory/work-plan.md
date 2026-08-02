@@ -506,3 +506,17 @@ Files changed: tenant context/capabilities, API auth/routes, onboarding adapters
 Migrations: `20260801143000_canonical_multitenant_platform_hardening.sql`
 Last updated: 2026-08-01
 Exact next subtask: reconcile migration history, restore dependency installation, apply in staging, run all-tenant database/E2E evidence and synchronize external repositories
+
+## WP-038: Canonical production hardening and Ediel evidence v2
+Status: LOCALLY_VERIFIED_DATABASE_BLOCKED
+Phase: PHASE-38
+Priority: P0
+Depends on: WP-037
+Affected domains: migration ledger, Ediel evidence, RLS, tenant relations, manual attestation, website workflow events, dependency security, build
+Acceptance criteria: server-derived immutable evidence; exact tenant/run/snapshot correlation; no GUC-only pass; atomic website commit event; clean Node 22 gates; controlled staging apply and two-tenant proof
+Required verification: exact A–C schema/ledger comparison, isolated D–F upgrade, quarantine review, constraint validation, JWT/service-role RLS, evidence-chain and concurrency tests, deployment/cross-repository parity
+Evidence: migrations transaction-compile with confirmed rollback; clean Node 22 install; all TypeScript targets; 62/62 files and 417/417 tests; 336 migration files/240 groups; hardening regressions; 0 high/critical audit; full Next.js build
+Files changed: evidence/event migrations, Ediel actions/engine, tests/regressions, dependency locks, migration manifest and memory
+Migrations: `20260802013000_ediel_test_evidence_v2.sql`, `20260802160000_website_application_committed_canonical_event.sql`
+Last updated: 2026-08-02
+Exact next subtask: reconcile exact A–C definitions with the remote ledger before controlled staging apply of D–F and the website event migration

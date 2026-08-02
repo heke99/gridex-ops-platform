@@ -1572,24 +1572,36 @@ export async function registerEdielFileAction(formData: FormData) {
   const createdMessage = await getEdielMessageById(message.id, { companyId });
   if (createdMessage) {
     if (mode === "tgt") {
+      const testCompanyId = companyId;
+      if (!testCompanyId) {
+        throw new Error(
+          "TGT-import saknar tenant efter registrering och kan inte kopplas till ett test-run.",
+        );
+      }
       const autoAttachResult = await autoAttachImportedMessageToActiveTgtRun({
-        companyId,
+        companyId: testCompanyId,
         edielMessage: createdMessage,
       });
 
       if (autoAttachResult) {
         await runTgtAutopilotForRun({
           actorUserId: context.userId,
-          companyId,
+          companyId: testCompanyId,
           testRunId: autoAttachResult.testRunId,
         });
       }
     }
 
     if (mode === "agt") {
+      const testCompanyId = companyId;
+      if (!testCompanyId) {
+        throw new Error(
+          "AGT-import saknar tenant efter registrering och kan inte kopplas till ett test-run.",
+        );
+      }
       await autoAttachImportedMessageToActiveAgtRun({
         actorUserId: context.userId,
-        companyId,
+        companyId: testCompanyId,
         edielMessage: createdMessage,
         explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
       });

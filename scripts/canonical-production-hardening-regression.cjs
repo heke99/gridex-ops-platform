@@ -91,6 +91,7 @@ const requiredMigrations = [
   'supabase/migrations/20260802013000_ediel_test_evidence_v2.sql',
   'supabase/migrations/20260802014000_canonical_provisioning_access.sql',
   'supabase/migrations/20260802015000_canonical_backfill_constraints.sql',
+  'supabase/migrations/20260802160000_website_application_committed_canonical_event.sql',
 ]
 for (const relative of requiredMigrations) assert(exists(relative), `Forward-only migration is missing: ${relative}`)
 
@@ -127,8 +128,23 @@ for (const required of [
   'terminal_actor_test_attempts_are_immutable',
   'guard_ediel_test_run_message_evidence',
   'production_message_cannot_be_test_evidence',
+  'passed_requires_matching_canonical_machine_evidence',
+  'server_derived',
+  "'source_message'",
+  "'positive_contrl'",
+  "'negative_aperak'",
+  "'final_portal_aperak'",
 ]) assert(evidenceMigration.includes(required), `Evidence migration is missing ${required}`)
 assert(evidenceMigration.includes("if tg_op='DELETE' then"), 'Immutable attempt trigger must return OLD for allowed deletes')
+assert(!evidenceMigration.includes("p_command->'message_ids'"), 'Evidence RPC still trusts client-supplied message IDs')
+assert(!evidenceMigration.includes("p_command->'evidence'"), 'Evidence RPC still trusts client-supplied evidence JSON')
+assert(!evidenceMigration.includes("set_config('gridex.machine_evidence_rpc'"), 'Machine pass guard still depends on a GUC flag')
+assert(!evidenceMigration.includes("set_config('gridex.manual_attestation_rpc'"), 'Manual attestation guard still depends on a GUC flag')
+
+const websiteCommitMigration = read(requiredMigrations[6])
+assert(websiteCommitMigration.includes('WEBSITE_APPLICATION_COMMITTED'), 'Canonical website application commit event is missing')
+assert(websiteCommitMigration.includes('customer_application_workflow_committed_canonical_v1'), 'Website commit event is not transactionally projected from the workflow commit')
+assert(websiteCommitMigration.includes('canonical_event_outbox'), 'Website commit event does not reach the canonical outbox')
 
 const provisioningMigration = read(requiredMigrations[4])
 assert(provisioningMigration.includes('canonical_provisioning_requests'), 'Global provisioning idempotency registry is missing')
