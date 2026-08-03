@@ -6,11 +6,11 @@ import { supabaseService } from '@/lib/supabase/service'
  * creates a time-based production outage.
  */
 export const REQUIRED_PLATFORM_SCHEMA_VERSION =
-  '20260803093300-gridex-runtime-schema-capabilities-v3'
+  '20260803093300-gridex-runtime-readiness-v3'
 export const PLATFORM_RUNTIME_CAPABILITY_VIEW =
   'gridex_runtime_schema_capabilities_v3'
 export const EXPECTED_PLATFORM_SCHEMA_FINGERPRINT =
-  'cd64e1d6153619440cd878531d26b83b631680801ad517c07f92f99617a40f6a'
+  'd18261edf09683ff4451c334160b4c19c66f504f293766f660489cf72f4890a4'
 
 const READINESS_CACHE_TTL_MS = 30_000
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
