@@ -41,14 +41,14 @@ begin
   if v_count>0 then raise exception 'tenantless_billing_underlays:%',v_count; end if;
 end $$;
 
--- The canonical schema and all tenant-protection functions must be exact.
+-- The canonical runtime capability gate and tenant-protection functions must be exact.
 do $$
-declare v_version text; v_ready boolean;
+declare v_fingerprint text; v_ready boolean; v_blockers text[];
 begin
-  select current_version,is_ready into v_version,v_ready
-  from public.platform_schema_state where id='gridex-ops';
-  if v_version is distinct from '20260713100000-ediel-completion-and-platform-contract' or not coalesce(v_ready,false) then
-    raise exception 'schema_gate_not_ready:%:%',v_version,v_ready;
+  select schema_fingerprint,is_ready,blocking_issues into v_fingerprint,v_ready,v_blockers
+  from public.gridex_runtime_schema_capabilities_v3;
+  if not coalesce(v_ready,false) or v_fingerprint !~ '^[a-f0-9]{64}$' or cardinality(coalesce(v_blockers,'{}'::text[]))>0 then
+    raise exception 'runtime_schema_gate_not_ready:%:%:%',v_fingerprint,v_ready,v_blockers;
   end if;
   if to_regprocedure('public.resolve_canonical_ediel_rule_pack(text,text,text,text,text,date)') is null then
     raise exception 'canonical_rule_pack_resolver_missing';

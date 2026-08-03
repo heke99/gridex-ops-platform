@@ -255,7 +255,11 @@ values
   ('20260802230000','20260802230000_public_contract_delivery_consistency.sql','e0c0cc58a7fa5cedced8c84211623b646e35f9441388f27140f89c978bc056b6',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260802231000','20260802231000_tenant_website_provisioning_guards.sql','8ff7ffba346f7d1f8d085279ba1045095d9d56a2e7f24c9715a5222b4f4c5b8c',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260802232000','20260802232000_migration_truth_readiness.sql','dc977bb14a66bc4f12939437428198d3daf7bd174ada16ff42133b44405ef1e2',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
-  ('20260802233000','20260802233000_security_definer_execution_lockdown.sql','890d50a81d5eee6e6201968250e3ba025adef0608ca8a926d7798e86ee153600',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
+  ('20260802233000','20260802233000_security_definer_execution_lockdown.sql','890d50a81d5eee6e6201968250e3ba025adef0608ca8a926d7798e86ee153600',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803093000','20260803093000_platform_schema_runtime_columns_v3.sql','0795a6c34195efe355e4e0a15c1946eba1c5259a7afb51c8d670191a2dd77730',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803093100','20260803093100_gridex_runtime_capabilities_v3.sql','b93af4c0f46274513dad17a7c3145c6c1563b0f21570eb655420738607e000f8',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803093200','20260803093200_gridex_migration_governance_v3.sql','104554751e3418b051647150170f80884fb537747a4c399737f83852bcd16089',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803093300','20260803093300_duplicate_primary_client_audit_contract_v3.sql','bd4ef630b6404162789efd00ccc612ef6c78f40c2d10a12a2af0ef45faf9b123',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
 on conflict(version,filename) do update set
   checksum=excluded.checksum,
   applied_environment=excluded.applied_environment,

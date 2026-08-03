@@ -261,6 +261,7 @@
     "ops:canonical-runtime-consistency": "node scripts/canonical-runtime-consistency-regression.cjs",
     "db:migrations:inventory": "node scripts/generate-canonical-migration-inventory.cjs",
     "db:migrations:production-readiness": "node scripts/check-production-migration-readiness.cjs",
+    "db:runtime-readiness:check": "node scripts/check-platform-runtime-readiness-v3.cjs",
     "api:error-registry": "node scripts/check-public-api-error-registry.cjs",
     "verify:production-release:2026-08-02": "bash scripts/verify-production-release-2026-08-02.sh"
   },

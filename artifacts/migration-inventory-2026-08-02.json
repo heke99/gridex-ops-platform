@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-08-02T20:51:13.868Z",
+  "generated_at": "2026-08-03T09:00:45.394Z",
   "source": "repository/supabase/migrations",
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 344,
-    "ledger_eligible_count": 251,
+    "sql_file_count": 348,
+    "ledger_eligible_count": 255,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 344,
+    "checksum_registered_count": 348,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -7347,6 +7347,56 @@
       "checksum_registered": true,
       "ledger_eligible": true,
       "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803093000",
+      "filename": "20260803093000_platform_schema_runtime_columns_v3.sql",
+      "checksum": "0795a6c34195efe355e4e0a15c1946eba1c5259a7afb51c8d670191a2dd77730",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_migration_manifest"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803093100",
+      "filename": "20260803093100_gridex_runtime_capabilities_v3.sql",
+      "checksum": "b93af4c0f46274513dad17a7c3145c6c1563b0f21570eb655420738607e000f8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_runtime_operational_integrity_v3",
+        "public.gridex_runtime_schema_capabilities_v3",
+        "public.gridex_runtime_schema_catalog_v3"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803093200",
+      "filename": "20260803093200_gridex_migration_governance_v3.sql",
+      "checksum": "104554751e3418b051647150170f80884fb537747a4c399737f83852bcd16089",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_migration_governance_v3"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803093300",
+      "filename": "20260803093300_duplicate_primary_client_audit_contract_v3.sql",
+      "checksum": "bd4ef630b6404162789efd00ccc612ef6c78f40c2d10a12a2af0ef45faf9b123",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_repair_duplicate_primary_website_client_v1"
+      ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"
     },

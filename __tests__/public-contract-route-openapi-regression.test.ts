@@ -4,6 +4,9 @@ import publicContractsFixture from '@/docs/fixtures/public-contracts-response-20
 
 const mocks = vi.hoisted(() => ({
   logIntegrationApiRequest: vi.fn(async () => undefined),
+  currentIntegrationApiResponseContext: vi.fn(() => ({
+    rateLimit: { limit: 100, count: 1, remaining: 99, resetAt: null },
+  })),
   logUsageEvent: vi.fn(async () => undefined),
   listPublicContractOffers: vi.fn(),
   diagnosePublicContractOffers: vi.fn(),
@@ -11,6 +14,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/integrations/apiAuth', () => ({
+  currentIntegrationApiResponseContext:
+    mocks.currentIntegrationApiResponseContext,
   logIntegrationApiRequest: mocks.logIntegrationApiRequest,
   requireIntegrationApiAccess: vi.fn(async () => ({
     ok: true,
