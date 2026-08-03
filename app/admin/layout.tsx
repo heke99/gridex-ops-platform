@@ -47,6 +47,7 @@ export default async function AdminLayout({
  <Suspense fallback={<div className="h-screen border-r border-emerald-100 bg-white" />}>
  <AdminSidebar
  permissions={admin.permissions}
+ roles={admin.roles}
  isPlatformAdmin={isPlatformAdmin}
  workspaceName={workspaceName}
  workspaceSubtitle={workspaceSubtitle}

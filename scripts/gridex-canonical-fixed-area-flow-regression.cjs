@@ -123,7 +123,7 @@ includes('lib/billing/underlayEngine.ts', [
   'base_price_components_snapshot',
 ], 'Faktureringen ska läsa immutable contract price snapshot')
 includes('lib/customers/canonicalOnboarding.ts', [
-  'gridex_onboard_customer_graph',
+  'canonical_onboard_customer_graph',
   'customer_number',
   'canonical_onboarding_incomplete_response',
 ], 'Kund, kundnummer, site och contract ska skapas atomiskt i canonical RPC')

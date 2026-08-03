@@ -7,6 +7,10 @@ import {
 function baseForm(overrides: Record<string, string> = {}): FormData {
   const form = new FormData();
   const contractType = overrides.contract_type ?? "variable_hourly";
+  const selectedPriceAreas = (overrides.price_areas ?? "SE1,SE2,SE3,SE4")
+    .split(",")
+    .map((area) => area.trim())
+    .filter(Boolean);
   const values = {
     company_id: "11111111-1111-4111-8111-111111111111",
     name: "Canonical testavtal",
@@ -38,18 +42,16 @@ function baseForm(overrides: Record<string, string> = {}): FormData {
         version_number: 1,
         area_prices:
           contractType === "fixed"
-            ? [
-                {
-                  price_row_reference: "test_area_se3",
-                  price_area: "SE3",
-                  amount: 99.5,
-                  unit: "ore_per_kwh",
-                  vat_treatment: "standard",
-                  valid_from: null,
-                  valid_to: null,
-                  metadata: {},
-                },
-              ]
+            ? selectedPriceAreas.map((priceArea) => ({
+                price_row_reference: `test_area_${priceArea.toLowerCase()}`,
+                price_area: priceArea,
+                amount: 99.5,
+                unit: "ore_per_kwh",
+                vat_treatment: "standard",
+                valid_from: null,
+                valid_to: null,
+                metadata: {},
+              }))
             : [],
         metadata: {},
       },
@@ -93,6 +95,12 @@ describe("admin contract canonical form", () => {
 
     const fixed = parseAdminContractForm(baseForm({ contract_type: "fixed", fixed_price_ore_per_kwh: "99.5" }));
     expect([fixed.spotWeightPercent, fixed.portfolioWeightPercent, fixed.fixedWeightPercent]).toEqual([0, 0, 100]);
+    expect(fixed.priceOptions[0]?.area_prices.map((row) => row.price_area)).toEqual([
+      "SE1",
+      "SE2",
+      "SE3",
+      "SE4",
+    ]);
   });
 
   it("requires a positive discount period whenever a discount is entered", () => {

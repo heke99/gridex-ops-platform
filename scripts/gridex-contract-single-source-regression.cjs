@@ -94,11 +94,22 @@ includesAll(diagnosticsRoute, [
   'publication_revision',
 ], 'separate diagnostics endpoint has stable response shape and scope')
 
-includesAll(publicContracts, [
-  'loadPublicationGraphIntegrity',
-  'canonical_graph_consistent !== true',
-  'PUBLICATION_GRAPH_INCONSISTENT',
-], 'normal feed and diagnostics use the same fail-closed graph integrity source')
+const canonicalDeliverySourceUses = (
+  publicContracts.match(/canonical_public_contract_delivery_readiness_v/g) || []
+).length
+check(
+  canonicalDeliverySourceUses >= 2,
+  'normal feed and diagnostics query the same canonical delivery source',
+)
+check(
+  publicContracts.includes('loadCanonicalDeliveryReadiness') &&
+    publicContracts.includes('graph?.canonical_graph_consistent === true'),
+  'normal feed requires the canonical aggregate graph verdict fail closed',
+)
+check(
+  publicContracts.includes('PUBLICATION_GRAPH_INCONSISTENT'),
+  'inconsistent canonical graph rows are rejected explicitly',
+)
 
 includesAll(publicContracts, [
   'loadPublicationReadinessByVersion',

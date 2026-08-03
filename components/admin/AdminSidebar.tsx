@@ -11,6 +11,7 @@ import { updateAdminNavigationPreference } from '@/app/admin/navigation-mode/act
 
 type AdminSidebarProps = {
   permissions: string[]
+  roles: string[]
   isPlatformAdmin: boolean
   workspaceName?: string | null
   workspaceSubtitle?: string | null
@@ -33,6 +34,7 @@ function itemIsPlatformOnly(item: { platformOnly?: boolean }) {
 
 export default function AdminSidebar({
   permissions,
+  roles,
   isPlatformAdmin,
   workspaceName,
   workspaceSubtitle,
@@ -49,6 +51,7 @@ export default function AdminSidebar({
 
   const visibleGroups = getAdminNavigationGroups({
     permissions,
+    roles,
     isPlatformAdmin,
     isCompanyLiveEnabled,
     mode,

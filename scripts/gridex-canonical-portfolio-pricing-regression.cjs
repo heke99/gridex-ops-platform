@@ -47,6 +47,26 @@ excludes(
   ['name="portfolio_monthly_prices"', "Framtida faktiskt portföljpris"],
   "Gemensam metodeditor",
 );
+contains(
+  "components/admin/contracts/ContractOfferAdminForm.tsx",
+  [
+    "fixedSharePercent",
+    "onFixedWeightChange={setFixedSharePercent}",
+    'contractType === "mixed" && fixedSharePercent > 0',
+    "requiresAreaPrices",
+  ],
+  "Mixavtalets fasta områdespriser",
+);
+contains(
+  "lib/contracts/adminContractSchema.ts",
+  [
+    "requiresFixedAreaPrices",
+    "Ett portföljavtal måste vara 100 procent portfölj",
+    "Ett mixavtal måste innehålla minst två positiva prisandelar",
+    "fast prisandel",
+  ],
+  "Semantisk validering av portfölj och mix",
+);
 
 contains(
   "app/admin/contracts/actions.ts",
@@ -206,16 +226,100 @@ contains(
 contains(
   "app/admin/pricing/portfolio-settlements/page.tsx",
   [
-    "En gemensam, revisionssäker OPS-vy",
-    "portfolio_settlement.calculate",
-    "portfolio_settlement.review",
-    "portfolio_settlement.approve",
-    "portfolio_settlement.lock",
-    "portfolio_settlement.correct",
+    "Månadens portföljpris",
+    "områden sparas atomiskt för samma tenant",
+    "saveSettlementAreaDraftsAction",
+    "Endast final och låst avräkning får användas i fakturering",
     "Append-only audit",
     "Icke-bindande indikation",
   ],
-  "Delad RBAC-vy",
+  "Superadmin-vy för portfölj",
+);
+contains(
+  "app/admin/pricing/portfolio-settlements/actions.ts",
+  [
+    "requirePlatformAdminActionAccess",
+    "gridex_portfolio_actor_is_superadmin",
+    "gridex_save_portfolio_area_price_drafts",
+    "Endast superadmin kan hantera portföljer",
+  ],
+  "Superadmin-skyddade portföljåtgärder",
+);
+excludes(
+  "app/admin/pricing/portfolio-settlements/actions.ts",
+  [
+    "grantSettlementPermissionAction",
+    "grantSettlementRoleAction",
+    "revokeSettlementPermissionAction",
+  ],
+  "Portföljåtkomst får inte delegeras",
+);
+contains(
+  "supabase/migrations/20260803144819_contract_portfolio_area_billing_consistency.sql",
+  [
+    "gridex_save_portfolio_area_price_drafts",
+    "portfolio_superadmin_required",
+    "portfolio_or_price_plan_version_scope_mismatch",
+    "contract_area_prices_company_option_fk",
+    "portfolio_settlements_company_version_fk",
+    "manual_portfolio_price_ore_per_kwh",
+  ],
+  "Atomisk områdespris- och tenantkonsistens",
+);
+contains(
+  "supabase/migrations/20260803145427_portfolio_superadmin_role_alignment.sql",
+  ["'super_admin'", "'platform_superadmin'"],
+  "Canonical superadmin-roll",
+);
+contains(
+  "lib/admin/navigation.ts",
+  [
+    "label: 'Portfölj'",
+    "href: '/admin/pricing/portfolio-settlements'",
+    "requiredRoles: ['super_admin']",
+    "normalizeRoleKey",
+  ],
+  "Superadmin-only sidebar",
+);
+contains(
+  "supabase/migrations/20260803145108_portfolio_lock_transition_immutability_fix.sql",
+  [
+    "gridex_transition_portfolio_settlement",
+    "locked_at = v_now",
+    "portfolio_lock_transition_patch_not_applied",
+  ],
+  "Låsövergång utan immutabilitetskonflikt",
+);
+contains(
+  "supabase/migrations/20260803150723_portfolio_mix_share_billing_completion.sql",
+  [
+    "fixed_share_percent",
+    "fixed_price_sek_per_kwh",
+    "fixed_energy_cost_sek",
+    "portfolio_invoice_mix_shares_must_total_100",
+    "final_fixed_area_price_required_for_mixed_invoice",
+    "energy_cost_sek_ex_vat",
+  ],
+  "Komplett treandelsfakturering",
+);
+contains(
+  "supabase/migrations/20260803152200_contract_portfolio_tenant_fk_indexes.sql",
+  [
+    "price_plan_versions_company_price_plan_idx",
+    "contract_area_prices_company_option_idx",
+    "contract_area_prices_company_version_idx",
+    "portfolio_settlements_company_version_idx",
+  ],
+  "Indexerade tenantbundna främmande nycklar",
+);
+contains(
+  "supabase/migrations/20260803153500_portfolio_superadmin_helper_service_role_only.sql",
+  [
+    "revoke execute on function public.gridex_portfolio_actor_is_superadmin(uuid)",
+    "from public, anon, authenticated",
+    "to service_role",
+  ],
+  "Intern superadmin-kontroll enbart via service role",
 );
 contains(
   "app/api/v1/website/portfolio-prices/route.ts",

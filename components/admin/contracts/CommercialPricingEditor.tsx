@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   COMPONENT_LIFECYCLES,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/pricing/commercialModel";
 
 const AREAS = ["SE1", "SE2", "SE3", "SE4"] as const;
+type PriceArea = (typeof AREAS)[number];
 
 function stableReference(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
@@ -23,6 +24,8 @@ function stableReference(prefix: string): string {
 function newOption(
   contractType: CanonicalContractType,
   index: number,
+  applicableAreas: readonly PriceArea[] = AREAS,
+  requiresAreaPrices = contractType === "fixed",
 ): ContractPriceOption {
   const reference = stableReference("price_option");
   return {
@@ -46,8 +49,8 @@ function newOption(
     sort_order: index * 10,
     version_number: 1,
     area_prices:
-      contractType === "fixed"
-        ? AREAS.map((area) => ({
+      requiresAreaPrices
+        ? applicableAreas.map((area) => ({
             price_row_reference: stableReference(`area_${area.toLowerCase()}`),
             price_area: area,
             amount: 1,
@@ -137,9 +140,13 @@ function lifecycleForUnit(
 
 export default function CommercialPricingEditor({
   contractType,
+  applicableAreas = AREAS,
+  requiresAreaPrices = contractType === "fixed",
   snapshot,
 }: {
   contractType: CanonicalContractType;
+  applicableAreas?: readonly PriceArea[];
+  requiresAreaPrices?: boolean;
   snapshot: Record<string, unknown> | null;
 }) {
   const existing = useMemo(
@@ -151,7 +158,9 @@ export default function CommercialPricingEditor({
       existing?.price_options.filter(
         (option) => option.contract_type === contractType,
       ) ?? [];
-    return matching.length ? matching : [newOption(contractType, 0)];
+    return matching.length
+      ? matching
+      : [newOption(contractType, 0, applicableAreas, requiresAreaPrices)];
   });
   const [components, setComponents] = useState<CommercialPriceComponent[]>(
     () => existing?.components ?? [],
@@ -159,6 +168,36 @@ export default function CommercialPricingEditor({
   const [deliveryMethods, setDeliveryMethods] = useState<
     InvoiceDeliveryMethod[]
   >(() => existing?.invoice_delivery_methods ?? ["email", "e_invoice", "paper"]);
+
+  useEffect(() => {
+    setOptions((current) =>
+      current.map((option) => {
+        if (!requiresAreaPrices) {
+          return option.area_prices.length > 0
+            ? { ...option, area_prices: [] }
+            : option;
+        }
+        const currentByArea = new Map(
+          option.area_prices.map((row) => [row.price_area, row]),
+        );
+        return {
+          ...option,
+          area_prices: applicableAreas.map((area) =>
+            currentByArea.get(area) ?? {
+              price_row_reference: stableReference(`area_${area.toLowerCase()}`),
+              price_area: area,
+              amount: 1,
+              unit: "ore_per_kwh" as const,
+              vat_treatment: "standard" as const,
+              valid_from: null,
+              valid_to: null,
+              metadata: {},
+            },
+          ),
+        };
+      }),
+    );
+  }, [applicableAreas, requiresAreaPrices]);
 
   function patchOption(index: number, patch: Partial<ContractPriceOption>) {
     setOptions((current) =>
@@ -364,8 +403,8 @@ export default function CommercialPricingEditor({
               </code>
             </div>
 
-            {contractType === "fixed" && (
-              <div className="mt-4 grid gap-2 md:grid-cols-4">
+            {requiresAreaPrices && (
+              <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 {option.area_prices.map((row, rowIndex) => (
                   <label
                     key={row.price_row_reference}
@@ -391,7 +430,7 @@ export default function CommercialPricingEditor({
                           area_prices: areaPrices,
                         });
                       }}
-                      className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
+                      className="min-w-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
                     />
                     <code className="truncate text-[9px] font-normal text-indigo-600">
                       {row.price_row_reference}
@@ -445,7 +484,12 @@ export default function CommercialPricingEditor({
               selection_required: true,
             })),
             {
-              ...newOption(contractType, current.length),
+              ...newOption(
+                contractType,
+                current.length,
+                applicableAreas,
+                requiresAreaPrices,
+              ),
               default: false,
               selection_required: true,
             },

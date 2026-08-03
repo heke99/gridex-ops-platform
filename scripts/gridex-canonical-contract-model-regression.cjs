@@ -57,7 +57,8 @@ for (const binding of [
     throw new Error(`Canonical publication does not bind ${binding}`);
 }
 for (const apiControl of [
-  "canonical_public_contract_offers_v",
+  "canonical_visible_public_contracts_v",
+  "canonical_public_contract_delivery_readiness_v",
   "canonical_offer_reference",
   "contract_publication_version_id",
   "legal_bundle_version_id",

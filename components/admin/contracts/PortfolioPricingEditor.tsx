@@ -22,6 +22,7 @@ export default function PortfolioPricingEditor({
   defaultPortfolioPriceVisible = true,
   defaultSettlementTiming = "after_month_close",
   defaultEstimateRule = "none",
+  onFixedWeightChange,
   compact = false,
 }: {
   portfolios?: PortfolioOption[];
@@ -36,6 +37,7 @@ export default function PortfolioPricingEditor({
   defaultPortfolioPriceVisible?: boolean;
   defaultSettlementTiming?: string;
   defaultEstimateRule?: string;
+  onFixedWeightChange?: (value: number) => void;
   compact?: boolean;
 }) {
   const [unit, setUnit] = useState(defaultManagementFeeUnit);
@@ -96,15 +98,27 @@ export default function PortfolioPricingEditor({
       <div className={`grid sm:grid-cols-3 ${compact ? "mt-3 gap-2" : "mt-4 gap-3"}`}>
         <label className="text-xs font-semibold text-slate-700">
           Rörlig andel %
-          <input name="spot_weight_percent" defaultValue={defaultSpotWeight} inputMode="decimal" min="0" max="100" className={controlClass} />
+          <input type="number" name="spot_weight_percent" defaultValue={defaultSpotWeight} inputMode="decimal" min="0" max="100" step="0.0001" className={controlClass} />
         </label>
         <label className="text-xs font-semibold text-slate-700">
           Portföljandel %
-          <input name="portfolio_weight_percent" defaultValue={defaultPortfolioWeight} inputMode="decimal" min="0" max="100" className={controlClass} />
+          <input type="number" name="portfolio_weight_percent" defaultValue={defaultPortfolioWeight} inputMode="decimal" min="0" max="100" step="0.0001" className={controlClass} />
         </label>
         <label className="text-xs font-semibold text-slate-700">
           Fast andel %
-          <input name="fixed_weight_percent" defaultValue={defaultFixedWeight} inputMode="decimal" min="0" max="100" className={controlClass} />
+          <input
+            type="number"
+            name="fixed_weight_percent"
+            defaultValue={defaultFixedWeight}
+            inputMode="decimal"
+            min="0"
+            max="100"
+            step="0.0001"
+            onChange={(event) =>
+              onFixedWeightChange?.(Number(event.target.value || 0))
+            }
+            className={controlClass}
+          />
         </label>
       </div>
       <p className="mt-2 text-xs font-semibold text-indigo-900">

@@ -3,6 +3,7 @@ import {
   hasPermissionRequirement,
   type AdminPageKey,
 } from '@/lib/admin/accessModel'
+import { normalizeRoleKey } from '@/lib/rbac/roleKeys'
 
 export type AdminNavigationMode = 'company_view' | 'platform_view'
 
@@ -30,6 +31,7 @@ export type AdminNavigationGroup = {
 
 export type AdminNavigationContext = {
   permissions: string[]
+  roles?: string[]
   isPlatformAdmin: boolean
   isCompanyLiveEnabled?: boolean
   mode?: AdminNavigationMode
@@ -136,6 +138,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API, blockerare och redo-kontroll', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },
+      { key: 'portfolio', label: 'Portfölj', href: '/admin/pricing/portfolio-settlements', description: 'Månadspris per tenant, portfölj och elområde', pageKey: 'pricing.engine', platformOnly: true, requiredRoles: ['super_admin'] },
       { key: 'pricing', label: 'Prismotor', href: '/admin/pricing', description: 'Påslag, avgifter och komponentregler', pageKey: 'pricing.engine' },
     ],
   },
@@ -224,6 +227,19 @@ export function canAccessAdminNavigationItem(
 ): boolean {
   if (item.platformOnly && !context.isPlatformAdmin) return false
   if (item.requiresLiveCompany && !context.isPlatformAdmin && !context.isCompanyLiveEnabled) return false
+
+  if (item.requiredRoles?.length) {
+    const allowedRoles = new Set(
+      item.requiredRoles
+        .map((role) => normalizeRoleKey(role))
+        .filter((role): role is string => Boolean(role)),
+    )
+    const hasRequiredRole = (context.roles ?? [])
+      .map((role) => normalizeRoleKey(role))
+      .some((role) => Boolean(role && allowedRoles.has(role)))
+    if (!hasRequiredRole) return false
+  }
+
   if (context.isPlatformAdmin) return true
 
   if (item.requiredPermissions?.length) {

@@ -10,6 +10,8 @@ import PortfolioPricingEditor, {
 import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
 import CommercialPricingEditor from "@/components/admin/contracts/CommercialPricingEditor";
 
+const ALL_PRICE_AREAS = ["SE1", "SE2", "SE3", "SE4"] as const;
+
 function snapshotValue(
   offer: ContractOfferRow | null,
   key: string,
@@ -79,9 +81,24 @@ export default function ContractOfferAdminForm({
   const locked = ["published", "paused", "expired", "archived", "superseded"].includes(lifecycle);
   const editableLifecycle = locked ? "draft" : lifecycle === "ready" ? "ready" : "draft";
   const formKey = `${offer?.id ?? "new"}:${contractType}`;
-  const priceAreas = Array.isArray(snapshotValue(offer, "price_areas"))
-    ? (snapshotValue(offer, "price_areas") as unknown[]).map(String)
-    : ["SE1", "SE2", "SE3", "SE4"];
+  const initialPriceAreas = Array.isArray(snapshotValue(offer, "price_areas"))
+    ? (snapshotValue(offer, "price_areas") as unknown[])
+        .map(String)
+        .filter((area): area is (typeof ALL_PRICE_AREAS)[number] =>
+          ALL_PRICE_AREAS.includes(area as (typeof ALL_PRICE_AREAS)[number]),
+        )
+    : [...ALL_PRICE_AREAS];
+  const [priceAreas, setPriceAreas] = useState<(typeof ALL_PRICE_AREAS)[number][]>(
+    initialPriceAreas.length > 0 ? initialPriceAreas : [...ALL_PRICE_AREAS],
+  );
+  const [fixedSharePercent, setFixedSharePercent] = useState(
+    offer
+      ? asNumber(
+          snapshotValue(offer, "fixed_weight_percent"),
+          typedWeights(initialType).fixed,
+        )
+      : typedWeights(initialType).fixed,
+  );
 
   return (
     <form action={saveContractOfferAction} className="mt-6 space-y-5">
@@ -123,7 +140,18 @@ export default function ContractOfferAdminForm({
           <select
             name="contract_type"
             value={contractType}
-            onChange={(event) => setContractType(event.target.value as ContractType)}
+            onChange={(event) => {
+              const nextType = event.target.value as ContractType;
+              setContractType(nextType);
+              setFixedSharePercent(
+                offer && nextType === initialType
+                  ? asNumber(
+                      snapshotValue(offer, "fixed_weight_percent"),
+                      typedWeights(nextType).fixed,
+                    )
+                  : typedWeights(nextType).fixed,
+              );
+            }}
             className="rounded-2xl border border-slate-300 px-4 py-3"
           >
             <option value="fixed">Fast</option>
@@ -165,7 +193,51 @@ export default function ContractOfferAdminForm({
           avmonterar föregående prismodell så att dolda värden inte kan följa
           med.
         </p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4">
+          <input type="hidden" name="price_areas" value={priceAreas.join(",")} />
+          <h4 className="text-sm font-black text-slate-950">Elområden där avtalet gäller</h4>
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            Välj minst ett område. Samma områden följer genom publicering, kundavtal,
+            prisversion och fakturering. Fastpris anges separat per valt område.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {ALL_PRICE_AREAS.map((area) => {
+              const selected = priceAreas.includes(area);
+              return (
+                <label
+                  key={area}
+                  className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-sm font-black transition ${
+                    selected
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+                      : "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  {area}
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) =>
+                      setPriceAreas((current) =>
+                        event.target.checked
+                          ? [...ALL_PRICE_AREAS].filter(
+                              (candidate) => current.includes(candidate) || candidate === area,
+                            )
+                          : current.filter((candidate) => candidate !== area),
+                      )
+                    }
+                  />
+                </label>
+              );
+            })}
+          </div>
+          {priceAreas.length === 0 ? (
+            <p className="mt-2 text-xs font-bold text-rose-700">
+              Välj minst ett elområde innan avtalet sparas.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2">
           {contractType === "fixed" ? (
             <div className="rounded-2xl border border-indigo-200 bg-white p-4 text-sm text-indigo-950 md:col-span-2">
               Fastpriset anges per elområde och bindningsalternativ i den
@@ -230,9 +302,6 @@ export default function ContractOfferAdminForm({
               )}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Prisområden
-            <input name="price_areas" defaultValue={priceAreas.join(",")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
-          </label>
           </div>
         )}
       </section>
@@ -245,6 +314,7 @@ export default function ContractOfferAdminForm({
           defaultSpotWeight={defaultWeights.spot}
           defaultPortfolioWeight={defaultWeights.portfolio}
           defaultFixedWeight={defaultWeights.fixed}
+          onFixedWeightChange={setFixedSharePercent}
           defaultManagementFeeAmount={asString(snapshotValue(offer, "portfolio_management_fee_amount"))}
           defaultManagementFeeUnit={asString(snapshotValue(offer, "portfolio_management_fee_unit"), "ore_per_kwh")}
           defaultManagementFeeCalculationBase={asString(snapshotValue(offer, "portfolio_management_fee_calculation_base"), "portfolio_cost")}
@@ -258,6 +328,11 @@ export default function ContractOfferAdminForm({
       <CommercialPricingEditor
         key={`commercial:${formKey}`}
         contractType={contractType}
+        applicableAreas={priceAreas}
+        requiresAreaPrices={
+          contractType === "fixed" ||
+          (contractType === "mixed" && fixedSharePercent > 0)
+        }
         snapshot={offer?.commercial_snapshot ?? null}
       />
 

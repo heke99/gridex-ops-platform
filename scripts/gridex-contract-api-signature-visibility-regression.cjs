@@ -80,7 +80,7 @@ for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_r
 const websiteDocs = read('docs/openapi/website-integration-v1.json')
 const portalDocs = read('docs/openapi/customer-portal-v1.json')
 check(/offer_reference_mismatch/.test(websiteDocs) && /diagnostics/.test(websiteDocs), 'Website OpenAPI dokumenterar strikt offer_reference och diagnostik')
-check(/signature_snapshot_sha256/.test(portalDocs) && /2026-07-30\.3/.test(portalDocs), 'Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
+check(/signature_snapshot_sha256/.test(portalDocs) && /2026-08-03\.1/.test(portalDocs), 'Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
 
 if (failed) process.exit(1)
 console.log('Gridex contract API/signature/visibility regression passed.')

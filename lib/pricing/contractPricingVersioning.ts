@@ -724,6 +724,19 @@ export function normalizeContractPricing(
 
   if (["mixed", "portfolio"].includes(input.contractType) && weightSum !== 100)
     throw new Error("Prisandelarna måste tillsammans bli exakt 100 procent.");
+  if (
+    input.contractType === "portfolio" &&
+    (spotWeight !== 0 || portfolioWeight !== 100 || fixedWeight !== 0)
+  )
+    throw new Error(
+      "Ett portföljavtal måste vara 100 procent portfölj. Använd mixavtal för flera prisdelar.",
+    );
+  if (
+    input.contractType === "mixed" &&
+    [spotWeight, portfolioWeight, fixedWeight].filter((weight) => weight > 0)
+      .length < 2
+  )
+    throw new Error("Ett mixavtal måste innehålla minst två positiva prisandelar.");
   const requestedPriceAreas = parsePriceAreas(input.priceAreas);
   const areaPriceKeys = Object.keys(fixedPricesByArea).filter((area) =>
     ["SE1", "SE2", "SE3", "SE4"].includes(area),
@@ -739,8 +752,7 @@ export function normalizeContractPricing(
     fixedPricesByArea[area as keyof typeof fixedPricesByArea] ??
     fixedPriceOrePerKwh ??
     null;
-  const fixedPriceRequired = input.contractType === "fixed" ||
-    (input.contractType === "mixed" && fixedWeight > 0);
+  const fixedPriceRequired = input.contractType === "fixed" || fixedWeight > 0;
   if (fixedPriceRequired) {
     const missingFixedAreas = priceAreas.filter((area) => {
       const amount = fixedPriceForArea(area);

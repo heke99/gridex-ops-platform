@@ -2231,7 +2231,8 @@ function canonicalGraphStructurallyConsistent(
           .channel_graph_valid
       : (graph as PublicationGraphIntegrity | null | undefined)?.channel_valid;
   return Boolean(
-    graph?.forward_publication_link_valid &&
+    graph?.canonical_graph_consistent === true &&
+      graph.forward_publication_link_valid &&
       graph.reverse_legacy_link_valid &&
       graph.company_chain_valid &&
       graph.tenant_assignment_valid &&

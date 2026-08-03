@@ -337,6 +337,22 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
   const fixedWeightPercent = nullableNumber(raw(formData, "fixed_weight_percent"), "Fast andel") ?? defaultWeights.fixed;
   if (Math.round((spotWeightPercent + portfolioWeightPercent + fixedWeightPercent) * 1000) / 1000 !== 100)
     throw new Error("Prisandelarna måste tillsammans bli exakt 100 procent.");
+  if (
+    contractType === "portfolio" &&
+    (spotWeightPercent !== 0 || portfolioWeightPercent !== 100 || fixedWeightPercent !== 0)
+  ) {
+    throw new Error(
+      "Ett portföljavtal måste vara 100 procent portfölj. Använd mixavtal för flera prisdelar.",
+    );
+  }
+  if (
+    contractType === "mixed" &&
+    [spotWeightPercent, portfolioWeightPercent, fixedWeightPercent].filter(
+      (weight) => weight > 0,
+    ).length < 2
+  ) {
+    throw new Error("Ett mixavtal måste innehålla minst två positiva prisandelar.");
+  }
 
   const defaultOptionalFeeVisibility = booleanValue(formData, "show_optional_fees_on_website");
   const rawOptionalFeeLines = raw(formData, "optional_fee_lines");
@@ -407,13 +423,47 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
       "Alla prisalternativ måste tillhöra den valda avtalstypen.",
     );
   }
+  const requiresFixedAreaPrices =
+    contractType === "fixed" ||
+    (contractType === "mixed" && fixedWeightPercent > 0);
   if (
-    contractType !== "fixed" &&
+    !requiresFixedAreaPrices &&
     priceOptions.some((option) => option.area_prices.length > 0)
   ) {
     throw new Error(
-      "Endast fastprisavtal får innehålla fasta områdespriser.",
+      "Fasta områdespriser får bara anges för fastpris eller en fast andel i ett mixavtal.",
     );
+  }
+  const priceAreas = Array.from(
+    new Set(
+      (raw(formData, "price_areas") || raw(formData, "price_area"))
+        .split(/[\s,;|]+/)
+        .map((area) => area.trim().toUpperCase())
+        .filter(Boolean),
+    ),
+  );
+  const invalidPriceArea = priceAreas.find(
+    (area) => !["SE1", "SE2", "SE3", "SE4"].includes(area),
+  );
+  if (invalidPriceArea) {
+    throw new Error(`Ogiltigt elområde: ${invalidPriceArea}.`);
+  }
+  if (priceAreas.length === 0) {
+    throw new Error("Avtalet måste gälla i minst ett elområde.");
+  }
+  if (requiresFixedAreaPrices) {
+    const expectedAreas = [...priceAreas].sort().join(",");
+    for (const option of priceOptions) {
+      const optionAreas = option.area_prices
+        .map((row) => row.price_area)
+        .sort()
+        .join(",");
+      if (optionAreas !== expectedAreas) {
+        throw new Error(
+          `Prisalternativet ${option.customer_name} måste ha exakt en fastprisruta för varje valt elområde när avtalet innehåller en fast prisandel.`,
+        );
+      }
+    }
   }
   const optionReferences = new Set(
     priceOptions.map((option) => option.price_option_reference),
@@ -466,12 +516,12 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     breakFeeSek: nullableNumber(raw(formData, "break_fee_sek"), "Brytavgift"),
     vatRate,
     fixedPriceOrePerKwh:
-      contractType === "fixed" &&
+      requiresFixedAreaPrices &&
       priceOptions[0]?.area_prices.length === 1
         ? priceOptions[0].area_prices[0].amount
         : null,
     fixedPricesByArea:
-      contractType === "fixed"
+      requiresFixedAreaPrices
         ? priceOptions[0].area_prices
             .map((row) => `${row.price_area} | ${row.amount}`)
             .join("\n")
@@ -500,7 +550,7 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     priceOptions,
     commercialComponents,
     invoiceDeliveryMethods,
-    priceAreas: raw(formData, "price_areas") || raw(formData, "price_area"),
+    priceAreas: priceAreas.join(","),
     portfolioId: raw(formData, "portfolio_id"),
     portfolioSettlementTiming: raw(formData, "portfolio_settlement_timing") || "after_month_close",
     portfolioEstimateRule: raw(formData, "portfolio_estimate_rule") || "none",

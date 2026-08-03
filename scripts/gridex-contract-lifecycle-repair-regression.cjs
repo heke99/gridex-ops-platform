@@ -129,7 +129,7 @@ const activeArchive = activeFunction(
 check(Boolean(activePublish), "active publish RPC definition found");
 check(Boolean(activeArchive), "active archive RPC definition found");
 if (activePublish) {
-  check(activePublish.file === "20260727160000_contract_valid_to_active_rpc_repair.sql",
+  check(activePublish.file === "20260731152000_public_contract_publication_graph_repair.sql",
     `publish RPC source of truth is repair migration: ${activePublish.file}`);
   includesAll(activePublish.definition, ["old_channel.valid_to", "old_publication_version.valid_to"],
     "active publish RPC qualifies valid_to");
