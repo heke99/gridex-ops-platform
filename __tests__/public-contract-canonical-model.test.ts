@@ -249,9 +249,13 @@ describe('canonical public contract legal snapshot', () => {
   })
 
   it('fails clearly when fullmakt is required but no module version exists', () => {
-    const value = legal({ power_of_attorney_required: true })
-    value.module_versions = (value.module_versions as Array<Record<string, unknown>>)
-      .filter((module) => module.module_key !== 'power_of_attorney')
+    const baseValue = legal({ power_of_attorney_required: true })
+    const value = {
+      ...baseValue,
+      module_versions: baseValue.module_versions.filter(
+        (module) => module.module_key !== 'power_of_attorney',
+      ),
+    }
     expect(() =>
       serializePublicContractLegal({ value, companyId }),
     ).toThrowError(
