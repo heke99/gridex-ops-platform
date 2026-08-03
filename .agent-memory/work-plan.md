@@ -548,3 +548,18 @@ Files changed: registered emergency-lockdown migration, static regression, packa
 Migrations: `20260802190000_canonical_emergency_access_lockdown.sql`
 Last updated: 2026-08-02
 Exact next subtask: obtain explicit blast-radius approval, then apply only `20260802190000` and execute immediate postflight/advisor/JWT verification
+
+
+## WP-041: Runtime schema readiness v4 and API availability
+Status: DATABASE_VERIFIED_READY_FOR_APP_DEPLOY
+Phase: PHASE-41
+Priority: P0
+Depends on: WP-036, WP-040
+Affected domains: external API availability, runtime capability gate, migration governance, canonical manifest, portfolio migration provenance, OpenAPI deployment
+Acceptance criteria: compatible additive schema changes do not create 503; missing required capabilities fail closed; all ledger mappings/effects are explicit; live readiness sources agree; authenticated public endpoints return 200 after deploy
+Required verification: live Supabase runtime/governance/canonical/state queries; idempotent post-apply; Node 22 typechecks/tests/build; deployed authenticated context/public-contract smoke; Web OpenAPI sync
+Evidence: v4 migration applied as 20260803212754; all four live readiness sources true; migration/API/OpenAPI/runtime parity and tenant/idempotency/portal regressions pass
+Files changed: runtime readiness service/test, portfolio migration versions/references, v4 migration/post-apply, migration manifest, release report and project memory
+Migrations: `20260803212754_canonical_migration_readiness_reconciliation_v4.sql`
+Last updated: 2026-08-03
+Exact next subtask: deploy the OPS application code and run authenticated HTTP smoke tests, then synchronize Gridex Web OpenAPI 2026-08-03.1

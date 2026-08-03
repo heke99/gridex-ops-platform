@@ -1,127 +1,84 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-02T18:56:00+02:00",
+  "updated_at": "2026-08-03T23:37:05+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-40",
-  "active_task": "WP-040",
-  "active_subtask": "Obtain explicit approval for the emergency-lockdown blast radius, then apply only 20260802190000 and run immediate postflight",
-  "status": "LOCALLY_VERIFIED_AWAITING_EXPLICIT_APPLY_APPROVAL",
+  "active_phase": "PHASE-41",
+  "active_task": "WP-041",
+  "active_subtask": "Deploy capability-based readiness code, smoke-test external API, then sync Gridex Web OpenAPI",
+  "status": "DATABASE_VERIFIED_READY_FOR_APP_DEPLOY",
   "implemented_not_environment_verified": [
-    "emergency default-privilege, readiness-view, SECURITY DEFINER, system-table and global-platform-role lockdown",
-    "actor-authenticated canonical lifecycle, production, profile and provisioning boundaries",
-    "request-payload-bound command idempotency and one-time first-live approval",
-    "verified link invitations without temporary passwords or pre-acceptance access",
-    "actor-role-qualified Ediel profile identity, read-only readiness and least-privilege/RLS hardening",
-    "complete read-only A-C catalog and seed parity verification for gridex-ops-dev",
-    "assertion-guarded Gridex supplier profile and snapshot reconciliation SQL",
-    "server-derived immutable Ediel evidence v2",
-    "matching-attempt protection for passed and manual_verified projections",
-    "tenant-qualified test child relations and service-role-resistant constraints",
-    "quarantine-only handling of ambiguous legacy tenant ownership",
-    "two-person database-authorized manual attestation",
-    "atomic WEBSITE_APPLICATION_COMMITTED audit/domain/outbox projection",
-    "production dependency security upgrades"
+    "capability-evidence runtime schema gate without stale exact fingerprint pin",
+    "runtime readiness v4 forward migration and canonical ledger reconciliation",
+    "authoritative local portfolio migration version alignment",
+    "idempotent post-apply readiness verification",
+    "unit/static regression coverage for additive schema compatibility"
   ],
   "active_blockers": [
-    "Emergency access-control apply requires explicit user approval of its persistent blast radius",
-    "Post-lockdown catalog, advisor, JWT, service-role and runtime verification has not run",
-    "153 legacy test runs have null company_id and no deterministic ownership resolution",
-    "One deterministic obsolete supplier profile and missing-snapshot live state await the prepared guarded repair",
-    "D-F, the website event migration and the convergence migration are not applied in staging",
-    "Two-tenant JWT RLS, service-role cross-tenant, concurrency and evidence-chain tests require post-apply fixtures",
-    "External repositories and deployment targets were not supplied",
-    "Exact archive-to-GitHub main parity is unproven because Git metadata is absent from the uploaded archive"
+    "Running OPS app has not been redeployed from the modified archive",
+    "Authenticated external endpoint smoke requires operator API key",
+    "Sandbox package mirror prevents a fresh full Node 22 install/typecheck/build",
+    "Earlier unrelated PHASE-40 security and legacy-data blockers remain open"
   ],
   "verification": [
     {
-      "name": "authoritative remote migration ledger",
-      "status": "VERIFIED_READ_ONLY",
-      "evidence": "gridex-ops-dev records all canonical versions through 20260802180000"
-    },
-    {
-      "name": "emergency access lockdown",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "registered checksum; static regression, 339-file/243-group integrity and 24-check RBAC audit pass"
-    },
-    {
-      "name": "emergency lockdown database apply",
-      "status": "BLOCKED_AWAITING_EXPLICIT_APPROVAL",
-      "evidence": "no remote mutation; persistent ACL/view/RLS/helper/trigger blast radius requires explicit approval"
-    },
-    {
-      "name": "current local app gates",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "clean install; all TypeScript targets; 62 files/417 tests; lint 0 errors/125 warnings; audit 0 vulnerabilities; full Next.js build on Node 24.14.0"
-    },
-    {
-      "name": "declared Node 22 and emergency migration compile parity",
-      "status": "NOT_VERIFIED",
-      "evidence": "available runtime is Node 24.14.0; local psql/usable Supabase CLI unavailable and remote compile cannot bypass apply approval"
-    },
-    {
-      "name": "clean Node runtime and install",
+      "name": "live runtime capabilities",
       "status": "VERIFIED",
-      "evidence": "Node v22.22.0 and clean npm ci completed"
+      "evidence": "is_ready=true, valid fingerprint, zero blockers"
     },
     {
-      "name": "TypeScript",
+      "name": "live migration governance",
       "status": "VERIFIED",
-      "evidence": "app, scripts and tests typecheck pass"
+      "evidence": "38 manifest, 34 ledger, zero missing/unmapped/duplicate mappings and zero blockers"
     },
     {
-      "name": "tests",
+      "name": "live canonical readiness",
       "status": "VERIFIED",
-      "evidence": "62 files and 417 tests pass"
+      "evidence": "is_ready=true, missing_in_ledger=0, blockers=[]"
     },
     {
-      "name": "production build",
+      "name": "live compatibility state",
       "status": "VERIFIED",
-      "evidence": "Next.js 16.2.12 full build passes with explicit 4096 MB heap"
+      "evidence": "20260803-runtime-capability-compatible-v4, ready"
+    },
+    {
+      "name": "v4 post-apply replay",
+      "status": "VERIFIED",
+      "evidence": "idempotent post-apply passed after initial database apply"
     },
     {
       "name": "migration integrity",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "337 files, 241 version groups and checksums pass"
+      "evidence": "359 files, 263 version groups and checksums pass"
     },
     {
-      "name": "canonical convergence migration parser",
+      "name": "API/OpenAPI/docs",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "PostgreSQL parser accepted the registered forward-only migration"
+      "evidence": "contract, parity, version 2026-08-03.1, examples, shared components and corrections pass"
     },
     {
-      "name": "changed migration compile",
-      "status": "VERIFIED_NONPERSISTENT",
-      "evidence": "both migrations compiled against gridex-ops-dev in rolled-back transactions; absence confirmed after rollback"
+      "name": "API runtime/tenant/idempotency/portal regressions",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "runtime parity, 107 single-key checks, application idempotency and multi-site portal checks pass"
     },
     {
-      "name": "production dependency audit",
-      "status": "VERIFIED",
-      "evidence": "0 high/critical vulnerabilities"
+      "name": "fresh Node 22 typecheck/build",
+      "status": "BLOCKED_BY_ENVIRONMENT",
+      "evidence": "sandbox package mirror 404 for indirect package"
     },
     {
-      "name": "lint",
-      "status": "PARTIAL",
-      "evidence": "0 errors; 126 warnings, all @typescript-eslint/no-unused-vars and none security-critical"
-    },
-    {
-      "name": "database rollout and environment regressions",
-      "status": "BLOCKED",
-      "evidence": "ledger reconciliation and controlled staging apply required"
-    },
-    {
-      "name": "PostgreSQL UUID aggregate repair",
-      "status": "VERIFIED_READ_ONLY",
-      "evidence": "corrected preflight and profile aggregate execute on gridex-ops-dev; migration integrity, canonical hardening and RBAC audit pass"
+      "name": "deployed authenticated HTTP smoke",
+      "status": "PENDING_DEPLOY",
+      "evidence": "requires app redeploy and tenant API key"
     }
   ],
-  "next_action": "After explicit approval, apply only 20260802190000 to gridex-ops-dev and immediately run the read-only postflight, advisors and real-role/JWT runtime smoke tests; stop on regression before later V2 work.",
+  "next_action": "Sync patch into Git checkout, run Node 22 full gates, deploy OPS, wait 30 seconds, require authenticated HTTP 200 from context and public-contract endpoints, then sync Gridex Web OpenAPI 2026-08-03.1.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not apply or split the emergency-lockdown migration without explicit blast-radius approval",
-    "Do not run the obsolete A-C ledger repair; the remote ledger is current through 20260802180000",
-    "Do not assign the 153 unresolved legacy runs to a default/latest company",
-    "Client message IDs, evidence JSON, result and role never determine passed",
-    "Release remains NO-GO until environment proof is green"
+    "Do not restore the obsolete exact schema fingerprint pin",
+    "Do not use raw manifest/ledger count equality as runtime readiness",
+    "Do not reapply 20260803212754 blindly to gridex-ops-dev; it is already applied",
+    "Runtime API availability is capability-gated; migration governance is separate audit evidence",
+    "Do not store API keys or production customer data in memory"
   ]
 }

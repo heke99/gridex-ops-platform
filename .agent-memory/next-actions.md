@@ -1,3 +1,13 @@
+## PHASE-41 next actions
+
+1. Sync the v4 patch into the Git-backed OPS checkout without deleting unrelated files.
+2. Run Node 22 `npm ci`, all three TypeScript targets, readiness/API regressions and `npm run build`.
+3. Confirm `npx supabase migration list --linked` contains `20260803212754`; do not reapply it to the already-repaired project.
+4. Commit and push the app change so Vercel redeploys OPS.
+5. After deployment, smoke-test authenticated integration context and public contracts; require HTTP 200 and API version `2026-08-03.1`.
+6. In Gridex Web, run the documented OpenAPI sync, local/live drift checks, full launch suite and build.
+7. Confirm a successful public-contract fetch creates/refreshes the last-known-good snapshot used by Web fallback.
+
 # Next actions
 
 1. Recover the trusted bytes for `20260728170000_live_schema_code_canonical_sync.sql`; do not change its manifest hash.

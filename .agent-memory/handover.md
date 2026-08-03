@@ -1,3 +1,41 @@
+# PHASE-41 handover — runtime schema readiness v4
+
+The specific Website/Public Contracts `503 platform_schema_not_ready` incident
+is repaired in source and in the connected Supabase database. The database is
+ready; the modified OPS application has not yet been redeployed.
+
+Root cause: `lib/platform/schemaReadiness.ts` compared the live database against
+one obsolete exact whole-schema fingerprint. The live versioned capability view
+already reported every required runtime capability present, so legitimate
+additive schema changes incorrectly caused an outage.
+
+Current authoritative live evidence:
+
+- runtime capabilities: ready, zero blockers;
+- migration governance: ready, zero missing/unmapped/duplicate mappings;
+- canonical readiness: ready, zero blockers;
+- compatibility state: `20260803-runtime-capability-compatible-v4`, ready;
+- v4 ledger version: `20260803212754`.
+
+Next operator action:
+
+1. Sync this patch into the Git-backed OPS checkout.
+2. Run Node 22 clean install, typechecks, tests and build.
+3. Commit/push so Vercel redeploys the OPS application.
+4. Wait at least 30 seconds for the old readiness cache/process to disappear.
+5. Run authenticated `integration/context` and `website/public-contracts` smoke
+   tests and require HTTP 200 with contract version `2026-08-03.1`.
+6. Sync Gridex Web's OpenAPI snapshot and rerun its launch/build gates.
+
+Do not reapply the live migration blindly. It is already present and verified.
+For another environment, apply the forward migration once and run the supplied
+idempotent post-apply verifier.
+
+Older PHASE-40 security/data blockers remain tracked below and are not erased by
+this incident repair.
+
+---
+
 # Handover
 
 PHASE-40 is paused at the V2 emergency-lockdown apply boundary. Release remains **NO-GO**.

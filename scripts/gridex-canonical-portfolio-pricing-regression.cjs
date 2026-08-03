@@ -303,7 +303,7 @@ contains(
   "Komplett treandelsfakturering",
 );
 contains(
-  "supabase/migrations/20260803152200_contract_portfolio_tenant_fk_indexes.sql",
+  "supabase/migrations/20260803152014_contract_portfolio_tenant_fk_indexes.sql",
   [
     "price_plan_versions_company_price_plan_idx",
     "contract_area_prices_company_option_idx",
@@ -313,7 +313,7 @@ contains(
   "Indexerade tenantbundna främmande nycklar",
 );
 contains(
-  "supabase/migrations/20260803153500_portfolio_superadmin_helper_service_role_only.sql",
+  "supabase/migrations/20260803152236_portfolio_superadmin_helper_service_role_only.sql",
   [
     "revoke execute on function public.gridex_portfolio_actor_is_superadmin(uuid)",
     "from public, anon, authenticated",

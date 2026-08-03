@@ -62,8 +62,8 @@ Flödet har korrigerats så att avtalsmodellen, UI:t, databasrelationerna och fa
 - `20260803145108_portfolio_lock_transition_immutability_fix.sql`
 - `20260803145427_portfolio_superadmin_role_alignment.sql`
 - `20260803150723_portfolio_mix_share_billing_completion.sql`
-- `20260803152200_contract_portfolio_tenant_fk_indexes.sql`
-- `20260803153500_portfolio_superadmin_helper_service_role_only.sql`
+- `20260803152014_contract_portfolio_tenant_fk_indexes.sql`
+- `20260803152236_portfolio_superadmin_helper_service_role_only.sql`
 
 Samtliga sex migrationer är applicerade i `gridex-ops-dev` och inkluderade i projektets migreringsmanifest.
 

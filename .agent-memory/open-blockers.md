@@ -1,3 +1,27 @@
+## BLK-027 — OPS application redeploy and authenticated API smoke
+
+Status: RELEASE_BLOCKER_FOR_THIS_INCIDENT. The connected database and modified
+repository are ready, but the running OPS deployment may still execute the old
+exact fingerprint pin. Redeploy the app, then require authenticated HTTP 200
+from `/api/v1/integration/context` and `/api/v1/website/public-contracts`. Do not
+claim the external incident resolved from database evidence alone.
+
+## BLK-028 — Sandbox dependency registry limitation
+
+Status: BLOCKED_BY_ENVIRONMENT. The available package mirror returns 404 for an
+indirect dependency, so this workspace cannot honestly claim a fresh full
+Node 22 install/typecheck/build. Repository-native dependency-free API,
+migration and runtime checks pass. Operator CI/local Node 22 verification is
+required before merge/deploy.
+
+## RESOLVED — Canonical migration readiness/ledger mismatch for public API
+
+The former `MIGRATION_LEDGER_MISSING_VERSION` and count mismatch state is
+resolved by explicit ledger mappings/effect evidence in forward migration
+`20260803212754`. Live governance and canonical readiness now report zero
+blockers. Raw manifest and ledger counts are intentionally not required to be
+equal.
+
 # Open blockers
 
 ## BLK-024 — Emergency access lockdown approval and postflight

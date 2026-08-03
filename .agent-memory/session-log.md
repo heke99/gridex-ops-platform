@@ -1,3 +1,20 @@
+## 2026-08-03 23:37 CEST — PHASE-41 runtime schema readiness v4
+
+- Inspected the supplied OPS archive, official Customer Portal API documentation
+  and connected `gridex-ops-dev` database.
+- Reproduced the mismatch: live capability view ready with fingerprint
+  `bb46302e...`, while app code pinned an obsolete different fingerprint and
+  returned `503 platform_schema_not_ready`.
+- Implemented capability-based runtime gating, tests, authoritative migration
+  filename reconciliation, forward migration v4 and idempotent post-apply.
+- Applied v4 through Supabase, registered its evidence and replayed post-apply.
+- Confirmed runtime, governance, canonical and compatibility readiness all true
+  with empty blockers.
+- Ran migration integrity, API contract/OpenAPI/docs/runtime parity,
+  single-key/idempotency/portal regressions successfully.
+- Full dependency install/build remains an operator/CI step because the sandbox
+  package mirror lacks one indirect package.
+
 # Session log
 
 ## 2026-07-25

@@ -9,19 +9,21 @@ export const REQUIRED_PLATFORM_SCHEMA_VERSION =
   '20260803093300-gridex-runtime-readiness-v3'
 export const PLATFORM_RUNTIME_CAPABILITY_VIEW =
   'gridex_runtime_schema_capabilities_v3'
-export const EXPECTED_PLATFORM_SCHEMA_FINGERPRINT =
-  'd18261edf09683ff4451c334160b4c19c66f504f293766f660489cf72f4890a4'
+export const PLATFORM_RUNTIME_FINGERPRINT_POLICY =
+  'capability_evidence_sha256' as const
 
 const READINESS_CACHE_TTL_MS = 30_000
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 
-type ReadinessRow = {
+export type PlatformSchemaReadinessEvidence = {
   is_ready?: boolean | null
   blocking_issues?: unknown
   schema_fingerprint?: string | null
   capabilities?: unknown
   evaluated_at?: string | null
 }
+
+type ReadinessRow = PlatformSchemaReadinessEvidence
 
 type CachedReadiness = { checkedAt: number; row: ReadinessRow }
 let cachedReadiness: CachedReadiness | null = null
@@ -51,6 +53,40 @@ export function isVerifiedSchemaFingerprint(
   fingerprint: string | null | undefined,
 ): boolean {
   return SHA256_PATTERN.test(String(fingerprint ?? '').trim())
+}
+
+/**
+ * Runtime traffic is governed by the explicit capability result from the
+ * versioned database view. The fingerprint is retained as tamper-evident
+ * deployment evidence, but is deliberately not compared with one hard-coded
+ * whole-schema hash: compatible additive columns must not cause a production
+ * outage when every required relation, column, function, RLS policy and ACL is
+ * still present.
+ */
+function hasNoBlockingIssues(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0
+}
+
+export function evaluatePlatformSchemaReadiness(
+  row: PlatformSchemaReadinessEvidence,
+): {
+  ready: boolean
+  schemaFingerprintVerified: boolean
+  blockingIssuesVerified: boolean
+} {
+  const schemaFingerprintVerified = isVerifiedSchemaFingerprint(
+    row.schema_fingerprint,
+  )
+  const blockingIssuesVerified = hasNoBlockingIssues(row.blocking_issues)
+
+  return {
+    ready:
+      row.is_ready === true &&
+      schemaFingerprintVerified &&
+      blockingIssuesVerified,
+    schemaFingerprintVerified,
+    blockingIssuesVerified,
+  }
 }
 
 async function loadReadinessRow(): Promise<ReadinessRow> {
@@ -105,20 +141,18 @@ export function invalidatePlatformSchemaReadinessCache(): void {
 
 export async function assertPlatformSchemaReady(): Promise<void> {
   const row = await loadReadinessRow()
-  const verifiedFingerprint = isVerifiedSchemaFingerprint(row.schema_fingerprint)
-  const expectedFingerprint =
-    String(row.schema_fingerprint ?? '').trim() === EXPECTED_PLATFORM_SCHEMA_FINGERPRINT
+  const evaluation = evaluatePlatformSchemaReadiness(row)
 
-  if (row.is_ready !== true || !verifiedFingerprint || !expectedFingerprint) {
+  if (!evaluation.ready) {
     throw new PlatformSchemaNotReadyError(
       'Databasschemat saknar en eller flera verifierade Gridex runtime-capabilities.',
       {
         minimum_version: REQUIRED_PLATFORM_SCHEMA_VERSION,
         required_view: PLATFORM_RUNTIME_CAPABILITY_VIEW,
+        fingerprint_policy: PLATFORM_RUNTIME_FINGERPRINT_POLICY,
         is_ready: row.is_ready ?? false,
-        schema_fingerprint_verified: verifiedFingerprint,
-        schema_fingerprint_matches_release: expectedFingerprint,
-        expected_schema_fingerprint: EXPECTED_PLATFORM_SCHEMA_FINGERPRINT,
+        schema_fingerprint_verified:
+          evaluation.schemaFingerprintVerified,
         schema_fingerprint: row.schema_fingerprint ?? null,
         blocking_issues: row.blocking_issues ?? [],
         capabilities: row.capabilities ?? {},

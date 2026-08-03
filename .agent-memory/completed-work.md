@@ -1,3 +1,14 @@
+## 2026-08-03 — Runtime schema readiness v4 incident repair
+
+Status: VERIFIED LIVE DATABASE / READY FOR APPLICATION DEPLOY.
+
+- Root-caused and removed the stale exact fingerprint production outage.
+- Applied and verified forward migration `20260803212754` on `gridex-ops-dev`.
+- Reconciled canonical manifest/ledger mappings and live readiness state.
+- Added idempotent post-apply and static regressions.
+- Verified API contract/OpenAPI documentation version `2026-08-03.1` and focused
+  runtime/tenant/idempotency/portal checks.
+
 # Completed verified work
 
 ## PHASE-00 — Permanent project memory

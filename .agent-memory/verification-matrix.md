@@ -1,3 +1,21 @@
+## 2026-08-03 — PHASE-41 runtime schema readiness v4
+
+| ID | Scope | Status | Evidence |
+| --- | --- | --- | --- |
+| VM-101 | Live runtime capability gate | VERIFIED LIVE | `gridex_runtime_schema_capabilities_v3.is_ready=true`, valid SHA-256 fingerprint, zero blockers |
+| VM-102 | Canonical migration readiness | VERIFIED LIVE | 38 manifest rows, 34 ledger rows, zero missing mappings, zero blockers |
+| VM-103 | Migration governance | VERIFIED LIVE | zero missing, unmapped or duplicate ledger mappings; zero invalid checksums/effect gaps |
+| VM-104 | Compatibility state | VERIFIED LIVE | `platform_schema_state=20260803-runtime-capability-compatible-v4`, ready, empty blockers |
+| VM-105 | V4 forward migration | VERIFIED LIVE | applied as ledger version `20260803212754`; canonical manifest registration verified |
+| VM-106 | V4 post-apply replay | VERIFIED LIVE | idempotent post-apply executed successfully after initial apply |
+| VM-107 | Runtime readiness code policy | VERIFIED STATIC | obsolete exact fingerprint pin removed; capability-evidence SHA-256 policy and fail-closed tests added |
+| VM-108 | Migration/version repository parity | VERIFIED STATIC | local portfolio files renamed to live versions; stale names prohibited by regression |
+| VM-109 | API/OpenAPI/docs `2026-08-03.1` | VERIFIED LOCALLY | contract, OpenAPI parity, docs version/examples/components, corrections and compatibility checks pass |
+| VM-110 | API runtime parity | VERIFIED LOCALLY | canonical external API runtime parity passes |
+| VM-111 | Tenant/idempotency/portal regressions | VERIFIED LOCALLY | 107 single-key checks, application idempotency hardening and multi-site portal checks pass |
+| VM-112 | Full Node 22 typecheck/build | BLOCKED_BY_SANDBOX_REGISTRY | clean install cannot fetch one indirect tarball; must run in operator CI/local environment |
+| VM-113 | Deployed authenticated HTTP smoke | PENDING DEPLOY | running app must be redeployed, then context/public-contract endpoints must return HTTP 200 |
+
 # Verification matrix
 
 | ID | Scope | Status | Evidence |

@@ -1,3 +1,28 @@
+# 2026-08-03 — Runtime readiness reconciliation v4
+
+- Never edit already-applied history. This repair uses forward migration
+  `20260803212754_canonical_migration_readiness_reconciliation_v4.sql`.
+- Authoritative live ledger versions replaced two drifted local filenames:
+  `20260803152014_contract_portfolio_tenant_fk_indexes.sql` and
+  `20260803152236_portfolio_superadmin_helper_service_role_only.sql`.
+- The canonical manifest now maps migrations explicitly by both
+  `applied_ledger_version` and `applied_ledger_name`; raw manifest/ledger count
+  equality is not a valid readiness invariant when schema-effect and alias rows
+  exist.
+- Migration governance is audit evidence. External API availability is governed
+  by `gridex_runtime_schema_capabilities_v3`, which checks actual required
+  relations, columns, functions, RLS policies and ACLs.
+- The migration was applied to `gridex-ops-dev` and registered in both the
+  Supabase ledger and canonical manifest. The idempotent post-apply script passed
+  twice.
+- Live evidence after apply: manifest 38; ledger 34; missing mappings 0; unmapped
+  ledger versions 0; duplicate mappings 0; invalid checksums 0; unverified
+  effects 0; all readiness sources true.
+- Do not run `supabase db push` blindly against the already-reconciled live
+  project. Confirm the linked ledger first. For another environment, apply the
+  forward migration normally and then run
+  `scripts/post-apply-runtime-readiness-v4.sql`.
+
 # Database and migrations
 
 - Verified local migration files: 299 in 204 version groups.
