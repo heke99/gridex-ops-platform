@@ -22,7 +22,7 @@ class DurableTestStore implements PublicContractFeedSnapshotStore {
 }
 
 const tenantReference = 'tenant_0123456789abcdef0123456789abcdef0123'
-const schemaVersion = '2026-08-02.1'
+const schemaVersion = '2026-08-03.1'
 
 function payload(contracts: Record<string, unknown>[], authorizedEmpty = false) {
   return {

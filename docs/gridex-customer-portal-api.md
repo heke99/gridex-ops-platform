@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-08-02.1`.
+Dokumentationsversion: `2026-08-03.1`.
 
 ## Tenantkonfiguration
 
@@ -121,18 +121,25 @@ tomma sektioner och `bundle_status.status = "partial"` (aldrig en HTML-sida).
 
 ### Sub-endpoints
 
-Samtliga kräver `customer_portal.read` (GET) och identifierare via headers/query:
+Varje endpoint kontrollerar sitt granulära scope. Identifierare skickas enligt
+respektive OpenAPI-operation via headers, path eller query:
 
-- `GET /api/v1/customer/me`
-- `GET /api/v1/customer/contracts`
-- `GET /api/v1/customer/sites`
-- `GET /api/v1/customer/invoices`
-- `GET /api/v1/customer/invoices/{id}` – returnerar endast en publicerbar rad från `customer_invoices`
-- `GET /api/v1/customer/metering-values?from=&to=&facility_id=&limit=`
-- `GET /api/v1/customer/documents`
-- `GET /api/v1/customer/legal-acceptances`
-- `GET /api/v1/customer/powers-of-attorney`
-- `GET /api/v1/customer/events`, `GET /api/v1/customer/notifications`
+- `GET /api/v1/customer/me` – `customer_profile.read`
+- `GET /api/v1/customer/contracts` – `customer_contracts.read`
+- `GET /api/v1/customer/sites` – `customer_sites.read`
+- `GET /api/v1/customer/invoices` – `customer_invoices.read`
+- `GET /api/v1/customer/invoices/{id}` – `customer_invoices.read`; returnerar endast en publicerbar rad från `customer_invoices`
+- `GET /api/v1/customer/metering-values?from=&to=&facility_id=&limit=` – `customer_metering.read`
+- `GET /api/v1/customer/documents` – `customer_documents.read`
+- `GET /api/v1/customer/legal-acceptances` – `customer_legal.read`
+- `GET /api/v1/customer/powers-of-attorney` – `customer_power_of_attorney.read`
+- `GET /api/v1/customer/events` – `customer_events.read`
+- `GET /api/v1/customer/notifications` – `customer_notifications.read`
+
+`GET /api/v1/customer/portal-bundle` behåller `customer_portal.read` som ett
+legacy-umbrella-scope. Det expanderas server-side till de granulara läsrättigheter
+som bundlen behöver, men ska inte användas som generell ersättning på nya
+sub-endpointintegrationer.
 
 Skriv-endpoints kräver granulära scopes: `customer_sync.write`, `customer_contact.write`, `customer_facility_data.write`, `customer_power_of_attorney.write` och `customer_notifications.write`. Legacy-scope `customer_portal.write` expanderas server-side under övergångsperioden. `profile-update` kräver det scope som motsvarar operationen och båda scopes när både profil och anläggningsdata skickas i samma request.
 
@@ -235,22 +242,49 @@ OPS använder separat verifierad och explicit låst settlement vid faktisk avrä
 
 ## Scopes
 
-Alla customer-portal-rutter upprätthåller idag `customer_portal.read` (läs) och
-`customer_portal.write` (skriv). De finare scopes nedan är reserverade/planerade
-och kontrolleras ännu inte per rutt — ge `customer_portal.read`/`.write` (eller
-`*`) till nyckeln tills vidare.
+Runtime kontrollerar granulära scopes per operation. Följ OpenAPI-operationens
+`security`/scopekrav när en API-klient provisioneras:
 
-- `customer_portal.read` – hämta Mina sidor-data
-- `customer_portal.write` – skicka kompletteringar/sync, profil, move-out, notisläsning
-- `customer_documents.read/write` – (planerat) dokument
-- `customer_notifications.read/write` – (planerat) notiser
-- `customer_facility_data.write` – (planerat) anläggningskomplettering
-- `customer_power_of_attorney.write` – (planerat) fullmakt
-- `events.read` och `website_events.write` – händelser
+- `customer_profile.read` – kundprofil
+- `customer_contracts.read` – kundens tecknade avtal
+- `customer_sites.read` – anläggningar och mätpunkter
+- `customer_invoices.read` – fakturor
+- `customer_metering.read` – mätvärden
+- `customer_documents.read` – dokument
+- `customer_legal.read` – juridiska accepter
+- `customer_events.read` – kundens portalhändelser
+- `customer_power_of_attorney.read` – fullmakter
+- `customer_notifications.read` / `customer_notifications.write` – notiser
+- `customer_sync.write` – kundsync och portalinitialisering
+- `customer_contact.write` – kontaktuppgifter i `profile-update`
+- `customer_facility_data.write` – anläggningsuppgifter och `move-out`
+- `customer_power_of_attorney.write` – fullmaktssync
+- `events.read` / `website_events.write` – globala respektive website-events
+
+`customer_portal.read` och `customer_portal.write` är legacy-alias som expanderas
+server-side under övergångsperioden. Nya klienter ska få de granulara scopes de
+faktiskt behöver. `profile-update` kräver `customer_contact.write`,
+`customer_facility_data.write` eller båda beroende på vilka payloadsektioner som
+skickas.
 
 ## Felkoder
 
-Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som HTML.
+Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
+
+```json
+{
+  "error": {
+    "code": "api_scope_missing",
+    "message": "Required API scope is missing.",
+    "retryable": false,
+    "field": null,
+    "blockers": []
+  },
+  "request_id": "req_...",
+  "correlation_id": null,
+  "contract_schema_version": "2026-08-03.1"
+}
+```
 
 - `401 missing_api_token` / `401 invalid_api_token` / `401 api_token_expired`
 - `403 api_scope_missing` / `403 api_ip_not_allowed` / `403 api_origin_not_allowed`
@@ -266,7 +300,7 @@ Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som H
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Canonical fastpris, quote och teckningsflöde (`2026-08-02.1`)
+## Canonical fastpris, quote och teckningsflöde (`2026-08-03.1`)
 
 Den aktiva integrationsordningen är:
 
@@ -297,7 +331,7 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-02.1`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-03.1`; versionsvärdet ingår i ETag-underlaget.
 
 ## Publication revision, cache och kanaler
 
@@ -314,9 +348,9 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
 
 
-API-svaret innehåller `contract_schema_version=2026-08-02.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-08-03.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
 
-## Avgränsning mot Website Integration API 2026-08-02.1
+## Avgränsning mot Website Integration API 2026-08-03.1
 
 Den här guiden beskriver kundportal och Mina sidor. Website checkout, publicerade erbjudanden, elområdesresolution, aktuellt marknadspris och quote dokumenteras canonicalt i `website-integration-v1.json`.
 
@@ -335,6 +369,6 @@ Tenantens vanliga API-nyckel kan ha både kundportal- och website-scopes, men ko
 
 Efter en accepterad website-kundansökan returnerar API:t `next_step: automatic_processing`. Samma databastransaktion skapar ett persistent `customer_application_continuation`-jobb. OPS-workern, inte website-requesten, avgör därefter nästa steg för juridiska utskick, komplettering, nätägaruppgifter, Z01/Z03, leverantörsbyte, aktivering och webhooks.
 
-## Extern kontraktsändring 2026-08-02.1
+## Extern kontraktsändring 2026-08-03.1
 
 Website Integration API modellerar nu `energy_direction` explicit som `consumption` eller `production`. Produktionsavtal returnerar en immutable `production_pricing` och kan använda `settlement_mode=self_billing`; de får inte behandlas som konsumtionsleverans eller vanlig kundfaktura. Canonical juridikroute är `GET /api/v1/website/legal-bundle`; tenant hämtas från API-nyckelns integrationskontext och inget externt `company_id` används. Felmodellen innehåller top-level `ok=false`, `code`, `message`, `request_id`, `correlation_id` och strukturerade `blockers`.

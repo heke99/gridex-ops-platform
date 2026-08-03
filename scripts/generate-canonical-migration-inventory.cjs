@@ -74,7 +74,7 @@ const result = {
 }
 
 fs.mkdirSync(outputDirectory, { recursive: true })
-const jsonPath = path.join(outputDirectory, 'migration-inventory-2026-08-02.json')
+const jsonPath = path.join(outputDirectory, 'migration-inventory-2026-08-03.json')
 fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`)
 
 const templatePath = path.join(

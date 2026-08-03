@@ -17,7 +17,7 @@ function check(condition, message) {
   }
 }
 
-const version = '2026-08-02.1'
+const version = '2026-08-03.1'
 const website = json('docs/openapi/website-integration-v1.json')
 const portal = json('docs/openapi/customer-portal-v1.json')
 const appStatus = read('lib/website/customerApplicationStatus.ts')

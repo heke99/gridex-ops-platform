@@ -10,7 +10,7 @@ import {
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-08-02T20:16:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-08-03T13:30:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -32,11 +32,16 @@ export function buildOpenApiReleaseManifest() {
       process.env.VERCEL_GIT_COMMIT_SHA ??
       process.env.GIT_COMMIT_SHA ??
       'unknown',
-    compatibility_classification: 'additive-with-cache-correctness-fix',
+    compatibility_classification: 'additive-contract-correction-and-database-hardening',
     deprecated_features: [
       {
         feature: 'diagnostics=true on public-contracts',
         replacement: '/api/v1/website/public-contracts/diagnostics',
+        sunset_at: '2026-10-31T23:59:59.000Z',
+      },
+      {
+        feature: 'x-api-key request header',
+        replacement: 'Authorization: Bearer <GRIDEX_API_KEY>',
         sunset_at: '2026-10-31T23:59:59.000Z',
       },
     ],

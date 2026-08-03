@@ -65,7 +65,7 @@
     "gridex:batch-m-ops-master-regression": "node scripts/gridex-batch-m-ops-master-regression.cjs",
     "gridex:customer-operation-events-regression": "node scripts/gridex-customer-operation-events-regression.cjs",
     "ops:hardening-regression": "node scripts/ops-hardening-regression.cjs",
-    "db:migrations:check": "npm run db:migrations:integrity && npm run db:public-contract-legal-migration:check",
+    "db:migrations:check": "npm run db:migrations:integrity && npm run db:public-contract-legal-migration:check && npm run db:contract-hardening",
     "gridex:live-schema-code-sync-regression": "node scripts/gridex-live-schema-code-sync-regression.cjs",
     "security:audit-production": "npm audit --omit=dev --audit-level=high",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
@@ -227,7 +227,7 @@
     "api:docs-version": "node scripts/check-api-documentation-version.cjs",
     "api:docs-examples": "node scripts/check-api-documentation-examples.cjs",
     "api:shared-components": "node scripts/check-shared-openapi-components.cjs",
-    "api:docs": "npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components && npm run api:public-contract-runtime-openapi",
+    "api:docs": "npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components && npm run api:public-contract-runtime-openapi && npm run api:contract-corrections",
     "gridex:market-price-api-regression": "node scripts/gridex-market-price-api-regression.cjs",
     "verify:market-price-api:static": "npm run db:migrations:check && npm run gridex:market-price-api-regression && npm run gridex:canonical-market-flow-regression && npm run gridex:single-api-key-integration-regression && npm run api:docs",
     "verify:market-price-api": "npm run verify:market-price-api:static && npm run typecheck && npm run test:canonical-market-flow && npm run build",
@@ -263,7 +263,10 @@
     "db:migrations:production-readiness": "node scripts/check-production-migration-readiness.cjs",
     "db:runtime-readiness:check": "node scripts/check-platform-runtime-readiness-v3.cjs",
     "api:error-registry": "node scripts/check-public-api-error-registry.cjs",
-    "verify:production-release:2026-08-02": "bash scripts/verify-production-release-2026-08-02.sh"
+    "verify:production-release:2026-08-02": "bash scripts/verify-production-release-2026-08-02.sh",
+    "api:contract-corrections": "node scripts/check-external-api-contract-corrections.cjs",
+    "db:contract-hardening": "node scripts/check-database-contract-hardening.cjs",
+    "verify:production-release:2026-08-03": "bash scripts/verify-production-release-2026-08-03.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

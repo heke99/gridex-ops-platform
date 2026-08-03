@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-02.1.json'
+import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-03.1.json'
 
 const mocks = vi.hoisted(() => ({
   logIntegrationApiRequest: vi.fn(async () => undefined),
@@ -188,7 +188,7 @@ describe('real public contracts route against published OpenAPI', () => {
     const runtimeResponse = await getPublicContracts(request)
     expect(runtimeResponse.status).toBe(200)
     expect(runtimeResponse.headers.get('x-gridex-contract-version')).toBe(
-      '2026-08-02.1',
+      '2026-08-03.1',
     )
     expect(runtimeResponse.headers.get('etag')).toMatch(/^"contracts-[A-Za-z0-9_-]{43}"$/)
     expect(runtimeResponse.headers.get('cache-control')).toBe(
@@ -208,7 +208,7 @@ describe('real public contracts route against published OpenAPI', () => {
     )
     expect(openApiResponse.status).toBe(200)
     expect(openApiResponse.headers.get('x-gridex-contract-version')).toBe(
-      '2026-08-02.1',
+      '2026-08-03.1',
     )
     const openApi = (await openApiResponse.json()) as JsonObject
     const schema = (

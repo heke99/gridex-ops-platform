@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-02.1.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-03.1.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
@@ -245,7 +245,7 @@ const permissions = [
   [
     "Läsa kunddokument",
     "customer_documents.read",
-    "Aktiv granulär behörighet. Legacy-scope customer_portal.read accepteras tillfälligt.",
+    "Aktiv granulär behörighet. Legacy-scope customer_portal.read accepteras tillfälligt. customer_portal.read och customer_portal.write är legacy-alias som expanderas server-side; nya klienter ska begära de granulära scopes som deras routes använder.",
   ],
   [
     "Synka kunddokument",
@@ -255,7 +255,7 @@ const permissions = [
   [
     "Läsa kundnotiser",
     "customer_notifications.read",
-    "Aktiv granulär behörighet. Legacy-scope customer_portal.read accepteras tillfälligt.",
+    "Aktiv granulär behörighet. Legacy-scope customer_portal.read accepteras tillfälligt. customer_portal.read och customer_portal.write är legacy-alias som expanderas server-side; nya klienter ska begära de granulära scopes som deras routes använder.",
   ],
   [
     "Uppdatera kundnotiser",
@@ -385,7 +385,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }`;
 
 const marketReferenceExample = `{
@@ -433,7 +433,7 @@ const marketPriceErrorExample = `{
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }`;
 
 const marketPriceErrors = [
@@ -644,7 +644,7 @@ const applicationResponse = `{
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }
 
 # accepted betyder att canonical kund/site/avtal/juridiksnapshot och quote
@@ -675,7 +675,7 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }
 
 Vanliga 422-koder:
@@ -853,7 +853,7 @@ const webhookPayload = `{
     "application_number": "APP-20260801-0001",
     "status": "application_received"
   },
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }`;
 
 const webhookHeaders = `X-Gridex-Event-Id: event_123
@@ -1436,6 +1436,7 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section id="webhooks" title="9. Webhooks">
+          <p className="mt-3"><strong>Webhook-URL:en hostas av tenantens system.</strong> Den är inte en inkommande Gridex API-route och använder därför inte tenantens Bearer-nyckel. Gridex autentiserar leveransen med de signerade <code>X-Gridex-*</code>-headerna.</p>
           <p>
             Webhookar skickas som POST till konfigurerad HTTPS-URL. Leveransen
             signeras med HMAC SHA-256 över <code>timestamp.rawBody</code>.
@@ -1737,6 +1738,7 @@ export default function CustomerPortalApiDocsPage() {
           <h3 className="text-lg font-bold text-slate-900">Request headers</h3>
           <ul className="list-disc space-y-1 pl-5">
             <li><code>Authorization: Bearer &lt;GRIDEX_API_KEY&gt;</code> – obligatorisk på tenantbundna routes och endast server-side.</li>
+            <li><code>x-api-key</code> accepteras endast som en utfasad kompatibilitetsheader till och med 31 oktober 2026. Nya integrationer ska inte använda den.</li>
             <li><code>Accept: application/json</code> – rekommenderad på GET.</li>
             <li><code>Content-Type: application/json</code> – obligatorisk på JSON-body.</li>
             <li><code>Idempotency-Key</code> – obligatorisk på customer applications, portal writes och customer events.</li>

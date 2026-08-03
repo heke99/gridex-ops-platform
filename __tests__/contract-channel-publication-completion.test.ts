@@ -180,8 +180,8 @@ describe("canonical contract channel completion", () => {
     );
   });
 
-  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-08-02.1", () => {
-    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-08-02.1");
+  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-08-03.1", () => {
+    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-08-03.1");
     const specification = JSON.parse(
       readFileSync(
         resolve("docs/openapi/website-integration-v1.json"),

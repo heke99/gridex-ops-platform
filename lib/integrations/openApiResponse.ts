@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
@@ -18,6 +18,7 @@ export function openApiDocumentResponse(
 ): Response {
   const body = serializeOpenApiDocument(document)
   const etag = `"${createHash('sha256').update(body).digest('base64url')}"`
+  const requestId = request.headers.get('x-request-id')?.trim() || randomUUID()
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control':
@@ -26,7 +27,9 @@ export function openApiDocumentResponse(
     'Content-Disposition': `inline; filename="${filename}"`,
     'Content-Type': 'application/json; charset=utf-8',
     ETag: etag,
+    Vary: 'If-None-Match',
     'X-Gridex-Contract-Version': WEBSITE_INTEGRATION_CONTRACT_VERSION,
+    'X-Request-ID': requestId,
   }
 
   const ifNoneMatch = request.headers.get('if-none-match')

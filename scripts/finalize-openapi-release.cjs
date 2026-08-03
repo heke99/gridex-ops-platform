@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-02.1'
+const version = '2026-08-03.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-02.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-03.1.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -17,6 +17,58 @@ const uuid = { type: 'string', format: 'uuid' }
 const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
+
+const priorVersion = '2026-08-02.1'
+const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
+const customerPortalReadScopes = [
+  'customer_profile.read',
+  'customer_sites.read',
+  'customer_contracts.read',
+  'customer_invoices.read',
+  'customer_metering.read',
+  'customer_legal.read',
+  'customer_events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_power_of_attorney.read',
+]
+const customerPortalWriteScopes = [
+  'customer_sync.write',
+  'customer_contact.write',
+  'customer_facility_data.write',
+  'customer_power_of_attorney.write',
+  'customer_notifications.write',
+  'customer_documents.write',
+]
+
+function configureAuthenticationContract(document) {
+  document.components = document.components ?? {}
+  document.components.securitySchemes = document.components.securitySchemes ?? {}
+  document.components.securitySchemes.legacyApiKeyAuth = {
+    type: 'apiKey',
+    in: 'header',
+    name: 'x-api-key',
+    deprecated: true,
+    description: `Deprecated compatibility header. New integrations MUST use Authorization: Bearer <GRIDEX_API_KEY>. Sunset: ${legacyApiKeySunset}.`,
+  }
+  document['x-scope-aliases'] = {
+    'customer_portal.read': {
+      status: 'deprecated_legacy_alias',
+      expands_to: customerPortalReadScopes,
+      replacement: 'Grant the granular read scopes required by the routes used.',
+    },
+    'customer_portal.write': {
+      status: 'deprecated_legacy_alias',
+      expands_to: customerPortalWriteScopes,
+      replacement: 'Grant the granular write scopes required by the routes used.',
+    },
+  }
+}
+
+for (const document of [website, portal]) configureAuthenticationContract(document)
+if (Array.isArray(website.security)) {
+  website.security = [{ bearerAuth: [] }, { legacyApiKeyAuth: [] }]
+}
 
 function envelope(data, extraRequired = []) {
   return {
@@ -485,6 +537,7 @@ legalBlock.properties.module_versions = {
   minItems: 1,
   items: { $ref: '#/components/schemas/LegalBundleDocument' },
 }
+legalBlock.properties.power_of_attorney_version_id = nullableUuid
 legalBlock.additionalProperties = false
 legalBlock.required = Array.from(new Set([
   ...(legalBlock.required ?? []),
@@ -493,6 +546,7 @@ legalBlock.required = Array.from(new Set([
   'immutable',
   'required_modules',
   'module_versions',
+  'power_of_attorney_version_id',
 ]))
 
 const pricingProperties = Object.fromEntries(
@@ -762,6 +816,8 @@ const publicContractMeta = {
     'publication_revision',
     'publication_updated_at',
     'contract_schema_version',
+    'feed_state',
+    'empty_feed_authorization',
   ],
   properties: {
     tenant_reference: website.components.schemas.TenantMeta.properties.tenant_reference,
@@ -771,6 +827,38 @@ const publicContractMeta = {
     publication_revision: { type: 'integer', minimum: 0 },
     publication_updated_at: { type: ['string', 'null'], format: 'date-time' },
     contract_schema_version: contractVersion,
+    feed_state: { type: 'string', enum: ['contracts_present', 'canonical_empty'] },
+    empty_feed_authorization: {
+      type: ['object', 'null'],
+      additionalProperties: false,
+      required: [
+        'authorized',
+        'reason',
+        'publication_revision',
+        'canonical_source',
+        'affected_offer_references',
+        'blockers',
+      ],
+      properties: {
+        authorized: { type: 'boolean', const: true },
+        reason: {
+          type: 'string',
+          enum: [
+            'no_canonical_publications',
+            'canonical_unpublished_or_archived',
+            'publication_validity_ended',
+            'canonical_no_visible_contracts',
+          ],
+        },
+        publication_revision: { type: 'integer', minimum: 0 },
+        canonical_source: {
+          type: 'string',
+          const: 'canonical_public_contract_delivery_readiness_v',
+        },
+        affected_offer_references: { type: 'array', items: string },
+        blockers: { type: 'array', items: string },
+      },
+    },
     deprecated_aliases: { type: 'array', items: string },
     customer_type: { type: ['string', 'null'], enum: ['private', 'business', null] },
     deprecated_customer_type_alias: { type: 'boolean' },
@@ -1711,7 +1799,7 @@ portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
   portal.paths['/api/v1/customer/move-out'].post.responses['200']
 
 
-// Runtime/OpenAPI hardening for release 2026-08-02.1. These overrides are
+// Runtime/OpenAPI hardening for release 2026-08-03.1. These overrides are
 // deliberately placed after legacy schema construction so the public contract
 // has one source of truth even while deprecated components remain resolvable.
 for (const document of [website, portal]) {
@@ -1740,6 +1828,11 @@ function ensureStandardHeaders(document) {
     RateLimitRemaining: { schema: { type: 'integer', minimum: 0 } },
     RateLimitReset: { schema: dateTime },
     RetryAfter: { schema: { type: 'integer', minimum: 1 } },
+    ETag: { description: 'Strong entity tag for conditional retrieval.', schema: string },
+    CacheControl: { description: 'Caching policy for this document.', schema: string },
+    ContentType: { description: 'Response media type.', schema: string },
+    ContentDisposition: { description: 'Suggested inline filename.', schema: string },
+    Vary: { description: 'Request headers that affect cache validation.', schema: string },
   })
 
   function addHeaders(response, status) {
@@ -1804,9 +1897,10 @@ function ensureSecurityFromScopeExtensions(document) {
       const scopes = operation['x-required-scopes']
       if (!Array.isArray(scopes) || scopes.length === 0) continue
       const scopeMode = String(operation['x-scope-mode'] ?? 'all')
-      operation.security = scopeMode.startsWith('any')
+      const bearerRequirements = scopeMode.startsWith('any')
         ? scopes.map((scope) => ({ bearerAuth: [scope] }))
         : [{ bearerAuth: scopes }]
+      operation.security = [...bearerRequirements, { legacyApiKeyAuth: [] }]
     }
   }
 }
@@ -2156,11 +2250,101 @@ ensureParameterRef(
   '#/components/parameters/IdempotencyKey',
 )
 
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function ensureVersionedOpenApiRoutes() {
+  const websiteCurrent = website.paths['/api/v1/openapi/website-integration-v1.json']
+  const portalCurrent = website.paths['/api/v1/openapi/customer-portal-v1.json']
+  if (websiteCurrent) {
+    website.paths[`/api/v1/openapi/${priorVersion}/website-integration-v1.json`] = clone(websiteCurrent)
+    website.paths[`/api/v1/openapi/${version}/website-integration-v1.json`] = clone(websiteCurrent)
+  }
+  if (portalCurrent) {
+    website.paths[`/api/v1/openapi/${priorVersion}/customer-portal-v1.json`] = clone(portalCurrent)
+    website.paths[`/api/v1/openapi/${version}/customer-portal-v1.json`] = clone(portalCurrent)
+  }
+  const portalDocumentCurrent = portal.paths['/api/v1/openapi/customer-portal-v1.json']
+  if (portalDocumentCurrent) {
+    portal.paths[`/api/v1/openapi/${priorVersion}/customer-portal-v1.json`] = clone(portalDocumentCurrent)
+    portal.paths[`/api/v1/openapi/${version}/customer-portal-v1.json`] = clone(portalDocumentCurrent)
+  }
+}
+
+function movePublicationWebhookToTopLevel() {
+  const pathItem = website.paths['/webhooks/contracts.publication.changed']
+  if (!pathItem) return
+  delete website.paths['/webhooks/contracts.publication.changed']
+  const webhook = clone(pathItem)
+  const operation = webhook.post
+  if (operation) {
+    operation.summary = 'Receive contracts.publication.changed from Gridex'
+    operation.description = 'This callback URL is hosted by the tenant, not by app.gridex.se. Gridex signs the exact raw request body with HMAC-SHA256 over `${timestamp}.${rawBody}`. Verify timestamp freshness and X-Gridex-Signature, then deduplicate X-Gridex-Event-Id and X-Gridex-Delivery-Id before returning any 2xx response. Non-2xx responses enter the documented retry and dead-letter pipeline.'
+    operation.security = []
+    delete operation['x-required-scopes']
+    delete operation['x-scope-mode']
+    operation.parameters = [
+      { name: 'X-Gridex-Event-Id', in: 'header', required: true, schema: { type: 'string', pattern: '^event_[a-f0-9]{32}$' } },
+      { name: 'X-Gridex-Delivery-Id', in: 'header', required: true, schema: { type: 'string', pattern: '^delivery_[a-f0-9]{32}$' } },
+      { name: 'X-Gridex-Timestamp', in: 'header', required: true, schema: { type: 'string' } },
+      { name: 'X-Gridex-Signature', in: 'header', required: true, schema: { type: 'string', pattern: '^sha256=[a-f0-9]{64}$' } },
+    ]
+    operation.responses = {
+      '2XX': { description: 'Event accepted and durably deduplicated by the tenant receiver.' },
+    }
+  }
+  website.webhooks = website.webhooks ?? {}
+  website.webhooks.contractsPublicationChanged = webhook
+}
+
+function staticDocumentHeaders() {
+  return {
+    'X-Gridex-Contract-Version': { $ref: '#/components/headers/GridexContractVersion' },
+    'X-Request-ID': { $ref: '#/components/headers/RequestId' },
+    ETag: { $ref: '#/components/headers/ETag' },
+    Vary: { $ref: '#/components/headers/Vary' },
+    'Cache-Control': { $ref: '#/components/headers/CacheControl' },
+    'Content-Type': { $ref: '#/components/headers/ContentType' },
+    'Content-Disposition': { $ref: '#/components/headers/ContentDisposition' },
+  }
+}
+
+function normalizePublicOpenApiDocumentOperations(document) {
+  const paths = [
+    '/api/v1/openapi/release-manifest.json',
+    '/api/v1/openapi/website-integration-v1.json',
+    '/api/v1/openapi/customer-portal-v1.json',
+    `/api/v1/openapi/${priorVersion}/website-integration-v1.json`,
+    `/api/v1/openapi/${priorVersion}/customer-portal-v1.json`,
+    `/api/v1/openapi/${version}/website-integration-v1.json`,
+    `/api/v1/openapi/${version}/customer-portal-v1.json`,
+  ]
+  for (const path of paths) {
+    const operation = document.paths?.[path]?.get
+    if (!operation) continue
+    operation.security = []
+    operation['x-required-scopes'] = []
+    const response200 = operation.responses?.['200']
+    if (response200 && !response200.$ref) response200.headers = staticDocumentHeaders()
+    operation.responses = operation.responses ?? {}
+    operation.responses['304'] = {
+      description: 'Not Modified. The supplied If-None-Match value matches the current ETag.',
+      headers: staticDocumentHeaders(),
+    }
+  }
+}
+
+ensureVersionedOpenApiRoutes()
+movePublicationWebhookToTopLevel()
+
 for (const document of [website, portal]) {
   dedupeOperationParameters(document)
   ensureSecurityFromScopeExtensions(document)
   ensureCanonicalErrorResponses(document)
   ensureStandardHeaders(document)
+  normalizePublicOpenApiDocumentOperations(document)
   removeMisappliedLegalDescription(document)
 }
 

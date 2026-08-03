@@ -360,15 +360,19 @@
     "20260802231000_tenant_website_provisioning_guards.sql": "8ff7ffba346f7d1f8d085279ba1045095d9d56a2e7f24c9715a5222b4f4c5b8c",
     "20260802232000_migration_truth_readiness.sql": "dc977bb14a66bc4f12939437428198d3daf7bd174ada16ff42133b44405ef1e2",
     "20260802233000_security_definer_execution_lockdown.sql": "890d50a81d5eee6e6201968250e3ba025adef0608ca8a926d7798e86ee153600",
-    "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
-    "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
-    "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20260803093000_platform_schema_runtime_columns_v3.sql": "0795a6c34195efe355e4e0a15c1946eba1c5259a7afb51c8d670191a2dd77730",
     "20260803093100_gridex_runtime_capabilities_v3.sql": "b93af4c0f46274513dad17a7c3145c6c1563b0f21570eb655420738607e000f8",
     "20260803093200_gridex_migration_governance_v3.sql": "104554751e3418b051647150170f80884fb537747a4c399737f83852bcd16089",
-    "20260803093300_duplicate_primary_client_audit_contract_v3.sql": "bd4ef630b6404162789efd00ccc612ef6c78f40c2d10a12a2af0ef45faf9b123"
+    "20260803093300_duplicate_primary_client_audit_contract_v3.sql": "bd4ef630b6404162789efd00ccc612ef6c78f40c2d10a12a2af0ef45faf9b123",
+    "20260803100040_public_contract_snapshot_shared_schema.sql": "b5544c98352ff3c4af13b243b8ea0379dede473c3c499f36928e1d6bf92dc09f",
+    "20260803100130_public_contract_snapshot_shared_rpc.sql": "2842c1869a14452a30fd3f5741828fb5564377d6ceb7314674b91736609494e2",
+    "20260803131558_external_api_contract_database_hardening_v1.sql": "fdb921d0f8a60e2f1a47441253bda4d36ea47b0b054e8d291379ea30c053db79",
+    "20260803131922_external_api_contract_database_hardening_v2.sql": "fcafd26765eb70f4e28aeb3ffcbbc4b2f1261eb4bdc1b0a2d64d0d3036e00756",
+    "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
+    "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
+    "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
   },
-  "generatedAt": "2026-08-03T10:20:00+02:00",
+  "generatedAt": "2026-08-03T13:20:42.964007Z",
   "schemaVersion": 1
 }

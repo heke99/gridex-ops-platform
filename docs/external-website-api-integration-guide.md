@@ -1,10 +1,15 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-08-02.1**
+> **Canonical API-version: 2026-08-03.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
 ## 0. Tenantkonfiguration: en enda API-nyckel
+
+Den officiella autentiseringsformen är `Authorization: Bearer <GRIDEX_API_KEY>`.
+Runtime accepterar under en begränsad övergångsperiod även headern
+`x-api-key: <GRIDEX_API_KEY>`, men den är legacy, ska inte införas i nya
+integrationer och har planerat slutdatum **2026-10-31**.
 
 Tenantens produktion ska endast konfigurera:
 
@@ -174,7 +179,7 @@ Content-Type: application/json
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }
 ```
 
@@ -449,7 +454,7 @@ Exempel på accepterat svar:
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-02.1"
+  "contract_schema_version": "2026-08-03.1"
 }
 ```
 
@@ -501,6 +506,12 @@ Webhookar levereras via den signerade `webhook_deliveries`-kedjan. Mottagaren
 ska verifiera `X-Gridex-Timestamp` och `X-Gridex-Signature`, deduplicera på
 `X-Gridex-Delivery-Id` och lagra `X-Gridex-Event-Id`. Ett köat mail eller internt
 domain event är inte samma sak som ett levererat publikt webhookevent.
+
+Webhook-URL:n hostas av tenantens mottagarsystem. Den är alltså inte en vanlig
+Gridex REST-endpoint och ska inte skyddas med Gridex Bearer-token. Gridex skickar
+den HMAC-signerade requesten; mottagaren svarar med valfri lyckad `2xx` efter
+verifiering och idempotent lagring. OpenAPI-kontraktet modellerar därför detta
+under top-level `webhooks`, inte under Gridex-hostade `paths`.
 
 ## 11. Felkoder
 
@@ -559,17 +570,17 @@ Publika OpenAPI-kontrakt:
 ```text
 https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-02.1/website-integration-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-02.1/customer-portal-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-03.1/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-03.1/customer-portal-v1.json
 ```
 
 De två `current`-pekarnas svar använder `no-store`; de två versionsbundna artefakterna är immutabla och får `public, max-age=31536000, immutable`.
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-08-02.1` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-08-03.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-08-02.1
+## Canonical marknadsprisflöde i API 2026-08-03.1
 
 Det finns tre separata operationer:
 
@@ -634,7 +645,7 @@ Canonical scope: website_legal.read. `website_contracts.read` accepteras endast 
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-08-02.1
+## Migrering till kontraktsversion 2026-08-03.1
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

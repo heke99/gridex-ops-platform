@@ -1,6 +1,6 @@
 # Gridex tenantintegration med en API-nyckel
 
-Kontraktsversion: `2026-08-02.1`.
+Kontraktsversion: `2026-08-03.1`.
 
 ## Produktion
 
@@ -17,6 +17,10 @@ https://app.gridex.se/api/v1
 ```
 
 Nyckeln används endast server-side som `Authorization: Bearer <GRIDEX_API_KEY>`. OPS härleder tenant, bolag och scopes från nyckeln. Tenantens webb skickar aldrig `company_id` eller `tenant_id`.
+
+Headern `x-api-key` stöds endast som en utfasad kompatibilitetsväg för äldre
+integrationer och har planerat slutdatum **2026-10-31**. Nya integrationer ska
+enbart använda Bearer-formatet ovan.
 
 ## Fasta kontraktsregler
 

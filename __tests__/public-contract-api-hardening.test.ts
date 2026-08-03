@@ -44,7 +44,7 @@ describe('public contract API query contract', () => {
       tenantReference: 'tenant_public',
       channel: 'website' as const,
       customerType: 'private' as const,
-      contractSchemaVersion: '2026-08-02.1',
+      contractSchemaVersion: '2026-08-03.1',
       contracts: [{ offer_reference: 'offer_1', monthly_fee: 49 }],
       feedState: 'contracts_present' as const,
       emptyFeedAuthorization: null,
