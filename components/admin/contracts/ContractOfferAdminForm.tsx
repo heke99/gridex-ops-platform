@@ -1,8 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import type { ContractOfferRow, ContractType } from "@/lib/customer-contracts/types";
-import { saveContractOfferAction } from "@/app/admin/contracts/actions";
+import {
+  saveContractOfferAction,
+  type SaveContractOfferState,
+} from "@/app/admin/contracts/actions";
 import WebsitePricingField from "@/components/admin/contracts/WebsitePricingField";
 import PortfolioPricingEditor, {
   type PortfolioOption,
@@ -11,6 +22,22 @@ import PricingCalculationBaseField from "@/components/admin/contracts/PricingCal
 import CommercialPricingEditor from "@/components/admin/contracts/CommercialPricingEditor";
 
 const ALL_PRICE_AREAS = ["SE1", "SE2", "SE3", "SE4"] as const;
+
+const INITIAL_SAVE_STATE: SaveContractOfferState = {
+  status: "idle",
+  message: null,
+};
+
+function RequiredMark({ conditional = false }: { conditional?: boolean }) {
+  return (
+    <span className="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-rose-700">
+      {conditional ? "Krävs i detta läge" : "Obligatoriskt"}
+    </span>
+  );
+}
+
+const controlClass =
+  "w-full min-w-0 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100";
 
 function snapshotValue(
   offer: ContractOfferRow | null,
@@ -61,6 +88,11 @@ export default function ContractOfferAdminForm({
   offer: ContractOfferRow | null;
   portfolios: PortfolioOption[];
 }) {
+  const [saveState, submitAction, isSaving] = useActionState(
+    saveContractOfferAction,
+    INITIAL_SAVE_STATE,
+  );
+  const errorBannerRef = useRef<HTMLDivElement>(null);
   const initialType = offer?.contract_type ?? "variable_hourly";
   const [contractType, setContractType] = useState<ContractType>(initialType);
   const defaultWeights = useMemo(() => {
@@ -99,11 +131,65 @@ export default function ContractOfferAdminForm({
         )
       : typedWeights(initialType).fixed,
   );
+  const [automaticRenewal, setAutomaticRenewal] = useState(
+    offer?.automatic_renewal === true,
+  );
+  const [productionEnabled, setProductionEnabled] = useState(
+    asBoolean(snapshotValue(offer, "production_enabled")),
+  );
+
+  useEffect(() => {
+    if (saveState.status !== "error") return;
+    errorBannerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    errorBannerRef.current?.focus({ preventScroll: true });
+  }, [saveState]);
+
+  function submitWithoutReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+
+    const submittedData = new FormData(form);
+    startTransition(() => submitAction(submittedData));
+  }
 
   return (
-    <form action={saveContractOfferAction} className="mt-6 space-y-5">
+    <form
+      onSubmit={submitWithoutReset}
+      className="mt-6 min-w-0 space-y-5"
+      aria-busy={isSaving}
+    >
       <input type="hidden" name="company_id" value={companyId} />
       <input type="hidden" name="id" value={offer?.id ?? ""} />
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+        <p className="font-bold text-slate-950">
+          Fält med <RequiredMark /> måste fyllas i innan utkastet kan sparas.
+        </p>
+        <p className="mt-1 text-xs text-slate-600">
+          Vid validerings- eller serverfel ligger alla inmatade värden kvar i
+          formuläret. Korrigera det markerade felet och försök igen.
+        </p>
+      </div>
+
+      {saveState.status === "error" && saveState.message ? (
+        <div
+          ref={errorBannerRef}
+          role="alert"
+          aria-live="assertive"
+          tabIndex={-1}
+          className="scroll-mt-24 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-semibold leading-6 text-rose-950"
+        >
+          <p className="font-black">Avtalet kunde inte sparas</p>
+          <p className="mt-1 break-words">{saveState.message}</p>
+          <p className="mt-2 text-xs font-medium text-rose-800">
+            Dina uppgifter är kvar. Du behöver inte börja om.
+          </p>
+        </div>
+      ) : null}
 
       {offer ? (
         <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">
@@ -116,18 +202,37 @@ export default function ContractOfferAdminForm({
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Avtalsnamn
-          <input name="name" required defaultValue={offer?.name ?? ""} className="rounded-2xl border border-slate-300 px-4 py-3" />
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+          <span>
+            Avtalsnamn <RequiredMark />
+          </span>
+          <input
+            name="name"
+            required
+            defaultValue={offer?.name ?? ""}
+            className={controlClass}
+          />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
           Intern slug
-          <input name="slug" defaultValue={offer?.slug ?? ""} placeholder="Skapas automatiskt om tomt" className="rounded-2xl border border-slate-300 px-4 py-3" />
+          <input
+            name="slug"
+            defaultValue={offer?.slug ?? ""}
+            placeholder="Skapas automatiskt om tomt"
+            className={controlClass}
+          />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Livscykelstatus
-          <select name="lifecycle_status" defaultValue={editableLifecycle} className="rounded-2xl border border-slate-300 px-4 py-3">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+          <span>
+            Livscykelstatus <RequiredMark />
+          </span>
+          <select
+            name="lifecycle_status"
+            required
+            defaultValue={editableLifecycle}
+            className={controlClass}
+          >
             <option value="draft">Utkast</option>
             <option value="ready">Redo för publiceringskontroll</option>
           </select>
@@ -135,10 +240,13 @@ export default function ContractOfferAdminForm({
             Publicering, pausning och arkivering görs med separata, behörighetskontrollerade kommandon.
           </span>
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Avtalstyp
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+          <span>
+            Avtalstyp <RequiredMark />
+          </span>
           <select
             name="contract_type"
+            required
             value={contractType}
             onChange={(event) => {
               const nextType = event.target.value as ContractType;
@@ -152,7 +260,7 @@ export default function ContractOfferAdminForm({
                   : typedWeights(nextType).fixed,
               );
             }}
-            className="rounded-2xl border border-slate-300 px-4 py-3"
+            className={controlClass}
           >
             <option value="fixed">Fast</option>
             <option value="variable_monthly">Rörlig månad</option>
@@ -162,29 +270,40 @@ export default function ContractOfferAdminForm({
             <option value="mixed">Mix</option>
           </select>
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Kundtyp
-          <select name="customer_type" defaultValue={offer?.customer_type ?? "both"} className="rounded-2xl border border-slate-300 px-4 py-3">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+          <span>
+            Kundtyp <RequiredMark />
+          </span>
+          <select
+            name="customer_type"
+            required
+            defaultValue={offer?.customer_type ?? "both"}
+            className={controlClass}
+          >
             <option value="private">Privatkund</option>
             <option value="business">Företagskund</option>
             <option value="both">Privat och företag</option>
           </select>
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
           Prisversion
-          <input readOnly value={offer?.price_version ?? "Genereras atomärt vid sparning"} className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-600" />
+          <input
+            readOnly
+            value={offer?.price_version ?? "Genereras atomärt vid sparning"}
+            className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-600"
+          />
         </label>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <input name="campaign_name" defaultValue={offer?.campaign_name ?? ""} placeholder="Kampanjnamn" className="rounded-2xl border border-slate-300 px-4 py-3" />
-        <input name="campaign_code" defaultValue={offer?.campaign_code ?? ""} placeholder="Kampanjkod" className="rounded-2xl border border-slate-300 px-4 py-3" />
-        <input name="campaign_version" defaultValue={offer?.campaign_version ?? "v1"} placeholder="Kampanjversion" className="rounded-2xl border border-slate-300 px-4 py-3" />
-        <input name="terms_version" defaultValue={offer?.terms_version ?? "v1"} placeholder="Villkorsversion" className="rounded-2xl border border-slate-300 px-4 py-3" />
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+        <input name="campaign_name" defaultValue={offer?.campaign_name ?? ""} placeholder="Kampanjnamn" className={controlClass} />
+        <input name="campaign_code" defaultValue={offer?.campaign_code ?? ""} placeholder="Kampanjkod" className={controlClass} />
+        <input name="campaign_version" defaultValue={offer?.campaign_version ?? "v1"} placeholder="Kampanjversion" className={controlClass} />
+        <input name="terms_version" defaultValue={offer?.terms_version ?? "v1"} placeholder="Villkorsversion" className={controlClass} />
       </div>
-      <textarea name="description" defaultValue={offer?.description ?? ""} rows={3} placeholder="Beskrivning" className="w-full rounded-2xl border border-slate-300 px-4 py-3" />
+      <textarea name="description" defaultValue={offer?.description ?? ""} rows={3} placeholder="Beskrivning" className={controlClass} />
 
-      <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+      <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
         <h3 className="font-black text-slate-950">
           Typstyrd energiprissättning
         </h3>
@@ -193,9 +312,11 @@ export default function ContractOfferAdminForm({
           avmonterar föregående prismodell så att dolda värden inte kan följa
           med.
         </p>
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4">
+        <div className="mt-4 min-w-0 rounded-2xl border border-emerald-200 bg-white p-4">
           <input type="hidden" name="price_areas" value={priceAreas.join(",")} />
-          <h4 className="text-sm font-black text-slate-950">Elområden där avtalet gäller</h4>
+          <h4 className="text-sm font-black text-slate-950">
+            Elområden där avtalet gäller <RequiredMark />
+          </h4>
           <p className="mt-1 text-xs leading-5 text-slate-600">
             Välj minst ett område. Samma områden följer genom publicering, kundavtal,
             prisversion och fakturering. Fastpris anges separat per valt område.
@@ -237,7 +358,7 @@ export default function ContractOfferAdminForm({
           ) : null}
         </div>
 
-        <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2">
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2">
           {contractType === "fixed" ? (
             <div className="rounded-2xl border border-indigo-200 bg-white p-4 text-sm text-indigo-950 md:col-span-2">
               Fastpriset anges per elområde och bindningsalternativ i den
@@ -287,9 +408,10 @@ export default function ContractOfferAdminForm({
           />
         </div>
         {contractType !== "fixed" && (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm font-semibold text-slate-700">Spotintervall
-            <select name="spot_interval_resolution" defaultValue={asString(snapshotValue(offer, "spot_interval_resolution"), "monthly")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3">
+          <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2">
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+            <span>Spotintervall <RequiredMark /></span>
+            <select name="spot_interval_resolution" required defaultValue={asString(snapshotValue(offer, "spot_interval_resolution"), "monthly")} className={controlClass}>
               {contractType === "variable_monthly" && <option value="monthly">Månadspris</option>}
               {contractType === "variable_hourly" && <option value="hourly">Timpris</option>}
               {contractType === "variable_quarterly" && <option value="quarterly">Kvartspris</option>}
@@ -336,21 +458,22 @@ export default function ContractOfferAdminForm({
         snapshot={offer?.commercial_snapshot ?? null}
       />
 
-      <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+      <section className="min-w-0 overflow-hidden rounded-3xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
         <h3 className="font-black text-amber-950">Rabatt och övriga avgifter</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
           <WebsitePricingField name="discount_value" placeholder="Rabattvärde" visibilityName="show_discount_on_website" defaultValue={offer?.discount_value} defaultVisible={asBoolean(snapshotValue(offer, "show_discount_on_website"), true)} />
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Rabattenhet
-            <select name="discount_unit" defaultValue={offer?.discount_unit ?? "sek_month"} className="rounded-2xl border border-amber-200 bg-white px-4 py-3">
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Rabattenhet
+            <select name="discount_unit" defaultValue={offer?.discount_unit ?? "sek_month"} className={controlClass}>
               <option value="sek_month">kr/månad</option><option value="ore_per_kwh">öre/kWh</option><option value="percent">procent</option><option value="sek_once">kr engångsvis</option>
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Rabattperiod, månader
-            <input name="discount_months" type="number" min="1" defaultValue={offer?.discount_months ?? ""} className="rounded-2xl border border-amber-200 bg-white px-4 py-3" />
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+            <span>Rabattperiod, månader <RequiredMark conditional /></span>
+            <input name="discount_months" type="number" min="1" defaultValue={offer?.discount_months ?? ""} className={controlClass} />
           </label>
           <PricingCalculationBaseField name="discount_calculation_base" defaultValue={offer?.discount_calculation_base ?? "total_energy_cost"} />
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Rabatten börjar
-            <select name="discount_starts_on_mode" defaultValue={offer?.discount_starts_on_mode ?? "contract_start"} className="rounded-2xl border border-amber-200 bg-white px-4 py-3">
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Rabatten börjar
+            <select name="discount_starts_on_mode" defaultValue={offer?.discount_starts_on_mode ?? "contract_start"} className={controlClass}>
               <option value="contract_start">Vid avtalsstart</option><option value="calendar_month">Nästa hela kalendermånad</option>
             </select>
           </label>
@@ -362,58 +485,102 @@ export default function ContractOfferAdminForm({
         </p>
       </section>
 
-      <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+      <section className="min-w-0 overflow-hidden rounded-3xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
         <h3 className="font-black text-emerald-950">Livscykel, juridik och kapacitet</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Max antal samtidiga kunder
-            <input name="max_customers" type="number" min="1" defaultValue={offer?.max_customers ?? ""} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Max antal samtidiga kunder
+            <input name="max_customers" type="number" min="1" defaultValue={offer?.max_customers ?? ""} className={controlClass} />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Moms, procent
-            <input name="vat_rate" type="number" min="0" max="100" step="0.01" defaultValue={offer?.vat_rate ?? 25} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+            <span>Moms, procent <RequiredMark /></span>
+            <input name="vat_rate" required type="number" min="0" max="100" step="0.01" defaultValue={offer?.vat_rate ?? 25} className={controlClass} />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Fullmaktsregel
-            <select name="power_of_attorney_mode" defaultValue={offer?.power_of_attorney_mode ?? "required_when_information_missing"} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3">
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+            <span>Fullmaktsregel <RequiredMark /></span>
+            <select name="power_of_attorney_mode" required defaultValue={offer?.power_of_attorney_mode ?? "required_when_information_missing"} className={controlClass}>
               <option value="always_required">Alltid obligatorisk</option><option value="required_when_information_missing">När anläggningsuppgifter saknas</option><option value="not_required">Krävs inte</option>
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Bindningstid, månader
-            <input name="default_binding_months" type="number" min="0" defaultValue={offer?.default_binding_months ?? ""} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Bindningstid, månader
+            <input name="default_binding_months" type="number" min="0" defaultValue={offer?.default_binding_months ?? ""} className={controlClass} />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Uppsägningstid, månader
-            <input name="default_notice_months" type="number" min="0" defaultValue={offer?.default_notice_months ?? ""} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Uppsägningstid, månader
+            <input name="default_notice_months" type="number" min="0" defaultValue={offer?.default_notice_months ?? ""} className={controlClass} />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Förlängningsperiod, månader
-            <input name="automatic_renewal_term_months" type="number" min="1" defaultValue={offer?.automatic_renewal_term_months ?? ""} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
+            <span>
+              Förlängningsperiod, månader
+              {automaticRenewal ? <RequiredMark /> : <RequiredMark conditional />}
+            </span>
+            <input
+              name="automatic_renewal_term_months"
+              required={automaticRenewal}
+              type="number"
+              min="1"
+              defaultValue={offer?.automatic_renewal_term_months ?? ""}
+              className={controlClass}
+            />
           </label>
         </div>
         <label className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-950">
-          <input type="checkbox" name="automatic_renewal" defaultChecked={offer?.automatic_renewal === true} /> Automatisk förlängning
+          <input
+            type="checkbox"
+            name="automatic_renewal"
+            checked={automaticRenewal}
+            onChange={(event) => setAutomaticRenewal(event.target.checked)}
+          />{" "}
+          Automatisk förlängning
         </label>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Giltig från
-            <input type="date" name="valid_from" defaultValue={offer?.valid_from ?? ""} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2">
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Giltig från
+            <input type="date" name="valid_from" defaultValue={offer?.valid_from ?? ""} className={controlClass} />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Giltig till
-            <input type="date" name="valid_to" defaultValue={offer?.valid_to ?? ""} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Giltig till
+            <input type="date" name="valid_to" defaultValue={offer?.valid_to ?? ""} className={controlClass} />
           </label>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+      <section className="min-w-0 overflow-hidden rounded-3xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
         <label className="flex items-center gap-3 text-sm font-semibold text-emerald-950">
-          <input type="checkbox" name="production_enabled" defaultChecked={asBoolean(snapshotValue(offer, "production_enabled"))} /> Avtalet kan avräkna producerad överskottsel
+          <input
+            type="checkbox"
+            name="production_enabled"
+            checked={productionEnabled}
+            onChange={(event) => setProductionEnabled(event.target.checked)}
+          />{" "}
+          Avtalet kan avräkna producerad överskottsel
         </label>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <WebsitePricingField name="production_compensation_ore_per_kwh" placeholder="Produktionsersättning öre/kWh" visibilityName="show_production_compensation_on_website" defaultValue={asString(snapshotValue(offer, "production_compensation_ore_per_kwh"))} />
-          <input name="production_vat_rate" defaultValue={asString(snapshotValue(offer, "production_vat_rate"), "0")} placeholder="Moms på ersättning %" className="rounded-2xl border border-emerald-200 bg-white px-4 py-3" />
-          <select name="production_settlement_mode" defaultValue={asString(snapshotValue(offer, "production_settlement_mode"), "credit_invoice")} className="rounded-2xl border border-emerald-200 bg-white px-4 py-3">
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          <WebsitePricingField
+            name="production_compensation_ore_per_kwh"
+            placeholder="Produktionsersättning öre/kWh"
+            visibilityName="show_production_compensation_on_website"
+            defaultValue={asString(
+              snapshotValue(offer, "production_compensation_ore_per_kwh"),
+            )}
+            required={productionEnabled}
+            helpText="Obligatorisk och måste vara över 0 när produktionsavräkning är aktiverad."
+          />
+          <input name="production_vat_rate" defaultValue={asString(snapshotValue(offer, "production_vat_rate"), "0")} placeholder="Moms på ersättning %" className={controlClass} />
+          <select name="production_settlement_mode" defaultValue={asString(snapshotValue(offer, "production_settlement_mode"), "credit_invoice")} className={controlClass}>
             <option value="credit_invoice">Kreditunderlag</option><option value="self_billing">Självfakturering</option>
           </select>
         </div>
       </section>
 
-      <button className="w-full rounded-2xl bg-emerald-700 px-5 py-4 text-sm font-black text-white hover:bg-emerald-800">
-        {offer ? (locked ? "Skapa ny immutable version" : "Spara avtalsutkast") : "Skapa canonical avtalsutkast"}
+      <button
+        type="submit"
+        disabled={isSaving || priceAreas.length === 0}
+        className="w-full rounded-2xl bg-emerald-700 px-5 py-4 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+      >
+        {isSaving
+          ? "Sparar utan att rensa formuläret…"
+          : offer
+            ? locked
+              ? "Skapa ny immutable version"
+              : "Spara avtalsutkast"
+            : "Skapa canonical avtalsutkast"}
       </button>
     </form>
   );

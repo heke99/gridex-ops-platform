@@ -27,12 +27,17 @@ export default function WebsitePricingField({
 }) {
   return (
     <div
-      className={`min-w-0 border border-slate-200 bg-white ${
+      className={`min-w-0 overflow-hidden border border-slate-200 bg-white ${
         compact ? "rounded-xl p-2.5" : "rounded-2xl p-3"
       }`}
     >
-      <label className="block text-xs font-semibold text-slate-700">
-        {label ?? placeholder ?? name}
+      <label className="block min-w-0 text-xs font-semibold text-slate-700">
+        <span className="break-words">{label ?? placeholder ?? name}</span>
+        {required ? (
+          <span className="ml-1 inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-rose-700">
+            Obligatoriskt
+          </span>
+        ) : null}
       </label>
       <input
         name={name}
@@ -41,7 +46,7 @@ export default function WebsitePricingField({
         inputMode={inputMode}
         required={required}
         aria-describedby={helpText ? `${name}-help` : undefined}
-        className={`w-full min-w-0 border border-slate-300 ${
+        className={`w-full min-w-0 border border-slate-300 bg-white outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 ${
           compact
             ? "mt-1.5 rounded-lg px-3 py-2 text-sm"
             : "mt-2 rounded-xl px-4 py-3"
@@ -56,11 +61,11 @@ export default function WebsitePricingField({
         </p>
       ) : null}
       <label
-        className={`flex items-center justify-between text-xs font-semibold leading-4 text-slate-700 ${
+        className={`flex min-w-0 flex-wrap items-center justify-between text-xs font-semibold leading-4 text-slate-700 ${
           compact ? "mt-2 gap-2" : "mt-3 gap-3"
         }`}
       >
-        <span>{visibilityLabel}</span>
+        <span className="min-w-0 break-words">{visibilityLabel}</span>
         {visibilityLocked ? (
           <input type="hidden" name={visibilityName} value="on" />
         ) : null}

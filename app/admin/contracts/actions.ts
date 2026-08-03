@@ -116,20 +116,28 @@ function revalidateContractSurfaces(companyId: string): void {
   }
 }
 
-export async function saveContractOfferAction(formData: FormData) {
+export type SaveContractOfferState = {
+  status: "idle" | "error";
+  message: string | null;
+};
+
+export async function saveContractOfferAction(
+  _previousState: SaveContractOfferState,
+  formData: FormData,
+): Promise<SaveContractOfferState> {
   const companyId = getString(formData, "company_id") || null;
   let result: { success: string; offerId: string };
   try {
     result = await saveContractOfferActionImpl(formData);
   } catch (error) {
-    redirectBack({
-      companyId,
-      error: await errorMessage(error, {
+    return {
+      status: "error",
+      message: await errorMessage(error, {
         action: "save_contract_offer",
         companyId,
         metadata: { offerId: getString(formData, "id") || null },
       }),
-    });
+    };
   }
   redirectBack({ companyId, offerId: result.offerId, success: result.success });
 }

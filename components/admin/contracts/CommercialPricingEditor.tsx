@@ -17,6 +17,17 @@ import {
 const AREAS = ["SE1", "SE2", "SE3", "SE4"] as const;
 type PriceArea = (typeof AREAS)[number];
 
+function RequiredBadge({ conditional = false }: { conditional?: boolean }) {
+  return (
+    <span className="ml-1 inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-rose-700">
+      {conditional ? "Krävs i detta läge" : "Obligatoriskt"}
+    </span>
+  );
+}
+
+const editorControlClass =
+  "w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100";
+
 function stableReference(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 }
@@ -232,7 +243,7 @@ export default function CommercialPricingEditor({
   }
 
   return (
-    <section className="rounded-3xl border border-indigo-200 bg-indigo-50 p-5">
+    <section className="min-w-0 overflow-hidden rounded-3xl border border-indigo-200 bg-indigo-50 p-4 sm:p-5">
       <input
         type="hidden"
         name="price_options_json"
@@ -256,41 +267,47 @@ export default function CommercialPricingEditor({
         Referenserna är stabila och följer med genom offert, signering,
         snapshot och fakturarad. De ändras inte när du sorterar eller redigerar.
       </p>
+      <p className="mt-2 text-xs font-semibold text-indigo-950">
+        Fält med <RequiredBadge /> måste vara kompletta för varje prisalternativ.
+      </p>
 
       <div className="mt-4 space-y-4">
         {options.map((option, optionIndex) => (
           <fieldset
             key={option.price_option_reference}
-            className="rounded-2xl border border-indigo-200 bg-white p-4"
+            className="min-w-0 overflow-hidden rounded-2xl border border-indigo-200 bg-white p-3 sm:p-4"
           >
-            <div className="grid gap-3 md:grid-cols-4">
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Kundnamn
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Kundnamn <RequiredBadge /></span>
                 <input
+                  required
                   value={option.customer_name}
                   onChange={(event) =>
                     patchOption(optionIndex, {
                       customer_name: event.target.value,
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Stabil kod
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Stabil kod <RequiredBadge /></span>
                 <input
+                  required
                   value={option.option_code}
                   onChange={(event) =>
                     patchOption(optionIndex, {
                       option_code: event.target.value.toLowerCase(),
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm"
+                  className={`${editorControlClass} font-mono`}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Bindning, månader
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Bindning, månader <RequiredBadge /></span>
                 <input
+                  required
                   type="number"
                   min="0"
                   value={option.binding_months}
@@ -299,12 +316,13 @@ export default function CommercialPricingEditor({
                       binding_months: Number(event.target.value),
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Uppsägning, månader
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Uppsägning, månader <RequiredBadge /></span>
                 <input
+                  required
                   type="number"
                   min="0"
                   value={option.notice_months}
@@ -313,11 +331,11 @@ export default function CommercialPricingEditor({
                       notice_months: Number(event.target.value),
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
             </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-700">
+            <div className="mt-3 flex min-w-0 flex-wrap gap-4 text-xs font-semibold text-slate-700">
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
@@ -344,7 +362,7 @@ export default function CommercialPricingEditor({
                         .value as ContractPriceOption["customer_type"],
                     })
                   }
-                  className="rounded-lg border border-slate-300 px-2 py-1"
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1"
                 >
                   <option value="both">Privat och företag</option>
                   <option value="private">Privat</option>
@@ -382,9 +400,10 @@ export default function CommercialPricingEditor({
                 Automatisk förlängning
               </label>
               {option.auto_renew_enabled && (
-                <label className="flex items-center gap-2">
-                  Förlängning
+                <label className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span>Förlängning <RequiredBadge conditional /></span>
                   <input
+                    required
                     type="number"
                     min="1"
                     value={option.renewal_term_months ?? 12}
@@ -393,12 +412,12 @@ export default function CommercialPricingEditor({
                         renewal_term_months: Number(event.target.value),
                       })
                     }
-                    className="w-20 rounded-lg border border-slate-300 px-2 py-1"
+                    className="w-24 min-w-0 rounded-lg border border-slate-300 px-2 py-1"
                   />
                   månader
                 </label>
               )}
-              <code className="text-[11px] text-slate-500">
+              <code className="max-w-full break-all text-[11px] text-slate-500">
                 {option.price_option_reference}
               </code>
             </div>
@@ -408,10 +427,11 @@ export default function CommercialPricingEditor({
                 {option.area_prices.map((row, rowIndex) => (
                   <label
                     key={row.price_row_reference}
-                    className="grid gap-1 rounded-xl bg-indigo-50 p-3 text-xs font-bold text-indigo-950"
+                  className="grid min-w-0 gap-1 overflow-hidden rounded-xl bg-indigo-50 p-3 text-xs font-bold text-indigo-950"
                   >
-                    {row.price_area}, öre/kWh
+                    <span>{row.price_area}, öre/kWh <RequiredBadge /></span>
                     <input
+                      required
                       type="number"
                       min="0.0001"
                       step="0.0001"
@@ -430,9 +450,9 @@ export default function CommercialPricingEditor({
                           area_prices: areaPrices,
                         });
                       }}
-                      className="min-w-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
+                      className="w-full min-w-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                     />
-                    <code className="truncate text-[9px] font-normal text-indigo-600">
+                    <code className="max-w-full break-all text-[9px] font-normal text-indigo-600">
                       {row.price_row_reference}
                     </code>
                   </label>
@@ -503,11 +523,14 @@ export default function CommercialPricingEditor({
       <h3 className="mt-8 font-black text-indigo-950">
         Faktureringssätt
       </h3>
+      <p className="mt-1 text-xs font-semibold text-indigo-950">
+        Välj minst ett sätt <RequiredBadge />
+      </p>
       <div className="mt-3 flex flex-wrap gap-3">
         {INVOICE_DELIVERY_METHODS.map((method) => (
           <label
             key={method}
-            className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+            className="flex min-w-0 items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
           >
             <input
               type="checkbox"
@@ -532,36 +555,39 @@ export default function CommercialPricingEditor({
         {components.map((component, index) => (
           <fieldset
             key={component.component_reference}
-            className="rounded-2xl border border-indigo-200 bg-white p-4"
+            className="min-w-0 overflow-hidden rounded-2xl border border-indigo-200 bg-white p-3 sm:p-4"
           >
-            <div className="grid gap-3 md:grid-cols-4">
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Kundnamn
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Kundnamn <RequiredBadge /></span>
                 <input
+                  required
                   value={component.customer_name}
                   onChange={(event) =>
                     patchComponent(index, {
                       customer_name: event.target.value,
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Komponentkod
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Komponentkod <RequiredBadge /></span>
                 <input
+                  required
                   value={component.component_code}
                   onChange={(event) =>
                     patchComponent(index, {
                       component_code: event.target.value.toLowerCase(),
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm"
+                  className={`${editorControlClass} font-mono`}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Belopp
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Belopp <RequiredBadge /></span>
                 <input
+                  required
                   type="number"
                   step="0.0001"
                   value={component.amount}
@@ -570,12 +596,13 @@ export default function CommercialPricingEditor({
                       amount: Number(event.target.value),
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Enhet
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Enhet <RequiredBadge /></span>
                 <select
+                  required
                   value={component.unit}
                   onChange={(event) => {
                     const unit = event.target
@@ -586,7 +613,7 @@ export default function CommercialPricingEditor({
                       lifecycle: lifecycleForUnit(unit),
                     });
                   }}
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 >
                   {COMPONENT_UNITS.map((unit) => (
                     <option key={unit} value={unit}>
@@ -595,9 +622,10 @@ export default function CommercialPricingEditor({
                   ))}
                 </select>
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Valpolicy
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Valpolicy <RequiredBadge /></span>
                 <select
+                  required
                   value={component.selection_policy}
                   onChange={(event) => {
                     const policy = event.target
@@ -610,7 +638,7 @@ export default function CommercialPricingEditor({
                       admin_must_select: policy === "admin_optional",
                     });
                   }}
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 >
                   {COMPONENT_SELECTION_POLICIES.map((policy) => (
                     <option key={policy} value={policy}>
@@ -619,9 +647,10 @@ export default function CommercialPricingEditor({
                   ))}
                 </select>
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Livscykel
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Livscykel <RequiredBadge /></span>
                 <select
+                  required
                   value={component.lifecycle}
                   onChange={(event) =>
                     patchComponent(index, {
@@ -629,7 +658,7 @@ export default function CommercialPricingEditor({
                         .value as CommercialPriceComponent["lifecycle"],
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 >
                   {COMPONENT_LIFECYCLES.map((lifecycle) => (
                     <option key={lifecycle} value={lifecycle}>
@@ -638,35 +667,38 @@ export default function CommercialPricingEditor({
                   ))}
                 </select>
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Fakturarad
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Fakturarad <RequiredBadge /></span>
                 <input
+                  required
                   value={component.invoice_line_name}
                   onChange={(event) =>
                     patchComponent(index, {
                       invoice_line_name: event.target.value,
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
-                Bokföringsklass
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
+                <span>Bokföringsklass <RequiredBadge /></span>
                 <input
+                  required
                   value={component.accounting_classification}
                   onChange={(event) =>
                     patchComponent(index, {
                       accounting_classification: event.target.value,
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 />
               </label>
             </div>
             {component.unit === "percent" && (
-              <label className="mt-3 grid gap-1 text-xs font-bold text-slate-700 md:max-w-sm">
-                Beräkningsbas
+              <label className="mt-3 grid min-w-0 gap-1 text-xs font-bold text-slate-700 md:max-w-sm">
+                <span>Beräkningsbas <RequiredBadge conditional /></span>
                 <select
+                  required
                   value={component.calculation_base ?? ""}
                   onChange={(event) =>
                     patchComponent(index, {
@@ -676,7 +708,7 @@ export default function CommercialPricingEditor({
                         null,
                     })
                   }
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  className={editorControlClass}
                 >
                   <option value="">Välj bas</option>
                   <option value="energy_cost_ex_vat">Energikostnad ex moms</option>
@@ -686,8 +718,8 @@ export default function CommercialPricingEditor({
                 </select>
               </label>
             )}
-            <div className="mt-3 grid gap-3 rounded-xl bg-slate-50 p-3 md:grid-cols-3">
-              <div>
+            <div className="mt-3 grid min-w-0 gap-3 rounded-xl bg-slate-50 p-3 lg:grid-cols-3">
+              <div className="min-w-0">
                 <div className="text-xs font-bold text-slate-700">
                   Villkor: faktureringssätt
                 </div>
@@ -724,7 +756,7 @@ export default function CommercialPricingEditor({
                   </label>
                 ))}
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-bold text-slate-700">
                   Villkor: kundtyp
                 </div>
@@ -761,7 +793,7 @@ export default function CommercialPricingEditor({
                   </label>
                 ))}
               </div>
-              <label className="grid gap-1 text-xs font-bold text-slate-700">
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
                 Villkor: prisalternativ
                 <select
                   multiple
@@ -777,7 +809,7 @@ export default function CommercialPricingEditor({
                       },
                     })
                   }
-                  className="min-h-20 rounded-xl border border-slate-300 px-2 py-1 text-xs"
+                  className="min-h-20 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-2 py-1 text-xs"
                 >
                   {options.map((option) => (
                     <option
@@ -790,7 +822,7 @@ export default function CommercialPricingEditor({
                 </select>
               </label>
             </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-700">
+            <div className="mt-3 flex min-w-0 flex-wrap gap-4 text-xs font-semibold text-slate-700">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -815,11 +847,11 @@ export default function CommercialPricingEditor({
                 />
                 Endast information
               </label>
-              <code className="text-[11px] text-slate-500">
+              <code className="max-w-full break-all text-[11px] text-slate-500">
                 {component.component_reference}
               </code>
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => moveComponent(index, -1)}

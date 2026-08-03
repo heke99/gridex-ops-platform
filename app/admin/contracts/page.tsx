@@ -1005,7 +1005,7 @@ export default async function AdminContractsPage({
         userEmail={admin.email}
       />
 
-      <div className="grid gap-6 p-8 xl:grid-cols-[460px_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 overflow-x-hidden p-4 sm:p-8 xl:grid-cols-2">
         <nav
           aria-label="Avtalstyper"
           className="grid gap-3 xl:col-span-2 md:grid-cols-4"
@@ -1217,7 +1217,7 @@ export default async function AdminContractsPage({
             </p>
           ) : null}
         </section>
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+        <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
           <h2 className="text-lg font-semibold text-slate-950 ">
             Skapa utkast eller ny immutable avtalsversion
           </h2>
@@ -1228,6 +1228,7 @@ export default async function AdminContractsPage({
 
           {scope.companyId ? (
             <ContractOfferAdminForm
+              key={`${scope.companyId}:${editOffer?.id ?? "new"}`}
               companyId={scope.companyId}
               offer={editOffer}
               portfolios={portfolioOptions}
@@ -1239,7 +1240,7 @@ export default async function AdminContractsPage({
           )}
         </section>
 
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
+        <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
           <div className="border-b border-slate-200 px-6 py-5 ">
             <h2 className="text-lg font-semibold text-slate-950 ">
               Befintliga avtalsmallar
