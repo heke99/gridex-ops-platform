@@ -2,10 +2,7 @@ import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
-import {
-  isPlatformAdminContext,
-  requireAdminPageAccess,
-} from "@/lib/admin/guards";
+import { requireAdminPageAccess } from "@/lib/admin/guards";
 import {
   getContractOfferById,
   getPreviousContractOfferVersion,
@@ -17,7 +14,6 @@ import {
   pauseContractOfferAction,
   publishContractChannelAction,
   publishContractVersionAction,
-  setContractChannelPermissionAction,
   unpublishContractChannelAction,
   updateTenantContractChannelAction,
 } from "./actions";
@@ -60,39 +56,6 @@ type ContractDiagnosticBlocker = {
   count?: number;
   reason?: string;
 };
-
-type PublicContractChannelDiagnostic = {
-  channel_state: string;
-  blockers: string[];
-  visible: boolean;
-};
-
-function publicContractChannelStateLabel(value: string | undefined): string {
-  switch (value) {
-    case "missing":
-      return "Saknas";
-    case "draft":
-      return "Utkast";
-    case "preparing":
-      return "Förbereds";
-    case "published":
-      return "Publicerad";
-    case "inactive":
-      return "Inaktiv";
-    case "expired":
-      return "Utgången";
-    case "blocked":
-      return "Blockerad";
-    case "error":
-      return "Fel";
-    default:
-      return value || "Okänd";
-  }
-}
-
-function publicationDiagnosticKey(offerId: string, channel: "website" | "api"): string {
-  return `${offerId}:${channel}`;
-}
 
 function diagnosticBlockers(
   value: Record<string, unknown> | null | undefined,
@@ -737,10 +700,7 @@ export default async function AdminContractsPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const admin = await requireAdminPageAccess({ anyOf: ["contracts.read"] });
-  const isPlatformAdmin = isPlatformAdminContext(admin);
-  const canManageChannelPermissions =
-    isPlatformAdmin ||
-    admin.permissions.includes("contracts.permissions.manage");
+  const isPlatformAdmin = admin.isPlatformAdmin;
 
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
@@ -801,7 +761,7 @@ export default async function AdminContractsPage({
       }
     : membershipScope;
 
-  if (!isPlatformAdmin) {
+  if (!admin.isPlatformAdmin) {
     if (!scope.companyId) {
       return (
         <div className="p-8">
@@ -820,10 +780,6 @@ export default async function AdminContractsPage({
   let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
   let hasNextPage = false;
   let listError: string | undefined;
-  const publicationDiagnosticByOfferChannel = new Map<
-    string,
-    PublicContractChannelDiagnostic
-  >();
   let diagnostic:
     | {
         offerId: string;
@@ -864,49 +820,6 @@ export default async function AdminContractsPage({
         companyId: scope.companyId,
         userId: user?.id ?? null,
       });
-    }
-  }
-  if (scope.companyId && offers.length > 0) {
-    const diagnosticResult = await supabaseService
-      .from("canonical_public_contract_diagnostics_v")
-      .select("source_contract_offer_id,channel,channel_state,blockers,visible")
-      .eq("company_id", scope.companyId)
-      .in(
-        "source_contract_offer_id",
-        offers.map((offer) => offer.id),
-      )
-      .in("channel", ["website", "api"]);
-    if (diagnosticResult.error) {
-      const diagnosticMessage =
-        "Canonical kanaldiagnostik kunde inte hämtas. Kanalstatusen kan därför vara ofullständig.";
-      listError = listError
-        ? `${listError} · ${diagnosticMessage}`
-        : diagnosticMessage;
-    } else {
-      for (const raw of diagnosticResult.data ?? []) {
-        const offerId =
-          typeof raw.source_contract_offer_id === "string"
-            ? raw.source_contract_offer_id
-            : null;
-        const channel = raw.channel === "website" || raw.channel === "api"
-          ? raw.channel
-          : null;
-        if (!offerId || !channel || typeof raw.channel_state !== "string") {
-          continue;
-        }
-        publicationDiagnosticByOfferChannel.set(
-          publicationDiagnosticKey(offerId, channel),
-          {
-            channel_state: raw.channel_state,
-            blockers: Array.isArray(raw.blockers)
-              ? raw.blockers.filter(
-                  (blocker): blocker is string => typeof blocker === "string",
-                )
-              : [],
-            visible: raw.visible === true,
-          },
-        );
-      }
     }
   }
   if (scope.companyId && diagnoseOfferId) {
@@ -1364,12 +1277,6 @@ export default async function AdminContractsPage({
                           Produktserie: {offer.version_series_id ?? "—"} ·
                           version {offer.version_number ?? 1}
                         </div>
-                        <Link
-                          href={`/admin/contracts?company_id=${scope.companyId ?? ""}&diagnose_offer=${offer.id}&view=${contractView}&page=${currentPage}`}
-                          className="mt-2 inline-flex text-xs font-bold text-indigo-700 underline"
-                        >
-                          Hämta readiness för detta avtal
-                        </Link>
                         <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                           <summary className="cursor-pointer font-black text-slate-900">
                             Kundförhandsgranskning och versionsskillnad
@@ -1476,233 +1383,57 @@ export default async function AdminContractsPage({
                               <input type="hidden" name="id" value={offer.id} />
                               <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
                                 {offer.lifecycle_status === "paused"
-                                  ? "Återpublicera internt"
-                                  : "Readiness-kontrollera och publicera"}
+                                  ? "Kontrollera readiness och återaktivera internt"
+                                  : "Kontrollera readiness och gör internt"}
                               </button>
                             </form>
                           ) : null}
                           {contractLifecycleAllows(offer.lifecycle_status, "activate_channel") ? (
-                            <>
-                              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600">
-                                <div className="font-black text-slate-800">Intern försäljning</div>
-                                <div>Behörighet: {offer.internal_sales_allowed ? "Ja" : "Nej"}</div>
-                                <div>Kanal: {offer.internal_channel_status}</div>
-                                <div>Teckningsbar nu: {offer.internally_sellable_now ? "Ja" : "Nej"}</div>
-                                <div className="mt-2 font-black text-slate-800">Hemsida</div>
-                                <div>Behörighet: {offer.website_publication_allowed ? "Ja" : "Nej"}</div>
-                                <div>
-                                  Status:{" "}
-                                  {publicContractChannelStateLabel(
-                                    publicationDiagnosticByOfferChannel.get(
-                                      publicationDiagnosticKey(offer.id, "website"),
-                                    )?.channel_state,
-                                  )}
+                            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                              <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-700 shadow-sm">
+                                <div className="font-black text-slate-900">Publiceringsläge</div>
+                                <div className="mt-1">
+                                  Internt: {offer.internally_sellable_now ? "Aktivt" : "Pausat"}
                                 </div>
                                 <div>
-                                  Tillgänglig nu:{" "}
-                                  {(
-                                    publicationDiagnosticByOfferChannel.get(
-                                      publicationDiagnosticKey(offer.id, "website"),
-                                    )?.visible ?? offer.website_available_now
-                                  )
-                                    ? "Ja"
-                                    : "Nej"}
+                                  Hemsida: {offer.website_available_now ? "Publicerat" : "Inte publicerat"}
                                 </div>
-                                {(publicationDiagnosticByOfferChannel.get(
-                                  publicationDiagnosticKey(offer.id, "website"),
-                                )?.blockers.length ?? 0) > 0 ? (
-                                  <div className="mt-1 break-words text-amber-800">
-                                    Blockerare:{" "}
-                                    {publicationDiagnosticByOfferChannel
-                                      .get(publicationDiagnosticKey(offer.id, "website"))
-                                      ?.blockers.join(", ")}
-                                  </div>
-                                ) : null}
-                                <div className="mt-2 font-black text-slate-800">API</div>
-                                <div>Behörighet: {offer.api_publication_allowed ? "Ja" : "Nej"}</div>
-                                <div>
-                                  Status:{" "}
-                                  {publicContractChannelStateLabel(
-                                    publicationDiagnosticByOfferChannel.get(
-                                      publicationDiagnosticKey(offer.id, "api"),
-                                    )?.channel_state,
-                                  )}
-                                </div>
-                                <div>
-                                  Externt tillgänglig:{" "}
-                                  {(
-                                    publicationDiagnosticByOfferChannel.get(
-                                      publicationDiagnosticKey(offer.id, "api"),
-                                    )?.visible ?? offer.api_available_now
-                                  )
-                                    ? "Ja"
-                                    : "Nej"}
-                                </div>
-                                {(publicationDiagnosticByOfferChannel.get(
-                                  publicationDiagnosticKey(offer.id, "api"),
-                                )?.blockers.length ?? 0) > 0 ? (
-                                  <div className="mt-1 break-words text-amber-800">
-                                    Blockerare:{" "}
-                                    {publicationDiagnosticByOfferChannel
-                                      .get(publicationDiagnosticKey(offer.id, "api"))
-                                      ?.blockers.join(", ")}
-                                  </div>
-                                ) : null}
+                                <p className="mt-2 leading-5 text-slate-500">
+                                  Readiness godkänns när avtalsversionen görs intern. Därefter väljer du endast om samma låsta version även ska publiceras på hemsidan.
+                                </p>
                               </div>
-                              {canManageChannelPermissions &&
-                              offer.assignment_id &&
-                              !offer.internal_sales_allowed ? (
-                                <form action={setContractChannelPermissionAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="assignment_id" value={offer.assignment_id} />
-                                  <input type="hidden" name="channel" value="internal" />
-                                  <input type="hidden" name="allowed" value="true" />
-                                  <input type="hidden" name="reason" value="Aktiverad från canonical avtalsadministration" />
-                                  <button className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
-                                    Ge intern försäljningsbehörighet
-                                  </button>
-                                </form>
-                              ) : null}
-                              {canManageChannelPermissions &&
-                              offer.assignment_id &&
-                              !offer.website_publication_allowed ? (
-                                <form action={setContractChannelPermissionAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="assignment_id" value={offer.assignment_id} />
-                                  <input type="hidden" name="channel" value="website" />
-                                  <input type="hidden" name="allowed" value="true" />
-                                  <input type="hidden" name="reason" value="Aktiverad från canonical avtalsadministration" />
-                                  <button className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
-                                    Ge hemsidebehörighet
-                                  </button>
-                                </form>
-                              ) : null}
-                              <form action={offer.website_channel_status === "active" ? unpublishContractChannelAction : publishContractChannelAction}>
+                              <form
+                                action={
+                                  offer.website_channel_status === "active"
+                                    ? unpublishContractChannelAction
+                                    : publishContractChannelAction
+                                }
+                              >
                                 <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
                                 <input type="hidden" name="id" value={offer.id} />
                                 <input type="hidden" name="channel" value="website" />
                                 <button
-                                  disabled={
-                                    offer.website_channel_status !== "active" &&
-                                    !offer.website_readiness.ready
-                                  }
-                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${offer.website_channel_status === "active" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
+                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black ${
+                                    offer.website_channel_status === "active"
+                                      ? "border-amber-200 bg-amber-50 text-amber-800"
+                                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                  }`}
                                 >
-                                  {offer.website_channel_status === "active" ? "Avpublicera från hemsida" : "Publicera på hemsida"}
+                                  {offer.website_channel_status === "active"
+                                    ? "Ta bort från hemsidan"
+                                    : "Publicera på hemsidan"}
                                 </button>
-                                {offer.website_channel_status !== "active" && !offer.website_readiness.ready ? (
-                                  <p className="mt-1 text-[11px] font-semibold text-amber-800">
-                                    Publicering blockerad: {offer.website_readiness.blockers[0]?.message ?? "kanalen är inte redo"}
-                                  </p>
-                                ) : null}
                               </form>
-                              {canManageChannelPermissions &&
-                              offer.assignment_id &&
-                              !offer.api_publication_allowed ? (
-                                <form action={setContractChannelPermissionAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="assignment_id" value={offer.assignment_id} />
-                                  <input type="hidden" name="channel" value="api" />
-                                  <input type="hidden" name="allowed" value="true" />
-                                  <input type="hidden" name="reason" value="Aktiverad från canonical avtalsadministration" />
-                                  <button className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
-                                    Ge API-behörighet
-                                  </button>
-                                </form>
-                              ) : null}
-                              <form action={offer.api_channel_status === "active" ? unpublishContractChannelAction : publishContractChannelAction}>
-                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                <input type="hidden" name="id" value={offer.id} />
-                                <input type="hidden" name="channel" value="api" />
-                                <button
-                                  disabled={
-                                    offer.api_channel_status !== "active" &&
-                                    !offer.api_readiness.ready
-                                  }
-                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${offer.api_channel_status === "active" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
-                                >
-                                  {offer.api_channel_status === "active" ? "Avpublicera från API" : "Publicera i API"}
-                                </button>
-                                {offer.api_channel_status !== "active" && !offer.api_readiness.ready ? (
-                                  <p className="mt-1 text-[11px] font-semibold text-amber-800">
-                                    Publicering blockerad: {offer.api_readiness.blockers[0]?.message ?? "kanalen är inte redo"}
-                                  </p>
-                                ) : null}
-                              </form>
-                              <form action={offer.internal_channel_status === "active" ? unpublishContractChannelAction : publishContractChannelAction}>
-                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                <input type="hidden" name="id" value={offer.id} />
-                                <input type="hidden" name="channel" value="internal" />
-                                <button
-                                  disabled={
-                                    offer.internal_channel_status !== "active" &&
-                                    !offer.internal_readiness.ready
-                                  }
-                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${offer.internal_channel_status === "active" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
-                                >
-                                  {offer.internal_channel_status === "active" ? "Pausa intern försäljning" : "Aktivera intern försäljning"}
-                                </button>
-                                {offer.internal_channel_status !== "active" && !offer.internal_readiness.ready ? (
-                                  <p className="mt-1 text-[11px] font-semibold text-amber-800">
-                                    Aktivering blockerad: {offer.internal_readiness.blockers[0]?.message ?? "kanalen är inte redo"}
-                                  </p>
-                                ) : null}
-                              </form>
-                              {canManageChannelPermissions &&
-                              offer.assignment_id &&
-                              offer.internal_sales_allowed &&
-                              offer.internal_channel_status !== "active" ? (
-                                <form action={setContractChannelPermissionAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="assignment_id" value={offer.assignment_id} />
-                                  <input type="hidden" name="channel" value="internal" />
-                                  <input type="hidden" name="allowed" value="false" />
-                                  <input type="hidden" name="reason" value="Återkallad från canonical avtalsadministration" />
-                                  <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800">
-                                    Återkalla intern behörighet
-                                  </button>
-                                </form>
-                              ) : null}
-                              {canManageChannelPermissions &&
-                              offer.assignment_id &&
-                              offer.website_publication_allowed &&
-                              offer.website_channel_status !== "active" ? (
-                                <form action={setContractChannelPermissionAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="assignment_id" value={offer.assignment_id} />
-                                  <input type="hidden" name="channel" value="website" />
-                                  <input type="hidden" name="allowed" value="false" />
-                                  <input type="hidden" name="reason" value="Återkallad från canonical avtalsadministration" />
-                                  <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800">
-                                    Återkalla hemsidebehörighet
-                                  </button>
-                                </form>
-                              ) : null}
-                              {canManageChannelPermissions &&
-                              offer.assignment_id &&
-                              offer.api_publication_allowed &&
-                              offer.api_channel_status !== "active" ? (
-                                <form action={setContractChannelPermissionAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="assignment_id" value={offer.assignment_id} />
-                                  <input type="hidden" name="channel" value="api" />
-                                  <input type="hidden" name="allowed" value="false" />
-                                  <input type="hidden" name="reason" value="Återkallad från canonical avtalsadministration" />
-                                  <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800">
-                                    Återkalla API-behörighet
-                                  </button>
-                                </form>
-                              ) : null}
                               {contractLifecycleAllows(offer.lifecycle_status, "pause_channels") ? (
-                              <form action={pauseContractOfferAction}>
-                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                <input type="hidden" name="id" value={offer.id} />
-                                <button className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
-                                  Pausa alla aktiva kanaler för denna version
-                                </button>
-                              </form>
+                                <form action={pauseContractOfferAction}>
+                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                  <input type="hidden" name="id" value={offer.id} />
+                                  <button className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
+                                    Pausa avtalet internt och på hemsidan
+                                  </button>
+                                </form>
                               ) : null}
-                            </>
+                            </div>
                           ) : null}
                           {offer.lifecycle_status === "archived" || offer.lifecycle_status === "closed" ? (
                             <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">

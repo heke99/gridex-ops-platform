@@ -17,7 +17,6 @@ import {
 } from "@/lib/integrations/apiClientScopes";
 import {
   publishContractChannelAction,
-  setContractChannelPermissionAction,
   unpublishContractChannelAction,
 } from "@/app/admin/contracts/actions";
 import {
@@ -813,82 +812,40 @@ export default async function TenantPlatformControls({
                   {contract.valid_to ?? "tills vidare"} · senast ändrad{" "}
                   {formatDate(contract.updated_at)}
                 </p>
-                <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 sm:grid-cols-3">
+                <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 sm:grid-cols-2">
                   <div>
-                    <strong>Intern</strong>
-                    <div>Behörighet: {contract.internal_sales_allowed ? "Ja" : "Nej"}</div>
-                    <div>Kanal: {contract.internal_channel_status}</div>
-                    <div>Teckningsbar nu: {contract.internally_sellable_now ? "Ja" : "Nej"}</div>
+                    <strong>Internt</strong>
+                    <div>{contract.internally_sellable_now ? "Aktivt och teckningsbart" : "Pausat"}</div>
                   </div>
                   <div>
                     <strong>Hemsida</strong>
-                    <div>Behörighet: {contract.website_publication_allowed ? "Ja" : "Nej"}</div>
-                    <div>Kanal: {contract.website_channel_status}</div>
-                    <div>Tillgänglig nu: {contract.website_available_now ? "Ja" : "Nej"}</div>
-                  </div>
-                  <div>
-                    <strong>API</strong>
-                    <div>Behörighet: {contract.api_publication_allowed ? "Ja" : "Nej"}</div>
-                    <div>Kanal: {contract.api_channel_status}</div>
-                    <div>Externt tillgänglig: {contract.api_available_now ? "Ja" : "Nej"}</div>
-                    {contract.api_channel_status === "active" &&
-                    !contract.api_available_now ? (
-                      <div className="mt-1 text-amber-800">
-                        Aktiv API-klient med <code>api_contracts.read</code> saknas
-                        eller publiceringsgrafen är inte komplett.
-                      </div>
-                    ) : null}
+                    <div>{contract.website_available_now ? "Publicerat" : "Inte publicerat"}</div>
                   </div>
                 </div>
-                {!contract.website_publication_allowed && contract.assignment_id ? (
-                  <form action={setContractChannelPermissionAction} className="mt-3">
-                    <input type="hidden" name="company_id" value={companyId} />
-                    <input type="hidden" name="assignment_id" value={contract.assignment_id} />
-                    <input type="hidden" name="channel" value="website" />
-                    <input type="hidden" name="allowed" value="true" />
-                    <input type="hidden" name="return_surface" value="company" />
-                    <input type="hidden" name="reason" value="Aktiverad från bolagets canonical avtalsvy" />
-                    <button className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
-                      Ge hemsidebehörighet
-                    </button>
-                  </form>
-                ) : null}
-                {contract.website_publication_allowed ? (
-                  <form
-                    action={
+                <form
+                  action={
+                    contract.website_channel_status === "active"
+                      ? unpublishContractChannelAction
+                      : publishContractChannelAction
+                  }
+                  className="mt-3"
+                >
+                  <input type="hidden" name="company_id" value={companyId} />
+                  <input type="hidden" name="id" value={contract.id} />
+                  <input type="hidden" name="channel" value="website" />
+                  <input type="hidden" name="return_surface" value="company" />
+                  <button
+                    className={`rounded-xl border px-3 py-2 text-xs font-black ${
                       contract.website_channel_status === "active"
-                        ? unpublishContractChannelAction
-                        : publishContractChannelAction
-                    }
-                    className="mt-3"
+                        ? "border-amber-200 bg-amber-50 text-amber-800"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    }`}
                   >
-                    <input type="hidden" name="company_id" value={companyId} />
-                    <input type="hidden" name="id" value={contract.id} />
-                    <input type="hidden" name="channel" value="website" />
-                    <input type="hidden" name="return_surface" value="company" />
-                    <button
-                      disabled={
-                        contract.website_channel_status !== "active" &&
-                        !contract.website_readiness.ready
-                      }
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {contract.website_channel_status === "active"
-                        ? "Avpublicera hemsidekanalen"
-                        : "Publicera hemsidekanalen"}
-                    </button>
-                    {contract.website_channel_status !== "active" &&
-                    !contract.website_readiness.ready ? (
-                      <p className="mt-1 text-xs font-semibold text-amber-800">
-                        Blockerad: {contract.website_readiness.blockers[0]?.message ?? "kanalen är inte redo"}
-                      </p>
-                    ) : null}
-                  </form>
-                ) : (
-                  <p className="mt-2 text-xs font-semibold text-amber-800">
-                    Hemsidans publiceringsknapp är blockerad: publiceringsbehörighet saknas.
-                  </p>
-                )}
+                    {contract.website_channel_status === "active"
+                      ? "Ta bort från hemsidan"
+                      : "Publicera på hemsidan"}
+                  </button>
+                </form>
                 {selectedDiagnostic?.error ? (
                   <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800">
                     {selectedDiagnostic.error}

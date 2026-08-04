@@ -21,6 +21,8 @@ const migration = read(
   "supabase/migrations/20260728190000_contract_channel_permission_publication_completion.sql",
 );
 const adminActions = read("app/admin/contracts/actions.ts");
+const adminPage = read("app/admin/contracts/page.tsx");
+const twoStepMigration = read("supabase/migrations/20260804093500_contract_publication_two_step_invoice_fee_repair.sql");
 const companyControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
@@ -136,11 +138,19 @@ check(
   "all admin surfaces route channel publication through the canonical action and service",
 );
 check(
-  /Publicering blockerad:/.test(
-    read("app/admin/contracts/page.tsx"),
-  ) &&
-    /Hemsidans publiceringsknapp är blockerad/.test(companyControls),
-  "disabled website controls display an explicit blocker",
+  /Kontrollera readiness och gör internt/.test(adminPage) &&
+    /Publicera på hemsidan/.test(adminPage) &&
+    !/Publicera i API/.test(adminPage) &&
+    !/Ge hemsidebehörighet/.test(adminPage) &&
+    /Publicera på hemsidan/.test(companyControls),
+  "admin publication UX exposes only internal readiness and website publication",
+);
+check(
+  /The publish RPC is the canonical readiness gate/.test(publicationService) &&
+    /gridex_publish_contract_channel/.test(publicationService) &&
+    /gridex_canonicalize_publication_invoice_fee_v1/.test(twoStepMigration) &&
+    /explicit 0 SEK/.test(twoStepMigration),
+  "first website publication materializes its graph and canonical invoice fee atomically",
 );
 
 check(

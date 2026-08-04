@@ -215,9 +215,9 @@ includesAll(commercialEditor, [
 
 includesAll(page, [
   "Stäng för ny försäljning",
-  "Publicera på hemsida",
-  "Publicera i API",
-  "Pausa alla aktiva kanaler för denna version",
+  "Kontrollera readiness och gör internt",
+  "Publicera på hemsidan",
+  "Pausa avtalet internt och på hemsidan",
   "deletionPreview",
   "Kundförhandsgranskning och versionsskillnad",
   "contractVersionDiff",

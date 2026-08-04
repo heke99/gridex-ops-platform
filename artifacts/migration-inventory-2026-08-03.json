@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-08-04T07:01:41.636Z",
+  "generated_at": "2026-08-04T08:07:39.622Z",
   "source": "repository/supabase/migrations",
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 360,
-    "ledger_eligible_count": 267,
+    "sql_file_count": 361,
+    "ledger_eligible_count": 268,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 360,
+    "checksum_registered_count": 361,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -7553,6 +7553,19 @@
         "gridex_apply_contract_offer_standard_fees_trg",
         "public.customer_contracts",
         "public.gridex_apply_contract_offer_standard_fees"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804093500",
+      "filename": "20260804093500_contract_publication_two_step_invoice_fee_repair.sql",
+      "checksum": "c731c8ea3716bd4ad6333f91977c5214f9c30615658bde1ddcf93d5e05f57783",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_canonicalize_publication_invoice_fee_v1",
+        "public.gridex_finalize_contract_publication_v1"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"

@@ -271,7 +271,8 @@ values
   ('20260803152014','20260803152014_contract_portfolio_tenant_fk_indexes.sql','bc7de917bdf4f309059330105648217be5a82a91289037cf6e713c46cb99d4ae',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260803152236','20260803152236_portfolio_superadmin_helper_service_role_only.sql','9a095233c605184a00d59884fc7ad4a91534de75fbae17fa3fbc04e7171c0d01',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260803212754','20260803212754_canonical_migration_readiness_reconciliation_v4.sql','08b8722e962ee019c9d190dcb3c4f3efe4cd956cdf88a0d432a0989f70635117',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
-  ('20260804003000','20260804003000_customer_contract_fee_consistency.sql','ea58786ed48eb3b38b57aa9c0e9743ecf8895e863f1ed2b43f88afb7937a60d8',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
+  ('20260804003000','20260804003000_customer_contract_fee_consistency.sql','ea58786ed48eb3b38b57aa9c0e9743ecf8895e863f1ed2b43f88afb7937a60d8',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260804093500','20260804093500_contract_publication_two_step_invoice_fee_repair.sql','c731c8ea3716bd4ad6333f91977c5214f9c30615658bde1ddcf93d5e05f57783',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
 on conflict(version,filename) do update set
   checksum=excluded.checksum,
   applied_environment=excluded.applied_environment,

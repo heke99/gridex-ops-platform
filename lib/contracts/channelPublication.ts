@@ -89,15 +89,6 @@ function blockers(value: unknown): ContractChannelReadiness["blockers"] {
   });
 }
 
-function permissionAllowed(
-  offer: ContractOfferRow,
-  channel: ContractPublicationChannel,
-): boolean {
-  if (channel === "internal") return offer.internal_sales_allowed;
-  if (channel === "website") return offer.website_publication_allowed;
-  return offer.api_publication_allowed;
-}
-
 function channelAvailable(
   offer: ContractOfferRow,
   channel: ContractPublicationChannel,
@@ -201,29 +192,12 @@ export async function publishContractChannel(input: {
     ...input,
   });
   try {
-    const before = await loadOffer(input);
-    if (!permissionAllowed(before, input.channel)) {
-      const error = new Error("contract_channel_permission_missing");
-      Object.assign(error, { code: "42501" });
-      throw error;
-    }
+    await loadOffer(input);
 
-    const validation = await validateContractChannelReadiness({
-      companyId: input.companyId,
-      assignmentId: before.assignment_id!,
-      channel: input.channel,
-    });
-    if (!validation.readiness.ready) {
-      throw contractLifecycleError(
-        {
-          ok: false,
-          code: "contract_channel_not_ready",
-          blockers: validation.readiness.blockers,
-        },
-        "Avtalskanalen är inte redo för publicering.",
-      );
-    }
-
+    // The publish RPC is the canonical readiness gate and materializes the
+    // permission, channel, publication and public-offer graph atomically.
+    // A pre-publication state naturally lacks those rows, so validating the
+    // already-materialized graph here made first publication impossible.
     const { data, error } = await requestClient().rpc(
       "gridex_publish_contract_channel",
       {
@@ -247,17 +221,24 @@ export async function publishContractChannel(input: {
       throw new Error("contract_channel_availability_verification_failed");
     }
 
+    const readiness =
+      input.channel === "internal"
+        ? offer.internal_readiness
+        : input.channel === "website"
+          ? offer.website_readiness
+          : offer.api_readiness;
+
     return {
       ok: true,
       changed: rpc.changed !== false,
       channel: input.channel,
       offer,
-      readiness: validation.readiness,
+      readiness,
       externalAccessReady:
         input.channel === "api"
           ? offer.api_available_now
           : channelAvailable(offer, input.channel),
-      externalBlockers: validation.externalBlockers,
+      externalBlockers: readiness.blockers,
       rpc,
     };
   } catch (error) {
