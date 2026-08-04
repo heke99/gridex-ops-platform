@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-04.2.json'
+import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-04.3.json'
 
 const mocks = vi.hoisted(() => ({
   logIntegrationApiRequest: vi.fn(async () => undefined),
