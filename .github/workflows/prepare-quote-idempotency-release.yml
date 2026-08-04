@@ -1,6 +1,7 @@
 name: Prepare quote idempotency API release
 
 on:
+  pull_request:
   push:
     branches:
       - fix/usage-event-identity-and-quote-idempotency-20260804
@@ -162,6 +163,7 @@ jobs:
           npm run api:docs
           npm run api:release:verify
       - name: Commit generated release
+        if: github.event_name == 'push'
         shell: bash
         run: |
           rm -f .github/workflows/prepare-quote-idempotency-release.yml
