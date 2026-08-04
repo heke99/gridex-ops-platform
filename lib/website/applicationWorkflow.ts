@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { isSchemaError } from '@/lib/http/apiError'
+import { emitDomainEvent } from '@/lib/events/domainEvents'
 
 export type CustomerApplicationWorkflowState =
   | 'received'
@@ -40,6 +41,105 @@ export type CustomerApplicationWorkflowState =
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+const SWITCH_WORKFLOW_STATES = new Set<CustomerApplicationWorkflowState>([
+  'switch_readiness_check',
+  'switch_blocked',
+  'switch_request_pending',
+  'switch_request_queued',
+  'switch_dispatched',
+  'waiting_for_switch_response',
+  'switch_confirmed',
+  'switch_rejected',
+  'supply_activation_pending',
+  'supply_active',
+])
+
+type ApplicationTransitionProjection = {
+  application_number?: unknown
+  customer_id?: unknown
+  customer_number?: unknown
+  contract_number?: unknown
+  external_customer_id?: unknown
+  status?: unknown
+  next_step?: unknown
+}
+
+async function emitCustomerApplicationTransitionEvents(input: {
+  companyId: string
+  applicationId: string
+  state: CustomerApplicationWorkflowState
+  eventCode: string
+  reasonCode: string | null
+  actorUserId: string | null
+  idempotencyKey: string | null
+  snapshotPatch: Record<string, unknown>
+  workflowVersion: number
+}) {
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .select('application_number,customer_id,customer_number,contract_number,external_customer_id,status,next_step')
+    .eq('company_id', input.companyId)
+    .eq('id', input.applicationId)
+    .single()
+  if (error) {
+    if (isSchemaError(error)) {
+      throw new Error('Kundansökans statusschema saknas. Kör den senaste OPS-migrationen innan workflow övergår.')
+    }
+    throw error
+  }
+
+  const application = (data ?? {}) as ApplicationTransitionProjection
+  const applicationNumber = clean(application.application_number)
+  const transitionReference = input.idempotencyKey ?? `${input.eventCode}:${input.state}:v${input.workflowVersion}`
+  const payload = {
+    ...input.snapshotPatch,
+    application_number: applicationNumber,
+    customer_number: clean(application.customer_number),
+    customer_reference: clean(application.external_customer_id),
+    contract_number: clean(application.contract_number),
+    status: ['failed', 'cancelled', 'validation_failed', 'switch_rejected'].includes(input.state)
+      ? 'failed'
+      : ['completed', 'supply_active'].includes(input.state)
+        ? 'completed'
+        : ['pending_customer_data', 'waiting_for_customer_data_response', 'facility_information_required', 'facility_response_needs_review', 'manual_review', 'pending_review'].includes(input.state)
+          ? 'needs_information'
+          : 'processing',
+    workflow_state: input.state,
+    next_step: clean(application.next_step),
+    reason_code: input.reasonCode,
+    event_code: input.eventCode,
+  }
+
+  await emitDomainEvent({
+    companyId: input.companyId,
+    eventType: 'customer_application.status_changed',
+    aggregateType: 'website_customer_application',
+    aggregateId: input.applicationId,
+    subjectCustomerId: clean(application.customer_id),
+    actorUserId: input.actorUserId,
+    source: 'customer_application_workflow',
+    payload,
+    idempotencyKey: `customer-application-status:${input.companyId}:${input.applicationId}:${transitionReference}`,
+  })
+
+  if (SWITCH_WORKFLOW_STATES.has(input.state)) {
+    await emitDomainEvent({
+      companyId: input.companyId,
+      eventType: 'supplier_switch.updated',
+      aggregateType: 'website_customer_application',
+      aggregateId: input.applicationId,
+      subjectCustomerId: clean(application.customer_id),
+      actorUserId: input.actorUserId,
+      source: 'customer_application_workflow',
+      payload: {
+        ...payload,
+        supplier_switch_status: input.state,
+      },
+      idempotencyKey: `supplier-switch-status:${input.companyId}:${input.applicationId}:${transitionReference}`,
+    })
+  }
 }
 
 export async function ensureCustomerApplicationWorkflow(input: {
@@ -114,42 +214,32 @@ export async function transitionCustomerApplicationWorkflow(input: {
     p_idempotency_key: input.idempotencyKey ?? null,
   })
 
-  if (!error) {
-    const row = Array.isArray(data) ? data[0] : data
-    return {
-      id: clean((row as { workflow_id?: unknown } | null)?.workflow_id),
-      operationId: clean((row as { operation_id?: unknown } | null)?.operation_id),
-      state: (clean((row as { state?: unknown } | null)?.state) ?? input.state) as CustomerApplicationWorkflowState,
-      workflowVersion: Number((row as { workflow_version?: unknown } | null)?.workflow_version ?? 1),
+  if (error) {
+    if (isSchemaError(error)) {
+      throw new Error('Kundansökans transition-RPC saknas. Kör den senaste OPS-migrationen innan workflow övergår.')
     }
+    throw error
   }
 
-  // Compatibility fallback for environments where the new transition RPC has
-  // not been applied yet. The provisioning commit itself remains mandatory.
-  if (!isSchemaError(error)) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  const result = {
+    id: clean((row as { workflow_id?: unknown } | null)?.workflow_id),
+    operationId: clean((row as { operation_id?: unknown } | null)?.operation_id),
+    state: (clean((row as { state?: unknown } | null)?.state) ?? input.state) as CustomerApplicationWorkflowState,
+    workflowVersion: Number((row as { workflow_version?: unknown } | null)?.workflow_version ?? 1),
+  }
 
-  const { data: existing, error: existingError } = await supabaseService
-    .from('customer_application_workflows')
-    .select('snapshot')
-    .eq('company_id', input.companyId)
-    .eq('customer_application_id', input.applicationId)
-    .maybeSingle()
-  if (existingError) throw existingError
-  const existingSnapshot = existing?.snapshot && typeof existing.snapshot === 'object' && !Array.isArray(existing.snapshot)
-    ? existing.snapshot as Record<string, unknown>
-    : {}
-  const fallback = await supabaseService
-    .from('customer_application_workflows')
-    .update({
-      state: input.state,
-      failure_code: input.failureCode ?? null,
-      failure_detail_internal: input.failureDetailInternal ?? null,
-      snapshot: { ...existingSnapshot, ...metadata },
-      updated_at: new Date().toISOString(),
-      completed_at: ['completed', 'failed', 'cancelled'].includes(input.state) ? new Date().toISOString() : null,
-    })
-    .eq('company_id', input.companyId)
-    .eq('customer_application_id', input.applicationId)
-  if (fallback.error) throw fallback.error
-  return { id: null, operationId: null, state: input.state, workflowVersion: 1 }
+  await emitCustomerApplicationTransitionEvents({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    state: result.state,
+    eventCode: input.eventCode ?? `workflow.${result.state}`,
+    reasonCode: input.reasonCode ?? input.failureCode ?? null,
+    actorUserId: input.actorUserId ?? null,
+    idempotencyKey: input.idempotencyKey ?? null,
+    snapshotPatch: metadata,
+    workflowVersion: result.workflowVersion,
+  })
+
+  return result
 }

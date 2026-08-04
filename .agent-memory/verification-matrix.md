@@ -1,166 +1,19 @@
-## 2026-08-03 — PHASE-41 runtime schema readiness v4
+# Verification matrix — PHASE-42
 
-| ID | Scope | Status | Evidence |
-| --- | --- | --- | --- |
-| VM-101 | Live runtime capability gate | VERIFIED LIVE | `gridex_runtime_schema_capabilities_v3.is_ready=true`, valid SHA-256 fingerprint, zero blockers |
-| VM-102 | Canonical migration readiness | VERIFIED LIVE | 38 manifest rows, 34 ledger rows, zero missing mappings, zero blockers |
-| VM-103 | Migration governance | VERIFIED LIVE | zero missing, unmapped or duplicate ledger mappings; zero invalid checksums/effect gaps |
-| VM-104 | Compatibility state | VERIFIED LIVE | `platform_schema_state=20260803-runtime-capability-compatible-v4`, ready, empty blockers |
-| VM-105 | V4 forward migration | VERIFIED LIVE | applied as ledger version `20260803212754`; canonical manifest registration verified |
-| VM-106 | V4 post-apply replay | VERIFIED LIVE | idempotent post-apply executed successfully after initial apply |
-| VM-107 | Runtime readiness code policy | VERIFIED STATIC | obsolete exact fingerprint pin removed; capability-evidence SHA-256 policy and fail-closed tests added |
-| VM-108 | Migration/version repository parity | VERIFIED STATIC | local portfolio files renamed to live versions; stale names prohibited by regression |
-| VM-109 | API/OpenAPI/docs `2026-08-03.1` | VERIFIED LOCALLY | contract, OpenAPI parity, docs version/examples/components, corrections and compatibility checks pass |
-| VM-110 | API runtime parity | VERIFIED LOCALLY | canonical external API runtime parity passes |
-| VM-111 | Tenant/idempotency/portal regressions | VERIFIED LOCALLY | 107 single-key checks, application idempotency hardening and multi-site portal checks pass |
-| VM-112 | Full Node 22 typecheck/build | BLOCKED_BY_SANDBOX_REGISTRY | clean install cannot fetch one indirect tarball; must run in operator CI/local environment |
-| VM-113 | Deployed authenticated HTTP smoke | PENDING DEPLOY | running app must be redeployed, then context/public-contract endpoints must return HTTP 200 |
-
-# Verification matrix
-
-| ID | Scope | Status | Evidence |
-| --- | --- | --- | --- |
-| VM-001 | Project memory | VERIFIED | Required structure, JSON and secret scan |
-| VM-002 | Resolver capabilities | VERIFIED | Unit tests and route/OpenAPI parity |
-| VM-003 | Public application DTO/IDs | VERIFIED | Sanitizer tests and ID policy |
-| VM-004 | Switch creation/dispatch | VERIFIED | DTO and portal status tests |
-| VM-005 | Billing readiness | VERIFIED LOCALLY | Pure tests; real loaders typechecked |
-| VM-006 | Invoice resource purity | VERIFIED | List/detail source tests |
-| VM-007 | Interval binding | VERIFIED | Hourly/quarterly selection tests |
-| VM-008 | Cron tree/auth | VERIFIED | 22 registered crons mapped to authenticated routes |
-| VM-009 | Atomic activation | STATIC VERIFIED | Migration/state-machine regression |
-| VM-010 | Migration history | VERIFIED | 303 files; 208 groups; checksums |
-| VM-011 | API/OpenAPI/docs | VERIFIED | `npm run api:docs` |
-| VM-012 | Typecheck | VERIFIED | `npm run typecheck` |
-| VM-013 | Full tests | VERIFIED | 54 files; 354 tests |
-| VM-014 | Lint | VERIFIED | 0 errors; 125 existing warnings |
-| VM-015 | Production build | VERIFIED | Next build generated `.next/BUILD_ID` |
-| VM-016 | PostgreSQL migration apply | BLOCKED | No Supabase CLI/database |
-| VM-017 | Two-tenant DB isolation/E2E | BLOCKED | Requires authorized test DB |
-| VM-018 | Live deployed parity | PENDING DEPLOY | Live contract older than local |
-| VM-019 | Terminal contract lifecycle | STATIC VERIFIED | Migration regression, types and admin flow |
-| VM-020 | Tenant lifecycle readiness | STATIC VERIFIED | RPC regression and governance tests |
-| VM-021 | Integration tenant gate | VERIFIED LOCALLY | Status mapping tests and full suite |
-| VM-022 | Contract deletion graph | STATIC VERIFIED | Dedicated regression; SQL parser accepted 32 statements |
-| VM-023 | Bulk failure isolation | STATIC VERIFIED | Exception-subtransaction and durable-reference regression |
-| VM-024 | Contract list pagination | VERIFIED LOCALLY | Typecheck and production build |
-| VM-025 | Contract/company admin alignment | VERIFIED LOCALLY | Tenant links, separate counts, revalidation regression and build |
-| VM-026 | Delete preview execute boundary | STATIC VERIFIED | Authenticated execute revoked in append-only migration |
-| VM-027 | Runtime/OpenAPI auth error parity | VERIFIED | API docs checks and alignment regression |
-| VM-028 | Stable contract list/lazy diagnostics | VERIFIED LOCALLY | Typecheck, lint and cheap final view |
-| VM-029 | Strict tenant/role normalization | STATIC VERIFIED | Central TS/SQL predicates |
-| VM-030 | Legal customer matching | VERIFIED LOCALLY | Matching regressions and final RPC |
-| VM-031 | Exact supply/underlay identity | STATIC VERIFIED | Runtime comparison and DB triggers |
-| VM-032 | Canonical invoice export bridge | STATIC VERIFIED | Monthly runtime and atomic graph RPC |
-| VM-033 | Customer invoice traceability | VERIFIED LOCALLY | Portal select and OpenAPI |
-| VM-034 | Focused contract tests | VERIFIED | 40/40 contract, 18/18 fixed-area |
-| VM-035 | Focused identity/supply/billing tests | PARTIAL | 49/54; 5 legacy fixtures lack exact IDs |
-| VM-036 | Migration history | VERIFIED | 304 files; 209 groups; checksums |
-| VM-037 | Provider webhook round trip | BLOCKED | No sandbox/credentials |
-| VM-038 | Exported live lint coverage | VERIFIED | 23/23 error functions covered |
-| VM-039 | Exact live function patches | VERIFIED | 41/41 match active exported definitions |
-| VM-040 | Code/live relation and RPC paths | VERIFIED | 4,759 writes, 3,679 field accesses, 120 literal RPC calls |
-| VM-041 | Live repair SQL parse | VERIFIED | Migration 141, preflight 12, post-apply 14 statements |
-| VM-042 | Current migration integrity | VERIFIED | 319 files; 223 version groups; checksums |
-| VM-043 | Current full tests | VERIFIED | 55 files; 357 tests |
-| VM-044 | Current API/OpenAPI | VERIFIED | Version `2026-07-28.1`; all parity checks pass |
-| VM-045 | Current production build | VERIFIED | Next.js build completed |
-| VM-046 | Production repair apply/postflight | BLOCKED | Requires authorized operator/database |
-| VM-047 | Historical canonical baseline | PENDING | Must derive from verified post-apply export |
-| VM-048 | Contract channel grants/publication | STATIC VERIFIED | 43/43 dedicated controls |
-| VM-049 | Contract go-live/lifecycle | VERIFIED LOCALLY | 212 go-live and 518 lifecycle controls |
-| VM-050 | Current full tests | VERIFIED | 56 files; 361 tests |
-| VM-051 | Current API/OpenAPI | VERIFIED | Version `2026-07-28.2`; parity/docs checks pass |
-| VM-052 | New migration checksum | VERIFIED | `20260728190000...` matches manifest |
-| VM-053 | Historical migration integrity | BLOCKED | `20260728170000...` immutable checksum drift |
-| VM-054 | Channel post-apply and scenarios A-H | BLOCKED | Requires trusted history and authorized PostgreSQL/API environment |
-| VM-055 | Commercial model TypeScript | VERIFIED | App and test targets pass |
-| VM-056 | Commercial unit/full tests | VERIFIED | 57 files / 365 tests |
-| VM-057 | Commercial static regression | VERIFIED | Admin/quote/internal/snapshot/billing chain |
-| VM-058 | API/OpenAPI/docs | VERIFIED | Version `2026-07-30.1`; all parity checks pass |
-| VM-059 | Commercial production build | VERIFIED | Clean Next.js build completed |
-| VM-060 | New commercial migration checksum | VERIFIED | `20260729200000...` exact manifest match |
-| VM-061 | Commercial PostgreSQL apply/post-apply | BLOCKED | Requires BLK-003 recovery and authorized staging |
-| VM-062 | Canonical API release | VERIFIED LOCALLY | Runtime, guide, two OpenAPI documents and generated Web types use `2026-07-30.1` |
-| VM-063 | OpenAPI release manifest | VERIFIED LOCALLY | Two deterministic finalizer runs produced website `08e04d...` and portal `e3333b...` |
-| VM-064 | Dynamic legal evidence | VERIFIED LOCALLY | Runtime validation, closed OpenAPI schemas, docs and Web checkout tests pass |
-| VM-065 | Canonical customer events | VERIFIED LOCALLY | Strict runtime parser and positive/legacy-negative tests pass |
-| VM-066 | Portal identity/sync | STATIC VERIFIED | Strict payload/header equality, link-only response and atomic trigger migration |
-| VM-067 | Current full tests | VERIFIED | 58 files / 370 tests |
-| VM-068 | Current TypeScript/lint/build | VERIFIED LOCALLY | All TypeScript targets, zero-error lint and Next.js production build pass |
-| VM-069 | Current tenant/API regressions | VERIFIED LOCALLY | 107 single-key checks plus resolver, idempotency, portal, webhook and tenant gates |
-| VM-070 | New portal migration checksum | VERIFIED | `20260730120000...` SHA-256 matches manifest |
-| VM-071 | Live release-manifest parity | BLOCKED | Live endpoint returns HTTP 404 before deployment |
-| VM-072 | Full staging/two-tenant/concurrency/provider | BLOCKED | Authorized environment and credentials unavailable |
-| VM-073 | Historical migration restoration | VERIFIED | `20260728170000...` SHA-256 equals trusted manifest value `881e1bc...` |
-| VM-074 | Forward historical repair | STATIC VERIFIED | `20260730130000...` registered as `3e204b00...`; migration integrity passes |
-| VM-075 | Exact OpenAPI byte hashing | VERIFIED LOCALLY | Shared serializer regression and local SHA values `9ad3fc...` / `a3e3f4...` |
-| VM-076 | Canonical public envelopes | VERIFIED LOCALLY | Error normalization, single context/quote response and webhook projection tests |
-| VM-077 | Current full tests | VERIFIED | 58 files / 373 tests |
-| VM-078 | Current TypeScript/lint/build | VERIFIED LOCALLY | All TS targets, 0-error lint and Next.js build pass |
-| VM-079 | Current migration history | PARTIAL | 323 files/227 groups/checksums pass; three allowlisted duplicate timestamps require ledger proof |
-| VM-080 | Live manifest exact hash parity | BLOCKED | HTTP/version available; deployed advertised hashes differ from served raw bytes |
-| VM-081 | Clean/upgrade PostgreSQL replay | BLOCKED | No authorized DB/CLI and historical intermediate rewrite needs runtime proof |
-| VM-082 | Gridex Web synchronization | BLOCKED | Gridex Web source not supplied |
-| VM-083 | Canonical customer sync contract | VERIFIED LOCALLY | Strict parser/runtime/OpenAPI/docs and full tests pass |
-| VM-084 | Public reference boundary | VERIFIED LOCALLY | Portal/application DTO regressions reject internal IDs |
-| VM-085 | Atomic move-out | STATIC VERIFIED | External-reference RPC, route, migration checksum and tests pass |
-| VM-086 | Portal pagination/completeness | VERIFIED LOCALLY | Runtime/OpenAPI parity and full tests pass |
-| VM-087 | Current migration history | PARTIAL | 324 files/228 groups/checksums pass; three allowlisted duplicate timestamps require ledger proof |
-| VM-088 | Current API/OpenAPI release | VERIFIED LOCALLY | `2026-07-30.2`; compatibility and exact local manifest SHA parity pass |
-| VM-089 | Current TypeScript/tests/lint/build | VERIFIED LOCALLY | All TS targets; 58/58 files and 373/373 tests; 0-error lint; Next.js build |
-| VM-090 | Customer Portal staging/live E2E | BLOCKED | No authorized DB, deployment, tenant fixtures, API keys or provider/webhook environment |
-| VM-091 | Canonical price-option migration | STATIC VERIFIED | `20260730220000...` SHA-256 `0ab350f0...`; migration history 325/229 passes |
-| VM-092 | Canonical price-option flow | VERIFIED LOCALLY | Commercial-selection, channel-publication, fixed-area and go-live static suites pass |
-| VM-093 | Current API/OpenAPI release | VERIFIED LOCALLY | `2026-07-30.3`; reachability, fixture parity, docs, compatibility and exact local manifest SHA parity pass |
-| VM-094 | Current TypeScript/tests/lint/build | VERIFIED LOCALLY | All TS targets; 58/58 files and 376/376 tests; 0-error lint; Next.js build |
-| VM-095 | Price-option staging/live E2E | BLOCKED | No authorized DB, deployment, Gridex Web, tenant fixtures, API keys or provider/webhook environment |
-| VM-096 | Public Contract canonical serializers | VERIFIED LOCALLY | `is_default`/alias and exact legal bundle/module invariants covered by strict model tests and static runtime boundary |
-| VM-097 | Public Contract OpenAPI/docs release | VERIFIED LOCALLY | `2026-08-01.1`; 39 registry routes, 41 operations, 59 reachable schemas; fixture/docs/version/compatibility/exact local SHA gates pass |
-| VM-098 | Legal snapshot/backfill migration semantics | VERIFIED LOCALLY | Exact locked relation, dry run, counters, audit, hash update, service-role and no first/latest fallback pass semantic gate |
-| VM-099 | New migration checksum | VERIFIED | `20260801003000...` SHA-256 `19bbfbb56f3b150835e873200962d490dd043c7d2de51ded83e4460061659850` |
-| VM-100 | Changed TypeScript source | VERIFIED LOCALLY | 16 TS/TSX files transpile; canonical model/DTO/error boundary pass isolated strict TypeScript check |
-| VM-101 | Full project dependency gates | BLOCKED | npm registry DNS unavailable; full TS/Vitest/lint/build not rerun |
-| VM-102 | Migration history | BLOCKED | inherited `20260730220000...` manifest/file mismatch; trusted checksum preserved |
-| VM-103 | Database/staging Public Contracts parity | BLOCKED | no authorized DB, deployment, API key or tenant fixture |
-| VM-100 | Trusted TenantContext and API propagation | STATIC VERIFIED | v1 authenticated routes use `auth.context.companyId`; no direct `auth.client.company_id` bypass |
-| VM-101 | Canonical onboarding context | STATIC VERIFIED | admin, website, external contract and Ediel adapters pass explicit context; mismatch unit coverage added |
-| VM-102 | Provider webhook tenant resolution | STATIC VERIFIED | client tenant hints absent; exactly one persisted provider invoice target required |
-| VM-103 | Tenant-neutral number/legal aliases | STATIC VERIFIED | runtime uses canonical aliases; number fallback formats removed |
-| VM-104 | Multi-tenant migration semantic gate | VERIFIED | capabilities, candidate keys, not-null guards and composite tenant FKs present; SHA-256 registered |
-| VM-105 | All-tenant remediation scripts | STATIC VERIFIED | preflight, dry-run, safe apply, audit and post-verification present |
-| VM-106 | Full Node verification | BLOCKED | dependency registry 404 prevents install/typecheck/tests/lint/build |
-| VM-107 | Migration integrity | FAIL/BLOCKED | inherited checksum drift plus one missing manifest entry |
-| VM-108 | Database/RLS/backfill/three-tenant E2E | NOT RUN | no authorized database or staging environment |
-| VM-109 | Cross-repository platform parity | NOT RUN | external repositories not supplied |
-| VM-110 | Clean Node 22 install | VERIFIED | Node v22.22.0; clean npm ci installed 446 packages |
-| VM-111 | Current TypeScript | VERIFIED | app, scripts and tests targets pass |
-| VM-112 | Current full tests | VERIFIED | 62 files; 417 tests |
-| VM-113 | Current lint | PARTIAL | 0 errors; 126 classified no-unused-vars warnings; no security rules |
-| VM-114 | Production dependencies | VERIFIED | npm audit omit-dev: 0 high/critical vulnerabilities |
-| VM-115 | Current migration integrity | VERIFIED LOCALLY | 336 files; 240 version groups; checksums verified |
-| VM-116 | Evidence/event migration compile | VERIFIED NONPERSISTENT | actual dev schema accepted both inside rollback; object absence confirmed after rollback |
-| VM-117 | Current production build | VERIFIED | Next.js 16.2.12 full route build on Node 22 with 4096 MB heap |
-| VM-118 | Remote ledger/schema reconciliation | BLOCKED | A-C objects exist without ledger rows; exact definition comparison required |
-| VM-119 | Post-apply DB/RLS/evidence E2E | NOT RUN | requires controlled staging apply and real tenant/JWT fixtures |
-| VM-120 | Canonical convergence PostgreSQL parse | VERIFIED LOCALLY | registered `20260802170000...` accepted by PostgreSQL parser |
-| VM-121 | A-C full catalog and seed parity | VERIFIED READ-ONLY | gridex-ops-dev tables, columns, constraints, indexes, RLS, policies, triggers, grants, functions and required seed invariants match |
-| VM-122 | Multi-role Ediel profile identity | VERIFIED LOCALLY | PostgreSQL parser, hardening regression and migration integrity pass with `(company_id, environment, actor_role)` identity |
-| VM-123 | Gridex staging reconciliation SQL | VERIFIED LOCALLY | all three SQL files accepted by the PostgreSQL parser; mutation remains unapplied |
-| VM-121 | Current migration integrity | VERIFIED LOCALLY | 337 files; 241 version groups and registered checksums pass |
-| VM-122 | Canonical/runtime security regressions | VERIFIED LOCALLY | production hardening, behavior, tenant, routing, inbound and RBAC gates pass |
-| VM-123 | Current Node 22 app gates | VERIFIED LOCALLY | all TypeScript targets; 62 files/417 tests; zero-vulnerability audit; full Next.js build |
-| VM-124 | Remote read-only preflight | BLOCKED | 153 unscoped runs, one duplicate profile group and one missing production snapshot |
-| VM-125 | A-C exact catalog parity | PARTIAL/BLOCKED | principal function bodies match; tables, constraints, indexes, policies, triggers and grants not fully proven |
-| VM-126 | D-F/event/convergence staging apply | NOT RUN | guarded apply requires parity sign-off and deterministic cleanup |
-| VM-127 | UUID aggregate repair | VERIFIED READ-ONLY | Corrected preflight executes on gridex-ops-dev; corrected profile identity aggregate executes; migration integrity, canonical hardening and RBAC audit pass |
-| VM-128 | Authoritative remote migration ledger | PASS / VERIFIED READ-ONLY | `gridex-ops-dev` records every canonical version through `20260802180000`; obsolete nine-version drift claim superseded |
-| VM-129 | Emergency access baseline | FAIL / VERIFIED READ-ONLY | Four SECURITY DEFINER views, 63 anon/auth SECURITY DEFINER execution findings, two public tables without RLS and unsafe default grants observed |
-| VM-130 | Emergency-lockdown migration | PASS / VERIFIED LOCALLY | `20260802190000...` checksum registered; emergency regression, 339-file/243-group integrity and 24-check RBAC audit pass |
-| VM-131 | Emergency-lockdown remote apply | NOT VERIFIED / BLOCKED | Persistent ACL/view/RLS/helper/trigger mutation requires explicit user blast-radius approval; no remote mutation performed |
-| VM-132 | Post-lockdown advisors and JWT/runtime proof | NOT VERIFIED | Requires controlled apply before catalog, advisor and real-role/JWT tests |
-| VM-133 | V2 data invariants | FAIL / VERIFIED READ-ONLY | 153 unscoped runs; 11 passed actor results lack snapshot/run; three active owner memberships lack active role; 96 NOT VALID constraints; zero active Ediel configs |
-| VM-134 | GitHub provenance | PARTIAL / VERIFIED READ-ONLY | Private repo and `main` head observed; archive lacks `.git`, so exact byte parity is unproven; no GitHub write |
-| VM-135 | Current local app gates | PASS / VERIFIED LOCALLY | Clean 446-package install; all TypeScript targets; 62 files/417 tests; lint 0 errors/125 warnings; audit 0 vulnerabilities; full Next.js build on Node 24.14.0 |
-| VM-136 | Declared Node 22 parity | NOT VERIFIED | Available runtime is Node 24.14.0 while package engines require `>=22 <23`; repeat CI/build on Node 22 |
-| VM-137 | Emergency migration PostgreSQL compile | NOT VERIFIED | Local `psql`/usable Supabase CLI unavailable; remote compile would evade the explicit persistent-apply approval gate |
+| Area | Status | Evidence |
+|---|---|---|
+| Migration integrity | PASS | 362 files / 266 groups; checksums verified |
+| New migration SQL | PASS, rollback only | Full live transaction compiled and rolled back |
+| Legacy ledger repair safety | PASS | Exact live/local function hashes, ACL, trigger, constraint, zero gaps |
+| Tenant isolation | PASS static | Canonical multitenant regression and 110 single-key checks |
+| Website readiness | PASS static | Full prerequisite and operation-policy checks |
+| Customer graph/idempotency | PASS static | Canonical onboarding, review, continuation and idempotency regressions |
+| Mina sidor ownership | PASS static | Mandatory equal IDs, conflict guard and persisted re-read |
+| Status lineage | PASS static | Exact contract/site/meter queries plus actual job/mail/webhook state |
+| Webhook durability | PASS static | Durable fan-out, retry, stale recovery, canonical status events |
+| OpenAPI/docs | PASS | Runtime parity and immutable `2026-08-04.1` release |
+| Changed TypeScript syntax | PASS | 22 changed TS/TSX transpiled with TS 5.8.3 |
+| JSON/shell/diff hygiene | PASS | JSON parse, `bash -n`, `git diff --check` |
+| Full npm install/typecheck/build | BLOCKED | Package mirror 404; dependencies/types absent |
+| Database apply | PENDING | No live mutation performed |
+| Two-tenant live E2E | PENDING | Requires deployment and operator credentials/endpoints |

@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { dispatchDueWebhookDeliveries } from '@/lib/integrations/webhooks'
+import { processDomainEventWebhookFanout } from '@/lib/events/domainEvents'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,8 +38,9 @@ async function run(request: NextRequest) {
 
   const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit') ?? '25') || 25, 1), 100)
   try {
-    const result = await dispatchDueWebhookDeliveries(limit)
-    return customerPortalJson({ data: result })
+    const fanout = await processDomainEventWebhookFanout({ limit })
+    const deliveries = await dispatchDueWebhookDeliveries(limit)
+    return customerPortalJson({ data: { fanout, deliveries } })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[webhook-dispatch] failed', { traceId, error })

@@ -5,7 +5,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = process.cwd()
-const currentVersion = '2026-08-03.1'
+const currentVersion = '2026-08-04.1'
 const priorVersion = '2026-08-02.1'
 const readJson = (relative) => JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8'))
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
@@ -81,6 +81,13 @@ assert.ok(webhook, 'contracts.publication.changed must be modeled with top-level
 assert.deepEqual(webhook.security, [])
 assert.deepEqual(Object.keys(webhook.responses ?? {}), ['2XX'])
 assert.deepEqual(webhook.responses['2XX'].headers, undefined)
+for (const eventName of ['customerApplicationStatusChanged', 'supplierSwitchUpdated']) {
+  const statusWebhook = website.webhooks?.[eventName]?.post
+  assert.ok(statusWebhook, `${eventName} must be modeled with top-level OpenAPI webhooks`)
+  assert.deepEqual(statusWebhook.security, [])
+  assert.deepEqual(Object.keys(statusWebhook.responses ?? {}), ['2XX'])
+}
+
 const webhookHeaders = new Set((webhook.parameters ?? []).map((item) => item.name))
 for (const name of ['X-Gridex-Event-Id', 'X-Gridex-Delivery-Id', 'X-Gridex-Timestamp', 'X-Gridex-Signature']) {
   assert.ok(webhookHeaders.has(name), `webhook must require ${name}`)
@@ -100,7 +107,7 @@ for (const spec of ['website-integration-v1', 'customer-portal-v1']) {
   const oldRoute = read(`app/api/v1/openapi/${priorVersion}/${spec}.json/route.ts`)
   const newRoute = read(`app/api/v1/openapi/${currentVersion}/${spec}.json/route.ts`)
   assert.match(oldRoute, new RegExp(`docs/openapi/releases/${priorVersion}/${spec}\\.json`))
-  assert.match(newRoute, new RegExp(`docs/openapi/${spec}\\.json`))
+  assert.match(newRoute, new RegExp(`docs/openapi/releases/${currentVersion}/${spec}\\.json`))
 }
 
 const schemaMigration = read('supabase/migrations/20260803100040_public_contract_snapshot_shared_schema.sql')

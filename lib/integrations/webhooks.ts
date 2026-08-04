@@ -41,6 +41,7 @@ type WebhookDeliveryRow = {
 type EnqueueOptions = {
   subscriptionIds?: string[]
   force?: boolean
+  strict?: boolean
 }
 
 function missingSchema(error: unknown): boolean {
@@ -315,7 +316,8 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
   const { data, error } = await query
 
   if (error) {
-    if (missingSchema(error)) return 0
+    if (missingSchema(error) && !options.strict) return 0
+    if (missingSchema(error)) throw new Error('webhook_schema_not_ready')
     throw error
   }
 
@@ -342,10 +344,11 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
     .upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true })
 
   if (insertError) {
-    if (missingSchema(insertError)) {
+    if (missingSchema(insertError) && !options.strict) {
       console.warn('[webhooks] webhook delivery enqueue skipped because live schema is incomplete', insertError)
       return 0
     }
+    if (missingSchema(insertError)) throw new Error('webhook_schema_not_ready')
     throw insertError
   }
   return rows.length

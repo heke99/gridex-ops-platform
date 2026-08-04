@@ -99,7 +99,7 @@ assert.equal(
   openapi.components.schemas.WebsiteQuoteData.additionalProperties,
   false,
 );
-assert.equal(openapi.info.version, "2026-08-03.1");
+assert.equal(openapi.info.version, "2026-08-04.1");
 
 console.log(
   "contract-commercial-selection-regression: option/component/snapshot chain verified",

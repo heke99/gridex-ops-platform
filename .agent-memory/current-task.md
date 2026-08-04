@@ -1,69 +1,55 @@
 # Current task
 
-Last updated: 2026-08-03T23:37:05+02:00
-Branch: UNVERIFIED (uploaded archive excludes `.git`)
-Last verified commit: null
+Last updated: 2026-08-04T13:03:20+02:00
+Branch: master
+Last verified commit: 97c37c4 (working tree modified)
 
 ## Active phase
 
-PHASE-41 — Runtime schema readiness v4 and Customer Portal API production alignment.
+PHASE-42 — Canonical multitenant website application, customer portal and tenant status delivery.
 
 ## Goal
 
-Keep the external Website/Customer Portal API available whenever all required
-runtime relations, columns, functions, RLS policies and ACLs are present. Audit
-migration provenance separately without allowing compatible additive schema
-changes or wall-clock expiry to create a production `503
-platform_schema_not_ready` outage.
+One identical, fail-closed code and database path for every tenant:
+API-key tenant resolution, canonical customer graph and customer number, durable
+portal ownership, tenant mail, facility/switch continuation, exact status
+projection, polling/webhook delivery, idempotent resume and reproducible database
+migrations.
 
-## Completed in this phase
+## Implemented
 
-- Traced the live `503` to a stale exact whole-schema fingerprint pin in
-  `lib/platform/schemaReadiness.ts`, not to Gridex Web parsing or checkout.
-- Replaced the exact fingerprint equality gate with versioned runtime-capability
-  evidence plus a valid SHA-256 audit fingerprint; fail-closed capability
-  behavior remains intact.
-- Added unit coverage proving compatible fingerprints pass only when the live
-  capability view is ready and malformed evidence fails closed.
-- Renamed two local portfolio migrations to their authoritative live ledger
-  versions and updated all references/checksum inventory.
-- Added and applied forward migration
-  `20260803212754_canonical_migration_readiness_reconciliation_v4.sql`.
-- Reconciled six portfolio migrations into the canonical manifest and replaced
-  raw count/version/staleness readiness with explicit ledger mappings and
-  schema-effect evidence.
-- Added idempotent `scripts/post-apply-runtime-readiness-v4.sql` and executed it
-  successfully twice against `gridex-ops-dev`.
-- Verified live runtime capabilities, canonical readiness, migration governance
-  and compatibility state are all ready with no blockers.
-- Verified API contract/OpenAPI/docs version `2026-08-03.1`, runtime parity,
-  single-key tenant isolation, idempotency and Customer Portal multi-site
-  regressions.
+- Replaced scopes-only launch readiness with one canonical tenant readiness service.
+- Enforced tenant operation policy before website intake.
+- Made portal identity and tenant-owned portal URL mandatory and fail-closed.
+- Corrected exact application lineage for switch, supply and contract status.
+- Projected job, mail, webhook fan-out and delivery truth in the public status API.
+- Added terminal continuation projection in worker and database trigger.
+- Added resumable failed/partial application handling without duplicate customer graph.
+- Added durable webhook fan-out with stale-lock recovery and dead letter behavior.
+- Every workflow transition now emits `customer_application.status_changed`; switch/supply states also emit `supplier_switch.updated`.
+- Versioned and archived OpenAPI `2026-08-04.1` and aligned developer documentation.
+- Added migration `20260804121000_multitenant_website_application_flow_completion.sql`, safe ledger pre-verification, postflight SQL and sync script.
 
 ## Exact next action
 
-Deploy the modified OPS application code so the running service stops comparing
-the live capability fingerprint with the obsolete hard-coded hash. After the
-deploy and the 30-second readiness cache window, smoke-test
-`/api/v1/integration/context` and `/api/v1/website/public-contracts` with the
-server-side tenant API key. Then synchronize Gridex Web's local OpenAPI snapshot
-to `2026-08-03.1` and rerun its full launch/build suite.
+Apply database changes before deploying application code:
+
+1. Export `DATABASE_URL` and `GRIDEX_SUPABASE_PROJECT_REF`.
+2. Run `scripts/sync-multitenant-website-application-flow.sh`.
+3. Deploy OPS code.
+4. Re-provision Gridex and a second tenant through canonical readiness.
+5. Execute one real application per tenant and verify customer number, mail,
+   portal bundle, polling and signed webhook.
 
 ## Remaining blockers
 
-- The running OPS application has not been redeployed from this modified
-  archive, so the old fingerprint pin may continue returning `503` until app
-  deployment completes.
-- External authenticated HTTP smoke tests require the tenant API key in the
-  operator's environment; no secret is stored in project memory.
-- Full local `npm ci`, TypeScript and Next.js build could not be rerun in this
-  sandbox because its configured package mirror returns 404 for an indirect
-  package. Dependency-free and repository-native contract checks are green.
-- Earlier unrelated PHASE-40 security/data blockers remain tracked separately;
-  this phase does not claim they are resolved.
+- The new migration has been rollback-compiled against live Supabase but has not been applied.
+- No application code has been deployed from this working tree.
+- No active tenant webhook existed during the live read-only audit.
+- A real two-tenant E2E requires tenant API credentials, portal users and webhook endpoints.
+- Clean `npm ci`/Next build is blocked in this sandbox by package mirror 404 for `zod-validation-error@4.0.2`.
 
-## Release decision for this incident
+## Release decision
 
-DATABASE READY / CODE READY FOR DEPLOY. The specific public-contract
-`platform_schema_not_ready` incident remains open until the OPS application is
-redeployed and both authenticated API smoke tests return HTTP 200.
+SOURCE READY / DATABASE APPLY AND ENVIRONMENT E2E PENDING. Do not accept production
+website applications with the new code until the migration and postflight pass.

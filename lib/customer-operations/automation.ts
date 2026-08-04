@@ -19,6 +19,7 @@ import { startSupplierSwitch } from '@/lib/operations/businessActions/startSuppl
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
+import { transitionCustomerApplicationWorkflow } from '@/lib/website/applicationWorkflow'
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import { ensureFacilityLookupAutomation } from '@/lib/customer-operations/facilityLookupAutomation'
 import {
@@ -305,6 +306,68 @@ function record(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as JsonRecord)
     : {}
+}
+
+async function projectCustomerApplicationContinuationState(input: {
+  job: JobRow
+  state: 'manual_review' | 'failed'
+  reasonCode: string
+  message: string
+}) {
+  if (input.job.job_type !== 'customer_application_continuation') return
+  const applicationId = clean(record(input.job.payload).application_id)
+  if (!applicationId) throw new Error('customer_application_continuation_application_id_missing')
+
+  await transitionCustomerApplicationWorkflow({
+    companyId: input.job.company_id,
+    applicationId,
+    state: input.state,
+    eventCode: `workflow.continuation_${input.state}`,
+    reasonCode: input.reasonCode,
+    failureCode: input.reasonCode,
+    failureDetailInternal: input.message,
+    idempotencyKey: `workflow.continuation-terminal:${input.job.id}:${input.state}`,
+    snapshotPatch: {
+      next_action: input.state === 'manual_review' ? 'review_customer_application_continuation' : 'resume_customer_application_continuation',
+      terminal_job_id: input.job.id,
+      terminal_job_status: input.state,
+    },
+  })
+
+  const { data: application, error: applicationError } = await supabaseService
+    .from('website_customer_applications')
+    .select('response_payload')
+    .eq('id', applicationId)
+    .eq('company_id', input.job.company_id)
+    .maybeSingle()
+  if (applicationError) throw applicationError
+  if (!application) throw new Error('customer_application_continuation_application_not_found')
+  const responsePayload = record(application.response_payload)
+  const nextStep = input.state === 'manual_review'
+    ? 'review_customer_application_continuation'
+    : 'resume_customer_application_continuation'
+  const { error: updateError } = await supabaseService
+    .from('website_customer_applications')
+    .update({
+      status: input.state === 'manual_review' ? 'pending_review' : 'failed',
+      next_step: nextStep,
+      response_payload: {
+        ...responsePayload,
+        status: input.state === 'manual_review' ? 'needs_customer_information' : 'failed',
+        workflow_state: input.state,
+        next_step: nextStep,
+        blocking_reason: input.reasonCode,
+        automation: {
+          status: input.state === 'manual_review' ? 'needs_review' : 'failed',
+          error_code: input.reasonCode,
+          error_message: input.message,
+        },
+      },
+      updated_at: nowIso(),
+    })
+    .eq('id', applicationId)
+    .eq('company_id', input.job.company_id)
+  if (updateError) throw updateError
 }
 
 function missingSchema(error: unknown): boolean {
@@ -2057,8 +2120,6 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
       supplier_switch_request_id: request.id,
       supplier_switch_dispatched_at: new Date().toISOString(),
     },
-  }).catch((error) => {
-    console.warn('[customer-operation-worker] supplier-switch workflow transition skipped', error)
   })
 
   return { status: 'completed', result: { supplier_switch_request_id: request.id, duplicate: Boolean(started.duplicate) } }
@@ -2229,6 +2290,12 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
             last_error_message: message,
             completed_at: nowIso(),
           })
+          await projectCustomerApplicationContinuationState({
+            job,
+            state: 'manual_review',
+            reasonCode: 'automation_configuration_missing',
+            message,
+          })
           await emitCustomerOperationEvent({
             companyId: job.company_id,
             customerId: job.customer_id,
@@ -2305,6 +2372,12 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           completed_at: terminal ? nowIso() : null,
         })
         if (terminal) {
+          await projectCustomerApplicationContinuationState({
+            job,
+            state: reviewTerminal ? 'manual_review' : 'failed',
+            reasonCode: clean(pgError?.code as string | null) ?? 'customer_operation_failed',
+            message,
+          })
           await emitCustomerOperationEvent({
             companyId: job.company_id,
             customerId: job.customer_id,

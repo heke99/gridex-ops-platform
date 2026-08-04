@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-03.1.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-04.1.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
@@ -277,6 +277,8 @@ const futurePermissions = [
 const endpoints = PUBLIC_API_ENDPOINT_ROWS;
 
 const activeWebhookEvents = [
+  "customer_application.status_changed",
+  "supplier_switch.updated",
   "customer.created",
   "customer.updated",
   "customer_number.assigned",
@@ -385,7 +387,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-08-03.1"
+  "contract_schema_version": "2026-08-04.1"
 }`;
 
 const marketReferenceExample = `{
@@ -433,7 +435,7 @@ const marketPriceErrorExample = `{
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-03.1"
+  "contract_schema_version": "2026-08-04.1"
 }`;
 
 const marketPriceErrors = [
@@ -644,16 +646,15 @@ const applicationResponse = `{
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-03.1"
+  "contract_schema_version": "2026-08-04.1"
 }
 
-# accepted betyder att canonical kund/site/avtal/juridiksnapshot och quote
-# committades atomiskt och att efterföljande idempotenta signatur-, workflow-
-# och continuation-steg också slutfördes. Fel i eftersteg ger partial/failed,
-# aldrig ett missvisande accepted. OPS äger därefter kundmail,
-# nätägarbegäran, Z01/Z02, Z03/Z04, APERAK och aktivering. Tenant ska inte
-# själv starta de stegen. Integrationsklienten följer nextAction/next_action
-# i statusresponsen.
+# accepted betyder att canonical kund/site/avtal/juridiksnapshot, portalidentitet,
+# workflow och ett beständigt customer_application_continuation-jobb har
+# committats. Kundmail, anläggningsuppslag, leverantörsbyte, Ediel och webhooks
+# fortsätter asynkront. Läs GET-statusens automation, communication och webhook
+# tills status är completed, needs_customer_information, rejected eller failed.
+# Tenant ska aldrig själv starta OPS-ägda eftersteg.
 
 curl -X GET "${apiBaseUrl}/website/customer-applications/<application_number>" \
   -H "Authorization: Bearer $GRIDEX_API_KEY" \
@@ -675,7 +676,7 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-03.1"
+  "contract_schema_version": "2026-08-04.1"
 }
 
 Vanliga 422-koder:
@@ -837,27 +838,29 @@ const customerStatusResponseExample = `{
 
 const webhookPayload = `{
   "event_id": "event_...",
-  "event_type": "contract.application_received",
-  "created_at": "2026-08-01T13:30:00Z",
+  "event_type": "customer_application.status_changed",
+  "created_at": "2026-08-04T09:30:00Z",
   "tenant_reference": "tenant_...",
   "environment": "production",
   "aggregate": {
-    "type": "customer_contract",
-    "reference": "contract_..."
+    "type": "website_customer_application",
+    "reference": "APP-20260804-0001"
   },
   "customer": {
     "customer_reference": "customer_...",
     "customer_number": "DX-100025"
   },
   "data": {
-    "application_number": "APP-20260801-0001",
-    "status": "application_received"
+    "application_number": "APP-20260804-0001",
+    "status": "processing",
+    "workflow_state": "switch_request_queued",
+    "next_step": "automatic_processing"
   },
-  "contract_schema_version": "2026-08-03.1"
+  "contract_schema_version": "2026-08-04.1"
 }`;
 
 const webhookHeaders = `X-Gridex-Event-Id: event_123
-X-Gridex-Event-Type: contract.application_received
+X-Gridex-Event-Type: customer_application.status_changed
 X-Gridex-Timestamp: 1718532000
 X-Gridex-Signature: sha256=<signature>
 X-Gridex-Delivery-Id: delivery_123`;
@@ -1291,8 +1294,10 @@ export default function CustomerPortalApiDocsPage() {
             <code>contract</code>. När kunden redan är inloggad skickas webbens
             Supabase <code>session.user.id</code> som både
             <code>customer_portal_user_id</code> och <code>auth_user_id</code>.
-            OPS skapar kund, kundnummer, portal
-            identity, prissnapshot och ett först väntande avtal. Därefter
+            Båda portal-ID-fälten är obligatoriska och måste vara samma verifierade UUID;
+            annars returneras <code>422 portal_auth_identity_required</code> eller
+            <code>portal_auth_identity_mismatch</code>. OPS skapar kund, kundnummer,
+            portal identity, prissnapshot och ett först väntande avtal. Därefter
             verifierar en atomisk serverfunktion de exakta juridikversionerna
             och sätter <code>status=signed</code>, <code>signed_at</code>,
             ångerfrist och <code>signature_snapshot_sha256</code>. Klientens
@@ -1308,6 +1313,10 @@ export default function CustomerPortalApiDocsPage() {
             oberoende av <code>supplier_switch.can_create_request</code> och{" "}
             <code>supplier_switch.can_dispatch</code>. Läs{" "}
             <code>communication.queued/sent/failed</code> för faktisk status.
+            <code>accepted</code> är den beständiga commitpunkten, inte bevis på
+            att e-post, anläggningsuppslag eller leverantörsbyte redan är klart.
+            Statusendpointen visar dessutom <code>automation</code> och
+            <code>webhook</code>, inklusive retry och terminala fel.
           </p>
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
@@ -1444,6 +1453,12 @@ export default function CustomerPortalApiDocsPage() {
           </p>
           <CodeBlock>{webhookHeaders}</CodeBlock>
           <CodeBlock>{webhookPayload}</CodeBlock>
+          <p>
+            Kundansökningsflödet publicerar alltid <code>customer_application.status_changed</code>
+            efter en beständig workflowövergång. Switchrelaterade övergångar publicerar dessutom
+            <code>supplier_switch.updated</code>. Båda använder samma tenantbundna outbox,
+            idempotens, retry och dead-letter-flöde som övriga webhookar.
+          </p>
           <p>Aktiva/byggda events:</p>
           <ul className="grid gap-1 md:grid-cols-2">
             {activeWebhookEvents.map((event) => (

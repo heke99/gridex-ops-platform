@@ -1,84 +1,77 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-03T23:37:05+02:00",
-  "branch": null,
-  "last_verified_commit": null,
-  "active_phase": "PHASE-41",
-  "active_task": "WP-041",
-  "active_subtask": "Deploy capability-based readiness code, smoke-test external API, then sync Gridex Web OpenAPI",
-  "status": "DATABASE_VERIFIED_READY_FOR_APP_DEPLOY",
+  "updated_at": "2026-08-04T13:03:20+02:00",
+  "branch": "master",
+  "last_verified_commit": "97c37c4",
+  "active_phase": "PHASE-42",
+  "active_task": "WP-042",
+  "active_subtask": "Apply canonical multitenant website flow migration, deploy, then prove two tenants end to end",
+  "status": "SOURCE_VERIFIED_DATABASE_APPLY_PENDING",
   "implemented_not_environment_verified": [
-    "capability-evidence runtime schema gate without stale exact fingerprint pin",
-    "runtime readiness v4 forward migration and canonical ledger reconciliation",
-    "authoritative local portfolio migration version alignment",
-    "idempotent post-apply readiness verification",
-    "unit/static regression coverage for additive schema compatibility"
+    "canonical tenant website readiness and operation-policy enforcement",
+    "mandatory fail-closed customer portal identity and portal URL",
+    "exact application status lineage and actual job/mail/webhook evidence",
+    "durable terminal continuation projection and resumable partial applications",
+    "durable workflow status and supplier-switch webhook events",
+    "OpenAPI 2026-08-04.1 immutable release",
+    "migration, safe ledger repair classifier, postflight and sync script"
   ],
   "active_blockers": [
-    "Running OPS app has not been redeployed from the modified archive",
-    "Authenticated external endpoint smoke requires operator API key",
-    "Sandbox package mirror prevents a fresh full Node 22 install/typecheck/build",
-    "Earlier unrelated PHASE-40 security and legacy-data blockers remain open"
+    "20260804121000 has not been applied to live Supabase",
+    "modified OPS code has not been deployed",
+    "no active tenant webhook existed in live audit",
+    "real second-tenant application/portal/webhook proof requires operator credentials and endpoints",
+    "package mirror 404 prevents clean npm ci and full Next.js build"
   ],
   "verification": [
     {
-      "name": "live runtime capabilities",
-      "status": "VERIFIED",
-      "evidence": "is_ready=true, valid fingerprint, zero blockers"
+      "name": "new migration live compilation",
+      "status": "VERIFIED_ROLLBACK_ONLY",
+      "evidence": "all DDL and data statements compiled in a live transaction; rollback confirmed no persisted changes"
     },
     {
-      "name": "live migration governance",
+      "name": "legacy ledger repair safety",
       "status": "VERIFIED",
-      "evidence": "38 manifest, 34 ledger, zero missing/unmapped/duplicate mappings and zero blockers"
-    },
-    {
-      "name": "live canonical readiness",
-      "status": "VERIFIED",
-      "evidence": "is_ready=true, missing_in_ledger=0, blockers=[]"
-    },
-    {
-      "name": "live compatibility state",
-      "status": "VERIFIED",
-      "evidence": "20260803-runtime-capability-compatible-v4, ready"
-    },
-    {
-      "name": "v4 post-apply replay",
-      "status": "VERIFIED",
-      "evidence": "idempotent post-apply passed after initial database apply"
+      "evidence": "exact function SHA-256, ACL, trigger, constraint and zero backfill gaps"
     },
     {
       "name": "migration integrity",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "359 files, 263 version groups and checksums pass"
+      "evidence": "362 files, 266 version groups, checksums pass"
     },
     {
       "name": "API/OpenAPI/docs",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "contract, parity, version 2026-08-03.1, examples, shared components and corrections pass"
+      "evidence": "runtime parity, examples, compatibility and immutable 2026-08-04.1 release pass"
     },
     {
-      "name": "API runtime/tenant/idempotency/portal regressions",
+      "name": "multitenant website application flow",
+      "status": "VERIFIED_STATICALLY",
+      "evidence": "canonical readiness, portal, lineage, continuation, mail and webhook regression pass"
+    },
+    {
+      "name": "changed TypeScript syntax",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "runtime parity, 107 single-key checks, application idempotency and multi-site portal checks pass"
+      "evidence": "22 changed TS/TSX files transpile with TypeScript 5.8.3"
     },
     {
-      "name": "fresh Node 22 typecheck/build",
+      "name": "clean dependency install and production build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "sandbox package mirror 404 for indirect package"
+      "evidence": "package mirror 404 for zod-validation-error@4.0.2"
     },
     {
-      "name": "deployed authenticated HTTP smoke",
-      "status": "PENDING_DEPLOY",
-      "evidence": "requires app redeploy and tenant API key"
+      "name": "two-tenant live E2E",
+      "status": "PENDING",
+      "evidence": "requires migration apply, deployment, credentials, portal identities and webhook endpoints"
     }
   ],
-  "next_action": "Sync patch into Git checkout, run Node 22 full gates, deploy OPS, wait 30 seconds, require authenticated HTTP 200 from context and public-contract endpoints, then sync Gridex Web OpenAPI 2026-08-03.1.",
+  "next_action": "Run scripts/sync-multitenant-website-application-flow.sh with DATABASE_URL, deploy OPS, provision Gridex plus a second tenant, then execute and verify one full application per tenant.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not restore the obsolete exact schema fingerprint pin",
-    "Do not use raw manifest/ledger count equality as runtime readiness",
-    "Do not reapply 20260803212754 blindly to gridex-ops-dev; it is already applied",
-    "Runtime API availability is capability-gated; migration governance is separate audit evidence",
-    "Do not store API keys or production customer data in memory"
+    "Database must deploy before application code",
+    "Never mark old migrations applied unless the sync script classifies them repair-safe",
+    "Do not restore scopes-only launch_ready",
+    "Do not use global OPS login as tenant portal fallback",
+    "Do not store API keys, database URLs or production customer data in memory"
   ]
 }

@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { missingIntegrationApiScopes, type IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { type IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { loadTenantWebsiteFlowReadiness, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
   CUSTOMER_PORTAL_REQUIRED_SCOPES,
@@ -61,6 +62,13 @@ export type ExternalTenantContext = {
     missing_customer_portal_scopes: string[]
     recommended_scopes: string[]
     missing_recommended_scopes: string[]
+    portal_identity_required: true
+    portal_url: string | null
+    webhook_delivery_ready: boolean
+    status_delivery_modes: Array<'polling' | 'webhook'>
+    blockers: TenantWebsiteReadinessBlocker[]
+    warnings: TenantWebsiteReadinessBlocker[]
+    checks: Record<string, boolean>
   }
 }
 
@@ -101,10 +109,10 @@ export async function loadExternalTenantReference(companyId: string): Promise<st
 
 export async function loadExternalTenantContext(client: IntegrationApiClient): Promise<ExternalTenantContext> {
   const tenantReference = await loadExternalTenantReference(client.company_id)
-  const scopes = client.scopes ?? []
-  const missingWebsiteScopes = missingIntegrationApiScopes(scopes, WEBSITE_CHECKOUT_REQUIRED_SCOPES)
-  const missingPortalScopes = missingIntegrationApiScopes(scopes, CUSTOMER_PORTAL_REQUIRED_SCOPES)
-  const missingRecommendedScopes = missingIntegrationApiScopes(scopes, TENANT_WEBSITE_RECOMMENDED_SCOPES)
+  const readiness = await loadTenantWebsiteFlowReadiness({
+    companyId: client.company_id,
+    client,
+  })
 
   return {
     tenant_reference: tenantReference,
@@ -127,15 +135,22 @@ export async function loadExternalTenantContext(client: IntegrationApiClient): P
       company_id_environment_required: false,
     },
     capabilities: {
-      website_checkout_ready: missingWebsiteScopes.length === 0,
-      customer_portal_ready: missingPortalScopes.length === 0,
-      complete_tenant_website_ready: missingRecommendedScopes.length === 0,
+      website_checkout_ready: readiness.website_checkout_ready,
+      customer_portal_ready: readiness.customer_portal_ready,
+      complete_tenant_website_ready: readiness.complete_tenant_website_ready,
       required_website_scopes: [...WEBSITE_CHECKOUT_REQUIRED_SCOPES],
-      missing_website_scopes: missingWebsiteScopes,
+      missing_website_scopes: readiness.missing_website_scopes,
       required_customer_portal_scopes: [...CUSTOMER_PORTAL_REQUIRED_SCOPES],
-      missing_customer_portal_scopes: missingPortalScopes,
+      missing_customer_portal_scopes: readiness.missing_customer_portal_scopes,
       recommended_scopes: [...TENANT_WEBSITE_RECOMMENDED_SCOPES],
-      missing_recommended_scopes: missingRecommendedScopes,
+      missing_recommended_scopes: readiness.missing_recommended_scopes,
+      portal_identity_required: readiness.portal_identity_required,
+      portal_url: readiness.portal_url,
+      webhook_delivery_ready: readiness.webhook_delivery_ready,
+      status_delivery_modes: readiness.status_delivery_modes,
+      blockers: readiness.blockers,
+      warnings: readiness.warnings,
+      checks: readiness.checks,
     },
   }
 }

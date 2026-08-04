@@ -267,3 +267,16 @@ ledger/schema reconciliation, controlled apply and environment proof.
   errors/125 inherited warnings, 0-vulnerability production audit and the full
   Next.js build pass on Node 24.14.0. Node 22 parity and PostgreSQL compile of
   the pending migration remain NOT VERIFIED.
+
+## 2026-08-04T13:03:20+02:00 — PHASE-42
+
+Reviewed the supplied `gridex-ops-platform-main(133).zip` against the 21-item
+website application target. Implemented one tenant-neutral readiness and
+provisioning path, fail-closed portal ownership, exact application status,
+durable continuation/mail/webhook evidence, resumable partial applications and
+canonical tenant status events. Added migration `20260804121000`, OpenAPI
+`2026-08-04.1`, regressions, safe ledger repair, postflight and sync tooling.
+Rollback-compiled the migration against live Supabase and verified prior missing
+ledger migrations by exact function hashes without mutating live data. Full
+static/broad regressions pass. Clean npm install/build remains environment-blocked;
+database apply/deployment/two-tenant E2E remain pending.

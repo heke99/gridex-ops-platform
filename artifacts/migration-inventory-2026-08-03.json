@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-08-04T08:07:39.622Z",
+  "generated_at": "2026-08-04T11:00:50.330Z",
   "source": "repository/supabase/migrations",
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 361,
-    "ledger_eligible_count": 268,
+    "sql_file_count": 362,
+    "ledger_eligible_count": 269,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 361,
+    "checksum_registered_count": 362,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -7566,6 +7566,33 @@
       "expected_objects": [
         "public.gridex_canonicalize_publication_invoice_fee_v1",
         "public.gridex_finalize_contract_publication_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804121000",
+      "filename": "20260804121000_multitenant_website_application_flow_completion.sql",
+      "checksum": "88bf5a6b7e0dc4d89b1621f1e3d551a6cd407135950f48ff05a37022df653b2f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "communication_logs_application_metadata_idx",
+        "customer_operation_jobs_workflow_continuation_idx",
+        "customer_supply_periods_application_contract_idx",
+        "customer_supply_periods_application_meter_idx",
+        "event_outbox_webhook_fanout_due_idx",
+        "gridex_project_terminal_application_continuation",
+        "gridex_validate_website_application_portal_identity",
+        "public.companies",
+        "public.event_outbox",
+        "public.gridex_project_terminal_application_continuation",
+        "public.gridex_validate_website_application_portal_identity",
+        "public.tenant_website_installation_receipts",
+        "public.website_customer_applications",
+        "supplier_switch_requests_application_contract_idx",
+        "supplier_switch_requests_application_meter_idx",
+        "supplier_switch_requests_application_site_idx"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"

@@ -9,10 +9,10 @@ import {
   parseMultiValueText,
 } from '@/lib/integrations/apiClientSecrets'
 import { recommendedPermissionGroups, scopesForPermissionGroups } from '@/lib/integrations/apiClientScopes'
-import { missingIntegrationApiScopes } from '@/lib/integrations/apiAuth'
+import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
+import { reconcileTenantWebsiteCapabilities } from '@/lib/integrations/tenantWebsiteReadiness'
 import {
-  TENANT_WEBSITE_RECOMMENDED_SCOPES,
   WEBSITE_APPLICATION_REFERENCE_LOCATION,
   WEBSITE_INTEGRATION_BASE_URL,
   WEBSITE_INTEGRATION_OPENAPI_URL,
@@ -25,6 +25,9 @@ export type CreateApiClientState = {
   token?: string
   keyPrefix?: string
   clientId?: string
+  launchReady?: boolean
+  readinessBlockers?: string[]
+  readinessWarnings?: string[]
 }
 
 function text(formData: FormData, key: string): string {
@@ -44,11 +47,6 @@ function nullableDate(formData: FormData, key: string): string | null {
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString()
 }
-
-function missingRecommendedTenantWebsiteScopes(scopes: string[]): string[] {
-  return missingIntegrationApiScopes(scopes, TENANT_WEBSITE_RECOMMENDED_SCOPES)
-}
-
 
 function normalizedWebhookRef(value: string): string | null {
   const cleaned = value.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_')
@@ -99,6 +97,40 @@ async function auditApiClient(input: {
     .then(() => null)
 }
 
+
+async function reconcileAndPersistTenantWebsiteClientReadiness(input: {
+  clientId: string
+  actorUserId: string
+}) {
+  const { data, error } = await supabaseService
+    .from('integration_api_clients')
+    .select(
+      'id,company_id,name,status,key_prefix,secret_hash,scopes,allowed_ips,allowed_origins,metadata,rate_limit_per_minute,expires_at,profile_key',
+    )
+    .eq('id', input.clientId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data || data.profile_key !== 'tenant_website') return null
+
+  const client = data as IntegrationApiClient & { profile_key?: string | null }
+  const readiness = await reconcileTenantWebsiteCapabilities({
+    companyId: client.company_id,
+    actorUserId: input.actorUserId,
+    client,
+  })
+  const { error: persistError } = await supabaseService
+    .from('integration_api_clients')
+    .update({
+      launch_ready: readiness.complete_tenant_website_ready,
+      launch_blockers: readiness.blockers,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.clientId)
+    .eq('company_id', client.company_id)
+  if (persistError) throw persistError
+  return readiness
+}
+
 export async function createIntegrationApiClientAction(
   _previousState: CreateApiClientState,
   formData: FormData
@@ -117,6 +149,10 @@ export async function createIntegrationApiClientAction(
       }
     }
     const rateLimit = intValue(formData, 'rateLimitPerMinute', 120)
+    const customerPortalUrl = text(formData, 'customerPortalUrl')
+    if (!customerPortalUrl) {
+      return { ok: false, message: 'Ange tenantens fullständiga HTTPS-adress till Mina sidor.' }
+    }
     const webhookUrlInput = text(formData, 'webhookUrl')
     const webhookUrl = validWebhookUrl(webhookUrlInput)
     const webhookEventTypes = parseMultiValueText(formData.get('webhookEventTypes'))
@@ -135,57 +171,32 @@ export async function createIntegrationApiClientAction(
       clientName: name,
       allowedOrigins,
       rateLimitPerMinute: rateLimit,
-    })
-
-    if (webhookUrl) {
-      const { data: existingWebhook, error: existingWebhookError } =
-        await supabaseService
-          .from('webhook_subscriptions')
-          .select('id')
-          .eq('company_id', companyId)
-          .eq('api_client_id', provisioned.apiClientId)
-          .eq('endpoint_url', webhookUrl)
-          .neq('status', 'revoked')
-          .maybeSingle()
-      if (existingWebhookError) throw existingWebhookError
-      if (!existingWebhook) {
-        const { error: webhookError } = await supabaseService
-          .from('webhook_subscriptions')
-          .insert({
-            company_id: companyId,
-            api_client_id: provisioned.apiClientId,
-            name: `${name} · webhook`,
-            endpoint_url: webhookUrl,
-            event_types:
+      customerPortalUrl,
+      webhook: webhookUrl
+        ? {
+            endpointUrl: webhookUrl,
+            eventTypes:
               webhookEventTypes.length > 0
                 ? webhookEventTypes
                 : [
                     'customer.created',
                     'customer.updated',
                     'customer_number.assigned',
+                    'customer_application.accepted',
+                    'customer_application.status_changed',
                     'contract.application_received',
                     'contract.confirmation_sent',
                     'contract.cooling_off_sent',
+                    'supplier_switch.updated',
                     'invoice.created',
                     'invoice.sent',
                     'invoice.disputed',
                     'metering_values.updated',
                   ],
-            status: 'active',
-            signing_secret_ref: webhookSigningSecretRef,
-            description: `Webhook skapad tillsammans med API-klienten ${name}.`,
-            created_by: context.userId,
-            updated_by: context.userId,
-            metadata: {
-              created_from: 'canonical_tenant_website_provisioning',
-              provisioning_receipt_id: provisioned.receiptId,
-              api_client_id: provisioned.apiClientId,
-              signing_secret_ref: webhookSigningSecretRef,
-            },
-          })
-        if (webhookError) throw webhookError
-      }
-    }
+            signingSecretRef: webhookSigningSecretRef,
+          }
+        : null,
+    })
 
     await auditApiClient({
       action: provisioned.reusedExistingClient
@@ -201,26 +212,41 @@ export async function createIntegrationApiClientAction(
         contract_schema_version: provisioned.contractSchemaVersion,
         visible_contract_count: provisioned.visibleContractCount,
         allowed_origins: allowedOrigins,
+        customer_portal_url: provisioned.portalUrl,
+        webhook_subscription_id: provisioned.webhookSubscriptionId,
+        launch_ready: provisioned.launchReady,
+        readiness_blockers: provisioned.readinessBlockers,
+        readiness_warnings: provisioned.readinessWarnings,
       },
     })
 
     revalidatePath('/admin/platform/api-clients')
     revalidatePath(`/admin/companies/${companyId}`)
+    const readinessBlockers = provisioned.readinessBlockers.map((blocker) => blocker.message)
+    const readinessWarnings = provisioned.readinessWarnings.map((warning) => warning.message)
     if (!provisioned.credential) {
       return {
-        ok: true,
-        message:
-          'Befintlig primär tenant-klient verifierades och återanvändes. Ingen ny token skapades.',
+        ok: provisioned.launchReady,
+        message: provisioned.launchReady
+          ? 'Befintlig primär tenant-klient verifierades och återanvändes. Ingen ny token skapades.'
+          : 'Befintlig tenant-klient återanvändes men är blockerad tills readiness-brister har åtgärdats.',
         clientId: provisioned.apiClientId,
+        launchReady: provisioned.launchReady,
+        readinessBlockers,
+        readinessWarnings,
       }
     }
     return {
-      ok: true,
-      message:
-        'Tenantintegrationen skapades och verifierades. Kopiera token nu; den visas bara en gång.',
+      ok: provisioned.launchReady,
+      message: provisioned.launchReady
+        ? 'Tenantintegrationen skapades och verifierades. Kopiera token nu; den visas bara en gång.'
+        : 'API-klienten skapades och token måste kopieras nu, men integrationen är blockerad tills readiness-brister har åtgärdats.',
       token: provisioned.credential.token,
       keyPrefix: provisioned.credential.keyPrefix,
       clientId: provisioned.apiClientId,
+      launchReady: provisioned.launchReady,
+      readinessBlockers,
+      readinessWarnings,
     }
   } catch (error) {
     return { ok: false, message: errorMessage(error) }
@@ -260,6 +286,11 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
     payload.revoked_by = null
     payload.revoked_at = null
     payload.revoke_reason = null
+    payload.launch_ready = false
+    payload.launch_blockers = [{ code: 'canonical_readiness_revalidation_pending' }]
+  } else {
+    payload.launch_ready = false
+    payload.launch_blockers = [{ code: `api_client_${status}` }]
   }
 
   const { error } = await supabaseService
@@ -269,12 +300,24 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
 
   if (error) throw error
 
+  const readiness = status === 'active'
+    ? await reconcileAndPersistTenantWebsiteClientReadiness({
+        clientId,
+        actorUserId: context.userId,
+      })
+    : null
+
   await auditApiClient({
     action: `api_client.${status}`,
     actorUserId: context.userId,
     companyId: current.company_id,
     clientId,
-    metadata: { previous_status: current.status, reason },
+    metadata: {
+      previous_status: current.status,
+      reason,
+      launch_ready: readiness?.complete_tenant_website_ready ?? false,
+      readiness_blockers: readiness?.blockers ?? [],
+    },
   })
 
   revalidatePath('/admin/platform/api-clients')
@@ -290,7 +333,6 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
   const groupedScopes = scopesForPermissionGroups(permissionGroups)
   const directScopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
   const scopes = Array.from(new Set([...groupedScopes, ...directScopes]))
-  const missingRecommendedScopes = missingRecommendedTenantWebsiteScopes(scopes)
   const allowedOrigins = parseMultiValueText(formData.get('allowedOrigins'))
 
   if (scopes.length === 0) throw new Error('Välj minst en behörighetsgrupp.')
@@ -314,10 +356,8 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
       scopes,
       permission_groups: permissionGroups,
       profile_key: 'tenant_website',
-      launch_ready: missingRecommendedScopes.length === 0,
-      launch_blockers: missingRecommendedScopes.length === 0
-        ? []
-        : [{ code: 'missing_recommended_scope', scopes: missingRecommendedScopes }],
+      launch_ready: false,
+      launch_blockers: [{ code: 'canonical_readiness_revalidation_pending' }],
       allowed_origins: allowedOrigins,
       metadata: {
         ...metadata,
@@ -328,7 +368,6 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
         openapi_url: WEBSITE_INTEGRATION_OPENAPI_URL,
         application_reference_location: WEBSITE_APPLICATION_REFERENCE_LOCATION,
         tenant_identity_source: 'api_key',
-        missing_recommended_scopes: missingRecommendedScopes,
         updated_from: 'superadmin_api_permission_ui',
       },
       updated_at: new Date().toISOString(),
@@ -337,12 +376,25 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
 
   if (error) throw error
 
+  const readiness = await reconcileAndPersistTenantWebsiteClientReadiness({
+    clientId,
+    actorUserId: context.userId,
+  })
+
   await auditApiClient({
     action: 'api_client.permissions_updated',
     actorUserId: context.userId,
     companyId: current.company_id,
     clientId,
-    metadata: { previous_scopes: current.scopes, previous_permission_groups: current.permission_groups, scopes, permissionGroups, allowedOrigins },
+    metadata: {
+      previous_scopes: current.scopes,
+      previous_permission_groups: current.permission_groups,
+      scopes,
+      permissionGroups,
+      allowedOrigins,
+      launch_ready: readiness?.complete_tenant_website_ready ?? false,
+      readiness_blockers: readiness?.blockers ?? [],
+    },
   })
 
   revalidatePath('/admin/platform/api-clients')

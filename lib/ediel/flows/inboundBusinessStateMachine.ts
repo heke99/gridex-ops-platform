@@ -443,8 +443,6 @@ export async function applyInboundBusinessStateMachine(input: {
         supplier_switch_request_id: input.matchedSwitchRequestId ?? null,
         inbound_outcome: outcome,
       },
-    }).catch((error) => {
-      console.warn('[inbound-business-state] workflow transition skipped', error)
     })
   }
 

@@ -37,6 +37,20 @@ function isMissingReadinessSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205', '42P10'].includes(code) || /schema cache|does not exist|column .* does not exist|no unique or exclusion constraint/i.test(message)
 }
 
+async function attemptWebhookFanoutFastPath(eventId: string) {
+  try {
+    await processDomainEventWebhookFanout({ eventId, limit: 1 })
+  } catch (error) {
+    // The durable event_outbox row is already present and records the retry
+    // state. A transient fan-out failure must not roll back or misclassify the
+    // business operation that emitted the domain event.
+    console.error('[domain-events] webhook fan-out deferred to cron', {
+      eventId,
+      error,
+    })
+  }
+}
+
 export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEventRow | null> {
   const payload = {
     company_id: input.companyId,
@@ -65,23 +79,179 @@ export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEv
         .maybeSingle()
 
       if (existingError) throw existingError
-      return existing as DomainEventRow | null
+      const existingEvent = existing as DomainEventRow | null
+      if (existingEvent) {
+        await ensureWebhookFanoutJob(existingEvent)
+        await attemptWebhookFanoutFastPath(existingEvent.id)
+      }
+      return existingEvent
     }
 
-    if (isMissingReadinessSchema(error)) return null
+    if (isMissingReadinessSchema(error)) {
+      throw new Error('domain_event_schema_not_ready')
+    }
     throw error
   }
 
   const event = data as DomainEventRow
-  // webhook_deliveries is the ONE live fan-out pipeline (dispatched by
-  // /api/internal/webhooks/dispatch). The legacy event_outbox dual-write was
-  // removed: nothing ever processed those rows, so they only accumulated as
-  // misleading "stuck jobs" in system health.
-  await enqueueWebhookDeliveriesForEvent(event).catch((webhookError) => {
-    console.warn('[domain-events] webhook enqueue failed', webhookError)
-  })
-
+  await ensureWebhookFanoutJob(event)
+  // Fast-path the fan-out for low latency. The durable event_outbox row remains
+  // queued/failed until the cron confirms that webhook_deliveries were created.
+  await attemptWebhookFanoutFastPath(event.id)
   return event
+}
+
+type FanoutJobRow = {
+  id: string
+  company_id: string | null
+  domain_event_id: string
+  status: string
+  attempts: number
+  max_attempts: number
+  available_at: string
+}
+
+async function ensureWebhookFanoutJob(event: DomainEventRow) {
+  const destinationKey = 'webhook_fanout_v1'
+  const existing = await supabaseService
+    .from('event_outbox')
+    .select('id')
+    .eq('domain_event_id', event.id)
+    .eq('destination_type', 'webhook')
+    .eq('destination_key', destinationKey)
+    .maybeSingle()
+  if (existing.error) throw existing.error
+  if (existing.data?.id) return String(existing.data.id)
+
+  const { data, error } = await supabaseService
+    .from('event_outbox')
+    .insert({
+      company_id: event.company_id,
+      domain_event_id: event.id,
+      destination_type: 'webhook',
+      destination_key: destinationKey,
+      status: 'queued',
+      attempts: 0,
+      max_attempts: 12,
+      available_at: new Date().toISOString(),
+      payload: { event_type: event.event_type, aggregate_type: event.aggregate_type, aggregate_id: event.aggregate_id },
+    })
+    .select('id')
+    .single()
+  if (error?.code === '23505') return null
+  if (error) throw error
+  return String(data.id)
+}
+
+function fanoutRetryAt(attempts: number) {
+  const seconds = Math.min(3600, Math.max(30, 30 * Math.max(1, attempts) ** 2))
+  return new Date(Date.now() + seconds * 1000).toISOString()
+}
+
+async function recoverStaleWebhookFanoutJobs() {
+  const staleBefore = new Date(Date.now() - 15 * 60_000).toISOString()
+  const now = new Date().toISOString()
+  const { error } = await supabaseService
+    .from('event_outbox')
+    .update({
+      status: 'failed',
+      available_at: now,
+      last_error: 'webhook_fanout_recovered_after_stale_processing_lock',
+      locked_at: null,
+      locked_by: null,
+      updated_at: now,
+    })
+    .eq('destination_type', 'webhook')
+    .eq('destination_key', 'webhook_fanout_v1')
+    .eq('status', 'processing')
+    .lt('locked_at', staleBefore)
+  if (error) throw error
+}
+
+export async function processDomainEventWebhookFanout(input: {
+  eventId?: string | null
+  limit?: number
+} = {}) {
+  const limit = Math.min(Math.max(input.limit ?? 50, 1), 100)
+  await recoverStaleWebhookFanoutJobs()
+  let query = supabaseService
+    .from('event_outbox')
+    .select('id,company_id,domain_event_id,status,attempts,max_attempts,available_at')
+    .eq('destination_type', 'webhook')
+    .eq('destination_key', 'webhook_fanout_v1')
+    .in('status', ['queued', 'failed'])
+    .lte('available_at', new Date().toISOString())
+    .order('created_at', { ascending: true })
+    .limit(limit)
+  if (input.eventId) query = query.eq('domain_event_id', input.eventId)
+  const { data, error } = await query
+  if (error) throw error
+
+  let processed = 0
+  let completed = 0
+  let failed = 0
+  for (const candidate of (data ?? []) as FanoutJobRow[]) {
+    const { data: claimed, error: claimError } = await supabaseService
+      .from('event_outbox')
+      .update({
+        status: 'processing',
+        locked_at: new Date().toISOString(),
+        locked_by: 'webhook_dispatch',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', candidate.id)
+      .in('status', ['queued', 'failed'])
+      .select('id')
+      .maybeSingle()
+    if (claimError) throw claimError
+    if (!claimed?.id) continue
+    processed += 1
+    const attempts = Number(candidate.attempts ?? 0) + 1
+    try {
+      const eventResult = await supabaseService
+        .from('domain_events')
+        .select('*')
+        .eq('id', candidate.domain_event_id)
+        .single()
+      if (eventResult.error) throw eventResult.error
+      const deliveryCount = await enqueueWebhookDeliveriesForEvent(eventResult.data as DomainEventRow, { strict: true })
+      const { error: completeError } = await supabaseService
+        .from('event_outbox')
+        .update({
+          status: 'sent',
+          attempts,
+          sent_at: new Date().toISOString(),
+          last_error: null,
+          locked_at: null,
+          locked_by: null,
+          payload: { delivery_count: deliveryCount },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', candidate.id)
+      if (completeError) throw completeError
+      completed += 1
+    } catch (fanoutError) {
+      const terminal = attempts >= Number(candidate.max_attempts ?? 12)
+      const message = fanoutError instanceof Error ? fanoutError.message : 'webhook_fanout_failed'
+      const { error: failError } = await supabaseService
+        .from('event_outbox')
+        .update({
+          status: terminal ? 'dead_letter' : 'failed',
+          attempts,
+          available_at: terminal ? new Date().toISOString() : fanoutRetryAt(attempts),
+          failed_at: terminal ? new Date().toISOString() : null,
+          last_error: message,
+          locked_at: null,
+          locked_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', candidate.id)
+      if (failError) throw failError
+      failed += 1
+      if (input.eventId) throw fanoutError
+    }
+  }
+  return { processed, completed, failed }
 }
 
 export async function listDomainEventsForCompany(input: {

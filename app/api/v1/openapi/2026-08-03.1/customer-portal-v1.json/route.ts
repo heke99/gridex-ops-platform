@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import customerPortalOpenApi from '@/docs/openapi/customer-portal-v1.json'
+import customerPortalOpenApi from '@/docs/openapi/releases/2026-08-03.1/customer-portal-v1.json'
 import { openApiDocumentResponse } from '@/lib/integrations/openApiResponse'
 
 export const runtime = 'nodejs'

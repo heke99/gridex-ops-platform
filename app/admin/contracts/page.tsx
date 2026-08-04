@@ -22,6 +22,8 @@ import {
   listPlatformCompanies,
 } from "@/lib/tenant/scope";
 import type {
+  ContractChannelReadiness,
+  ContractChannelStatus,
   ContractOfferRow,
   CustomerContractRow,
 } from "@/lib/customer-contracts/types";
@@ -667,6 +669,38 @@ function statusTone(status: string, isActive: boolean): string {
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700 ";
+}
+
+function publicContractChannelStateLabel(
+  status: ContractChannelStatus,
+  availableNow: boolean,
+): string {
+  if (availableNow) return "Publicerat nu";
+  switch (status) {
+    case "active":
+      return "Aktivt men inte tillgängligt nu";
+    case "draft":
+      return "Utkast";
+    case "paused":
+      return "Pausat";
+    case "unpublished":
+      return "Inte publicerat";
+    case "ended":
+      return "Avslutat";
+    case "archived":
+      return "Arkiverat";
+    case "missing":
+    default:
+      return "Saknas";
+  }
+}
+
+function publicContractReadinessBlockers(
+  readiness: ContractChannelReadiness,
+): string[] {
+  return readiness.blockers.map((blocker) =>
+    blocker.message?.trim() || blocker.code,
+  );
 }
 
 function firstSearchValue(value: string | string[] | undefined) {
@@ -1393,13 +1427,55 @@ export default async function AdminContractsPage({
                               <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-700 shadow-sm">
                                 <div className="font-black text-slate-900">Publiceringsläge</div>
                                 <div className="mt-1">
-                                  Internt: {offer.internally_sellable_now ? "Aktivt" : "Pausat"}
+                                   Internt: {publicContractChannelStateLabel(
+                                     offer.internal_channel_status,
+                                     offer.internally_sellable_now,
+                                   )}
                                 </div>
                                 <div>
-                                  Hemsida: {offer.website_available_now ? "Publicerat" : "Inte publicerat"}
+                                   Hemsida: {publicContractChannelStateLabel(
+                                     offer.website_channel_status,
+                                     offer.website_available_now,
+                                   )}
+                                 </div>
+                                 <div>
+                                   API: {publicContractChannelStateLabel(
+                                     offer.api_channel_status,
+                                     offer.api_available_now,
+                                   )}
                                 </div>
+                                 {[
+                                   ...publicContractReadinessBlockers(
+                                     offer.website_readiness,
+                                   ),
+                                   ...publicContractReadinessBlockers(
+                                     offer.api_readiness,
+                                   ),
+                                 ].length > 0 ? (
+                                   <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-900">
+                                     <strong>Blockerare:</strong>
+                                     <ul className="mt-1 grid gap-1">
+                                       {Array.from(
+                                         new Set([
+                                           ...publicContractReadinessBlockers(
+                                             offer.website_readiness,
+                                           ),
+                                           ...publicContractReadinessBlockers(
+                                             offer.api_readiness,
+                                           ),
+                                         ]),
+                                       ).map((blocker) => (
+                                         <li key={blocker}>• {blocker}</li>
+                                       ))}
+                                     </ul>
+                                   </div>
+                                 ) : (
+                                   <p className="mt-3 font-semibold text-emerald-700">
+                                     Inga kanalblockerare.
+                                   </p>
+                                 )}
                                 <p className="mt-2 leading-5 text-slate-500">
-                                  Readiness godkänns när avtalsversionen görs intern. Därefter väljer du endast om samma låsta version även ska publiceras på hemsidan.
+                                   Readiness godkänns när avtalsversionen görs intern. Därefter styrs hemsida och API separat mot samma låsta version.
                                 </p>
                               </div>
                               <form

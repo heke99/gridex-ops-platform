@@ -180,10 +180,10 @@ describe('public contract publication graph repair', () => {
   })
 
   it('shows canonical website and API channel states and blockers in admin', () => {
-    expect(adminContractsPage).toContain(
-      'canonical_public_contract_diagnostics_v',
-    )
     expect(adminContractsPage).toContain('publicContractChannelStateLabel')
+    expect(adminContractsPage).toContain('offer.website_readiness')
+    expect(adminContractsPage).toContain('offer.api_readiness')
+    expect(adminContractsPage).toContain('offer.api_channel_status')
     expect(adminContractsPage).toContain('Blockerare:')
   })
 

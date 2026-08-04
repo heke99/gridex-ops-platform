@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateIntegrationApiToken } from '@/lib/integrations/apiClientSecrets'
 import { API_CLIENT_PROFILES } from '@/lib/integrations/apiClientProfiles'
-import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import {
   listPublicContractOffers,
   publicContractResponse,
@@ -10,6 +9,7 @@ import {
 import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publicationDto'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { reconcileTenantWebsiteCapabilities, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
 
 export type TenantWebsiteEnvironment = 'development' | 'staging' | 'production'
 
@@ -21,6 +21,12 @@ export type TenantWebsiteProvisioningInput = {
   environment?: TenantWebsiteEnvironment
   clientName?: string
   rateLimitPerMinute?: number
+  customerPortalUrl: string
+  webhook?: {
+    endpointUrl: string
+    eventTypes: string[]
+    signingSecretRef?: string | null
+  } | null
 }
 
 export type TenantWebsiteProvisioningResult = {
@@ -28,7 +34,8 @@ export type TenantWebsiteProvisioningResult = {
   apiClientId: string
   tenantReference: string
   environment: TenantWebsiteEnvironment
-  state: 'completed'
+  state: 'completed' | 'blocked'
+  launchReady: boolean
   reusedExistingClient: boolean
   credential: {
     token: string
@@ -36,6 +43,10 @@ export type TenantWebsiteProvisioningResult = {
   } | null
   contractSchemaVersion: string
   visibleContractCount: number
+  portalUrl: string
+  webhookSubscriptionId: string | null
+  readinessBlockers: TenantWebsiteReadinessBlocker[]
+  readinessWarnings: TenantWebsiteReadinessBlocker[]
   receiptId: string
 }
 
@@ -94,6 +105,143 @@ export function normalizeTenantWebsiteOrigins(values: string[]): string[] {
   return Array.from(new Set(normalized)).sort()
 }
 
+function normalizePortalUrl(value: string): string {
+  const input = value.trim()
+  if (!input) {
+    throw new TenantWebsiteProvisioningError(
+      'CUSTOMER_PORTAL_URL_REQUIRED',
+      'Tenantens HTTPS-adress till Mina sidor krävs.',
+    )
+  }
+  let parsed: URL
+  try {
+    parsed = new URL(input)
+  } catch {
+    throw new TenantWebsiteProvisioningError(
+      'CUSTOMER_PORTAL_URL_INVALID',
+      'Tenantens Mina sidor-adress är ogiltig.',
+    )
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash) {
+    throw new TenantWebsiteProvisioningError(
+      'CUSTOMER_PORTAL_URL_HTTPS_REQUIRED',
+      'Tenantens Mina sidor-adress måste vara en ren HTTPS-adress.',
+    )
+  }
+  return parsed.toString()
+}
+
+function normalizeWebhookUrl(value: string): string {
+  const input = value.trim()
+  let parsed: URL
+  try {
+    parsed = new URL(input)
+  } catch {
+    throw new TenantWebsiteProvisioningError('WEBHOOK_URL_INVALID', 'Webhook-adressen är ogiltig.')
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash) {
+    throw new TenantWebsiteProvisioningError('WEBHOOK_URL_HTTPS_REQUIRED', 'Webhook-adressen måste använda HTTPS.')
+  }
+  return parsed.toString()
+}
+
+async function storeTenantPortalUrl(input: {
+  companyId: string
+  portalUrl: string
+  actorUserId: string
+}) {
+  const now = new Date().toISOString()
+  const { data: company, error: loadError } = await supabaseService
+    .from('companies')
+    .select('branding')
+    .eq('id', input.companyId)
+    .maybeSingle()
+  if (loadError) throw loadError
+  const branding = company?.branding && typeof company.branding === 'object' && !Array.isArray(company.branding)
+    ? company.branding as Record<string, unknown>
+    : {}
+  const primary = await supabaseService
+    .from('companies')
+    .update({
+      customer_portal_url: input.portalUrl,
+      branding: { ...branding, customer_portal_url: input.portalUrl },
+      updated_by: input.actorUserId,
+      updated_at: now,
+    })
+    .eq('id', input.companyId)
+  if (!primary.error) return
+  if (['42703', 'PGRST204'].includes(primary.error.code ?? '')) {
+    throw new TenantWebsiteProvisioningError(
+      'TENANT_WEBSITE_SCHEMA_NOT_READY',
+      'Databasen saknar companies.customer_portal_url. Kör den senaste migrationen innan tenantintegrationen provisioneras.',
+    )
+  }
+  throw primary.error
+}
+
+async function ensureTenantWebhook(input: {
+  companyId: string
+  apiClientId: string
+  actorUserId: string
+  clientName: string
+  webhook: TenantWebsiteProvisioningInput['webhook']
+  receiptId: string
+}): Promise<string | null> {
+  if (!input.webhook) return null
+  const endpointUrl = normalizeWebhookUrl(input.webhook.endpointUrl)
+  const eventTypes = Array.from(new Set(input.webhook.eventTypes.map((value) => value.trim()).filter(Boolean))).sort()
+  if (eventTypes.length === 0) {
+    throw new TenantWebsiteProvisioningError('WEBHOOK_EVENT_TYPES_REQUIRED', 'Minst en webhook-eventtyp krävs.', input.receiptId)
+  }
+  const { data: existing, error: existingError } = await supabaseService
+    .from('webhook_subscriptions')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('api_client_id', input.apiClientId)
+    .eq('endpoint_url', endpointUrl)
+    .neq('status', 'revoked')
+    .maybeSingle()
+  if (existingError) throw existingError
+  if (existing?.id) {
+    const { error } = await supabaseService
+      .from('webhook_subscriptions')
+      .update({
+        event_types: eventTypes,
+        status: 'active',
+        signing_secret_ref: input.webhook.signingSecretRef?.trim() || null,
+        updated_by: input.actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .eq('company_id', input.companyId)
+    if (error) throw error
+    return String(existing.id)
+  }
+  const { data, error } = await supabaseService
+    .from('webhook_subscriptions')
+    .insert({
+      company_id: input.companyId,
+      api_client_id: input.apiClientId,
+      name: `${input.clientName} · webhook`,
+      endpoint_url: endpointUrl,
+      event_types: eventTypes,
+      status: 'active',
+      signing_secret_ref: input.webhook.signingSecretRef?.trim() || null,
+      description: `Webhook skapad tillsammans med tenantens canonical webbprovisionering.`,
+      created_by: input.actorUserId,
+      updated_by: input.actorUserId,
+      metadata: {
+        created_from: 'canonical_tenant_website_provisioning',
+        provisioning_receipt_id: input.receiptId,
+        api_client_id: input.apiClientId,
+      },
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  return String(data.id)
+}
+
 function canonicalReceiptHash(input: Record<string, unknown>): string {
   const canonical = JSON.stringify(
     Object.fromEntries(Object.entries(input).sort(([a], [b]) => a.localeCompare(b))),
@@ -134,6 +282,7 @@ export async function provisionTenantWebsiteIntegration(
 ): Promise<TenantWebsiteProvisioningResult> {
   const environment = input.environment ?? 'production'
   const origins = normalizeTenantWebsiteOrigins(input.allowedOrigins)
+  const portalUrl = normalizePortalUrl(input.customerPortalUrl)
   if (origins.length === 0) {
     throw new TenantWebsiteProvisioningError(
       'ALLOWED_ORIGIN_REQUIRED',
@@ -147,6 +296,15 @@ export async function provisionTenantWebsiteIntegration(
       'A stable provisioning idempotency key is required.',
     )
   }
+
+  // Fail before creating a credential when the canonical tenant portal schema
+  // is missing. Persisting the URL first is harmless if the later RPC fails,
+  // while creating a one-time token before this check could orphan the secret.
+  await storeTenantPortalUrl({
+    companyId: input.companyId,
+    portalUrl,
+    actorUserId: input.actorUserId,
+  })
 
   const generated = generateIntegrationApiToken()
   const profile = API_CLIENT_PROFILES.tenant_website
@@ -183,28 +341,59 @@ export async function provisionTenantWebsiteIntegration(
     )
   }
 
+  let credential = row.client_created
+    ? { token: generated.token, keyPrefix: generated.keyPrefix }
+    : null
+
   try {
+    // A normal caught failure marks the receipt failed. Retrying that exact
+    // receipt rotates the unrevealed one-time secret so the integration can be
+    // recovered without deleting or duplicating the tenant API client.
+    if (!row.client_created && row.installation_state === 'failed') {
+      const rotateResult = await supabaseService
+        .from('integration_api_clients')
+        .update({
+          key_prefix: generated.keyPrefix,
+          secret_hash: generated.secretHash,
+          launch_ready: false,
+          launch_blockers: [{ code: 'provisioning_retry_in_progress' }],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.api_client_id)
+        .eq('company_id', input.companyId)
+      if (rotateResult.error) throw rotateResult.error
+      credential = { token: generated.token, keyPrefix: generated.keyPrefix }
+    }
+
     const client = await loadClient(row.api_client_id)
-    const tenant = await loadExternalTenantContext(client)
-    if (tenant.tenant_reference !== row.tenant_reference) {
+    const webhookSubscriptionId = await ensureTenantWebhook({
+      companyId: input.companyId,
+      apiClientId: row.api_client_id,
+      actorUserId: input.actorUserId,
+      clientName: input.clientName?.trim() || 'Tenant website integration',
+      webhook: input.webhook ?? null,
+      receiptId: row.receipt_id,
+    })
+    if (client.company_id !== input.companyId) {
       throw new TenantWebsiteProvisioningError(
-        'TENANT_REFERENCE_MISMATCH',
-        'Integration context returned a different tenant reference.',
+        'TENANT_CONTEXT_MISMATCH',
+        'Den provisionerade API-klienten tillhör inte vald tenant.',
         row.receipt_id,
       )
     }
-    if (tenant.contract_version !== WEBSITE_INTEGRATION_CONTRACT_VERSION) {
+    const tenantReference = row.tenant_reference.trim()
+    if (!tenantReference) {
       throw new TenantWebsiteProvisioningError(
-        'CONTRACT_SCHEMA_VERSION_MISMATCH',
-        'Integration context returned a different contract schema version.',
+        'TENANT_REFERENCE_MISSING',
+        'Tenantens externa referens saknas efter provisionering.',
         row.receipt_id,
       )
     }
 
     await updateReceipt(row.receipt_id, {
       state: 'preflight_passed',
-      tenant_reference: tenant.tenant_reference,
-      contract_schema_version: tenant.contract_version,
+      tenant_reference: tenantReference,
+      contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
       readiness_blockers: [],
       failure_code: null,
       failure_message: null,
@@ -218,31 +407,43 @@ export async function provisionTenantWebsiteIntegration(
         companyId: input.companyId,
       }),
     )
+    const readiness = await reconcileTenantWebsiteCapabilities({
+      companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      client,
+    })
+    const launchReady = readiness.complete_tenant_website_ready
+    const state: TenantWebsiteProvisioningResult['state'] = launchReady ? 'completed' : 'blocked'
     const receiptHash = canonicalReceiptHash({
       company_id: input.companyId,
       api_client_id: row.api_client_id,
-      tenant_reference: tenant.tenant_reference,
+      tenant_reference: tenantReference,
       environment,
-      contract_schema_version: tenant.contract_version,
+      contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
       allowed_origins: origins,
       scopes: [...profile.defaultScopes].sort(),
       visible_contract_count: contracts.length,
-      state: 'completed',
+      portal_url: portalUrl,
+      webhook_subscription_id: webhookSubscriptionId,
+      readiness_blockers: readiness.blockers.map((blocker) => blocker.code).sort(),
+      state,
     })
 
     await updateReceipt(row.receipt_id, {
-      state: 'completed',
-      completed_at: new Date().toISOString(),
+      state,
+      completed_at: launchReady ? new Date().toISOString() : null,
       receipt_sha256: receiptHash,
-      readiness_blockers: [],
-      failure_code: null,
-      failure_message: null,
+      readiness_blockers: readiness.blockers,
+      failure_code: launchReady ? null : 'TENANT_WEBSITE_READINESS_BLOCKED',
+      failure_message: launchReady
+        ? null
+        : readiness.blockers.map((blocker) => blocker.message).join(' ').slice(0, 500),
     })
     const { error: clientReadyError } = await supabaseService
       .from('integration_api_clients')
       .update({
-        launch_ready: true,
-        launch_blockers: [],
+        launch_ready: launchReady,
+        launch_blockers: readiness.blockers,
         updated_at: new Date().toISOString(),
       })
       .eq('id', row.api_client_id)
@@ -251,15 +452,18 @@ export async function provisionTenantWebsiteIntegration(
     return {
       companyId: input.companyId,
       apiClientId: row.api_client_id,
-      tenantReference: tenant.tenant_reference,
+      tenantReference,
       environment,
-      state: 'completed',
+      state,
+      launchReady,
       reusedExistingClient: !row.client_created,
-      credential: row.client_created
-        ? { token: generated.token, keyPrefix: generated.keyPrefix }
-        : null,
-      contractSchemaVersion: tenant.contract_version,
+      credential,
+      contractSchemaVersion: WEBSITE_INTEGRATION_CONTRACT_VERSION,
       visibleContractCount: contracts.length,
+      portalUrl,
+      webhookSubscriptionId,
+      readinessBlockers: readiness.blockers,
+      readinessWarnings: readiness.warnings,
       receiptId: row.receipt_id,
     }
   } catch (cause) {
@@ -276,7 +480,7 @@ export async function provisionTenantWebsiteIntegration(
       failure_message: message.slice(0, 500),
       readiness_blockers: [{ code }],
     }).catch(() => undefined)
-    await supabaseService
+    const clientFailureResult = await supabaseService
       .from('integration_api_clients')
       .update({
         launch_ready: false,
@@ -284,7 +488,15 @@ export async function provisionTenantWebsiteIntegration(
         updated_at: new Date().toISOString(),
       })
       .eq('id', row.api_client_id)
-      .then(() => undefined)
+      .eq('company_id', input.companyId)
+    if (clientFailureResult.error) {
+      console.error('[tenant-website-provisioning] failed to persist client blocker', {
+        clientId: row.api_client_id,
+        companyId: input.companyId,
+        originalCode: code,
+        persistenceError: clientFailureResult.error,
+      })
+    }
     throw cause
   }
 }

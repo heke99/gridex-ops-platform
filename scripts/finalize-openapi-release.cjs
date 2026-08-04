@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-03.1'
+const version = '2026-08-04.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-03.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-04.1.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -291,6 +291,8 @@ application.required = Array.from(new Set([
   'invoice_delivery_method',
   'selected_component_references',
   'site_count',
+  'auth_user_id',
+  'customer_portal_user_id',
 ]))
 application.dependentRequired = {
   ...(application.dependentRequired ?? {}),
@@ -1799,7 +1801,7 @@ portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
   portal.paths['/api/v1/customer/move-out'].post.responses['200']
 
 
-// Runtime/OpenAPI hardening for release 2026-08-03.1. These overrides are
+// Runtime/OpenAPI hardening for release 2026-08-04.1. These overrides are
 // deliberately placed after legacy schema construction so the public contract
 // has one source of truth even while deprecated components remain resolvable.
 for (const document of [website, portal]) {
@@ -1991,6 +1993,10 @@ setResponse(
   'post',
   '200',
 )
+if (website.paths['/api/v1/website/customer-applications']?.post) {
+  website.paths['/api/v1/website/customer-applications'].post.description =
+    'Scope: website_applications.write. Idempotency-Key krävs. Tenant härleds enbart från API-nyckeln. auth_user_id och customer_portal_user_id krävs som samma verifierade UUID. OPS committar canonical kund, kundnummer, site/mätpunkt, avtal, juridik, portalidentitet, workflow och ett beständigt customer_application_continuation-jobb. status=accepted betyder att denna beständiga commit är klar; e-post, anläggningsuppslag, leverantörsbyte och webhooks fortsätter asynkront och följs via statusendpointen.'
+}
 if (website.paths['/api/v1/website/customer-applications/{application_id}']) {
   website.paths['/api/v1/website/customer-applications/{application_number}'] =
     website.paths['/api/v1/website/customer-applications/{application_id}']
@@ -2007,24 +2013,40 @@ if (applicationStatusPath?.get) {
     return parameter
   })
 }
-if (website.components.schemas.CustomerApplicationStatus) {
-  website.components.schemas.CustomerApplicationStatus = closedObject({
-    application_number: string,
-    status: { type: 'string', enum: ['processing', 'accepted', 'needs_customer_information', 'rejected', 'failed', 'completed'] },
-    stage: string,
-    customer_number: nullableString,
-    contract_status: nullableString,
-    supplier_switch_status: string,
-    supply_status: nullableString,
-    requested_start_date: nullableString,
-    confirmed_start_date: nullableString,
-    missing_customer_action: { type: 'boolean' },
-    next_step: nullableString,
-    blocking_reason: nullableString,
-    updated_at: nullableString,
-  }, ['application_number', 'status', 'stage', 'supplier_switch_status', 'missing_customer_action'])
-}
-website.components.schemas.WebsiteCustomerApplicationStatusData = closedObject({
+const applicationAutomationStatus = closedObject({
+  status: string,
+  attempts: { type: 'integer', minimum: 0 },
+  max_attempts: { type: 'integer', minimum: 0 },
+  next_retry_at: nullableString,
+  completed_at: nullableString,
+  last_error: nullableString,
+}, ['status', 'attempts', 'max_attempts'])
+const applicationCommunicationEntry = closedObject({
+  event_type: nullableString,
+  status: string,
+  occurred_at: nullableString,
+  message: nullableString,
+}, ['event_type', 'status'])
+const applicationCommunicationStatus = closedObject({
+  pending: { type: 'boolean' },
+  source_of_truth: { type: 'string', const: 'communication_logs' },
+  triggered: { type: 'array', items: applicationCommunicationEntry },
+  queued: { type: 'array', items: applicationCommunicationEntry },
+  sent: { type: 'array', items: applicationCommunicationEntry },
+  failed: { type: 'array', items: applicationCommunicationEntry },
+}, ['pending', 'source_of_truth', 'triggered', 'queued', 'sent', 'failed'])
+const applicationWebhookStatus = closedObject({
+  status: { type: 'string', enum: ['not_triggered', 'not_configured', 'pending', 'sent', 'failed'] },
+  fanout_status: { type: 'string', enum: ['not_started', 'pending', 'completed', 'failed'] },
+  queued: { type: 'integer', minimum: 0 },
+  sent: { type: 'integer', minimum: 0 },
+  failed: { type: 'integer', minimum: 0 },
+  attempts: { type: 'integer', minimum: 0 },
+  next_retry_at: nullableString,
+  last_error: nullableString,
+  updated_at: nullableString,
+}, ['status', 'fanout_status', 'queued', 'sent', 'failed', 'attempts'])
+const canonicalApplicationStatusProperties = {
   application_number: string,
   status: { type: 'string', enum: ['processing', 'accepted', 'needs_customer_information', 'rejected', 'failed', 'completed'] },
   stage: string,
@@ -2037,8 +2059,25 @@ website.components.schemas.WebsiteCustomerApplicationStatusData = closedObject({
   missing_customer_action: { type: 'boolean' },
   next_step: nullableString,
   blocking_reason: nullableString,
+  automation: applicationAutomationStatus,
+  communication: applicationCommunicationStatus,
+  webhook: applicationWebhookStatus,
   updated_at: nullableString,
-}, ['application_number', 'status', 'stage', 'supplier_switch_status', 'missing_customer_action'])
+}
+const canonicalApplicationStatusRequired = [
+  'application_number', 'status', 'stage', 'supplier_switch_status',
+  'missing_customer_action', 'automation', 'communication', 'webhook',
+]
+if (website.components.schemas.CustomerApplicationStatus) {
+  website.components.schemas.CustomerApplicationStatus = closedObject(
+    canonicalApplicationStatusProperties,
+    canonicalApplicationStatusRequired,
+  )
+}
+website.components.schemas.WebsiteCustomerApplicationStatusData = closedObject(
+  canonicalApplicationStatusProperties,
+  canonicalApplicationStatusRequired,
+)
 if (applicationStatusPath?.get) {
   setResponse(
     website,

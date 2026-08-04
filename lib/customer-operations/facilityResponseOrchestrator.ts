@@ -79,8 +79,6 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         facility_request_id: input.requestId,
         supplier_switch_request_id: supplierSwitchResult?.supplierSwitchRequestId ?? null,
       },
-    }).catch((error) => {
-      console.warn('[facility-response-orchestrator] workflow transition skipped', error)
     })
 
     await emitCustomerProcessEvent({

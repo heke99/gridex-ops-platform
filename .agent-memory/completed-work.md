@@ -217,3 +217,15 @@ Status: VERIFIED LOCALLY
 - Added atomic `WEBSITE_APPLICATION_COMMITTED` audit/domain/outbox projection.
 - Verified clean Node 22 install, all TypeScript targets, 417 tests, hardening regressions, migration integrity and full production build.
 - Transaction-compiled both changed migrations against the connected development schema and confirmed rollback left no objects.
+
+## 2026-08-04 — PHASE-42 canonical multitenant website application flow
+
+- Unified tenant website readiness and enforced operation policy before intake.
+- Completed fail-closed portal ownership, tenant portal URL and resumable application flow.
+- Corrected exact status lineage and real job/email/webhook projection.
+- Added terminal continuation safety in worker/database and durable webhook fan-out.
+- Added canonical `customer_application.status_changed` and `supplier_switch.updated` events.
+- Published immutable OpenAPI/docs `2026-08-04.1`.
+- Added forward migration, safe ledger classifier, postflight and sync script.
+- Verified migration/API/multitenant/onboarding/contract/market regressions and changed-file TypeScript syntax.
+- Preserved honest pending state for database apply, deployment, full npm build and two-tenant E2E.

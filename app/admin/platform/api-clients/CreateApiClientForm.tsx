@@ -37,6 +37,22 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
       {state.message ? (
         <div className={`mt-5 rounded-2xl border p-4 text-sm ${state.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-800'}`}>
           <p className="font-semibold">{state.message}</p>
+          {state.readinessBlockers?.length ? (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-800">Blockerar lansering</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-red-800">
+                {state.readinessBlockers.map((blocker: string) => <li key={blocker}>{blocker}</li>)}
+              </ul>
+            </div>
+          ) : null}
+          {state.readinessWarnings?.length ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">Varningar</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-amber-800">
+                {state.readinessWarnings.map((warning: string) => <li key={warning}>{warning}</li>)}
+              </ul>
+            </div>
+          ) : null}
           {state.token ? (
             <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Token · visas bara en gång</p>
@@ -63,7 +79,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
         <div className="grid gap-5 lg:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-sm font-semibold text-slate-800">Namn</span>
-            <input name="name" defaultValue="Gridex hemsida · Mina sidor" required className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+            <input name="name" defaultValue="Hemsida · Mina sidor" required className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
           </label>
 
           <label className="grid gap-2">
@@ -72,7 +88,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
           </label>
         </div>
 
-        <input type="hidden" name="frontendApp" value="Gridex hemsida" />
+        <input type="hidden" name="frontendApp" value="Tenantens hemsida" />
         <input type="hidden" name="intendedUse" value="gridex_customer_portal" />
 
         <fieldset className="rounded-3xl border border-slate-200 p-4">
@@ -99,6 +115,18 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
             ))}
           </div>
         </fieldset>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-semibold text-slate-800">Mina sidor URL</span>
+          <input
+            name="customerPortalUrl"
+            type="url"
+            required
+            placeholder="https://tenant.example/mina-sidor"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+          />
+          <span className="text-xs text-slate-500">Obligatorisk tenantunik HTTPS-adress. Kundmail får aldrig falla tillbaka till OPS-adminens inloggning.</span>
+        </label>
 
         <div className="grid gap-5 lg:grid-cols-2">
           <label className="grid gap-2">

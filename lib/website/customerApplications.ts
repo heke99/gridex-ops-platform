@@ -39,7 +39,6 @@ import {
   recordFacilityDataIssue,
   type FacilityBusinessErrorCode,
 } from "@/lib/energy/facilityDataErrors";
-import { getBaseAppUrl } from "@/lib/auth/urls";
 import { ensureCustomerPortalUserLink } from "@/lib/customer-portal/customerResolver";
 import {
   applyCustomerSiteAddressCandidate,
@@ -4339,9 +4338,13 @@ function eventVariables(input: {
   };
 }
 
-function safePortalUrl(): string | null {
+function strictPortalUrl(value: unknown): string | null {
+  const text = clean(value);
+  if (!text) return null;
   try {
-    return `${getBaseAppUrl()}/login`;
+    const parsed = new URL(text);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash) return null;
+    return parsed.toString();
   } catch {
     return null;
   }
@@ -4368,12 +4371,21 @@ async function companyEmailContext(
   snapshot: Record<string, unknown>;
   snapshotSha256: string;
 }> {
-  const { data, error } = await supabaseService
+  const primaryCompanyResult = await supabaseService
     .from("companies")
-    .select("name,support_email,primary_contact_email,phone,website,branding")
+    .select("name,support_email,primary_contact_email,phone,website,branding,customer_portal_url")
     .eq("id", companyId)
     .maybeSingle();
-  if (error) throw error;
+  const companyResult =
+    primaryCompanyResult.error && missingSchema(primaryCompanyResult.error)
+      ? await supabaseService
+          .from("companies")
+          .select("name,support_email,primary_contact_email,phone,website,branding")
+          .eq("id", companyId)
+          .maybeSingle()
+      : primaryCompanyResult;
+  if (companyResult.error) throw companyResult.error;
+  const data = companyResult.data as (Record<string, unknown> & { branding?: unknown }) | null;
 
   const [settingsResult, profileResult, contractSnapshotResult] =
     await Promise.all([
@@ -4532,9 +4544,8 @@ async function companyEmailContext(
       clean(data?.support_email) ??
       supportEmail,
     portalUrl:
-      clean(branding.customer_portal_url) ??
-      clean(branding.website_url) ??
-      safePortalUrl(),
+      strictPortalUrl(data?.customer_portal_url) ??
+      strictPortalUrl(branding.customer_portal_url),
     legalFooter: clean(snapshot.legal_footer),
     snapshot,
     snapshotSha256:
@@ -4551,6 +4562,24 @@ type WebsiteEmailDispatchResult = {
   dispatch_status: "sent" | "queued" | "skipped" | "failed";
   result: unknown;
 };
+
+function communicationStatusSnapshot(input: {
+  events: string[];
+  results: WebsiteEmailDispatchResult[];
+}) {
+  const items = input.results.map((item) => ({
+    event_type: item.eventKey,
+    status: item.dispatch_status,
+  }));
+  return {
+    pending: items.some((item) => item.status === "queued"),
+    source_of_truth: "communication_logs",
+    triggered: items,
+    queued: items.filter((item) => item.status === "queued"),
+    sent: items.filter((item) => item.status === "sent"),
+    failed: items.filter((item) => item.status === "failed"),
+  };
+}
 
 async function dispatchInitialWebsiteApplicationEmails(input: {
   companyId: string;
@@ -5427,6 +5456,7 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     source:
       clean((input.payload as { source?: unknown }).source) ??
       "external_website",
+    portal_identity_required: true,
     status: input.status,
     idempotency_key: input.idempotencyKey ?? null,
     payload_hash: input.payloadHash ?? applicationPayloadHash(input.payload),
@@ -5490,7 +5520,7 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     .select("id")
     .single();
 
-  if (error && !missingSchema(error)) {
+  if (error) {
     if (duplicateIdempotencyKey(error) && input.idempotencyKey) {
       const winner = await loadIdempotentApplication(
         input.client.company_id,
@@ -5505,66 +5535,28 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
         return { id: winner.id };
       }
     }
+    if (missingSchema(error)) {
+      throw new WebsiteApplicationError({
+        message:
+          "Kundansökan kunde inte loggas eftersom website_customer_applications-schemat inte matchar koden. Kör den senaste canonical migrationen innan webbintaget aktiveras.",
+        status: 503,
+        code: "website_application_schema_mismatch",
+        stage: "application_record_create",
+        details: error,
+      });
+    }
     throw error;
   }
-  if (data) {
-    const created = data as { id: string };
-    await syncExternalContractIntakeRow({
-      ...input,
-      applicationId: created.id,
+  if (!data?.id) {
+    throw new WebsiteApplicationError({
+      message: "Kundansökan sparades inte trots att databasen inte rapporterade ett fel.",
+      status: 500,
+      code: "website_application_record_missing",
+      stage: "application_record_create",
     });
-    return created;
   }
 
-  const fallback = await supabaseService
-    .from("website_customer_applications")
-    .insert({
-      company_id: input.client.company_id,
-      api_client_id: input.client.id,
-      customer_id: input.customer?.id ?? null,
-      external_customer_id: input.externalCustomerId,
-      customer_number: input.customer?.customer_number ?? null,
-      source:
-        clean((input.payload as { source?: unknown }).source) ??
-        "external_website",
-      status: input.status,
-      idempotency_key: input.idempotencyKey ?? null,
-      payload_hash: input.payloadHash ?? applicationPayloadHash(input.payload),
-      business_key_hash: input.businessKeyHash ?? null,
-      payload: input.payload,
-      response_payload: input.responsePayload,
-      warnings: input.warnings ?? [],
-    })
-    .select("id")
-    .single();
-  if (fallback.error && !missingSchema(fallback.error)) {
-    if (duplicateIdempotencyKey(fallback.error) && input.idempotencyKey) {
-      const winner = await loadIdempotentApplication(
-        input.client.company_id,
-        input.idempotencyKey,
-      );
-      if (winner) {
-        const expectedHash =
-          input.payloadHash ?? applicationPayloadHash(input.payload);
-        const winnerPayloadHash = storedApplicationPayloadHash(winner);
-        if (winnerPayloadHash && winnerPayloadHash !== expectedHash)
-          throw idempotencyPayloadMismatchError(winner, expectedHash);
-        return { id: winner.id };
-      }
-    }
-    throw fallback.error;
-  }
-  if (fallback.error && missingSchema(fallback.error)) {
-    throw new WebsiteApplicationError({
-      message:
-        "Kundansökan kunde inte loggas eftersom website_customer_applications-schemat inte matchar koden.",
-      status: 500,
-      code: "website_application_schema_mismatch",
-      stage: "application_record_create",
-      details: fallback.error,
-    });
-  }
-  const created = fallback.data as { id: string };
+  const created = data as { id: string };
   await syncExternalContractIntakeRow({ ...input, applicationId: created.id });
   return created;
 }
@@ -5865,6 +5857,118 @@ async function releaseRetryableFailedIdempotency(input: {
 
   if (error) throw error;
   return releasedKey;
+}
+
+async function resumeCommittedIdempotentApplication(input: {
+  client: IntegrationApiClient;
+  existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>;
+  body: ApplicationInput;
+  externalCustomerId: string;
+}) {
+  const response = input.existing.response_payload ?? {};
+  const customerId = input.existing.customer_id ?? clean(response.customer_id);
+  const customerNumber = input.existing.customer_number ?? clean(response.customer_number);
+  const siteId = input.existing.customer_site_id ?? clean(response.customer_site_id);
+  const meteringPointId = input.existing.metering_point_id ?? clean(response.metering_point_id);
+  const contractId = input.existing.contract_id ?? clean(response.contract_id);
+  const portalUserId = clean(input.body.customer_portal_user_id) ?? clean(input.body.auth_user_id);
+  if (!customerId || !customerNumber || !contractId || !portalUserId) return null;
+  if (expectsSiteOrMetering(input.body) && !siteId) return null;
+
+  const identity = await upsertPortalIdentity({
+    client: input.client,
+    customerId,
+    externalCustomerId: input.externalCustomerId,
+    externalAccountId: portalUserId,
+    authUserId: portalUserId,
+    customerPortalUserId: portalUserId,
+    customerNumber,
+    email: normalizedEmail(input.body.customer.email),
+    applicationId: input.existing.id,
+  });
+  const portalLink = await ensureCustomerPortalUserLink({
+    client: input.client,
+    customerId,
+    userId: portalUserId,
+    email: normalizedEmail(input.body.customer.email),
+    externalCustomerId: input.externalCustomerId,
+    customerNumber,
+    identityId: identity.id,
+    matchMethod: "website_application_idempotent_resume",
+  });
+  if (!portalLink?.accountId || !portalLink.identityId) {
+    throw new Error("customer_portal_link_not_ready_for_resume");
+  }
+
+  const workflow = await commitApplicationProvisioning({
+    companyId: input.client.company_id,
+    applicationId: input.existing.id,
+    customerId,
+    siteId,
+    meteringPointId,
+    contractId,
+    powerOfAttorneyId: clean(response.power_of_attorney_id),
+    desiredState:
+      response.can_start_switch === true
+        ? "ready_for_switch"
+        : siteId
+          ? "pending_customer_data"
+          : "pending_review",
+    snapshot: {
+      resumed_from_failed_or_partial: true,
+      resumed_at: new Date().toISOString(),
+      external_customer_id: input.externalCustomerId,
+      customer_number: customerNumber,
+      previous_error_stage: input.existing.error_stage ?? null,
+      previous_error_code: input.existing.error_code ?? null,
+      previous_response_payload: response,
+    },
+  });
+  if (!workflow.continuationJobId) {
+    throw new Error("customer_application_continuation_not_created_on_resume");
+  }
+
+  const resumedPayload = {
+    ...response,
+    application_id: input.existing.id,
+    customer_id: customerId,
+    customer_number: customerNumber,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
+    contract_id: contractId,
+    portal_identity_id: portalLink.identityId,
+    workflow_id: workflow.workflowId,
+    continuation_job_id: workflow.continuationJobId,
+    workflow_state: "canonical_data_committed",
+    status: "accepted",
+    next_step: "automatic_processing",
+    idempotent: true,
+    resumed: true,
+    communication: {
+      triggered: [],
+      queued: [],
+      sent: [],
+      failed: [],
+      pending: true,
+      source_of_truth: "communication_logs",
+    },
+  };
+  const { error } = await supabaseService
+    .from("website_customer_applications")
+    .update({
+      status: "processing",
+      response_payload: resumedPayload,
+      error_stage: null,
+      error_code: null,
+      error_message: null,
+      next_step: "automatic_processing",
+      processed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.existing.id)
+    .eq("company_id", input.client.company_id);
+  if (error) throw error;
+  return resumedPayload;
 }
 
 function idempotencyPayloadMismatchError(
@@ -6865,18 +6969,28 @@ export async function processWebsiteCustomerApplication(input: {
   }
   const authUserId = clean(body.auth_user_id);
   const customerPortalUserId = clean(body.customer_portal_user_id);
+  if (!authUserId || !customerPortalUserId) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "auth_user_id och customer_portal_user_id krävs och ska komma från samma verifierade serversession i tenantens Mina sidor.",
+        status: 422,
+        code: "portal_auth_identity_required",
+        field: "customer_portal_user_id",
+        stage: "validation",
+        hint: "Skapa eller verifiera användaren i tenantens egen auth innan webbansökan skickas.",
+      }),
+    );
+  }
   if (
-    Boolean(authUserId) !== Boolean(customerPortalUserId) ||
-    (authUserId &&
-      customerPortalUserId &&
-      (authUserId !== customerPortalUserId ||
-        !isUuid(authUserId) ||
-        !isUuid(customerPortalUserId)))
+    authUserId !== customerPortalUserId ||
+    !isUuid(authUserId) ||
+    !isUuid(customerPortalUserId)
   ) {
     return failureResponse(
       new WebsiteApplicationError({
         message:
-          "auth_user_id och customer_portal_user_id ska antingen båda utelämnas eller vara samma UUID från den verifierade serversessionen.",
+          "auth_user_id och customer_portal_user_id måste vara samma UUID från den verifierade serversessionen.",
         status: 422,
         code: "portal_auth_identity_mismatch",
         field: "customer_portal_user_id",
@@ -6998,6 +7112,18 @@ export async function processWebsiteCustomerApplication(input: {
         return failureResponse(
           idempotencyPayloadMismatchError(existingIdempotent, payloadHash),
         );
+      }
+      if (isFailedIdempotentApplication(existingIdempotent, body)) {
+        applicationRowId = existingIdempotent.id;
+        const resumed = await stage("application_workflow", () =>
+          resumeCommittedIdempotentApplication({
+            client: input.client,
+            existing: existingIdempotent,
+            body,
+            externalCustomerId,
+          }),
+        );
+        if (resumed) return successResponse(resumed, existingIdempotent.warnings ?? []);
       }
       if (existingIdempotent.status === "processing") {
         return failureResponse(
@@ -7650,19 +7776,36 @@ export async function processWebsiteCustomerApplication(input: {
       clean(body.auth_user_id) ??
       clean(body.web_auth_user_id) ??
       clean(body.external_account_id);
-    if (portalUserId) {
-      await stage("portal_user_link", () =>
-        ensureCustomerPortalUserLink({
-          client: input.client,
-          customerId: resolvedCustomerResult.customer.id,
-          userId: portalUserId,
-          email: normalizedEmail(body.customer.email),
-          externalCustomerId,
-          customerNumber,
-          identityId: identity.id,
-          matchMethod: "website_application_auth_user",
-        }),
-      );
+    if (!portalUserId) {
+      throw new WebsiteApplicationError({
+        message: "Mina sidor-identiteten saknas efter validering.",
+        status: 500,
+        code: "portal_auth_identity_missing_after_validation",
+        stage: "portal_user_link",
+        details: { retryable: false },
+      });
+    }
+    const portalLink = await stage("portal_user_link", () =>
+      ensureCustomerPortalUserLink({
+        client: input.client,
+        customerId: resolvedCustomerResult.customer.id,
+        userId: portalUserId,
+        email: normalizedEmail(body.customer.email),
+        externalCustomerId,
+        customerNumber,
+        identityId: identity.id,
+        matchMethod: "website_application_auth_user",
+      }),
+    );
+    if (!portalLink?.accountId || !portalLink.identityId) {
+      throw new WebsiteApplicationError({
+        message: "Kundens Mina sidor-koppling kunde inte verifieras efter att kundgrafen skapades.",
+        status: 503,
+        code: "customer_portal_link_not_ready",
+        stage: "portal_user_link",
+        details: { retryable: true },
+        hint: "Kontrollera customer_portal_accounts, customer_portal_identities och kör om fortsättningssteget.",
+      });
     }
 
     const applicationStatus = readiness.status;
@@ -8851,6 +8994,7 @@ export async function continueWebsiteCustomerApplication(input: {
       `initial_customer_communication_failed:${failedCommunication.map((item) => item.eventKey).join(",")}`,
     );
   }
+  const communicationStatus = communicationStatusSnapshot(communication);
 
   await transitionCustomerApplicationWorkflow({
     companyId: input.companyId,
@@ -8940,7 +9084,7 @@ export async function continueWebsiteCustomerApplication(input: {
       .update({
         status: "needs_information",
         next_step: "complete_power_of_attorney",
-        response_payload: { ...responsePayload, status: "needs_customer_information", workflow_state: "facility_information_required", next_step: "complete_power_of_attorney", communication: { events: communication.events, pending: false } },
+        response_payload: { ...responsePayload, status: "needs_customer_information", workflow_state: "facility_information_required", next_step: "complete_power_of_attorney", communication: communicationStatus },
         updated_at: new Date().toISOString(),
       })
       .eq("id", input.applicationId)
@@ -9010,7 +9154,7 @@ export async function continueWebsiteCustomerApplication(input: {
       .update({
         status: status === "needs_review" ? "pending_review" : "processing",
         next_step: intakeDecision.nextAction,
-        response_payload: { ...responsePayload, status: status === "needs_review" ? "needs_customer_information" : "processing", workflow_state: state, next_step: intakeDecision.nextAction, communication: { events: communication.events, pending: false } },
+        response_payload: { ...responsePayload, status: status === "needs_review" ? "needs_customer_information" : "processing", workflow_state: state, next_step: intakeDecision.nextAction, communication: communicationStatus },
         updated_at: new Date().toISOString(),
       })
       .eq("id", input.applicationId)
@@ -9079,7 +9223,7 @@ export async function continueWebsiteCustomerApplication(input: {
     .update({
       status: terminalStatus === "needs_review" ? "pending_review" : "processing",
       next_step: next.actionTaken ?? next.decision,
-      response_payload: { ...responsePayload, status: terminalStatus === "needs_review" ? "needs_customer_information" : "processing", workflow_state: finalState, next_step: next.actionTaken ?? next.decision, communication: { events: communication.events, pending: false }, supplier_switch_request_id: next.supplierSwitchRequestId ?? null },
+      response_payload: { ...responsePayload, status: terminalStatus === "needs_review" ? "needs_customer_information" : "processing", workflow_state: finalState, next_step: next.actionTaken ?? next.decision, communication: communicationStatus, supplier_switch_request_id: next.supplierSwitchRequestId ?? null },
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.applicationId)

@@ -514,14 +514,16 @@ export async function ensureCustomerPortalUserLink(input: {
       .from('customer_portal_accounts')
       .update(accountPayload)
       .eq('id', accountId)
-    if (error && !isMissingPortalSchemaError(error)) throw error
+      .eq('company_id', input.client.company_id)
+      .eq('customer_id', input.customerId)
+    if (error) throw error
   } else {
     const { data, error } = await supabaseService
       .from('customer_portal_accounts')
       .insert({ ...accountPayload, user_id: null, invited_at: now, created_at: now })
       .select('id')
       .maybeSingle()
-    if (error && !isMissingPortalSchemaError(error)) throw error
+    if (error) throw error
     accountId = data?.id ? String(data.id) : null
   }
 
@@ -529,14 +531,19 @@ export async function ensureCustomerPortalUserLink(input: {
   if (!identityId && externalCustomerId) {
     const existingByExternal = await supabaseService
       .from('customer_portal_identities')
-      .select('id')
+      .select('id,customer_id')
       .eq('company_id', input.client.company_id)
       .eq('provider', WEBSITE_PORTAL_PROVIDER)
       .eq('external_customer_id', externalCustomerId)
       .limit(1)
       .maybeSingle()
-    if (!existingByExternal.error && existingByExternal.data?.id) identityId = String(existingByExternal.data.id)
-    if (existingByExternal.error && !isMissingPortalSchemaError(existingByExternal.error)) throw existingByExternal.error
+    if (existingByExternal.error) throw existingByExternal.error
+    if (existingByExternal.data?.id) {
+      if (str(existingByExternal.data as Record<string, unknown>, 'customer_id') !== input.customerId) {
+        throw new Error('customer_portal_identity_customer_conflict')
+      }
+      identityId = String(existingByExternal.data.id)
+    }
   }
 
   if (!identityId) {
@@ -555,7 +562,7 @@ export async function ensureCustomerPortalUserLink(input: {
       .limit(1)
       .maybeSingle()
     if (!existingIdentity.error && existingIdentity.data?.id) identityId = String(existingIdentity.data.id)
-    if (existingIdentity.error && !isMissingPortalSchemaError(existingIdentity.error)) throw existingIdentity.error
+    if (existingIdentity.error) throw existingIdentity.error
   }
 
   const identityPayload = {
@@ -589,15 +596,52 @@ export async function ensureCustomerPortalUserLink(input: {
       .update(identityPayload)
       .eq('id', identityId)
       .eq('company_id', input.client.company_id)
-    if (error && !isMissingPortalSchemaError(error)) throw error
+      .eq('customer_id', input.customerId)
+    if (error) throw error
   } else {
     const { data, error } = await supabaseService
       .from('customer_portal_identities')
       .insert({ ...identityPayload, api_client_id: input.client.id, created_at: now })
       .select('id')
       .maybeSingle()
-    if (error && !isMissingPortalSchemaError(error)) throw error
+    if (error) throw error
     identityId = data?.id ? String(data.id) : null
+  }
+
+  if (!accountId || !identityId) {
+    throw new Error("customer_portal_link_not_persisted")
+  }
+
+  const [accountVerification, identityVerification] = await Promise.all([
+    supabaseService
+      .from('customer_portal_accounts')
+      .select('id,customer_id,company_id,status,is_active')
+      .eq('id', accountId)
+      .eq('company_id', input.client.company_id)
+      .eq('customer_id', input.customerId)
+      .maybeSingle(),
+    supabaseService
+      .from('customer_portal_identities')
+      .select('id,customer_id,company_id,status,auth_user_id,customer_portal_user_id')
+      .eq('id', identityId)
+      .eq('company_id', input.client.company_id)
+      .eq('customer_id', input.customerId)
+      .maybeSingle(),
+  ])
+  if (accountVerification.error) throw accountVerification.error
+  if (identityVerification.error) throw identityVerification.error
+  const verifiedAccount = accountVerification.data as Record<string, unknown> | null
+  const verifiedIdentity = identityVerification.data as Record<string, unknown> | null
+  if (
+    !verifiedAccount ||
+    str(verifiedAccount, 'status') !== 'active' ||
+    verifiedAccount.is_active !== true ||
+    !verifiedIdentity ||
+    str(verifiedIdentity, 'status') !== 'active' ||
+    str(verifiedIdentity, 'auth_user_id') !== portalUserId ||
+    str(verifiedIdentity, 'customer_portal_user_id') !== portalUserId
+  ) {
+    throw new Error("customer_portal_link_verification_failed")
   }
 
   return { accountId, identityId, matchMethod }

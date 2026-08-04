@@ -13,6 +13,7 @@ import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustomerApplication'
 import { canonicalApiError } from '@/lib/api/apiError'
 import { bindPayloadToTenant, TenantContextError } from '@/lib/tenant/context'
+import { loadTenantWebsiteFlowReadiness } from '@/lib/integrations/tenantWebsiteReadiness'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -83,6 +84,49 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const readiness = await loadTenantWebsiteFlowReadiness({
+      companyId: auth.context.companyId,
+      client: auth.client,
+    })
+    if (!readiness.complete_tenant_website_ready) {
+      const schemaBlocked = readiness.blockers.some((blocker) => blocker.component === 'database')
+      const readinessStatus = schemaBlocked ? 503 : 409
+      const readinessCode = schemaBlocked
+        ? 'tenant_website_schema_not_ready'
+        : 'tenant_website_not_ready'
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: readinessStatus,
+        startedAt,
+        errorCode: readinessCode,
+        metadata: {
+          request_id: requestId,
+          blockers: readiness.blockers.map((blocker) => blocker.code),
+        },
+      })
+      return customerPortalJson(
+        buildErrorBody({
+          error: schemaBlocked
+            ? 'Databasschemat för tenantens webbansökningsflöde är inte synkroniserat.'
+            : 'Tenantens webbansökningsflöde är inte produktionsklart.',
+          code: readinessCode,
+          error_stage: 'tenant_readiness',
+          blockers: readiness.blockers,
+          details: {
+            portal_identity_required: readiness.portal_identity_required,
+            status_delivery_modes: readiness.status_delivery_modes,
+            warnings: readiness.warnings,
+          },
+          retryable: true,
+          hint: schemaBlocked
+            ? 'Kör de senaste OPS-migrationerna innan applikationskoden aktiveras.'
+            : 'Åtgärda readiness-blockers i OPS och kör tenantprovisioneringen igen.',
+        }, requestId),
+        { status: readinessStatus },
+      )
+    }
+
     const parsed = await readJsonWithLimit(request)
     if (!parsed.ok) {
       const status = parsed.code === 'payload_too_large' ? 413 : 400

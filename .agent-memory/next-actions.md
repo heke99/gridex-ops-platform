@@ -1,20 +1,12 @@
-## PHASE-41 next actions
+# PHASE-42 next actions
 
-1. Sync the v4 patch into the Git-backed OPS checkout without deleting unrelated files.
-2. Run Node 22 `npm ci`, all three TypeScript targets, readiness/API regressions and `npm run build`.
-3. Confirm `npx supabase migration list --linked` contains `20260803212754`; do not reapply it to the already-repaired project.
-4. Commit and push the app change so Vercel redeploys OPS.
-5. After deployment, smoke-test authenticated integration context and public contracts; require HTTP 200 and API version `2026-08-03.1`.
-6. In Gridex Web, run the documented OpenAPI sync, local/live drift checks, full launch suite and build.
-7. Confirm a successful public-contract fetch creates/refreshes the last-known-good snapshot used by Web fallback.
-
-# Next actions
-
-1. Recover the trusted bytes for `20260728170000_live_schema_code_canonical_sync.sql`; do not change its manifest hash.
-2. Require `npm run db:migrations:check` to pass.
-3. Apply pending forward migrations through `20260730120000_atomic_website_portal_identity.sql` to clean and realistically upgraded staging databases.
-4. Run migration preflight/postflight plus two-tenant and portal-identity concurrency denial tests.
-5. Repeat the production build under declared Node 22 and deploy OPS runtime/migrations together.
-6. Verify the live `2026-07-30.1` release manifest and both canonical OpenAPI SHA-256 values.
-7. Run Web `npm run api:sync`, `api:check:live`, `api:runtime` and `api:compatibility`.
-8. Execute the complete guest/authenticated checkout, atomic portal, portal resources, customer events, signed webhook, retry/dead-letter, idempotency and two-tenant staging matrix.
+1. Sync the delivered files into the Git checkout.
+2. Run clean Node 22 install and full project gates when the package registry works.
+3. Export `DATABASE_URL` and run `scripts/sync-multitenant-website-application-flow.sh`.
+4. Review the dry-run output; stop if the script reports any migration as `unsafe`.
+5. Deploy OPS only after postflight succeeds.
+6. Canonically provision Gridex with its real Mina sidor URL and configure a signed webhook.
+7. Provision a second tenant through the same UI/code path with different origins, offers, mail and portal URL.
+8. Submit one application per tenant and verify customer number, application number,
+   portal ownership, email delivery, exact status lineage and webhook retry/deduplication.
+9. Run explicit cross-tenant denial checks for status, portal bundle and webhook payloads.
