@@ -36,8 +36,9 @@ const migration = read('supabase/migrations/20260804121000_multitenant_website_a
 const preAuthMigration = read('supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql')
 const docs = read('app/developers/customer-portal-api/page.tsx')
 const releaseManifest = read('lib/integrations/openApiReleaseManifest.ts')
+const portalPreAuthRelease = read('docs/release/2026-08-04-portal-pre-auth-contract-alignment.md')
 const websiteOpenApi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
-const releasedWebsiteOpenApi = JSON.parse(read('docs/openapi/releases/2026-08-04.1/website-integration-v1.json'))
+const releasedWebsiteOpenApi = JSON.parse(read('docs/openapi/releases/2026-08-04.2/website-integration-v1.json'))
 
 check(route.includes('loadTenantWebsiteFlowReadiness') && route.includes('tenant_website_not_ready'), 'website application route fails closed on canonical tenant readiness')
 check(route.includes('tenant_website_schema_not_ready') && route.includes('readinessStatus = schemaBlocked ? 503 : 409'), 'website application route returns 503 for database readiness drift')
@@ -109,11 +110,12 @@ check(migration.includes('canonical_readiness_revalidation_required') && migrati
 check(docs.includes('# accepted betyder att canonical') && docs.includes('fortsätter asynkront'), 'developer documentation defines accepted as durable commit plus asynchronous continuation')
 check(docs.includes('Kunden måste autentiseras i tenantens egen') && docs.includes('<strong>innan</strong> kundansökan skickas till OPS') && !docs.includes('När kunden redan är inloggad skickas'), 'human guide makes authentication mandatory before website application submission')
 check(docs.includes('breaking-request-requirement') && docs.includes('openApiRelease.compatibility_classification'), 'human guide exposes the release manifest compatibility classification')
-check(releaseManifest.includes('breaking-client-update-required-for-portal-identity') && releaseManifest.includes('breaking-request-requirement'), 'release manifest preserves the portal identity breaking classification')
-check(websiteOpenApi.info.version === '2026-08-04.1', 'website OpenAPI version is 2026-08-04.1')
+check(portalPreAuthRelease.includes('breaking-client-update-required-for-portal-identity') && portalPreAuthRelease.includes('breaking-request-requirement'), 'historical portal pre-auth release preserves its breaking classification')
+check(releaseManifest.includes('additive-price-area-assurance-and-readiness-correction') && releaseManifest.includes('additive-response-field-and-readiness-correction'), 'current release manifest classifies the assurance field and readiness correction explicitly')
+check(websiteOpenApi.info.version === '2026-08-04.2', 'website OpenAPI version is 2026-08-04.2')
 check(docs.includes('customer_application.status_changed') && docs.includes('supplier_switch.updated'), 'developer documentation promises the two canonical tenant status events that runtime emits')
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'OpenAPI publishes customer-application and supplier-switch webhook callbacks')
-check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), 'immutable 2026-08-04.1 website OpenAPI release matches the current published contract')
+check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), 'immutable 2026-08-04.2 website OpenAPI release matches the current published contract')
 const request = websiteOpenApi.components.schemas.CustomerApplicationRequest
 check(request.required.includes('auth_user_id') && request.required.includes('customer_portal_user_id'), 'OpenAPI requires both portal identity fields')
 const statusSchema = websiteOpenApi.components.schemas.WebsiteCustomerApplicationStatusData

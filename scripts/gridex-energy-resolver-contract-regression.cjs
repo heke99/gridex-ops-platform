@@ -10,7 +10,7 @@ assert(/suggestedGridAreaCode/.test(types), 'resolver result has suggested grid 
 assert(/suggestionSource/.test(types), 'resolver result has suggestion source')
 assert(/providerHttpStatus/.test(types) && /providerErrorCode/.test(types), 'resolver diagnostics include provider status fields')
 assert(/geocodeStatus\?: EnergyGeocodeStatus/.test(types), 'geocodeStatus is typed to the allowed external contract')
-assert(/suggestedGridAreaCode: clean\(best\.grid_area_code\)/.test(resolver), 'postal fallback writes suggestion fields')
+assert(/suggestedGridAreaCode: best\?\.gridAreaCode \?\? null/.test(resolver), 'postal fallback writes suggestion fields')
 assert(/gridAreaCode: null/.test(resolver) && /gridOwnerId: null/.test(resolver), 'postal fallback does not mark grid area/grid owner as verified')
 // Resolver persistence policy (claim-based model): a postal_suggested
 // resolution resolves to null (a suggestion is never written to

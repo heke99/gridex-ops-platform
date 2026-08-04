@@ -10,7 +10,7 @@ import {
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-08-04T10:00:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-08-04T15:30:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -32,7 +32,7 @@ export function buildOpenApiReleaseManifest() {
       process.env.VERCEL_GIT_COMMIT_SHA ??
       process.env.GIT_COMMIT_SHA ??
       'unknown',
-    compatibility_classification: 'breaking-client-update-required-for-portal-identity',
+    compatibility_classification: 'additive-price-area-assurance-and-readiness-correction',
     deprecated_features: [
       {
         feature: 'diagnostics=true on public-contracts',
@@ -53,7 +53,7 @@ export function buildOpenApiReleaseManifest() {
         url: WEBSITE_INTEGRATION_OPENAPI_URL,
         immutable_url: WEBSITE_INTEGRATION_VERSIONED_OPENAPI_URL,
         sha256: sha256(websiteIntegrationOpenApi),
-        compatibility: 'breaking-request-requirement',
+        compatibility: 'additive-response-field-and-readiness-correction',
       },
       customer_portal: {
         contract_name: 'customer-portal-v1',

@@ -5,7 +5,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = process.cwd()
-const currentVersion = '2026-08-04.1'
+const currentVersion = '2026-08-04.2'
 const priorVersion = '2026-08-02.1'
 const readJson = (relative) => JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8'))
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')

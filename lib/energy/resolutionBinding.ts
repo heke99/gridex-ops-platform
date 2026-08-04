@@ -1,6 +1,6 @@
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
-import type { PriceArea } from '@/lib/energy/types'
+import type { PriceArea, PriceAreaAssurance, PriceAreaAssuranceSource, PriceAreaAssuranceStatus } from '@/lib/energy/types'
 
 export type LifecycleBlocker = {
   code: string
@@ -34,6 +34,7 @@ export type BoundEnergyResolution = {
   gridOwnerName: string | null
   resolutionStatus: string
   confidence: number
+  priceAreaAssurance: PriceAreaAssurance
   /**
    * Deprecated internal compatibility alias. It now means that the complete
    * switch context has been evaluated, not that pricing is allowed.
@@ -83,6 +84,13 @@ type ResolutionReadinessInput = {
   gridOwnerId?: unknown
   resolutionStatus?: unknown
   confidence?: unknown
+  priceAreaAssuranceStatus?: unknown
+  priceAreaAssuranceSource?: unknown
+  priceAreaAssuranceConfidence?: unknown
+  priceAreaAssuranceSourceVersion?: unknown
+  priceAreaCandidateCount?: unknown
+  priceAreaUniqueCount?: unknown
+  priceAreaEvidence?: unknown
   conflictCode?: unknown
   expiresAt?: unknown
   now?: Date
@@ -91,13 +99,8 @@ type ResolutionReadinessInput = {
 type ResolutionRow = Record<string, unknown>
 type ResolutionPurpose = 'pricing' | 'quote' | 'facility_lookup' | 'switch_creation'
 
-const PRICING_STATUSES = new Set([
-  'grid_area_master_validated',
-  'facility_data_requested',
-  'facility_data_received',
-  'facility_verified',
-])
-const MIN_PRICING_CONFIDENCE = 0.75
+const MIN_VERIFIED_PRICE_ASSURANCE_CONFIDENCE = 0.75
+const MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE = 0.8
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -115,39 +118,143 @@ function priceArea(value: unknown): PriceArea | null {
     : null
 }
 
+function integerValue(value: unknown): number {
+  const parsed = Math.trunc(numberValue(value))
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function assuranceStatus(value: unknown): PriceAreaAssuranceStatus | null {
+  const normalized = text(value)
+  return normalized === 'verified' || normalized === 'estimated' || normalized === 'ambiguous' || normalized === 'unresolved'
+    ? normalized
+    : null
+}
+
+function assuranceSource(value: unknown): PriceAreaAssuranceSource {
+  const normalized = text(value)
+  return normalized === 'facility_data' ||
+    normalized === 'grid_area_master' ||
+    normalized === 'address_polygon' ||
+    normalized === 'postal_city_consensus' ||
+    normalized === 'postal_consensus'
+    ? normalized
+    : null
+}
+
+function normalizePriceAreaAssurance(input: ResolutionReadinessInput): PriceAreaAssurance {
+  const area = priceArea(input.priceArea)
+  const status = assuranceStatus(input.priceAreaAssuranceStatus)
+  if (status) {
+    return {
+      status,
+      priceArea: area,
+      confidence: Math.max(0, Math.min(1, numberValue(input.priceAreaAssuranceConfidence))),
+      source: assuranceSource(input.priceAreaAssuranceSource),
+      candidateCount: integerValue(input.priceAreaCandidateCount),
+      uniquePriceAreaCount: integerValue(input.priceAreaUniqueCount),
+      sourceVersion: text(input.priceAreaAssuranceSourceVersion),
+      evidence: recordValue(input.priceAreaEvidence),
+    }
+  }
+
+  // Backward compatibility is intentionally conservative. Only historically
+  // verified lifecycle states are promoted. Old postal suggestions must be
+  // resolved again so that candidate consensus is evaluated by the new model.
+  const resolutionStatus = text(input.resolutionStatus) ?? 'failed'
+  const legacyVerified = new Set([
+    'grid_area_master_validated',
+    'facility_data_requested',
+    'facility_data_received',
+    'facility_verified',
+  ])
+  if (area && legacyVerified.has(resolutionStatus)) {
+    return {
+      status: 'verified',
+      priceArea: area,
+      confidence: Math.max(0, Math.min(1, numberValue(input.confidence))),
+      source: resolutionStatus === 'facility_verified' ? 'facility_data' : 'grid_area_master',
+      candidateCount: 1,
+      uniquePriceAreaCount: 1,
+      sourceVersion: null,
+      evidence: { legacy_backfill: true, resolution_status: resolutionStatus },
+    }
+  }
+
+  return {
+    status: 'unresolved',
+    priceArea: area,
+    confidence: 0,
+    source: null,
+    candidateCount: 0,
+    uniquePriceAreaCount: area ? 1 : 0,
+    sourceVersion: null,
+    evidence: { legacy_unresolved: true },
+  }
+}
+
+function priceAreaEvidenceAccepted(assurance: PriceAreaAssurance): boolean {
+  if (!assurance.priceArea || assurance.uniquePriceAreaCount !== 1) return false
+  if (assurance.status === 'verified') {
+    return assurance.confidence >= MIN_VERIFIED_PRICE_ASSURANCE_CONFIDENCE
+  }
+  if (assurance.status === 'estimated') {
+    return assurance.confidence >= MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE
+  }
+  return false
+}
+
 function blocker(code: string, message: string, retryable = false): LifecycleBlocker {
   return { code, message, retryable }
 }
 
 export function deriveEnergyResolutionReadiness(
   input: ResolutionReadinessInput,
-): { capabilities: EnergyResolutionCapabilities; blockers: EnergyResolutionBlockers } {
+): { capabilities: EnergyResolutionCapabilities; blockers: EnergyResolutionBlockers; priceAreaAssurance: PriceAreaAssurance } {
   const area = priceArea(input.priceArea)
   const status = text(input.resolutionStatus) ?? 'failed'
-  const confidence = numberValue(input.confidence)
   const conflictCode = text(input.conflictCode)
   const gridAreaCode = text(input.gridAreaCode)
   const gridOwnerId = text(input.gridOwnerId)
   const expiresAt = text(input.expiresAt)
   const now = (input.now ?? new Date()).getTime()
+  const priceAreaAssurance = normalizePriceAreaAssurance(input)
 
   const pricing: LifecycleBlocker[] = []
   if (!expiresAt || !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= now) {
-    pricing.push(blocker('resolution_expired', 'Elområdesresolutionen har gått ut. Lös området på nytt.'))
+    pricing.push(blocker(
+      'price_area_evidence_expired',
+      'Prisområdesunderlaget har gått ut. Kontrollera adressen igen.',
+      true,
+    ))
   }
   if (status === 'needs_review' || status === 'failed') {
     pricing.push(blocker('energy_area_needs_review', 'Elområdet kräver manuell granskning.'))
   }
-  if (!area) {
-    pricing.push(blocker('price_area_missing', 'Canonical price area SE1–SE4 saknas.'))
-  }
-  if (conflictCode) {
-    pricing.push(blocker('energy_area_conflict', 'Resolverunderlaget innehåller en områdeskonflikt.'))
-  }
-  if (!PRICING_STATUSES.has(status) || confidence < MIN_PRICING_CONFIDENCE) {
+  if (priceAreaAssurance.status === 'ambiguous') {
     pricing.push(blocker(
-      'resolution_confidence_insufficient',
-      'Resolverproveniens eller confidence är inte tillräcklig för automatisk prissättning.',
+      'price_area_ambiguous',
+      'Adressen kan tillhöra flera elprisområden och behöver verifieras.',
+    ))
+  }
+  if (!area) {
+    pricing.push(blocker('price_area_missing', 'Prisområde SE1–SE4 kunde inte fastställas.'))
+  }
+  if (conflictCode && priceAreaAssurance.status !== 'ambiguous') {
+    pricing.push(blocker('price_area_conflict', 'Prisområdesunderlaget innehåller motstridiga uppgifter.'))
+  }
+  if (
+    priceAreaAssurance.status !== 'ambiguous' &&
+    !priceAreaEvidenceAccepted(priceAreaAssurance)
+  ) {
+    pricing.push(blocker(
+      'price_area_confidence_insufficient',
+      'Prisområdet kunde inte fastställas med tillräcklig säkerhet.',
     ))
   }
 
@@ -190,6 +297,7 @@ export function deriveEnergyResolutionReadiness(
       switch_dispatch_ready: false,
     },
     blockers,
+    priceAreaAssurance,
   }
 }
 
@@ -208,7 +316,7 @@ async function loadResolutionRow(input: {
 
   const { data, error } = await supabaseService
     .from('customer_site_resolution')
-    .select('id,company_id,price_area,grid_area_code,grid_area_name,grid_owner_id,grid_owner_name,resolution_status,confidence,automation_allowed,resolved_at,expires_at,resolver_version,geodata_version,source_chain,conflict_code,created_at')
+    .select('id,company_id,price_area,price_area_assurance_status,price_area_assurance_source,price_area_assurance_confidence,price_area_assurance_source_version,price_area_candidate_count,price_area_unique_count,price_area_evidence,grid_area_code,grid_area_name,grid_owner_id,grid_owner_name,resolution_status,confidence,automation_allowed,resolved_at,expires_at,resolver_version,geodata_version,source_chain,conflict_code,created_at')
     .eq('id', resolutionId)
     .maybeSingle()
   if (error) throw error
@@ -280,6 +388,13 @@ async function loadEnergyResolutionForPurpose(input: {
     gridOwnerId: data.grid_owner_id,
     resolutionStatus: data.resolution_status,
     confidence: data.confidence,
+    priceAreaAssuranceStatus: data.price_area_assurance_status,
+    priceAreaAssuranceSource: data.price_area_assurance_source,
+    priceAreaAssuranceConfidence: data.price_area_assurance_confidence,
+    priceAreaAssuranceSourceVersion: data.price_area_assurance_source_version,
+    priceAreaCandidateCount: data.price_area_candidate_count,
+    priceAreaUniqueCount: data.price_area_unique_count,
+    priceAreaEvidence: data.price_area_evidence,
     conflictCode: data.conflict_code,
     expiresAt: data.expires_at,
     now,
@@ -371,6 +486,16 @@ export function resolutionSnapshot(resolution: BoundEnergyResolution): Record<st
     grid_owner_name: resolution.gridOwnerName,
     resolution_status: resolution.resolutionStatus,
     confidence: resolution.confidence,
+    price_area_assurance: {
+      status: resolution.priceAreaAssurance.status,
+      price_area: resolution.priceAreaAssurance.priceArea,
+      confidence: resolution.priceAreaAssurance.confidence,
+      source: resolution.priceAreaAssurance.source,
+      candidate_count: resolution.priceAreaAssurance.candidateCount,
+      unique_price_area_count: resolution.priceAreaAssurance.uniquePriceAreaCount,
+      source_version: resolution.priceAreaAssurance.sourceVersion,
+      evidence: resolution.priceAreaAssurance.evidence,
+    },
     resolved_at: resolution.resolvedAt,
     expires_at: resolution.expiresAt,
     resolver_version: resolution.resolverVersion,

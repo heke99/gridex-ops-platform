@@ -935,17 +935,51 @@ export async function resolveCustomerSiteGridOwner(input: {
   }
 
   const knownGridOwnerId = clean(input.knownGridOwnerId) ?? clean(site.grid_owner_id)
+  const knownGridAreaCode = input.gridAreaCode ?? clean(site.grid_area_code)
+  const knownPriceArea = priceArea(site.price_area_code)
   const knownVerification = knownGridOwnerId
     ? await getGridOwnerVerification(knownGridOwnerId).catch(() => null)
     : null
 
   const resolved: EnergyResolverResult = knownGridOwnerId && knownVerification?.verificationStatus === 'verified' && knownVerification.verifiedForCustomerFlow
     ? {
-        gridAreaCode: input.gridAreaCode ?? clean(site.grid_area_code),
+        gridAreaCode: knownGridAreaCode,
         gridAreaName: null,
         gridOwnerId: knownGridOwnerId,
         gridOwnerName: null,
-        priceArea: priceArea(site.price_area_code),
+        priceArea: knownPriceArea,
+        priceAreaAssurance: knownPriceArea
+          ? {
+              status: 'verified',
+              priceArea: knownPriceArea,
+              confidence: 1,
+              source: 'facility_data',
+              candidateCount: 1,
+              uniquePriceAreaCount: 1,
+              sourceVersion: null,
+              evidence: {
+                customer_site_id: input.siteId,
+                grid_owner_id: knownGridOwnerId,
+                grid_area_code: knownGridAreaCode,
+                price_area: knownPriceArea,
+                grid_owner_verification_status: knownVerification.verificationStatus,
+              },
+            }
+          : {
+              status: 'unresolved',
+              priceArea: null,
+              confidence: 0,
+              source: null,
+              candidateCount: 0,
+              uniquePriceAreaCount: 0,
+              sourceVersion: null,
+              evidence: {
+                customer_site_id: input.siteId,
+                grid_owner_id: knownGridOwnerId,
+                grid_area_code: knownGridAreaCode,
+                reason: 'customer_site_price_area_missing',
+              },
+            },
         resolutionStatus: 'facility_verified' as const,
         confidence: 1,
         sourceChain: ['customer_sites.grid_owner_id', 'grid_owner_verification'],

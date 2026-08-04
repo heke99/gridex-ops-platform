@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-04.1'
+const version = '2026-08-04.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-04.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-04.2.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -18,7 +18,8 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-02.1'
+const priorVersion = '2026-08-04.1'
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -1801,7 +1802,7 @@ portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
   portal.paths['/api/v1/customer/move-out'].post.responses['200']
 
 
-// Runtime/OpenAPI hardening for release 2026-08-04.1. These overrides are
+// Runtime/OpenAPI hardening for release 2026-08-04.2. These overrides are
 // deliberately placed after legacy schema construction so the public contract
 // has one source of truth even while deprecated components remain resolvable.
 for (const document of [website, portal]) {
@@ -2355,10 +2356,10 @@ function normalizePublicOpenApiDocumentOperations(document) {
     '/api/v1/openapi/release-manifest.json',
     '/api/v1/openapi/website-integration-v1.json',
     '/api/v1/openapi/customer-portal-v1.json',
-    `/api/v1/openapi/${priorVersion}/website-integration-v1.json`,
-    `/api/v1/openapi/${priorVersion}/customer-portal-v1.json`,
-    `/api/v1/openapi/${version}/website-integration-v1.json`,
-    `/api/v1/openapi/${version}/customer-portal-v1.json`,
+    ...publishedVersions.flatMap((publishedVersion) => [
+      `/api/v1/openapi/${publishedVersion}/website-integration-v1.json`,
+      `/api/v1/openapi/${publishedVersion}/customer-portal-v1.json`,
+    ]),
   ]
   for (const path of paths) {
     const operation = document.paths?.[path]?.get

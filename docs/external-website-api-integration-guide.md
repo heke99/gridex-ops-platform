@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-08-04.1**
+> **Canonical API-version: 2026-08-04.2**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -179,7 +179,7 @@ Content-Type: application/json
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-04.1"
+  "contract_schema_version": "2026-08-04.2"
 }
 ```
 
@@ -194,6 +194,18 @@ Ett lyckat svar innehåller minst:
     "grid_owner_name": "Exempel Nät AB",
     "confidence": 0.98,
     "resolution_status": "grid_area_master_validated",
+    "price_area_assurance": {
+      "status": "verified",
+      "price_area": "SE4",
+      "confidence": 0.98,
+      "source": "address_polygon",
+      "candidate_count": 1,
+      "unique_price_area_count": 1,
+      "source_version": "svk_arcgis:...",
+      "evidence": {
+        "grid_area_code": "..."
+      }
+    },
     "capabilities": {
       "pricing_ready": true,
       "quote_ready": true,
@@ -227,10 +239,18 @@ steg är tillåtna. Klienten måste kontrollera
 `data.capabilities.pricing_ready` före marknadspris och
 `data.capabilities.quote_ready` före offert. Om någon capability är `false`
 ska motsvarande `data.blockers.pricing` eller `data.blockers.quote` visas eller
-hanteras. Ett `postal_suggested`-resultat får inte skickas vidare till
-pris/offert bara för att resolveranropet gav `200`.
+hanteras. Statusnamnet `postal_suggested` avgör inte ensamt om pris får visas. Klienten ska alltid följa capability-fälten.
 
-Resolutionen är tenantbunden och tidsbegränsad. Pris- och quote-readiness är oberoende av PRODAT-transport. Gammal geodata, låg confidence eller konflikt blockerar bara de capabilities som faktiskt påverkas.
+`price_area_assurance` är den canonicala evidensen för SE1–SE4:
+
+- `verified` betyder att prisområdet kommer från verifierad anläggningsdata, nätområdesmaster eller aktuell adresspolygon;
+- `estimated` får användas för pris och quote endast när OPS har ett högkonfidens-konsensus där samtliga relevanta postnummer-/ortskandidater ligger i samma SE-område;
+- `ambiguous` betyder att kandidaterna korsar flera prisområden och blockerar pris;
+- `unresolved` betyder att underlaget saknas, är för svagt eller måste lösas om.
+
+Ett `postal_suggested` med `price_area_assurance.status=estimated`, confidence minst `0.80` och `unique_price_area_count=1` kan därför ha `pricing_ready=true` och `quote_ready=true`. Samma resolution har fortfarande `facility_lookup_ready=false`, `switch_request_creatable=false` och `switch_dispatch_ready=false` tills nätområde, nätägare, anläggning och transportkrav är verifierade.
+
+Resolutionen är tenantbunden och tidsbegränsad. Pris- och quote-readiness är oberoende av PRODAT-transport. Gammal geodata, låg assurance-confidence, okända kandidater eller konflikt blockerar bara de capabilities som faktiskt påverkas.
 
 SVK-geometrin är versionsstyrd. En ny polygonuppsättning blir aktiv först efter fullständig staging, coveragekontroll och atomisk promotion. `geodata_version` identifierar exakt vilken verifierad geodataversion som användes, och polygoner som saknas i en ny version inaktiveras i samma transaktion.
 
@@ -456,7 +476,7 @@ Exempel på accepterat svar:
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-04.1"
+  "contract_schema_version": "2026-08-04.2"
 }
 ```
 
@@ -572,17 +592,17 @@ Publika OpenAPI-kontrakt:
 ```text
 https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-04.1/website-integration-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-04.1/customer-portal-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-04.2/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-04.2/customer-portal-v1.json
 ```
 
 De två `current`-pekarnas svar använder `no-store`; de två versionsbundna artefakterna är immutabla och får `public, max-age=31536000, immutable`.
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-08-04.1` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-08-04.2` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-08-04.1
+## Canonical marknadsprisflöde i API 2026-08-04.2
 
 Det finns tre separata operationer:
 
@@ -617,7 +637,7 @@ Om tenantens policy har `allow_indicative_latest=false` returneras inte en parti
 | 401 | `invalid_api_token` | Nej | Använd den aktiva Gridex API-nyckeln. |
 | 403 | `api_scope_missing` | Nej | Lägg till `website_market_prices.read` på API-klienten. |
 | 404 | `resolution_not_found` | Nej | Kör områdesresolution på nytt inom samma tenant. |
-| 409 | `resolution_expired` | Nej | Skapa en ny `resolution_id`. |
+| 409 | `resolution_pricing_not_ready` + blocker `price_area_evidence_expired` | Ja | Kör områdesresolutionen igen och använd den nya `resolution_id`. |
 | 409 | `resolution_pricing_not_ready` | Nej | Kör resolvern igen eller åtgärda blockeraren i `blockers.pricing`. PRODAT-readiness påverkar inte priset. |
 | 409 | `price_area_mismatch` | Nej | Ta bort lokalt område och använd resolutionens område. |
 | 409 | `market_price_stale` | Ja | Försök igen efter att OPS-importen har uppdaterats. Räkna inte lokalt. |
@@ -647,7 +667,7 @@ Canonical scope: website_legal.read. `website_contracts.read` accepteras endast 
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-08-04.1
+## Migrering till kontraktsversion 2026-08-04.2
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

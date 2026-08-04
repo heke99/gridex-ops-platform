@@ -347,7 +347,7 @@ excludes(
 checks += 1;
 const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
 if (
-  openapi?.info?.version !== "2026-08-04.1" ||
+  openapi?.info?.version !== "2026-08-04.2" ||
   !openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get
 ) {
   failures.push("OpenAPI: portföljendpoint eller dokumentationsversion saknas");

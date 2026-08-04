@@ -1,5 +1,26 @@
 export type PriceArea = 'SE1' | 'SE2' | 'SE3' | 'SE4'
 
+export type PriceAreaAssuranceStatus = 'verified' | 'estimated' | 'ambiguous' | 'unresolved'
+
+export type PriceAreaAssuranceSource =
+  | 'facility_data'
+  | 'grid_area_master'
+  | 'address_polygon'
+  | 'postal_city_consensus'
+  | 'postal_consensus'
+  | null
+
+export type PriceAreaAssurance = {
+  status: PriceAreaAssuranceStatus
+  priceArea: PriceArea | null
+  confidence: number
+  source: PriceAreaAssuranceSource
+  candidateCount: number
+  uniquePriceAreaCount: number
+  sourceVersion: string | null
+  evidence: Record<string, unknown>
+}
+
 export type RequestedStartMode = 'earliest_possible' | 'specific_date'
 
 export type EnergyResolutionStatus =
@@ -83,6 +104,7 @@ export type EnergyResolverResult = {
   suggestionSource?: string | null
   suggestionConfidence?: number | null
   priceArea: PriceArea | null
+  priceAreaAssurance: PriceAreaAssurance
   resolutionStatus: EnergyResolutionStatus
   confidence: number
   sourceChain: string[]

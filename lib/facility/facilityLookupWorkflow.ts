@@ -133,17 +133,53 @@ async function updateCustomerSite(input: {
 async function updateResolution(input: {
   companyId: string
   customerSiteId: string | null
+  resolutionId?: string | null
   actorUserId?: string | null
+  priceAreaCode?: string | null
+  gridAreaCode?: string | null
 }) {
   if (!input.customerSiteId) return
+  let resolutionId = input.resolutionId ?? null
+  if (!resolutionId) {
+    const latest = await supabaseService
+      .from('customer_site_resolution')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('customer_site_id', input.customerSiteId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (latest.error && !isMissingSchema(latest.error)) throw latest.error
+    resolutionId = text(latest.data?.id)
+  }
+  if (!resolutionId) return
+  const now = new Date().toISOString()
+  const assurancePatch = input.priceAreaCode
+    ? {
+        price_area: input.priceAreaCode,
+        price_area_assurance_status: 'verified',
+        price_area_assurance_source: 'facility_data',
+        price_area_assurance_confidence: 1,
+        price_area_assurance_source_version: now,
+        price_area_candidate_count: 1,
+        price_area_unique_count: 1,
+        price_area_evidence: {
+          verified_at: now,
+          grid_area_code: input.gridAreaCode ?? null,
+          source: 'facility_lookup_completion',
+        },
+      }
+    : {}
   const { error } = await supabaseService
     .from('customer_site_resolution')
     .update({
+      ...assurancePatch,
       resolution_status: 'facility_verified',
-      facility_data_verified_at: new Date().toISOString(),
+      facility_data_verified_at: now,
       verified_by: input.actorUserId ?? null,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
+    .eq('id', resolutionId)
     .eq('company_id', input.companyId)
     .eq('customer_site_id', input.customerSiteId)
   if (error && !isMissingSchema(error)) throw error
@@ -332,7 +368,14 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
   })
 
   await Promise.all([
-    updateResolution({ companyId: input.companyId, customerSiteId, actorUserId: input.actorUserId ?? null }),
+    updateResolution({
+      companyId: input.companyId,
+      customerSiteId,
+      resolutionId: text(request.resolution_id),
+      actorUserId: input.actorUserId ?? null,
+      priceAreaCode,
+      gridAreaCode,
+    }),
     updateWebsiteApplication({ companyId: input.companyId, request }),
     clearFacilityBlockers({
       companyId: input.companyId,

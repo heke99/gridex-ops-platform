@@ -379,6 +379,7 @@
     "20260804093500_contract_publication_two_step_invoice_fee_repair.sql": "c731c8ea3716bd4ad6333f91977c5214f9c30615658bde1ddcf93d5e05f57783",
     "20260804121000_multitenant_website_application_flow_completion.sql": "88bf5a6b7e0dc4d89b1621f1e3d551a6cd407135950f48ff05a37022df653b2f",
     "20260804151500_website_application_pre_auth_contract_alignment.sql": "95025d7c195b5333f77c5616bf5f5328974b431964df2ac53e4f13c9aa99c8d6",
+    "20260804173000_price_area_assurance_and_pricing_readiness.sql": "e57e118a7ea601854d33e91302e8383fa836f40bd602f9094569cb56c1ca2d5a",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

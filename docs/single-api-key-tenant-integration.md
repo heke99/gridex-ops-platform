@@ -1,6 +1,6 @@
 # Gridex tenantintegration med en API-nyckel
 
-Kontraktsversion: `2026-08-04.1`.
+Kontraktsversion: `2026-08-04.2`.
 
 ## Produktion
 
@@ -70,4 +70,4 @@ Content-Type: application/json
 }
 ```
 
-API-nyckeln avgör tenant och `resolution_id` avgör canonical SE1–SE4. Tenant ska inte konfigurera en egen Elpriset Just Nu-URL, eget tenant-ID eller lokal områdesmappning.
+API-nyckeln avgör tenant och `resolution_id` bär OPS canonicala `price_area_assurance` för SE1–SE4. Tenant ska följa `capabilities.pricing_ready` och `capabilities.quote_ready`, aldrig tolka `resolution_status` lokalt och aldrig konfigurera en egen Elpriset Just Nu-URL, eget tenant-ID eller lokal områdesmappning.

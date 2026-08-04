@@ -253,15 +253,54 @@ export type WebsiteEnergyAreaResolveResponse = {
     price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4' | null
     grid_area_code: string | null
     grid_area_name: string | null
-    grid_owner_id: string | null
     grid_owner_name: string | null
     resolution_status: string
     confidence: number
-    automation_allowed: boolean
-    next_required_action: string
+    price_area_assurance: {
+      status: 'verified' | 'estimated' | 'ambiguous' | 'unresolved'
+      price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4' | null
+      confidence: number
+      source:
+        | 'facility_data'
+        | 'grid_area_master'
+        | 'address_polygon'
+        | 'postal_city_consensus'
+        | 'postal_consensus'
+        | null
+      candidate_count: number
+      unique_price_area_count: number
+      source_version: string | null
+      evidence: Record<string, unknown>
+    }
+    next_required_action: string | null
+    resolved_at: string | null
+    expires_at: string | null
+    resolver_version: string | null
+    geodata_version: string | null
+    source: Record<string, unknown>
+    capabilities: {
+      pricing_ready: boolean
+      quote_ready: boolean
+      facility_lookup_ready: boolean
+      switch_request_creatable: boolean
+      switch_dispatch_ready: boolean
+    }
+    blockers: {
+      pricing: Array<{ code: string; message: string; retryable: boolean }>
+      quote: Array<{ code: string; message: string; retryable: boolean }>
+      facility_lookup: Array<{ code: string; message: string; retryable: boolean }>
+      switch_creation: Array<{ code: string; message: string; retryable: boolean }>
+      switch_dispatch: Array<{ code: string; message: string; retryable: boolean }>
+    }
+    conflict_code: string | null
+    error_code: string | null
+    retryable: boolean
     warnings: string[]
   }
   request_id: string
+  correlation_id: string
+  retryable: boolean
+  contract_schema_version: string
 }
 
 export type WebsiteSwitchStatusResponse = {

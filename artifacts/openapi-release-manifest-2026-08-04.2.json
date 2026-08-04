@@ -1,0 +1,42 @@
+{
+  "release_version": "2026-08-04.2",
+  "website_openapi_version": "2026-08-04.2",
+  "customer_portal_openapi_version": "2026-08-04.2",
+  "runtime_contract_version": "2026-08-04.2",
+  "guide_version": "2026-08-04.2",
+  "released_at": "2026-08-04T15:30:00.000Z",
+  "generated_at": "2026-08-04T15:30:00.000Z",
+  "build_commit": "unavailable-in-uploaded-zip",
+  "compatibility_classification": "additive-price-area-assurance-and-readiness-correction",
+  "deprecated_features": [
+    {
+      "feature": "diagnostics=true on public-contracts",
+      "replacement": "/api/v1/website/public-contracts/diagnostics",
+      "sunset_at": "2026-10-31T23:59:59.000Z"
+    },
+    {
+      "feature": "x-api-key request header",
+      "replacement": "Authorization: Bearer <GRIDEX_API_KEY>",
+      "sunset_at": "2026-10-31T23:59:59.000Z"
+    }
+  ],
+  "minimum_tenant_integration_version": "2026-08-04.2",
+  "specifications": {
+    "website": {
+      "contract_name": "website-integration-v1",
+      "contract_version": "2026-08-04.2",
+      "url": "/api/v1/openapi/website-integration-v1.json",
+      "immutable_url": "/api/v1/openapi/2026-08-04.2/website-integration-v1.json",
+      "sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+      "compatibility": "additive-response-field-and-readiness-correction"
+    },
+    "customer_portal": {
+      "contract_name": "customer-portal-v1",
+      "contract_version": "2026-08-04.2",
+      "url": "/api/v1/openapi/customer-portal-v1.json",
+      "immutable_url": "/api/v1/openapi/2026-08-04.2/customer-portal-v1.json",
+      "sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+      "compatibility": "additive"
+    }
+  }
+}

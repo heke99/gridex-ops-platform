@@ -7,6 +7,7 @@ import type {
   EnergyResolverResult,
   EnergyResolutionStatus,
   PriceArea,
+  PriceAreaAssurance,
 } from '@/lib/energy/types'
 import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 
@@ -15,6 +16,8 @@ const GEOCODE_TIMEOUT_MS = 10_000
 const RESOLVER_VERSION = 'energy-resolver-v2'
 const DEFAULT_RESOLUTION_TTL_HOURS = 24
 const DEFAULT_GEODATA_MAX_AGE_DAYS = 30
+const MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE = 0.8
+const MAX_POSTAL_CANDIDATES = 100
 
 type Coordinates = {
   addressKey: string
@@ -70,6 +73,56 @@ function requireResolverSchema(resource: string, error: unknown): never {
 function normalisePriceArea(value: unknown): PriceArea | null {
   const area = clean(value)?.toUpperCase()
   return PRICE_AREAS.includes(area as PriceArea) ? area as PriceArea : null
+}
+
+function normalizeCity(value: unknown): string | null {
+  const city = clean(value)
+  return city
+    ? city.normalize('NFKC').toLocaleLowerCase('sv-SE').replace(/\s+/g, ' ')
+    : null
+}
+
+function unresolvedPriceAreaAssurance(
+  patch: Partial<PriceAreaAssurance> = {},
+): PriceAreaAssurance {
+  return {
+    status: 'unresolved',
+    priceArea: null,
+    confidence: 0,
+    source: null,
+    candidateCount: 0,
+    uniquePriceAreaCount: 0,
+    sourceVersion: null,
+    evidence: {},
+    ...patch,
+  }
+}
+
+function verifiedPriceAreaAssurance(input: {
+  priceArea: PriceArea | null
+  confidence: number
+  source: 'facility_data' | 'grid_area_master' | 'address_polygon'
+  sourceVersion?: string | null
+  evidence?: Record<string, unknown>
+}): PriceAreaAssurance {
+  if (!input.priceArea) {
+    return unresolvedPriceAreaAssurance({
+      confidence: input.confidence,
+      source: input.source,
+      sourceVersion: input.sourceVersion ?? null,
+      evidence: input.evidence ?? {},
+    })
+  }
+  return {
+    status: 'verified',
+    priceArea: input.priceArea,
+    confidence: input.confidence,
+    source: input.source,
+    candidateCount: 1,
+    uniquePriceAreaCount: 1,
+    sourceVersion: input.sourceVersion ?? null,
+    evidence: input.evidence ?? {},
+  }
 }
 
 export function normaliseGridAreaCode(value: unknown): string | null {
@@ -131,6 +184,7 @@ function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>
     gridOwnerId: null,
     gridOwnerName: null,
     priceArea: null,
+    priceAreaAssurance: unresolvedPriceAreaAssurance(),
     resolutionStatus: 'failed',
     confidence: 0,
     sourceChain: [],
@@ -237,6 +291,12 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     gridOwnerId: opsGridOwnerId,
     gridOwnerName: clean(ownerRelation?.name) ?? clean(data.grid_owner_name),
     priceArea: normalisePriceArea(data.price_area),
+    priceAreaAssurance: verifiedPriceAreaAssurance({
+      priceArea: normalisePriceArea(data.price_area),
+      confidence: hasPriceArea ? 0.98 : 0.82,
+      source: 'grid_area_master',
+      evidence: { grid_area_code: clean(data.grid_area_code) },
+    }),
     resolutionStatus: hasPriceArea ? 'grid_area_master_validated' : 'grid_area_resolved',
     confidence: hasPriceArea ? 0.98 : 0.82,
     sourceChain: ['input.grid_area_code', 'platform_grid_areas'],
@@ -542,6 +602,21 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
     gridOwnerId: opsGridOwnerId,
     gridOwnerName: clean(row.grid_owner_name),
     priceArea: normalisePriceArea(row.price_area),
+    priceAreaAssurance: geodata.stale
+      ? unresolvedPriceAreaAssurance({
+          priceArea: normalisePriceArea(row.price_area),
+          confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
+          source: 'address_polygon',
+          sourceVersion: geodata.version,
+          evidence: { grid_area_code: clean(row.grid_area_code), geodata_stale: true },
+        })
+      : verifiedPriceAreaAssurance({
+          priceArea: normalisePriceArea(row.price_area),
+          confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
+          source: 'address_polygon',
+          sourceVersion: geodata.version,
+          evidence: { grid_area_code: clean(row.grid_area_code), coordinate_reference_system: coordinateReferenceSystem },
+        }),
     resolutionStatus: status,
     confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
     sourceChain: ['address', 'papilite/cache', 'svk_arcgis_polygon', 'platform_grid_areas'],
@@ -585,50 +660,201 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
 async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResolverResult | null> {
   const postalCode = normalizePostalCode(input.postalCode)
   if (!postalCode) return null
-  let query = supabaseService
+
+  const { data, error, count } = await supabaseService
     .from('platform_postal_code_grid_mappings')
-    .select('postal_code,city,grid_area_code,price_area,confidence,source')
+    .select('postal_code,city,grid_area_code,price_area,confidence,source,updated_at', { count: 'exact' })
     .eq('postal_code', postalCode)
     .eq('is_active', true)
     .order('confidence', { ascending: false })
-    .limit(5)
+    .limit(MAX_POSTAL_CANDIDATES)
 
-  const city = clean(input.city)
-  if (city) query = query.ilike('city', city)
-
-  const { data, error } = await query
   if (error) {
     if (missingSchema(error)) requireResolverSchema('platform_postal_code_grid_mappings', error)
     throw error
   }
-  const rows = data ?? []
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>
   if (rows.length === 0) return null
-  const best = rows[0]
-  const master = clean(best.grid_area_code) ? await findGridAreaByCode(clean(best.grid_area_code) as string) : null
+  const candidateLimitExceeded = typeof count === 'number' && count > rows.length
+
+  const requestedCity = normalizeCity(input.city)
+  const exactCityRows = requestedCity
+    ? rows.filter((row) => normalizeCity(row.city) === requestedCity)
+    : []
+  const candidates = exactCityRows.length > 0 ? exactCityRows : rows
+  const gridAreaCodes = [...new Set(
+    candidates
+      .map((row) => normaliseGridAreaCode(row.grid_area_code))
+      .filter((value): value is string => Boolean(value)),
+  )]
+
+  const masterPriceAreas = new Map<string, PriceArea>()
+  if (gridAreaCodes.length > 0) {
+    const masterResponse = await supabaseService
+      .from('platform_grid_areas')
+      .select('grid_area_code,price_area')
+      .in('grid_area_code', gridAreaCodes)
+      .eq('is_active', true)
+    if (masterResponse.error) {
+      if (missingSchema(masterResponse.error)) requireResolverSchema('platform_grid_areas', masterResponse.error)
+      throw masterResponse.error
+    }
+    for (const row of masterResponse.data ?? []) {
+      const code = normaliseGridAreaCode(row.grid_area_code)
+      const area = normalisePriceArea(row.price_area)
+      if (code && area) masterPriceAreas.set(code, area)
+    }
+  }
+
+  const classified = candidates.map((row) => {
+    const gridAreaCode = normaliseGridAreaCode(row.grid_area_code)
+    const rowPriceArea = normalisePriceArea(row.price_area)
+    const masterPriceArea = gridAreaCode ? masterPriceAreas.get(gridAreaCode) ?? null : null
+    const mappingConflict = Boolean(rowPriceArea && masterPriceArea && rowPriceArea !== masterPriceArea)
+    return {
+      row,
+      gridAreaCode,
+      rowPriceArea,
+      masterPriceArea,
+      // Canonical grid-area masterdata wins when available, but any mismatch is
+      // still an explicit conflict and therefore cannot become pricing-ready.
+      priceArea: masterPriceArea ?? rowPriceArea,
+      mappingConflict,
+      confidence: Math.max(0, Math.min(1, numberOrNull(row.confidence) ?? 0)),
+    }
+  })
+  const unknownCandidateCount = classified.filter((candidate) => !candidate.priceArea).length
+  const mappingConflictCount = classified.filter((candidate) => candidate.mappingConflict).length
+  const uniquePriceAreas = [...new Set(
+    classified
+      .flatMap((candidate) => [candidate.rowPriceArea, candidate.masterPriceArea])
+      .filter((value): value is PriceArea => Boolean(value)),
+  )]
+  const source = exactCityRows.length > 0 ? 'postal_city_consensus' as const : 'postal_consensus' as const
+  const best = classified[0]
+  const bestMaster = best?.gridAreaCode ? await findGridAreaByCode(best.gridAreaCode) : null
+  const rawConfidence = classified.reduce((max, candidate) => Math.max(max, candidate.confidence), 0)
+  const confidence = Math.min(exactCityRows.length > 0 ? 0.9 : 0.85, rawConfidence)
+  const evidence = {
+    postal_code: postalCode,
+    requested_city: clean(input.city),
+    city_scope: exactCityRows.length > 0 ? 'exact_city' : 'postal_code',
+    candidate_count: classified.length,
+    total_postal_candidate_count: count ?? rows.length,
+    candidate_limit_exceeded: candidateLimitExceeded,
+    unknown_candidate_count: unknownCandidateCount,
+    mapping_conflict_count: mappingConflictCount,
+    grid_area_codes: [...new Set(classified.map((candidate) => candidate.gridAreaCode).filter(Boolean))],
+    price_areas: uniquePriceAreas,
+    sources: [...new Set(classified.map((candidate) => clean(candidate.row.source)).filter(Boolean))],
+    newest_mapping_at: classified
+      .map((candidate) => clean(candidate.row.updated_at))
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1) ?? null,
+  }
+
+  if (uniquePriceAreas.length > 1 || mappingConflictCount > 0) {
+    return result(input, {
+      suggestedGridAreaCode: best?.gridAreaCode ?? null,
+      suggestedGridOwnerId: bestMaster?.gridOwnerId ?? null,
+      suggestedGridOwnerName: bestMaster?.gridOwnerName ?? null,
+      suggestionSource: source,
+      suggestionConfidence: confidence,
+      priceArea: null,
+      priceAreaAssurance: {
+        status: 'ambiguous',
+        priceArea: null,
+        confidence,
+        source,
+        candidateCount: candidateLimitExceeded ? (count ?? classified.length) : classified.length,
+        uniquePriceAreaCount: uniquePriceAreas.length,
+        sourceVersion: clean(evidence.newest_mapping_at),
+        evidence,
+      },
+      resolutionStatus: 'postal_suggested',
+      confidence,
+      sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', 'postal_price_area_consensus'],
+      automationAllowed: false,
+      conflictCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous',
+      nextRequiredAction: mappingConflictCount > 0
+        ? 'Postnummermappningen motsäger nätområdets masterdata. Korrigera masterdata eller komplettera full adress.'
+        : 'Komplettera full adress eller verifierat nätområde. Postnumret omfattar flera elprisområden.',
+      warnings: [
+        ...(uniquePriceAreas.length > 1 ? ['postal_candidates_cross_price_areas'] : []),
+        ...(mappingConflictCount > 0 ? ['postal_mapping_master_conflict'] : []),
+      ],
+      diagnostics: {
+        addressAttempts: [],
+        geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
+        geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
+        providerStatus: 'not_attempted',
+        providerHttpStatus: null,
+        providerErrorCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous',
+        coordinateReferenceSystem: null,
+        polygonStatus: 'not_attempted',
+        mappingStatus: 'not_applicable',
+      },
+    })
+  }
+
+  const resolvedPriceArea = uniquePriceAreas[0] ?? null
+  const assuranceReady = Boolean(
+    resolvedPriceArea &&
+    unknownCandidateCount === 0 &&
+    !candidateLimitExceeded &&
+    confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE,
+  )
+  const warnings = [
+    ...(classified.length > 1 ? ['postal_code_multiple_grid_area_candidates'] : []),
+    ...(unknownCandidateCount > 0 ? ['postal_candidate_price_area_missing'] : []),
+    ...(candidateLimitExceeded ? ['postal_candidate_limit_exceeded'] : []),
+    ...(!assuranceReady ? ['postal_price_area_confidence_insufficient'] : []),
+  ]
+
   return result(input, {
-    gridAreaCode: null,
-    gridAreaName: null,
-    gridOwnerId: null,
-    gridOwnerName: null,
-    suggestedGridAreaCode: clean(best.grid_area_code),
-    suggestedGridOwnerId: master?.gridOwnerId ?? null,
-    suggestedGridOwnerName: master?.gridOwnerName ?? null,
-    suggestionSource: 'postal_city_mapping',
-    suggestionConfidence: Math.min(0.85, numberOrNull(best.confidence) ?? 0.35),
-    priceArea: normalisePriceArea(best.price_area) ?? master?.priceArea ?? null,
+    suggestedGridAreaCode: best?.gridAreaCode ?? null,
+    suggestedGridOwnerId: bestMaster?.gridOwnerId ?? null,
+    suggestedGridOwnerName: bestMaster?.gridOwnerName ?? null,
+    suggestionSource: source,
+    suggestionConfidence: confidence,
+    priceArea: resolvedPriceArea,
+    priceAreaAssurance: assuranceReady
+      ? {
+          status: 'estimated',
+          priceArea: resolvedPriceArea,
+          confidence,
+          source,
+          candidateCount: candidateLimitExceeded ? (count ?? classified.length) : classified.length,
+          uniquePriceAreaCount: resolvedPriceArea ? 1 : 0,
+          sourceVersion: clean(evidence.newest_mapping_at),
+          evidence,
+        }
+      : unresolvedPriceAreaAssurance({
+          priceArea: resolvedPriceArea,
+          confidence,
+          source,
+          candidateCount: candidateLimitExceeded ? (count ?? classified.length) : classified.length,
+          uniquePriceAreaCount: resolvedPriceArea ? 1 : 0,
+          sourceVersion: clean(evidence.newest_mapping_at),
+          evidence,
+        }),
     resolutionStatus: 'postal_suggested',
-    confidence: Math.min(0.85, numberOrNull(best.confidence) ?? 0.35),
-    sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', ...(master ? ['platform_grid_areas'] : [])],
+    confidence,
+    sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', 'postal_price_area_consensus', ...(bestMaster ? ['platform_grid_areas'] : [])],
     automationAllowed: false,
-    nextRequiredAction: nextActionFor('postal_suggested', false),
-    warnings: rows.length > 1 ? ['postal_code_multiple_grid_area_candidates'] : [],
+    nextRequiredAction: assuranceReady
+      ? nextActionFor('postal_suggested', false)
+      : 'Komplettera full adress för att fastställa elprisområdet med tillräcklig säkerhet.',
+    warnings,
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
       geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
       providerStatus: 'not_attempted',
       providerHttpStatus: null,
-      providerErrorCode: 'postal_city_mapping_used',
+      providerErrorCode: assuranceReady ? 'postal_price_area_consensus_used' : 'postal_price_area_unresolved',
       coordinateReferenceSystem: null,
       polygonStatus: 'not_attempted',
       mappingStatus: 'not_applicable',
@@ -652,6 +878,13 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     grid_area_name: clean(resolved.gridAreaName),
     grid_owner_name: resolved.resolutionStatus === 'postal_suggested' ? clean(resolved.suggestedGridOwnerName) : clean(resolved.gridOwnerName),
     price_area: resolved.priceArea,
+    price_area_assurance_status: resolved.priceAreaAssurance.status,
+    price_area_assurance_source: resolved.priceAreaAssurance.source,
+    price_area_assurance_confidence: resolved.priceAreaAssurance.confidence,
+    price_area_assurance_source_version: resolved.priceAreaAssurance.sourceVersion,
+    price_area_candidate_count: resolved.priceAreaAssurance.candidateCount,
+    price_area_unique_count: resolved.priceAreaAssurance.uniquePriceAreaCount,
+    price_area_evidence: resolved.priceAreaAssurance.evidence,
     resolution_status: resolved.resolutionStatus,
     confidence: resolved.confidence,
     source_chain: resolved.sourceChain,
@@ -752,6 +985,7 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
       grid_owner_id: saved.gridOwnerId,
       resolution_status: saved.resolutionStatus,
       confidence: saved.confidence,
+      price_area_assurance: saved.priceAreaAssurance,
       automation_allowed: saved.automationAllowed,
       resolver_version: saved.resolverVersion,
       geodata_version: saved.geodataVersion,
@@ -811,6 +1045,26 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
           })
         }
         warnings.push(geocode.coordinates.sweref99X === null && geocode.coordinates.longitude !== null ? 'polygon_wgs84_transform_unavailable_or_no_match' : 'polygon_no_match')
+        const postalFallback = await postalSuggestion(input)
+        if (postalFallback?.priceAreaAssurance.status === 'estimated' && postalFallback.priceArea) {
+          return saveResolution(input, {
+            ...postalFallback,
+            coordinates: {
+              latitude: geocode.coordinates.latitude,
+              longitude: geocode.coordinates.longitude,
+              sweref99X: geocode.coordinates.sweref99X,
+              sweref99Y: geocode.coordinates.sweref99Y,
+            },
+            sourceChain: [
+              'address',
+              cached ? 'address_cache' : 'papilite',
+              'polygon_no_match',
+              ...postalFallback.sourceChain,
+            ],
+            warnings: [...warnings, ...postalFallback.warnings, 'postal_price_area_fallback_used'],
+            diagnostics: { ...geocode.diagnostics, ...postalFallback.diagnostics, polygonStatus: 'no_match' },
+          })
+        }
         return saveResolution(input, result(input, {
           resolutionStatus: 'address_resolved',
           confidence: Math.max(0.55, geocode.coordinates.confidence),

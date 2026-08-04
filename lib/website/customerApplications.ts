@@ -3279,6 +3279,7 @@ async function runEnergyResolution(input: {
         gridOwnerId: bound.gridOwnerId,
         gridOwnerName: bound.gridOwnerName,
         priceArea: bound.priceArea,
+        priceAreaAssurance: bound.priceAreaAssurance,
         resolutionStatus: bound.resolutionStatus as EnergyResolverResult['resolutionStatus'],
         confidence: bound.confidence,
         sourceChain: Array.isArray(bound.sourceChain) ? bound.sourceChain.map(String) : [],
