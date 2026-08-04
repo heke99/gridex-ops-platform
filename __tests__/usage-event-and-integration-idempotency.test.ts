@@ -18,7 +18,10 @@ import {
   logUsageEvent,
 } from '@/lib/audit/actionLogger'
 import { userActorUuid } from '@/lib/ediel/intent/intentEngine'
-import { integrationWriteRequestHash } from '@/lib/integrations/writeIdempotency'
+import {
+  claimIntegrationWriteIdempotency,
+  integrationWriteRequestHash,
+} from '@/lib/integrations/writeIdempotency'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -121,8 +124,29 @@ describe('EDIEL user actor identity', () => {
   })
 })
 
-describe('integration write request hashing', () => {
-  it('is deterministic across object key order', () => {
+describe('integration write idempotency', () => {
+  it('requires Idempotency-Key when a canonical endpoint opts in', async () => {
+    await expect(
+      claimIntegrationWriteIdempotency({
+        companyId: 'b3ad1bf6-fa45-41a6-8054-2e0862e82aca',
+        apiClientId: 'bf2f3755-4a84-446a-b361-b6aa7149c39a',
+        route: '/api/v1/website/quote',
+        idempotencyKey: null,
+        payload: { offer_reference: 'offer_1' },
+        required: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'idempotency_key_required',
+      status: 400,
+      field: 'Idempotency-Key',
+    })
+
+    expect(mocks.from).not.toHaveBeenCalledWith(
+      'integration_api_write_idempotency',
+    )
+  })
+
+  it('hashes requests deterministically across object key order', () => {
     expect(
       integrationWriteRequestHash({
         offer_reference: 'offer_1',
@@ -138,7 +162,7 @@ describe('integration write request hashing', () => {
     )
   })
 
-  it('changes when a commercial quote selection changes', () => {
+  it('changes the request hash when a commercial selection changes', () => {
     const first = integrationWriteRequestHash({
       offer_reference: 'offer_1',
       invoice_delivery_method: 'email',
