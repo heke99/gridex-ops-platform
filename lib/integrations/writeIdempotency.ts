@@ -48,9 +48,21 @@ export function integrationWriteRequestHash(payload: unknown): string {
   return createHash('sha256').update(canonicalJson(payload)).digest('hex')
 }
 
-function normalizeIdempotencyKey(value: string | null | undefined): string | null {
+function normalizeIdempotencyKey(
+  value: string | null | undefined,
+  required: boolean,
+): string | null {
   const key = value?.trim() ?? ''
-  if (!key) return null
+  if (!key) {
+    if (required) {
+      throw new IntegrationWriteIdempotencyError({
+        message: 'Idempotency-Key krävs för denna skrivoperation.',
+        code: 'idempotency_key_required',
+        status: 400,
+      })
+    }
+    return null
+  }
   if (key.length < 8 || key.length > 200) {
     throw new IntegrationWriteIdempotencyError({
       message: 'Idempotency-Key måste vara 8–200 tecken.',
@@ -73,8 +85,12 @@ export async function claimIntegrationWriteIdempotency(input: {
   route: string
   idempotencyKey?: string | null
   payload: unknown
+  required?: boolean
 }): Promise<IntegrationWriteIdempotencyClaim> {
-  const idempotencyKey = normalizeIdempotencyKey(input.idempotencyKey)
+  const idempotencyKey = normalizeIdempotencyKey(
+    input.idempotencyKey,
+    input.required === true,
+  )
   if (!idempotencyKey) return { outcome: 'disabled' }
 
   const requestHash = integrationWriteRequestHash(input.payload)
