@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-08-04.2**
+> **Canonical API-version: 2026-08-04.3**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -179,7 +179,7 @@ Content-Type: application/json
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-04.2"
+  "contract_schema_version": "2026-08-04.3"
 }
 ```
 
@@ -259,6 +259,7 @@ SVK-geometrin är versionsstyrd. En ny polygonuppsättning blir aktiv först eft
 ```http
 POST /api/v1/website/quote
 Scope: website_quotes.write
+Idempotency-Key: required
 ```
 
 ```json
@@ -274,6 +275,8 @@ Scope: website_quotes.write
   "start_date": "2026-09-01"
 }
 ```
+
+Quote-idempotensen är isolerad per tenant, API-klient och route. Nyckeln ska vara 8–200 tecken. Samma nyckel med samma normaliserade payload returnerar exakt samma sparade svar och headern `Idempotency-Replayed: true`. Samma nyckel med annan payload ger `409 idempotency_conflict`. Saknad nyckel ger `400 idempotency_key_required`; om idempotenslagret inte kan verifieras startas ingen quote och API:t returnerar `503 idempotency_store_unavailable`.
 
 `price_area` behöver inte skickas. Skickas det ändå behandlas det som ett påstående. Om det motsäger resolutionen returnerar OPS `409 price_area_mismatch` eller `409 quote_resolution_mismatch`; klientvärdet skriver aldrig över resolutionen.
 
@@ -476,7 +479,7 @@ Exempel på accepterat svar:
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-04.2"
+  "contract_schema_version": "2026-08-04.3"
 }
 ```
 
@@ -592,17 +595,17 @@ Publika OpenAPI-kontrakt:
 ```text
 https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-04.2/website-integration-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-04.2/customer-portal-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-04.3/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-04.3/customer-portal-v1.json
 ```
 
 De två `current`-pekarnas svar använder `no-store`; de två versionsbundna artefakterna är immutabla och får `public, max-age=31536000, immutable`.
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-08-04.2` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-08-04.3` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-08-04.2
+## Canonical marknadsprisflöde i API 2026-08-04.3
 
 Det finns tre separata operationer:
 
@@ -667,7 +670,7 @@ Canonical scope: website_legal.read. `website_contracts.read` accepteras endast 
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-08-04.2
+## Migrering till kontraktsversion 2026-08-04.3
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

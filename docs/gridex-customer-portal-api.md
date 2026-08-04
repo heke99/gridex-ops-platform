@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-08-04.2`.
+Dokumentationsversion: `2026-08-04.3`.
 
 ## Tenantkonfiguration
 
@@ -282,7 +282,7 @@ Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
   },
   "request_id": "req_...",
   "correlation_id": null,
-  "contract_schema_version": "2026-08-04.2"
+  "contract_schema_version": "2026-08-04.3"
 }
 ```
 
@@ -300,7 +300,7 @@ Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Canonical fastpris, quote och teckningsflöde (`2026-08-04.2`)
+## Canonical fastpris, quote och teckningsflöde (`2026-08-04.3`)
 
 Den aktiva integrationsordningen är:
 
@@ -332,7 +332,7 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-04.2`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-04.3`; versionsvärdet ingår i ETag-underlaget.
 
 ## Publication revision, cache och kanaler
 
@@ -349,9 +349,9 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
 
 
-API-svaret innehåller `contract_schema_version=2026-08-04.2` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-08-04.3` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
 
-## Avgränsning mot Website Integration API 2026-08-04.2
+## Avgränsning mot Website Integration API 2026-08-04.3
 
 Den här guiden beskriver kundportal och Mina sidor. Website checkout, publicerade erbjudanden, elområdesresolution, aktuellt marknadspris och quote dokumenteras canonicalt i `website-integration-v1.json`.
 

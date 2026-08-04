@@ -44,6 +44,19 @@ function str(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/**
+ * User provenance columns are UUID-only. System jobs must be represented by a
+ * null user ID plus their explicit source/metadata, never by the string
+ * sentinel "system".
+ */
+export function userActorUuid(value: unknown): string | null {
+  const candidate = str(value)
+  return candidate && UUID_PATTERN.test(candidate) ? candidate : null
+}
+
 function mapRowToIntent(row: IntentRow): EdielMessageIntent {
   return {
     id: String(row.id),
@@ -267,7 +280,7 @@ export async function createEdielMessageIntent(
   input: CreateEdielMessageIntentInput,
 ): Promise<EdielMessageIntent> {
   const validation = evaluateIntentValidation(input)
-  const actorUserId = str(input.actorUserId) ?? 'system'
+  const actorUserId = userActorUuid(input.actorUserId)
 
   // Idempotency: a prior intent with the same business key is reused — but
   // never blindly. A stale row (e.g. legacy validation_status='draft' or a row
@@ -395,7 +408,8 @@ export async function updateIntentLifecycle(
   if (patch.blockingReasons) update.blocking_reasons = patch.blockingReasons
   if (patch.edielMessageId !== undefined) update.ediel_message_id = patch.edielMessageId
   if (patch.outboundRequestId !== undefined) update.outbound_request_id = patch.outboundRequestId
-  if (str(patch.actorUserId)) update.updated_by = str(patch.actorUserId)
+  const actorUserId = userActorUuid(patch.actorUserId)
+  if (actorUserId) update.updated_by = actorUserId
 
   const { error } = await supabaseService
     .from('ediel_message_intents')
