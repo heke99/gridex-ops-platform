@@ -8,7 +8,10 @@
 // controlled blocker.
 
 import { supabaseService } from '@/lib/supabase/service'
-import { updateIntentLifecycle } from '@/lib/ediel/intent/intentEngine'
+import {
+  updateIntentLifecycle,
+  userActorUuid,
+} from '@/lib/ediel/intent/intentEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 
 type StuckIntentRow = {
@@ -115,9 +118,13 @@ async function linkResumeResultToIntent(params: {
   const outboundRequestId = text(params.message?.outbound_request_id)
 
   if (messageId) {
+    const actorUserId = userActorUuid(params.actorUserId)
+    const update = actorUserId
+      ? { intent_id: params.row.id, updated_by: actorUserId }
+      : { intent_id: params.row.id }
     const { error } = await supabaseService
       .from('ediel_messages')
-      .update({ intent_id: params.row.id, updated_by: params.actorUserId ?? 'system' })
+      .update(update)
       .eq('id', messageId)
     if (error && !isMissingSchema(error)) throw error
   }
@@ -219,7 +226,8 @@ export async function resumeStuckEdielIntents(input: {
 
   const seen = new Set<string>()
   for (const row of rows) {
-    const actorUserId = input.actorUserId ?? row.created_by ?? null
+    const actorUserId =
+      userActorUuid(input.actorUserId) ?? userActorUuid(row.created_by)
     const process = text(row.business_process) ?? 'unknown'
     const dedupeKey = [process, row.grid_owner_information_request_id, gridOwnerDataRequestIdFromIntent(row), row.supplier_switch_request_id, row.id]
       .filter(Boolean)
@@ -468,10 +476,10 @@ async function sweepDraftIntents(input: {
       if (!intent) continue
       const validation = evaluateIntentValidation(intent)
       await updateIntentLifecycle(id, {
-        actorUserId: 'system',
+        actorUserId: null,
         validationStatus: validation.status,
         blockingReasons: validation.blockingReasons,
-        validationResult: { ...validation, source: 'resume_draft_sweep' } as unknown as Record<string, unknown>,
+        validationResult: { ...validation, source: 'resume_draft_sweep', system_actor: 'ediel_intent_resume_cron' } as unknown as Record<string, unknown>,
       })
       if (validation.status === 'blocked') blocked += 1
     } catch (sweepError) {
