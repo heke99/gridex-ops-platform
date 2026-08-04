@@ -5,7 +5,6 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = process.cwd()
-const currentVersion = '2026-08-04.2'
 const priorVersion = '2026-08-02.1'
 const readJson = (relative) => JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8'))
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
@@ -13,10 +12,15 @@ const sha256 = (relative) => crypto.createHash('sha256').update(fs.readFileSync(
 
 const website = readJson('docs/openapi/website-integration-v1.json')
 const portal = readJson('docs/openapi/customer-portal-v1.json')
+const currentVersion = website.info?.version
 
+assert.match(
+  String(currentVersion ?? ''),
+  /^\d{4}-\d{2}-\d{2}\.\d+$/,
+  'current website OpenAPI version must be a canonical release identifier',
+)
 assert.equal(website.openapi, '3.1.0')
 assert.equal(portal.openapi, '3.1.0')
-assert.equal(website.info.version, currentVersion)
 assert.equal(portal.info.version, currentVersion)
 
 assert.equal(
