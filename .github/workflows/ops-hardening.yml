@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - run: npm run db:migrations:check
       - run: npm run typecheck
+      - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
+      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
       - run: npm run ops:final-contract-regression
