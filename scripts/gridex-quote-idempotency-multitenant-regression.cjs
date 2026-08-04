@@ -110,6 +110,44 @@ if (!sourceVersionMatch) {
   )
 }
 
+const currentVersion = String(openapi.info?.version ?? '')
+if (!/^\d{4}-\d{2}-\d{2}\.\d+$/.test(currentVersion)) {
+  failures.push(`OpenAPI: invalid current version ${currentVersion}`)
+} else {
+  for (const contractName of [
+    'website-integration-v1',
+    'customer-portal-v1',
+  ]) {
+    const releasePath =
+      `docs/openapi/releases/${currentVersion}/${contractName}.json`
+    const routePath =
+      `app/api/v1/openapi/${currentVersion}/${contractName}.json/route.ts`
+    if (!fs.existsSync(releasePath)) {
+      failures.push(`Immutable OpenAPI release is missing: ${releasePath}`)
+      continue
+    }
+    if (!fs.existsSync(routePath)) {
+      failures.push(`Immutable OpenAPI route is missing: ${routePath}`)
+      continue
+    }
+    const release = JSON.parse(read(releasePath))
+    if (release.info?.version !== currentVersion) {
+      failures.push(`${releasePath}: info.version drift`)
+    }
+    const immutableRoute = read(routePath)
+    expectIncludes(
+      immutableRoute,
+      `@/docs/openapi/releases/${currentVersion}/${contractName}.json`,
+      `${routePath} release import`,
+    )
+    expectIncludes(
+      immutableRoute,
+      'max-age=31536000, immutable',
+      `${routePath} immutable caching`,
+    )
+  }
+}
+
 expectIncludes(
   guide,
   'Idempotency-Key: required',
@@ -137,5 +175,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  'Quote idempotency multitenant regression passed: runtime, database, OpenAPI and guide are tenant/API-client/route scoped.',
+  `Quote idempotency multitenant regression passed for ${currentVersion}: runtime, database, immutable OpenAPI release and guide are tenant/API-client/route scoped.`,
 )
