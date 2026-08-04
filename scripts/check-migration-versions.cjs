@@ -6,12 +6,24 @@ const path = require('path')
 const root = process.cwd()
 const directory = path.join(root, 'supabase', 'migrations')
 const manifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
+const additionsPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+const additions = fs.existsSync(additionsPath)
+  ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
+  : { files: {} }
 const allowedLegacyCollisions = manifest.allowedLegacyCollisions ?? {}
 const allowedUnversionedFiles = new Set(manifest.allowedUnversionedFiles ?? [])
-const expectedFiles = manifest.files ?? {}
+const baseFiles = manifest.files ?? {}
+const additionFiles = additions.files ?? {}
+const expectedFiles = { ...baseFiles, ...additionFiles }
 const actualNames = fs.readdirSync(directory).filter((name) => name.endsWith('.sql')).sort()
 const failures = []
+
+for (const [name, checksum] of Object.entries(additionFiles)) {
+  if (baseFiles[name] && baseFiles[name] !== checksum) {
+    failures.push(`Additive manifest conflicts with canonical checksum: ${name}`)
+  }
+}
 
 function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
