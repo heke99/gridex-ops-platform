@@ -53,10 +53,14 @@ jobs:
             'lib/integrations/websiteIntegrationContract.ts',
             'scripts/finalize-openapi-release.cjs',
             'scripts/check-api-documentation-version.cjs',
+            'scripts/check-api-documentation-examples.cjs',
+            'scripts/check-public-contract-runtime-openapi.cjs',
             'scripts/verify-openapi-release.cjs',
             'scripts/check-api-compatibility.cjs',
             'scripts/check-openapi-runtime-parity.cjs',
             'scripts/check-shared-openapi-components.cjs',
+            'app/developers/customer-portal-api/page.tsx',
+            '__tests__/public-contract-route-openapi-regression.test.ts',
             'docs/external-website-api-integration-guide.md',
             'docs/gridex-customer-portal-api.md',
             'docs/single-api-key-tenant-integration.md',
@@ -162,6 +166,7 @@ jobs:
           node scripts/finalize-openapi-release.cjs
           npm run api:docs
           npm run api:release:verify
+          node scripts/gridex-quote-idempotency-multitenant-regression.cjs
       - name: Commit generated release
         if: github.event_name == 'push'
         shell: bash
