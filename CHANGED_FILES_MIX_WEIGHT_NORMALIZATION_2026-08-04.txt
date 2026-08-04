@@ -1,0 +1,6 @@
+GRIDEX_MIX_WEIGHT_NORMALIZATION_FIX_2026-08-04.md
+CHANGED_FILES_MIX_WEIGHT_NORMALIZATION_2026-08-04.txt
+lib/pricing/contractPricingVersioning.ts
+lib/pricing/priceSourceResolver.ts
+__tests__/contract-pricing-versioning.test.ts
+__tests__/price-source-component-normalization.test.ts

@@ -99,6 +99,73 @@ export function internalPriceOptionForQuote(
   };
 }
 
+
+function baseComponentSourceType(component: Record<string, unknown>): string {
+  return String(component.source_type ?? component.sourceType ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function baseComponentPriceArea(component: Record<string, unknown>): string | null {
+  const value = component.price_area ?? component.priceArea;
+  return typeof value === "string" && value.trim()
+    ? value.trim().toUpperCase()
+    : null;
+}
+
+/**
+ * A fixed-price quote must freeze exactly one 100% fixed base component for
+ * the customer's verified price area. The published catalogue can contain one
+ * fixed row per SE area; rewriting every row to the selected area would turn
+ * SE1-SE4 into four identical 100% rows and make the calculator report 400%.
+ */
+export function fixedBaseComponentsForQuote(input: {
+  catalogBaseComponents: unknown[];
+  canonicalPriceArea: PriceArea;
+  selectedFixedPriceOrePerKwh: number;
+  priceOptionReference: string;
+  priceRowReference: string;
+}): Array<Record<string, unknown>> {
+  const fixedRows = input.catalogBaseComponents
+    .filter(
+      (value): value is Record<string, unknown> =>
+        Boolean(value) && typeof value === "object" && !Array.isArray(value),
+    )
+    .filter((component) => baseComponentSourceType(component) === "fixed");
+
+  const selectedTemplate =
+    fixedRows.find(
+      (component) =>
+        baseComponentPriceArea(component) === input.canonicalPriceArea,
+    ) ??
+    fixedRows.find((component) => baseComponentPriceArea(component) === null) ??
+    fixedRows[0] ??
+    {};
+
+  const fixedPriceSekPerKwh = input.selectedFixedPriceOrePerKwh / 100;
+
+  return [
+    {
+      ...selectedTemplate,
+      source_type: "fixed",
+      sourceType: "fixed",
+      label:
+        typeof selectedTemplate.label === "string" &&
+        selectedTemplate.label.trim()
+          ? selectedTemplate.label
+          : "Fast pris",
+      weight_percent: 100,
+      weightPercent: 100,
+      fixed_price_sek_per_kwh: fixedPriceSekPerKwh,
+      fixedPriceSekPerKwh,
+      price_area: input.canonicalPriceArea,
+      priceArea: input.canonicalPriceArea,
+      price_option_reference: input.priceOptionReference,
+      price_row_reference: input.priceRowReference,
+    },
+  ];
+}
+
 function quotePricingInterval(contractType: string, snapshot: Record<string, unknown>): "monthly" | "hourly" | "quarterly" | "fixed" | "portfolio" | "mixed" {
   const explicit = textValue(snapshot.interval_resolution)?.toLowerCase();
   if (explicit === "quarterly" || explicit === "quarter_hour") return "quarterly";
@@ -463,29 +530,15 @@ export async function calculateOfferQuote(input: {
   const exactBaseComponents =
     offer.contract_type === "fixed" &&
     commercialSelection &&
-    selectedAreaPrice
-      ? catalogBaseComponents.map((value) => {
-          const component = value as Record<string, unknown>;
-          const sourceType = component.source_type ?? component.sourceType;
-          return sourceType === "fixed"
-            ? {
-                ...component,
-                fixed_price_sek_per_kwh:
-                  selectedFixedPriceOrePerKwh === null
-                    ? null
-                    : selectedFixedPriceOrePerKwh / 100,
-                fixedPriceSekPerKwh:
-                  selectedFixedPriceOrePerKwh === null
-                    ? null
-                    : selectedFixedPriceOrePerKwh / 100,
-                price_area: canonicalPriceArea,
-                priceArea: canonicalPriceArea,
-                price_option_reference:
-                  commercialSelection.priceOption.price_option_reference,
-                price_row_reference:
-                  selectedAreaPrice.price_row_reference,
-              }
-            : component;
+    selectedAreaPrice &&
+    selectedFixedPriceOrePerKwh !== null
+      ? fixedBaseComponentsForQuote({
+          catalogBaseComponents,
+          canonicalPriceArea: canonicalPriceArea as PriceArea,
+          selectedFixedPriceOrePerKwh,
+          priceOptionReference:
+            commercialSelection.priceOption.price_option_reference,
+          priceRowReference: selectedAreaPrice.price_row_reference,
         })
       : catalogBaseComponents;
   const frozenPriceComponents = Array.isArray(exactSnapshot.price_components)

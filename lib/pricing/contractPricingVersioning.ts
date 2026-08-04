@@ -806,29 +806,32 @@ export function normalizeContractPricing(
         `Fastpris har angetts för ${area}, men området finns inte i avtalets prisområden.`,
       );
   }
-  // One canonical product can carry one fixed-price row per Swedish price
-  // area. The selected area row is later frozen into quote, customer contract
-  // and billing snapshot; it must never create separate product cards.
-  const componentAreas = priceAreas.length > 0 ? priceAreas : [null];
+  // Spot- and portfolio weights describe the commercial mix once for the
+  // whole product. They must not be duplicated once per SE area, otherwise a
+  // 50/50 mix published for SE1-SE4 becomes 400% in quote/billing snapshots.
+  // Only a fixed-price leg is area-scoped because its actual price may differ
+  // between SE1, SE2, SE3 and SE4.
   const baseComponents: BasePriceComponent[] = [];
-  for (const priceArea of componentAreas) {
-    if (spotWeight > 0)
-      baseComponents.push({
-        source_type: "spot",
-        label: "Spotpris",
-        weight_percent: spotWeight,
-        fixed_price_sek_per_kwh: null,
-        price_area: priceArea,
-      });
-    if (portfolioWeight > 0)
-      baseComponents.push({
-        source_type: "portfolio",
-        label: "Portföljpris",
-        weight_percent: portfolioWeight,
-        fixed_price_sek_per_kwh: null,
-        price_area: priceArea,
-      });
-    if (fixedWeight > 0 || input.contractType === "fixed")
+  if (spotWeight > 0)
+    baseComponents.push({
+      source_type: "spot",
+      label: "Spotpris",
+      weight_percent: spotWeight,
+      fixed_price_sek_per_kwh: null,
+      price_area: null,
+    });
+  if (portfolioWeight > 0)
+    baseComponents.push({
+      source_type: "portfolio",
+      label: "Portföljpris",
+      weight_percent: portfolioWeight,
+      fixed_price_sek_per_kwh: null,
+      price_area: null,
+    });
+
+  if (fixedWeight > 0 || input.contractType === "fixed") {
+    const fixedComponentAreas = priceAreas.length > 0 ? priceAreas : [null];
+    for (const priceArea of fixedComponentAreas) {
       baseComponents.push({
         source_type: "fixed",
         label: "Fast pris",
@@ -841,6 +844,7 @@ export function normalizeContractPricing(
         })(),
         price_area: priceArea,
       });
+    }
   }
 
   const components: PricingComponent[] = [];

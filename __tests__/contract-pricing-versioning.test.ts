@@ -224,6 +224,24 @@ describe("contract pricing versioning snapshot", () => {
     });
     expect(result.publicPriceText).toContain("50% rörligt");
     expect(result.publicPriceText).toContain("50% portfölj");
+    expect(result.snapshot.base_components).toEqual([
+      expect.objectContaining({
+        source_type: "spot",
+        weight_percent: 50,
+        price_area: null,
+      }),
+      expect.objectContaining({
+        source_type: "portfolio",
+        weight_percent: 50,
+        price_area: null,
+      }),
+    ]);
+    expect(
+      result.snapshot.base_components.reduce(
+        (sum, component) => sum + component.weight_percent,
+        0,
+      ),
+    ).toBe(100);
   });
 
   it("supports a percentage portfolio management fee with an explicit base", () => {

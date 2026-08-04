@@ -518,7 +518,29 @@ async function filterComponentsForBillingLifecycle(input: {
   });
 }
 
-function filterBaseComponentsForUnderlay(
+function dedupeBaseComponents(
+  components: BasePriceComponent[],
+): BasePriceComponent[] {
+  const seen = new Set<string>();
+  return components.filter((component) => {
+    // Legacy snapshots could contain the same spot/portfolio leg once for
+    // every price area, while an older publication serializer omitted the
+    // area marker. Treat byte-equivalent commercial legs as one leg; distinct
+    // weights, fixed prices or validity windows remain separate.
+    const key = JSON.stringify([
+      component.sourceType,
+      component.weightPercent,
+      component.fixedPriceSekPerKwh ?? null,
+      component.validFrom ?? null,
+      component.validTo ?? null,
+    ]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function filterBaseComponentsForUnderlay(
   components: BasePriceComponent[],
   underlay: BillingUnderlayInput,
 ): BasePriceComponent[] {
@@ -531,11 +553,13 @@ function filterBaseComponentsForUnderlay(
     ),
   );
   const hasAreaRows = periodRows.some((component) => component.priceArea);
-  if (!hasAreaRows) return periodRows;
+  if (!hasAreaRows) return dedupeBaseComponents(periodRows);
   if (!underlay.priceArea) return [];
-  return periodRows.filter(
-    (component) =>
-      !component.priceArea || component.priceArea === underlay.priceArea,
+  return dedupeBaseComponents(
+    periodRows.filter(
+      (component) =>
+        !component.priceArea || component.priceArea === underlay.priceArea,
+    ),
   );
 }
 

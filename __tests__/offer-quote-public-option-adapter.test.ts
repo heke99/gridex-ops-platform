@@ -5,7 +5,10 @@ import {
   commercialModelFromSnapshot,
   commercialModelSchema,
 } from "@/lib/pricing/commercialModel";
-import { internalPriceOptionForQuote } from "@/lib/pricing/offerQuote";
+import {
+  fixedBaseComponentsForQuote,
+  internalPriceOptionForQuote,
+} from "@/lib/pricing/offerQuote";
 
 const publicOption: PublicContractPriceOption = {
   price_option_reference: "price_option_public_fixed_12",
@@ -77,4 +80,44 @@ describe("website quote public price-option adapter", () => {
       }),
     ).not.toBeNull();
   });
+
+  it("freezes exactly one 100% fixed row for the verified SE area", () => {
+    const catalogBaseComponents = [
+      ["SE1", 1.12],
+      ["SE2", 1.15],
+      ["SE3", 1.28],
+      ["SE4", 1.4],
+    ].map(([priceArea, fixedPrice]) => ({
+      source_type: "fixed",
+      label: "Fast pris",
+      weight_percent: 100,
+      fixed_price_sek_per_kwh: fixedPrice,
+      price_area: priceArea,
+    }));
+
+    const selected = fixedBaseComponentsForQuote({
+      catalogBaseComponents,
+      canonicalPriceArea: "SE3",
+      selectedFixedPriceOrePerKwh: 128,
+      priceOptionReference: "price_option_public_fixed_12",
+      priceRowReference: "area_price_se3",
+    });
+
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).toMatchObject({
+      source_type: "fixed",
+      weight_percent: 100,
+      fixed_price_sek_per_kwh: 1.28,
+      price_area: "SE3",
+      price_option_reference: "price_option_public_fixed_12",
+      price_row_reference: "area_price_se3",
+    });
+    expect(
+      selected.reduce(
+        (sum, row) => sum + Number(row.weight_percent ?? 0),
+        0,
+      ),
+    ).toBe(100);
+  });
+
 });

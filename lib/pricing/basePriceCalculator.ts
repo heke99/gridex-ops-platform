@@ -87,7 +87,7 @@ export function calculateBasePrice(input: {
   );
   if (Math.abs(totalWeight - 100) > 0.0001) {
     errors.push(
-      `Mixpris måste summera till 100 %. Nuvarande summa är ${totalWeight} %.`,
+      `Prisbasens andelar måste summera till 100 %. Nuvarande summa är ${totalWeight} %.`,
     );
     return { status: "failed", baseSekPerKwh: null, lines, warnings, errors };
   }
