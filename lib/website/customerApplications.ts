@@ -6200,6 +6200,7 @@ async function reserveWebsiteApplicationIdempotency(input: {
       api_client_id: input.client.id,
       external_customer_id: input.externalCustomerId,
       source: clean(input.payload.source) ?? "external_website",
+      portal_identity_required: true,
       status: "processing",
       idempotency_key: input.idempotencyKey,
       payload_hash: input.payloadHash,

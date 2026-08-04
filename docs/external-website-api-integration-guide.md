@@ -424,7 +424,7 @@ const textVersionId =
 
 När avtalet kräver fullmakt men inget sådant canonicalt modul-ID finns ska teckningen stoppas och feeden behandlas som inkonsekvent.
 
-`auth_user_id` och `customer_portal_user_id` är obligatoriska för kundansökan, ska komma från samma verifierade serversession i tenantens Mina sidor och måste vara samma UUID. OPS accepterar inte en kundansökan som saknar en beständig portalägarkoppling.
+Kunden måste autentiseras i tenantens egen Mina sidor/Auth innan kundansökan skickas. `auth_user_id` och `customer_portal_user_id` är obligatoriska, ska komma från samma verifierade serversession och måste vara samma UUID. OPS accepterar inte anonyma kundansökningar eller en ansökan som saknar en beständig portalägarkoppling.
 
 Ett accepterat svar betyder att OPS har committat kund, kundnummer, anläggning, avtal, juridik, portalidentitet, workflow och ett beständigt fortsättningsjobb. Det betyder inte att e-post, anläggningsuppslag, leverantörsbyte eller webhookleverans redan är klar. Tenant följer dessa steg genom statusresponsens `automation`, `communication` och `webhook` och ska inte själv skicka nätägarbegäran, skapa Z01/Z03, starta leverantörsbyte eller skicka juridiska avtalsmail.
 

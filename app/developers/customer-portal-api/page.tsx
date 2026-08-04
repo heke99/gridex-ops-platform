@@ -1291,9 +1291,12 @@ export default function CustomerPortalApiDocsPage() {
             <code>annual_consumption_kwh</code>, startdatum, kund, adress och de
             dokumenterade juridiska godkännandena. Tenantens webb skickar inte
             ett eget prisområde som sanning och lägger inte referenserna under
-            <code>contract</code>. När kunden redan är inloggad skickas webbens
-            Supabase <code>session.user.id</code> som både
+            <code>contract</code>. Kunden måste autentiseras i tenantens egen
+            Mina sidor/Auth <strong>innan</strong> kundansökan skickas till OPS.
+            Tenantens backend läser den verifierade serversessionens Supabase
+            <code>session.user.id</code> och skickar samma UUID som både
             <code>customer_portal_user_id</code> och <code>auth_user_id</code>.
+            Anonyma kundansökningar stöds inte i kontraktsversion 2026-08-04.1.
             Båda portal-ID-fälten är obligatoriska och måste vara samma verifierade UUID;
             annars returneras <code>422 portal_auth_identity_required</code> eller
             <code>portal_auth_identity_mismatch</code>. OPS skapar kund, kundnummer,
@@ -1367,9 +1370,12 @@ export default function CustomerPortalApiDocsPage() {
           <p>
             Det här flödet heter{" "}
             <strong>Customer Portal External Auth Linking</strong>. På svenska
-            kallar vi det <strong>Mina sidor-koppling</strong>. Det ska användas
-            när tenantens hemsida har egen Supabase Auth och OPS inte har kunden
-            i sin egen <code>auth.users</code>.
+            kallar vi det <strong>Mina sidor-koppling</strong>. Tenantens
+            verifierade Auth-session måste etableras före{" "}
+            <code>POST /api/v1/website/customer-applications</code>; kopplingen
+            är inte ett valfritt eftersteg. Flödet används när tenantens hemsida
+            har egen Supabase Auth och OPS inte har kunden i sin egen{" "}
+            <code>auth.users</code>.
           </p>
           <p>
             Tenantens backend måste skicka webbens Supabase{" "}
@@ -1774,13 +1780,15 @@ export default function CustomerPortalApiDocsPage() {
             </table>
           </div>
           <p>
-            Aktuell kontraktsversion är <code>{documentationVersion}</code>.
-            Denna release är additiv: <code>is_default</code> är canonical,
-            <code>default</code> är kvar som deprecated alias och
-            <code>legal_bundle_version_id</code> finns på legal-objektet och varje
-            modulrad. En breaking change kräver en ny major contract version
-            enligt den faktiska releasepolicyn; ett deprecated fält tas inte
-            bort i en patchrelease.
+            Aktuell kontraktsversion är <code>{documentationVersion}</code>. De
+            additiva public-contract-ändringarna behåller <code>default</code> som
+            deprecated alias och gör <code>is_default</code> canonical. Website
+            Integration-delen innehåller samtidigt en uttrycklig{" "}
+            <code>breaking-request-requirement</code>: varje kundansökan kräver en
+            redan etablerad portal/Auth-session och identiska UUID-värden i{" "}
+            <code>auth_user_id</code> och <code>customer_portal_user_id</code>.
+            Release manifest är source of truth för klassificeringen per
+            specifikation.
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1863,6 +1871,8 @@ npx ajv-cli compile -s website-integration-v1.json --spec=draft2020`}</CodeBlock
           <ol className="list-decimal space-y-2 pl-5">
             <li>Hämta OpenAPI för version <code>{documentationVersion}</code> och verifiera SHA-256 mot release manifest.</li>
             <li>Regenerera TypeScript-typer och eventuell AJV-validator.</li>
+            <li>Flytta autentiseringen före kundansökan. Skapa eller verifiera tenantens Auth-session innan POST och skicka samma <code>session.user.id</code> i både <code>auth_user_id</code> och <code>customer_portal_user_id</code>.</li>
+            <li>Blockera anonym submit i klienten; OPS returnerar annars <code>422 portal_auth_identity_required</code>. Detta är releaseklassens <code>breaking-request-requirement</code>.</li>
             <li>Byt intern source of truth från <code>default</code> till <code>is_default</code>. Behåll endast en tidsbegränsad fallback för äldre serverversioner.</li>
             <li>Lägg tester som kräver <code>legal.legal_bundle_version_id</code> och identiskt ID på samtliga modulrader.</li>
             <li>Ta bort generella klientspärrar som döljer hela feeden vid additiva dokumenterade fält.</li>
@@ -1889,7 +1899,14 @@ npx ajv-cli compile -s website-integration-v1.json --spec=draft2020`}</CodeBlock
         </Section>
 
         <Section id="changelog" title={`18. Changelog – ${documentationVersion}`}>
-          <p>Release: <code>{openApiRelease.released_at}</code>. Kompatibilitet: additiv.</p>
+          <p>
+            Release: <code>{openApiRelease.released_at}</code>. Övergripande
+            klassificering: <code>{openApiRelease.compatibility_classification}</code>.
+            Website Integration:{" "}
+            <code>{openApiRelease.specifications.website.compatibility}</code>.
+            Customer Portal:{" "}
+            <code>{openApiRelease.specifications.customer_portal.compatibility}</code>.
+          </p>
           <ul className="list-disc space-y-2 pl-5">
             <li>Added <code>legal.legal_bundle_version_id</code>.</li>
             <li>Added <code>legal.module_versions[].legal_bundle_version_id</code>.</li>
@@ -1897,6 +1914,7 @@ npx ajv-cli compile -s website-integration-v1.json --spec=draft2020`}</CodeBlock
             <li>Kept <code>price_options[].default</code> as a deprecated compatibility alias.</li>
             <li>Updated Website Integration och Customer Portal OpenAPI samt deras checksummor och release manifest.</li>
             <li>Added runtime-to-published-OpenAPI regression validation and documentation example validation.</li>
+            <li>Made pre-authentication mandatory before every website customer application; <code>auth_user_id</code> and <code>customer_portal_user_id</code> are required and identical.</li>
             <li>Clarified that variable contracts do not require non-empty <code>area_prices</code>.</li>
           </ul>
           <p>

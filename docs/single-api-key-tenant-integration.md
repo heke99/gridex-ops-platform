@@ -35,7 +35,7 @@ enbart använda Bearer-formatet ovan.
 
 Scopes är nödvändiga men inte tillräckliga. `GET /integration/context` rapporterar samma canonical readiness som används av ansöknings-API:t: aktiv tenant och API-klient, publicerat avtal och juridik, verifierad e-post, kundautomation, anläggningsmailbox, tenantens HTTPS-adress till Mina sidor samt tillåtna operation policies. Ett blockerande krav ger `tenant_website_not_ready`; tenant kan alltid polla status och får även webhookstatus när en aktiv webhook är konfigurerad.
 
-Varje kundansökan måste skickas från en autentiserad Mina sidor-session och innehålla samma UUID i `auth_user_id` och `customer_portal_user_id`.
+Varje kundansökan måste skickas först efter att en autentiserad Mina sidor-session har etablerats och innehålla samma UUID i `auth_user_id` och `customer_portal_user_id`. Anonym ansökan stöds inte.
 
 ## Publika kontrakt
 

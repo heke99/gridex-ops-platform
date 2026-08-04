@@ -32,6 +32,13 @@ select 'migration_20260804121000_registered', exists (
 ), '{}'::jsonb;
 
 insert into _gridex_flow_verification(check_name, passed, details)
+select 'migration_20260804151500_registered', exists (
+  select 1 from supabase_migrations.schema_migrations
+  where version::text = '20260804151500'
+    and name = 'website_application_pre_auth_contract_alignment'
+), '{}'::jsonb;
+
+insert into _gridex_flow_verification(check_name, passed, details)
 select 'customer_portal_url_column', exists (
   select 1 from information_schema.columns
   where table_schema = 'public' and table_name = 'companies'
@@ -44,6 +51,14 @@ select 'portal_identity_required_column', exists (
   where table_schema = 'public' and table_name = 'website_customer_applications'
     and column_name = 'portal_identity_required'
     and data_type = 'boolean' and is_nullable = 'NO'
+), '{}'::jsonb;
+
+insert into _gridex_flow_verification(check_name, passed, details)
+select 'portal_identity_required_default_true', exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public' and table_name = 'website_customer_applications'
+    and column_name = 'portal_identity_required'
+    and column_default in ('true', 'true::boolean')
 ), '{}'::jsonb;
 
 insert into _gridex_flow_verification(check_name, passed, details)
@@ -68,6 +83,88 @@ select 'portal_identity_trigger', exists (
     and tg.tgenabled <> 'D'
 ), '{}'::jsonb;
 
+create temporary table _gridex_portal_identity_probe (
+  id bigint generated always as identity primary key,
+  payload jsonb not null default '{}'::jsonb,
+  portal_identity_required boolean not null default true
+) on commit drop;
+
+create trigger gridex_validate_website_application_portal_identity
+before insert or update of payload, portal_identity_required
+on _gridex_portal_identity_probe
+for each row execute function public.gridex_validate_website_application_portal_identity();
+
+do $$
+declare
+  v_id bigint;
+begin
+  begin
+    insert into _gridex_portal_identity_probe(payload)
+    values ('{}'::jsonb);
+    raise exception 'probe_missing_identity_was_accepted';
+  exception when check_violation then
+    if sqlerrm <> 'portal_auth_identity_required' then
+      raise;
+    end if;
+  end;
+
+  begin
+    insert into _gridex_portal_identity_probe(payload, portal_identity_required)
+    values (
+      jsonb_build_object(
+        'auth_user_id', 'f8249704-7ce8-4885-93cb-fbb9922ed77d',
+        'customer_portal_user_id', 'f8249704-7ce8-4885-93cb-fbb9922ed77d'
+      ),
+      false
+    );
+    raise exception 'probe_disabled_flag_was_accepted';
+  exception when check_violation then
+    if sqlerrm <> 'portal_auth_identity_required' then
+      raise;
+    end if;
+  end;
+
+  insert into _gridex_portal_identity_probe(payload)
+  values (jsonb_build_object(
+    'auth_user_id', 'f8249704-7ce8-4885-93cb-fbb9922ed77d',
+    'customer_portal_user_id', 'f8249704-7ce8-4885-93cb-fbb9922ed77d'
+  ))
+  returning id into v_id;
+
+  begin
+    update _gridex_portal_identity_probe
+    set portal_identity_required = false
+    where id = v_id;
+    raise exception 'probe_canonical_downgrade_was_accepted';
+  exception when check_violation then
+    if sqlerrm <> 'portal_auth_identity_downgrade_forbidden' then
+      raise;
+    end if;
+  end;
+
+  alter table _gridex_portal_identity_probe disable trigger gridex_validate_website_application_portal_identity;
+  insert into _gridex_portal_identity_probe(payload, portal_identity_required)
+  values ('{}'::jsonb, false)
+  returning id into v_id;
+  alter table _gridex_portal_identity_probe enable trigger gridex_validate_website_application_portal_identity;
+
+  update _gridex_portal_identity_probe
+  set payload = payload
+  where id = v_id;
+end $$;
+
+insert into _gridex_flow_verification(check_name, passed, details)
+values (
+  'portal_identity_behavior',
+  true,
+  jsonb_build_object(
+    'new_rows_require_identity', true,
+    'flag_bypass_rejected', true,
+    'canonical_downgrade_rejected', true,
+    'historical_legacy_update_allowed', true
+  )
+);
+
 insert into _gridex_flow_verification(check_name, passed, details)
 select 'terminal_projection_trigger', exists (
   select 1 from pg_trigger tg
@@ -85,7 +182,7 @@ with expected(signature, expected_hash, expected_security_definer) as (
     ('gridex_apply_contract_offer_standard_fees()'::text, '2683a102674fb3468c7ad69806f60a69ac4b8f7375529bd144d1253df3fc4821'::text, true),
     ('gridex_canonicalize_publication_invoice_fee_v1(jsonb,numeric)'::text, '33a081c873fdbc641263444cbee02ec579739efeebfbe0c00cd028bfc4ee4e67'::text, false),
     ('gridex_finalize_contract_publication_v1(uuid,uuid,boolean)'::text, '04b22c1511ae4ebbb5d4d566d774fc3979a0c1e5aec05e6d5a621f1236e53efa'::text, true),
-    ('gridex_validate_website_application_portal_identity()'::text, '9049cf8acc9d51fb6f8e1b2fb49391a1a842c0b89d2349747a6b8c7c8329a2a7'::text, false),
+    ('gridex_validate_website_application_portal_identity()'::text, '35d38b26fdececb4f9409bc5eac4b30182098d9254bdb1d68beafa0fc6a9b8dd'::text, false),
     ('gridex_project_terminal_application_continuation()'::text, 'e997894649dc0e65d3729f96c4b549875826e29478d131f63b672c7c316a2265'::text, true)
 ), actual as (
   select

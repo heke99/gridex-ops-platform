@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import customerPortalOpenApi from '@/docs/openapi/customer-portal-v1.json'
 import websiteOpenApi from '@/docs/openapi/website-integration-v1.json'
@@ -28,6 +29,37 @@ describe('canonical public API release', () => {
     expect(manifest.specifications.website.sha256).toBe(sha256(websiteOpenApi))
     expect(manifest.specifications.customer_portal.sha256).toBe(
       sha256(customerPortalOpenApi),
+    )
+  })
+
+  it('aligns guide, OpenAPI, runtime and database on mandatory pre-authentication', () => {
+    const guide = readFileSync(
+      'app/developers/customer-portal-api/page.tsx',
+      'utf8',
+    )
+    const runtime = readFileSync('lib/website/customerApplications.ts', 'utf8')
+    const migration = readFileSync(
+      'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',
+      'utf8',
+    )
+    const manifest = buildOpenApiReleaseManifest()
+    const application = websiteOpenApi.components.schemas.CustomerApplicationRequest
+
+    expect(application.required).toEqual(
+      expect.arrayContaining(['auth_user_id', 'customer_portal_user_id']),
+    )
+    expect(guide).toContain('Kunden måste autentiseras i tenantens egen')
+    expect(guide).toContain('<strong>innan</strong> kundansökan skickas till OPS')
+    expect(guide).not.toContain('När kunden redan är inloggad skickas')
+    expect(runtime).toContain('portal_auth_identity_required')
+    expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect(migration).toContain('alter column portal_identity_required set default true')
+    expect(migration).toContain("tg_op = 'INSERT'")
+    expect(manifest.compatibility_classification).toBe(
+      'breaking-client-update-required-for-portal-identity',
+    )
+    expect(manifest.specifications.website.compatibility).toBe(
+      'breaking-request-requirement',
     )
   })
 
