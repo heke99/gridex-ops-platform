@@ -135,6 +135,10 @@ type CreateCustomerGraphParams = {
   spotMarkupOrePerKwh: number | null;
   variableFeeOrePerKwh: number | null;
   monthlyFeeSek: number | null;
+  invoiceFeeSek: number | null;
+  startFeeSek: number | null;
+  adminFeeSek: number | null;
+  breakFeeSek: number | null;
   greenFeeMode: GreenFeeMode | null;
   greenFeeValue: number | null;
   bindingMonths: number | null;
@@ -236,6 +240,10 @@ const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "spotMarkupOrePerKwh",
   "variableFeeOrePerKwh",
   "monthlyFeeSek",
+  "invoiceFeeSek",
+  "startFeeSek",
+  "adminFeeSek",
+  "breakFeeSek",
   "greenFeeMode",
   "greenFeeValue",
   "bindingMonths",
@@ -686,6 +694,10 @@ function validateCreateCustomerParams(
   const spotMarkupOrePerKwh = params.spotMarkupOrePerKwh ?? null;
   const variableFeeOrePerKwh = params.variableFeeOrePerKwh ?? null;
   const monthlyFeeSek = params.monthlyFeeSek ?? null;
+  const invoiceFeeSek = params.invoiceFeeSek ?? null;
+  const startFeeSek = params.startFeeSek ?? null;
+  const adminFeeSek = params.adminFeeSek ?? null;
+  const breakFeeSek = params.breakFeeSek ?? null;
   const greenFeeValue = params.greenFeeValue ?? null;
 
   const hasAnyCustomerSignal = Boolean(
@@ -805,6 +817,10 @@ function validateCreateCustomerParams(
     ["spotMarkupOrePerKwh", spotMarkupOrePerKwh, "Spotpåslag"],
     ["variableFeeOrePerKwh", variableFeeOrePerKwh, "Rörlig avgift"],
     ["monthlyFeeSek", monthlyFeeSek, "Månadsavgift"],
+    ["invoiceFeeSek", invoiceFeeSek, "Fakturaavgift"],
+    ["startFeeSek", startFeeSek, "Startavgift"],
+    ["adminFeeSek", adminFeeSek, "Administrationsavgift"],
+    ["breakFeeSek", breakFeeSek, "Brytavgift"],
     ["greenFeeValue", greenFeeValue, "Grön el-avgift"],
   ] as Array<[IntakeField, number | null, string]>) {
     if (value !== null && value < 0) {
@@ -913,6 +929,10 @@ function buildCreateCustomerParams(
       getString(formData, "variableFeeOrePerKwh"),
     ),
     monthlyFeeSek: parseNumber(getString(formData, "monthlyFeeSek")),
+    invoiceFeeSek: parseNumber(getString(formData, "invoiceFeeSek")),
+    startFeeSek: parseNumber(getString(formData, "startFeeSek")),
+    adminFeeSek: parseNumber(getString(formData, "adminFeeSek")),
+    breakFeeSek: parseNumber(getString(formData, "breakFeeSek")),
     greenFeeMode: getString(formData, "greenFeeMode")
       ? parseGreenFeeMode(getString(formData, "greenFeeMode"))
       : null,
@@ -1869,6 +1889,13 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
           spot_markup_ore_per_kwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
           variable_fee_ore_per_kwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
           monthly_fee_sek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
+          invoice_fee_sek: params.invoiceFeeSek ?? offer?.invoice_fee_sek ?? null,
+          start_fee_sek: params.startFeeSek ?? offer?.start_fee_sek ?? null,
+          admin_fee_sek: params.adminFeeSek ?? offer?.admin_fee_sek ?? null,
+          break_fee_sek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
+          discount_value: offer?.discount_value ?? null,
+          discount_unit: offer?.discount_unit ?? null,
+          vat_rate: offer?.vat_rate ?? 25,
           green_fee_mode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
           green_fee_value: params.greenFeeValue ?? offer?.green_fee_value ?? null,
           binding_months: params.bindingMonths ?? offer?.default_binding_months ?? null,
@@ -1906,6 +1933,12 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
             spotMarkupOrePerKwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
             variableFeeOrePerKwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
             monthlyFeeSek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
+            invoiceFeeSek: params.invoiceFeeSek ?? offer?.invoice_fee_sek ?? null,
+            startFeeSek: params.startFeeSek ?? offer?.start_fee_sek ?? null,
+            adminFeeSek: params.adminFeeSek ?? offer?.admin_fee_sek ?? null,
+            breakFeeSek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
+            discountValue: offer?.discount_value ?? null,
+            discountUnit: offer?.discount_unit ?? null,
             greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
             greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
             vatRate: offer?.vat_rate ?? 25,
@@ -2083,6 +2116,11 @@ function buildAdminIntakeIdempotencyKey(
     params.siteName ?? "",
     params.contractOfferId ?? "",
     params.contractStartDate ?? "",
+    String(params.monthlyFeeSek ?? ""),
+    String(params.invoiceFeeSek ?? ""),
+    String(params.startFeeSek ?? ""),
+    String(params.adminFeeSek ?? ""),
+    String(params.breakFeeSek ?? ""),
     params.expectedStartDate ?? "",
     params.duplicateResolution ?? "",
     params.existingCustomerId ?? "",
@@ -2539,6 +2577,10 @@ async function buildCustomerParamsFromImportRow(params: {
     spotMarkupOrePerKwh: parseNumber(row.spot_markup_ore_per_kwh || ""),
     variableFeeOrePerKwh: parseNumber(row.variable_fee_ore_per_kwh || ""),
     monthlyFeeSek: parseNumber(row.monthly_fee_sek || ""),
+    invoiceFeeSek: parseNumber(row.invoice_fee_sek || ""),
+    startFeeSek: parseNumber(row.start_fee_sek || ""),
+    adminFeeSek: parseNumber(row.admin_fee_sek || ""),
+    breakFeeSek: parseNumber(row.break_fee_sek || ""),
     greenFeeMode: row.green_fee_mode
       ? parseGreenFeeMode(row.green_fee_mode)
       : null,

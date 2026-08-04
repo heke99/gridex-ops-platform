@@ -129,6 +129,7 @@ describe("canonical contract channel completion", () => {
         ],
         pricing: {
           monthly_fee_sek: 49,
+          invoice_fee_sek: 0,
           price_plan_version_id:
             "00000000-0000-4000-8000-000000000003",
         },

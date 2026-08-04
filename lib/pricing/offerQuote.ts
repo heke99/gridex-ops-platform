@@ -28,6 +28,7 @@ import {
   CommercialSelectionError,
   CONTRACT_TYPES,
   commercialModelFromSnapshot,
+  mergeFrozenPriceComponentsWithCommercialSelection,
   resolveCommercialSelection,
   type InvoiceDeliveryMethod,
 } from "@/lib/pricing/commercialModel";
@@ -445,13 +446,19 @@ export async function calculateOfferQuote(input: {
             : component;
         })
       : catalogBaseComponents;
+  const frozenPriceComponents = Array.isArray(exactSnapshot.price_components)
+    ? exactSnapshot.price_components
+    : Array.isArray(exactSnapshot.price_components_snapshot)
+      ? exactSnapshot.price_components_snapshot
+      : canonical.priceComponents;
   const exactPriceComponents =
-    commercialSelection?.components ??
-    (Array.isArray(exactSnapshot.price_components)
-      ? exactSnapshot.price_components
-      : Array.isArray(exactSnapshot.price_components_snapshot)
-        ? exactSnapshot.price_components_snapshot
-        : canonical.priceComponents);
+    commercialSelection && commercialModel
+      ? mergeFrozenPriceComponentsWithCommercialSelection({
+          frozenComponents: frozenPriceComponents,
+          model: commercialModel,
+          selectedComponents: commercialSelection.components,
+        })
+      : frozenPriceComponents;
   const snapshotSchema = canonicalSnapshotSchema(exactSnapshot);
   const pricingInterval = quotePricingInterval(offer.contract_type, exactSnapshot);
   const pricingSnapshot = {

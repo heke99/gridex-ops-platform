@@ -375,6 +375,7 @@
     "20260803152014_contract_portfolio_tenant_fk_indexes.sql": "bc7de917bdf4f309059330105648217be5a82a91289037cf6e713c46cb99d4ae",
     "20260803152236_portfolio_superadmin_helper_service_role_only.sql": "9a095233c605184a00d59884fc7ad4a91534de75fbae17fa3fbc04e7171c0d01",
     "20260803212754_canonical_migration_readiness_reconciliation_v4.sql": "08b8722e962ee019c9d190dcb3c4f3efe4cd956cdf88a0d432a0989f70635117",
+    "20260804003000_customer_contract_fee_consistency.sql": "ea58786ed48eb3b38b57aa9c0e9743ecf8895e863f1ed2b43f88afb7937a60d8",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

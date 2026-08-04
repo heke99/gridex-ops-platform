@@ -252,6 +252,7 @@ export type CustomerContractRow = {
   spot_markup_ore_per_kwh: number | null;
   variable_fee_ore_per_kwh: number | null;
   monthly_fee_sek: number | null;
+  invoice_fee_sek?: number | null;
   green_fee_mode: GreenFeeMode;
   green_fee_value: number | null;
   binding_months: number | null;

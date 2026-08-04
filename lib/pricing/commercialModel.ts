@@ -62,6 +62,29 @@ export const INVOICE_DELIVERY_METHODS = [
 export type InvoiceDeliveryMethod =
   (typeof INVOICE_DELIVERY_METHODS)[number];
 
+export const RESERVED_STANDARD_COMPONENT_CODES = [
+  "monthly_fee",
+  "invoice_fee",
+  "invoice_administration_fee",
+  "green_energy_fee",
+  "green_fee",
+  "start_fee",
+  "administration_fee",
+  "admin_fee",
+  "break_fee",
+] as const;
+
+const RESERVED_STANDARD_COMPONENT_CODE_SET = new Set<string>(
+  RESERVED_STANDARD_COMPONENT_CODES,
+);
+
+export function isReservedStandardComponentCode(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    RESERVED_STANDARD_COMPONENT_CODE_SET.has(value.trim().toLowerCase())
+  );
+}
+
 const stableReference = z
   .string()
   .trim()
@@ -444,10 +467,12 @@ export const commercialModelSchema = z
 
 export type CanonicalCommercialModel = z.infer<typeof commercialModelSchema>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return isRecord(value) ? value : {};
 }
 
 export function commercialModelFromSnapshot(
@@ -495,7 +520,87 @@ export function commercialModelFromSnapshot(
     invoice_delivery_methods:
       snapshot?.invoice_delivery_methods ?? ["email", "e_invoice", "paper"],
   });
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  return {
+    ...parsed.data,
+    // Contract-wide standard fees are frozen in the canonical price snapshot.
+    // They must not re-enter the selectable component model, otherwise a quote
+    // or customer contract can either lose them or calculate them twice.
+    components: parsed.data.components.filter(
+      (component) =>
+        !isReservedStandardComponentCode(component.component_code),
+    ),
+  };
+}
+
+function frozenComponentReference(value: unknown): string | null {
+  const component = asRecord(value);
+  const metadata = asRecord(component.metadata);
+  const reference =
+    component.component_reference ??
+    component.componentReference ??
+    metadata.component_reference ??
+    metadata.componentReference;
+  return typeof reference === "string" && reference.trim()
+    ? reference.trim()
+    : null;
+}
+
+function frozenComponentCode(value: unknown): string | null {
+  const component = asRecord(value);
+  const metadata = asRecord(component.metadata);
+  const code =
+    component.component_code ??
+    component.componentCode ??
+    metadata.component_code ??
+    metadata.componentCode;
+  return typeof code === "string" && code.trim()
+    ? code.trim().toLowerCase()
+    : null;
+}
+
+function standardComponentFamily(code: string): string {
+  if (code === "invoice_administration_fee") return "invoice_fee";
+  if (code === "admin_fee") return "administration_fee";
+  if (code === "green_fee") return "green_energy_fee";
+  return code;
+}
+
+export function mergeFrozenPriceComponentsWithCommercialSelection(input: {
+  frozenComponents: unknown[];
+  model: CanonicalCommercialModel;
+  selectedComponents: PriceComponent[];
+}): Array<Record<string, unknown> | PriceComponent> {
+  const selectableReferences = new Set(
+    input.model.components.map((component) => component.component_reference),
+  );
+  const seenReservedCodes = new Set<string>();
+  const frozenContractComponents = input.frozenComponents.filter(
+    (value): value is Record<string, unknown> => {
+      if (!isRecord(value)) return false;
+
+      const reference = frozenComponentReference(value);
+      if (reference && selectableReferences.has(reference)) return false;
+
+      const code = frozenComponentCode(value);
+      if (!code || !isReservedStandardComponentCode(code)) return true;
+      const family = standardComponentFamily(code);
+      if (seenReservedCodes.has(family)) return false;
+      seenReservedCodes.add(family);
+      return true;
+    },
+  );
+
+  const selectableComponents = input.selectedComponents.filter((component) => {
+    const code =
+      component.componentCode ??
+      (typeof component.metadata?.component_code === "string"
+        ? component.metadata.component_code
+        : null);
+    return !isReservedStandardComponentCode(code);
+  });
+
+  return [...frozenContractComponents, ...selectableComponents];
 }
 
 function dateInRange(

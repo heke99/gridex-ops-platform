@@ -413,6 +413,7 @@ export default async function CustomerContractsCard({
  <div>Påslag: {formatNumber(contract.spot_markup_ore_per_kwh)}</div>
  <div>Rörlig: {formatNumber(contract.variable_fee_ore_per_kwh)}</div>
  <div>Mån: {formatNumber(contract.monthly_fee_sek)}</div>
+ <div>Faktura: {formatNumber(contract.invoice_fee_sek)} kr/faktura</div>
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
@@ -432,6 +433,9 @@ export default async function CustomerContractsCard({
  <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
  <div>Signerat: {formatDateTime(contract.signed_at)}</div>
  <div>{greenFeeLabel(contract.green_fee_mode, contract.green_fee_value)}</div>
+ <div>Startavgift: {formatNumber(contract.start_fee_sek)} kr</div>
+ <div>Administrationsavgift: {formatNumber(contract.admin_fee_sek)} kr</div>
+ <div>Brytavgift: {formatNumber(contract.break_fee_sek)} kr</div>
  <div>
  Uppsägning mottagen: {formatDateTime(contract.termination_notice_date)}
  </div>

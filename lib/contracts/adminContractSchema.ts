@@ -4,6 +4,7 @@ import { slugifyContract } from "@/lib/contracts/slug";
 import {
   commercialComponentSchema,
   commercialModelSchema,
+  isReservedStandardComponentCode,
   priceOptionSchema,
   type CommercialPriceComponent,
   type ContractPriceOption,
@@ -80,6 +81,34 @@ function nullableNumber(value: string, label: string): number | null {
   const parsed = Number(value.replace(",", "."));
   if (!Number.isFinite(parsed)) throw new Error(`${label} måste vara ett giltigt tal.`);
   return parsed;
+}
+
+function nonNegativeNullableNumber(value: string, label: string): number | null {
+  const parsed = nullableNumber(value, label);
+  if (parsed !== null && parsed < 0) {
+    throw new Error(`${label} får inte vara negativ.`);
+  }
+  return parsed;
+}
+
+function resolveCanonicalAmount(input: {
+  direct: number | null;
+  component: number | null;
+  label: string;
+}): number | null {
+  if (input.component !== null && input.component < 0) {
+    throw new Error(`${input.label} får inte vara negativ.`);
+  }
+  if (
+    input.direct !== null &&
+    input.component !== null &&
+    Math.abs(input.direct - input.component) > 1e-9
+  ) {
+    throw new Error(
+      `${input.label} skiljer sig mellan avtalsfältet och en äldre priskomponent. Korrigera beloppet så att avtalet har en enda källa.`,
+    );
+  }
+  return input.component ?? input.direct;
 }
 
 function nullableInteger(value: string, label: string): number | null {
@@ -268,11 +297,23 @@ function parseJsonArray(
   return parsed;
 }
 
+function firstComponent(
+  components: CommercialPriceComponent[],
+  codes: readonly string[],
+): CommercialPriceComponent | null {
+  const normalizedCodes = new Set(codes.map((code) => code.toLowerCase()));
+  return (
+    components.find((component) =>
+      normalizedCodes.has(component.component_code.trim().toLowerCase()),
+    ) ?? null
+  );
+}
+
 function firstComponentAmount(
   components: CommercialPriceComponent[],
-  code: string,
+  codes: readonly string[],
 ): number | null {
-  return components.find((component) => component.component_code === code)?.amount ?? null;
+  return firstComponent(components, codes)?.amount ?? null;
 }
 
 export function parseAdminContractForm(formData: FormData): ParsedAdminContractForm {
@@ -382,9 +423,30 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
   if (!["none", "sek_month", "ore_per_kwh"].includes(greenFeeModeRaw))
     throw new Error("Miljöavgiften har en ogiltig enhet.");
 
-  const invoiceFeeSek = nullableNumber(raw(formData, "invoice_fee_sek"), "Fakturaavgift");
-  if (isActive && invoiceFeeSek === null)
-    throw new Error("Publicering kräver fakturaavgift. Ange 0 kr om avtalet är avgiftsfritt.");
+  const directMonthlyFeeSek = nonNegativeNullableNumber(
+    raw(formData, "monthly_fee_sek"),
+    "Månadsavgift",
+  );
+  const directInvoiceFeeSek = nonNegativeNullableNumber(
+    raw(formData, "invoice_fee_sek"),
+    "Fakturaavgift",
+  );
+  const directGreenFeeValue = nonNegativeNullableNumber(
+    raw(formData, "green_fee_value"),
+    "Miljöavgift",
+  );
+  const directStartFeeSek = nonNegativeNullableNumber(
+    raw(formData, "start_fee_sek"),
+    "Startavgift",
+  );
+  const directAdminFeeSek = nonNegativeNullableNumber(
+    raw(formData, "admin_fee_sek"),
+    "Administrativ avgift",
+  );
+  const directBreakFeeSek = nonNegativeNullableNumber(
+    raw(formData, "break_fee_sek"),
+    "Brytavgift",
+  );
 
   const vatRate = nullableNumber(raw(formData, "vat_rate"), "Moms") ?? 25;
   if (vatRate < 0 || vatRate > 100) throw new Error("Moms måste vara mellan 0 och 100 procent.");
@@ -417,6 +479,101 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     price_options: priceOptions,
     components: commercialComponents,
     invoice_delivery_methods: invoiceDeliveryMethods,
+  });
+
+  const selectableCommercialComponents = commercialComponents.filter(
+    (component) =>
+      !isReservedStandardComponentCode(component.component_code),
+  );
+  const componentMonthlyFee = firstComponentAmount(commercialComponents, [
+    "monthly_fee",
+  ]);
+  const componentInvoiceFee = firstComponentAmount(commercialComponents, [
+    "invoice_fee",
+    "invoice_administration_fee",
+  ]);
+  const componentGreenFee = firstComponent(commercialComponents, [
+    "green_energy_fee",
+    "green_fee",
+  ]);
+  const componentStartFee = firstComponentAmount(commercialComponents, [
+    "start_fee",
+  ]);
+  const componentAdminFee = firstComponentAmount(commercialComponents, [
+    "administration_fee",
+    "admin_fee",
+  ]);
+  const componentBreakFee = firstComponentAmount(commercialComponents, [
+    "break_fee",
+  ]);
+
+  const monthlyFeeSek = resolveCanonicalAmount({
+    direct: directMonthlyFeeSek,
+    component: componentMonthlyFee,
+    label: "Månadsavgiften",
+  });
+  const invoiceFeeSek = resolveCanonicalAmount({
+    direct: directInvoiceFeeSek,
+    component: componentInvoiceFee,
+    label: "Fakturaavgiften",
+  });
+  if (invoiceFeeSek === null) {
+    throw new Error(
+      "Fakturaavgift måste anges för avtalet. Ange 0 kr om avtalet är avgiftsfritt.",
+    );
+  }
+
+  const componentGreenFeeMode =
+    componentGreenFee?.unit === "sek_month"
+      ? "sek_month"
+      : componentGreenFee?.unit === "ore_per_kwh"
+        ? "ore_per_kwh"
+        : null;
+  if (componentGreenFee && componentGreenFeeMode === null) {
+    throw new Error(
+      "En äldre miljöavgiftskomponent har en ogiltig enhet. Använd kr/månad eller öre/kWh.",
+    );
+  }
+  if (
+    componentGreenFeeMode &&
+    greenFeeModeRaw !== "none" &&
+    componentGreenFeeMode !== greenFeeModeRaw
+  ) {
+    throw new Error(
+      "Miljöavgiftens enhet skiljer sig mellan avtalsfältet och en äldre priskomponent.",
+    );
+  }
+  const greenFeeMode = (
+    componentGreenFeeMode ?? greenFeeModeRaw
+  ) as "none" | "sek_month" | "ore_per_kwh";
+  const greenFeeValue = resolveCanonicalAmount({
+    direct: directGreenFeeValue,
+    component: componentGreenFee?.amount ?? null,
+    label: "Miljöavgiften",
+  });
+  if (greenFeeMode === "none" && greenFeeValue !== null) {
+    throw new Error(
+      "Miljöavgiften har ett belopp men saknar avgiftsmodell. Välj kr/månad eller öre/kWh.",
+    );
+  }
+  if (greenFeeMode !== "none" && greenFeeValue === null) {
+    throw new Error("Vald miljöavgiftsmodell kräver ett belopp.");
+  }
+
+  const startFeeSek = resolveCanonicalAmount({
+    direct: directStartFeeSek,
+    component: componentStartFee,
+    label: "Startavgiften",
+  });
+  const adminFeeSek = resolveCanonicalAmount({
+    direct: directAdminFeeSek,
+    component: componentAdminFee,
+    label: "Administrationsavgiften",
+  });
+  const breakFeeSek = resolveCanonicalAmount({
+    direct: directBreakFeeSek,
+    component: componentBreakFee,
+    label: "Brytavgiften",
   });
   if (priceOptions.some((option) => option.contract_type !== contractType)) {
     throw new Error(
@@ -478,18 +635,6 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
       );
     }
   }
-  const canonicalMonthlyFee = firstComponentAmount(
-    commercialComponents,
-    "monthly_fee",
-  );
-  const canonicalInvoiceFee = firstComponentAmount(
-    commercialComponents,
-    "invoice_administration_fee",
-  );
-  const canonicalGreenFee = commercialComponents.find(
-    (component) => component.component_code === "green_energy_fee",
-  );
-
   return {
     id: raw(formData, "id") || null,
     companyId,
@@ -511,9 +656,9 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     discountCalculationBase: raw(formData, "discount_calculation_base") || null,
     discountMonths,
     discountStartsOnMode: raw(formData, "discount_starts_on_mode") === "calendar_month" ? "calendar_month" : "contract_start",
-    startFeeSek: nullableNumber(raw(formData, "start_fee_sek"), "Startavgift"),
-    adminFeeSek: nullableNumber(raw(formData, "admin_fee_sek"), "Administrativ avgift"),
-    breakFeeSek: nullableNumber(raw(formData, "break_fee_sek"), "Brytavgift"),
+    startFeeSek,
+    adminFeeSek,
+    breakFeeSek,
     vatRate,
     fixedPriceOrePerKwh:
       requiresFixedAreaPrices &&
@@ -528,15 +673,10 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
         : "",
     spotMarkupOrePerKwh: nullableNumber(raw(formData, "spot_markup_ore_per_kwh"), "Spotpåslag"),
     variableFeeOrePerKwh: nullableNumber(raw(formData, "variable_fee_ore_per_kwh"), "Rörlig avgift"),
-    monthlyFeeSek: canonicalMonthlyFee,
-    invoiceFeeSek: canonicalInvoiceFee ?? invoiceFeeSek,
-    greenFeeMode:
-      canonicalGreenFee?.unit === "sek_month"
-        ? "sek_month"
-        : canonicalGreenFee?.unit === "ore_per_kwh"
-          ? "ore_per_kwh"
-          : "none",
-    greenFeeValue: canonicalGreenFee?.amount ?? null,
+    monthlyFeeSek,
+    invoiceFeeSek,
+    greenFeeMode,
+    greenFeeValue,
     bindingMonths,
     noticeMonths,
     automaticRenewal,
@@ -548,7 +688,7 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     optionalFees: parseStructuredOptionalFees(rawOptionalFeeLines, defaultOptionalFeeVisibility),
     rawOptionalFeeLines,
     priceOptions,
-    commercialComponents,
+    commercialComponents: selectableCommercialComponents,
     invoiceDeliveryMethods,
     priceAreas: priceAreas.join(","),
     portfolioId: raw(formData, "portfolio_id"),

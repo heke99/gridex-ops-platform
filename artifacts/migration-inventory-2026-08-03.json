@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-08-03T13:36:25.300Z",
+  "generated_at": "2026-08-04T07:01:41.636Z",
   "source": "repository/supabase/migrations",
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 352,
-    "ledger_eligible_count": 259,
+    "sql_file_count": 360,
+    "ledger_eligible_count": 267,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 352,
+    "checksum_registered_count": 360,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -7447,6 +7447,112 @@
       "ledger_eligible": true,
       "expected_objects": [
         "public.gridex_contract_platform_readiness"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803144819",
+      "filename": "20260803144819_contract_portfolio_area_billing_consistency.sql",
+      "checksum": "1522b0e39df53460a7e98145462552f0fbe71d0f827e1b8ee87b6e54f215049b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.contract_price_option_area_prices",
+        "public.contract_price_options",
+        "public.gridex_save_portfolio_area_price_drafts",
+        "public.gridex_save_portfolio_settlement_draft",
+        "public.gridex_transition_portfolio_settlement",
+        "public.portfolio_monthly_settlements",
+        "public.price_plan_versions",
+        "public.price_plans"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803145108",
+      "filename": "20260803145108_portfolio_lock_transition_immutability_fix.sql",
+      "checksum": "664cf48cc9611c5e80263baf403f94d916fbc0f873ae5c18e719e76a2645e975",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803145427",
+      "filename": "20260803145427_portfolio_superadmin_role_alignment.sql",
+      "checksum": "73b718ff8dc9a4d18ca72f3e2a8e6bf949255e28af3011fa4da98031f6701bae",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_portfolio_actor_is_superadmin"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803150723",
+      "filename": "20260803150723_portfolio_mix_share_billing_completion.sql",
+      "checksum": "717fafdfcac85c602611cdba0ea391127ddca59065668f04a8c848250b101444",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customer_invoices",
+        "public.gridex_attach_portfolio_settlement_to_invoice",
+        "public.gridex_guard_portfolio_invoice_evidence"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803152014",
+      "filename": "20260803152014_contract_portfolio_tenant_fk_indexes.sql",
+      "checksum": "bc7de917bdf4f309059330105648217be5a82a91289037cf6e713c46cb99d4ae",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "contract_area_prices_company_option_idx",
+        "contract_area_prices_company_version_idx",
+        "portfolio_settlements_company_version_idx",
+        "price_plan_versions_company_price_plan_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803152236",
+      "filename": "20260803152236_portfolio_superadmin_helper_service_role_only.sql",
+      "checksum": "9a095233c605184a00d59884fc7ad4a91534de75fbae17fa3fbc04e7171c0d01",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260803212754",
+      "filename": "20260803212754_canonical_migration_readiness_reconciliation_v4.sql",
+      "checksum": "08b8722e962ee019c9d190dcb3c4f3efe4cd956cdf88a0d432a0989f70635117",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_migration_readiness_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804003000",
+      "filename": "20260804003000_customer_contract_fee_consistency.sql",
+      "checksum": "ea58786ed48eb3b38b57aa9c0e9743ecf8895e863f1ed2b43f88afb7937a60d8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "gridex_apply_contract_offer_standard_fees_trg",
+        "public.customer_contracts",
+        "public.gridex_apply_contract_offer_standard_fees"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"

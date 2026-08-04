@@ -4,6 +4,81 @@ import {
   parseStructuredOptionalFees,
 } from "@/lib/contracts/adminContractSchema";
 
+function commercialComponent(input: {
+  code: string;
+  amount: number;
+  unit?:
+    | "sek_month"
+    | "sek_invoice"
+    | "ore_per_kwh"
+    | "sek_contract"
+    | "sek_event";
+}) {
+  const unit = input.unit ?? "sek_month";
+  const calculationType =
+    unit === "sek_invoice"
+      ? "per_invoice"
+      : unit === "ore_per_kwh"
+        ? "per_kwh"
+        : unit === "sek_contract"
+          ? "fixed_once"
+          : unit === "sek_event"
+            ? "event_only"
+            : "per_month";
+  const lifecycle =
+    unit === "sek_invoice"
+      ? "per_invoice"
+      : unit === "ore_per_kwh"
+        ? "consumption_based"
+        : unit === "sek_contract"
+          ? "once_per_contract"
+          : unit === "sek_event"
+            ? "event_only"
+            : "recurring";
+  return {
+    component_reference: `${input.code}_reference`,
+    component_code: input.code,
+    internal_name: input.code,
+    customer_name: input.code,
+    internal_description: null,
+    customer_description: null,
+    component_type: "commercial_fee",
+    amount: input.amount,
+    unit,
+    calculation_type: calculationType,
+    calculation_base: null,
+    vat_treatment: "standard",
+    selection_policy: "mandatory",
+    default_selected: true,
+    customer_can_deselect: false,
+    admin_must_select: false,
+    informational_only: false,
+    lifecycle,
+    periodization_rule: unit === "sek_month" ? "active_days" : "none",
+    invoice_line_name: input.code,
+    accounting_classification: "electricity_revenue",
+    sort_order: 500,
+    valid_from: null,
+    valid_to: null,
+    conditions: {
+      contract_types: [],
+      price_option_references: [],
+      price_areas: [],
+      customer_types: [],
+      invoice_delivery_methods: [],
+      sales_channels: [],
+      minimum_site_count: null,
+      maximum_site_count: null,
+      minimum_annual_consumption_kwh: null,
+      maximum_annual_consumption_kwh: null,
+      valid_from: null,
+      valid_to: null,
+    },
+    website_published: true,
+    metadata: {},
+  };
+}
+
 function baseForm(overrides: Record<string, string> = {}): FormData {
   const form = new FormData();
   const contractType = overrides.contract_type ?? "variable_hourly";
@@ -137,6 +212,90 @@ describe("admin contract canonical form", () => {
         sort_order: 910,
         billing_frequency: "per_invoice",
       }),
+    ]);
+  });
+
+  it("keeps all contract-wide fees consistent for fixed-price agreements", () => {
+    const parsed = parseAdminContractForm(
+      baseForm({
+        contract_type: "fixed",
+        monthly_fee_sek: "59",
+        invoice_fee_sek: "19",
+        green_fee_mode: "ore_per_kwh",
+        green_fee_value: "1.9",
+        start_fee_sek: "99",
+        admin_fee_sek: "25",
+        break_fee_sek: "495",
+      }),
+    );
+
+    expect(parsed.contractType).toBe("fixed");
+    expect(parsed.monthlyFeeSek).toBe(59);
+    expect(parsed.invoiceFeeSek).toBe(19);
+    expect(parsed.greenFeeMode).toBe("ore_per_kwh");
+    expect(parsed.greenFeeValue).toBe(1.9);
+    expect(parsed.startFeeSek).toBe(99);
+    expect(parsed.adminFeeSek).toBe(25);
+    expect(parsed.breakFeeSek).toBe(495);
+  });
+
+  it("requires an explicit invoice fee, including zero", () => {
+    expect(() =>
+      parseAdminContractForm(baseForm({ invoice_fee_sek: "" })),
+    ).toThrow(/fakturaavgift måste anges/i);
+    expect(parseAdminContractForm(baseForm({ invoice_fee_sek: "0" })).invoiceFeeSek).toBe(0);
+  });
+
+  it("migrates older standard fee components into one canonical contract source", () => {
+    const components = [
+      commercialComponent({ code: "monthly_fee", amount: 49 }),
+      commercialComponent({
+        code: "invoice_administration_fee",
+        amount: 19,
+        unit: "sek_invoice",
+      }),
+      commercialComponent({
+        code: "green_energy_fee",
+        amount: 1.5,
+        unit: "ore_per_kwh",
+      }),
+      commercialComponent({
+        code: "start_fee",
+        amount: 99,
+        unit: "sek_contract",
+      }),
+      commercialComponent({
+        code: "administration_fee",
+        amount: 25,
+        unit: "sek_contract",
+      }),
+      commercialComponent({
+        code: "break_fee",
+        amount: 495,
+        unit: "sek_event",
+      }),
+      commercialComponent({
+        code: "paper_invoice_fee",
+        amount: 39,
+        unit: "sek_invoice",
+      }),
+    ];
+    const parsed = parseAdminContractForm(
+      baseForm({
+        invoice_fee_sek: "19",
+        commercial_components_json: JSON.stringify(components),
+      }),
+    );
+
+    expect(parsed.monthlyFeeSek).toBe(49);
+    expect(parsed.invoiceFeeSek).toBe(19);
+    expect(parsed.greenFeeMode).toBe("ore_per_kwh");
+    expect(parsed.greenFeeValue).toBe(1.5);
+    expect(parsed.startFeeSek).toBe(99);
+    expect(parsed.adminFeeSek).toBe(25);
+    expect(parsed.breakFeeSek).toBe(495);
+    expect(parsed.commercialComponents.map((component) => component.component_code)).toEqual([
+      "paper_invoice_fee",
     ]);
   });
 

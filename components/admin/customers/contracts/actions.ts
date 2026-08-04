@@ -33,6 +33,7 @@ import {
 } from './helpers'
 import {
   commercialModelFromSnapshot,
+  mergeFrozenPriceComponentsWithCommercialSelection,
   resolveCommercialSelection,
   type InvoiceDeliveryMethod,
 } from '@/lib/pricing/commercialModel'
@@ -47,6 +48,7 @@ function buildPriceSnapshot(input: {
   spotMarkupOrePerKwh?: number | null
   variableFeeOrePerKwh?: number | null
   monthlyFeeSek?: number | null
+  invoiceFeeSek?: number | null
   greenFeeMode?: string | null
   greenFeeValue?: number | null
   discountValue?: number | null
@@ -61,6 +63,7 @@ function buildPriceSnapshot(input: {
     spotMarkupOrePerKwh: input.spotMarkupOrePerKwh ?? null,
     variableFeeOrePerKwh: input.variableFeeOrePerKwh ?? null,
     monthlyFeeSek: input.monthlyFeeSek ?? null,
+    invoiceFeeSek: input.invoiceFeeSek ?? null,
     greenFeeMode: input.greenFeeMode ?? null,
     greenFeeValue: input.greenFeeValue ?? null,
     discountValue: input.discountValue ?? null,
@@ -402,6 +405,23 @@ export async function createContractFromOfferAction(formData: FormData) {
             : component
         })
       : catalogBaseComponents
+  const frozenCatalogPriceComponents = Array.isArray(
+    offer.commercial_snapshot?.price_components,
+  )
+    ? offer.commercial_snapshot.price_components
+    : Array.isArray(offer.commercial_snapshot?.price_components_snapshot)
+      ? offer.commercial_snapshot.price_components_snapshot
+      : []
+  const selectedPriceComponents =
+    resolvedSelection && commercialModel
+      ? mergeFrozenPriceComponentsWithCommercialSelection({
+          frozenComponents: frozenCatalogPriceComponents,
+          model: commercialModel,
+          selectedComponents: resolvedSelection.components,
+        })
+      : frozenCatalogPriceComponents
+  const hasFrozenOfferSnapshot =
+    frozenBaseComponents.length > 0 || selectedPriceComponents.length > 0
   const priceSnapshot = resolvedSelection
     ? {
         ...offer.commercial_snapshot,
@@ -421,22 +441,31 @@ export async function createContractFromOfferAction(formData: FormData) {
         conditional_component_references:
           resolvedSelection.conditionalComponentReferences,
         base_price_components_snapshot: frozenBaseComponents,
-        price_components_snapshot: resolvedSelection.components,
+        price_components_snapshot: selectedPriceComponents,
       }
-    : buildPriceSnapshot({
-    fixedPriceOrePerKwh: offer.fixed_price_ore_per_kwh,
-    spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
-    variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
-    monthlyFeeSek: offer.monthly_fee_sek,
-    greenFeeMode: offer.green_fee_mode,
-    greenFeeValue: offer.green_fee_value,
-    discountValue: offer.discount_value,
-    discountUnit: offer.discount_unit,
-    startFeeSek: offer.start_fee_sek,
-    adminFeeSek: offer.admin_fee_sek,
-    breakFeeSek: offer.break_fee_sek,
-        vatRate: offer.vat_rate,
-      })
+    : hasFrozenOfferSnapshot
+      ? {
+          ...offer.commercial_snapshot,
+          source: 'internal_customer_contract_catalog_snapshot',
+          contract_type: offer.contract_type,
+          base_price_components_snapshot: frozenBaseComponents,
+          price_components_snapshot: selectedPriceComponents,
+        }
+      : buildPriceSnapshot({
+          fixedPriceOrePerKwh: offer.fixed_price_ore_per_kwh,
+          spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
+          variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
+          monthlyFeeSek: offer.monthly_fee_sek,
+          invoiceFeeSek: offer.invoice_fee_sek,
+          greenFeeMode: offer.green_fee_mode,
+          greenFeeValue: offer.green_fee_value,
+          discountValue: offer.discount_value,
+          discountUnit: offer.discount_unit,
+          startFeeSek: offer.start_fee_sek,
+          adminFeeSek: offer.admin_fee_sek,
+          breakFeeSek: offer.break_fee_sek,
+          vatRate: offer.vat_rate,
+        })
   const campaignSnapshot = buildCampaignSnapshot({
     campaignName: offer.campaign_name,
     campaignCode: offer.campaign_code ?? null,
@@ -505,6 +534,7 @@ export async function createContractFromOfferAction(formData: FormData) {
     spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
     variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
     monthlyFeeSek: offer.monthly_fee_sek,
+    invoiceFeeSek: offer.invoice_fee_sek,
     greenFeeMode: offer.green_fee_mode,
     greenFeeValue: offer.green_fee_value,
     bindingMonths:
@@ -617,6 +647,7 @@ export async function createContractAction(formData: FormData) {
   const spotMarkupOrePerKwh = parseNumberOrNull(formData.get('spot_markup_ore_per_kwh'))
   const variableFeeOrePerKwh = parseNumberOrNull(formData.get('variable_fee_ore_per_kwh'))
   const monthlyFeeSek = parseNumberOrNull(formData.get('monthly_fee_sek'))
+  const invoiceFeeSek = parseNumberOrNull(formData.get('invoice_fee_sek'))
   const greenFeeMode = parseGreenFeeMode(formData.get('green_fee_mode'))
   const greenFeeValue = parseNumberOrNull(formData.get('green_fee_value'))
   const discountValue = parseNumberOrNull(formData.get('discount_value'))
@@ -652,6 +683,7 @@ export async function createContractAction(formData: FormData) {
       spotMarkupOrePerKwh,
       variableFeeOrePerKwh,
       monthlyFeeSek,
+      invoiceFeeSek,
       greenFeeMode,
       greenFeeValue,
       discountValue,
@@ -673,6 +705,7 @@ export async function createContractAction(formData: FormData) {
     spotMarkupOrePerKwh,
     variableFeeOrePerKwh,
     monthlyFeeSek,
+    invoiceFeeSek,
     greenFeeMode,
     greenFeeValue,
     bindingMonths: parseIntOrNull(formData.get('binding_months')),
@@ -774,6 +807,7 @@ export async function updateContractAction(formData: FormData) {
   const spotMarkupOrePerKwh = parseNumberOrNull(formData.get('spot_markup_ore_per_kwh'))
   const variableFeeOrePerKwh = parseNumberOrNull(formData.get('variable_fee_ore_per_kwh'))
   const monthlyFeeSek = parseNumberOrNull(formData.get('monthly_fee_sek'))
+  const invoiceFeeSek = parseNumberOrNull(formData.get('invoice_fee_sek'))
   const greenFeeMode = parseGreenFeeMode(formData.get('green_fee_mode'))
   const greenFeeValue = parseNumberOrNull(formData.get('green_fee_value'))
   const discountValue = parseNumberOrNull(formData.get('discount_value'))
@@ -808,6 +842,7 @@ export async function updateContractAction(formData: FormData) {
       spotMarkupOrePerKwh,
       variableFeeOrePerKwh,
       monthlyFeeSek,
+      invoiceFeeSek,
       greenFeeMode,
       greenFeeValue,
       discountValue,
@@ -829,6 +864,7 @@ export async function updateContractAction(formData: FormData) {
     spotMarkupOrePerKwh,
     variableFeeOrePerKwh,
     monthlyFeeSek,
+    invoiceFeeSek,
     greenFeeMode,
     greenFeeValue,
     bindingMonths: parseIntOrNull(formData.get('binding_months')),

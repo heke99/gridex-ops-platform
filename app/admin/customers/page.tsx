@@ -1793,7 +1793,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
 
  <p className="text-xs text-slate-700 ">
  Start: {formatDate(latestContract.starts_at)} · Månadsavgift:{' '}
- {formatCurrency(latestContract.monthly_fee_sek)}
+ {formatCurrency(latestContract.monthly_fee_sek)} · Fakturaavgift:{' '}
+ {formatCurrency(latestContract.invoice_fee_sek)}
  </p>
  </div>
  ) : (

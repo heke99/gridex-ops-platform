@@ -16,6 +16,10 @@ type IntakeOffer = {
   spot_markup_ore_per_kwh: number | null;
   variable_fee_ore_per_kwh: number | null;
   monthly_fee_sek: number | null;
+  invoice_fee_sek: number | null;
+  start_fee_sek: number | null;
+  admin_fee_sek: number | null;
+  break_fee_sek: number | null;
   green_fee_mode: "none" | "sek_month" | "ore_per_kwh";
   green_fee_value: number | null;
   default_binding_months: number | null;
@@ -315,6 +319,30 @@ export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
         : "",
     );
     setFieldValue(
+      "invoiceFeeSek",
+      selectedOffer.invoice_fee_sek !== null
+        ? String(selectedOffer.invoice_fee_sek)
+        : "",
+    );
+    setFieldValue(
+      "startFeeSek",
+      selectedOffer.start_fee_sek !== null
+        ? String(selectedOffer.start_fee_sek)
+        : "",
+    );
+    setFieldValue(
+      "adminFeeSek",
+      selectedOffer.admin_fee_sek !== null
+        ? String(selectedOffer.admin_fee_sek)
+        : "",
+    );
+    setFieldValue(
+      "breakFeeSek",
+      selectedOffer.break_fee_sek !== null
+        ? String(selectedOffer.break_fee_sek)
+        : "",
+    );
+    setFieldValue(
       "greenFeeValue",
       selectedOffer.green_fee_value !== null
         ? String(selectedOffer.green_fee_value)
@@ -407,6 +435,30 @@ export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
               Månadsavgift:{" "}
               {selectedOffer.monthly_fee_sek !== null
                 ? `${selectedOffer.monthly_fee_sek} kr`
+                : "—"}
+            </div>
+            <div>
+              Fakturaavgift:{" "}
+              {selectedOffer.invoice_fee_sek !== null
+                ? `${selectedOffer.invoice_fee_sek} kr/faktura`
+                : "—"}
+            </div>
+            <div>
+              Startavgift:{" "}
+              {selectedOffer.start_fee_sek !== null
+                ? `${selectedOffer.start_fee_sek} kr`
+                : "—"}
+            </div>
+            <div>
+              Administrationsavgift:{" "}
+              {selectedOffer.admin_fee_sek !== null
+                ? `${selectedOffer.admin_fee_sek} kr`
+                : "—"}
+            </div>
+            <div>
+              Brytavgift:{" "}
+              {selectedOffer.break_fee_sek !== null
+                ? `${selectedOffer.break_fee_sek} kr`
                 : "—"}
             </div>
             <div>

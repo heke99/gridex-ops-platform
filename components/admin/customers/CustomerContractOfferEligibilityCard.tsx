@@ -166,6 +166,10 @@ export default function CustomerContractOfferEligibilityCard({
 
  <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
  <div>Månadsavgift: {formatNumber(offer.monthly_fee_sek)} kr</div>
+ <div>Fakturaavgift: {formatNumber(offer.invoice_fee_sek)} kr/faktura</div>
+ <div>Startavgift: {formatNumber(offer.start_fee_sek)} kr</div>
+ <div>Administrationsavgift: {formatNumber(offer.admin_fee_sek)} kr</div>
+ <div>Brytavgift: {formatNumber(offer.break_fee_sek)} kr</div>
  <div>Fast pris: {formatNumber(offer.fixed_price_ore_per_kwh)} öre/kWh</div>
  <div>Påslag: {formatNumber(offer.spot_markup_ore_per_kwh)} öre/kWh</div>
  <div>Rörlig avgift: {formatNumber(offer.variable_fee_ore_per_kwh)} öre/kWh</div>

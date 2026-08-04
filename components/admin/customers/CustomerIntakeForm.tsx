@@ -34,6 +34,10 @@ type ContractOfferOption = {
   spot_markup_ore_per_kwh: number | null;
   variable_fee_ore_per_kwh: number | null;
   monthly_fee_sek: number | null;
+  invoice_fee_sek: number | null;
+  start_fee_sek: number | null;
+  admin_fee_sek: number | null;
+  break_fee_sek: number | null;
   green_fee_mode: "none" | "sek_month" | "ore_per_kwh";
   green_fee_value: number | null;
   default_binding_months: number | null;
@@ -974,6 +978,58 @@ export default function CustomerIntakeForm({
             placeholder="Månadsavgift kr"
             className={inputClassName(state, "monthlyFeeSek")}
           />
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Fakturaavgift kr/faktura</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="invoiceFeeSek"
+              defaultValue={state.values.invoiceFeeSek ?? ""}
+              placeholder="0"
+              className={inputClassName(state, "invoiceFeeSek")}
+            />
+            <FieldError state={state} name="invoiceFeeSek" />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Startavgift kr</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="startFeeSek"
+              defaultValue={state.values.startFeeSek ?? ""}
+              placeholder="0"
+              className={inputClassName(state, "startFeeSek")}
+            />
+            <FieldError state={state} name="startFeeSek" />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Administrationsavgift kr</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="adminFeeSek"
+              defaultValue={state.values.adminFeeSek ?? ""}
+              placeholder="0"
+              className={inputClassName(state, "adminFeeSek")}
+            />
+            <FieldError state={state} name="adminFeeSek" />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Brytavgift kr</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="breakFeeSek"
+              defaultValue={state.values.breakFeeSek ?? ""}
+              placeholder="0"
+              className={inputClassName(state, "breakFeeSek")}
+            />
+            <FieldError state={state} name="breakFeeSek" />
+          </label>
           <input
             name="greenFeeValue"
             defaultValue={state.values.greenFeeValue ?? ""}

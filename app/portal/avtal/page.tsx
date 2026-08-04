@@ -57,10 +57,14 @@ export default async function PortalContractsPage() {
               </span>
             </div>
 
-            <div className="mt-5 grid gap-3 text-sm text-slate-600 md:grid-cols-4">
+            <div className="mt-5 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
               <div>
                 Månadsavgift:{" "}
                 <strong>{formatSek(contract.monthly_fee_sek)}</strong>
+              </div>
+              <div>
+                Fakturaavgift:{" "}
+                <strong>{formatSek(contract.invoice_fee_sek)}</strong>
               </div>
               <div>
                 Påslag:{" "}
@@ -76,6 +80,16 @@ export default async function PortalContractsPage() {
                 <strong>
                   {contract.fixed_price_ore_per_kwh ?? "—"} öre/kWh
                 </strong>
+              </div>
+              <div>
+                Startavgift: <strong>{formatSek(contract.start_fee_sek)}</strong>
+              </div>
+              <div>
+                Administrationsavgift:{" "}
+                <strong>{formatSek(contract.admin_fee_sek)}</strong>
+              </div>
+              <div>
+                Brytavgift: <strong>{formatSek(contract.break_fee_sek)}</strong>
               </div>
               <div>
                 Bindningstid:{" "}

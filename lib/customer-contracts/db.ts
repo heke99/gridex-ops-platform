@@ -201,6 +201,7 @@ export type LatestCustomerContractSummary = {
   status: CustomerContractRow["status"];
   contract_type: CustomerContractRow["contract_type"];
   monthly_fee_sek: number | null;
+  invoice_fee_sek: number | null;
   starts_at: string | null;
   ends_at: string | null;
   auto_renew_enabled: boolean;
@@ -251,6 +252,7 @@ type ManualBindingInput = {
   spotMarkupOrePerKwh?: number | null;
   variableFeeOrePerKwh?: number | null;
   monthlyFeeSek?: number | null;
+  invoiceFeeSek?: number | null;
   startFeeSek?: number | null;
   adminFeeSek?: number | null;
   breakFeeSek?: number | null;
@@ -374,6 +376,14 @@ async function prepareManualCanonicalBinding(
     priority: 20,
   });
   pushPriceComponent(priceComponents, {
+    code: "invoice_fee",
+    name: "Fakturaavgift",
+    amount: input.invoiceFeeSek,
+    unit: "sek_invoice",
+    calculationType: "per_invoice",
+    priority: 25,
+  });
+  pushPriceComponent(priceComponents, {
     code: "spot_markup",
     name: "Spotpåslag",
     amount: input.spotMarkupOrePerKwh,
@@ -390,7 +400,7 @@ async function prepareManualCanonicalBinding(
     priority: 40,
   });
   pushPriceComponent(priceComponents, {
-    code: "green_fee",
+    code: "green_energy_fee",
     name: "Miljöavgift",
     amount: input.greenFeeValue,
     unit: input.greenFeeMode === "sek_month" ? "sek_month" : "ore_per_kwh",
@@ -402,16 +412,16 @@ async function prepareManualCanonicalBinding(
     code: "start_fee",
     name: "Startavgift",
     amount: input.startFeeSek,
-    unit: "sek_once",
+    unit: "sek_contract",
     calculationType: "fixed_once",
     priority: 60,
   });
   pushPriceComponent(priceComponents, {
-    code: "admin_fee",
+    code: "administration_fee",
     name: "Administrationsavgift",
     amount: input.adminFeeSek,
-    unit: "sek_invoice",
-    calculationType: "fixed_invoice",
+    unit: "sek_contract",
+    calculationType: "fixed_once",
     priority: 70,
   });
   pushPriceComponent(priceComponents, {
@@ -419,7 +429,7 @@ async function prepareManualCanonicalBinding(
     name: "Brytavgift",
     amount: input.breakFeeSek,
     unit: "sek_event",
-    calculationType: "fixed_event",
+    calculationType: "event_only",
     priority: 80,
   });
 
@@ -468,6 +478,7 @@ async function prepareManualCanonicalBinding(
     spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
     variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
     monthly_fee_sek: input.monthlyFeeSek ?? null,
+    invoice_fee_sek: input.invoiceFeeSek ?? null,
     discount_value: input.discountValue ?? null,
     discount_unit: input.discountUnit ?? null,
     green_fee_mode: input.greenFeeMode ?? "none",
@@ -494,8 +505,15 @@ async function prepareManualCanonicalBinding(
         spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
         variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
         monthly_fee_sek: input.monthlyFeeSek ?? null,
+        invoice_fee_sek: input.invoiceFeeSek ?? null,
         green_fee_mode: input.greenFeeMode ?? "none",
         green_fee_value: input.greenFeeValue ?? null,
+        discount_value: input.discountValue ?? null,
+        discount_unit: input.discountUnit ?? null,
+        start_fee_sek: input.startFeeSek ?? null,
+        admin_fee_sek: input.adminFeeSek ?? null,
+        break_fee_sek: input.breakFeeSek ?? null,
+        vat_rate: input.vatRate ?? 25,
         default_binding_months: input.bindingMonths ?? null,
         default_notice_months: input.noticeMonths ?? null,
         optional_fee_lines: input.optionalFeeLines ?? [],
@@ -654,6 +672,7 @@ export async function listLatestCustomerContractsByCustomerIds(
         status: row.status,
         contract_type: row.contract_type,
         monthly_fee_sek: row.monthly_fee_sek,
+        invoice_fee_sek: row.invoice_fee_sek ?? null,
         starts_at: row.starts_at,
         ends_at: row.ends_at,
         auto_renew_enabled: row.auto_renew_enabled,
@@ -829,6 +848,7 @@ export async function createCustomerContract(input: {
   spotMarkupOrePerKwh?: number | null;
   variableFeeOrePerKwh?: number | null;
   monthlyFeeSek?: number | null;
+  invoiceFeeSek?: number | null;
   greenFeeMode: GreenFeeMode;
   greenFeeValue?: number | null;
   bindingMonths?: number | null;
@@ -879,6 +899,7 @@ export async function createCustomerContract(input: {
           spotMarkupOrePerKwh: input.spotMarkupOrePerKwh,
           variableFeeOrePerKwh: input.variableFeeOrePerKwh,
           monthlyFeeSek: input.monthlyFeeSek,
+          invoiceFeeSek: input.invoiceFeeSek,
           startFeeSek: input.startFeeSek,
           adminFeeSek: input.adminFeeSek,
           breakFeeSek: input.breakFeeSek,
@@ -987,6 +1008,7 @@ export async function createCustomerContract(input: {
       spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
       variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
       monthly_fee_sek: input.monthlyFeeSek ?? null,
+      invoice_fee_sek: input.invoiceFeeSek ?? null,
       green_fee_mode: input.greenFeeMode,
       green_fee_value: input.greenFeeValue ?? null,
       binding_months: input.bindingMonths ?? null,
@@ -1067,6 +1089,7 @@ export async function updateCustomerContract(input: {
   spotMarkupOrePerKwh?: number | null;
   variableFeeOrePerKwh?: number | null;
   monthlyFeeSek?: number | null;
+  invoiceFeeSek?: number | null;
   greenFeeMode?: GreenFeeMode | null;
   greenFeeValue?: number | null;
   bindingMonths?: number | null;
@@ -1115,6 +1138,7 @@ export async function updateCustomerContract(input: {
           spotMarkupOrePerKwh: input.spotMarkupOrePerKwh,
           variableFeeOrePerKwh: input.variableFeeOrePerKwh,
           monthlyFeeSek: input.monthlyFeeSek,
+          invoiceFeeSek: input.invoiceFeeSek,
           startFeeSek: input.startFeeSek,
           adminFeeSek: input.adminFeeSek,
           breakFeeSek: input.breakFeeSek,
@@ -1214,6 +1238,7 @@ export async function updateCustomerContract(input: {
       spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
       variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
       monthly_fee_sek: input.monthlyFeeSek ?? null,
+      invoice_fee_sek: input.invoiceFeeSek ?? null,
       green_fee_mode: input.greenFeeMode ?? "none",
       green_fee_value: input.greenFeeValue ?? null,
       binding_months: input.bindingMonths ?? null,

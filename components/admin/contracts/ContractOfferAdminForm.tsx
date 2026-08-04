@@ -39,24 +39,102 @@ function RequiredMark({ conditional = false }: { conditional?: boolean }) {
 const controlClass =
   "w-full min-w-0 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100";
 
+const WEBSITE_VISIBILITY_ALIASES: Record<string, string> = {
+  admin_fee: "administration_fee",
+  discount: "campaign_discount",
+  green_fee: "green_energy_fee",
+};
+
+type GreenFeeMode = "none" | "sek_month" | "ore_per_kwh";
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 function snapshotValue(
   offer: ContractOfferRow | null,
   key: string,
 ): unknown {
   const snapshot = offer?.commercial_snapshot ?? {};
   if (key in snapshot) return snapshot[key];
-  const pricing = snapshot.pricing;
-  if (pricing && typeof pricing === "object" && key in pricing) {
-    return (pricing as Record<string, unknown>)[key];
-  }
-  const visibility = snapshot.website_card_visibility;
-  if (visibility && typeof visibility === "object") {
-    const visibilityKey = key.replace(/^show_/, "").replace(/_on_website$/, "");
-    if (visibilityKey in visibility) {
-      return (visibility as Record<string, unknown>)[visibilityKey];
+  const pricing = asRecord(snapshot.pricing);
+  if (pricing && key in pricing) return pricing[key];
+
+  const rawVisibilityKey = key
+    .replace(/^show_/, "")
+    .replace(/_on_website$/, "");
+  const visibilityKeys = [
+    rawVisibilityKey,
+    WEBSITE_VISIBILITY_ALIASES[rawVisibilityKey],
+  ].filter((value): value is string => Boolean(value));
+
+  for (const source of [
+    asRecord(snapshot.website_card_visibility),
+    asRecord(snapshot.website_visibility),
+  ]) {
+    if (!source) continue;
+    for (const visibilityKey of visibilityKeys) {
+      if (visibilityKey in source) return source[visibilityKey];
     }
   }
   return undefined;
+}
+
+function snapshotPricingComponents(
+  offer: ContractOfferRow | null,
+): Record<string, unknown>[] {
+  const snapshot = offer?.commercial_snapshot ?? {};
+  return [
+    snapshot.commercial_components,
+    snapshot.price_components,
+    snapshot.price_components_snapshot,
+  ].flatMap((candidate) =>
+    Array.isArray(candidate)
+      ? candidate
+          .map(asRecord)
+          .filter((value): value is Record<string, unknown> => value !== null)
+      : [],
+  );
+}
+
+function snapshotComponent(
+  offer: ContractOfferRow | null,
+  codes: readonly string[],
+): Record<string, unknown> | null {
+  const normalizedCodes = new Set(codes.map((code) => code.toLowerCase()));
+  return (
+    snapshotPricingComponents(offer).find((component) => {
+      const code = String(
+        component.component_code ?? component.component_type ?? "",
+      )
+        .trim()
+        .toLowerCase();
+      return normalizedCodes.has(code);
+    }) ?? null
+  );
+}
+
+function snapshotComponentAmount(
+  offer: ContractOfferRow | null,
+  codes: readonly string[],
+): number | null {
+  const amount = snapshotComponent(offer, codes)?.amount;
+  const parsed = Number(amount);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function snapshotGreenFeeMode(offer: ContractOfferRow | null): GreenFeeMode {
+  const component = snapshotComponent(offer, [
+    "green_energy_fee",
+    "green_fee",
+  ]);
+  return component?.unit === "sek_month"
+    ? "sek_month"
+    : component?.unit === "ore_per_kwh"
+      ? "ore_per_kwh"
+      : "none";
 }
 
 function asNumber(value: unknown, fallback: number): number {
@@ -69,7 +147,15 @@ function asString(value: unknown, fallback = ""): string {
 }
 
 function asBoolean(value: unknown, fallback = false): boolean {
-  return typeof value === "boolean" ? value : fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "visible", "on", "yes", "ja"].includes(normalized))
+      return true;
+    if (["false", "0", "hidden", "off", "no", "nej"].includes(normalized))
+      return false;
+  }
+  return fallback;
 }
 
 function typedWeights(contractType: ContractType) {
@@ -137,6 +223,37 @@ export default function ContractOfferAdminForm({
   const [productionEnabled, setProductionEnabled] = useState(
     asBoolean(snapshotValue(offer, "production_enabled")),
   );
+  const initialGreenFeeMode: GreenFeeMode =
+    offer?.green_fee_mode === "sek_month" ||
+    offer?.green_fee_mode === "ore_per_kwh"
+      ? offer.green_fee_mode
+      : snapshotGreenFeeMode(offer);
+  const [greenFeeMode, setGreenFeeMode] =
+    useState<GreenFeeMode>(initialGreenFeeMode);
+
+  const monthlyFeeDefault =
+    offer?.monthly_fee_sek ??
+    snapshotComponentAmount(offer, ["monthly_fee"]);
+  const invoiceFeeDefault =
+    offer?.invoice_fee_sek ??
+    snapshotComponentAmount(offer, [
+      "invoice_fee",
+      "invoice_administration_fee",
+    ]) ??
+    0;
+  const initialGreenFeeValue =
+    offer?.green_fee_value ??
+    snapshotComponentAmount(offer, ["green_energy_fee", "green_fee"]);
+  const [greenFeeValue, setGreenFeeValue] = useState(
+    asString(initialGreenFeeValue),
+  );
+  const startFeeDefault =
+    offer?.start_fee_sek ?? snapshotComponentAmount(offer, ["start_fee"]);
+  const adminFeeDefault =
+    offer?.admin_fee_sek ??
+    snapshotComponentAmount(offer, ["administration_fee", "admin_fee"]);
+  const breakFeeDefault =
+    offer?.break_fee_sek ?? snapshotComponentAmount(offer, ["break_fee"]);
 
   useEffect(() => {
     if (saveState.status !== "error") return;
@@ -447,6 +564,148 @@ export default function ContractOfferAdminForm({
         />
       )}
 
+      <section className="min-w-0 overflow-hidden rounded-3xl border border-sky-200 bg-sky-50 p-4 sm:p-5">
+        <h3 className="font-black text-sky-950">Avtalsgemensamma avgifter</h3>
+        <p className="mt-1 text-xs leading-5 text-sky-900">
+          Dessa avgifter tillhör avtalet och fungerar likadant för fast pris,
+          rörligt pris, portfölj och mix. Beloppen sparas både på avtalsraden och
+          i den låsta prisversionen så att offert, avtal, hemsida och fakturering
+          använder samma källa.
+        </p>
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          <WebsitePricingField
+            name="monthly_fee_sek"
+            label="Månadsavgift, kr/månad"
+            placeholder="Exempel: 49"
+            visibilityName="show_monthly_fee_on_website"
+            defaultValue={monthlyFeeDefault}
+            defaultVisible={asBoolean(
+              snapshotValue(offer, "show_monthly_fee_on_website"),
+              true,
+            )}
+            type="number"
+            min={0}
+            step={0.01}
+            helpText="Lämna tomt om avtalet saknar månadsavgift. Ange 0 om nollbeloppet ska vara uttryckligt."
+          />
+          <WebsitePricingField
+            name="invoice_fee_sek"
+            label="Fakturaavgift, kr per faktura"
+            placeholder="Ange 0 om avgiftsfritt"
+            visibilityName="show_invoice_fee_on_website"
+            defaultValue={invoiceFeeDefault}
+            defaultVisible={asBoolean(
+              snapshotValue(offer, "show_invoice_fee_on_website"),
+              true,
+            )}
+            required
+            type="number"
+            min={0}
+            step={0.01}
+            helpText="Obligatorisk för alla avtalstyper. Detta är den generella avgiften per faktura; en särskild pappersfakturaavgift skapas som ett villkorat tillval nedan."
+          />
+          <WebsitePricingField
+            name="start_fee_sek"
+            label="Startavgift, kr per avtal"
+            placeholder="Valfri engångsavgift"
+            visibilityName="show_start_fee_on_website"
+            defaultValue={startFeeDefault}
+            defaultVisible={asBoolean(
+              snapshotValue(offer, "show_start_fee_on_website"),
+              true,
+            )}
+            type="number"
+            min={0}
+            step={0.01}
+          />
+          <WebsitePricingField
+            name="admin_fee_sek"
+            label="Administrationsavgift, kr per avtal"
+            placeholder="Valfri engångsavgift"
+            visibilityName="show_admin_fee_on_website"
+            defaultValue={adminFeeDefault}
+            defaultVisible={asBoolean(
+              snapshotValue(offer, "show_admin_fee_on_website"),
+              true,
+            )}
+            type="number"
+            min={0}
+            step={0.01}
+          />
+          <WebsitePricingField
+            name="break_fee_sek"
+            label="Brytavgift, kr vid förtida avslut"
+            placeholder="Valfri händelseavgift"
+            visibilityName="show_break_fee_on_website"
+            defaultValue={breakFeeDefault}
+            defaultVisible={asBoolean(
+              snapshotValue(offer, "show_break_fee_on_website"),
+              true,
+            )}
+            type="number"
+            min={0}
+            step={0.01}
+          />
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-sky-200 bg-white p-3">
+            <label className="grid min-w-0 gap-2 text-xs font-semibold text-slate-700">
+              Miljöavgiftens modell
+              <select
+                name="green_fee_mode"
+                value={greenFeeMode}
+                onChange={(event) =>
+                  setGreenFeeMode(event.target.value as GreenFeeMode)
+                }
+                className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              >
+                <option value="none">Ingen miljöavgift</option>
+                <option value="sek_month">kr/månad</option>
+                <option value="ore_per_kwh">öre/kWh</option>
+              </select>
+            </label>
+            {greenFeeMode === "none" ? (
+              <input type="hidden" name="green_fee_value" value="" />
+            ) : null}
+            <label className="mt-3 block min-w-0 text-xs font-semibold text-slate-700">
+              <span>
+                Miljöavgiftens belopp
+                {greenFeeMode !== "none" ? <RequiredMark conditional /> : null}
+              </span>
+              <input
+                name={greenFeeMode === "none" ? undefined : "green_fee_value"}
+                type="number"
+                min="0"
+                step="0.0001"
+                required={greenFeeMode !== "none"}
+                disabled={greenFeeMode === "none"}
+                value={greenFeeValue}
+                onChange={(event) => setGreenFeeValue(event.target.value)}
+                placeholder={
+                  greenFeeMode === "sek_month"
+                    ? "Belopp i kr/månad"
+                    : greenFeeMode === "ore_per_kwh"
+                      ? "Belopp i öre/kWh"
+                      : "Välj avgiftsmodell först"
+                }
+                className="mt-2 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+              />
+            </label>
+            <label className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-3 text-xs font-semibold leading-4 text-slate-700">
+              <span className="min-w-0 break-words">Visa miljöavgiften på hemsidans avtalskort</span>
+              <input
+                type="checkbox"
+                name="show_green_fee_on_website"
+                defaultChecked={asBoolean(
+                  snapshotValue(offer, "show_green_fee_on_website"),
+                  true,
+                )}
+                disabled={greenFeeMode === "none"}
+                className="h-4 w-4 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </label>
+          </div>
+        </div>
+      </section>
+
       <CommercialPricingEditor
         key={`commercial:${formKey}`}
         contractType={contractType}
@@ -459,7 +718,7 @@ export default function ContractOfferAdminForm({
       />
 
       <section className="min-w-0 overflow-hidden rounded-3xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
-        <h3 className="font-black text-amber-950">Rabatt och övriga avgifter</h3>
+        <h3 className="font-black text-amber-950">Rabatt och kampanjvillkor</h3>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
           <WebsitePricingField name="discount_value" placeholder="Rabattvärde" visibilityName="show_discount_on_website" defaultValue={offer?.discount_value} defaultVisible={asBoolean(snapshotValue(offer, "show_discount_on_website"), true)} />
           <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">Rabattenhet
@@ -479,9 +738,9 @@ export default function ContractOfferAdminForm({
           </label>
         </div>
         <p className="mt-4 text-xs leading-5 text-amber-900">
-          Start-, administrations-, bryt-, pappersfaktura- och övriga avgifter
-          skapas som separata komponenter ovan. Därmed kan samma kod aldrig
-          betyda både engångsavgift och avgift per faktura.
+          Avtalsgemensamma avgifter anges i den blå sektionen. Villkorade
+          tillägg, exempelvis pappersfakturaavgift, skapas i den avancerade
+          komponenteditorn och kopplas till rätt faktureringssätt.
         </p>
       </section>
 

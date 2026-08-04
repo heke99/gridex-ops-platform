@@ -648,6 +648,14 @@ function PriceFields({ contract }: { contract: CustomerContractRow }) {
             className={inputClassName()}
           />
         </Field>
+
+        <Field label="Fakturaavgift (SEK/faktura)">
+          <input
+            name="invoice_fee_sek"
+            defaultValue={contract.invoice_fee_sek ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
       </div>
     </SectionCard>
   );
@@ -762,6 +770,10 @@ function ManualPriceFields() {
 
         <Field label="Månadsavgift (SEK)">
           <input name="monthly_fee_sek" className={inputClassName()} />
+        </Field>
+
+        <Field label="Fakturaavgift (SEK/faktura)">
+          <input name="invoice_fee_sek" className={inputClassName()} />
         </Field>
       </div>
     </SectionCard>
@@ -937,6 +949,7 @@ export function CreateFromOfferForm({
         <div>Prisversion: {offer.price_version ?? "—"}</div>
         <div>Villkor: {offer.terms_version ?? "—"}</div>
         <div>Månadsavgift: {offer.monthly_fee_sek ?? "—"} SEK</div>
+        <div>Fakturaavgift: {offer.invoice_fee_sek ?? "—"} SEK/faktura</div>
         <div>Fast pris: {offer.fixed_price_ore_per_kwh ?? "—"} öre/kWh</div>
         <div>Påslag: {offer.spot_markup_ore_per_kwh ?? "—"} öre/kWh</div>
         <div>

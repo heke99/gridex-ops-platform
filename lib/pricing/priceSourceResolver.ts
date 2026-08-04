@@ -1019,6 +1019,7 @@ export async function resolvePricingConfiguration(input: {
   const spotMarkup = numberValue(input.contract?.spot_markup_ore_per_kwh);
   const variableFee = numberValue(input.contract?.variable_fee_ore_per_kwh);
   const monthlyFee = numberValue(input.contract?.monthly_fee_sek);
+  const invoiceFee = numberValue(input.contract?.invoice_fee_sek);
   const greenFeeMode = stringValue(input.contract?.green_fee_mode);
   const greenFeeValue = numberValue(input.contract?.green_fee_value);
 
@@ -1054,6 +1055,18 @@ export async function resolvePricingConfiguration(input: {
       vatApplicable: true,
       periodizationMode: "none",
       priority: 200,
+    });
+  if (invoiceFee !== null)
+    contractPriceComponents.push({
+      componentType: "invoice_fee",
+      name: "Fakturaavgift enligt avtal",
+      calculationType: "fixed_once",
+      amount: invoiceFee,
+      unit: "sek_invoice",
+      vatApplicable: true,
+      periodizationMode: "none",
+      priority: 210,
+      metadata: { lifecycle: "per_invoice", component_key: "invoice_fee" },
     });
   if (greenFeeValue !== null && greenFeeMode === "ore_per_kwh")
     contractPriceComponents.push({
@@ -1136,6 +1149,25 @@ export async function resolvePricingConfiguration(input: {
       metadata: {
         lifecycle: "once_per_contract",
         component_key: "administration_fee",
+      },
+    });
+  }
+
+  const breakFee = numberValue(input.contract?.break_fee_sek);
+  if (breakFee !== null) {
+    contractPriceComponents.push({
+      componentType: "break_fee",
+      name: "Brytavgift",
+      calculationType: "fixed_once",
+      amount: breakFee,
+      unit: "sek_event",
+      vatApplicable: true,
+      periodizationMode: "none",
+      priority: 415,
+      metadata: {
+        lifecycle: "event_only",
+        event: "early_termination",
+        component_key: "break_fee",
       },
     });
   }

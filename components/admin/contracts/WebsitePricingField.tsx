@@ -9,6 +9,11 @@ export default function WebsitePricingField({
   defaultVisible = false,
   required = false,
   inputMode = "decimal",
+  type = "text",
+  min,
+  max,
+  step,
+  disabled = false,
   compact = false,
   visibilityLocked = false,
 }: {
@@ -22,6 +27,11 @@ export default function WebsitePricingField({
   defaultVisible?: boolean;
   required?: boolean;
   inputMode?: "decimal" | "numeric" | "text";
+  type?: "text" | "number";
+  min?: number;
+  max?: number;
+  step?: number | "any";
+  disabled?: boolean;
   compact?: boolean;
   visibilityLocked?: boolean;
 }) {
@@ -44,7 +54,12 @@ export default function WebsitePricingField({
         defaultValue={defaultValue ?? undefined}
         placeholder={placeholder}
         inputMode={inputMode}
+        type={type}
+        min={min}
+        max={max}
+        step={step}
         required={required}
+        disabled={disabled}
         aria-describedby={helpText ? `${name}-help` : undefined}
         className={`w-full min-w-0 border border-slate-300 bg-white outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 ${
           compact
@@ -73,7 +88,7 @@ export default function WebsitePricingField({
           type="checkbox"
           name={visibilityName}
           defaultChecked={visibilityLocked ? true : defaultVisible}
-          disabled={visibilityLocked}
+          disabled={visibilityLocked || disabled}
           className="h-4 w-4 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
         />
       </label>

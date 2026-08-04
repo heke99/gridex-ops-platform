@@ -452,7 +452,7 @@ export async function listPortalContracts(
 
   const { data, error } = await supabaseService
     .from('customer_contracts')
-    .select('id,company_id,customer_id,site_id,contract_name,contract_type,status,starts_at,ends_at,signed_at,monthly_fee_sek,spot_markup_ore_per_kwh,variable_fee_ore_per_kwh,fixed_price_ore_per_kwh,green_fee_mode,green_fee_value,binding_months,notice_months,created_at')
+    .select('id,company_id,customer_id,site_id,contract_name,contract_type,status,starts_at,ends_at,signed_at,monthly_fee_sek,invoice_fee_sek,start_fee_sek,admin_fee_sek,break_fee_sek,spot_markup_ore_per_kwh,variable_fee_ore_per_kwh,fixed_price_ore_per_kwh,green_fee_mode,green_fee_value,binding_months,notice_months,created_at')
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })

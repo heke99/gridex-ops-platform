@@ -170,6 +170,10 @@ export type CustomerPortalContractRow = {
   ends_at: string | null
   signed_at: string | null
   monthly_fee_sek: number | null
+  invoice_fee_sek: number | null
+  start_fee_sek: number | null
+  admin_fee_sek: number | null
+  break_fee_sek: number | null
   spot_markup_ore_per_kwh: number | null
   variable_fee_ore_per_kwh: number | null
   fixed_price_ore_per_kwh: number | null

@@ -8,6 +8,7 @@ import {
   COMPONENT_UNITS,
   INVOICE_DELIVERY_METHODS,
   commercialModelFromSnapshot,
+  isReservedStandardComponentCode,
   type CanonicalContractType,
   type CommercialPriceComponent,
   type ContractPriceOption,
@@ -27,6 +28,9 @@ function RequiredBadge({ conditional = false }: { conditional?: boolean }) {
 
 const editorControlClass =
   "w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100";
+
+const RESERVED_COMPONENT_CODE_MESSAGE =
+  "Den här komponentkoden tillhör ett avtalsgemensamt fält ovan och får inte skapas som ett extra tillval.";
 
 function stableReference(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
@@ -174,7 +178,11 @@ export default function CommercialPricingEditor({
       : [newOption(contractType, 0, applicableAreas, requiresAreaPrices)];
   });
   const [components, setComponents] = useState<CommercialPriceComponent[]>(
-    () => existing?.components ?? [],
+    () =>
+      (existing?.components ?? []).filter(
+        (component) =>
+          !isReservedStandardComponentCode(component.component_code),
+      ),
   );
   const [deliveryMethods, setDeliveryMethods] = useState<
     InvoiceDeliveryMethod[]
@@ -549,8 +557,14 @@ export default function CommercialPricingEditor({
       </div>
 
       <h3 className="mt-8 font-black text-indigo-950">
-        Avgifter, tillval och villkor
+        Villkorade avgifter, tillval och särskilda komponenter
       </h3>
+      <p className="mt-1 text-xs leading-5 text-indigo-900">
+        Månadsavgift, generell fakturaavgift, miljöavgift, startavgift,
+        administrationsavgift och brytavgift hanteras i de avtalsgemensamma
+        fälten ovan. Här skapar du endast ytterligare komponenter, till exempel
+        pappersfakturaavgift eller ett kundvalbart tillägg.
+      </p>
       <div className="mt-4 space-y-4">
         {components.map((component, index) => (
           <fieldset
@@ -576,13 +590,35 @@ export default function CommercialPricingEditor({
                 <input
                   required
                   value={component.component_code}
-                  onChange={(event) =>
+                  ref={(node) => {
+                    if (!node) return;
+                    node.setCustomValidity(
+                      isReservedStandardComponentCode(component.component_code)
+                        ? RESERVED_COMPONENT_CODE_MESSAGE
+                        : "",
+                    );
+                  }}
+                  onChange={(event) => {
+                    const componentCode = event.target.value.toLowerCase();
+                    event.currentTarget.setCustomValidity(
+                      isReservedStandardComponentCode(componentCode)
+                        ? RESERVED_COMPONENT_CODE_MESSAGE
+                        : "",
+                    );
                     patchComponent(index, {
-                      component_code: event.target.value.toLowerCase(),
-                    })
-                  }
+                      component_code: componentCode,
+                    });
+                  }}
+                  aria-invalid={isReservedStandardComponentCode(
+                    component.component_code,
+                  )}
                   className={`${editorControlClass} font-mono`}
                 />
+                {isReservedStandardComponentCode(component.component_code) ? (
+                  <span className="text-[11px] font-semibold leading-4 text-rose-700">
+                    {RESERVED_COMPONENT_CODE_MESSAGE}
+                  </span>
+                ) : null}
               </label>
               <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-700">
                 <span>Belopp <RequiredBadge /></span>

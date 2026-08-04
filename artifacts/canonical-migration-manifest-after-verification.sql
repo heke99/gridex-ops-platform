@@ -263,7 +263,15 @@ values
   ('20260803100040','20260803100040_public_contract_snapshot_shared_schema.sql','b5544c98352ff3c4af13b243b8ea0379dede473c3c499f36928e1d6bf92dc09f',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260803100130','20260803100130_public_contract_snapshot_shared_rpc.sql','2842c1869a14452a30fd3f5741828fb5564377d6ceb7314674b91736609494e2',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260803131558','20260803131558_external_api_contract_database_hardening_v1.sql','fdb921d0f8a60e2f1a47441253bda4d36ea47b0b054e8d291379ea30c053db79',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
-  ('20260803131922','20260803131922_external_api_contract_database_hardening_v2.sql','fcafd26765eb70f4e28aeb3ffcbbc4b2f1261eb4bdc1b0a2d64d0d3036e00756',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
+  ('20260803131922','20260803131922_external_api_contract_database_hardening_v2.sql','fcafd26765eb70f4e28aeb3ffcbbc4b2f1261eb4bdc1b0a2d64d0d3036e00756',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803144819','20260803144819_contract_portfolio_area_billing_consistency.sql','1522b0e39df53460a7e98145462552f0fbe71d0f827e1b8ee87b6e54f215049b',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803145108','20260803145108_portfolio_lock_transition_immutability_fix.sql','664cf48cc9611c5e80263baf403f94d916fbc0f873ae5c18e719e76a2645e975',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803145427','20260803145427_portfolio_superadmin_role_alignment.sql','73b718ff8dc9a4d18ca72f3e2a8e6bf949255e28af3011fa4da98031f6701bae',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803150723','20260803150723_portfolio_mix_share_billing_completion.sql','717fafdfcac85c602611cdba0ea391127ddca59065668f04a8c848250b101444',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803152014','20260803152014_contract_portfolio_tenant_fk_indexes.sql','bc7de917bdf4f309059330105648217be5a82a91289037cf6e713c46cb99d4ae',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803152236','20260803152236_portfolio_superadmin_helper_service_role_only.sql','9a095233c605184a00d59884fc7ad4a91534de75fbae17fa3fbc04e7171c0d01',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260803212754','20260803212754_canonical_migration_readiness_reconciliation_v4.sql','08b8722e962ee019c9d190dcb3c4f3efe4cd956cdf88a0d432a0989f70635117',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260804003000','20260804003000_customer_contract_fee_consistency.sql','ea58786ed48eb3b38b57aa9c0e9743ecf8895e863f1ed2b43f88afb7937a60d8',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
 on conflict(version,filename) do update set
   checksum=excluded.checksum,
   applied_environment=excluded.applied_environment,
