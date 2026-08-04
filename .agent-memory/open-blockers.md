@@ -1,21 +1,17 @@
 # Open blockers
 
-Last updated: 2026-08-04T13:03:20+02:00
+Last updated: 2026-08-04T19:00:05+02:00
 
-## PHASE-42 blockers
+## PHASE-43 blockers
 
-1. Apply `20260804121000` and pass the postflight verification.
-2. Deploy the modified OPS code after the database migration.
-3. Canonically provision Gridex and at least one second tenant; old scopes-only
-   `launch_ready` flags are deliberately invalidated.
-4. Configure and prove at least one signed tenant webhook; no active webhook was
-   present during the live audit.
-5. Run a real two-tenant application matrix with distinct API keys, portal users,
-   offers and customer data, and prove no cross-tenant visibility.
-6. Run clean `npm ci`, full typecheck/test/lint/build in an environment whose npm
-   registry can serve `zod-validation-error@4.0.2` and all declared packages.
+1. Deploy the updated OPS source; the connected database is already migrated.
+2. Run the authenticated SVK import to completion and verify active current-source
+   geometry rows plus one verified geodata version.
+3. Execute a real quote/application/contract/metering/billing E2E with seeded data.
+4. Run clean npm install, typecheck, tests, lint and production build in an
+   environment with working registry access.
 
 ## Inherited blockers
 
-Older emergency-access, Ediel legacy-data and unrelated production hardening
-items remain separate. PHASE-42 does not silently close them.
+Prior tenant-webhook, two-tenant E2E, emergency-access, Ediel legacy-data and other
+production-hardening items remain separate and are not silently closed by PHASE-43.

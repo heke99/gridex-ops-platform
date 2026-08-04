@@ -1,12 +1,13 @@
-# PHASE-42 next actions
+# PHASE-43 next actions
 
-1. Sync the delivered files into the Git checkout.
-2. Run clean Node 22 install and full project gates when the package registry works.
-3. Export `DATABASE_URL` and run `scripts/sync-multitenant-website-application-flow.sh`.
-4. Review the dry-run output; stop if the script reports any migration as `unsafe`.
-5. Deploy OPS only after postflight succeeds.
-6. Canonically provision Gridex with its real Mina sidor URL and configure a signed webhook.
-7. Provision a second tenant through the same UI/code path with different origins, offers, mail and portal URL.
-8. Submit one application per tenant and verify customer number, application number,
-   portal ownership, email delivery, exact status lineage and webhook retry/deduplication.
-9. Run explicit cross-tenant denial checks for status, portal bundle and webhook payloads.
+1. Sync this delivery into the Git checkout and review the focused changed-file list.
+2. Run `npm ci` with Node 22, then the full project typecheck/test/lint/build gates.
+3. Deploy OPS after confirming the already-applied migration appears as
+   `20260804190000` in the target database ledger.
+4. Invoke the authenticated grid-area import cron repeatedly until `hasMore=false`.
+5. Verify the current geodata version is `verified`, its source/layer are current,
+   and active geometry/grid-area counts are non-zero.
+6. Create a real SE-area quote and application, sign the customer contract, ingest
+   metering values and generate a billing underlay.
+7. Prove the underlay header/items and invoice readiness all retain the exact locked
+   snapshot area and that an intentional mismatch is blocked.

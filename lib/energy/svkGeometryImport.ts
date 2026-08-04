@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 
-export const DEFAULT_SVK_GRID_AREA_SERVICE_URL = 'https://services2.arcgis.com/L8WLzcxhwLqd80Jx/arcgis/rest/services/N%C3%A4tomr%C3%A5den_240524_2_WFL1/FeatureServer'
+export const DEFAULT_SVK_GRID_AREA_SERVICE_URL = 'https://services2.arcgis.com/L8WLzcxhwLqd80Jx/ArcGIS/rest/services/Natomraden_250526/FeatureServer'
+export const DEFAULT_SVK_GRID_AREA_LAYER_ID = 3
 const ALLOWED_ORIGIN = 'https://services2.arcgis.com'
 const ALLOWED_PATH_PREFIX = '/L8WLzcxhwLqd80Jx/arcgis/rest/services/'
 export const SVK_IMPORT_PAGE_SIZE = 250
@@ -20,10 +21,65 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+type SvkErrorDetails = {
+  message: string
+  code: string | null
+  details: string | null
+  hint: string | null
+}
+
+export function serializeSvkImportError(error: unknown): SvkErrorDetails {
+  const value = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+  return {
+    message: clean(value.message) ?? (error instanceof Error ? error.message : 'svk_geometry_import_failed'),
+    code: clean(value.code),
+    details: clean(value.details),
+    hint: clean(value.hint),
+  }
+}
+
+const SVK_FIELD_ALIASES = {
+  gridAreaCode: ['Natomrade', 'NATOMRADE', 'natomrade', 'NATOMRADESKOD', 'NÄTOMRÅDESKOD', 'grid_area_code'],
+  gridAreaName: ['Namn', 'NAMN', 'namn', 'NATOMRADESNAMN', 'NÄTOMRÅDESNAMN', 'grid_area_name'],
+  gridOwnerName: ['Agare', 'AGARE', 'agare', 'Ägare', 'ELNATSFORETAG', 'ELNÄTSFÖRETAG', 'grid_owner_name'],
+  priceArea: ['Elomrade', 'ELOMRADE', 'elomrade', 'Elområde', 'ELOMRÅDE', 'price_area'],
+} as const
+
+function firstPropertyText(properties: Record<string, unknown>, aliases: readonly string[]): string | null {
+  for (const alias of aliases) {
+    const value = clean(properties[alias])
+    if (value) return value
+  }
+  return null
+}
+
+export function validateSvkFeatureProperties(properties: Record<string, unknown>, id: string): void {
+  const gridAreaCode = firstPropertyText(properties, SVK_FIELD_ALIASES.gridAreaCode)
+  const gridAreaName = firstPropertyText(properties, SVK_FIELD_ALIASES.gridAreaName)
+  const gridOwnerName = firstPropertyText(properties, SVK_FIELD_ALIASES.gridOwnerName)
+  const priceArea = firstPropertyText(properties, SVK_FIELD_ALIASES.priceArea)?.toUpperCase() ?? null
+  const missing = [
+    !gridAreaCode ? 'Natomrade' : null,
+    !gridAreaName ? 'Namn' : null,
+    !gridOwnerName ? 'Agare' : null,
+    !priceArea ? 'Elomrade' : null,
+  ].filter((value): value is string => Boolean(value))
+  if (missing.length > 0) {
+    throw new Error(`SVK-feature ${id} saknar canonicala fält: ${missing.join(', ')}.`)
+  }
+  if (!['SE1', 'SE2', 'SE3', 'SE4'].includes(priceArea!)) {
+    throw new Error(`SVK-feature ${id} har ogiltigt Elomrade: ${priceArea}.`)
+  }
+}
+
 export function safeSvkServiceUrl(value: unknown): string {
   const candidate = clean(value) ?? DEFAULT_SVK_GRID_AREA_SERVICE_URL
   const parsed = new URL(candidate)
-  if (parsed.protocol !== 'https:' || parsed.origin !== ALLOWED_ORIGIN || !parsed.pathname.startsWith(ALLOWED_PATH_PREFIX)) {
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.origin !== ALLOWED_ORIGIN ||
+    !parsed.pathname.toLowerCase().startsWith(ALLOWED_PATH_PREFIX.toLowerCase())
+  ) {
     throw new Error('service_url är inte en tillåten Svenska kraftnät ArcGIS-tjänst.')
   }
   if (parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash) {
@@ -43,18 +99,25 @@ function featureId(feature: Record<string, unknown>, index: number): string {
   return String(feature.id ?? properties.OBJECTID ?? properties.objectid ?? properties.FID ?? `feature-${index}`)
 }
 
-async function activeGeodataVersion(): Promise<{ id: string; versionKey: string } | null> {
+async function activeGeodataVersion(input: { serviceUrl: string; layerId: number }): Promise<{ id: string; versionKey: string } | null> {
   const { data, error } = await supabaseService
     .from('energy_geodata_versions')
-    .select('id,version_key')
+    .select('id,version_key,source_url,metadata')
     .eq('provider', 'svk_arcgis')
     .eq('status', 'importing')
     .maybeSingle()
   if (error) throw error
-  return data ? { id: String(data.id), versionKey: String(data.version_key) } : null
+  if (!data) return null
+  const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+    ? data.metadata as Record<string, unknown>
+    : {}
+  if (clean(data.source_url) !== input.serviceUrl || Number(metadata.layer_id) !== input.layerId) {
+    throw new Error('En pågående SVK-import använder en annan tjänst eller layer och måste avslutas innan en ny version startas.')
+  }
+  return { id: String(data.id), versionKey: String(data.version_key) }
 }
 
-async function createGeodataVersion(input: { serviceUrl: string; offset: number }): Promise<{ id: string; versionKey: string }> {
+async function createGeodataVersion(input: { serviceUrl: string; layerId: number; offset: number }): Promise<{ id: string; versionKey: string }> {
   const versionKey = `svk_arcgis:${new Date().toISOString().replace(/[-:.TZ]/g, '')}`
   const { data, error } = await supabaseService
     .from('energy_geodata_versions')
@@ -65,12 +128,12 @@ async function createGeodataVersion(input: { serviceUrl: string; offset: number 
       source_url: input.serviceUrl,
       cursor_offset: input.offset,
       coverage_status: 'partial',
-      metadata: {},
+      metadata: { service_url: input.serviceUrl, layer_id: input.layerId },
     })
     .select('id,version_key')
     .single()
   if (error) {
-    const existing = await activeGeodataVersion()
+    const existing = await activeGeodataVersion({ serviceUrl: input.serviceUrl, layerId: input.layerId })
     if (existing) return existing
     throw error
   }
@@ -126,13 +189,13 @@ export async function runSvkGeometryImport(input: {
   actorUserId?: string | null
 } = {}): Promise<SvkImportResult> {
   const serviceUrl = safeSvkServiceUrl(input.serviceUrl)
-  const layerId = positiveInt(input.layerId, 4, 50)
+  const layerId = positiveInt(input.layerId, DEFAULT_SVK_GRID_AREA_LAYER_ID, 50)
   const limit = Math.max(1, positiveInt(input.limit, SVK_IMPORT_PAGE_SIZE, SVK_IMPORT_PAGE_SIZE))
   const offset = positiveInt(input.offset, 0, 10_000_000)
   const suppliedRunId = clean(input.runId)
   const geodata = suppliedRunId
-    ? (await loadRunGeodataVersion(suppliedRunId) ?? await createGeodataVersion({ serviceUrl, offset }))
-    : await createGeodataVersion({ serviceUrl, offset })
+    ? (await loadRunGeodataVersion(suppliedRunId) ?? await createGeodataVersion({ serviceUrl, layerId, offset }))
+    : await createGeodataVersion({ serviceUrl, layerId, offset })
   const runId = suppliedRunId ?? await insertImportRun({
     service_url: serviceUrl,
     layer_id: layerId,
@@ -148,6 +211,8 @@ export async function runSvkGeometryImport(input: {
   queryUrl.searchParams.set('f', 'geojson')
   queryUrl.searchParams.set('resultOffset', String(offset))
   queryUrl.searchParams.set('resultRecordCount', String(limit))
+  queryUrl.searchParams.set('orderByFields', 'OBJECTID ASC')
+  queryUrl.searchParams.set('outSR', '4326')
 
   try {
     const response = await fetch(queryUrl.toString(), {
@@ -156,7 +221,14 @@ export async function runSvkGeometryImport(input: {
       signal: AbortSignal.timeout(25_000),
     })
     if (!response.ok) throw new Error(`SVK ArcGIS svarade ${response.status}`)
-    const payload = await response.json() as { features?: Array<Record<string, unknown>>; exceededTransferLimit?: boolean }
+    const payload = await response.json() as {
+      features?: Array<Record<string, unknown>>
+      exceededTransferLimit?: boolean
+      error?: { code?: number; message?: string; details?: string[] }
+    }
+    if (payload.error) {
+      throw new Error(`SVK ArcGIS-fel ${payload.error.code ?? 'okänt'}: ${payload.error.message ?? payload.error.details?.join('; ') ?? 'okänt fel'}`)
+    }
     const features = Array.isArray(payload.features) ? payload.features : []
     let upserted = 0
     const errors: string[] = []
@@ -165,6 +237,7 @@ export async function runSvkGeometryImport(input: {
       const properties = feature.properties && typeof feature.properties === 'object' ? feature.properties as Record<string, unknown> : {}
       const geometry = feature.geometry && typeof feature.geometry === 'object' ? feature.geometry as Record<string, unknown> : null
       const id = featureId(feature, offset + index)
+      validateSvkFeatureProperties(properties, id)
       const { error } = await supabaseService.rpc('gridex_stage_energy_geodata_feature', {
         p_geodata_version_id: geodata.id,
         p_feature_id: id,
@@ -198,7 +271,7 @@ export async function runSvkGeometryImport(input: {
         cursor_offset: nextOffset,
         feature_count: offset + features.length,
         coverage_status: hasMore ? 'partial' : 'complete',
-        metadata: { run_id: runId, layer_id: layerId, page_size: limit, records_failed: 0 },
+        metadata: { run_id: runId, service_url: serviceUrl, layer_id: layerId, page_size: limit, records_failed: 0 },
         updated_at: now,
       })
       .eq('id', geodata.id)
@@ -213,10 +286,11 @@ export async function runSvkGeometryImport(input: {
     return { ok: true, runId, seen: features.length, upserted, errors: [], nextOffset: hasMore ? nextOffset : null, hasMore, geodataVersion: geodata.versionKey }
   } catch (error) {
     const now = new Date().toISOString()
+    const failure = serializeSvkImportError(error)
     await updateSvkImportRun(runId, {
       status: 'failed',
       completed_at: now,
-      error_log: [error instanceof Error ? error.message : 'svk_geometry_import_failed'],
+      error_log: [failure],
     })
     await supabaseService
       .from('energy_geodata_versions')

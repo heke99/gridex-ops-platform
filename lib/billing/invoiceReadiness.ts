@@ -70,6 +70,59 @@ function firstNumber(sources: JsonRecord[], paths: string[]): number | null {
   return null
 }
 
+const SWEDISH_PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
+
+function normalizePriceArea(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : ''
+  return SWEDISH_PRICE_AREAS.has(normalized) ? normalized : null
+}
+
+export function resolveCanonicalBillingPriceArea(input: {
+  underlayPriceArea?: unknown
+  contract?: JsonRecord | null
+  snapshot?: JsonRecord | null
+  meter?: JsonRecord | null
+  site?: JsonRecord | null
+}): { priceArea: string | null; source: string | null; conflicts: string[] } {
+  const contract = input.contract ?? {}
+  const explicitSnapshot = input.snapshot ?? {}
+  const explicitSnapshotJson = object(explicitSnapshot.snapshot_json)
+  const legacyContractSnapshot = object(contract.price_snapshot)
+  const legacyContractSnapshotJson = object(legacyContractSnapshot.snapshot_json)
+  const contractMetadata = object(contract.metadata)
+  const snapshotArea = normalizePriceArea(
+    explicitSnapshotJson.price_area ??
+    explicitSnapshot.price_area ??
+    legacyContractSnapshotJson.price_area ??
+    legacyContractSnapshot.price_area,
+  )
+  const contractArea = normalizePriceArea(
+    contract.price_area_used ?? contractMetadata.selected_price_area,
+  )
+  const lockedContractArea = snapshotArea ?? contractArea
+  const underlayArea = normalizePriceArea(input.underlayPriceArea)
+  const meterArea = normalizePriceArea(input.meter?.price_area_code ?? input.meter?.bidding_zone_code)
+  const siteArea = normalizePriceArea(input.site?.price_area_code)
+  const priceArea = lockedContractArea ?? underlayArea
+  const source = snapshotArea
+    ? 'contract_price_snapshot'
+    : contractArea
+      ? 'customer_contract.price_area_used'
+      : underlayArea
+        ? 'billing_underlay'
+        : null
+  const conflicts: string[] = []
+  if (snapshotArea && contractArea && contractArea !== snapshotArea) {
+    conflicts.push(`customer_contract:${contractArea}`)
+  }
+  if (lockedContractArea && underlayArea && underlayArea !== lockedContractArea) {
+    conflicts.push(`billing_underlay:${underlayArea}`)
+  }
+  if (priceArea && meterArea && meterArea !== priceArea) conflicts.push(`metering_point:${meterArea}`)
+  if (priceArea && siteArea && siteArea !== priceArea) conflicts.push(`customer_site:${siteArea}`)
+  return { priceArea, source, conflicts: [...new Set(conflicts)] }
+}
+
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
   if (value && typeof value === 'object') {
@@ -303,7 +356,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -329,7 +382,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     issues.push({ code: 'missing_pricing', message: `${missingPricing.length} underlag saknar prisberäkning.`, severity: 'blocked' })
   }
 
-  const missingSnapshot = underlays.filter((row) => !row.contract_id || !row.pricing_snapshot_id)
+  const missingSnapshot = underlays.filter((row) => !row.contract_id || (!row.pricing_snapshot_id && !row.contract_price_snapshot_id))
   if (missingSnapshot.length > 0) {
     issues.push({ code: 'missing_contract_or_snapshot', message: `${missingSnapshot.length} underlag saknar avtal eller prissnapshot.`, severity: 'blocked' })
   }
@@ -425,17 +478,32 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       }]
     : []
 
-  const contractsById = new Map<string, BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null }>()
+  const contractsById = new Map<string, BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null; price_area_used?: string | null; metadata?: Record<string, unknown> | null }>()
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_snapshot,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
+      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error
-    for (const row of (contractResult.data ?? []) as Array<BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null }>) {
+    for (const row of (contractResult.data ?? []) as Array<BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null; price_area_used?: string | null; metadata?: Record<string, unknown> | null }>) {
       contractsById.set(String(row.id), row)
     }
+  }
+
+  const snapshotIds = [...new Set([
+    ...underlays.map((row) => String(row.contract_price_snapshot_id ?? row.pricing_snapshot_id ?? '')).filter(Boolean),
+    ...[...contractsById.values()].map((row) => String(row.contract_price_snapshot_id ?? '')).filter(Boolean),
+  ])]
+  const snapshotsById = new Map<string, JsonRecord>()
+  if (snapshotIds.length > 0) {
+    const snapshotResult = await supabaseService
+      .from('contract_price_snapshots')
+      .select('id,company_id,contract_id,snapshot_json,snapshot_schema_version,quote_reference,quote_hash,price_option_reference,area_price_reference')
+      .eq('company_id', input.companyId)
+      .in('id', snapshotIds)
+    if (snapshotResult.error) throw snapshotResult.error
+    for (const row of (snapshotResult.data ?? []) as JsonRecord[]) snapshotsById.set(String(row.id), row)
   }
 
   const customerIds = [...new Set([...contractsById.values()].map((row) => String(row.customer_id ?? '')).filter(Boolean))]
@@ -501,7 +569,35 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     const site = siteId ? sitesById.get(siteId) ?? null : null
     const meter = meterId ? metersById.get(meterId) ?? null : null
     const meterPointIdentity = String(meter?.meter_point_id ?? meter?.metering_point_id ?? '') || null
-    const priceArea = String(meter?.price_area_code ?? meter?.bidding_zone_code ?? site?.price_area_code ?? '') || null
+    const snapshotId = String(
+      underlay.contract_price_snapshot_id ??
+      underlay.pricing_snapshot_id ??
+      contract?.contract_price_snapshot_id ??
+      '',
+    )
+    const snapshot = snapshotId ? snapshotsById.get(snapshotId) ?? null : null
+    const canonicalArea = resolveCanonicalBillingPriceArea({
+      underlayPriceArea: underlay.price_area,
+      contract: contract as JsonRecord | null,
+      snapshot,
+      meter,
+      site,
+    })
+    const priceArea = canonicalArea.priceArea
+    const snapshotBlockers = [
+      ...(snapshotId && !snapshot
+        ? [{ code: 'contract_price_snapshot_missing', message: `Avtalets prissnapshot ${snapshotId} kunde inte läsas.` }]
+        : []),
+      ...(snapshot && String(snapshot.contract_id ?? '') !== contractId
+        ? [{ code: 'contract_price_snapshot_contract_mismatch', message: 'Faktureringsunderlagets prissnapshot tillhör inte kundavtalet.' }]
+        : []),
+    ]
+    const areaBlockers = canonicalArea.conflicts.length > 0
+      ? [{
+          code: 'price_area_snapshot_mismatch',
+          message: `Faktureringsunderlagets operativa områdesdata motsäger avtalets låsta prisområde ${priceArea ?? 'okänt'} (${canonicalArea.conflicts.join(', ')}).`,
+        }]
+      : []
     const readiness = evaluateBillingReadinessCore({
       companyId: input.companyId,
       customerId,
@@ -555,7 +651,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
           city: typeof site.city === 'string' ? site.city : null,
         } : null,
       },
-      externalBlockers: providerBlockers,
+      externalBlockers: [...providerBlockers, ...snapshotBlockers, ...areaBlockers],
     })
     for (const blocker of readiness.blockers) {
       issues.push({ code: blocker.code, message: `${blocker.message} (underlag ${underlayId})`, severity: 'blocked' })
@@ -581,6 +677,9 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       invoice_email: readiness.evidence.invoice_email ?? null,
       has_postal_invoice_address: readiness.evidence.has_postal_invoice_address ?? false,
       vat_rate: readiness.evidence.vat_rate ?? null,
+      price_area: priceArea,
+      price_area_source: canonicalArea.source,
+      price_area_conflicts: canonicalArea.conflicts,
     }
     const configurationHash = sha256(billingConfigurationSnapshot)
     const storedHash = typeof underlay.billing_configuration_snapshot_sha256 === 'string'

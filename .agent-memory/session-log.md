@@ -280,3 +280,26 @@ Rollback-compiled the migration against live Supabase and verified prior missing
 ledger migrations by exact function hashes without mutating live data. Full
 static/broad regressions pass. Clean npm install/build remains environment-blocked;
 database apply/deployment/two-tenant E2E remain pending.
+
+## 2026-08-04 — PHASE-43 SVK geodata and billing price-area convergence
+
+- Compared the repository importer with the current official SVK ArcGIS service and
+  found an obsolete source/layer plus missing exact field aliases.
+- Found billing readiness deriving area from mutable meter/site data instead of the
+  immutable contract pricing evidence.
+- Updated importer, cron, underlay generation, invoice readiness, public developer
+  documentation and release evidence.
+- Added and applied migrations
+  `20260804190000_svk_geodata_and_billing_price_area_canonicalization` and
+  `20260804193000_contract_price_snapshot_company_guard_fix` to
+  `gridex-ops-dev`, aligned its live migration-ledger version and closed the old
+  running import/version.
+- Verified a real staged BRL/SE3 feature through the new live parser inside a
+  rollback transaction. A second rollback E2E exposed and repaired the broken
+  contract-snapshot tenant guard, then proved SE3 canonicalization and SE4 rejection.
+  Existing persistent contract/snapshot/underlay counts remained zero.
+- Static regression, migration integrity and changed-source syntax checks pass.
+- Full npm-backed gates remain pending because the sandbox cannot resolve the npm
+  registry and the uploaded archive contains no dependencies.
+- Updated application deployment and full current-source import remain pending;
+  active official SVK geometry rows are currently zero.

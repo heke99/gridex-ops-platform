@@ -320,7 +320,8 @@ För fastpris gäller:
 - `fixed_price_ore_per_kwh` och `pricing.fixed_price` är kompatibilitetsfält och är `null` när SE-områdena har olika priser;
 - kunden och kundportalen ser bara det avtal och den områdesprisrad som hör till kundens anläggning;
 - en kund med flera verkliga anläggningar kan ha en avtalsrelation per anläggning, men inte en ny kund eller fyra produktkopior per prisområde;
-- faktureringen använder den immutable valda prisraden, inte dagens publicerade webbpris.
+- faktureringen använder den immutable valda prisraden och det låsta `price_area` från quote-/avtalssnapshoten, inte dagens publicerade webbpris eller ett senare ändrat område på anläggning/mätpunkt;
+- om operativ områdesdata motsäger avtalssnapshoten blockeras fakturaunderlaget i stället för att prisområdet skrivs över.
 
 `pricing.calculation_components` och kompatibilitetsfältet `pricing.components` innehåller alla tillämpliga pris- och avgiftskomponenter. Dolda komponenter får inte filtreras bort från kalkyl, quote, avtalssnapshot eller fakturering. `pricing.display_components` styr endast vilka komponenter som får visas som separata sälj-/avtalsrader.
 

@@ -501,7 +501,7 @@ Vid acceptans sparas en immutable pricing snapshot med:
 - marknadsreferensens provenance;
 - bindningstid, uppsägningstid, juridiska accepter och kanal.
 
-Fakturering läser kundavtalets snapshot, faktisk förbrukning och separat verifierad/explicit låst settlementperiod. Den läser inte dagens publicerade produktpris och använder aldrig preview som slutpris.
+Fakturering läser kundavtalets snapshot, faktisk förbrukning och separat verifierad/explicit låst settlementperiod. `price_area` kommer från den immutable quote-/avtalssnapshoten. Ett senare ändrat område på mätpunkt eller anläggning får inte byta prisrad; en motsägelse skapar i stället blockeraren `price_area_snapshot_mismatch`. Databasen avvisar även direkt skrivning av ett fakturaunderlag vars `price_area` motsäger avtalets låsta snapshot. Faktureringen läser inte dagens publicerade produktpris och använder aldrig preview som slutpris.
 
 ## 9. Leverantörsbyte
 

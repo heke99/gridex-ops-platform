@@ -1,50 +1,44 @@
-# PHASE-42 handover — canonical multitenant website application flow
+# PHASE-43 handover — SVK geodata and billing price-area convergence
 
-The source repair is complete and dependency-free verification is green. The new
-database migration is not applied and the application is not deployed.
+The database correction is live and the source package is statically verified. The
+running OPS deployment has not yet been updated, so the new official SVK import has
+not populated active geometry rows.
 
 ## What changed
 
-- One canonical readiness service now decides whether any tenant may accept
-  website applications. Scopes alone cannot set launch readiness.
-- Intake verifies operation policy and fails closed on missing database schema.
-- Customer portal ownership requires two equal UUID fields and verified durable
-  account/identity persistence. Tenant portal URL is canonical and HTTPS-only.
-- Status is application-lineage bound and projects real contract, continuation,
-  mail and webhook state.
-- Failed/partial committed applications resume under the same idempotency key.
-- Domain events create durable fan-out jobs. Every workflow transition emits
-  `customer_application.status_changed`; switch/supply states also emit
-  `supplier_switch.updated`.
-- Public contract is version `2026-08-04.1` and the versioned routes read
-  archived immutable specs.
+- Current official SVK service: `Natomraden_250526`, layer 3.
+- Canonical fields: `Natomrade`, `Namn`, `Agare`, `Elomrade`.
+- Import paging is deterministic and a running import cannot switch source/layer.
+- Promotion reports the exact failed feature and underlying PostgreSQL diagnostic.
+- Billing uses `contract_price_snapshots.snapshot_json.price_area` first.
+- Underlay header and items share the same locked area; source meter area is audit-only.
+- Invoice readiness blocks missing/wrong snapshot links and area contradictions.
+- PostgreSQL rejects underlay writes that contradict the locked contract snapshot.
+- The contract-price-snapshot company guard now validates `contract_id` and rejects
+  missing/cross-tenant parent contracts.
+- API/docs stay on `2026-08-04.2` and describe the same behavior.
 
-## Database safety
+## Live Supabase
 
-`20260804121000_multitenant_website_application_flow_completion.sql` compiled
-successfully against live `gridex-ops-dev` inside a rolled-back transaction.
-No new changes were persisted.
-
-The live effects of `20260804003000` and `20260804093500` match local function
-body hashes exactly and have correct ACL/trigger/constraint/backfill state, while
-the ledger rows are absent. The sync script independently repeats this check and
-only then runs `migration repair`; partial or mismatched state aborts.
+- Applied ledger versions: `20260804190000` and `20260804193000`.
+- Obsolete running import/version closed as superseded.
+- Real staged feature BRL / SE3 passed importer verification in a rollback transaction.
+- A rollback contract/snapshot/underlay test proved SE3 canonicalization and SE4 rejection.
+- No contract/billing rows existed, so no backfill was necessary.
+- Active current-source geometry remains zero pending application deployment/import.
 
 ## Resume
 
-```bash
-export GRIDEX_SUPABASE_PROJECT_REF=piidsfebjqjmnepdpnas
-export DATABASE_URL='postgresql://...'
-./scripts/sync-multitenant-website-application-flow.sh
-```
+Deploy OPS, then invoke the authenticated route:
 
-Then deploy OPS, provision Gridex and a second tenant, and require a successful
-application, customer number, customer mail, portal bundle, polling state and
-signed webhook for both tenants.
+`GET /api/internal/platform/grid-areas/import/cron`
+
+Repeat according to the returned pagination state until the import reports no more
+pages, then verify the version is `verified` and active grid-area geometry exists.
 
 ## Do not claim yet
 
-- migration applied;
-- application deployed;
-- clean npm install/build;
-- real two-tenant end-to-end success.
+- updated OPS code deployed;
+- full current-source geometry import completed;
+- dependency-backed typecheck/test/lint/build completed;
+- real quote-to-invoice environment E2E completed.

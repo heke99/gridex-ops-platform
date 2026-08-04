@@ -30,6 +30,37 @@ function object(value: unknown): JsonRecord {
     : {};
 }
 
+function normalizedPriceArea(value: unknown): string | null {
+  const candidate = text(value)?.toUpperCase() ?? null;
+  return candidate && isPriceArea(candidate) ? candidate : null;
+}
+
+export function resolveBillingUnderlayPriceArea(input: {
+  snapshot: JsonRecord;
+  contract?: JsonRecord | null;
+  rows?: JsonRecord[];
+}): { priceArea: string | null; conflicts: string[] } {
+  const snapshotArea = normalizedPriceArea(input.snapshot.price_area);
+  const contractArea = normalizedPriceArea(input.contract?.price_area_used);
+  const meteringAreas = new Set(
+    (input.rows ?? [])
+      .map((row) => normalizedPriceArea(row.price_area ?? row.price_area_code ?? row.bidding_zone_code))
+      .filter((area): area is string => Boolean(area)),
+  );
+  const priceArea = snapshotArea ?? contractArea ?? (meteringAreas.size === 1 ? [...meteringAreas][0] : null);
+  const conflicts: string[] = [];
+  if (snapshotArea && contractArea && snapshotArea !== contractArea) {
+    conflicts.push(`contract:${contractArea}`);
+  }
+  if (priceArea) {
+    for (const area of meteringAreas) {
+      if (area !== priceArea) conflicts.push(`metering_value:${area}`);
+    }
+  }
+  if (meteringAreas.size > 1) conflicts.push("metering_values_multiple_price_areas");
+  return { priceArea, conflicts: [...new Set(conflicts)] };
+}
+
 function strictNumberOrNull(value: unknown): number | null {
   const parsed =
     typeof value === "number"
@@ -377,10 +408,11 @@ function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
         !text(snapshot.area_price_reference) &&
         !text(snapshotJson.area_price_reference)) ||
       !Array.isArray(snapshot.base_price_components_snapshot) ||
-      !Array.isArray(snapshot.price_components_snapshot)
+      !Array.isArray(snapshot.price_components_snapshot) ||
+      !normalizedPriceArea(snapshotJson.price_area)
     ) {
       throw new Error(
-        "Kundavtalets v6-prissnapshot saknar prisalternativ, områdesrad, faktureringssätt eller exakta komponenter.",
+        "Kundavtalets v6-prissnapshot saknar prisalternativ, områdesrad, faktureringssätt, låst prisområde eller exakta komponenter.",
       );
     }
   }
@@ -486,6 +518,10 @@ export async function generateBillingUnderlaysForMonth(input: {
         entry.start,
       );
       const snapshotJson = snapshotPayload(snapshot);
+      const contractAreaContext = resolveBillingUnderlayPriceArea({
+        snapshot: snapshotJson,
+        contract,
+      });
       const production = productionConfiguration(snapshotJson);
       const contractDirection =
         text(contract?.energy_direction) ??
@@ -528,6 +564,12 @@ export async function generateBillingUnderlaysForMonth(input: {
             supply_period_id: text(period.id),
             contract_id: contractId,
             customer_contract_id: contractId,
+            pricing_snapshot_id: text(snapshot?.id),
+            contract_price_snapshot_id: text(snapshot?.id),
+            price_plan_id: text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id),
+            price_plan_version_id: text(snapshot?.price_plan_version_id),
+            price_book_id: text(snapshot?.price_book_id),
+            price_area: contractAreaContext.priceArea,
             energy_direction: canonicalContractDirection,
             settlement_type:
               canonicalContractDirection === "production"
@@ -563,7 +605,7 @@ export async function generateBillingUnderlaysForMonth(input: {
                   : "invoice",
               timezone: "Europe/Stockholm",
             },
-            pricing_snapshot: {},
+            pricing_snapshot: snapshotJson,
             received_at: new Date().toISOString(),
             validated_at: null,
           },
@@ -697,9 +739,19 @@ export async function generateBillingUnderlaysForMonth(input: {
         const first = segmentRows[0];
         const siteId = text(first.site_id) ?? text(first.customer_site_id);
         const customerSiteId = text(first.customer_site_id) ?? siteId;
-        const priceArea = text(first.price_area);
-        if (!isPriceArea(priceArea)) {
-          warnings.push("Verifierat elområde saknas på mätvärdena.");
+        const areaContext = resolveBillingUnderlayPriceArea({
+          snapshot: snapshotJson,
+          contract,
+          rows: segmentRows,
+        });
+        const priceArea = areaContext.priceArea;
+        if (!priceArea) {
+          warnings.push("Låst prisområde saknas i avtalets prissnapshot.");
+        }
+        if (areaContext.conflicts.length > 0) {
+          warnings.push(
+            `Prisområdet i mätdata eller avtal motsäger den låsta prissnapshoten: ${areaContext.conflicts.join(", ")}.`,
+          );
         }
         if (
           segmentRows.some(
@@ -740,9 +792,7 @@ export async function generateBillingUnderlaysForMonth(input: {
           price_book_id: text(snapshot?.price_book_id),
           campaign_id: text(snapshot?.campaign_version_id),
           facility_id: text(row.facility_id),
-          price_area: isPriceArea(text(row.price_area))
-            ? text(row.price_area)
-            : null,
+          price_area: priceArea,
           grid_area: text(row.grid_area),
           source_table: "normalized_metering_values",
           source_transaction_reference: text(row.source_transaction_reference),
@@ -770,6 +820,7 @@ export async function generateBillingUnderlaysForMonth(input: {
             raw_payload: object(row.raw_payload),
             energy_direction: energyDirection,
             original_quantity_kwh: quantityKwh(row),
+            source_price_area: normalizedPriceArea(row.price_area ?? row.price_area_code ?? row.bidding_zone_code),
           },
         }));
 

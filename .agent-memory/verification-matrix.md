@@ -1,19 +1,19 @@
-# Verification matrix — PHASE-42
+# Verification matrix — PHASE-43
 
 | Area | Status | Evidence |
 |---|---|---|
-| Migration integrity | PASS | 362 files / 266 groups; checksums verified |
-| New migration SQL | PASS, rollback only | Full live transaction compiled and rolled back |
-| Legacy ledger repair safety | PASS | Exact live/local function hashes, ACL, trigger, constraint, zero gaps |
-| Tenant isolation | PASS static | Canonical multitenant regression and 110 single-key checks |
-| Website readiness | PASS static | Full prerequisite and operation-policy checks |
-| Customer graph/idempotency | PASS static | Canonical onboarding, review, continuation and idempotency regressions |
-| Mina sidor ownership | PASS static | Mandatory equal IDs, conflict guard and persisted re-read |
-| Status lineage | PASS static | Exact contract/site/meter queries plus actual job/mail/webhook state |
-| Webhook durability | PASS static | Durable fan-out, retry, stale recovery, canonical status events |
-| OpenAPI/docs | PASS | Runtime parity and immutable `2026-08-04.1` release |
-| Changed TypeScript syntax | PASS | 22 changed TS/TSX transpiled with TS 5.8.3 |
-| JSON/shell/diff hygiene | PASS | JSON parse, `bash -n`, `git diff --check` |
-| Full npm install/typecheck/build | BLOCKED | Package mirror 404; dependencies/types absent |
-| Database apply | PENDING | No live mutation performed |
-| Two-tenant live E2E | PENDING | Requires deployment and operator credentials/endpoints |
+| API/OpenAPI/docs version | PASS | Canonical contract remains `2026-08-04.2` |
+| SVK source/layer mapping | PASS | Current FeatureServer, layer 3, four exact canonical fields |
+| Import source isolation | PASS static | Old source is failed; mixed source/layer resume rejected |
+| Import diagnostics | PASS static/live | Structured errors plus BRL/SE3 rollback parser proof |
+| Migration integrity | PASS | 366 files / 270 groups; checksums verified |
+| Live database apply | PASS | Ledger versions `20260804190000` and `20260804193000` |
+| DB billing area guard | PASS | Rollback E2E canonicalized SE3 and rejected SE4 |
+| Snapshot tenant guard | PASS | Nonexistent trigger field removed; contract ownership enforced |
+| Underlay area propagation | PASS static | Header/items use immutable snapshot area |
+| Snapshot identity checks | PASS static | Missing and cross-contract snapshot blockers |
+| Existing billing backfill | N/A | Zero contracts/snapshots/underlays in connected dev project |
+| Changed TS/TSX syntax | PASS | TypeScript transpile syntax diagnostics: zero |
+| Full npm gates | BLOCKED | Dependencies absent; registry DNS returned `EAI_AGAIN` |
+| Full official SVK import | PENDING | Requires updated deployed code/cron; active rows currently zero |
+| Quote-to-invoice E2E | PENDING | Requires deployed app and real test data |

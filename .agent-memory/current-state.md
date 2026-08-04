@@ -1,50 +1,60 @@
 # Current state
 
-Last updated: 2026-08-04T13:03:20+02:00
+Last updated: 2026-08-04T19:00:05+02:00
 
-## PHASE-42 source state
+## PHASE-43 source state
 
-- Canonical website readiness is tenant-neutral and checks tenant lifecycle,
-  scopes/origins, public contracts, legal bundle, verified email, templates,
-  automation user/cron, facility mailbox, portal URL and operation policy.
-- Historical `launch_ready` values are invalidated by the forward migration and
-  must be recomputed through the canonical service.
-- Website applications require equal `auth_user_id` and
-  `customer_portal_user_id`; portal identity/account persistence is re-read and
-  verified, and identities cannot move between customers.
-- Status uses exact contract/site/meter lineage and reads actual contract,
-  continuation job, communication/outbox and webhook fan-out/delivery records.
-- Workflow RPC is mandatory; missing schema no longer falls back to partial writes.
-- Durable workflow events now match default tenant webhook subscriptions:
-  `customer_application.status_changed` and `supplier_switch.updated`.
-- OpenAPI/docs version is `2026-08-04.1`; the versioned route imports an archived
-  immutable release copy.
+- Customer Portal API/OpenAPI/developer documentation is aligned at contract
+  version `2026-08-04.2`.
+- SVK grid-area import now uses the current `Natomraden_250526` FeatureServer,
+  layer 3, deterministic paging and the canonical source fields `Natomrade`,
+  `Namn`, `Agare` and `Elomrade`.
+- Import errors preserve feature/source diagnostics and old-source running imports
+  are failed instead of resumed into a mixed geodata version.
+- Billing price area is sourced from the immutable contract price snapshot first.
+  Contract, underlay, metering-point and site values are consistency evidence only.
+- Billing underlays and underlay items use the same locked area. Original meter-row
+  area is retained only as source metadata.
+- Invoice readiness loads the referenced `contract_price_snapshots` row and blocks
+  missing, cross-contract or contradictory snapshot evidence.
 
 ## Database state
 
 - Live project: `piidsfebjqjmnepdpnas` (`gridex-ops-dev`).
-- New migration was compiled in a full live transaction and rolled back; no live
-  mutation was persisted.
-- Effects for `20260804003000` and `20260804093500` exist live but ledger rows are
-  absent. Function bodies match local SHA-256 exactly, ACL/trigger/constraint are
-  correct and fee backfill gaps are zero.
-- Sync script now verifies those facts itself and refuses unsafe `migration repair`.
+- Migrations `20260804190000_svk_geodata_and_billing_price_area_canonicalization`
+  and `20260804193000_contract_price_snapshot_company_guard_fix` are applied and
+  their live migration-ledger versions match the repository.
+- The database importer recognizes the current SVK field names and validates
+  geometry/price area fail-closed.
+- `billing_underlays_price_area_snapshot_guard` prevents a billing underlay from
+  contradicting the immutable contract snapshot.
+- The broken `contract_price_snapshots` tenant guard no longer references the
+  nonexistent `NEW.customer_contract_id`; it validates `NEW.contract_id`.
+- The obsolete running SVK import/version was closed as
+  `svk_import_source_superseded`.
+- A real staged feature (BRL / SE3) passed the new importer inside a rolled-back
+  verification transaction.
+- Current dev data contains zero customer contracts, price snapshots and billing
+  underlays, so no billing rows required backfill.
+- Current active official SVK geometry count remains zero until the updated app is
+  deployed and the import cron/admin action completes the current-source import.
 
 ## Verification
 
-- Full dependency-free PHASE-42 static suite: pass.
-- Migration integrity: 362 files / 266 groups, checksums pass.
-- API/OpenAPI/runtime/docs parity: pass at `2026-08-04.1`.
-- Canonical multitenant, single-key (110 checks), application review,
-  continuation and PHASE-42 regressions: pass.
-- Broad contract/market/portfolio/onboarding/idempotency regressions: pass.
-- 22 changed TS/TSX files transpile with TypeScript 5.8.3; changed JSON parses;
-  `git diff --check` and shell syntax pass.
-- Full project `tsc` is not valid without installed Next/React/Supabase/Node types.
+- SVK/billing canonical regression: PASS.
+- Migration integrity: PASS (366 files / 270 version groups; checksums verified).
+- Changed TypeScript/TSX syntax transpilation: PASS.
+- package.json/package-lock dependency declarations: consistent.
+- Live SQL migration compile/apply: PASS.
+- Live parser rollback test: PASS.
+- Live quote-snapshot/underlay rollback test: PASS; null area canonicalized to SE3
+  and an attempted SE4 mismatch was rejected.
+- Full npm typecheck/test/lint/build: NOT RUN because dependencies are absent and
+  the npm registry returned DNS `EAI_AGAIN` in this sandbox.
 
 ## Deployment state
 
-- Database migration: NOT APPLIED.
+- Database migration: APPLIED.
 - Repository changes: IMPLEMENTED AND STATICALLY VERIFIED.
-- Running OPS application: NOT DEPLOYED.
-- Two-tenant live E2E: NOT RUN.
+- Running OPS application: NOT DEPLOYED FROM THIS DELIVERY.
+- Current-source full SVK import: PENDING APPLICATION DEPLOYMENT/CRON.

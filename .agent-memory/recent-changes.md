@@ -1,17 +1,20 @@
 # Recent changes
 
-## 2026-08-03 — Runtime schema readiness v4
+## 2026-08-04 — SVK and billing price-area canonicalization
 
-- Removed the stale exact whole-schema fingerprint pin from the OPS runtime
-  readiness gate.
-- Added fail-closed capability-evidence evaluation and unit tests.
-- Renamed two local portfolio migrations to authoritative live ledger versions.
-- Added/applied `20260803212754_canonical_migration_readiness_reconciliation_v4.sql`.
-- Reconciled six portfolio ledger rows into the canonical manifest.
-- Replaced raw count/version/staleness migration readiness with explicit ledger
-  mappings and effect verification.
-- Added and live-replayed an idempotent post-apply verifier.
-- Verified live Supabase readiness/governance and local API contract/OpenAPI
-  version `2026-08-03.1`.
-- Remaining incident action: redeploy OPS app and execute authenticated endpoint
-  smoke tests; then sync Gridex Web OpenAPI.
+- Updated SVK geodata import from the obsolete 2024 service/layer to
+  `Natomraden_250526` layer 3.
+- Added exact `Natomrade`/`Namn`/`Agare`/`Elomrade` parsing, strict validation,
+  deterministic paging and structured source diagnostics.
+- Closed the obsolete live running import/version as superseded.
+- Applied `20260804190000_svk_geodata_and_billing_price_area_canonicalization`.
+- Applied `20260804193000_contract_price_snapshot_company_guard_fix` after a live
+  rollback test exposed the obsolete `NEW.customer_contract_id` reference.
+- Added a database trigger that rejects billing-underlay price-area drift.
+- Made contract price snapshot the canonical billing area for underlay headers,
+  items and invoice readiness.
+- Added snapshot existence/ownership and area-conflict blockers.
+- Updated developer/API documentation and added a static regression script.
+- Verified a real staged BRL/SE3 feature in a rolled-back live parser test.
+- Verified snapshot creation, SE3 underlay canonicalization and SE4 mismatch rejection
+  in a complete rolled-back database test.

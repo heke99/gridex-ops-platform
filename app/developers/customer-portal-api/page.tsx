@@ -1303,8 +1303,12 @@ export default function CustomerPortalApiDocsPage() {
             portal identity, prissnapshot och ett först väntande avtal. Därefter
             verifierar en atomisk serverfunktion de exakta juridikversionerna
             och sätter <code>status=signed</code>, <code>signed_at</code>,
-            ångerfrist och <code>signature_snapshot_sha256</code>. Klientens
-            egna <code>signed_at</code>/<code>acceptedAt</code> används inte som
+            ångerfrist och <code>signature_snapshot_sha256</code>. Den valda
+            SE-raden och <code>price_area</code> följer därefter samma immutable
+            quote-/avtalssnapshot hela vägen till fakturaunderlaget. Ett senare
+            ändrat område på anläggning eller mätpunkt får inte byta prisrad;
+            OPS blockerar avvikelsen i stället. Klientens egna
+            <code>signed_at</code>/<code>acceptedAt</code> används inte som
             avtalets juridiska signeringstid.
           </p>
           <p>
