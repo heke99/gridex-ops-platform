@@ -68,7 +68,7 @@ function newOption(
         ? applicableAreas.map((area) => ({
             price_row_reference: stableReference(`area_${area.toLowerCase()}`),
             price_area: area,
-            amount: 1,
+            amount: 0,
             unit: "ore_per_kwh" as const,
             vat_treatment: "standard" as const,
             valid_from: null,
@@ -158,11 +158,20 @@ export default function CommercialPricingEditor({
   applicableAreas = AREAS,
   requiresAreaPrices = contractType === "fixed",
   snapshot,
+  simpleDefaults,
 }: {
   contractType: CanonicalContractType;
   applicableAreas?: readonly PriceArea[];
   requiresAreaPrices?: boolean;
   snapshot: Record<string, unknown> | null;
+  simpleDefaults?: {
+    customerName: string;
+    customerType: ContractPriceOption["customer_type"];
+    bindingMonths: number;
+    noticeMonths: number;
+    autoRenewEnabled: boolean;
+    renewalTermMonths: number | null;
+  };
 }) {
   const existing = useMemo(
     () => commercialModelFromSnapshot(snapshot),
@@ -187,6 +196,54 @@ export default function CommercialPricingEditor({
   const [deliveryMethods, setDeliveryMethods] = useState<
     InvoiceDeliveryMethod[]
   >(() => existing?.invoice_delivery_methods ?? ["email", "e_invoice", "paper"]);
+  const [advancedOpen, setAdvancedOpen] = useState(
+    () =>
+      (existing?.price_options.length ?? 0) > 1 ||
+      (existing?.components.length ?? 0) > 0,
+  );
+  const hasAdvancedConfiguration =
+    options.length > 1 || components.length > 0;
+
+  useEffect(() => {
+    if (!simpleDefaults) return;
+    setOptions((current) => {
+      if (current.length !== 1) return current;
+      const option = current[0];
+      const next = {
+        ...option,
+        customer_name: simpleDefaults.customerName.trim() || "Standardpris",
+        customer_type: simpleDefaults.customerType,
+        contract_type: contractType,
+        binding_months: simpleDefaults.bindingMonths,
+        notice_months: simpleDefaults.noticeMonths,
+        auto_renew_enabled: simpleDefaults.autoRenewEnabled,
+        renewal_term_months: simpleDefaults.autoRenewEnabled
+          ? simpleDefaults.renewalTermMonths ?? 12
+          : null,
+        default: true,
+        selection_required: false,
+      };
+      const unchanged =
+        option.customer_name === next.customer_name &&
+        option.customer_type === next.customer_type &&
+        option.contract_type === next.contract_type &&
+        option.binding_months === next.binding_months &&
+        option.notice_months === next.notice_months &&
+        option.auto_renew_enabled === next.auto_renew_enabled &&
+        option.renewal_term_months === next.renewal_term_months &&
+        option.default === true &&
+        option.selection_required === false;
+      return unchanged ? current : [next];
+    });
+  }, [
+    contractType,
+    simpleDefaults?.autoRenewEnabled,
+    simpleDefaults?.bindingMonths,
+    simpleDefaults?.customerName,
+    simpleDefaults?.customerType,
+    simpleDefaults?.noticeMonths,
+    simpleDefaults?.renewalTermMonths,
+  ]);
 
   useEffect(() => {
     setOptions((current) =>
@@ -205,7 +262,7 @@ export default function CommercialPricingEditor({
             currentByArea.get(area) ?? {
               price_row_reference: stableReference(`area_${area.toLowerCase()}`),
               price_area: area,
-              amount: 1,
+              amount: 0,
               unit: "ore_per_kwh" as const,
               vat_treatment: "standard" as const,
               valid_from: null,
@@ -268,18 +325,97 @@ export default function CommercialPricingEditor({
         value={JSON.stringify(deliveryMethods)}
       />
 
-      <h3 className="font-black text-indigo-950">
-        Kanoniska prisalternativ
-      </h3>
-      <p className="mt-1 text-xs leading-5 text-indigo-900">
-        Referenserna är stabila och följer med genom offert, signering,
-        snapshot och fakturarad. De ändras inte när du sorterar eller redigerar.
-      </p>
-      <p className="mt-2 text-xs font-semibold text-indigo-950">
-        Fält med <RequiredBadge /> måste vara kompletta för varje prisalternativ.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="font-black text-indigo-950">Prisalternativ</h3>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-indigo-900">
+            Standardläget skapar ett komplett prisalternativ automatiskt från
+            avtalsnamn, kundtyp och villkor ovan. Öppna avancerat läge endast
+            när avtalet ska ha flera bindningstider eller särskilda tillval.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={advancedOpen && hasAdvancedConfiguration}
+          title={
+            advancedOpen && hasAdvancedConfiguration
+              ? "Ta bort extra prisalternativ och komponenter innan standardläget kan användas."
+              : undefined
+          }
+          onClick={() => setAdvancedOpen((current) => !current)}
+          className="rounded-xl border border-indigo-300 bg-white px-4 py-2 text-xs font-black text-indigo-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {advancedOpen
+            ? hasAdvancedConfiguration
+              ? "Avancerat läge krävs"
+              : "Använd standardläge"
+            : "Avancerade prisalternativ"}
+        </button>
+      </div>
 
-      <div className="mt-4 space-y-4">
+      {!advancedOpen ? (
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-black text-slate-950">
+                {options[0]?.customer_name || "Standardpris"}
+              </p>
+              <p className="mt-1 text-xs text-slate-600">
+                Ett standardalternativ · {options[0]?.binding_months ?? 0} mån bindning · {options[0]?.notice_months ?? 0} mån uppsägning
+              </p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-800">
+              Komplett automatiskt
+            </span>
+          </div>
+          {requiresAreaPrices && options[0] ? (
+            <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {options[0].area_prices.map((row, rowIndex) => (
+                <label
+                  key={row.price_row_reference}
+                  className="grid min-w-0 gap-1 rounded-xl bg-indigo-50 p-3 text-xs font-bold text-indigo-950"
+                >
+                  <span>{row.price_area}, öre/kWh <RequiredBadge /></span>
+                  <input
+                    required
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    value={row.amount}
+                    onChange={(event) => {
+                      const areaPrices = options[0].area_prices.map(
+                        (candidate, candidateIndex) =>
+                          candidateIndex === rowIndex
+                            ? { ...candidate, amount: Number(event.target.value) }
+                            : candidate,
+                      );
+                      patchOption(0, { area_prices: areaPrices });
+                    }}
+                    className={editorControlClass}
+                  />
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-slate-600">
+              Energipriset beräknas av OPS från vald rörlig, portfölj- eller mixmodell.
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-100/60 p-4">
+            <h4 className="font-black text-indigo-950">Avancerad modell</h4>
+            <p className="mt-1 text-xs leading-5 text-indigo-900">
+              Referenserna följer offert, signering, snapshot och fakturarad.
+              Ändra dem bara när flera valbara prisalternativ verkligen behövs.
+            </p>
+          </div>
+          <p className="mt-3 text-xs font-semibold text-indigo-950">
+            Fält med <RequiredBadge /> måste vara kompletta för varje prisalternativ.
+          </p>
+
+          <div className="mt-4 space-y-4">
         {options.map((option, optionIndex) => (
           <fieldset
             key={option.price_option_reference}
@@ -933,6 +1069,8 @@ export default function CommercialPricingEditor({
       >
         Lägg till komponent
       </button>
+        </>
+      )}
     </section>
   );
 }

@@ -1,0 +1,7 @@
+__tests__/api-canonical-release.test.ts
+__tests__/contract-channel-publication-completion.test.ts
+__tests__/market-price-api-contract.test.ts
+__tests__/public-contract-route-openapi-regression.test.ts
+docs/fixtures/public-contracts-response-2026-08-04.2.json
+CHANGED_FILES_API_RELEASE_TEST_ALIGNMENT_2026-08-04.txt
+GRIDEX_API_RELEASE_TEST_ALIGNMENT_2026-08-04.md

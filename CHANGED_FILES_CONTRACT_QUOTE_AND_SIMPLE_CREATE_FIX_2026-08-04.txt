@@ -1,0 +1,6 @@
+GRIDEX_CONTRACT_QUOTE_AND_SIMPLE_CREATE_FIX_2026-08-04.md
+CHANGED_FILES_CONTRACT_QUOTE_AND_SIMPLE_CREATE_FIX_2026-08-04.txt
+lib/pricing/offerQuote.ts
+components/admin/contracts/ContractOfferAdminForm.tsx
+components/admin/contracts/CommercialPricingEditor.tsx
+__tests__/offer-quote-public-option-adapter.test.ts

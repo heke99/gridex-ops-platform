@@ -11,6 +11,9 @@ import {
   API_CONTRACT_RESPONSE_SCHEMA_VERSION,
   mapContractPublicationToPublicDto,
 } from "@/lib/external-contracts/publicationDto";
+import {
+  WEBSITE_INTEGRATION_CONTRACT_VERSION,
+} from "@/lib/integrations/websiteIntegrationContract";
 
 function canonicalRow(): Record<string, unknown> {
   return {
@@ -181,16 +184,22 @@ describe("canonical contract channel completion", () => {
     );
   });
 
-  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-08-04.1", () => {
-    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-08-04.1");
+  it("keeps runtime, ETag metadata and OpenAPI on the canonical schema version", () => {
+    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe(
+      WEBSITE_INTEGRATION_CONTRACT_VERSION,
+    );
     const specification = JSON.parse(
       readFileSync(
         resolve("docs/openapi/website-integration-v1.json"),
         "utf8",
       ),
     ) as {
+      info: { version: string };
       paths: Record<string, { get: Record<string, unknown> }>;
     };
+    expect(specification.info.version).toBe(
+      WEBSITE_INTEGRATION_CONTRACT_VERSION,
+    );
     const operation = specification.paths["/api/v1/contracts"]?.get;
     expect(operation?.["x-required-scopes"]).toEqual([
       "api_contracts.read",

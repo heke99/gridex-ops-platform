@@ -13,9 +13,16 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 
 describe('canonical public API release', () => {
   it('publishes one version and a release-manifest operation', () => {
-    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-04.1')
+    const manifest = buildOpenApiReleaseManifest()
     expect(websiteOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(manifest.release_version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(manifest.compatibility_classification).toBe(
+      'additive-price-area-assurance-and-readiness-correction',
+    )
+    expect(manifest.specifications.website.compatibility).toBe(
+      'additive-response-field-and-readiness-correction',
+    )
     expect(websiteOpenApi.paths['/api/v1/openapi/release-manifest.json']?.get).toBeDefined()
   })
 
@@ -42,7 +49,6 @@ describe('canonical public API release', () => {
       'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',
       'utf8',
     )
-    const manifest = buildOpenApiReleaseManifest()
     const application = websiteOpenApi.components.schemas.CustomerApplicationRequest
 
     expect(application.required).toEqual(
@@ -55,12 +61,6 @@ describe('canonical public API release', () => {
     expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)
     expect(migration).toContain('alter column portal_identity_required set default true')
     expect(migration).toContain("tg_op = 'INSERT'")
-    expect(manifest.compatibility_classification).toBe(
-      'breaking-client-update-required-for-portal-identity',
-    )
-    expect(manifest.specifications.website.compatibility).toBe(
-      'breaking-request-requirement',
-    )
   })
 
   it('publishes document-bound legal acceptance and paired portal identity', () => {

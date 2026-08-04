@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import websiteOpenApi from '@/docs/openapi/website-integration-v1.json'
 import customerPortalOpenApiDocument from '@/docs/openapi/customer-portal-v1.json'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const root = process.cwd()
 type OpenApiSpec = {
@@ -19,13 +20,15 @@ const websiteSpec = websiteOpenApi as unknown as OpenApiSpec
 const customerPortalOpenApi = customerPortalOpenApiDocument as unknown as OpenApiSpec
 
 describe('market-price public API contract', () => {
-  it('keeps runtime, registry and OpenAPI on version 2026-08-04.1', () => {
+  it('keeps runtime, registry and OpenAPI on the canonical version', () => {
     const contract = readFileSync(`${root}/lib/integrations/websiteIntegrationContract.ts`, 'utf8')
     const registry = readFileSync(`${root}/lib/api/publicRouteRegistry.ts`, 'utf8')
-    expect(contract).toContain("WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-04.1'")
+    expect(contract).toContain(
+      `WEBSITE_INTEGRATION_CONTRACT_VERSION = '${WEBSITE_INTEGRATION_CONTRACT_VERSION}'`,
+    )
     expect(registry).toContain("path: '/api/v1/website/market-price/current'")
-    expect(websiteSpec.info.version).toBe('2026-08-04.1')
-    expect(customerPortalOpenApi.info.version).toBe('2026-08-04.1')
+    expect(websiteSpec.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
   })
 
   it('documents the current market-price endpoint only in website OpenAPI', () => {
@@ -33,7 +36,9 @@ describe('market-price public API contract', () => {
     expect(customerPortalOpenApi.paths['/api/v1/website/market-price/current']).toBeUndefined()
     const response = websiteSpec.components.schemas.CurrentMarketPriceResponse
     expect(response.required).toContain('contract_schema_version')
-    expect(response.properties.contract_schema_version?.const).toBe('2026-08-04.1')
+    expect(response.properties.contract_schema_version?.const).toBe(
+      WEBSITE_INTEGRATION_CONTRACT_VERSION,
+    )
   })
 
   it('requires direct numeric price and evidence fields in MarketReference', () => {

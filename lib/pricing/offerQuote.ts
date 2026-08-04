@@ -16,7 +16,10 @@ import {
   type BillingUnderlayInput,
   type PriceArea,
 } from "@/lib/pricing/types";
-import { resolvePublicContractOffer } from "@/lib/website/publicContracts";
+import {
+  resolvePublicContractOffer,
+  type PublicContractOffer,
+} from "@/lib/website/publicContracts";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
 import {
   EnergyResolutionBindingError,
@@ -30,6 +33,7 @@ import {
   commercialModelFromSnapshot,
   mergeFrozenPriceComponentsWithCommercialSelection,
   resolveCommercialSelection,
+  type ContractPriceOption,
   type InvoiceDeliveryMethod,
 } from "@/lib/pricing/commercialModel";
 
@@ -40,6 +44,59 @@ function textValue(value: unknown): string | null {
 
 function canonicalSnapshotSchema(snapshot: Record<string, unknown>): string {
   return textValue(snapshot.snapshot_schema) ?? textValue(snapshot.schema_version) ?? "gridex_contract_pricing_v5";
+}
+
+/**
+ * Converts the public API representation back to the strict internal v6
+ * selection shape used by the quote engine. Public-only display fields are
+ * preserved in metadata instead of being spread into the strict schema.
+ */
+export function internalPriceOptionForQuote(
+  option: NonNullable<PublicContractOffer["price_options"]>[number],
+  index: number,
+): ContractPriceOption {
+  return {
+    price_option_reference: option.price_option_reference,
+    option_code: option.option_code,
+    customer_name: option.customer_name,
+    internal_description: null,
+    contract_type: option.contract_type,
+    customer_type: option.customer_type,
+    binding_months: option.binding_months,
+    notice_months: option.notice_months,
+    auto_renew_enabled: option.auto_renew_enabled,
+    renewal_term_months: option.renewal_term_months,
+    default: option.is_default,
+    selection_required: option.selection_required,
+    valid_from: option.valid_from,
+    valid_to: option.valid_to,
+    earliest_start_date: option.earliest_start_date,
+    latest_start_date: option.latest_start_date,
+    status: "active",
+    sort_order: index,
+    version_number: 1,
+    area_prices: option.area_prices.map((area) => ({
+      price_row_reference: area.area_price_reference,
+      price_area: area.price_area,
+      amount: area.energy_price_ore_per_kwh,
+      unit: area.unit,
+      vat_treatment: "standard",
+      valid_from: area.valid_from,
+      valid_to: area.valid_to,
+      metadata: {},
+    })),
+    metadata: {
+      public_price_type: option.price_type,
+      public_resolution: option.resolution,
+      public_currency: option.currency,
+      public_unit: option.unit,
+      public_fixed_price: option.fixed_price,
+      public_markup: option.markup,
+      public_monthly_fee: option.monthly_fee,
+      is_default: option.is_default,
+      selection_required: option.selection_required,
+    },
+  };
 }
 
 function quotePricingInterval(contractType: string, snapshot: Record<string, unknown>): "monthly" | "hourly" | "quarterly" | "fixed" | "portfolio" | "mixed" {
@@ -236,24 +293,9 @@ export async function calculateOfferQuote(input: {
       "offer_reference",
     );
   const offerPricingSnapshot = offer.pricing_snapshot ?? {};
-  const canonicalPriceOptions = offer.price_options?.map((option, index) => ({
-            ...option,
-            internal_description: null,
-            status: "active" as const,
-            sort_order: index,
-            version_number: 1,
-            metadata: {},
-            area_prices: option.area_prices.map((area) => ({
-              price_row_reference: area.area_price_reference,
-              price_area: area.price_area,
-              amount: area.energy_price_ore_per_kwh,
-              unit: area.unit,
-              vat_treatment: "standard" as const,
-              valid_from: area.valid_from,
-              valid_to: area.valid_to,
-              metadata: {},
-            })),
-          }));
+  const canonicalPriceOptions = offer.price_options?.map(
+    internalPriceOptionForQuote,
+  );
   const commercialModel = commercialModelFromSnapshot(
     canonicalPriceOptions?.length
       ? { ...offerPricingSnapshot, price_options: canonicalPriceOptions }
