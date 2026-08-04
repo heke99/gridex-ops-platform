@@ -227,6 +227,7 @@ export async function POST(request: NextRequest) {
       route: QUOTE_ROUTE,
       idempotencyKey: request.headers.get('idempotency-key'),
       payload: quoteInput,
+      required: true,
     })
 
     if (claim.outcome === 'replay') {
@@ -312,7 +313,10 @@ export async function POST(request: NextRequest) {
 
     return customerPortalJson(responseBody, {
       status: 201,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: {
+        'Cache-Control': 'no-store',
+        'Idempotency-Replayed': 'false',
+      },
     })
   } catch (error) {
     if (error instanceof IntegrationWriteIdempotencyError) {
