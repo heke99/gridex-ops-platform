@@ -164,6 +164,7 @@ jobs:
           NODE
 
           node scripts/finalize-openapi-release.cjs
+          node scripts/materialize-openapi-release.cjs
           npm run api:docs
           npm run api:release:verify
           node scripts/gridex-quote-idempotency-multitenant-regression.cjs
