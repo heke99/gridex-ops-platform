@@ -1,0 +1,176 @@
+name: Prepare quote idempotency API release
+
+on:
+  push:
+    branches:
+      - fix/usage-event-identity-and-quote-idempotency-20260804
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/usage-event-identity-and-quote-idempotency-20260804
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Synchronize runtime and OpenAPI contract
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const oldVersion = '2026-08-04.2'
+          const newVersion = '2026-08-04.3'
+
+          function read(file) {
+            return fs.readFileSync(file, 'utf8')
+          }
+
+          function write(file, content) {
+            fs.mkdirSync(path.dirname(file), { recursive: true })
+            fs.writeFileSync(file, content)
+          }
+
+          function replaceVersion(file) {
+            if (!fs.existsSync(file)) return
+            const source = read(file)
+            write(file, source.split(oldVersion).join(newVersion))
+          }
+
+          for (const file of [
+            'lib/integrations/websiteIntegrationContract.ts',
+            'scripts/finalize-openapi-release.cjs',
+            'scripts/check-api-documentation-version.cjs',
+            'scripts/verify-openapi-release.cjs',
+            'scripts/check-api-compatibility.cjs',
+            'scripts/check-openapi-runtime-parity.cjs',
+            'scripts/check-shared-openapi-components.cjs',
+            'docs/external-website-api-integration-guide.md',
+            'docs/gridex-customer-portal-api.md',
+            'docs/single-api-key-tenant-integration.md',
+            'docs/openapi/customer-portal-v1.json',
+          ]) replaceVersion(file)
+
+          const finalizerPath = 'scripts/finalize-openapi-release.cjs'
+          let finalizer = read(finalizerPath)
+          finalizer = finalizer.replace(
+            "const priorVersion = '2026-08-04.1'",
+            "const priorVersion = '2026-08-04.2'",
+          )
+          write(finalizerPath, finalizer)
+
+          const oldFixture = `docs/fixtures/public-contracts-response-${oldVersion}.json`
+          const newFixture = `docs/fixtures/public-contracts-response-${newVersion}.json`
+          write(newFixture, read(oldFixture).split(oldVersion).join(newVersion))
+
+          const websitePath = 'docs/openapi/website-integration-v1.json'
+          const website = JSON.parse(read(websitePath))
+          const operation = website.paths['/api/v1/website/quote'].post
+          const retainedParameters = Array.isArray(operation.parameters)
+            ? operation.parameters.filter(
+                (parameter) =>
+                  String(parameter?.name ?? '').toLowerCase() !== 'idempotency-key',
+              )
+            : []
+          operation.parameters = [
+            ...retainedParameters,
+            {
+              name: 'Idempotency-Key',
+              in: 'header',
+              required: true,
+              description:
+                'Required tenant-safe write key. Scope is company, API client and route. Reusing the same key with the same normalized payload replays the stored response; a different payload returns 409 idempotency_conflict.',
+              schema: {
+                type: 'string',
+                minLength: 8,
+                maxLength: 200,
+              },
+            },
+          ]
+          operation.description =
+            'Scope: website_quotes.write. Idempotency-Key is required. The claim is isolated by company, API client and route. The same key and normalized payload replay the stored response; the same key with different content returns 409. Freezes the exact published product/version, selected SE-area price, fees, VAT, assumptions, consumption and requested start date. One quote is consumed by at most one canonical customer application.'
+          operation['x-idempotency-required'] = true
+          operation['x-idempotency-scope'] = [
+            'company_id',
+            'api_client_id',
+            'route',
+            'idempotency_key',
+          ]
+
+          const replayHeader = {
+            description:
+              'true when the response was replayed from the tenant-scoped idempotency store; false for a newly executed quote.',
+            schema: { type: 'boolean' },
+          }
+          for (const response of Object.values(operation.responses ?? {})) {
+            if (!response || typeof response !== 'object' || response.$ref) continue
+            response.headers = {
+              ...(response.headers ?? {}),
+              'Idempotency-Replayed': replayHeader,
+            }
+          }
+          if (operation.responses['400']) {
+            operation.responses['400'].description =
+              'Invalid request, missing Idempotency-Key or invalid idempotency key.'
+          }
+          if (operation.responses['409']) {
+            operation.responses['409'].description =
+              'Published version conflict, idempotency payload conflict, prior failed attempt or identical request already processing.'
+          }
+          if (!operation.responses['503']) {
+            const source = operation.responses['500'] ?? operation.responses['409']
+            operation.responses['503'] = JSON.parse(JSON.stringify(source))
+            operation.responses['503'].description =
+              'Tenant-scoped idempotency store unavailable. No new quote execution was started.'
+            operation.responses['503'].headers = {
+              ...(operation.responses['503'].headers ?? {}),
+              'Idempotency-Replayed': replayHeader,
+            }
+          }
+          website.info.version = newVersion
+          website['x-contract-schema-version'] = newVersion
+          write(websitePath, `${JSON.stringify(website, null, 2)}\n`)
+
+          const guidePath = 'docs/external-website-api-integration-guide.md'
+          let guide = read(guidePath)
+          guide = guide.replace(
+            'POST /api/v1/website/quote\nScope: website_quotes.write\n',
+            'POST /api/v1/website/quote\nScope: website_quotes.write\nIdempotency-Key: required\n',
+          )
+          const marker = '`price_area` behöver inte skickas.'
+          if (!guide.includes('Quote-idempotensen är isolerad per tenant')) {
+            guide = guide.replace(
+              marker,
+              'Quote-idempotensen är isolerad per tenant, API-klient och route. Nyckeln ska vara 8–200 tecken. Samma nyckel med samma normaliserade payload returnerar exakt samma sparade svar och headern `Idempotency-Replayed: true`. Samma nyckel med annan payload ger `409 idempotency_conflict`. Saknad nyckel ger `400 idempotency_key_required`; om idempotenslagret inte kan verifieras startas ingen quote och API:t returnerar `503 idempotency_store_unavailable`.\n\n' + marker,
+            )
+          }
+          write(guidePath, guide)
+          NODE
+
+          node scripts/finalize-openapi-release.cjs
+          npm run api:docs
+          npm run api:release:verify
+      - name: Commit generated release
+        shell: bash
+        run: |
+          rm -f .github/workflows/prepare-quote-idempotency-release.yml
+          if git diff --quiet; then
+            echo "Release files already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release tenant-safe quote idempotency contract"
+          git push origin HEAD:fix/usage-event-identity-and-quote-idempotency-20260804
