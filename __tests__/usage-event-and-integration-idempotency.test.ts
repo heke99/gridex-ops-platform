@@ -17,6 +17,7 @@ import {
   logAdminActionAndUsage,
   logUsageEvent,
 } from '@/lib/audit/actionLogger'
+import { userActorUuid } from '@/lib/ediel/intent/intentEngine'
 import { integrationWriteRequestHash } from '@/lib/integrations/writeIdempotency'
 
 beforeEach(() => {
@@ -102,6 +103,21 @@ describe('platform usage telemetry boundary', () => {
     ).rejects.toMatchObject({ code: '23514' })
 
     expect(mocks.usageInsert).not.toHaveBeenCalled()
+  })
+})
+
+describe('EDIEL user actor identity', () => {
+  it('keeps real user UUIDs', () => {
+    expect(userActorUuid('14805078-5af1-466f-9e00-ad0896b02dfa')).toBe(
+      '14805078-5af1-466f-9e00-ad0896b02dfa',
+    )
+  })
+
+  it('maps system sentinels and malformed actors to null', () => {
+    expect(userActorUuid('system')).toBeNull()
+    expect(userActorUuid('cron')).toBeNull()
+    expect(userActorUuid('')).toBeNull()
+    expect(userActorUuid(null)).toBeNull()
   })
 })
 
