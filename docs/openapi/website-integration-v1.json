@@ -631,7 +631,7 @@
                     "count": 1,
                     "publication_revision": 42,
                     "publication_updated_at": "2026-08-01T00:00:00.000Z",
-                    "contract_schema_version": "2026-08-05.1",
+                    "contract_schema_version": "2026-08-05.2",
                     "deprecated_aliases": [
                       "contracts",
                       "contract_offer_id",
@@ -1520,7 +1520,17 @@
                     "selected_component_references": [],
                     "mandatory_component_references": [],
                     "conditional_component_references": [],
-                    "site_count": 1
+                    "site_count": 1,
+                    "offer": {
+                      "id": "offer_example",
+                      "offer_reference": "offer_example",
+                      "public_name": "Example offer",
+                      "product_code": "EXAMPLE",
+                      "contract_type": "variable",
+                      "energy_direction": "consumption",
+                      "pricing_model": "spot",
+                      "selected_area_price": null
+                    }
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
                   "contract_schema_version": "2026-08-05.2"

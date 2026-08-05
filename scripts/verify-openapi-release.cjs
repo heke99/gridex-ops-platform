@@ -32,8 +32,37 @@ async function verify() {
     if (document.info.version !== version) {
       throw new Error(`${specification.key}: version mismatch`)
     }
+    if (document['x-contract-schema-version'] !== version) {
+      throw new Error(`${specification.key}: x-contract-schema-version mismatch`)
+    }
     if (!/^[a-f0-9]{64}$/.test(sha256(body))) {
       throw new Error(`${specification.key}: invalid sha256`)
+    }
+
+    const releasePath =
+      `docs/openapi/releases/${version}/${specification.contractName}.json`
+    const routePath =
+      `app/api/v1/openapi/${version}/${specification.contractName}.json/route.ts`
+    if (!fs.existsSync(releasePath)) {
+      throw new Error(`${specification.key}: missing immutable release artifact ${releasePath}`)
+    }
+    if (!fs.existsSync(routePath)) {
+      throw new Error(`${specification.key}: missing immutable release route ${routePath}`)
+    }
+    const releaseBody = exactBytes(releasePath)
+    if (releaseBody !== body) {
+      throw new Error(
+        `${specification.key}: immutable release artifact does not match current OpenAPI bytes`,
+      )
+    }
+  }
+
+  const registry = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
+  for (const specification of specifications) {
+    const route =
+      `/api/v1/openapi/${version}/${specification.contractName}.json`
+    if (!registry.includes(route)) {
+      throw new Error(`${specification.key}: publicRouteRegistry missing ${route}`)
     }
   }
 

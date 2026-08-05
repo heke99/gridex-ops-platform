@@ -32,8 +32,13 @@ for (const marker of [
   'openApiRelease = buildOpenApiReleaseManifest()',
   'websiteOpenApiSha256',
   'customerPortalOpenApiSha256',
+  'contract_schema_version": "${documentationVersion}"',
+  'kontraktsversion {documentationVersion}',
 ]) {
   if (!guideSource.includes(marker)) failures.push(`Developer guide is missing canonical marker: ${marker}`)
+}
+if (/"contract_schema_version": "2026-\d{2}-\d{2}\.\d+"/.test(guideSource)) {
+  failures.push('Developer guide still hardcodes contract_schema_version examples')
 }
 
 for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json']) {

@@ -1119,6 +1119,16 @@ const quoteResponseContent =
   ]
 const quoteExample = quoteResponseContent.example
 if (quoteExample?.data) {
+  quoteExample.data.offer ??= {
+    id: quoteExample.data.offer_reference ?? 'offer_example',
+    offer_reference: quoteExample.data.offer_reference ?? 'offer_example',
+    public_name: 'Example offer',
+    product_code: 'EXAMPLE',
+    contract_type: 'variable',
+    energy_direction: 'consumption',
+    pricing_model: 'spot',
+    selected_area_price: null,
+  }
   quoteExample.data.price_option_reference ??= 'price_option_example'
   quoteExample.data.area_price_reference ??= null
   quoteExample.data.invoice_delivery_method ??= 'email'
@@ -2546,6 +2556,11 @@ function assertLocalRefs(document, name) {
 
 assertLocalRefs(website, 'website')
 assertLocalRefs(portal, 'customer portal')
+// Re-normalize after late example/schema overrides so response examples cannot
+// ship a stale contract_schema_version while info.version is current.
+for (const document of [website, portal]) {
+  normalizeContractVersionMetadata(document)
+}
 fs.writeFileSync(websitePath, `${JSON.stringify(website, null, 2)}\n`)
 fs.writeFileSync(portalPath, `${JSON.stringify(portal, null, 2)}\n`)
 const hashes = {

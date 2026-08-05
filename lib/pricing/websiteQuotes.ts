@@ -4,7 +4,10 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { PublicContractOffer } from '@/lib/website/publicContracts'
 import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { EnergyResolutionBindingError, loadQuoteEnergyResolution } from '@/lib/energy/resolutionBinding'
-import { canonicalQuoteValidUntil } from '@/lib/pricing/quoteIntegrity'
+import {
+  canonicalQuoteTimestamptz,
+  canonicalQuoteValidUntil,
+} from '@/lib/pricing/quoteIntegrity'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -162,7 +165,9 @@ function fullQuoteIntegrityPayload(input: {
     resolver_version: input.resolverVersion ?? null,
     geodata_version: input.geodataVersion ?? null,
     market_reference: input.marketReference ?? {},
-    market_data_timestamp: input.marketDataTimestamp ?? null,
+    market_data_timestamp: input.marketDataTimestamp
+      ? canonicalQuoteTimestamptz(input.marketDataTimestamp)
+      : null,
     market_sources: input.marketSources,
     assumptions: input.assumptions,
     pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
@@ -308,7 +313,9 @@ export async function persistWebsiteQuote(input: {
     postal_code: input.postalCode ?? null,
     annual_consumption_kwh: input.annualConsumptionKwh,
     start_date: input.startDate,
-    market_data_timestamp: input.marketDataTimestamp ?? null,
+    market_data_timestamp: input.marketDataTimestamp
+      ? canonicalQuoteTimestamptz(input.marketDataTimestamp)
+      : null,
     market_sources: input.marketSources ?? [],
     assumptions: input.assumptions ?? [],
     pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
