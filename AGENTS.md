@@ -34,3 +34,49 @@ the checkpoint and current task, record the exact next action, and continue.
 Before session end, update checkpoint, handover, current state, blockers,
 completed work, verification matrix and the session log. Never store secrets,
 production customer data or raw credentials in project memory.
+
+<!-- BEGIN:upstream-review-skills -->
+# Upstream repository review skills
+
+For repository-wide integrity, database, tenant, security, performance,
+architecture, or refactoring work, explicitly use all relevant installed
+upstream skills.
+
+Required execution order:
+
+1. acquire-codebase-knowledge
+2. quality-playbook
+3. supabase
+4. supabase-postgres-best-practices
+5. security-threat-model
+6. threat-model-analyst
+7. code-review
+8. find-bugs
+9. react-best-practices
+10. web-design-guidelines
+11. refactor
+12. code-simplifier
+13. quality-playbook recheck
+
+Rules:
+
+- Review the complete repository, not only the current diff.
+- Read the existing .agent-memory files before starting.
+- Treat tenant isolation as a critical invariant.
+- Compare code, schema, migrations, generated types, API contracts,
+  background jobs, webhooks, tests and deployment configuration.
+- Every read, write, job, document, communication and API response must
+  belong to the correct tenant, company, organization, creator, customer
+  or person.
+- Establish an evidence-based audit before changing source code.
+- Implement only verified fixes.
+- Prefer small, incremental changes.
+- Use forward migrations rather than modifying migrations already applied
+  in production.
+- Do not weaken RLS, authorization, validation, constraints or type safety.
+- Do not claim that a check passed unless it was executed successfully.
+- Preserve unrelated working-tree changes.
+- Record fixed, open, blocked and unverified findings under quality/.
+- Evaluate files longer than 2,000 lines and split them only at safe,
+  verifiable boundaries.
+<!-- END:upstream-review-skills -->
