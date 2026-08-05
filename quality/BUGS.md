@@ -1,154 +1,138 @@
-# Gridex OPS — Bug Register
+# Gridex OPS — Central Bug Register
 
-Statuses: `open`, `in_progress`, `fixed`, `partially_fixed`, `blocked`, `unverified`, `accepted_risk`.
+## Status model
 
-## BUG-001 — Customer portal sync converted controlled client errors to HTTP 500
+Only these statuses are used: `open`, `in_progress`, `verified`, `fixed`, `partially_fixed`, `blocked`, `unverified`, `accepted_risk`, `not_applicable`.
 
-- Severity: `Medium`
-- Status: `partially_fixed`
-- Category: API contract / error handling
-- File: `app/api/v1/customer-portal/sync/route.ts`
-- Symbol: `POST`
-- Original lines: 365–375 at commit `3eb8445cb840d38af6068d49266ce0881a8e0157`
-- Evidence: `readJsonObject` throws exported `ApiInputError` values with 400/413 and stable codes for missing, invalid, non-object or oversized JSON. The original route imported only `readJsonObject`; its final catch returned status 500 for every exception.
-- Actual function before fix: malformed or oversized client input was reported as an internal server failure.
-- Expected function: preserve the controlled status/code/message/field; only unexpected faults return the generic 500 boundary.
-- Reproduction path:
-  1. Authenticate a valid `customer_sync.write` client.
-  2. POST invalid JSON, an array body, an empty body or a body over 256 KB.
-  3. Original behavior returns HTTP 500 instead of 400/413.
-- Affected user/tenant: any tenant portal integration; no cross-tenant data exposure.
-- Tenant impact: tenant-bound request remains isolated, but the client may retry a non-retryable request.
-- Data impact: normally none before parsing; unnecessary retries/log noise possible.
-- Security impact: low; malformed-input traffic was misclassified.
-- Performance impact: repeated retries and integration log volume.
-- Likely production impact: customer portal instability and misleading monitoring/SLA signals.
-- Implemented solution: imported `ApiInputError`; controlled failures now preserve status, code, message and field. Unexpected failures retain a generic message and stable `portal_sync_failed` code. Integration logging uses the actual response status.
-- Test added: `scripts/gridex-customer-portal-sync-error-contract-regression.cjs`.
-- Changed files:
-  - `app/api/v1/customer-portal/sync/route.ts`
-  - `scripts/gridex-customer-portal-sync-error-contract-regression.cjs`
-- Verification command: `node scripts/gridex-customer-portal-sync-error-contract-regression.cjs`
-- Verification result: committed source and assertions inspected on exact branch; command execution blocked because no checkout is available and no GitHub Actions run started.
-- Fix commit: `aeaa08283e714160181cd007f2c04196d6cf88a2`
-- Remaining closure: execute regression plus TypeScript/lint/API compatibility checks. Status must not become `fixed` before those pass.
-
-## BUG-002 — Billing webhook response reveals provider invoice-reference existence
-
-- Severity: `Medium`
-- Status: `unverified`
-- Category: Security / webhook enumeration
-- Files:
-  - `app/api/webhooks/billing/[provider]/route.ts`
-  - `lib/billing/providerWebhooks.ts`
-- Symbols: route `POST`, `resolveTarget`, `processBillingProviderWebhook`
-- Lines: exact line inventory pending clean checkout.
-- Evidence: tenant/secret resolution by provider invoice GUID occurs before signature validation. A known invoice GUID with a bad signature/timestamp throws `BillingProviderWebhookAuthError` and returns 401; an unknown or ambiguous GUID throws a generic error and returns 500.
-- Actual function: unauthenticated callers can distinguish two target-resolution classes from status codes.
-- Expected function: externally indistinguishable authentication failure for unknown target, invalid signature and stale/replayed timestamp, while retaining detailed internal logs.
-- Reproduction path: submit equal-shaped webhook payloads with a nonexistent GUID and a known GUID but invalid signature; compare response status.
-- Affected user/tenant: tenants using billing provider webhooks.
-- Tenant impact: no verified cross-tenant access; possible existence inference.
-- Data impact: none verified.
-- Security impact: provider invoice identifier oracle and error-trigger surface.
-- Performance impact: unauthenticated database lookups and 500 alert noise.
-- Likely production impact: low to moderate depending on identifier entropy and provider retry semantics.
-- Safest solution: normalize external auth/target-resolution response and preserve distinct internal telemetry. Confirm provider retry contract before changing 500 behavior.
-- Test to add: unknown target and bad signature must return the same status/body class; valid signed event remains accepted and idempotent.
-- Changed files: none.
-- Verification command: blocked pending provider contract/runtime fixture.
-- Verification result: `unverified`.
-- Fix commit: none.
-
-## BUG-003 — Website customer-application orchestration exceeds 8,400 lines
-
-- Severity: `Medium`
-- Status: `open`
-- Category: Architecture / maintainability / change risk
-- File: `lib/website/customerApplications.ts`
-- Symbol: module-wide
-- Lines: 1–8,400+
-- Evidence: exact branch reads succeeded beyond line 8,400. The module mixes request validation, identity, customer/site/meter creation, contract/pricing binding, legal evidence, POA/storage/PDF, email, events and saga behavior.
-- Actual function: one module owns multiple transaction and side-effect boundaries.
-- Expected function: stable domain modules behind a compatibility facade with unchanged exports and characterization tests.
-- Reproduction path: any change to website onboarding requires review across unrelated responsibilities.
-- Affected user/tenant: all website-intake tenants.
-- Tenant impact: no current bypass verified; reviewability of tenant invariants is reduced.
-- Data impact: elevated partial-write/regression risk.
-- Security impact: elevated review risk around service-role and public DTO handling.
-- Performance impact: indirect; optimization and query ownership are difficult to isolate.
-- Likely production impact: high change risk, not an immediate runtime failure.
-- Safest solution: defer broad split until clean tests run; extract one stable responsibility per commit while preserving facade exports.
-- Test to add: characterization coverage around tenant mismatch, duplicate event, legal/POA and side-effect failure paths.
-- Changed files: none.
-- Verification command: full targeted website/legal/POA regressions.
-- Verification result: blocked.
-- Fix commit: none.
-
-## BUG-004 — Architecture memory and repository layout have drifted
-
-- Severity: `Low`
-- Status: `partially_fixed`
-- Category: Documentation / developer safety
-- Files: `.agent-memory/*`, root `README.md`
-- Symbol: repository architecture guidance
-- Lines: multiple.
-- Evidence: memory documents referred to `apps/ops`, while the current application is rooted in `app/`, `components/` and `lib/`. The root README is a narrow historical hotfix document rather than the current platform overview.
-- Actual function: agents/developers can search or run commands in stale paths.
-- Expected function: one canonical, current repository map linked from AGENTS/README.
-- Reproduction path: follow the old `apps/ops` instructions on the current branch.
-- Affected user/tenant: developers/operators; indirect tenant risk through mistaken changes.
-- Tenant/data/security/performance impact: indirect.
-- Implemented mitigation: current layout documented in `quality/CODEBASE.md` and `quality/ARCHITECTURE.md`; `.agent-memory/current-task.md` updated with audit handoff.
-- Remaining closure: update all stale memory references and root README in a dedicated documentation change.
-- Verification result: partial.
-- Fix commit: report finalization commit.
-
-## BUG-005 — Required checkpoint filename differs from available repository memory
-
-- Severity: `Low`
-- Status: `blocked`
-- Category: Agent process / documentation
-- File: `.agent-memory/checkpoint.md`
-- Symbol: required memory handoff
-- Lines: not applicable.
-- Evidence: `AGENTS.md` requires `checkpoint.md`, but the branch contains `checkpoint.json` and no `checkpoint.md`.
-- Actual function: strict agents encounter a missing required file.
-- Expected function: AGENTS and actual memory file agree, or both formats exist with clear authority.
-- Reproduction path: attempt to fetch `.agent-memory/checkpoint.md`.
-- Affected user/tenant: maintainers/agents only.
-- Impact: process ambiguity; no direct runtime impact.
-- Safest solution: decide canonical format and update AGENTS/memory atomically.
-- Test to add: repository instruction-file existence check.
-- Changed files: none.
-- Verification result: blocked pending owner decision on canonical format.
-- Fix commit: none.
-
-## SEC-001 — Leaked-password protection reported disabled
-
-- Severity: `Medium`
-- Status: `unverified`
-- Category: Authentication configuration
-- File: Supabase Auth project configuration
-- Symbol: leaked-password protection
-- Lines: not applicable.
-- Evidence: Supabase security advisor reported the setting disabled; available connector tools do not expose an independent auth-settings read or write.
-- Actual function: password screening against known leaked credentials may be disabled.
-- Expected function: enable the protection unless incompatible with documented auth policy.
-- Reproduction path: inspect Supabase Auth password settings/advisor.
-- Affected user/tenant: password-authenticated users across all tenants.
-- Tenant impact: shared authentication posture; no cross-tenant access verified.
-- Data/security impact: increased credential-stuffing/account-takeover risk.
-- Safest solution: verify in Supabase dashboard/Management API and enable through an authorized configuration change.
-- Test to add: auth configuration compliance check.
-- Verification result: `unverified`.
-- Fix commit: none; configuration only.
-
-## Summary
+## Current totals
 
 | Severity | Total | Fixed | Partially fixed | Open | Blocked | Unverified |
 |---|---:|---:|---:|---:|---:|---:|
 | Critical | 0 | 0 | 0 | 0 | 0 | 0 |
 | High | 0 | 0 | 0 | 0 | 0 | 0 |
-| Medium | 4 | 0 | 1 | 1 | 0 | 2 |
-| Low | 2 | 0 | 1 | 0 | 1 | 0 |
+| Medium | 5 | 2 | 0 | 1 | 0 | 2 |
+| Low | 4 | 2 | 1 | 0 | 1 | 0 |
+
+No Critical or High issue was verified in the reviewed and executed paths. This is not proof that none exists repository-wide: deployed two-tenant/provider/EDIEL flows, complete service-role coverage, SAST/history secret scanning and browser accessibility remain incomplete.
+
+## BUG-001 — Customer Portal sync converted controlled input errors to HTTP 500
+
+- Severity: `Medium`
+- Status: `fixed`
+- Category: API / error contract
+- File: `app/api/v1/customer-portal/sync/route.ts`
+- Symbol: route error handler
+- Evidence: bounded JSON parsing can throw `ApiInputError` with controlled 400/413 status, code and field; the baseline catch converted every error into generic HTTP 500.
+- Actual behavior: invalid or oversized client requests were misclassified as server faults.
+- Expected behavior: controlled input failures retain their 4xx status and machine-readable contract; unexpected faults remain generic 500.
+- Impact: incorrect retry and diagnostic behavior; no cross-tenant or data-loss path verified.
+- Fix: preserve controlled status/code/message/field, log the actual classification and keep unexpected internal details private.
+- Regression: `scripts/gridex-customer-portal-sync-error-contract-regression.cjs`.
+- Commit: `aeaa08283e714160181cd007f2c04196d6cf88a2`.
+- Verification: the dedicated regression passed in the expanded V3 workflow before the later full-suite fixture failure; the production source has not changed since.
+
+## BUG-002 — Billing webhook target/signature failures are externally distinguishable
+
+- Severity: `Medium`
+- Status: `unverified`
+- Category: security / webhook / enumeration
+- Evidence: source review found target resolution by provider invoice reference before signature validation; an unknown reference can produce a different status class than a known reference with invalid signature.
+- Possible impact: reference enumeration; no data read/write bypass reproduced.
+- Safest solution: first verify the billing provider's retry/status contract, then normalize unauthenticated failures if compatible.
+- Required regression: unknown reference, known reference/bad signature, stale timestamp, valid event and duplicate event.
+- Blocker: no safe provider fixture or authoritative retry contract was available.
+
+## BUG-003 — Website customer application orchestration exceeds 8,400 lines
+
+- Severity: `Medium`
+- Status: `open`
+- Category: architecture / maintainability
+- File: `lib/website/customerApplications.ts`
+- Evidence: direct inspection confirmed a module exceeding 8,400 lines that combines validation, customer/site/meter handling, pricing, legal evidence, POA, storage/PDF, email, events and saga logic.
+- Impact: elevated regression and review risk; file size alone is not treated as a runtime defect.
+- Safest solution: characterize behavior first, then extract one stable responsibility at a time while preserving exports.
+- Verification required: full tests/build and critical website/legal/POA/two-tenant regressions.
+
+## SEC-001 — Supabase leaked-password protection appears disabled
+
+- Severity: `Medium`
+- Status: `unverified`
+- Category: authentication configuration
+- Evidence: Supabase security advisor reports leaked-password protection disabled; repository documentation lists enabling it as a pre-go-live requirement.
+- Possible impact: increased credential-stuffing/account-takeover risk.
+- Blocker: current connector access cannot independently read or change the relevant Auth dashboard setting.
+- Verification: authorized platform administrator confirms the setting and performs a safe non-production test.
+
+## BUG-006 — Contract version `2026-08-05.2` lacked immutable release material and routes
+
+- Severity: `Medium`
+- Status: `fixed`
+- Category: API / release integrity / backward compatibility
+- Files:
+  - `docs/openapi/releases/2026-08-05.2/website-integration-v1.json`
+  - `docs/openapi/releases/2026-08-05.2/customer-portal-v1.json`
+  - `app/api/v1/openapi/2026-08-05.2/website-integration-v1.json/route.ts`
+  - `app/api/v1/openapi/2026-08-05.2/customer-portal-v1.json/route.ts`
+- Evidence: run `31052421121` failed because both immutable snapshots were absent; run `31052649096` then failed because both immutable routes were absent.
+- Actual behavior: the advertised contract version lacked a complete immutable, retrievable release set.
+- Fix: materialize the exact canonical snapshot blobs and add routes following the existing version pattern; canonical schema content was not rewritten.
+- Commits: `c39794361ec342d5e75a530136724f779f1f2b5e`, `f5d81c726dbe3f023f00e3f99c3a33829e5a9ac1`.
+- Verification: OPS hardening run `31052844335` completed successfully after both fixes; the expanded workflow also contains release verification.
+
+## BUG-004 — Repository architecture and agent-memory paths drifted
+
+- Severity: `Low`
+- Status: `partially_fixed`
+- Category: documentation / agent context
+- Evidence: current source roots are `app/`, `components/`, `lib/`, `scripts/` and `supabase/`, while older context referenced `apps/ops`.
+- Impact: maintainers or agents may inspect the wrong paths.
+- Completed: current quality reports and handoff describe the actual layout.
+- Remaining: reconcile or explicitly archive stale historical sources without deleting useful audit history.
+
+## BUG-005 — Checkpoint filename contract is inconsistent
+
+- Severity: `Low`
+- Status: `blocked`
+- Category: repository instructions
+- Files: `AGENTS.md`, `.agent-memory/checkpoint.json`
+- Evidence: instructions expect `.agent-memory/checkpoint.md`; repository contains `checkpoint.json`.
+- Blocker: the canonical format and every consumer were not established safely.
+- Next step: inventory readers/writers, choose one format, migrate forward and test the workflow.
+
+## BUG-007 — Reserved `module` bindings caused lint to fail
+
+- Severity: `Low`
+- Status: `fixed`
+- Category: static analysis / CI
+- Files: `lib/customer-portal/tenantSync.ts`, `lib/legal/customerDocumentPackage.ts`
+- Evidence: run `31053249461` passed all typechecks and then failed on exactly two `@next/next/no-assign-module-variable` errors. The other 130 lint findings were warnings.
+- Fix: rename local variables to `legalModule`; no behavior or validation changed and no lint rule was disabled.
+- Commits: `507340ed8fdbf21bac42e0625e670548cc5360c5`, `f8ea025bb8ef7030bfc6c905b5df5d535ba23d5a`.
+- Verification: the following expanded run passed lint and continued to the full suite.
+
+## BUG-008 — Public-contract tests used stale legal and contract-version fixtures
+
+- Severity: `Low`
+- Status: `fixed`
+- Category: tests / contract drift
+- Files:
+  - `__tests__/public-contract-canonical-model.test.ts`
+  - `__tests__/contract-channel-publication-completion.test.ts`
+  - `__tests__/public-contract-publication-graph-repair.test.ts`
+  - `__tests__/public-contract-route-openapi-regression.test.ts`
+- Evidence: run `31053761076` failed four tests: three new-publication fixtures supplied `content_sha256: null` despite strict immutable legal evidence, and one route test compared current headers with historical version `2026-08-04.3`.
+- Fix: update test evidence only, retain strict production validation and preserve the explicit historical-null test.
+- Commits: `39e20f587c3e8c2da2dce39a03bbc13d70a2115d`, `5b7e52105f041dba26231ace1011fbfb79abca6b`, `65bec4ee9536d1beb1893d2d7bb724b8eb06e050`, `20220a9b83b65148862685f3fec47bbebff64ae2`.
+- Verification: final expanded workflow on the resulting branch HEAD is the verification gate.
+
+## Supabase observations not promoted to bugs
+
+Fresh advisor output included function-search-path and RLS-without-policy notices. Direct `pg_catalog` verification of the reviewed `SECURITY DEFINER` helpers showed constrained `search_path`, no `anon` execute privilege and explicit session/membership/admin/service-role checks. No cross-tenant bypass was verified. RLS-enabled tables without policies can intentionally deny client roles; they require grant and call-path evidence before classification.
+
+## Remaining highest-priority work
+
+1. Retain a green expanded V3 workflow on the final branch HEAD.
+2. Run safe staging two-tenant/API/legal/POA/billing/provider/EDIEL scenarios.
+3. Verify the leaked-password setting and billing webhook provider contract.
+4. Run repository-approved SAST and full current-tree/history secret scans.
+5. Characterize and incrementally split `customerApplications.ts` only after coverage is sufficient.
