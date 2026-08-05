@@ -1,61 +1,105 @@
 # Gridex OPS — Performance Review
 
-## Scope
+## Verdict
 
-Reviewed database advisors/catalog, integration auth, website application orchestration, customer portal sync, webhook handlers and analytics cron. No production query plan, load test, bundle analysis or runtime trace was available.
+`unverified` at production scale.
 
-## Database observations
+No Critical or High performance defect was verified. Source review identifies risk areas, but the V3 `performance-optimization` and `sql-optimization-patterns` rules require measurements or query plans before an optimization is implemented or called successful.
 
-### Positive controls
+## Evidence available
 
-- Tenant/customer lookup queries reviewed use selective equality filters and bounded limits.
-- Portal sync deduplicates candidate IDs and limits customer result sets.
-- Identity upsert uses a tenant/provider/external-customer conflict key.
-- Live performance advisor was queried, but advisor output must be validated against current catalogs before action.
+- source inspection of API, website application, Customer Portal, webhook and cron paths;
+- Supabase advisor/catalog access;
+- CI type/lint/test/build controls;
+- known module sizes and orchestration structure.
 
-### Risks
+Not available:
 
-1. `lib/website/customerApplications.ts` owns many database and side-effect steps. Query count, transaction boundaries and repeated lookups are difficult to reason about from one orchestration module.
-2. Portal sync resolves facility customer IDs once during candidate loading and again for scoring. This is a small duplicate query per request and can be removed by returning/reusing the set, but it is not severe enough to change without runtime tests.
-3. Service-role queries can accidentally become broad if tenant predicates are removed. Performance and isolation depend on the same `company_id` indexes and filters.
-4. Complete index/unused-index and `EXPLAIN (ANALYZE, BUFFERS)` review was not performed.
+- production/staging p50/p95/p99 latency;
+- `EXPLAIN (ANALYZE, BUFFERS)` for critical queries;
+- database CPU/IO/lock/connection metrics;
+- browser traces, Core Web Vitals or bundle analysis;
+- controlled load/concurrency tests;
+- RUM/APM evidence.
 
-## API/server observations
+## Source-level risks
 
-- Integration authentication performs multiple sequential checks because later checks depend on authenticated client/tenant state; unsafe parallelization is not recommended.
-- Website application handling performs heavy synchronous orchestration, document/storage and notification work. Side-effect ownership and latency should be measured before moving work to a queue.
-- Billing webhooks resolve target/tenant before HMAC because secrets are tenant-specific. Unknown webhook traffic therefore consumes a database lookup.
-- Payload sizes are bounded in reviewed external routes.
+### PERF-001 — Oversized website orchestration module
 
-## Cron/jobs
+- Status: `open`
+- File: `lib/website/customerApplications.ts`
+- Evidence: more than 8,400 lines and multiple critical responsibilities.
+- Risk: expensive review/change surface, duplicated work and difficult profiling.
+- Not proven: no runtime latency is inferred from line count.
+- Next step: characterize endpoints and measure before extracting stable responsibilities.
 
-`app/api/cron/analytics/daily/route.ts` loads up to 1,000 companies and processes them serially.
+### PERF-002 — Portal-sync repeated lookups/writes
 
-- Benefit: bounded database concurrency and simpler tenant isolation.
-- Risk: wall-clock duration grows linearly and may exceed platform request limits as tenant count/work increases.
-- Status: `unverified` performance risk; no duration metrics were available.
-- Safe next step: record per-tenant duration and total job duration, then introduce bounded concurrency only if tenant-scoped tasks are independent and idempotent.
+- Status: `unverified`
+- Area: `lib/customer-portal/tenantSync.ts`
+- Source observation: sequential legal acceptance, document and facility processing can perform multiple scoped queries/writes per item.
+- Risk: request latency grows with payload size and may create N+1-like patterns.
+- Required evidence: representative payload trace, query count and `EXPLAIN` for dominant statements.
+- Safety: tenant/company filters must remain intact; do not introduce cross-tenant shared caches.
 
-## React/Next.js and UI
+### PERF-003 — Serial analytics/cron scaling
 
-The latest Vercel Web Interface Guidelines were fetched for this review. GitHub search found potential `outline-none` occurrences, but its results referenced an older indexed commit. No UI finding is recorded without fetching the exact branch file and verifying a missing `focus-visible` replacement.
+- Status: `unverified`
+- Source observation: scheduled jobs may process bounded units serially.
+- Risk: execution duration can approach scheduler limits as tenants/data grow.
+- Required evidence: per-run item counts, duration, retry/lock data and backlog metrics.
 
-A complete UI performance/accessibility review remains blocked. Required checks include:
+### PERF-004 — Frontend runtime and bundle performance
 
-- server/client component boundaries
-- request/render waterfalls
-- large lists above 50 rows without virtualization or pagination
-- controlled form cost
-- stable keys/props
-- focus-visible replacement for outline removal
-- labels and icon-button aria labels
-- reduced-motion behavior
-- URL-backed table/filter state
+- Status: `blocked`
+- Evidence missing: browser/Lighthouse traces, bundle report, representative authenticated page measurements.
+- Required checks: LCP, INP, CLS, route waterfalls, main-thread long tasks and table/list rendering.
 
-## Cache safety
+## PostgreSQL and indexes
 
-No new cache is recommended until its key includes tenant identity plus all authorization-sensitive dimensions. Tenant-agnostic caching of customer, contract, invoice, legal, pricing or EDIEL data is prohibited.
+Fresh Supabase performance-advisor output was reviewed as a signal, not proof. Advisor suggestions alone do not establish that an index is missing or useful.
 
-## Performance verdict
+Before changing an index or query:
 
-No verified critical performance defect was found. The largest risks are architectural observability gaps, serial cron scaling and the website application god module. Production performance readiness remains unverified until query plans, runtime metrics, bundle analysis and load tests are available.
+1. capture the exact production-like statement and parameters;
+2. run `EXPLAIN (ANALYZE, BUFFERS)` in a safe non-production dataset;
+3. record row estimates versus actual rows, scan/join type, buffers and time;
+4. inspect existing indexes and write frequency;
+5. add only the narrowest justified index/query change;
+6. repeat the same measurement and keep the change only when the improvement exceeds variance and correctness tests remain green.
+
+No `VACUUM FULL`, destructive maintenance or live index creation was executed.
+
+## Caching and isolation
+
+No new cache was added. Any future cache must include tenant/company, identity/permission context and relevant version/revision in its key. Public contract caching must continue to honor immutable version routes and private/no-store behavior for tenant-bound feeds where required.
+
+## CI and build
+
+The expanded V3 workflow includes lint, all typechecks, full tests, API checks and production build. These are correctness gates, not performance benchmarks. A green build does not prove Core Web Vitals, query latency or capacity.
+
+## Performance budget proposal
+
+A repository-approved budget does not yet exist. Establish one from product requirements and measured baseline, for example:
+
+- API p95 per critical route;
+- cron maximum duration/backlog;
+- maximum query count per onboarding/sync payload;
+- browser LCP/INP/CLS for critical pages;
+- initial JavaScript size and route chunk growth;
+- database connection and lock thresholds.
+
+The numbers must be agreed and measured rather than copied from generic guidance.
+
+## Required next steps
+
+1. Instrument and sample critical website, portal, billing and cron flows in isolated staging.
+2. Capture query counts and `EXPLAIN (ANALYZE, BUFFERS)` for dominant SQL.
+3. Run browser traces and Lighthouse/Playwright on representative roles and data sizes.
+4. Run bounded concurrency/idempotency/load tests without external production effects.
+5. Record every attempted optimization with baseline, result, variance and keep/revert decision.
+6. Split large modules only after characterization tests and measurements show a safe boundary.
+
+## Readiness impact
+
+Performance supports code review but remains `unverified` for staging scale and production capacity.
