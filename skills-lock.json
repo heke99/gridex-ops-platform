@@ -61,6 +61,13 @@
       "skillPath": "skills/threat-model-analyst/SKILL.md",
       "computedHash": "a4fd18bc3ddceade98533df503cd8d4906d96feaf3720d16d4d038544ca769eb"
     },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
