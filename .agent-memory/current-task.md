@@ -38,5 +38,6 @@ runtime/docs/checks.
 
 ## Exact next action
 
-Commit/push the stability branch, open the PR, then keep PHASE-44 deployment and
-live private/business legal/POA/supplier-switch E2E as the remaining product gate.
+Review/merge the stability PR, deploy, verify one live quote create/validate
+round-trip plus deployed OpenAPI SHA, then continue PHASE-44 private/business
+legal/POA/supplier-switch E2E.
