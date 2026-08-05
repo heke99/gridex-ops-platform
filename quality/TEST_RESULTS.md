@@ -2,133 +2,92 @@
 
 ## Current audit status
 
-This file records only checks that were actually performed. Evidence now comes from:
+This report records only executed checks and explicit blockers. Evidence comes from exact-branch source inspection, direct Supabase project/catalog queries and GitHub Actions on `audit/gridex-ops-full-integrity-review`.
 
-- direct GitHub source inspection on `audit/gridex-ops-full-integrity-review`;
-- direct Supabase catalog/project queries performed during the initial audit;
-- GitHub Actions workflow `OPS hardening`, run `31050422153`, against commit `f55805e235abf3296aebcabdd8ba1eab21a8b844`.
+## Final expanded code verification
 
-The successful workflow does not cover every command in the v2 prompt and does not prove deployed/live parity.
+Workflow: `OPS hardening`  
+Run: `31054238744`  
+Job: `92468135354`  
+Code commit: `20220a9b83b65148862685f3fec47bbebff64ae2`  
+Conclusion: `success`
 
-## Passed direct checks
-
-| Check | Status | Result |
-|---|---|---|
-| Repository identity | passed | `heke99/gridex-ops-platform` verified |
-| Audit branch identity | passed | exact branch `audit/gridex-ops-full-integrity-review` verified before reads and writes |
-| Original audit start commit | passed | `3aa8309767dc4fbd58b59322082d85127c48c194` |
-| V2 supplement start commit | passed | `1028bdde8f944ee69154d761e7cdc00c0afd3756` |
-| External branch-change preservation | passed | external commit `3eb8445cb840d38af6068d49266ce0881a8e0157` reviewed; it added skills only |
-| Supabase project identity | passed | `gridex-ops-dev`, `piidsfebjqjmnepdpnas` |
-| Supabase project health | passed | active/healthy at audit time |
-| Latest live migration | passed | `20260805085617_api_contract_billing_tenant_hardening` present in live migration history |
-| Public schema CREATE privileges | passed | `anon`/`authenticated` cannot CREATE; `service_role` can |
-| Public table RLS catalog check | passed | current public base/partitioned tables found by catalog have RLS enabled |
-| Core integration tenant binding | passed by source inspection | tenant derived from authenticated API client; scope/status/origin/IP/rate limit fail closed |
-| Customer portal sync tenant filters | passed by source inspection | candidate and identity operations include authenticated company scope |
-| Website application unknown-field handling | passed by source inspection | explicit top-level/nested allowlist runs before Zod parse |
-| Manual inbound webhook authentication | passed by source inspection | bounded raw body, timestamp window and timing-safe HMAC |
-| Resend webhook authentication | passed by source inspection | signature verified before event processing |
-| Analytics cron authentication | passed by source inspection | configured secret required and timing-safe comparison |
-| Portal sync fix presence | passed by exact commit inspection | commit `aeaa08283e714160181cd007f2c04196d6cf88a2` imports `ApiInputError`, preserves controlled status/code/field and keeps unexpected errors generic |
-| Portal sync regression source | passed by exact commit inspection | `scripts/gridex-customer-portal-sync-error-contract-regression.cjs` exists and asserts the intended contract |
-
-## GitHub Actions — passed on `f55805e235abf3296aebcabdd8ba1eab21a8b844`
-
-Workflow: `OPS hardening`, run `31050422153`, job `verify`, conclusion `success`.
-
-| Executed step | Result |
+| Executed command/check | Result |
 |---|---|
-| `npm ci` | passed |
-| `npm run db:migrations:check` | passed |
-| `npm run gridex:api-billing-tenant-hardening-regression` | passed |
-| `npm run typecheck` | passed |
-| `node scripts/gridex-quote-idempotency-multitenant-regression.cjs` | passed |
-| `npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts` | passed |
-| `npm run ops:hardening-regression` | passed |
-| `npm run ops:hardening-behavior-regression` | passed |
-| `npm run ops:final-contract-regression` | passed |
-| `npm run api:error-boundaries` | passed |
-| `npm run security:audit-production` | passed |
+| `npm ci` | `passed` |
+| `npm run db:migrations:check` | `passed` |
+| `npm run gridex:api-billing-tenant-hardening-regression` | `passed` |
+| `npm run typecheck` | `passed` |
+| `npm run typecheck:scripts` | `passed` |
+| `npm run typecheck:tests` | `passed` |
+| `npm run lint` | `passed` |
+| `node scripts/gridex-customer-portal-sync-error-contract-regression.cjs` | `passed` |
+| `node scripts/gridex-quote-idempotency-multitenant-regression.cjs` | `passed` |
+| targeted usage/integration idempotency Vitest | `passed` |
+| full `npm test` | `passed` |
+| `npm run ops:hardening-regression` | `passed` |
+| `npm run ops:hardening-behavior-regression` | `passed` |
+| `npm run ops:final-contract-regression` | `passed` |
+| `npm run api:error-boundaries` | `passed` |
+| `npm run api:compatibility` | `passed` |
+| `npm run api:release:verify` | `passed` |
+| `npm run security:audit-production` | `passed` |
+| `npm run build` | `passed` |
 
-This workflow proves that the approved GitHub runner could install the locked dependencies and execute the listed checks. It does not prove commands absent from the workflow, live provider behavior, deployed environment configuration, or production tenant isolation.
+The commits after `20220a9b…` update audit Markdown reports only. They do not change application source, tests, migrations, manifests or the workflow matrix.
 
-## Failed or defect-revealing checks
+## Defect-revealing run chronology
 
-| Check | Status | Result |
+| Run | Failure | Evidence and correction | Final status |
+|---|---|---|---|
+| `31052421121` | immutable OpenAPI `2026-08-05.2` snapshots missing | exact canonical release blobs added in `c3979436…` | `fixed` |
+| `31052649096` | immutable versioned OpenAPI routes missing | versioned routes added in `f5d81c72…` | `fixed` |
+| `31053249461` | lint failed on two reserved `module` bindings | behavior-neutral renames in `507340ed…` and `f8ea025b…` | `fixed` |
+| `31053761076` | four stale public-contract tests | modern fixtures received hashes; route test uses current contract constant; historical-null case retained | `fixed` |
+| `31054238744` | no failure | complete expanded matrix passed | `verified` |
+
+## Direct repository and platform checks
+
+| Check | Result | Status |
 |---|---|---|
-| Customer portal sync controlled input error mapping at baseline | failed, implementation corrected | original route converted `ApiInputError` to 500; code/test added in `aeaa082…`; the dedicated new regression command remains unexecuted |
-| Billing webhook response indistinguishability | failed/unverified impact | unknown provider invoice reference and bad signature produce different external status classes; see `BUG-002` |
-| Architecture documentation currency | failed/partially mitigated | current root layout conflicts with older `apps/ops` memory references; quality docs and current-task handoff now describe actual layout |
-| Complete large-file inventory | blocked | no complete local line-count scan; one >8,400-line module verified |
-| Canonical `.env.example` | failed/gap found | exact branch path is absent; documented in `quality/API_CONFIGURATION.md` |
-| CI action immutability | gap found | workflow uses mutable major tags `actions/checkout@v4` and `actions/setup-node@v4` |
+| Repository/default branch | `heke99/gridex-ops-platform`, `main` | `verified` |
+| Audit branch | `audit/gridex-ops-full-integrity-review` | `verified` |
+| V3 start SHA | `f81126bea4fbe6bf1403496840b47d1fe02becf8` | `verified` |
+| V3 default-branch baseline | `ec4ca3b63bb7c97a35755b0b393da404d67cc687` | `verified` |
+| Branch divergence | audit and `main` diverged; no merge/rebase performed | `verified` |
+| Supabase project | `gridex-ops-dev`, `piidsfebjqjmnepdpnas` | `verified` |
+| Supabase health | `ACTIVE_HEALTHY` during V3 | `verified` |
+| RLS/public privileges | prior direct catalog check found public tables RLS-enabled; client roles could not create in `public` | `verified` for queried state |
+| Reviewed SECURITY DEFINER helpers | constrained search path, no anon execute, explicit identity/membership/admin/service checks | `verified` for queried functions |
+| Cross-tenant exploit | none reproduced | `unverified` repository-wide; staging two-tenant run blocked |
+| Installed skills | 35/35 readable; 0 mandatory V3 paths missing | `verified` |
 
-## V2 source and skill checks
+## Finding status affected by executed tests
 
-| Check | Status | Result |
+- `BUG-001` Customer Portal controlled input mapping: `fixed`; dedicated regression passed.
+- `BUG-006` immutable OpenAPI release completeness: `fixed`; release verification passed.
+- `BUG-007` lint bindings: `fixed`; lint passed.
+- `BUG-008` stale legal/version fixtures: `fixed`; full tests passed.
+
+## Checks still blocked or incomplete
+
+| Check | Status | Exact blocker |
 |---|---|---|
-| Installed skill inventory | passed | 31 branch-local skill files were found and directly read as UTF-8 |
-| Skill hash/source records | passed with limitation | `skills-lock.json` records `computedHash` and upstream source for all 31 installed skills; hashes were not independently recomputed from raw bytes |
-| Mandatory v2 skill availability | passed | all mandatory skill paths in the v2 prompt were readable |
-| Recommended skill gap check | passed | exact paths for `doubt-driven-development`, `performance-optimization`, `documentation-and-adrs`, and `sql-optimization-patterns` returned not found |
-| Skill credential/cost classification | passed by source inspection | no Markdown skill itself embedded a separate API key or billing requirement; external execution services remain separate dependencies |
-| Existing environment checklist | passed | `docs/env-production-checklist.md` exists and identifies its inventory as a grep from 2026-07-03 |
-| Supabase runtime env failure behavior | passed by source inspection | public/server helpers throw outside the production-build phase when required values are absent |
-| Supabase build placeholder behavior | passed by source inspection | production-build phase uses placeholders; build success is not runtime configuration proof |
-| Scheduled request secret behavior | passed by source inspection | dedicated and allowed global cron secrets are compared timing-safely; no configured accepted secret returns unauthorized |
-| Root lifecycle script check | passed by manifest inspection | no root `preinstall`, `install`, `postinstall`, `prepare`, or `prepublishOnly` script identified |
-| Lockfile advisory-presence review | passed with reachability limitation | advisory-range `brace-expansion` versions are present in inspected dev dependency trees; production exposure remains unverified |
+| `npm run api:runtime:parity` against deployed environment | `blocked` | no approved staging tenant/API-client credentials |
+| deployed two-tenant auth/RLS/legal/POA/customer/billing E2E | `blocked` | no isolated deployed fixture and credentials |
+| provider/email/EDIEL live-safe integration tests | `blocked` | provider test environments and approved recipients unavailable |
+| Supabase leaked-password setting | `unverified` | Auth dashboard setting not readable/changeable through current tools |
+| billing webhook response normalization | `unverified` | authoritative provider retry contract and safe fixture unavailable |
+| general SAST | `blocked` | no repository-approved scanner run |
+| full current-tree and Git-history secret scan | `blocked` | no authenticated local clone/history scanner |
+| Dependabot reconciliation | `blocked` | security product/API returned 403/unavailable |
+| `npm audit --json` and dependency reachability (`npm explain`) | `blocked` | not part of the approved workflow evidence captured here |
+| browser accessibility, keyboard and screen-reader validation | `blocked` | no browser/test fixture run |
+| production-like performance/load/query-plan validation | `blocked` | no isolated dataset, APM/RUM or `EXPLAIN ANALYZE` evidence |
+| local worktree cleanliness and `git diff --check` | `blocked` | connector-backed session has no local checkout/worktree |
 
-## Checks still blocked or not executed
+## Interpretation
 
-The following must not be inferred from the successful hardening workflow:
+The source and CI baseline is substantially stronger: installation, migrations, all TypeScript layers, lint, dedicated regressions, full tests, API compatibility/release checks, security script and production build all pass on the verified code commit.
 
-| Check | Status | Exact reason |
-|---|---|---|
-| `node scripts/gridex-customer-portal-sync-error-contract-regression.cjs` | not executed | not included in run `31050422153` |
-| `npm run lint` | not executed | not included in the workflow |
-| `npm run typecheck:scripts` | not executed | not included in the workflow |
-| `npm run typecheck:tests` | not executed | not included in the workflow |
-| full `npm test` | not executed | only one targeted Vitest file ran |
-| `npm run security:rbac` | not independently executed | may overlap other regressions, but no direct command result exists |
-| `npm run api:compatibility` | not executed | absent from the workflow |
-| `npm run api:release:verify` | not executed | absent from the workflow |
-| `npm run api:runtime:parity` | not executed | absent from the workflow and requires runtime context |
-| `npm run gridex:production-route-readiness-regression` | not executed | absent from the workflow |
-| `npm run gridex:rls-multisite-metering-billing-regression` | not executed | absent from the workflow |
-| `npm run build` | not executed | absent from the workflow |
-| `npm audit --json` | not executed | `security:audit-production` passed, but it is not represented as a raw npm-audit result here |
-| `npm explain brace-expansion` | not executed | dependency reachability analysis was not part of the workflow |
-| independent skill SHA-256 recomputation | blocked | no controlled raw-byte checkout/hash pass |
-| Dependabot alert reconciliation | blocked | alerts API returned 403 because the security product was not enabled or accessible |
-| SAST execution | blocked | no configured scanner result was available |
-| full current-tree and Git-history secret scan | blocked | no authenticated history scanner result |
-| OpenAPI → deployed runtime parity | blocked | no approved deployment credential and no live tenant/API-client fixture |
-| preview/staging runtime environment validation | blocked | no approved deployment access |
-| deployed two-tenant legal/POA/customer/billing/EDIEL E2E | blocked | deployment credentials and external provider fixtures unavailable |
-
-## Required remaining verification
-
-Run the missing commands in an approved CI or clean checkout and preserve exit codes and outputs:
-
-```bash
-node scripts/gridex-customer-portal-sync-error-contract-regression.cjs
-npm run lint
-npm run typecheck:scripts
-npm run typecheck:tests
-npm test
-npm run security:rbac
-npm run api:compatibility
-npm run api:release:verify
-npm run api:runtime:parity
-npm run gridex:production-route-readiness-regression
-npm run gridex:rls-multisite-metering-billing-regression
-npm run build
-npm audit --json
-npm explain brace-expansion
-```
-
-Then run the approved SAST/secret scans and deployed two-tenant/provider/EDIEL checks.
-
-The successful hardening workflow materially improves the baseline, but it does not justify a production-ready verdict while the dedicated portal-sync regression, full command matrix, live OpenAPI/runtime parity, dependency reachability and deployed E2E remain incomplete.
+This does not prove deployed configuration, production isolation, provider behavior, accessibility, performance capacity or full supply-chain security. Those areas remain explicitly blocked or unverified.
