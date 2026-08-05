@@ -8,7 +8,7 @@ const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-05.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-05.2.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -1119,6 +1119,16 @@ const quoteResponseContent =
   ]
 const quoteExample = quoteResponseContent.example
 if (quoteExample?.data) {
+  quoteExample.data.offer ??= {
+    id: quoteExample.data.offer_reference ?? 'offer_example',
+    offer_reference: quoteExample.data.offer_reference ?? 'offer_example',
+    public_name: 'Example offer',
+    product_code: 'example_product',
+    contract_type: 'variable_monthly',
+    energy_direction: 'consumption',
+    pricing_model: 'variable_monthly',
+    selected_area_price: null,
+  }
   quoteExample.data.price_option_reference ??= 'price_option_example'
   quoteExample.data.area_price_reference ??= null
   quoteExample.data.invoice_delivery_method ??= 'email'

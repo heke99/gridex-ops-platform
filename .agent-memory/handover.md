@@ -1,47 +1,37 @@
-# PHASE-44 handover — Customer legal package and POA consistency
+# PHASE-45 handover — Quote integrity and OpenAPI 2026-08-05.2 sync
 
-The source package is implemented and statically verified. It has not been
-deployed or exercised against a live private/business tenant flow.
+The incomplete main push `b9019bd9` started UTC quote-hash normalization and an
+OpenAPI version bump to `2026-08-05.2`, but left docs/checks/release artifacts on
+`2026-08-05.1` and a false-green source-string regression.
 
 ## What changed
 
-- Customer presentation is grouped into `agreement`, `power_of_attorney` and
-  `withdrawal`; missing withdrawal modules naturally produce only two documents.
-- Each grouped identity is tenant- and bundle-bound and hashes the exact source
-  module IDs, versions and SHA-256 values.
-- Website intake accepts the new grouped format and the complete older module
-  format, but rejects mixed requests.
-- Customer Portal sync resolves grouped references and persists one immutable
-  acceptance row per source module, retaining compatibility with old references.
-- The POA path accepts only `supplier_switch` plus optional
-  `facility_information_lookup`, records the exact signed scope snapshot and
-  creates the same authorization document/scope chain used by supplier switch.
-- Published document pages render the tenant identity from the bundle snapshot,
-  not from mutable current company data.
-- API release is `2026-08-05.1`; endpoint paths remain unchanged.
+- `canonicalQuoteValidUntil` / `canonicalQuoteTimestamp` normalize PostgreSQL
+  `+00:00` and JS `Z` before hashing.
+- `market_data_timestamp` uses the same canonicalization because it is also a
+  top-level `timestamptz` integrity field.
+- OpenAPI/docs/runtime contract version is completed at `2026-08-05.2`.
+- `WebsiteQuoteData.offer` is required, example-backed and present in immutable
+  release artifacts/routes.
+- Contract P0 integrity assertions now expect v3 commercial quote hashing and
+  the legal-bundle `anyOf` scope model.
 
 ## Verification completed
 
-- `node scripts/gridex-customer-legal-package-regression.cjs`
-- `node scripts/gridex-legal-poa-platform-hardening-regression.cjs`
-- `node scripts/gridex-website-api-power-of-attorney-regression.cjs`
-- API documentation/version/compatibility/example/runtime/release checks
-- TypeScript syntax transpilation for all 17 changed TS/TSX files
+- `gridex-website-quote-integrity-regression.mjs`
+- `gridex-contract-p0-integrity-regression.cjs`
+- API docs version/compatibility/examples/runtime/local release checks
+- Customer legal package regression
 
 ## Resume
 
-Deploy the changed files. Fetch a legal bundle as a private tenant, submit the
-three exact acceptances and a complete signed POA, then verify:
-
-1. exact module acceptance rows exist under the same tenant and bundle;
-2. POA is `signed` with the submitted immutable scope snapshot;
-3. `powers_of_attorney.document_id` points to the authorization document;
-4. authorization scope coverage matches only the signed scopes;
-5. supplier switch uses that authorization document;
-6. a business offer omits withdrawal when no withdrawal modules are published.
+Push/open PR from `cursor/codebase-health-and-stability-c492`. After merge and
+deploy, verify one live quote create/validate round-trip still hashes under both
+PostgREST timestamp representations, then continue PHASE-44 live legal/POA E2E.
 
 ## Do not claim yet
 
 - deployed OPS source;
 - clean npm install/full typecheck/test/lint/build;
-- live private/business two-tenant E2E completion.
+- deployed OpenAPI SHA verification against production base URL;
+- live private/business two-tenant legal/POA/supplier-switch E2E.

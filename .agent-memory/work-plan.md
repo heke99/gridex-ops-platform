@@ -577,3 +577,17 @@ Files changed: legal package/rendering, public contracts, website intake, Custom
 Migrations: none
 Last updated: 2026-08-05
 Exact next subtask: deploy and prove one private plus one business tenant legal/POA/supplier-switch flow
+
+## WP-045: Quote integrity timestamptz sync and OpenAPI 2026-08-05.2 completion
+Status: IMPLEMENTED_STATIC_VERIFIED_PENDING_PUSH
+Phase: PHASE-45
+Priority: P0
+Depends on: WP-044
+Affected domains: website quotes, quote integrity hashing, OpenAPI/docs/release artifacts
+Acceptance criteria: Z/+00:00 timestamptz forms hash identically; market_data_timestamp included; OpenAPI/docs/runtime/release artifacts agree on 2026-08-05.2; WebsiteQuoteData.offer required and example-aligned; regressions fail closed on incomplete release sync
+Required verification: quote integrity regression, contract P0 integrity, API docs/version/compatibility/examples/runtime/local release gates
+Evidence: local Node regressions and OpenAPI gates pass; full npm gates blocked by missing node_modules
+Files changed: quoteIntegrity/websiteQuotes, finalize/materialize/release artifacts, docs/fixtures/version checkers, regressions, project memory
+Migrations: none
+Last updated: 2026-08-05
+Exact next subtask: push branch, open PR, then deploy and verify one live quote create/validate round-trip

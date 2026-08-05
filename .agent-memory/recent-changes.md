@@ -27,3 +27,4 @@
 - Published API/OpenAPI release 2026-08-05.1.
 
 - 2026-08-05T15:20:07+02:00: Customer Portal legal sync now prevalidates one acceptance format per request; draft/fallback POAs no longer emit signed events.
+- 2026-08-05T22:20:00Z: Completed unfinished quote integrity/OpenAPI 2026-08-05.2 sync from main push `b9019bd9`: canonicalized quote timestamptz hashing, required `WebsiteQuoteData.offer`, materialized immutable release artifacts and hardened regressions.

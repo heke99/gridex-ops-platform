@@ -1,42 +1,42 @@
 # Current task
 
-Last updated: 2026-08-05T15:14:58+02:00
-Branch: archive working tree
+Last updated: 2026-08-05T22:20:00Z
+Branch: `cursor/codebase-health-and-stability-c492`
 
 ## Active phase
 
-PHASE-44 — Three-document customer legal package and immutable POA chain.
+PHASE-45 — Quote integrity timestamp canonicalization and OpenAPI 2026-08-05.2 sync.
 
 ## Goal
 
-Expose at most three tenant-bound customer documents (`agreement`,
-`power_of_attorney`, `withdrawal`) without changing the existing website or
-Customer Portal endpoint structure. Preserve every canonical module as immutable
-evidence and ensure a signed POA received from either API path drives the same
-supplier-switch authorization chain with no scope widening.
+Close the incomplete main push that started quote-hash UTC normalization and an
+OpenAPI `2026-08-05.2` bump without materializing release artifacts or aligning
+runtime/docs/checks.
 
 ## Implemented
 
-- Grouped all canonical legal modules into three customer-facing documents.
-- Retained exact module IDs, hashes and versions as the evidence source of truth.
-- Added immutable tenant legal-profile snapshot rendering for historical links.
-- Kept website application endpoints and legacy module acceptances compatible.
-- Expanded grouped Customer Portal sync acceptances back to every source module.
-- Bound POA reuse to the same tenant, legal module and exact signed scope snapshot.
-- Made incomplete/legacy POA persistence fail closed for external dispatch.
-- Published additive API/OpenAPI release `2026-08-05.1`.
+- Canonicalize both `valid_until` and `market_data_timestamp` timestamptz forms
+  (`Z` vs `+00:00`) before immutable quote hashing.
+- Complete OpenAPI release `2026-08-05.2`, including `WebsiteQuoteData.offer`,
+  immutable release JSON/routes, docs, fixtures and version checkers.
+- Strengthen the quote-integrity regression so it fails closed unless current
+  OpenAPI/docs/release artifacts match `2026-08-05.2`.
+- Refresh stale contract P0 integrity assertions for v3 quote hashing and the
+  legal-bundle `anyOf` scope model.
 
 ## Verification
 
-- Customer legal package regression: PASS.
-- Website POA regression: PASS.
-- Legal/POA platform regression: PASS.
-- OpenAPI compatibility, examples, runtime parity and release checks: PASS.
-- TypeScript syntax transpilation for 17 changed TS/TSX files: PASS.
-- Full dependency-backed typecheck/test/lint/build: BLOCKED by package mirror 404.
+- `node --experimental-strip-types scripts/gridex-website-quote-integrity-regression.mjs`: PASS
+- `node scripts/gridex-contract-p0-integrity-regression.cjs`: PASS (127 controls)
+- `node scripts/check-api-documentation-version.cjs`: PASS
+- `node scripts/check-api-compatibility.cjs`: PASS
+- `node scripts/check-api-documentation-examples.cjs`: PASS
+- `node scripts/check-public-contract-runtime-openapi.cjs`: PASS
+- `node scripts/verify-openapi-release.cjs`: PASS (local artifacts)
+- `node scripts/gridex-customer-legal-package-regression.cjs`: PASS
+- Full dependency-backed typecheck/test/lint/build: NOT RUN (no node_modules)
 
 ## Exact next action
 
-Sync and deploy the changed files, then run a real tenant legal-bundle -> three
-acceptances -> signed POA -> authorization document/scope -> supplier-switch smoke
-flow for one private and one business tenant.
+Commit/push the stability branch, open the PR, then keep PHASE-44 deployment and
+live private/business legal/POA/supplier-switch E2E as the remaining product gate.

@@ -13,14 +13,20 @@ scopes, error codes, examples and documentation must change together.
 Public application output uses an explicit allowlisted DTO. Internal pricing,
 publication, portal-identity and provider-connection IDs are never exposed.
 
-Current version: `2026-08-05.1`.
+Current version: `2026-08-05.2`.
 
 Public pricing exposes stable `price_options`, `commercial_components`,
 selection policy and invoice methods. Quote accepts `price_option_reference`,
 `invoice_delivery_method`, `selected_component_references` and `site_count`;
 unknown fields remain rejected. Output freezes the exact selected option, area
-row and resolved component arrays.
+row and resolved component arrays. Quote responses require the public `offer`
+object already returned by runtime.
 
+## 2026-08-05.2 quote integrity and offer schema sync
+
+Website quote integrity hashes canonicalize top-level `timestamptz` values so
+PostgREST `+00:00` and JS `Z` cannot diverge. OpenAPI `WebsiteQuoteData`
+requires `offer`, matching the runtime quote payload.
 
 ## 2026-08-05.1 customer legal package
 

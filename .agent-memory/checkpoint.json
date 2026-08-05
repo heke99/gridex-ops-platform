@@ -1,64 +1,59 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-05T15:20:07+02:00",
-  "branch": "archive working tree",
+  "updated_at": "2026-08-05T22:20:00Z",
+  "branch": "cursor/codebase-health-and-stability-c492",
   "last_verified_commit": null,
-  "active_phase": "PHASE-44",
-  "active_task": "WP-044",
-  "active_subtask": "Deploy and prove three-document legal acceptance plus signed POA supplier-switch chain for private and business tenants",
-  "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
+  "active_phase": "PHASE-45",
+  "active_task": "WP-045",
+  "active_subtask": "Commit, push and open PR for quote integrity + OpenAPI 2026-08-05.2 sync",
+  "status": "IMPLEMENTED_STATIC_VERIFIED_PENDING_PUSH",
   "implemented_not_environment_verified": [
-    "three customer-facing legal documents with immutable source-module evidence",
-    "tenant legal-profile snapshot rendering for historical documents",
-    "website grouped acceptance with legacy module compatibility",
-    "Customer Portal grouped acceptance expansion to exact module rows",
-    "exact signed POA scope and legal-version reuse guards",
-    "OpenAPI 2026-08-05.1 immutable release",
-    "duplicate/mixed legal acceptance prevalidation and signed-event fail-closed guard"
+    "canonicalQuoteTimestamp/validUntil Z vs +00:00 hash normalization",
+    "market_data_timestamp included in the same timestamptz canonicalization",
+    "OpenAPI/docs/runtime contract version 2026-08-05.2",
+    "WebsiteQuoteData.offer required and example-aligned",
+    "immutable OpenAPI release artifacts and routes for 2026-08-05.2",
+    "strengthened website quote integrity regression",
+    "updated contract P0 integrity assertions for v3 hash and legal-bundle scopes"
   ],
   "active_blockers": [
-    "modified OPS code has not been deployed",
-    "package mirror 404 prevents clean npm ci and full dependency-backed gates",
-    "real private/business two-tenant legal and supplier-switch E2E is pending"
+    "full dependency-backed typecheck/test/lint/build still unavailable without node_modules",
+    "PHASE-44 live private/business legal/POA/supplier-switch E2E still pending deploy",
+    "deployed OpenAPI release bytes not verified against GRIDEX_API_BASE_URL"
   ],
   "verification": [
     {
+      "name": "website quote integrity regression",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "timestamp canonicalization plus OpenAPI 2026-08-05.2 artifact/sync checks pass"
+    },
+    {
+      "name": "contract P0 integrity regression",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "127 controls pass after v3 hash and legal-bundle scope assertion refresh"
+    },
+    {
+      "name": "API/OpenAPI/docs 2026-08-05.2",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "version, compatibility, examples, public-contract runtime and local release verify pass"
+    },
+    {
       "name": "customer legal package regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "grouping, tenant snapshot, grouped Customer Portal evidence expansion, format prevalidation and signed-event fail-closed checks pass"
-    },
-    {
-      "name": "website and platform POA regressions",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "structured POA, fail-closed sendability and canonical authorization chain checks pass"
-    },
-    {
-      "name": "API/OpenAPI/docs",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "version, compatibility, examples, runtime boundary and immutable 2026-08-05.1 release pass"
-    },
-    {
-      "name": "changed TypeScript syntax",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "17 changed TS/TSX files transpile with TypeScript 5.8.3"
+      "evidence": "still passes against historical 2026-08-05.1 fixture content"
     },
     {
       "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "package mirror 404 for zod-validation-error@4.0.2"
-    },
-    {
-      "name": "live tenant legal/POA/supplier-switch E2E",
-      "status": "PENDING",
-      "evidence": "requires sync, deploy, tenant credentials and test customers"
+      "evidence": "node_modules absent in this environment"
     }
   ],
-  "next_action": "Sync the changed-files package, deploy OPS, then execute one private and one business tenant legal-bundle/acceptance/POA/supplier-switch smoke flow.",
+  "next_action": "Commit and push branch cursor/codebase-health-and-stability-c492, then open the PR.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not collapse canonical legal module storage; only customer presentation is grouped",
-    "Do not allow a POA reference to bind to different legal text or scopes",
-    "Do not mark a legacy schema fallback POA signed",
-    "Do not claim deployment or live E2E before evidence exists"
+    "Do not leave finalize-openapi-release.cjs version ahead of materialized docs/checks",
+    "Quote hash must canonicalize every top-level timestamptz field in the integrity payload",
+    "Preserve immutable prior OpenAPI releases; only add 2026-08-05.2",
+    "Do not claim deployed release verification without GRIDEX_API_BASE_URL evidence"
   ]
 }

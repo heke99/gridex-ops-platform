@@ -1,6 +1,24 @@
 # Current state
 
-Last updated: 2026-08-05T15:14:58+02:00
+Last updated: 2026-08-05T22:20:00Z
+
+## PHASE-45 quote integrity / OpenAPI sync
+
+- Main push `b9019bd9` introduced UTC quote-hash normalization and started
+  OpenAPI `2026-08-05.2`, but left docs/checks/release artifacts on
+  `2026-08-05.1`.
+- Branch `cursor/codebase-health-and-stability-c492` completes that sync.
+- Quote integrity now canonicalizes both `valid_until` and
+  `market_data_timestamp` before hashing.
+- Current public contract version is `2026-08-05.2`, with required quote `offer`
+  and immutable release artifacts/routes.
+
+## Verification
+
+- Quote integrity, contract P0, legal package and OpenAPI local gates pass.
+- Full dependency-backed typecheck/test/lint/build remain unexecuted because
+  `node_modules` are absent in this environment.
+- Deployed release SHA verification and live quote/legal E2E remain pending.
 
 ## PHASE-44 legal package state
 

@@ -32,3 +32,17 @@
 | Live private/business E2E | PENDING | deployment required |
 
 | 2026-08-05T15:20:07+02:00 | Customer Portal grouped/legacy prevalidation and signed-event fail-closed guard | PASS | `gridex-customer-legal-package-regression.cjs` |
+
+## PHASE-45 — 2026-08-05T22:20:00Z
+
+| Check | Result | Evidence |
+|---|---|---|
+| Quote timestamptz hash canonicalization | PASS | `gridex-website-quote-integrity-regression.mjs` |
+| market_data_timestamp included | PASS | source + integrity regression |
+| OpenAPI/docs/runtime 2026-08-05.2 | PASS | version/compatibility/examples/runtime/local release |
+| WebsiteQuoteData.offer required + example | PASS | finalize + examples check |
+| Immutable 2026-08-05.2 artifacts/routes | PASS | materializer + registry + integrity regression |
+| Contract P0 integrity assertions refreshed | PASS | 127 controls |
+| Legal package still green | PASS | historical fixture still valid |
+| Full dependency gates | BLOCKED | no node_modules |
+| Deployed OpenAPI SHA verify | PENDING | needs GRIDEX_API_BASE_URL |
