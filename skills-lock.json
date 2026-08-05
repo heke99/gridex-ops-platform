@@ -61,6 +61,20 @@
       "skillPath": "plugins/cicd-automation/skills/deployment-pipeline-design/SKILL.md",
       "computedHash": "57b928db2182b0fae02581e95a3b77f0354d2b1f5a48dd12eadf2f0ddbb34db8"
     },
+    "documentation-and-adrs": {
+      "source": "addyosmani/agent-skills",
+      "ref": "f03b4a84b08b76608bbab3133e56e49e361f230b",
+      "sourceType": "github",
+      "skillPath": "skills/documentation-and-adrs/SKILL.md",
+      "computedHash": "7464fd2950b99fb00bbf65cab27653e0a049eef00c98927713ffdfe232a9daa9"
+    },
+    "doubt-driven-development": {
+      "source": "addyosmani/agent-skills",
+      "ref": "f03b4a84b08b76608bbab3133e56e49e361f230b",
+      "sourceType": "github",
+      "skillPath": "skills/doubt-driven-development/SKILL.md",
+      "computedHash": "f6094460ebc9512285c85790e49f612081b9dd6a2b77d874fe2d960ef50a9ef1"
+    },
     "e2e-testing-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -109,6 +123,13 @@
       "skillPath": "plugins/documentation-generation/skills/openapi-spec-generation/SKILL.md",
       "computedHash": "d062c891d58ef7e38c56360d4c325aff70247d1b5880b8b299098d7e51e38294"
     },
+    "performance-optimization": {
+      "source": "addyosmani/agent-skills",
+      "ref": "f03b4a84b08b76608bbab3133e56e49e361f230b",
+      "sourceType": "github",
+      "skillPath": "skills/performance-optimization/SKILL.md",
+      "computedHash": "3881a49f910607b36f4fb1f9f17b4ef703293c6073986bcfa9f7839d44680aba"
+    },
     "quality-playbook": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -150,6 +171,13 @@
       "sourceType": "github",
       "skillPath": "skills/source-driven-development/SKILL.md",
       "computedHash": "235fb43569e9b21ec5d209818ff1ad3da9682be33c4e464ffa89ed348e7094a0"
+    },
+    "sql-optimization-patterns": {
+      "source": "wshobson/agents",
+      "ref": "c4b82b0ad771190355eb8e204b1329732a18449a",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-essentials/skills/sql-optimization-patterns/SKILL.md",
+      "computedHash": "19ff8ce86d20aa39cace441e15d23feb9b91be5fbed95526b5bd9ee3bffb6411"
     },
     "supabase": {
       "source": "supabase/agent-skills",
