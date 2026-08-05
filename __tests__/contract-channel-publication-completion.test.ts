@@ -147,7 +147,8 @@ describe("canonical contract channel completion", () => {
               version: "2",
               title: "Allmänna konsumentvillkor",
               published_at: null,
-              content_sha256: null,
+              content_sha256:
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               origin: "canonical_bundle_document",
             },
           ],
