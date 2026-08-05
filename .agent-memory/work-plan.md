@@ -577,3 +577,17 @@ Files changed: legal package/rendering, public contracts, website intake, Custom
 Migrations: none
 Last updated: 2026-08-05
 Exact next subtask: deploy and prove one private plus one business tenant legal/POA/supplier-switch flow
+
+## WP-045: Complete OpenAPI 2026-08-05.2 and quote integrity
+Status: IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING
+Phase: PHASE-45
+Priority: P0
+Depends on: WP-044
+Affected domains: website quotes, OpenAPI releases, developer docs
+Acceptance criteria: materialized immutable 2026-08-05.2 artifacts/routes; quote example includes offer; top-level quote timestamptz hashing is canonical; docs/examples/version gates stay green
+Required verification: finalize/materialize/verify, quote integrity regression, docs/compatibility/runtime gates
+Evidence: local Node gates listed in checkpoint pass; full npm install still blocked
+Files changed: quoteIntegrity/websiteQuotes, finalize/materialize/verify/regression scripts, OpenAPI release artifacts/routes, developer guide, agent memory
+Migrations: none
+Last updated: 2026-08-05
+Exact next subtask: deploy materialized 2026-08-05.2 and continue private/business legal/POA smoke

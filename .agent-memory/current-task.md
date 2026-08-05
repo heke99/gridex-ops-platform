@@ -1,42 +1,46 @@
 # Current task
 
-Last updated: 2026-08-05T15:14:58+02:00
-Branch: archive working tree
+Last updated: 2026-08-05T22:40:00Z
+Branch: `cursor/codebase-health-and-stability-33d5`
 
 ## Active phase
 
-PHASE-44 — Three-document customer legal package and immutable POA chain.
+PHASE-45 — Complete unfinished OpenAPI `2026-08-05.2` release and quote integrity.
 
 ## Goal
 
-Expose at most three tenant-bound customer documents (`agreement`,
-`power_of_attorney`, `withdrawal`) without changing the existing website or
-Customer Portal endpoint structure. Preserve every canonical module as immutable
-evidence and ensure a signed POA received from either API path drives the same
-supplier-switch authorization chain with no scope widening.
+Close the incomplete main push that bumped the public contract to
+`2026-08-05.2` without immutable release artifacts, with stale docs/examples and
+incomplete quote timestamptz hashing.
 
 ## Implemented
 
-- Grouped all canonical legal modules into three customer-facing documents.
-- Retained exact module IDs, hashes and versions as the evidence source of truth.
-- Added immutable tenant legal-profile snapshot rendering for historical links.
-- Kept website application endpoints and legacy module acceptances compatible.
-- Expanded grouped Customer Portal sync acceptances back to every source module.
-- Bound POA reuse to the same tenant, legal module and exact signed scope snapshot.
-- Made incomplete/legacy POA persistence fail closed for external dispatch.
-- Published additive API/OpenAPI release `2026-08-05.1`.
+- Canonicalized top-level `market_data_timestamp` alongside `valid_until` for
+  website quote integrity hashing and persistence.
+- Fixed stale website public-contracts example version via late finalize
+  normalization.
+- Added required `offer` to the website quote response example.
+- Materialized immutable OpenAPI release `2026-08-05.2` JSON and route handlers.
+- Pointed developer guide examples at `documentationVersion` instead of a
+  hardcoded prior contract version.
+- Strengthened `verify-openapi-release` and quote-integrity regression to assert
+  real OpenAPI JSON, release artifacts, registry routes and quote `offer`.
 
 ## Verification
 
-- Customer legal package regression: PASS.
-- Website POA regression: PASS.
-- Legal/POA platform regression: PASS.
-- OpenAPI compatibility, examples, runtime parity and release checks: PASS.
-- TypeScript syntax transpilation for 17 changed TS/TSX files: PASS.
-- Full dependency-backed typecheck/test/lint/build: BLOCKED by package mirror 404.
+- `node scripts/finalize-openapi-release.cjs`: PASS
+- `node scripts/materialize-openapi-release.cjs`: PASS
+- `node scripts/verify-openapi-release.cjs`: PASS
+- `node scripts/gridex-website-quote-integrity-regression.mjs`: PASS
+- `node scripts/check-api-documentation-version.cjs`: PASS
+- `node scripts/check-api-documentation-examples.cjs`: PASS
+- `node scripts/check-public-contract-runtime-openapi.cjs`: PASS
+- `node scripts/check-api-compatibility.cjs`: PASS
+- `node scripts/gridex-customer-legal-package-regression.cjs`: PASS
+- Full dependency-backed typecheck/test/lint/build: NOT RUN (no node_modules)
 
 ## Exact next action
 
-Sync and deploy the changed files, then run a real tenant legal-bundle -> three
-acceptances -> signed POA -> authorization document/scope -> supplier-switch smoke
-flow for one private and one business tenant.
+Open/merge the health PR, deploy OPS with materialized `2026-08-05.2` routes,
+then run one private/business legal-bundle -> acceptance -> POA -> supplier-switch
+smoke flow.

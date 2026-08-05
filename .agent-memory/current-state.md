@@ -1,5 +1,31 @@
 # Current state
 
+Last updated: 2026-08-05T22:40:00Z
+
+## PHASE-45 OpenAPI 2026-08-05.2 completion state
+
+- Website and Customer Portal API contracts are aligned at `2026-08-05.2`.
+- Immutable release artifacts and route handlers for `2026-08-05.2` exist.
+- Website quote integrity canonicalizes top-level `valid_until` and
+  `market_data_timestamp` timestamptz values.
+- Quote OpenAPI example includes required `offer`.
+- Developer guide examples bind to `documentationVersion`.
+
+## Verification
+
+- finalize/materialize/verify and quote-integrity/docs/compatibility gates PASS.
+- Customer legal package regression still PASS.
+- Full dependency-backed gates remain unexecuted (`node_modules` absent).
+
+## Deployment state
+
+- Repository changes: IMPLEMENTED AND STATICALLY VERIFIED on
+  `cursor/codebase-health-and-stability-33d5`.
+- Running OPS application: NOT DEPLOYED FROM THIS DELIVERY.
+- Live private/business tenant legal and supplier-switch E2E: PENDING.
+
+## Prior phase state
+
 Last updated: 2026-08-05T15:14:58+02:00
 
 ## PHASE-44 legal package state

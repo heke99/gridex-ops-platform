@@ -13,7 +13,14 @@ scopes, error codes, examples and documentation must change together.
 Public application output uses an explicit allowlisted DTO. Internal pricing,
 publication, portal-identity and provider-connection IDs are never exposed.
 
-Current version: `2026-08-05.1`.
+Current version: `2026-08-05.2`.
+
+## 2026-08-05.2 quote integrity and release completion
+
+Additive completion of the incomplete main bump: immutable release artifacts and
+routes are materialized, quote examples include required `offer`, and website
+quote integrity canonicalizes top-level `valid_until` and
+`market_data_timestamp`.
 
 Public pricing exposes stable `price_options`, `commercial_components`,
 selection policy and invoice methods. Quote accepts `price_option_reference`,
