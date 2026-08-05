@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-05.1.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-05.2.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";

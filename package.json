@@ -273,7 +273,7 @@
     "gridex:svk-billing-area-regression": "node scripts/gridex-svk-billing-area-regression.cjs",
     "gridex:api-billing-tenant-hardening-regression": "node scripts/gridex-api-billing-tenant-hardening-regression.cjs",
     "verify:customer-legal-package": "node scripts/gridex-customer-legal-package-regression.cjs",
-    "gridex:website-quote-integrity-regression": "node --experimental-strip-types scripts/gridex-website-quote-integrity-regression.mjs"
+    "gridex:website-quote-integrity-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-website-quote-integrity-regression.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

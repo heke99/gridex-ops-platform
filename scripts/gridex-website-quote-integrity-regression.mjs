@@ -20,3 +20,19 @@ assert.match(finalize, /quoteData.properties.offer = permissiveObject/)
 assert.match(finalize, /["']offer["']/)
 
 console.log('website quote integrity and OpenAPI synchronization regression: ok')
+
+const versionFiles = [
+  'lib/integrations/websiteIntegrationContract.ts',
+  'scripts/check-api-compatibility.cjs',
+  'scripts/verify-openapi-release.cjs',
+  'scripts/check-api-documentation-version.cjs',
+  'scripts/check-public-contract-runtime-openapi.cjs',
+]
+for (const relative of versionFiles) {
+  const body = fs.readFileSync(new URL(`../${relative}`, import.meta.url), 'utf8')
+  assert.ok(body.includes('2026-08-05.2'), `${relative} is not synchronized to 2026-08-05.2`)
+}
+assert.ok(
+  fs.existsSync(new URL('../docs/fixtures/public-contracts-response-2026-08-05.2.json', import.meta.url)),
+  'current public-contract fixture is missing',
+)

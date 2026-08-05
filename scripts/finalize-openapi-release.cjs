@@ -8,7 +8,7 @@ const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-05.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-05.2.json', 'utf8'),
 )
 
 const string = { type: 'string' }
