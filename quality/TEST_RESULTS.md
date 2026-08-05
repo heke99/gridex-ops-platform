@@ -72,3 +72,42 @@ npm run build
 ```
 
 No readiness level above further testing is justified until those commands and deployment-dependent two-tenant flows complete successfully.
+
+## V2 supplement — additive verification only
+
+This section records only new checks required by the v2 prompt. It does not repeat the baseline or earlier findings.
+
+### Passed source and repository checks
+
+| Check | Status | Result |
+|---|---|---|
+| Supplement branch start | passed | exact branch HEAD was `1028bdde8f944ee69154d761e7cdc00c0afd3756` before v2 report writes |
+| Installed skill inventory | passed | 31 branch-local skill files were found and directly read as UTF-8 |
+| Skill hash/source records | passed with limitation | `skills-lock.json` records `computedHash` and upstream source for all 31 installed skills; hashes were not independently recomputed from raw bytes |
+| Mandatory v2 skill availability | passed | all mandatory skill paths in the v2 prompt were readable |
+| Recommended skill gap check | passed | exact paths for `doubt-driven-development`, `performance-optimization`, `documentation-and-adrs`, and `sql-optimization-patterns` returned not found |
+| Skill credential/cost classification | passed by source inspection | no Markdown skill itself embedded a separate API key or billing requirement; external execution services remain separate dependencies |
+| Existing environment checklist | passed | `docs/env-production-checklist.md` exists and identifies its inventory as a grep from 2026-07-03 |
+| Canonical `.env.example` check | failed/gap found | exact branch path is absent; documented in `quality/API_CONFIGURATION.md` |
+| Supabase runtime env failure behavior | passed by source inspection | public/server helpers throw outside the production-build phase when required values are absent |
+| Supabase build placeholder behavior | passed by source inspection | production-build phase uses placeholders; therefore build success is not runtime configuration proof |
+| Scheduled request secret behavior | passed by source inspection | dedicated and allowed global cron secrets are compared timing-safely; no configured accepted secret returns unauthorized |
+| Root lifecycle script check | passed by manifest inspection | no root `preinstall`, `install`, `postinstall`, `prepare`, or `prepublishOnly` script identified |
+| CI action pinning check | gap found | inspected workflow uses mutable major tags `actions/checkout@v4` and `actions/setup-node@v4` |
+| Lockfile advisory-presence review | passed with reachability limitation | advisory-range `brace-expansion` versions are present in inspected dev dependency trees; production exposure remains unverified |
+
+### Blocked v2 checks
+
+| Check | Status | Exact blocker |
+|---|---|---|
+| Independent skill SHA-256 recomputation | blocked | connector returned decoded file content and repository lock records, but no authenticated raw checkout was available for a controlled byte-for-byte hash pass |
+| `npm ci` and `npm audit --json` | blocked | no executable checkout/npm environment; prior registry/mirror retrieval blocker remains relevant |
+| `npm explain brace-expansion` | blocked | dependency tree was not installed |
+| GitHub Dependabot alert reconciliation | blocked | alerts API returned 403 because the security product was not enabled or accessible |
+| SAST execution | blocked | no configured executable scanner run in the connector environment |
+| Full current-tree and Git-history secret scan | blocked | no authenticated local clone/history scanner |
+| OpenAPI → deployed runtime parity | blocked | no approved deployment credential and no live tenant/API-client fixture |
+| Preview/staging runtime environment validation | blocked | no approved deployment access |
+| Full `quality-playbook` execution | blocked | required local toolchain, generated artifacts and command execution unavailable |
+
+The v2 documentation checks did not change the existing severity-counted application finding totals. New configuration and supply-chain items are tracked as gaps/observations in their dedicated reports until runtime or reachability evidence justifies promotion to `quality/BUGS.md`.
