@@ -563,3 +563,17 @@ Files changed: runtime readiness service/test, portfolio migration versions/refe
 Migrations: `20260803212754_canonical_migration_readiness_reconciliation_v4.sql`
 Last updated: 2026-08-03
 Exact next subtask: deploy the OPS application code and run authenticated HTTP smoke tests, then synchronize Gridex Web OpenAPI 2026-08-03.1
+
+## WP-044: Three-document legal package and POA consistency
+Status: IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING
+Phase: PHASE-44
+Priority: P0
+Depends on: WP-034, WP-036, WP-037
+Affected domains: legal bundles, website intake, Customer Portal sync, POA, supplier switch, OpenAPI
+Acceptance criteria: at most three customer documents; exact module evidence; immutable tenant identity; no POA scope widening; unchanged endpoint structure; legacy module compatibility
+Required verification: clean Node gates, deployed private/business two-tenant acceptance and supplier-switch E2E
+Evidence: dedicated regressions, API/OpenAPI release gates and changed-file syntax pass at 2026-08-05.1
+Files changed: legal package/rendering, public contracts, website intake, Customer Portal sync, POA chain, OpenAPI/docs/tests/memory
+Migrations: none
+Last updated: 2026-08-05
+Exact next subtask: deploy and prove one private plus one business tenant legal/POA/supplier-switch flow

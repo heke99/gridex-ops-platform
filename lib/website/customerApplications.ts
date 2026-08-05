@@ -66,6 +66,9 @@ import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/docum
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 import { createTenantContext } from "@/lib/tenant/context";
 import {
+  powerOfAttorneyCoverageFromScopes,
+} from "@/lib/operations/powerOfAttorneyWorkflow";
+import {
   validateWebsiteQuote,
   WebsiteQuoteValidationError,
   type WebsiteQuoteRecord,
@@ -74,6 +77,13 @@ import {
   fixedPriceOreForArea,
   selectBaseComponentsForPriceArea,
 } from "@/lib/pricing/fixedAreaPricing";
+import {
+  buildCustomerLegalDocuments,
+  customerLegalDocumentKindForModule,
+  isCustomerLegalDocumentKind,
+  type CustomerLegalDocument,
+  type CustomerLegalModuleVersion,
+} from "@/lib/legal/customerDocumentPackage";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -352,6 +362,11 @@ type NormalizedStructuredPoa = {
   userAgent: string | null;
 };
 
+const WEBSITE_POWER_OF_ATTORNEY_SCOPES = new Set([
+  "supplier_switch",
+  "facility_information_lookup",
+]);
+
 // Normalizes the structured powerOfAttorney object (camel or snake case).
 function normalizeStructuredPoa(
   body: ApplicationInput,
@@ -368,7 +383,13 @@ function normalizeStructuredPoa(
   return {
     accepted: raw.accepted === true,
     scope: Array.isArray(raw.scope)
-      ? raw.scope.map((value) => String(value))
+      ? Array.from(
+          new Set<string>(
+            raw.scope
+              .map((value: unknown) => String(value).trim().toLowerCase())
+              .filter((value: string) => value.length > 0),
+          ),
+        )
       : [],
     signerName: pick(raw.signerName, raw.signer_name),
     signerIdentityNumber: pick(
@@ -390,7 +411,9 @@ function structuredPoaIsExternallySendable(
     poa?.accepted === true &&
     poa.signerName &&
     poa.signerIdentityNumber &&
-    poa.method,
+    poa.method &&
+    poa.scope.includes("supplier_switch") &&
+    poa.scope.every((scope) => WEBSITE_POWER_OF_ATTORNEY_SCOPES.has(scope)),
   );
 }
 
@@ -411,6 +434,37 @@ function validateStructuredPoaForExternalSendability(
     missing.push({ field: "powerOfAttorney.method", label: "method" });
   if (poa.scope.length === 0)
     missing.push({ field: "powerOfAttorney.scope", label: "scope" });
+
+  const unsupportedScopes = poa.scope.filter(
+    (scope) => !WEBSITE_POWER_OF_ATTORNEY_SCOPES.has(scope),
+  );
+  if (unsupportedScopes.length > 0) {
+    return new WebsiteApplicationError({
+      message: `Fullmakten innehåller scopes som OPS inte stöder: ${unsupportedScopes.join(", ")}.`,
+      status: 422,
+      code: "power_of_attorney_scope_invalid",
+      field: "powerOfAttorney.scope",
+      stage: "power_of_attorney",
+      hint:
+        "Använd supplier_switch och lägg endast till facility_information_lookup när kunden även ger rätt att hämta anläggningsuppgifter.",
+      details: {
+        unsupported_scopes: unsupportedScopes,
+        supported_scopes: Array.from(WEBSITE_POWER_OF_ATTORNEY_SCOPES),
+      },
+    });
+  }
+  if (poa.scope.length > 0 && !poa.scope.includes("supplier_switch")) {
+    return new WebsiteApplicationError({
+      message:
+        "Fullmakten för ett elhandelsavtal måste uttryckligen omfatta supplier_switch.",
+      status: 422,
+      code: "power_of_attorney_supplier_switch_scope_missing",
+      field: "powerOfAttorney.scope",
+      stage: "power_of_attorney",
+      hint:
+        'Skicka scope=["supplier_switch"] eller scope=["supplier_switch", "facility_information_lookup"]. OPS utökar aldrig scope efter kundens godkännande.',
+    });
+  }
 
   if (missing.length === 0) return null;
 
@@ -1504,8 +1558,11 @@ async function loadOfferBoundLegalVersions(input: {
     });
   }
 
-  const loadedById = new Map(
-    (documents.data ?? []).map((row) => [String(row.id), row]),
+  const documentRows = (documents.data ?? []) as Array<
+    Record<string, unknown>
+  >;
+  const loadedById = new Map<string, Record<string, unknown>>(
+    documentRows.map((row) => [String(row.id), row]),
   );
   const ordered: Array<WebsiteLegalAcceptanceVersion | null> = offerVersions.map(
     (version) => {
@@ -1559,6 +1616,62 @@ async function loadOfferBoundLegalVersions(input: {
   );
 }
 
+function customerDocumentsForAcceptance(input: {
+  companyId: string;
+  legalBundleVersionId: string;
+  legalVersions: WebsiteLegalAcceptanceVersion[];
+}): CustomerLegalDocument[] {
+  return buildCustomerLegalDocuments({
+    companyId: input.companyId,
+    legalBundleVersionId: input.legalBundleVersionId,
+    modules: input.legalVersions.map(
+      (version) =>
+        ({
+          id: version.id,
+          module_key: version.module_key ?? version.type,
+          version: version.version,
+          title: version.title,
+          published_at: version.published_at,
+          content_sha256:
+            version.content_sha256 ??
+            createHash("sha256")
+              .update(version.body ?? "", "utf8")
+              .digest("hex"),
+          legal_bundle_version_id:
+            version.legal_bundle_version_id ?? input.legalBundleVersionId,
+        }) satisfies CustomerLegalModuleVersion,
+    ),
+  });
+}
+
+function acceptanceMatchesCustomerDocument(
+  acceptance: z.infer<typeof LegalAcceptanceSchema>,
+  document: CustomerLegalDocument,
+): boolean {
+  return (
+    acceptance.accepted === true &&
+    acceptance.document_reference === document.document_reference &&
+    acceptance.document_version === document.document_version &&
+    acceptance.document_hash.toLowerCase() ===
+      document.document_hash.toLowerCase()
+  );
+}
+
+function acceptanceMatchesModuleDocument(input: {
+  companyId: string;
+  acceptance: z.infer<typeof LegalAcceptanceSchema>;
+  version: WebsiteLegalAcceptanceVersion;
+}): boolean {
+  return (
+    input.acceptance.accepted === true &&
+    input.acceptance.document_reference ===
+      publicReference("legal_document", input.companyId, input.version.id) &&
+    input.acceptance.document_version === input.version.version &&
+    input.acceptance.document_hash.toLowerCase() ===
+      String(input.version.content_sha256 ?? "").toLowerCase()
+  );
+}
+
 async function assertWebsiteLegalAcceptances(input: {
   companyId: string;
   consents?: Record<string, unknown>;
@@ -1570,69 +1683,123 @@ async function assertWebsiteLegalAcceptances(input: {
     companyId: input.companyId,
     publicOffer: input.publicOffer,
   });
-  if (input.legalAcceptances) {
-    if (
-      !input.legalBundleVersion ||
-      input.legalBundleVersion !== publicReference(
-        "legal_bundle",
-        input.companyId,
-        input.publicOffer.legal_bundle_version_id,
-      )
-    ) {
+  if (!input.legalAcceptances) {
+    throw new WebsiteApplicationError({
+      message:
+        "Explicit dokumentbunden acceptans krävs för varje kunddokument i det publicerade juridikpaketet.",
+      status: 422,
+      code: "legal_acceptance_missing",
+      field: "legal_acceptances",
+      stage: "legal_acceptance",
+      hint:
+        "Hämta legal-bundle och skicka bundle_version samt en acceptansrad per returnerat kunddokument.",
+    });
+  }
+
+  const bundleId = input.publicOffer.legal_bundle_version_id;
+  if (
+    !bundleId ||
+    !input.legalBundleVersion ||
+    input.legalBundleVersion !==
+      publicReference("legal_bundle", input.companyId, bundleId)
+  ) {
+    throw new WebsiteApplicationError({
+      message:
+        "Juridikpaketet har ändrats. Hämta och visa det aktuella paketet innan kunden godkänner igen.",
+      status: 409,
+      code: "legal_bundle_version_mismatch",
+      field: "legal_bundle_version",
+      stage: "legal_acceptance",
+      hint:
+        "Hämta /api/v1/website/legal-bundle på nytt och skapa acceptanser från det returnerade paketet.",
+    });
+  }
+
+  const seenCodes = new Set<string>();
+  for (const acceptance of input.legalAcceptances) {
+    if (seenCodes.has(acceptance.requirement_code)) {
       throw new WebsiteApplicationError({
-        message: "Juridikpaketet har ändrats. Hämta och visa det aktuella paketet innan kunden godkänner igen.",
-        status: 409,
-        code: "legal_bundle_version_mismatch",
-        field: "legal_bundle_version",
+        message: "Samma juridikkrav får inte skickas flera gånger.",
+        status: 422,
+        code: "legal_acceptance_duplicate",
+        field: "legal_acceptances",
         stage: "legal_acceptance",
-        hint: "Hämta /api/v1/website/legal-bundle på nytt och skapa acceptanser från det returnerade paketet.",
       });
     }
-    const duplicates = new Set<string>();
-    for (const acceptance of input.legalAcceptances) {
-      if (duplicates.has(acceptance.requirement_code)) {
-        throw new WebsiteApplicationError({
-          message: "Samma juridikkrav får inte skickas flera gånger.",
-          status: 422,
-          code: "legal_acceptance_duplicate",
-          field: "legal_acceptances",
-          stage: "legal_acceptance",
-        });
-      }
-      duplicates.add(acceptance.requirement_code);
-    }
-    const missingOrChanged = legalVersions.filter((version) => {
-      const requirementCode = version.module_key ?? version.type;
-      const acceptance = input.legalAcceptances?.find(
-        (item) => item.requirement_code === requirementCode,
-      );
-      return (
-        !acceptance ||
-        acceptance.accepted !== true ||
-        acceptance.document_reference !== publicReference(
-          "legal_document",
-          input.companyId,
-          version.id,
-        ) ||
-        acceptance.document_version !== version.version ||
-        acceptance.document_hash.toLowerCase() !==
-          String(version.content_sha256 ?? "").toLowerCase()
-      );
+    seenCodes.add(acceptance.requirement_code);
+  }
+
+  const customerDocuments = customerDocumentsForAcceptance({
+    companyId: input.companyId,
+    legalBundleVersionId: bundleId,
+    legalVersions,
+  });
+  const groupedCodes = new Set(
+    customerDocuments.map((document) => document.requirement_code),
+  );
+  const moduleCodes = new Set(
+    legalVersions.map((version) => version.module_key ?? version.type),
+  );
+  const groupedMode =
+    input.legalAcceptances.length === customerDocuments.length &&
+    input.legalAcceptances.every(
+      (acceptance) =>
+        isCustomerLegalDocumentKind(acceptance.requirement_code) &&
+        groupedCodes.has(acceptance.requirement_code),
+    ) &&
+    customerDocuments.every((document) =>
+      seenCodes.has(document.requirement_code),
+    );
+  const legacyModuleMode =
+    input.legalAcceptances.length === legalVersions.length &&
+    input.legalAcceptances.every((acceptance) =>
+      moduleCodes.has(acceptance.requirement_code),
+    ) &&
+    legalVersions.every((version) =>
+      seenCodes.has(version.module_key ?? version.type),
+    );
+
+  if (!groupedMode && !legacyModuleMode) {
+    throw new WebsiteApplicationError({
+      message:
+        "Juridikacceptanserna måste motsvara antingen de tre kunddokumenten eller det äldre kompletta modulpaketet. Blandade format tillåts inte.",
+      status: 409,
+      code: "legal_acceptance_document_mismatch",
+      field: "legal_acceptances",
+      stage: "legal_acceptance",
+      hint:
+        "Hämta det aktuella juridikpaketet och skicka exakt en acceptans per post i requirements. Äldre klienter får fortsatt skicka en rad per module_version.",
+      details: {
+        expected_customer_documents: customerDocuments.map(
+          (document) => document.requirement_code,
+        ),
+        expected_module_documents: legalVersions.map(
+          (version) => version.module_key ?? version.type,
+        ),
+      },
     });
-    if (
-      missingOrChanged.length > 0 ||
-      input.legalAcceptances.length !== legalVersions.length
-    ) {
+  }
+
+  if (groupedMode) {
+    const invalidDocuments = customerDocuments.filter((document) => {
+      const acceptance = input.legalAcceptances?.find(
+        (item) => item.requirement_code === document.requirement_code,
+      );
+      return !acceptance || !acceptanceMatchesCustomerDocument(acceptance, document);
+    });
+    if (invalidDocuments.length > 0) {
       throw new WebsiteApplicationError({
-        message: "Minst ett juridikkrav saknas eller matchar inte det aktuella dokumentets ID, version och hash.",
+        message:
+          "Minst ett kunddokument saknas eller matchar inte det aktuella dokumentets ID, version och hash.",
         status: 409,
         code: "legal_acceptance_document_mismatch",
         field: "legal_acceptances",
         stage: "legal_acceptance",
-        hint: "Hämta det aktuella juridikpaketet och låt kunden godkänna samtliga returnerade krav igen.",
+        hint:
+          "Hämta /api/v1/website/legal-bundle på nytt och låt kunden godkänna samtliga returnerade requirements igen.",
         details: {
-          requirements: missingOrChanged.map(
-            (version) => version.module_key ?? version.type,
+          requirements: invalidDocuments.map(
+            (document) => document.requirement_code,
           ),
         },
       });
@@ -1640,14 +1807,39 @@ async function assertWebsiteLegalAcceptances(input: {
     return legalVersions;
   }
 
-  throw new WebsiteApplicationError({
-    message: "Explicit dokumentbunden acceptans krävs för varje publicerat juridikkrav.",
-    status: 422,
-    code: "legal_acceptance_missing",
-    field: "legal_acceptances",
-    stage: "legal_acceptance",
-    hint: "Hämta legal-bundle och skicka bundle_version samt en acceptansrad per returnerat krav.",
+  const invalidModules = legalVersions.filter((version) => {
+    const requirementCode = version.module_key ?? version.type;
+    const acceptance = input.legalAcceptances?.find(
+      (item) => item.requirement_code === requirementCode,
+    );
+    return (
+      !acceptance ||
+      !acceptanceMatchesModuleDocument({
+        companyId: input.companyId,
+        acceptance,
+        version,
+      })
+    );
   });
+  if (invalidModules.length > 0) {
+    throw new WebsiteApplicationError({
+      message:
+        "Minst ett äldre modulbundet juridikkrav saknas eller matchar inte dokumentets ID, version och hash.",
+      status: 409,
+      code: "legal_acceptance_document_mismatch",
+      field: "legal_acceptances",
+      stage: "legal_acceptance",
+      hint:
+        "Hämta det aktuella juridikpaketet. Nya klienter ska använda de samlade requirements som API:t returnerar.",
+      details: {
+        requirements: invalidModules.map(
+          (version) => version.module_key ?? version.type,
+        ),
+      },
+    });
+  }
+
+  return legalVersions;
 }
 
 type CustomerLegalAcceptanceEvidenceInput = {
@@ -1674,6 +1866,45 @@ function buildCustomerLegalAcceptanceEvidence(
   const definitionsByType = new Map(
     requirements.map((definition) => [definition.legalType, definition]),
   );
+  const rawPayload = isObject(input.rawPayload) ? input.rawPayload : {};
+  const parsedAcceptances = z.array(LegalAcceptanceSchema).safeParse(
+    rawPayload.legal_acceptances ?? rawPayload.legalAcceptances ?? [],
+  );
+  const groupedAcceptanceByModule = new Map<
+    string,
+    {
+      requirement_code: string;
+      document_reference: string;
+      document_version: string;
+      document_hash: string;
+      accepted_at: string;
+    }
+  >();
+  const bundleId = input.publicOffer?.legal_bundle_version_id ?? null;
+  if (bundleId && parsedAcceptances.success) {
+    const customerDocuments = customerDocumentsForAcceptance({
+      companyId: input.companyId,
+      legalBundleVersionId: bundleId,
+      legalVersions: input.legalVersions,
+    });
+    for (const document of customerDocuments) {
+      const acceptance = parsedAcceptances.data.find(
+        (candidate) =>
+          candidate.requirement_code === document.requirement_code &&
+          acceptanceMatchesCustomerDocument(candidate, document),
+      );
+      if (!acceptance) continue;
+      for (const moduleKey of document.module_keys) {
+        groupedAcceptanceByModule.set(moduleKey, {
+          requirement_code: acceptance.requirement_code,
+          document_reference: acceptance.document_reference,
+          document_version: acceptance.document_version,
+          document_hash: acceptance.document_hash.toLowerCase(),
+          accepted_at: acceptance.accepted_at,
+        });
+      }
+    }
+  }
   const rows = input.legalVersions
     .map((legal) => {
       const legalType = legalAcceptanceTypeForModule(
@@ -1681,6 +1912,9 @@ function buildCustomerLegalAcceptanceEvidence(
       );
       const definition = definitionsByType.get(legalType);
       if (!definition) return null;
+      const moduleKey = legal.module_key ?? legal.type;
+      const customerDocumentAcceptance =
+        groupedAcceptanceByModule.get(moduleKey) ?? null;
       return {
         company_id: input.companyId,
         customer_id: input.customerId,
@@ -1689,7 +1923,7 @@ function buildCustomerLegalAcceptanceEvidence(
         acceptance_type: definition.acceptanceType,
         legal_text_version_id: null,
         legal_bundle_version_document_id: legal.id,
-        legal_module_key: legal.module_key ?? legal.type,
+        legal_module_key: moduleKey,
         legal_document_version: legal.version,
         legal_document_sha256:
           legal.content_sha256 ??
@@ -1712,6 +1946,12 @@ function buildCustomerLegalAcceptanceEvidence(
             published_at: legal.published_at,
           },
           public_offer: input.publicOffer,
+          customer_document_acceptance: customerDocumentAcceptance
+            ? {
+                ...customerDocumentAcceptance,
+                covers_module_key: moduleKey,
+              }
+            : null,
           consent_key: definition.field,
           consents: input.consents ?? {},
         },
@@ -1919,6 +2159,29 @@ async function ensureWebsitePowerOfAttorney(input: {
   // Never trust frontend legal text: prefer the explicitly referenced active
   // legal version (textVersionId), then the published power_of_attorney version.
   const requestedVersionId = input.structuredPoa?.textVersionId ?? null;
+  const offerPowerOfAttorneyVersion = input.legalVersions.find(
+    (row) => (row.module_key ?? row.type) === "power_of_attorney",
+  );
+  if (
+    requestedVersionId &&
+    offerPowerOfAttorneyVersion &&
+    requestedVersionId !== offerPowerOfAttorneyVersion.id
+  ) {
+    throw new WebsiteApplicationError({
+      message:
+        "Angiven fullmaktsversion matchar inte fullmakten i det accepterade offer_reference.",
+      status: 409,
+      code: "power_of_attorney_offer_version_mismatch",
+      field: "powerOfAttorney.textVersionId",
+      stage: "power_of_attorney",
+      hint:
+        "Använd primary_document_id för requirement_code=power_of_attorney från samma legal-bundle som kunden har godkänt, eller utelämna textVersionId så binder OPS den aktuella versionen automatiskt.",
+      details: {
+        expected_document_id: offerPowerOfAttorneyVersion.id,
+        received_document_id: requestedVersionId,
+      },
+    });
+  }
   let referencedLegal: WebsiteLegalAcceptanceVersion | null = null;
   if (requestedVersionId) {
     // loadLegalTextVersionById throws on schema mismatch, so a null result here
@@ -1977,13 +2240,10 @@ async function ensureWebsitePowerOfAttorney(input: {
   }
 
   const now = new Date().toISOString();
-  const submittedStructuredPoaIsSendable = structuredPoaIsExternallySendable(
-    input.structuredPoa ?? null,
-  );
   let existingQuery = supabaseService
     .from("powers_of_attorney")
     .select(
-      "id,signer_name,signer_identity_number,method,evidence_payload,metadata",
+      "id,signer_name,signer_identity_number,method,valid_from,legal_text_version_id,signed_scope_snapshot,fullmakt_snapshot,evidence_payload,metadata",
     )
     .eq("company_id", input.companyId)
     .eq("customer_id", input.customerId)
@@ -1994,13 +2254,16 @@ async function ensureWebsitePowerOfAttorney(input: {
     ? existingQuery.eq("contract_id", input.contractId)
     : existingQuery.is("contract_id", null);
 
-  const existing = await existingQuery.limit(1).maybeSingle();
+  const existing = await existingQuery
+    .order("created_at", { ascending: false })
+    .limit(25);
 
   if (existing.error && !missingSchema(existing.error)) throw existing.error;
-  if (existing.data?.id) {
-    const existingEvidence = existing.data.evidence_payload as
+  const submittedScopes = [...input.structuredPoa.scope].sort();
+  for (const existingRow of existing.data ?? []) {
+    const existingEvidence = existingRow.evidence_payload as
       Record<string, unknown> | null | undefined;
-    const existingMetadata = existing.data.metadata as
+    const existingMetadata = existingRow.metadata as
       Record<string, unknown> | null | undefined;
     const existingIsStructuredComplete =
       existingEvidence?.capture_type === "structured_complete" ||
@@ -2008,17 +2271,41 @@ async function ensureWebsitePowerOfAttorney(input: {
       existingMetadata?.poa_capture_type === "structured_complete" ||
       existingMetadata?.externally_sendable === true;
     const existingLooksSendable = Boolean(
-      clean(existing.data.signer_name) &&
-      clean(existing.data.signer_identity_number) &&
-      clean(existing.data.method) &&
+      clean(existingRow.signer_name) &&
+      clean(existingRow.signer_identity_number) &&
+      clean(existingRow.method) &&
       existingIsStructuredComplete,
     );
-    // Reuse weak/legacy rows for weak submissions, and reuse complete rows for
-    // complete submissions. If a customer later submits a complete structured
-    // POA after an older weak one, insert a fresh complete row instead of
-    // letting the weak row block external sendability.
-    if (!submittedStructuredPoaIsSendable || existingLooksSendable) {
-      const existingPowerOfAttorneyId = String(existing.data.id);
+    const existingSnapshot = isObject(existingRow.fullmakt_snapshot)
+      ? existingRow.fullmakt_snapshot
+      : {};
+    const existingScopesRaw = Array.isArray(existingRow.signed_scope_snapshot)
+      ? existingRow.signed_scope_snapshot
+      : Array.isArray(existingEvidence?.scopes)
+        ? existingEvidence.scopes
+        : Array.isArray(existingSnapshot.scopes)
+          ? existingSnapshot.scopes
+          : [];
+    const existingScopes = Array.from(
+      new Set<string>(
+        existingScopesRaw
+          .map((scope: unknown) => String(scope).trim().toLowerCase())
+          .filter((scope: string) => scope.length > 0),
+      ),
+    ).sort();
+    const exactScopesMatch =
+      existingScopes.length === submittedScopes.length &&
+      existingScopes.every((scope, index) => scope === submittedScopes[index]);
+    const existingLegalVersionId =
+      clean(existingRow.legal_text_version_id) ??
+      clean(existingEvidence?.legal_text_version_id) ??
+      clean(existingSnapshot.legal_text_version_id);
+    const exactLegalVersionMatches = existingLegalVersionId === legal.id;
+    // A complete POA may only be reused when its immutable legal version and
+    // exact signed scope snapshot match this accepted offer. Different scope or
+    // text creates a new POA; OPS never widens an existing authorization.
+    if (existingLooksSendable && exactScopesMatch && exactLegalVersionMatches) {
+      const existingPowerOfAttorneyId = String(existingRow.id);
       await ensureWebsiteAuthorizationChainFromPowerOfAttorney({
         companyId: input.companyId,
         customerId: input.customerId,
@@ -2028,6 +2315,7 @@ async function ensureWebsitePowerOfAttorney(input: {
         powerOfAttorneyId: existingPowerOfAttorneyId,
         applicationId: input.applicationId,
         reference: `POA-${input.applicationId}`,
+        validFrom: clean(existingRow.valid_from) ?? now.slice(0, 10),
         scopes: input.structuredPoa.scope,
         legal,
         snapshot: {
@@ -2044,6 +2332,7 @@ async function ensureWebsitePowerOfAttorney(input: {
         evidencePayload: {
           reused: true,
           legal_text_version_id: legal.id,
+          scopes: input.structuredPoa.scope,
           source: "website_api",
         },
       });
@@ -2106,11 +2395,12 @@ async function ensureWebsitePowerOfAttorney(input: {
     customer_site_id: input.customerSiteId,
     metering_point_id: input.meteringPointId,
     scope: "supplier_switch",
-    status: "signed",
-    signed_at: now,
+    status: externallySendableAtCapture ? "signed" : "draft",
+    signed_at: externallySendableAtCapture ? now : null,
     accepted_at: acceptedAt,
-    valid_from: now.slice(0, 10),
+    valid_from: acceptedAt.slice(0, 10),
     legal_text_version_id: legal.id,
+    signed_scope_snapshot: scopes,
     fullmakt_snapshot: snapshot,
     signer_name: signerName,
     signer_identity_number: signerIdentityNumber,
@@ -2125,7 +2415,7 @@ async function ensureWebsitePowerOfAttorney(input: {
     reference: `POA-${input.applicationId}`,
     scope_summary: {
       scopes,
-      supplier_switch: true,
+      supplier_switch: scopes.includes("supplier_switch"),
       facility_information_lookup: scopes.includes(
         "facility_information_lookup",
       ),
@@ -2173,27 +2463,30 @@ async function ensureWebsitePowerOfAttorney(input: {
 
   const powerOfAttorneyId = data?.id ? String(data.id) : null;
   if (powerOfAttorneyId) {
-    const scopeResult = await supabaseService
-      .from("power_of_attorney_scopes")
-      .insert({
-        company_id: input.companyId,
-        power_of_attorney_id: powerOfAttorneyId,
-        customer_id: input.customerId,
-        site_id: input.customerSiteId,
-        metering_point_id: input.meteringPointId,
-        customer_contract_id: input.contractId,
-        scope_type: "supplier_switch",
-        status: "active",
-        is_active: true,
-        valid_from: now.slice(0, 10),
-        metadata: {
-          source: "website_customer_applications",
-          application_id: input.applicationId,
-        },
-      });
+    if (externallySendableAtCapture) {
+      const scopeResult = await supabaseService
+        .from("power_of_attorney_scopes")
+        .insert({
+          company_id: input.companyId,
+          power_of_attorney_id: powerOfAttorneyId,
+          customer_id: input.customerId,
+          site_id: input.customerSiteId,
+          metering_point_id: input.meteringPointId,
+          customer_contract_id: input.contractId,
+          scope_type: "supplier_switch",
+          status: "active",
+          is_active: true,
+          valid_from: acceptedAt.slice(0, 10),
+          metadata: {
+            source: "website_customer_applications",
+            application_id: input.applicationId,
+            signed_scopes: scopes,
+          },
+        });
 
-    if (scopeResult.error && !missingSchema(scopeResult.error))
-      throw scopeResult.error;
+      if (scopeResult.error && !missingSchema(scopeResult.error))
+        throw scopeResult.error;
+    }
 
     // Immutable POA document snapshot (JSON) linked back onto the POA row.
     const documentId = await createPowerOfAttorneyDocumentSnapshot({
@@ -2207,22 +2500,24 @@ async function ensureWebsitePowerOfAttorney(input: {
       snapshot,
       evidencePayload,
     });
-    const authorizationDocumentId =
-      await ensureWebsiteAuthorizationChainFromPowerOfAttorney({
-        companyId: input.companyId,
-        customerId: input.customerId,
-        contractId: input.contractId,
-        customerSiteId: input.customerSiteId,
-        meteringPointId: input.meteringPointId,
-        powerOfAttorneyId,
-        applicationId: input.applicationId,
-        reference: row.reference,
-        scopes,
-        legal,
-        snapshot,
-        evidencePayload,
-        internalSnapshotDocumentId: documentId,
-      });
+    const authorizationDocumentId = externallySendableAtCapture
+      ? await ensureWebsiteAuthorizationChainFromPowerOfAttorney({
+          companyId: input.companyId,
+          customerId: input.customerId,
+          contractId: input.contractId,
+          customerSiteId: input.customerSiteId,
+          meteringPointId: input.meteringPointId,
+          powerOfAttorneyId,
+          applicationId: input.applicationId,
+          reference: row.reference,
+          validFrom: acceptedAt.slice(0, 10),
+          scopes,
+          legal,
+          snapshot,
+          evidencePayload,
+          internalSnapshotDocumentId: documentId,
+        })
+      : null;
 
     if (authorizationDocumentId || documentId) {
       // The operational document_id must point at the authorization document chain
@@ -2351,6 +2646,7 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
   powerOfAttorneyId: string;
   applicationId: string;
   reference: string;
+  validFrom: string;
   scopes: string[];
   legal: WebsiteLegalAcceptanceVersion;
   snapshot: Record<string, unknown>;
@@ -2494,8 +2790,14 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
       throw existingScope.error;
 
     if (!existingScope.data?.id) {
-      const normalizedScopes = new Set(input.scopes.map((scope) => scope.trim().toLowerCase()).filter(Boolean));
-      if (normalizedScopes.size === 0) {
+      const signedScopeSnapshot = Array.from(
+        new Set(
+          input.scopes
+            .map((scope) => scope.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ).sort();
+      if (signedScopeSnapshot.length === 0) {
         throw new WebsiteApplicationError({
           message: "Authorization scope kan inte skapas utan signerade scopes.",
           status: 422,
@@ -2504,15 +2806,7 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
           stage: "power_of_attorney",
         });
       }
-      const coversGridOwnerData =
-        normalizedScopes.has("grid_owner_data") ||
-        normalizedScopes.has("facility_information_lookup") ||
-        normalizedScopes.has("supplier_switch");
-      const coversCurrentSupplierContract =
-        normalizedScopes.has("current_supplier_contract") || normalizedScopes.has("supplier_switch");
-      const coversMeteringData =
-        normalizedScopes.has("metering_data") || normalizedScopes.has("facility_information_lookup");
-      const signedScopeSnapshot = [...normalizedScopes];
+      const coverage = powerOfAttorneyCoverageFromScopes(signedScopeSnapshot);
       const scopeInsert = await supabaseService
         .from("authorization_scopes")
         .insert({
@@ -2521,11 +2815,12 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
           authorization_document_id: authorizationDocumentId,
           scope_type: "supplier_switch_data",
           status: "active",
-          covers_grid_owner_data: coversGridOwnerData,
-          covers_current_supplier_contract: coversCurrentSupplierContract,
-          covers_metering_data: coversMeteringData,
+          covers_grid_owner_data: coverage.coversGridOwnerData,
+          covers_current_supplier_contract:
+            coverage.coversCurrentSupplierContract,
+          covers_metering_data: coverage.coversMeteringData,
           signed_scope_snapshot: signedScopeSnapshot,
-          valid_from: now.slice(0, 10),
+          valid_from: input.validFrom,
           evidence_note:
             "Signerad website-fullmakt verifierad och kopplad till uppgifts-/leverantörsbytesflödet.",
           metadata: {
@@ -2599,7 +2894,7 @@ type ErrorStage =
   | "manual_information_request"
   | "manual_review"
   | "power_of_attorney"
-  | "facility_lookup"
+  | "facility_information_lookup"
   | "email_dispatch";
 
 class WebsiteApplicationError extends Error {
@@ -9134,7 +9429,7 @@ export async function continueWebsiteCustomerApplication(input: {
       state,
       eventCode: waiting ? "workflow.facility_request_sent" : "workflow.facility_request_evaluated",
       reasonCode: intakeDecision.blockers[0]?.code ?? null,
-      idempotencyKey: `workflow.facility_lookup:${input.applicationId}:${state}`,
+      idempotencyKey: `workflow.facility_information_lookup:${input.applicationId}:${state}`,
       snapshotPatch: {
         next_action: intakeDecision.nextAction,
         intake_decision: intakeDecision,

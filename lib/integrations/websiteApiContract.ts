@@ -218,13 +218,31 @@ export type LegalBundleDocument = {
   url: string | null
 }
 
-export type LegalRequirement = {
-  requirement_code: string
+export type CustomerLegalDocumentType =
+  | 'agreement'
+  | 'power_of_attorney'
+  | 'withdrawal'
+
+export type CustomerLegalDocument = {
+  requirement_code: CustomerLegalDocumentType
+  document_type: CustomerLegalDocumentType
+  title: string
+  description: string
+  acceptance_mode: 'accept' | 'acknowledge'
   document_reference: string
   document_version: string
   document_hash: string
-  document_url: string
+  document_url: string | null
+  legal_bundle_version_id: string
+  module_keys: string[]
+  source_document_ids: string[]
+  primary_document_id: string | null
+  sort_order: number
   required: true
+}
+
+export type LegalRequirement = Omit<CustomerLegalDocument, 'document_url'> & {
+  document_url: string
 }
 
 export type LegalAcceptance = {

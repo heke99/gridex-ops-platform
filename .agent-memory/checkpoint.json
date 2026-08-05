@@ -1,77 +1,64 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-04T13:03:20+02:00",
-  "branch": "master",
-  "last_verified_commit": "97c37c4",
-  "active_phase": "PHASE-42",
-  "active_task": "WP-042",
-  "active_subtask": "Apply canonical multitenant website flow migration, deploy, then prove two tenants end to end",
-  "status": "SOURCE_VERIFIED_DATABASE_APPLY_PENDING",
+  "updated_at": "2026-08-05T15:20:07+02:00",
+  "branch": "archive working tree",
+  "last_verified_commit": null,
+  "active_phase": "PHASE-44",
+  "active_task": "WP-044",
+  "active_subtask": "Deploy and prove three-document legal acceptance plus signed POA supplier-switch chain for private and business tenants",
+  "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
   "implemented_not_environment_verified": [
-    "canonical tenant website readiness and operation-policy enforcement",
-    "mandatory fail-closed customer portal identity and portal URL",
-    "exact application status lineage and actual job/mail/webhook evidence",
-    "durable terminal continuation projection and resumable partial applications",
-    "durable workflow status and supplier-switch webhook events",
-    "OpenAPI 2026-08-04.1 immutable release",
-    "migration, safe ledger repair classifier, postflight and sync script"
+    "three customer-facing legal documents with immutable source-module evidence",
+    "tenant legal-profile snapshot rendering for historical documents",
+    "website grouped acceptance with legacy module compatibility",
+    "Customer Portal grouped acceptance expansion to exact module rows",
+    "exact signed POA scope and legal-version reuse guards",
+    "OpenAPI 2026-08-05.1 immutable release",
+    "duplicate/mixed legal acceptance prevalidation and signed-event fail-closed guard"
   ],
   "active_blockers": [
-    "20260804121000 has not been applied to live Supabase",
     "modified OPS code has not been deployed",
-    "no active tenant webhook existed in live audit",
-    "real second-tenant application/portal/webhook proof requires operator credentials and endpoints",
-    "package mirror 404 prevents clean npm ci and full Next.js build"
+    "package mirror 404 prevents clean npm ci and full dependency-backed gates",
+    "real private/business two-tenant legal and supplier-switch E2E is pending"
   ],
   "verification": [
     {
-      "name": "new migration live compilation",
-      "status": "VERIFIED_ROLLBACK_ONLY",
-      "evidence": "all DDL and data statements compiled in a live transaction; rollback confirmed no persisted changes"
-    },
-    {
-      "name": "legacy ledger repair safety",
-      "status": "VERIFIED",
-      "evidence": "exact function SHA-256, ACL, trigger, constraint and zero backfill gaps"
-    },
-    {
-      "name": "migration integrity",
+      "name": "customer legal package regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "362 files, 266 version groups, checksums pass"
+      "evidence": "grouping, tenant snapshot, grouped Customer Portal evidence expansion, format prevalidation and signed-event fail-closed checks pass"
+    },
+    {
+      "name": "website and platform POA regressions",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "structured POA, fail-closed sendability and canonical authorization chain checks pass"
     },
     {
       "name": "API/OpenAPI/docs",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "runtime parity, examples, compatibility and immutable 2026-08-04.1 release pass"
-    },
-    {
-      "name": "multitenant website application flow",
-      "status": "VERIFIED_STATICALLY",
-      "evidence": "canonical readiness, portal, lineage, continuation, mail and webhook regression pass"
+      "evidence": "version, compatibility, examples, runtime boundary and immutable 2026-08-05.1 release pass"
     },
     {
       "name": "changed TypeScript syntax",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "22 changed TS/TSX files transpile with TypeScript 5.8.3"
+      "evidence": "17 changed TS/TSX files transpile with TypeScript 5.8.3"
     },
     {
-      "name": "clean dependency install and production build",
+      "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
       "evidence": "package mirror 404 for zod-validation-error@4.0.2"
     },
     {
-      "name": "two-tenant live E2E",
+      "name": "live tenant legal/POA/supplier-switch E2E",
       "status": "PENDING",
-      "evidence": "requires migration apply, deployment, credentials, portal identities and webhook endpoints"
+      "evidence": "requires sync, deploy, tenant credentials and test customers"
     }
   ],
-  "next_action": "Run scripts/sync-multitenant-website-application-flow.sh with DATABASE_URL, deploy OPS, provision Gridex plus a second tenant, then execute and verify one full application per tenant.",
+  "next_action": "Sync the changed-files package, deploy OPS, then execute one private and one business tenant legal-bundle/acceptance/POA/supplier-switch smoke flow.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Database must deploy before application code",
-    "Never mark old migrations applied unless the sync script classifies them repair-safe",
-    "Do not restore scopes-only launch_ready",
-    "Do not use global OPS login as tenant portal fallback",
-    "Do not store API keys, database URLs or production customer data in memory"
+    "Do not collapse canonical legal module storage; only customer presentation is grouped",
+    "Do not allow a POA reference to bind to different legal text or scopes",
+    "Do not mark a legacy schema fallback POA signed",
+    "Do not claim deployment or live E2E before evidence exists"
   ]
 }

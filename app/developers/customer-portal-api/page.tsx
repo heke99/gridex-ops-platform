@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-04.3.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-05.1.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
@@ -387,7 +387,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }`;
 
 const marketReferenceExample = `{
@@ -435,7 +435,7 @@ const marketPriceErrorExample = `{
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }`;
 
 const marketPriceErrors = [
@@ -562,12 +562,28 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
     "legal_bundle_version": "<bundle-uuid-from-legal-bundle>",
     "legal_acceptances": [
       {
-        "requirement_code": "general_consumer_terms",
-        "document_reference": "<stable-document-reference-from-legal-bundle>",
-        "document_version": "2026-07-30-v1",
-        "document_hash": "<64-character-sha256-from-legal-bundle>",
+        "requirement_code": "agreement",
+        "document_reference": "<agreement-reference-from-legal-bundle>",
+        "document_version": "<agreement-version-from-legal-bundle>",
+        "document_hash": "<agreement-sha256-from-legal-bundle>",
         "accepted": true,
-        "accepted_at": "2026-07-30T09:00:00Z"
+        "accepted_at": "2026-08-05T09:00:00Z"
+      },
+      {
+        "requirement_code": "power_of_attorney",
+        "document_reference": "<poa-reference-from-legal-bundle>",
+        "document_version": "<poa-version-from-legal-bundle>",
+        "document_hash": "<poa-sha256-from-legal-bundle>",
+        "accepted": true,
+        "accepted_at": "2026-08-05T09:00:00Z"
+      },
+      {
+        "requirement_code": "withdrawal",
+        "document_reference": "<withdrawal-reference-from-legal-bundle>",
+        "document_version": "<withdrawal-version-from-legal-bundle>",
+        "document_hash": "<withdrawal-sha256-from-legal-bundle>",
+        "accepted": true,
+        "accepted_at": "2026-08-05T09:00:00Z"
       }
     ],
     "powerOfAttorney": {
@@ -596,8 +612,9 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
 //
 // Juridikens source of truth är alltid OPS. Hemsidan ska visa juridiklänkarna
 // och versionerna från public-contracts/legal-bundle och skicka tillbaka
-// legal_bundle_version och en acceptansrad per returnerat krav med exakt
-// document_id, document_version och document_hash. För fullmakt ska
+// legal_bundle_version och en acceptansrad per returnerat kunddokument med
+// exakt requirement_code, document_reference, document_version och
+// document_hash. För fullmakt ska
 // powerOfAttorney.textVersionId vara
 // legal.power_of_attorney_version_id från det publicerade avtalet. Skicka inte
 // egna juridiska texter, egna versionsnamn eller egen fullmaktstext som källa.
@@ -646,7 +663,7 @@ const applicationResponse = `{
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }
 
 # accepted betyder att canonical kund/site/avtal/juridiksnapshot, portalidentitet,
@@ -676,7 +693,7 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }
 
 Vanliga 422-koder:
@@ -783,29 +800,50 @@ const customerSyncExample = `curl -X POST "${apiBaseUrl}/customer/sync" \
     "customer_number": "DX-100023",
     "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f",
     "power_of_attorney": {
-      "scope": "supplier_switch",
-      "status": "signed",
-      "signed_at": "2026-06-16T15:10:12.647Z",
-      "legal_text_version": "2026-06-12-v1",
-      "reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
-      "document": {
-        "external_document_id": "tenant-doc-123",
-        "document_type": "power_of_attorney",
-        "title": "Signerad fullmakt",
-        "file_url": "https://tenant.se/documents/tenant-doc-123.pdf"
-      }
+      "power_of_attorney_reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
+      "document_reference": "legal_customer_document_...",
+      "scope": ["supplier_switch", "facility_information_lookup"],
+      "accepted": true,
+      "accepted_at": "2026-08-05T09:00:00Z",
+      "signer_name": "Anna Andersson",
+      "signer_identity_number": "YYYYMMDDXXXX",
+      "method": "bankid",
+      "ip_address": "203.0.113.10",
+      "user_agent": "Mozilla/5.0",
+      "valid_from": "2026-08-05"
     },
     "legal_acceptances": [
-      { "acceptance_type": "terms", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
-      { "acceptance_type": "privacy_policy", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
-      { "acceptance_type": "price_snapshot", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" }
+      {
+        "document_reference": "legal_customer_document_...",
+        "document_code": "agreement",
+        "document_version": "legal_customer_version_...",
+        "document_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "accepted": true,
+        "accepted_at": "2026-08-05T09:00:00Z"
+      },
+      {
+        "document_reference": "legal_customer_document_...",
+        "document_code": "power_of_attorney",
+        "document_version": "legal_customer_version_...",
+        "document_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "accepted": true,
+        "accepted_at": "2026-08-05T09:00:00Z"
+      },
+      {
+        "document_reference": "legal_customer_document_...",
+        "document_code": "withdrawal",
+        "document_version": "legal_customer_version_...",
+        "document_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "accepted": true,
+        "accepted_at": "2026-08-05T09:00:00Z"
+      }
     ],
     "documents": [
       {
-        "external_document_id": "tenant-contract-123",
+        "document_reference": "tenant-contract-123",
         "document_type": "contract_confirmation",
         "title": "Avtalsbekräftelse",
-        "file_url": "https://tenant.se/documents/tenant-contract-123.pdf"
+        "secure_url": "https://tenant.se/documents/tenant-contract-123.pdf"
       }
     ]
   }'`;
@@ -856,7 +894,7 @@ const webhookPayload = `{
     "workflow_state": "switch_request_queued",
     "next_step": "automatic_processing"
   },
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }`;
 
 const webhookHeaders = `X-Gridex-Event-Id: event_123
@@ -1262,13 +1300,17 @@ export default function CustomerPortalApiDocsPage() {
             bort i nästa majorversion.
           </p>
           <p>
-            Juridiken i <code>legal</code> är OPS source of truth. Visa
-            dokumentlänkarna från OPS och skicka separata consent-flaggor. OPS
-            binder varje accept server-side till exakt{" "}
-            <code>legal_bundle_version_document_id</code>, dokumentversion och
-            dokumenthash i den låsta juridikpaketversionen. Kravuppsättningen är
-            databasdriven och kan variera med kundtyp, avtal, prismodell, kanal,
-            produkt och fullmakt; klienten får inte anta fem fasta dokument.
+            Juridiken i <code>legal</code> är OPS source of truth. Visa de
+            kunddokument som returneras i <code>customer_documents</code> och
+            skicka tillbaka en exakt acceptansrad per returnerat krav. OPS
+            presenterar högst tre kundkrav: <code>agreement</code>,
+            <code>power_of_attorney</code> och, för konsumentflöden där det är
+            tillämpligt, <code>withdrawal</code>. Varje gruppacceptans expanderas
+            server-side till bevis för samtliga exakta, låsta
+            <code>legal_bundle_version_document_id</code>-moduler och deras
+            dokumenthashar. Klienten får aldrig bygga egna juridiska texter,
+            byta dokumentreferenser eller blanda gruppformatet med äldre
+            modulacceptanser i samma request.
           </p>
           <p>
             Vid publiceringsfelsökning kan tenantens backend använda{" "}
@@ -1296,7 +1338,7 @@ export default function CustomerPortalApiDocsPage() {
             Tenantens backend läser den verifierade serversessionens Supabase
             <code>session.user.id</code> och skickar samma UUID som både
             <code>customer_portal_user_id</code> och <code>auth_user_id</code>.
-            Anonyma kundansökningar stöds inte i kontraktsversion 2026-08-04.3.
+            Anonyma kundansökningar stöds inte i kontraktsversion 2026-08-05.1.
             Båda portal-ID-fälten är obligatoriska och måste vara samma verifierade UUID;
             annars returneras <code>422 portal_auth_identity_required</code> eller
             <code>portal_auth_identity_mismatch</code>. OPS skapar kund, kundnummer,

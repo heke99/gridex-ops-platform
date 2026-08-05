@@ -89,7 +89,7 @@ export async function getLatestSignedPowerOfAttorneyForCustomer(params: {
 
 export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
   companyId: string
-  actorUserId: string
+  actorUserId?: string | null
   customerId: string
   powerOfAttorneyId?: string | null
   authorizationDocumentId?: string | null
@@ -130,14 +130,35 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
       signed_scope_snapshot?: unknown
       metadata?: Record<string, unknown> | null
     } | undefined
-    const requestedSignedScopes = (params.signedScopes ?? [])
-      .map((scope) => scope.trim().toLowerCase())
-      .filter(Boolean)
+    const requestedSignedScopes = Array.from(
+      new Set(
+        (params.signedScopes ?? [])
+          .map((scope) => scope.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ).sort()
     const existingSignedScopes = Array.isArray(existing?.signed_scope_snapshot)
-      ? existing.signed_scope_snapshot.map(String).filter(Boolean)
+      ? Array.from(
+          new Set(
+            existing.signed_scope_snapshot
+              .map(String)
+              .map((scope) => scope.trim().toLowerCase())
+              .filter(Boolean),
+          ),
+        ).sort()
       : []
     if (existingSignedScopes.length === 0 && requestedSignedScopes.length === 0) {
       throw new Error('Signerad fullmakt saknar oföränderligt scope-snapshot. Behörighet kan inte skapas eller breddas automatiskt.')
+    }
+    if (
+      existingSignedScopes.length > 0 &&
+      requestedSignedScopes.length > 0 &&
+      (existingSignedScopes.length !== requestedSignedScopes.length ||
+        existingSignedScopes.some(
+          (scope, index) => scope !== requestedSignedScopes[index],
+        ))
+    ) {
+      throw new Error('Begärda scopes matchar inte den redan skapade behörighetens signerade scope-snapshot.')
     }
     const immutableScopes = existingSignedScopes.length > 0 ? existingSignedScopes : requestedSignedScopes
     const immutableCoverage = powerOfAttorneyCoverageFromScopes(immutableScopes)
@@ -169,7 +190,7 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
           valid_to: params.validTo ?? null,
           evidence_note: params.evidenceNote ?? 'Signerad fullmakt verifierad i kundkortet.',
           metadata,
-          updated_by: params.actorUserId,
+          updated_by: params.actorUserId ?? null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
@@ -194,8 +215,8 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
         valid_to: params.validTo ?? null,
         evidence_note: params.evidenceNote ?? 'Signerad fullmakt verifierad i kundkortet.',
         metadata,
-        created_by: params.actorUserId,
-        updated_by: params.actorUserId,
+        created_by: params.actorUserId ?? null,
+        updated_by: params.actorUserId ?? null,
       })
       .select('id')
       .single()

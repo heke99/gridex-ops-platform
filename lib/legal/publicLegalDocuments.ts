@@ -4,9 +4,17 @@ import {
   canonicalLegalModuleLabel,
   isCanonicalLegalModule,
 } from "@/lib/legal/canonicalModules";
+import {
+  buildCustomerLegalDocuments,
+  isCustomerLegalDocumentKind,
+  renderCustomerLegalDocumentBody,
+  type CustomerLegalDocumentKind,
+  type CustomerLegalModuleVersion,
+} from "@/lib/legal/customerDocumentPackage";
 import { supabaseService } from "@/lib/supabase/service";
 
 const LEGACY_TYPE_TO_SEGMENT = {
+  agreement: "agreement",
   terms: "terms",
   privacy_policy: "privacy",
   withdrawal: "withdrawal",
@@ -16,7 +24,9 @@ const LEGACY_TYPE_TO_SEGMENT = {
 
 type LegacyLegalDocumentType = keyof typeof LEGACY_TYPE_TO_SEGMENT;
 export type LegalDocumentType =
-  LegacyLegalDocumentType | (typeof CANONICAL_LEGAL_MODULES)[number];
+  | LegacyLegalDocumentType
+  | CustomerLegalDocumentKind
+  | (typeof CANONICAL_LEGAL_MODULES)[number];
 
 const LEGACY_SEGMENT_TO_TYPE = Object.entries(LEGACY_TYPE_TO_SEGMENT).reduce(
   (acc, [type, segment]) => {
@@ -33,6 +43,7 @@ function canonicalSegment(moduleKey: string): string {
 export function legalTypeToUrlSegment(type: string): string | null {
   const legacy = LEGACY_TYPE_TO_SEGMENT[type as LegacyLegalDocumentType];
   if (legacy) return legacy;
+  if (isCustomerLegalDocumentKind(type)) return canonicalSegment(type);
   return isCanonicalLegalModule(type) ? canonicalSegment(type) : null;
 }
 
@@ -51,6 +62,13 @@ function moduleMatchesRequestedType(
   requestedType: LegalDocumentType,
 ): boolean {
   if (moduleKey === requestedType) return true;
+  if (requestedType === "agreement") {
+    return ![
+      "power_of_attorney",
+      "withdrawal_right",
+      "withdrawal_form",
+    ].includes(moduleKey);
+  }
   if (requestedType === "terms") {
     return [
       "general_consumer_terms",
@@ -219,6 +237,108 @@ type ExactBundleDocumentRow = {
   unresolved_variables: string[] | null;
 };
 
+type CustomerBundleDocumentRow = ExactBundleDocumentRow & {
+  sort_order: number | null;
+};
+
+async function loadCustomerBundleDocument(input: {
+  companyId: string;
+  requestedType: LegalDocumentType;
+  versionId: string;
+}): Promise<PublicLegalVersion | null> {
+  if (!isCustomerLegalDocumentKind(input.requestedType)) return null;
+
+  const bundleResult = await supabaseService
+    .from("legal_bundle_versions")
+    .select(
+      "id,company_id,status,published_at,locked_at,tenant_legal_profile_snapshot,tenant_legal_profile_sha256",
+    )
+    .eq("id", input.versionId)
+    .eq("company_id", input.companyId)
+    .maybeSingle();
+  if (bundleResult.error || !bundleResult.data) return null;
+
+  const bundle = bundleResult.data as Record<string, unknown>;
+  const status = String(bundle.status ?? "");
+  if (
+    !["published", "replaced", "archived"].includes(status) ||
+    !bundle.locked_at
+  )
+    return null;
+
+  const documentResult = await supabaseService
+    .from("legal_bundle_version_documents")
+    .select(
+      "id,legal_bundle_version_id,module_key,title,rendered_body,content_sha256,template_version,origin,tenant_customized,created_at,unresolved_variables,sort_order",
+    )
+    .eq("legal_bundle_version_id", input.versionId)
+    .order("sort_order", { ascending: true })
+    .order("module_key", { ascending: true });
+  if (documentResult.error) return null;
+
+  const rows = (documentResult.data ?? []) as CustomerBundleDocumentRow[];
+  if (rows.some((row) => (row.unresolved_variables ?? []).length > 0)) {
+    return null;
+  }
+  const modules = rows.map((row) => ({
+    id: row.id,
+    module_key: row.module_key,
+    version: row.template_version ?? row.created_at,
+    title: row.title,
+    published_at:
+      typeof bundle.published_at === "string"
+        ? bundle.published_at
+        : row.created_at,
+    content_sha256: row.content_sha256,
+    legal_bundle_version_id: row.legal_bundle_version_id,
+    origin: row.origin,
+  })) satisfies CustomerLegalModuleVersion[];
+  const customerDocument = buildCustomerLegalDocuments({
+    companyId: input.companyId,
+    legalBundleVersionId: input.versionId,
+    modules,
+  }).find((document) => document.document_type === input.requestedType);
+  if (!customerDocument) return null;
+
+  const includedIds = new Set(customerDocument.source_document_ids);
+  const includedRows = rows.filter((row) => includedIds.has(row.id));
+  if (includedRows.length !== customerDocument.source_document_ids.length) {
+    return null;
+  }
+  const publishedAt =
+    (bundle.published_at as string | null) ?? includedRows[0]?.created_at ?? null;
+
+  return {
+    id: input.versionId,
+    company_id: input.companyId,
+    type: customerDocument.document_type,
+    version: customerDocument.document_version,
+    title: customerDocument.title,
+    body: renderCustomerLegalDocumentBody({
+      kind: customerDocument.document_type,
+      modules: includedRows.map((row) => ({
+        title: row.title,
+        body: row.rendered_body,
+      })),
+    }),
+    status,
+    published_at: publishedAt,
+    effective_from: publishedAt,
+    metadata: {
+      origin: "canonical_customer_document_package",
+      content_sha256: customerDocument.document_hash,
+      legal_bundle_version_id: input.versionId,
+      module_keys: customerDocument.module_keys,
+      source_document_ids: customerDocument.source_document_ids,
+      acceptance_mode: customerDocument.acceptance_mode,
+      tenant_legal_profile_snapshot:
+        bundle.tenant_legal_profile_snapshot ?? null,
+      tenant_legal_profile_sha256: bundle.tenant_legal_profile_sha256 ?? null,
+      immutable: true,
+    },
+  };
+}
+
 async function loadExactBundleDocument(input: {
   companyId: string;
   requestedType: LegalDocumentType;
@@ -241,7 +361,7 @@ async function loadExactBundleDocument(input: {
   const bundleResult = await supabaseService
     .from("legal_bundle_versions")
     .select(
-      "id,company_id,status,published_at,locked_at,tenant_legal_profile_sha256",
+      "id,company_id,status,published_at,locked_at,tenant_legal_profile_snapshot,tenant_legal_profile_sha256",
     )
     .eq("id", document.legal_bundle_version_id)
     .eq("company_id", input.companyId)
@@ -275,6 +395,8 @@ async function loadExactBundleDocument(input: {
       legal_bundle_version_id: document.legal_bundle_version_id,
       template_version: document.template_version,
       tenant_customized: document.tenant_customized === true,
+      tenant_legal_profile_snapshot:
+        bundle.tenant_legal_profile_snapshot ?? null,
       tenant_legal_profile_sha256: bundle.tenant_legal_profile_sha256 ?? null,
       immutable: true,
     },
@@ -358,6 +480,54 @@ async function loadLegacyPublishedVersion(input: {
   };
 }
 
+function textValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function companyFromTenantLegalSnapshot(
+  current: PublicLegalCompany,
+  metadata: Record<string, unknown> | null,
+): PublicLegalCompany {
+  const profile = recordValue(metadata?.tenant_legal_profile_snapshot);
+  if (Object.keys(profile).length === 0) return current;
+  const postal = recordValue(profile.postal_address);
+  const sourceCompany = recordValue(profile.source_company_snapshot);
+  const legalName = textValue(profile.legal_name) ?? textValue(sourceCompany.name);
+  const serviceEmail =
+    textValue(profile.customer_service_email) ??
+    textValue(sourceCompany.support_email);
+  const addressText =
+    textValue(postal.address_line_1) ??
+    textValue(postal.street) ??
+    textValue(postal.address) ??
+    textValue(postal.text);
+
+  return {
+    ...current,
+    // Once a published tenant profile snapshot exists, legal identity fields
+    // must come only from that immutable snapshot. Falling back field-by-field
+    // to the current tenant record could make an old agreement appear to have
+    // been issued by a later company profile.
+    name: legalName,
+    org_number: textValue(profile.organization_number),
+    support_email: serviceEmail,
+    primary_contact_email: serviceEmail,
+    phone: textValue(profile.phone),
+    website: textValue(profile.website),
+    address_line_1: addressText,
+    address_line_2: textValue(postal.address_line_2),
+    postal_code: textValue(postal.postal_code),
+    city: textValue(postal.city),
+    country: textValue(postal.country),
+  };
+}
+
 // Resolves immutable documents in this order: exact contract bundle document,
 // published tenant override, then historical legacy text. The fallback exists
 // only so already-issued links remain readable; all new public offers use exact
@@ -376,6 +546,11 @@ export async function loadPublishedLegalVersion(
   if (!company) return null;
 
   const version =
+    (await loadCustomerBundleDocument({
+      companyId: company.id,
+      requestedType,
+      versionId,
+    })) ??
     (await loadExactBundleDocument({
       companyId: company.id,
       requestedType,
@@ -392,5 +567,10 @@ export async function loadPublishedLegalVersion(
       versionId,
     }));
 
-  return version ? { company, version } : null;
+  return version
+    ? {
+        company: companyFromTenantLegalSnapshot(company, version.metadata),
+        version,
+      }
+    : null;
 }

@@ -18,3 +18,12 @@
 - Verified a real staged BRL/SE3 feature in a rolled-back live parser test.
 - Verified snapshot creation, SE3 underlay canonicalization and SE4 mismatch rejection
   in a complete rolled-back database test.
+
+## 2026-08-05
+
+- Added the three-document customer legal package.
+- Added Customer Portal grouped acceptance expansion.
+- Hardened tenant-bound POA and authorization scope reuse.
+- Published API/OpenAPI release 2026-08-05.1.
+
+- 2026-08-05T15:20:07+02:00: Customer Portal legal sync now prevalidates one acceptance format per request; draft/fallback POAs no longer emit signed events.

@@ -1,17 +1,18 @@
 # Open blockers
 
-Last updated: 2026-08-04T19:00:05+02:00
+Last updated: 2026-08-05T15:14:58+02:00
 
-## PHASE-43 blockers
+## PHASE-44 blockers
 
-1. Deploy the updated OPS source; the connected database is already migrated.
-2. Run the authenticated SVK import to completion and verify active current-source
-   geometry rows plus one verified geodata version.
-3. Execute a real quote/application/contract/metering/billing E2E with seeded data.
-4. Run clean npm install, typecheck, tests, lint and production build in an
-   environment with working registry access.
+1. Deploy the updated OPS source.
+2. Run clean dependency-backed typecheck, tests, lint and production build in an
+   environment where the npm package mirror serves all locked packages.
+3. Execute one private and one business tenant legal-bundle, acceptance, POA and
+   supplier-switch E2E and verify tenant isolation plus immutable evidence.
+4. Synchronize the tenant website against OpenAPI `2026-08-05.1` so it renders
+   the returned grouped `requirements` rather than canonical modules.
 
 ## Inherited blockers
 
-Prior tenant-webhook, two-tenant E2E, emergency-access, Ediel legacy-data and other
-production-hardening items remain separate and are not silently closed by PHASE-43.
+Prior SVK import, webhook, emergency-access, Ediel and broader production E2E
+items remain separate and are not closed by PHASE-44.

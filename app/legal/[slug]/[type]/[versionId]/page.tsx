@@ -13,9 +13,10 @@ export const revalidate = 300;
 type PageParams = { slug: string; type: string; versionId: string };
 
 const TYPE_LABELS: Record<string, string> = {
+  agreement: "Elhandelsavtal och villkor",
   terms: "Allmänna villkor",
   privacy_policy: "Integritetspolicy",
-  withdrawal: "Ångerrätt",
+  withdrawal: "Ångerrätt och ångerblankett",
   price_terms: "Prisvillkor",
   power_of_attorney: "Fullmakt",
 };
@@ -41,12 +42,14 @@ function formatDate(value: string | null): string | null {
 
 function poaScopes(metadata: Record<string, unknown> | null): string[] {
   const raw = metadata?.scopes;
-  if (Array.isArray(raw) && raw.length > 0) {
-    return raw.map((value) => String(value));
-  }
-  // Product default: a single power of attorney covers supplier switch and
-  // facility information lookup.
-  return ["supplier_switch", "facility_information_lookup"];
+  if (!Array.isArray(raw)) return [];
+  return Array.from(
+    new Set(
+      raw
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
 }
 
 export async function generateMetadata({
@@ -156,7 +159,7 @@ export default async function PublicLegalDocumentPage({
           ) : null}
         </section>
 
-        {isPoa ? (
+        {isPoa && scopes.length > 0 ? (
           <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-sm leading-6 text-emerald-950">
             <h2 className="text-base font-semibold">Fullmaktens omfattning</h2>
             <ul className="mt-3 list-disc space-y-1 pl-5">

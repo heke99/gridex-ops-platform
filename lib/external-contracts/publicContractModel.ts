@@ -1,4 +1,9 @@
 import { publicReference } from '@/lib/integrations/publicReferences'
+import {
+  buildCustomerLegalDocuments,
+  type CustomerLegalDocument,
+  type CustomerLegalModuleVersion,
+} from '@/lib/legal/customerDocumentPackage'
 
 export const PUBLIC_CONTRACT_ERROR_CODES = {
   legalBundleVersionMissing: 'PUBLICATION_LEGAL_BUNDLE_VERSION_MISSING',
@@ -90,6 +95,7 @@ export type PublicContractLegal = {
   immutable: true
   required_modules: string[]
   module_versions: PublicContractLegalModuleVersion[]
+  customer_documents: CustomerLegalDocument[]
   terms_version?: unknown
   privacy_policy_version?: unknown
   withdrawal_version?: unknown
@@ -151,6 +157,28 @@ function requiredText(value: unknown, path: string): string {
 
 function nullableText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function nullableLegalDocumentUrl(value: unknown, path: string): string | null {
+  const url = nullableText(value)
+  if (url === null) return null
+  if (url.startsWith('/legal/')) return url
+  try {
+    const parsed = new URL(url)
+    if (
+      (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+      parsed.pathname.startsWith('/legal/')
+    ) {
+      return url
+    }
+  } catch {
+    // Rejected below with the same fail-closed schema error as other DTO fields.
+  }
+  throw new PublicContractSerializationError(
+    PUBLIC_CONTRACT_ERROR_CODES.runtimeSchemaMismatch,
+    path,
+    `${path} must point to a legal document route`,
+  )
 }
 
 function requiredUuid(value: unknown, path: string): string {
@@ -537,6 +565,41 @@ export function serializePublicContractLegal(input: {
     )
   }
 
+  const suppliedCustomerDocuments = Array.isArray(legal.customer_documents)
+    ? legal.customer_documents.map(record)
+    : []
+  const customerDocuments = bundleId
+    ? buildCustomerLegalDocuments({
+        companyId: input.companyId,
+        legalBundleVersionId: bundleId,
+        modules: modules as CustomerLegalModuleVersion[],
+      }).map((document) => {
+        const supplied = suppliedCustomerDocuments.find(
+          (candidate) =>
+            nullableText(candidate.requirement_code) ===
+              document.requirement_code &&
+            nullableText(candidate.document_reference) ===
+              document.document_reference &&
+            nullableText(candidate.document_version) ===
+              document.document_version &&
+            nullableText(candidate.document_hash)?.toLowerCase() ===
+              document.document_hash.toLowerCase() &&
+            nullableText(candidate.legal_bundle_version_id) === bundleId,
+        )
+        return {
+          ...document,
+          // The URL is presentation-only. It is retained only after the complete
+          // immutable grouped-document identity has matched the rebuilt DTO.
+          document_url: supplied
+            ? nullableLegalDocumentUrl(
+                supplied.document_url,
+                `legal.customer_documents.${document.requirement_code}.document_url`,
+              )
+            : null,
+        }
+      })
+    : []
+
   const result: PublicContractLegal = {
     legal_bundle_reference:
       nullableText(legal.legal_bundle_reference) ??
@@ -547,6 +610,7 @@ export function serializePublicContractLegal(input: {
     immutable: true,
     required_modules: modules.map((moduleItem) => moduleItem.module_key),
     module_versions: modules,
+    customer_documents: customerDocuments,
     power_of_attorney_version_id: powerOfAttorneyModule?.id ?? null,
   }
   for (const field of LEGAL_COMPATIBILITY_FIELDS) {

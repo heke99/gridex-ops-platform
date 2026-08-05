@@ -6,6 +6,13 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
 import { isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { publicReference } from '@/lib/integrations/publicReferences'
+import {
+  buildCustomerLegalDocuments,
+  customerLegalAcceptanceCategoryForModule,
+  type CustomerLegalModuleVersion,
+} from '@/lib/legal/customerDocumentPackage'
+import { ensureAuthorizationDocumentFromPowerOfAttorney } from '@/lib/legal/authorizationChain'
+import { powerOfAttorneyCoverageFromScopes } from '@/lib/operations/powerOfAttorneyWorkflow'
 
 type JsonRecord = Record<string, unknown>
 
@@ -41,6 +48,11 @@ type TenantPowerOfAttorneyInput = {
   scope: string[]
   accepted: true
   accepted_at: string
+  signer_name?: string
+  signer_identity_number?: string
+  method?: string
+  ip_address?: string
+  user_agent?: string
   valid_from?: string
   valid_to?: string
   metadata?: JsonRecord
@@ -128,13 +140,20 @@ function asRecord(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
 }
 
-function normalizeAcceptanceType(value: unknown): 'terms' | 'privacy_policy' | 'withdrawal_info' | 'price_snapshot' | 'power_of_attorney' | null {
-  const type = clean(value)?.toLowerCase()
-  if (!type) return null
-  if (type === 'withdrawal' || type === 'cancellation_right') return 'withdrawal_info'
-  if (type === 'price_terms' || type === 'price_snapshot') return 'price_snapshot'
-  if (type === 'terms' || type === 'privacy_policy' || type === 'power_of_attorney') return type
-  return null
+type StoredLegalAcceptanceType =
+  | 'terms'
+  | 'privacy_policy'
+  | 'withdrawal_info'
+  | 'price_snapshot'
+  | 'power_of_attorney'
+
+function normalizeAcceptanceType(value: unknown): StoredLegalAcceptanceType | null {
+  const moduleKey = clean(value)?.toLowerCase()
+  if (!moduleKey) return null
+  const category = customerLegalAcceptanceCategoryForModule(moduleKey)
+  if (category === 'withdrawal') return 'withdrawal_info'
+  if (category === 'price_terms') return 'price_snapshot'
+  return category
 }
 
 function nonNull<T extends JsonRecord>(input: T): JsonRecord {
@@ -190,14 +209,60 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
   return { contractId, siteId, meteringPointId, applicationId, legalBundleVersionId }
 }
 
-type ResolvedLegalDocument = {
+type ResolvedLegalModule = {
   id: string
-  acceptanceType: 'terms' | 'privacy_policy' | 'withdrawal_info' | 'price_snapshot' | 'power_of_attorney'
+  acceptanceType: StoredLegalAcceptanceType
   legalTextVersionId: string | null
+  moduleKey: string
+  version: string
+  hash: string
+  title: string | null
+}
+
+type ResolvedLegalDocument = {
   documentCode: string
   documentVersion: string
   documentHash: string
   title: string | null
+  legalBundleVersionId: string
+  referenceKind: 'module' | 'customer_document'
+  modules: ResolvedLegalModule[]
+}
+
+function resolvedLegalModule(row: Record<string, unknown>): ResolvedLegalModule {
+  const moduleKey = clean(row.module_key)
+  const version = clean(row.template_version) ?? clean(row.created_at)
+  const hash = clean(row.content_sha256)?.toLowerCase()
+  const acceptanceType = normalizeAcceptanceType(moduleKey)
+  if (!moduleKey || !version || !hash || !acceptanceType) {
+    throw new Error('LEGAL_DOCUMENT_NOT_ACCEPTABLE')
+  }
+  return {
+    id: String(row.id),
+    acceptanceType,
+    legalTextVersionId: clean(row.legacy_legal_text_version_id),
+    moduleKey,
+    version,
+    hash,
+    title: clean(row.title),
+  }
+}
+
+function assertAcceptedDocumentEvidence(input: {
+  expectedCode?: string
+  expectedVersion?: string
+  expectedHash?: string
+  actualCode: string
+  actualVersion: string
+  actualHash: string
+}) {
+  if (
+    (input.expectedCode && input.expectedCode !== input.actualCode) ||
+    (input.expectedVersion && input.expectedVersion !== input.actualVersion) ||
+    (input.expectedHash && input.expectedHash.toLowerCase() !== input.actualHash)
+  ) {
+    throw new Error('LEGAL_DOCUMENT_EVIDENCE_MISMATCH')
+  }
 }
 
 async function resolveLegalDocument(input: {
@@ -211,56 +276,102 @@ async function resolveLegalDocument(input: {
   if (!input.refs.legalBundleVersionId) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
   const result = await supabaseService
     .from('legal_bundle_version_documents')
-    .select('id,module_key,legacy_legal_text_version_id,title,content_sha256,template_version')
+    .select('id,legal_bundle_version_id,module_key,legacy_legal_text_version_id,title,content_sha256,template_version,created_at,origin')
     .eq('legal_bundle_version_id', input.refs.legalBundleVersionId)
   if (result.error) throw result.error
-  const document = (result.data ?? []).find((row) =>
-    publicReference('legal_document', input.companyId, row.id) === input.documentReference)
-  if (!document) throw new Error('LEGAL_DOCUMENT_REFERENCE_INVALID')
 
-  const documentCode = clean(document.module_key)
-  const documentVersion = clean(document.template_version)
-  const documentHash = clean(document.content_sha256)?.toLowerCase()
-  const acceptanceType = normalizeAcceptanceType(documentCode)
-  if (!documentCode || !documentVersion || !documentHash || !acceptanceType) {
-    throw new Error('LEGAL_DOCUMENT_NOT_ACCEPTABLE')
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  const exactRow = rows.find((row) =>
+    publicReference('legal_document', input.companyId, String(row.id)) === input.documentReference)
+
+  if (exactRow) {
+    const module = resolvedLegalModule(exactRow)
+    assertAcceptedDocumentEvidence({
+      expectedCode: input.expectedCode,
+      expectedVersion: input.expectedVersion,
+      expectedHash: input.expectedHash,
+      actualCode: module.moduleKey,
+      actualVersion: module.version,
+      actualHash: module.hash,
+    })
+    return {
+      documentCode: module.moduleKey,
+      documentVersion: module.version,
+      documentHash: module.hash,
+      title: module.title,
+      legalBundleVersionId: input.refs.legalBundleVersionId,
+      referenceKind: 'module',
+      modules: [module],
+    }
   }
-  if (
-    (input.expectedCode && input.expectedCode !== documentCode) ||
-    (input.expectedVersion && input.expectedVersion !== documentVersion) ||
-    (input.expectedHash && input.expectedHash.toLowerCase() !== documentHash)
-  ) {
-    throw new Error('LEGAL_DOCUMENT_EVIDENCE_MISMATCH')
+
+  const packageModules = rows.map((row) => ({
+    id: String(row.id),
+    module_key: String(row.module_key),
+    version: clean(row.template_version) ?? clean(row.created_at) ?? String(row.id),
+    title: clean(row.title) ?? String(row.module_key),
+    published_at: clean(row.created_at),
+    content_sha256: clean(row.content_sha256),
+    legal_bundle_version_id: clean(row.legal_bundle_version_id),
+    origin: clean(row.origin),
+  })) satisfies CustomerLegalModuleVersion[]
+  const customerDocument = buildCustomerLegalDocuments({
+    companyId: input.companyId,
+    legalBundleVersionId: input.refs.legalBundleVersionId,
+    modules: packageModules,
+  }).find((candidate) => candidate.document_reference === input.documentReference)
+  if (!customerDocument) throw new Error('LEGAL_DOCUMENT_REFERENCE_INVALID')
+
+  assertAcceptedDocumentEvidence({
+    expectedCode: input.expectedCode,
+    expectedVersion: input.expectedVersion,
+    expectedHash: input.expectedHash,
+    actualCode: customerDocument.requirement_code,
+    actualVersion: customerDocument.document_version,
+    actualHash: customerDocument.document_hash.toLowerCase(),
+  })
+
+  const sourceIds = new Set(customerDocument.source_document_ids)
+  const sourceRows = rows.filter((row) => sourceIds.has(String(row.id)))
+  if (sourceRows.length !== sourceIds.size) {
+    throw new Error('LEGAL_DOCUMENT_SOURCE_MISMATCH')
   }
+
   return {
-    id: document.id,
-    acceptanceType,
-    legalTextVersionId: clean(document.legacy_legal_text_version_id),
-    documentCode,
-    documentVersion,
-    documentHash,
-    title: clean(document.title),
+    documentCode: customerDocument.requirement_code,
+    documentVersion: customerDocument.document_version,
+    documentHash: customerDocument.document_hash.toLowerCase(),
+    title: customerDocument.title,
+    legalBundleVersionId: input.refs.legalBundleVersionId,
+    referenceKind: 'customer_document',
+    modules: sourceRows.map(resolvedLegalModule),
   }
 }
 
-async function findExistingLegalAcceptance(input: {
+async function existingLegalAcceptanceDocumentIds(input: {
   companyId: string
   customerId: string
   contractId: string | null
-  documentReference: string
-}): Promise<string | null> {
+  moduleIds: string[]
+}): Promise<Set<string>> {
+  if (input.moduleIds.length === 0) return new Set()
   let query = supabaseService
     .from('customer_legal_acceptances')
-    .select('id')
+    .select('legal_bundle_version_document_id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
-    .contains('metadata', { document_reference: input.documentReference })
-    .limit(1)
+    .in('legal_bundle_version_document_id', input.moduleIds)
   query = input.contractId ? query.eq('contract_id', input.contractId) : query.is('contract_id', null)
-  const result = await query.maybeSingle()
-  if (!result.error && result.data?.id) return clean(result.data.id)
-  if (result.error && !isMissingPortalSchemaError(result.error)) throw result.error
-  return null
+  const result = await query
+  if (result.error) {
+    if (isMissingPortalSchemaError(result.error)) return new Set()
+    throw result.error
+  }
+  return new Set(
+    (result.data ?? [])
+      .map((row) => clean(row.legal_bundle_version_document_id))
+      .filter((value): value is string => Boolean(value)),
+  )
 }
 
 async function syncLegalAcceptance(input: {
@@ -269,52 +380,79 @@ async function syncLegalAcceptance(input: {
   refs: SyncRefs
   acceptance: TenantLegalAcceptanceInput
   baseMetadata: JsonRecord
+  legalDocument?: ResolvedLegalDocument
 }): Promise<'created' | 'existing' | 'skipped'> {
   if (input.acceptance.accepted !== true) return 'skipped'
-  const legalDocument = await resolveLegalDocument({
-    companyId: input.client.company_id,
-    refs: input.refs,
-    documentReference: input.acceptance.document_reference,
-    expectedCode: input.acceptance.document_code,
-    expectedVersion: input.acceptance.document_version,
-    expectedHash: input.acceptance.document_hash,
-  })
+  const legalDocument =
+    input.legalDocument ??
+    (await resolveLegalDocument({
+      companyId: input.client.company_id,
+      refs: input.refs,
+      documentReference: input.acceptance.document_reference,
+      expectedCode: input.acceptance.document_code,
+      expectedVersion: input.acceptance.document_version,
+      expectedHash: input.acceptance.document_hash,
+    }))
   const contractId = input.refs.contractId
-  const existingId = await findExistingLegalAcceptance({
+  const existingIds = await existingLegalAcceptanceDocumentIds({
     companyId: input.client.company_id,
     customerId: input.identity.customer_id,
     contractId,
-    documentReference: input.acceptance.document_reference,
+    moduleIds: legalDocument.modules.map((module) => module.id),
   })
-  if (existingId) return 'existing'
+  const missingModules = legalDocument.modules.filter((module) => !existingIds.has(module.id))
+  if (missingModules.length === 0) return 'existing'
 
-  const payload = nonNull({
+  const rows = missingModules.map((module) => nonNull({
     company_id: input.client.company_id,
     customer_id: input.identity.customer_id,
     contract_id: contractId,
     contract_application_id: input.refs.applicationId,
-    acceptance_type: legalDocument.acceptanceType,
-    legal_text_version_id: legalDocument.legalTextVersionId,
+    acceptance_type: module.acceptanceType,
+    legal_text_version_id: module.legalTextVersionId,
+    legal_bundle_version_document_id: module.id,
+    legal_module_key: module.moduleKey,
+    legal_document_version: module.version,
+    legal_document_sha256: module.hash,
     accepted_at: input.acceptance.accepted_at,
     source: 'customer_portal',
     snapshot: {
-      document_code: legalDocument.documentCode,
-      document_version: legalDocument.documentVersion,
-      document_hash: legalDocument.documentHash,
-      document_title: legalDocument.title,
+      accepted_document: {
+        document_code: legalDocument.documentCode,
+        document_version: legalDocument.documentVersion,
+        document_hash: legalDocument.documentHash,
+        document_title: legalDocument.title,
+        document_reference: input.acceptance.document_reference,
+        reference_kind: legalDocument.referenceKind,
+      },
+      source_module: {
+        id: module.id,
+        module_key: module.moduleKey,
+        version: module.version,
+        hash: module.hash,
+        title: module.title,
+      },
     },
     metadata: {
       ...input.baseMetadata,
       ...asRecord(input.acceptance.metadata),
       document_reference: input.acceptance.document_reference,
+      accepted_document_code: legalDocument.documentCode,
       legal_bundle_version_id: input.refs.legalBundleVersionId,
-      legal_bundle_document_id: legalDocument.id,
+      legal_bundle_document_id: module.id,
+      legal_reference_kind: legalDocument.referenceKind,
+      grouped_source_document_count: legalDocument.modules.length,
     },
-  })
+  }))
 
-  const result = await supabaseService.from('customer_legal_acceptances').insert(payload).select('id').maybeSingle()
+  const result = await supabaseService
+    .from('customer_legal_acceptances')
+    .insert(rows)
+    .select('id')
   if (result.error) {
-    if (isMissingPortalSchemaError(result.error)) return 'skipped'
+    if (isMissingPortalSchemaError(result.error)) {
+      throw new Error('LEGAL_ACCEPTANCE_SCHEMA_MISMATCH')
+    }
     throw result.error
   }
   return 'created'
@@ -432,38 +570,133 @@ async function writeDocument(input: {
   return 'skipped'
 }
 
-async function findExistingPowerOfAttorney(input: {
+const TENANT_POWER_OF_ATTORNEY_SCOPES = new Set([
+  'supplier_switch',
+  'facility_information_lookup',
+])
+
+type ExistingTenantPowerOfAttorney = {
+  id: string
+  reference?: string | null
+  legal_text_version_id?: string | null
+  signed_scope_snapshot?: unknown
+  scope_summary?: unknown
+  fullmakt_snapshot?: unknown
+  evidence_payload?: unknown
+  signer_name?: string | null
+  signer_identity_number?: string | null
+  method?: string | null
+  metadata?: unknown
+  status?: string | null
+}
+
+function normalizeTenantPowerOfAttorneyScopes(scopes: string[]): string[] {
+  const normalized = Array.from(
+    new Set(scopes.map((scope) => scope.trim().toLowerCase()).filter(Boolean)),
+  ).sort()
+  if (
+    normalized.length === 0 ||
+    !normalized.includes('supplier_switch') ||
+    normalized.some((scope) => !TENANT_POWER_OF_ATTORNEY_SCOPES.has(scope))
+  ) {
+    throw new Error('POWER_OF_ATTORNEY_SCOPE_INVALID')
+  }
+  return normalized
+}
+
+function existingPowerOfAttorneyScopes(row: ExistingTenantPowerOfAttorney): string[] {
+  const evidence = asRecord(row.evidence_payload)
+  const snapshot = asRecord(row.fullmakt_snapshot)
+  const summary = asRecord(row.scope_summary)
+  const raw = Array.isArray(row.signed_scope_snapshot)
+    ? row.signed_scope_snapshot
+    : Array.isArray(evidence.scopes)
+      ? evidence.scopes
+      : Array.isArray(snapshot.scopes)
+        ? snapshot.scopes
+        : Array.isArray(summary.scopes)
+          ? summary.scopes
+          : []
+  return Array.from(
+    new Set(
+      raw
+        .map((scope) => String(scope).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ).sort()
+}
+
+function existingPowerOfAttorneyDocumentId(
+  row: ExistingTenantPowerOfAttorney,
+): string | null {
+  const evidence = asRecord(row.evidence_payload)
+  const snapshot = asRecord(row.fullmakt_snapshot)
+  const metadata = asRecord(row.metadata)
+  return (
+    clean(evidence.legal_bundle_version_document_id) ??
+    clean(snapshot.legal_bundle_version_document_id) ??
+    clean(metadata.legal_bundle_document_id) ??
+    clean(row.legal_text_version_id) ??
+    null
+  )
+}
+
+function existingPowerOfAttorneyIsExternallySendable(
+  row: ExistingTenantPowerOfAttorney,
+): boolean {
+  const evidence = asRecord(row.evidence_payload)
+  const metadata = asRecord(row.metadata)
+  return Boolean(
+    clean(row.signer_name) &&
+      clean(row.signer_identity_number) &&
+      clean(row.method) &&
+      (evidence.externally_sendable_at_capture === true ||
+        evidence.capture_type === 'structured_complete' ||
+        metadata.externally_sendable === true),
+  )
+}
+
+async function listExistingPowerOfAttorneys(input: {
   companyId: string
   customerId: string
   reference: string | null
   contractId: string | null
-  scope: string
-}): Promise<string | null> {
+}): Promise<ExistingTenantPowerOfAttorney[]> {
+  const selection =
+    'id,reference,legal_text_version_id,signed_scope_snapshot,scope_summary,fullmakt_snapshot,evidence_payload,signer_name,signer_identity_number,method,metadata,status'
   if (input.reference) {
     const byRef = await supabaseService
       .from('powers_of_attorney')
-      .select('id')
+      .select(selection)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .eq('reference', input.reference)
-      .limit(1)
-      .maybeSingle()
-    if (!byRef.error && byRef.data?.id) return clean(byRef.data.id)
-    if (byRef.error && !isMissingPortalSchemaError(byRef.error)) throw byRef.error
+      .order('created_at', { ascending: false })
+      .limit(5)
+    if (byRef.error) {
+      if (isMissingPortalSchemaError(byRef.error)) return []
+      throw byRef.error
+    }
+    return (byRef.data ?? []) as ExistingTenantPowerOfAttorney[]
   }
 
   let query = supabaseService
     .from('powers_of_attorney')
-    .select('id')
+    .select(selection)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
-    .eq('scope', input.scope)
-    .limit(1)
-  query = input.contractId ? query.eq('contract_id', input.contractId) : query.is('contract_id', null)
-  const result = await query.maybeSingle()
-  if (!result.error && result.data?.id) return clean(result.data.id)
-  if (result.error && !isMissingPortalSchemaError(result.error)) throw result.error
-  return null
+    .eq('scope', 'supplier_switch')
+    .order('created_at', { ascending: false })
+    .limit(25)
+  query = input.contractId
+    ? query.eq('contract_id', input.contractId)
+    : query.is('contract_id', null)
+  const result = await query
+  if (result.error) {
+    if (isMissingPortalSchemaError(result.error)) return []
+    throw result.error
+  }
+  return (result.data ?? []) as ExistingTenantPowerOfAttorney[]
 }
 
 async function writePowerOfAttorney(input: {
@@ -472,9 +705,10 @@ async function writePowerOfAttorney(input: {
   refs: SyncRefs
   poa: TenantPowerOfAttorneyInput
   baseMetadata: JsonRecord
-}): Promise<'created' | 'updated' | 'skipped'> {
-  if (input.poa.accepted !== true) return 'skipped'
-  const scope = input.poa.scope.join(',')
+}): Promise<{ result: 'created' | 'updated' | 'skipped'; signed: boolean }> {
+  if (input.poa.accepted !== true) return { result: 'skipped', signed: false }
+
+  const scopes = normalizeTenantPowerOfAttorneyScopes(input.poa.scope)
   const contractId = input.refs.contractId
   const siteId = input.refs.siteId
   const meteringPointId = input.refs.meteringPointId
@@ -484,20 +718,96 @@ async function writePowerOfAttorney(input: {
     refs: input.refs,
     documentReference: input.poa.document_reference,
   })
-  if (legalDocument.acceptanceType !== 'power_of_attorney') {
+  const poaModule =
+    legalDocument.modules.length === 1 ? legalDocument.modules[0] : null
+  if (!poaModule || poaModule.acceptanceType !== 'power_of_attorney') {
     throw new Error('POWER_OF_ATTORNEY_DOCUMENT_REQUIRED')
   }
+
+  const signerName = clean(input.poa.signer_name)
+  const signerIdentityNumber = clean(input.poa.signer_identity_number)
+  const method = clean(input.poa.method)
+  const externallySendable = Boolean(
+    signerName && signerIdentityNumber && method,
+  )
   const acceptedAt = input.poa.accepted_at
-  const status = 'signed'
   const now = new Date().toISOString()
-  const existingId = await findExistingPowerOfAttorney({ companyId: input.client.company_id, customerId: input.identity.customer_id, reference, contractId, scope })
+  const status = externallySendable ? 'signed' : 'draft'
+  const validFrom = clean(input.poa.valid_from) ?? acceptedAt.slice(0, 10)
+  const validTo = clean(input.poa.valid_to)
+  const captureType = externallySendable
+    ? 'structured_complete'
+    : 'legacy_weak_consent'
   const metadata = {
     ...input.baseMetadata,
     ...asRecord(input.poa.metadata),
     contract_application_id: input.refs.applicationId,
     document_reference: input.poa.document_reference,
-    legal_bundle_document_id: legalDocument.id,
+    legal_bundle_version_id: legalDocument.legalBundleVersionId,
+    legal_bundle_document_id: poaModule.id,
+    legal_reference_kind: legalDocument.referenceKind,
     external_customer_id: input.identity.external_customer_id,
+    externally_sendable: externallySendable,
+    poa_capture_type: captureType,
+    requires_completion: !externallySendable,
+  }
+  const fullmaktSnapshot = {
+    ...asRecord(input.poa.metadata),
+    document_reference: input.poa.document_reference,
+    document_code: poaModule.moduleKey,
+    document_version: poaModule.version,
+    document_hash: poaModule.hash,
+    accepted_document_reference: input.poa.document_reference,
+    accepted_document_version: legalDocument.documentVersion,
+    accepted_document_hash: legalDocument.documentHash,
+    legal_bundle_version_id: legalDocument.legalBundleVersionId,
+    legal_bundle_version_document_id: poaModule.id,
+    scopes,
+    accepted_at: acceptedAt,
+  }
+  const evidencePayload = {
+    accepted: true,
+    accepted_at: acceptedAt,
+    method,
+    scopes,
+    signer_name: signerName,
+    signer_identity_number: signerIdentityNumber,
+    ip_address: clean(input.poa.ip_address),
+    user_agent: clean(input.poa.user_agent),
+    legal_bundle_version_id: legalDocument.legalBundleVersionId,
+    legal_bundle_version_document_id: poaModule.id,
+    legal_text_version_id: poaModule.legalTextVersionId,
+    legal_document_version: poaModule.version,
+    legal_document_sha256: poaModule.hash,
+    accepted_document_reference: input.poa.document_reference,
+    accepted_document_version: legalDocument.documentVersion,
+    accepted_document_sha256: legalDocument.documentHash,
+    source: 'customer_portal_api',
+    externally_sendable_at_capture: externallySendable,
+    requires_completion: !externallySendable,
+    capture_type: captureType,
+  }
+
+  const existingRows = await listExistingPowerOfAttorneys({
+    companyId: input.client.company_id,
+    customerId: input.identity.customer_id,
+    reference,
+    contractId,
+  })
+  const exactExisting = existingRows.find((row) => {
+    const existingScopes = existingPowerOfAttorneyScopes(row)
+    const exactScopes =
+      existingScopes.length === scopes.length &&
+      existingScopes.every((scope, index) => scope === scopes[index])
+    return (
+      exactScopes &&
+      existingPowerOfAttorneyDocumentId(row) === poaModule.id
+    )
+  })
+  if (reference && existingRows.length > 0 && !exactExisting) {
+    // A reference is an immutable signer-facing identity. Reusing it with a
+    // different legal document or scope would silently widen/rebind the POA.
+    throw new Error('POWER_OF_ATTORNEY_REFERENCE_CONFLICT')
   }
 
   const fullPayload = nonNull({
@@ -507,24 +817,29 @@ async function writePowerOfAttorney(input: {
     customer_site_id: siteId,
     site_id: siteId,
     metering_point_id: meteringPointId,
-    scope,
+    scope: 'supplier_switch',
     status,
-    signed_at: acceptedAt,
+    signed_at: externallySendable ? acceptedAt : null,
     accepted_at: acceptedAt,
-    valid_from: clean(input.poa.valid_from) ?? acceptedAt.slice(0, 10),
-    valid_to: clean(input.poa.valid_to),
-    legal_text_version_id: legalDocument.legalTextVersionId,
-    fullmakt_snapshot: {
-      ...asRecord(input.poa.metadata),
-      document_reference: input.poa.document_reference,
-      document_code: legalDocument.documentCode,
-      document_version: legalDocument.documentVersion,
-      document_hash: legalDocument.documentHash,
-    },
+    valid_from: validFrom,
+    valid_to: validTo,
+    legal_text_version_id: poaModule.legalTextVersionId,
+    signed_scope_snapshot: scopes,
+    fullmakt_snapshot: fullmaktSnapshot,
+    signer_name: signerName,
+    signer_identity_number: signerIdentityNumber,
+    method,
+    evidence_payload: evidencePayload,
+    accepted_ip: clean(input.poa.ip_address),
+    accepted_user_agent: clean(input.poa.user_agent),
     accepted_source: 'customer_portal',
     reference,
     scope_summary: {
-      scopes: input.poa.scope,
+      scopes,
+      supplier_switch: true,
+      facility_information_lookup: scopes.includes(
+        'facility_information_lookup',
+      ),
       contract_id: contractId,
       customer_site_id: siteId,
       metering_point_id: meteringPointId,
@@ -538,34 +853,133 @@ async function writePowerOfAttorney(input: {
     customer_id: input.identity.customer_id,
     site_id: siteId,
     metering_point_id: meteringPointId,
-    scope,
-    status,
-    signed_at: acceptedAt,
-    valid_from: clean(input.poa.valid_from) ?? acceptedAt.slice(0, 10),
-    valid_to: clean(input.poa.valid_to),
+    scope: 'supplier_switch',
+    // A legacy schema that cannot persist the complete signer/evidence snapshot
+    // must never surface the POA as signed. It remains fail-closed until the
+    // canonical schema is available and the same exact authorization is completed.
+    status: 'draft',
+    signed_at: null,
+    valid_from: validFrom,
+    valid_to: validTo,
     reference,
-    metadata,
+    scope_summary: { scopes },
+    fullmakt_snapshot: fullmaktSnapshot,
+    metadata: {
+      ...metadata,
+      desired_status: status,
+      legacy_schema_fallback: true,
+      externally_sendable: false,
+      requires_completion: true,
+    },
     updated_at: now,
   })
 
-  for (const payload of [fullPayload, fallbackPayload]) {
-    const result = existingId
-      ? await supabaseService.from('powers_of_attorney').update(payload).eq('id', existingId).eq('company_id', input.client.company_id).select('id').maybeSingle()
-      : await supabaseService.from('powers_of_attorney').insert({ ...payload, created_at: now }).select('id').maybeSingle()
-    if (!result.error) return existingId ? 'updated' : 'created'
-    if (!isMissingPortalSchemaError(result.error)) {
-      if (result.error.code === '23514' && payload.status === status) {
-        const retry = { ...payload, status: 'draft', metadata: { ...metadata, desired_status: status, status_constraint_retry: true } }
-        const retryResult = existingId
-          ? await supabaseService.from('powers_of_attorney').update(retry).eq('id', existingId).eq('company_id', input.client.company_id).select('id').maybeSingle()
-          : await supabaseService.from('powers_of_attorney').insert({ ...retry, created_at: now }).select('id').maybeSingle()
-        if (!retryResult.error) return existingId ? 'updated' : 'created'
+  let powerOfAttorneyId: string | null = exactExisting?.id ?? null
+  const resultKind: 'created' | 'updated' = exactExisting ? 'updated' : 'created'
+  let persistedAsSigned =
+    exactExisting?.status === 'signed' &&
+    existingPowerOfAttorneyIsExternallySendable(exactExisting)
+
+  if (!exactExisting || (externallySendable && !persistedAsSigned)) {
+    for (const payload of [fullPayload, fallbackPayload]) {
+      const updatePayload = exactExisting ? { ...payload } : payload
+      if (
+        exactExisting &&
+        Array.isArray(exactExisting.signed_scope_snapshot) &&
+        exactExisting.signed_scope_snapshot.length === 0
+      ) {
+        // The database protects an already-created POA scope snapshot from any
+        // mutation. Legacy rows may still be completed without rewriting that
+        // column because the same exact scopes are already present in their
+        // captured scope_summary/fullmakt evidence.
+        delete updatePayload.signed_scope_snapshot
       }
-      throw result.error
+      const result = exactExisting
+        ? await supabaseService
+            .from('powers_of_attorney')
+            .update(updatePayload)
+            .eq('id', exactExisting.id)
+            .eq('company_id', input.client.company_id)
+            .select('id,status')
+            .maybeSingle()
+        : await supabaseService
+            .from('powers_of_attorney')
+            .insert({ ...payload, created_at: now })
+            .select('id,status')
+            .maybeSingle()
+      if (!result.error) {
+        powerOfAttorneyId = clean(result.data?.id)
+        persistedAsSigned = result.data?.status === 'signed'
+        break
+      }
+      if (!isMissingPortalSchemaError(result.error)) {
+        if (result.error.code === '23514' && payload.status === 'signed') {
+          const retry = {
+            ...updatePayload,
+            status: 'draft',
+            signed_at: null,
+            metadata: {
+              ...metadata,
+              desired_status: 'signed',
+              status_constraint_retry: true,
+            },
+          }
+          const retryResult = exactExisting
+            ? await supabaseService
+                .from('powers_of_attorney')
+                .update(retry)
+                .eq('id', exactExisting.id)
+                .eq('company_id', input.client.company_id)
+                .select('id,status')
+                .maybeSingle()
+            : await supabaseService
+                .from('powers_of_attorney')
+                .insert({ ...retry, created_at: now })
+                .select('id,status')
+                .maybeSingle()
+          if (!retryResult.error) {
+            powerOfAttorneyId = clean(retryResult.data?.id)
+            persistedAsSigned = false
+            break
+          }
+        }
+        throw result.error
+      }
     }
   }
 
-  return 'skipped'
+  if (!powerOfAttorneyId) {
+    // An explicitly accepted POA may never disappear into a successful sync
+    // summary. Missing/old schema must fail the request so the tenant retries
+    // after OPS has been upgraded instead of starting a switch without proof.
+    throw new Error('POWER_OF_ATTORNEY_PERSISTENCE_FAILED')
+  }
+
+  if (externallySendable && persistedAsSigned) {
+    await ensureAuthorizationDocumentFromPowerOfAttorney({
+      companyId: input.client.company_id,
+      customerId: input.identity.customer_id,
+      powerOfAttorneyId,
+      actorUserId: null,
+      siteId,
+      meteringPointId,
+      contractId,
+      reference,
+      source: 'customer_portal_api',
+      validFrom,
+      validTo,
+      coverage: powerOfAttorneyCoverageFromScopes(scopes),
+      signedScopes: scopes,
+      metadata: {
+        application_id: input.refs.applicationId,
+        legal_bundle_version_id: legalDocument.legalBundleVersionId,
+        legal_bundle_version_document_id: poaModule.id,
+        document_reference: input.poa.document_reference,
+      },
+    })
+  }
+
+  return { result: resultKind, signed: externallySendable && persistedAsSigned }
 }
 
 async function syncFacilityData(input: {
@@ -827,16 +1241,49 @@ export async function syncTenantCustomerRecords(input: {
   })
 
   const acceptances = Array.isArray(input.payload.legal_acceptances) ? input.payload.legal_acceptances : []
-  for (const acceptance of acceptances) {
-    const result = await syncLegalAcceptance({ client: input.client, identity: input.identity, refs, acceptance, baseMetadata })
+  const seenAcceptanceReferences = new Set<string>()
+  const resolvedAcceptances = await Promise.all(
+    acceptances.map(async (acceptance) => {
+      if (seenAcceptanceReferences.has(acceptance.document_reference)) {
+        throw new Error('LEGAL_ACCEPTANCE_DUPLICATE')
+      }
+      seenAcceptanceReferences.add(acceptance.document_reference)
+      return {
+        acceptance,
+        legalDocument: await resolveLegalDocument({
+          companyId: input.client.company_id,
+          refs,
+          documentReference: acceptance.document_reference,
+          expectedCode: acceptance.document_code,
+          expectedVersion: acceptance.document_version,
+          expectedHash: acceptance.document_hash,
+        }),
+      }
+    }),
+  )
+  const acceptanceReferenceKinds = new Set(
+    resolvedAcceptances.map(({ legalDocument }) => legalDocument.referenceKind),
+  )
+  if (acceptanceReferenceKinds.size > 1) {
+    throw new Error('LEGAL_ACCEPTANCE_FORMAT_MIXED')
+  }
+  for (const { acceptance, legalDocument } of resolvedAcceptances) {
+    const result = await syncLegalAcceptance({
+      client: input.client,
+      identity: input.identity,
+      refs,
+      acceptance,
+      baseMetadata,
+      legalDocument,
+    })
     summary.legal_acceptances[result === 'created' ? 'created' : result === 'existing' ? 'existing' : 'skipped']++
   }
 
   if (input.payload.power_of_attorney) {
     const poa = input.payload.power_of_attorney
     const poaResult = await writePowerOfAttorney({ client: input.client, identity: input.identity, refs, poa, baseMetadata })
-    summary.powers_of_attorney[poaResult === 'created' ? 'created' : poaResult === 'updated' ? 'updated' : 'skipped']++
-    if (poaResult !== 'skipped') {
+    summary.powers_of_attorney[poaResult.result === 'created' ? 'created' : poaResult.result === 'updated' ? 'updated' : 'skipped']++
+    if (poaResult.signed) {
       await emitSyncEvent({ client: input.client, identity: input.identity, type: 'power_of_attorney.signed', refs, events: summary.events })
     }
   }

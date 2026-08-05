@@ -17,3 +17,18 @@
 | Full npm gates | BLOCKED | Dependencies absent; registry DNS returned `EAI_AGAIN` |
 | Full official SVK import | PENDING | Requires updated deployed code/cron; active rows currently zero |
 | Quote-to-invoice E2E | PENDING | Requires deployed app and real test data |
+
+## PHASE-44 — 2026-08-05T15:14:58+02:00
+
+| Check | Result | Evidence |
+|---|---|---|
+| Three-document grouping | PASS | customer legal package regression |
+| Grouped acceptance -> exact module rows | PASS | static regression and source inspection |
+| POA exact scope/legal identity | PASS | website/platform POA regressions |
+| Tenant snapshot historical rendering | PASS | legal package regression |
+| API/OpenAPI 2026-08-05.1 | PASS | version, compatibility, examples, runtime and release gates |
+| Changed TS/TSX syntax | PASS | TypeScript 5.8.3 transpile, 17 files |
+| Full dependency gates | BLOCKED | package mirror 404 |
+| Live private/business E2E | PENDING | deployment required |
+
+| 2026-08-05T15:20:07+02:00 | Customer Portal grouped/legacy prevalidation and signed-event fail-closed guard | PASS | `gridex-customer-legal-package-regression.cjs` |

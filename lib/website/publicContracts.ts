@@ -15,6 +15,11 @@ import {
 } from "@/lib/pricing/fixedAreaPricing";
 import { publicReference } from "@/lib/integrations/publicReferences";
 import {
+  buildCustomerLegalDocuments,
+  customerLegalAcceptanceCategoryForModule,
+  type CustomerLegalModuleVersion,
+} from "@/lib/legal/customerDocumentPackage";
+import {
   PUBLIC_CONTRACT_ERROR_CODES,
   PublicContractSerializationError,
   type PublicContractPriceOption,
@@ -139,16 +144,7 @@ const LEGAL_ACCEPTANCE_MODULE_PRIORITY: Record<
 export function legalAcceptanceTypeForModule(
   moduleKey: string,
 ): LegacyLegalAcceptanceType {
-  const normalized = moduleKey.trim().toLowerCase();
-  for (const [type, moduleKeys] of Object.entries(
-    LEGAL_ACCEPTANCE_MODULE_PRIORITY,
-  ) as Array<[LegacyLegalAcceptanceType, string[]]>) {
-    if (type === normalized || moduleKeys.includes(normalized)) return type;
-  }
-  // Modules such as supplier information, contact details and complaints are
-  // part of the agreement package and are covered by the explicit terms
-  // consent. They still receive their own immutable acceptance row.
-  return "terms";
+  return customerLegalAcceptanceCategoryForModule(moduleKey);
 }
 
 export function selectLegalVersionForAcceptance(
@@ -260,6 +256,17 @@ export function buildPublicLegalBlock(input: {
       url: urlForVersion(version),
     };
   });
+  const customerDocuments = legalBundleVersionId
+    ? buildCustomerLegalDocuments({
+        companyId: input.companyId,
+        legalBundleVersionId,
+        modules: moduleVersions as CustomerLegalModuleVersion[],
+        urlForKind: (kind) =>
+          slug
+            ? buildPublicLegalUrl(slug, kind, legalBundleVersionId)
+            : null,
+      })
+    : [];
 
   return {
     terms_version: versionLabel("terms", input.termsVersionFallback),
@@ -289,6 +296,7 @@ export function buildPublicLegalBlock(input: {
     power_of_attorney_url: url("power_of_attorney"),
     required_modules: moduleVersions.map((version) => version.module_key),
     module_versions: moduleVersions,
+    customer_documents: customerDocuments,
     legal_bundle_reference: legalBundleVersionId
       ? publicReference("legal_bundle", input.companyId, legalBundleVersionId)
       : null,
@@ -1325,13 +1333,20 @@ export type WebsiteLegalBundle = {
   present_types: string[];
   requirements: Array<{
     requirement_code: string;
+    document_type: string;
     title: string;
     description: string;
     required: true;
+    acceptance_mode: "accept" | "acknowledge";
     document_reference: string;
     document_version: string;
     document_hash: string;
     document_url: string;
+    legal_bundle_version_id: string;
+    module_keys: string[];
+    source_document_ids: string[];
+    primary_document_id: string | null;
+    sort_order: number;
   }>;
   tenant: {
     name: string | null;
@@ -1418,46 +1433,78 @@ export async function buildWebsiteLegalBundle(
     );
   }
   const tenantSlug = await loadCompanySlugById(client.company_id);
-  const versions = companyLegalVersions ?? [];
+  const versions: PublicLegalTextVersion[] = companyLegalVersions ?? [];
   const legal = buildPublicLegalBlock({
     companyId: client.company_id,
     legalVersions: versions,
     tenantSlug,
   });
-  const requiredTypes = Array.isArray(
+  const requiredTypes: string[] = Array.isArray(
     productVersion.data.required_legal_modules,
   )
-    ? productVersion.data.required_legal_modules.map(String)
+    ? (productVersion.data.required_legal_modules as unknown[]).map(String)
     : [];
-  const presentTypes = Array.from(
-    new Set(versions.map((version) => version.type)),
+  const presentTypes: string[] = Array.from(
+    new Set<string>(versions.map((version) => version.type)),
   ).sort();
   const missingTypes = requiredTypes.filter(
     (type) => !presentTypes.includes(type),
   );
-  const moduleVersions = Array.isArray(legal.module_versions)
-    ? legal.module_versions as Array<Record<string, unknown>>
+  const customerDocuments = Array.isArray(legal.customer_documents)
+    ? legal.customer_documents as Array<Record<string, unknown>>
     : [];
-  const requirements = requiredTypes.flatMap((requirementCode) => {
-    const version = moduleVersions.find(
-      (item) => clean(item.module_key) === requirementCode,
-    );
-    const documentReference = clean(version?.document_reference);
-    const documentVersion = clean(version?.version);
-    const documentHash = clean(version?.content_sha256);
-    const documentUrl = clean(version?.url);
-    if (!version || !documentReference || !documentVersion || !documentHash || !documentUrl) {
+  const requirements = customerDocuments.flatMap((document) => {
+    const requirementCode = clean(document.requirement_code);
+    const documentType = clean(document.document_type);
+    const title = clean(document.title);
+    const description = clean(document.description);
+    const acceptanceMode = clean(document.acceptance_mode);
+    const documentReference = clean(document.document_reference);
+    const documentVersion = clean(document.document_version);
+    const documentHash = clean(document.document_hash);
+    const documentUrl = clean(document.document_url);
+    const bundleId = clean(document.legal_bundle_version_id);
+    const moduleKeys = Array.isArray(document.module_keys)
+      ? document.module_keys.map(String)
+      : [];
+    const sourceDocumentIds = Array.isArray(document.source_document_ids)
+      ? document.source_document_ids.map(String)
+      : [];
+    const primaryDocumentId = clean(document.primary_document_id);
+    const sortOrder = numberOrNull(document.sort_order);
+    if (
+      !requirementCode ||
+      !documentType ||
+      !title ||
+      !description ||
+      !["accept", "acknowledge"].includes(acceptanceMode ?? "") ||
+      !documentReference ||
+      !documentVersion ||
+      !documentHash ||
+      !documentUrl ||
+      !bundleId ||
+      moduleKeys.length === 0 ||
+      sourceDocumentIds.length === 0 ||
+      sortOrder === null
+    ) {
       return [];
     }
     return [{
       requirement_code: requirementCode,
-      title: clean(version.title) ?? requirementCode,
-      description: clean(version.title) ?? requirementCode,
+      document_type: documentType,
+      title,
+      description,
       required: true as const,
+      acceptance_mode: acceptanceMode as "accept" | "acknowledge",
       document_reference: documentReference,
       document_version: documentVersion,
       document_hash: documentHash,
       document_url: documentUrl,
+      legal_bundle_version_id: bundleId,
+      module_keys: moduleKeys,
+      source_document_ids: sourceDocumentIds,
+      primary_document_id: primaryDocumentId,
+      sort_order: sortOrder,
     }];
   });
 
@@ -1505,7 +1552,9 @@ export async function buildWebsiteLegalBundle(
       companyLegalVersions !== null &&
       versions.length > 0 &&
       missingTypes.length === 0 &&
-      requirements.length === requiredTypes.length,
+      requirements.length > 0 &&
+      requirements.flatMap((requirement) => requirement.module_keys).length ===
+        requiredTypes.length,
     missing_types: missingTypes,
   };
 }
@@ -1615,13 +1664,16 @@ async function listBundleLegalVersions(input: {
 
   if (documents.error) throw documents.error;
   const publishedAt = clean(bundle.data.published_at);
-  const exact = (documents.data ?? [])
+  const documentRows = (documents.data ?? []) as Array<
+    Record<string, unknown>
+  >;
+  const exact = documentRows
     .filter(
       (row) =>
         Array.isArray(row.unresolved_variables) &&
         row.unresolved_variables.length === 0,
     )
-    .map((row) => ({
+    .map((row): PublicLegalTextVersion => ({
       id: String(row.id),
       type: String(row.module_key),
       version:

@@ -4,13 +4,13 @@ const {
   validateResponse,
 } = require('./lib/openapi-schema-validator.cjs')
 
-const version = '2026-08-04.3'
+const version = '2026-08-05.1'
 const specification = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
 const fixture = JSON.parse(
   fs.readFileSync(
-    'docs/fixtures/public-contracts-response-2026-08-04.3.json',
+    'docs/fixtures/public-contracts-response-2026-08-05.1.json',
     'utf8',
   ),
 )
@@ -54,6 +54,22 @@ for (const [contractIndex, contract] of (fixture.data ?? []).entries()) {
     if (module.legal_bundle_version_id !== bundleId) {
       failures.push(
         `data[${contractIndex}].legal.module_versions[${moduleIndex}] belongs to another bundle.`,
+      )
+    }
+  }
+  const customerDocuments = contract.legal?.customer_documents ?? []
+  if (customerDocuments.length < 1 || customerDocuments.length > 3) {
+    failures.push(`data[${contractIndex}].legal.customer_documents must contain one to three documents.`)
+  }
+  for (const [documentIndex, document] of customerDocuments.entries()) {
+    if (document.legal_bundle_version_id !== bundleId) {
+      failures.push(
+        `data[${contractIndex}].legal.customer_documents[${documentIndex}] belongs to another bundle.`,
+      )
+    }
+    if (!Array.isArray(document.module_keys) || document.module_keys.length === 0) {
+      failures.push(
+        `data[${contractIndex}].legal.customer_documents[${documentIndex}] has no module manifest.`,
       )
     }
   }

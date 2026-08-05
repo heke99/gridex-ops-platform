@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
-const expected = '2026-08-04.3'
+const expected = '2026-08-05.1'
 const files = [
   'lib/integrations/websiteIntegrationContract.ts',
   'docs/openapi/website-integration-v1.json',

@@ -1,47 +1,42 @@
 # Current task
 
-Last updated: 2026-08-04T19:00:05+02:00
+Last updated: 2026-08-05T15:14:58+02:00
 Branch: archive working tree
 
 ## Active phase
 
-PHASE-43 — Current SVK geodata and immutable billing price-area convergence.
+PHASE-44 — Three-document customer legal package and immutable POA chain.
 
 ## Goal
 
-Use one canonical price-area truth from website quote through customer application,
-contract snapshot, underlay, underlay items, invoice readiness and database guards,
-while importing grid-area geometry from the current official SVK ArcGIS contract.
+Expose at most three tenant-bound customer documents (`agreement`,
+`power_of_attorney`, `withdrawal`) without changing the existing website or
+Customer Portal endpoint structure. Preserve every canonical module as immutable
+evidence and ensure a signed POA received from either API path drives the same
+supplier-switch authorization chain with no scope widening.
 
 ## Implemented
 
-- Updated SVK FeatureServer/layer and exact source-field mapping.
-- Added deterministic paging, source-version isolation and structured import errors.
-- Replaced live DB importer/promoter functions with strict current-field validation.
-- Added a DB trigger that locks billing underlay price area to the contract snapshot.
-- Repaired the existing contract-price-snapshot tenant guard so snapshot creation no
-  longer fails on a nonexistent trigger-record field.
-- Changed underlay generation and invoice readiness to prefer the immutable snapshot.
-- Added snapshot existence/ownership and price-area mismatch blockers.
-- Updated Customer Portal API documentation at `2026-08-04.2`.
-- Added release notes and a dependency-free regression gate.
-- Applied and verified the migration in connected Supabase.
+- Grouped all canonical legal modules into three customer-facing documents.
+- Retained exact module IDs, hashes and versions as the evidence source of truth.
+- Added immutable tenant legal-profile snapshot rendering for historical links.
+- Kept website application endpoints and legacy module acceptances compatible.
+- Expanded grouped Customer Portal sync acceptances back to every source module.
+- Bound POA reuse to the same tenant, legal module and exact signed scope snapshot.
+- Made incomplete/legacy POA persistence fail closed for external dispatch.
+- Published additive API/OpenAPI release `2026-08-05.1`.
+
+## Verification
+
+- Customer legal package regression: PASS.
+- Website POA regression: PASS.
+- Legal/POA platform regression: PASS.
+- OpenAPI compatibility, examples, runtime parity and release checks: PASS.
+- TypeScript syntax transpilation for 17 changed TS/TSX files: PASS.
+- Full dependency-backed typecheck/test/lint/build: BLOCKED by package mirror 404.
 
 ## Exact next action
 
-1. Deploy the delivered OPS source.
-2. Invoke the authenticated SVK import cron/admin action until `hasMore=false`.
-3. Verify one `verified` current-source geodata version and active geometry rows.
-4. Run clean Node 22 install plus full typecheck/test/lint/build in CI/local network.
-5. Run a real quote -> application -> contract -> metering -> billing underlay E2E.
-
-## Remaining blockers
-
-- Updated application code is not deployed.
-- Active current-source SVK geometry rows are still zero until the deployed import runs.
-- No live contracts/underlays exist in the connected dev project for a real billing E2E.
-- Full dependency-backed build gates could not run in this sandbox due npm DNS failure.
-
-## Release decision
-
-DATABASE READY / SOURCE READY / DEPLOYMENT AND ENVIRONMENT E2E PENDING.
+Sync and deploy the changed files, then run a real tenant legal-bundle -> three
+acceptances -> signed POA -> authorization document/scope -> supplier-switch smoke
+flow for one private and one business tenant.

@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-04.3'
+const version = '2026-08-05.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-04.3.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-05.1.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -18,7 +18,7 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-04.2'
+const priorVersion = '2026-08-04.3'
 const publishedVersions = ['2026-08-02.1', '2026-08-03.1', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
@@ -203,7 +203,10 @@ website.components.schemas.LegalAcceptance = {
     'accepted_at',
   ],
   properties: {
-    requirement_code: string,
+    requirement_code: {
+      type: 'string',
+      description: 'Use agreement, power_of_attorney or withdrawal from legal-bundle requirements. Exact module keys remain accepted only for backward compatibility.',
+    },
     document_reference: string,
     document_version: string,
     document_hash: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
@@ -216,34 +219,81 @@ website.components.schemas.LegalAcceptances = {
   minItems: 1,
   items: { $ref: '#/components/schemas/LegalAcceptance' },
 }
-website.components.schemas.WebsiteLegalRequirement = {
+website.components.schemas.CustomerLegalDocument = {
   type: 'object',
   additionalProperties: false,
   required: [
     'requirement_code',
+    'document_type',
     'title',
     'description',
     'required',
+    'acceptance_mode',
     'document_reference',
     'document_version',
     'document_hash',
     'document_url',
+    'legal_bundle_version_id',
+    'module_keys',
+    'source_document_ids',
+    'primary_document_id',
+    'sort_order',
   ],
   properties: {
-    requirement_code: string,
+    requirement_code: {
+      type: 'string',
+      enum: ['agreement', 'power_of_attorney', 'withdrawal'],
+    },
+    document_type: {
+      type: 'string',
+      enum: ['agreement', 'power_of_attorney', 'withdrawal'],
+    },
     title: string,
     description: string,
     required: { type: 'boolean', const: true },
+    acceptance_mode: {
+      type: 'string',
+      enum: ['accept', 'acknowledge'],
+    },
     document_reference: string,
     document_version: string,
     document_hash: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
+    document_url: { type: ['string', 'null'], format: 'uri' },
+    legal_bundle_version_id: uuid,
+    module_keys: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: string,
+    },
+    source_document_ids: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: uuid,
+    },
+    primary_document_id: nullableUuid,
+    sort_order: { type: 'integer', minimum: 0 },
+  },
+  description:
+    'One of the three customer-facing documents. module_keys and source_document_ids bind the presentation document to every immutable canonical legal module it contains.',
+}
+website.components.schemas.WebsiteLegalRequirement = {
+  ...website.components.schemas.CustomerLegalDocument,
+  properties: {
+    ...website.components.schemas.CustomerLegalDocument.properties,
     document_url: { type: 'string', format: 'uri' },
   },
 }
+
 const legalBundle = website.components.schemas.WebsiteLegalBundle
 legalBundle.properties.requirements = {
   type: 'array',
+  minItems: 1,
+  maxItems: 3,
   items: { $ref: '#/components/schemas/WebsiteLegalRequirement' },
+  description:
+    'Customer-facing acceptance surface. Private consumer offers normally contain agreement, power_of_attorney and withdrawal. Business offers omit withdrawal when no withdrawal modules are published.',
 }
 legalBundle.required = Array.from(
   new Set([...(legalBundle.required ?? []), 'requirements']),
@@ -284,6 +334,24 @@ application.properties.selected_component_references = {
 application.properties.site_count = { type: 'integer', minimum: 1 }
 delete application.properties.legalAcceptances
 delete application.properties.consents
+const powerOfAttorneyInput = website.components.schemas.PowerOfAttorneyInput
+powerOfAttorneyInput.additionalProperties = false
+powerOfAttorneyInput.properties.scope = {
+  type: 'array',
+  minItems: 1,
+  maxItems: 2,
+  uniqueItems: true,
+  items: { type: 'string', enum: ['supplier_switch', 'facility_information_lookup'] },
+  contains: { const: 'supplier_switch' },
+  minContains: 1,
+  description:
+    'Exact customer-signed scopes. supplier_switch is mandatory; facility_information_lookup may be added. OPS never widens the scope after acceptance.',
+}
+powerOfAttorneyInput.properties.textVersionId = {
+  ...uuid,
+  description:
+    'Use primary_document_id from the power_of_attorney requirement in the exact accepted legal bundle.',
+}
 application.required = Array.from(new Set([
   ...(application.required ?? []),
   'legal_bundle_version',
@@ -540,6 +608,14 @@ legalBlock.properties.module_versions = {
   minItems: 1,
   items: { $ref: '#/components/schemas/LegalBundleDocument' },
 }
+legalBlock.properties.customer_documents = {
+  type: 'array',
+  minItems: 1,
+  maxItems: 3,
+  items: { $ref: '#/components/schemas/CustomerLegalDocument' },
+  description:
+    'Customer-facing grouped documents. Render these instead of one checkbox per module_version. module_versions remains the immutable evidence manifest.',
+}
 legalBlock.properties.power_of_attorney_version_id = nullableUuid
 legalBlock.additionalProperties = false
 legalBlock.required = Array.from(new Set([
@@ -549,6 +625,7 @@ legalBlock.required = Array.from(new Set([
   'immutable',
   'required_modules',
   'module_versions',
+  'customer_documents',
   'power_of_attorney_version_id',
 ]))
 
@@ -1714,12 +1791,33 @@ portal.components.schemas.CustomerSyncRequest = {
         'accepted',
         'accepted_at',
       ],
+      description:
+        'Tenant-synkad fullmakt. signer_name, signer_identity_number och method krävs för att fullmakten ska bli signerad och externt sändbar; äldre payload utan dessa lagras endast som ett ofullständigt utkast och blockerar leverantörsbyte.',
       properties: {
         power_of_attorney_reference: string,
-        document_reference: string,
-        scope: { type: 'array', minItems: 1, items: string },
+        document_reference: {
+          ...string,
+          description:
+            'Accepterar både den nya customer_documents-referensen för power_of_attorney och äldre exakt module_version-referens från samma tenantbundna legal bundle.',
+        },
+        scope: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 2,
+          uniqueItems: true,
+          items: {
+            type: 'string',
+            enum: ['supplier_switch', 'facility_information_lookup'],
+          },
+          contains: { const: 'supplier_switch' },
+        },
         accepted: { type: 'boolean', const: true },
         accepted_at: dateTime,
+        signer_name: string,
+        signer_identity_number: string,
+        method: string,
+        ip_address: string,
+        user_agent: string,
         valid_from: { type: 'string', format: 'date' },
         valid_to: { type: 'string', format: 'date' },
         metadata: { type: 'object' },
@@ -1802,7 +1900,7 @@ portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
   portal.paths['/api/v1/customer/move-out'].post.responses['200']
 
 
-// Runtime/OpenAPI hardening for release 2026-08-04.3. These overrides are
+// Runtime/OpenAPI hardening for release 2026-08-05.1. These overrides are
 // deliberately placed after legacy schema construction so the public contract
 // has one source of truth even while deprecated components remain resolvable.
 for (const document of [website, portal]) {

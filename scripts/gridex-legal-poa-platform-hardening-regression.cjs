@@ -4,7 +4,7 @@
 // Asserts the OPS-source-of-truth hardening:
 //  - POA / legal schema mismatches hard-fail (no silent null) when required
 //  - referenced POA textVersionId is tenant/publish validated
-//  - public-contracts legal block exposes *_required / *_version_id / *_url
+//  - public-contracts legal block exposes immutable references, grouped documents and compatibility URLs
 //  - standalone legal-bundle endpoint exists and reuses the shared builder
 //  - public, published-only, tenant-isolated legal document pages exist
 //  - customer types are normalized before validation
@@ -83,9 +83,10 @@ for (const key of [
   'power_of_attorney_required',
   'power_of_attorney_version_id',
   'power_of_attorney_url',
-  'terms_version_id',
+  'terms_document_reference',
   'terms_url',
   'privacy_policy_required',
+  'customer_documents',
 ]) {
   ok(publicContracts.includes(key), `public-contracts legal block exposes ${key}`)
 }
@@ -113,28 +114,26 @@ ok(publicLegal.includes('export function buildPublicLegalUrl'), 'buildPublicLega
 
 // 7) Customer type normalization (now a shared helper used by the intake).
 ok(
-  fs.existsSync(path.join(root, 'lib/customers/normalizeCustomerType.ts')) &&
-    apps.includes("from '@/lib/customers/normalizeCustomerType'"),
-  'customer type normalization helper exists (shared module) and is used by intake',
+  fs.existsSync(path.join(root, 'lib/customers/externalCustomerType.ts')) &&
+    apps.includes("from '@/lib/customers/externalCustomerType'"),
+  'strict external customer type normalization helper exists and is used by intake',
 )
 {
-  // Mirror the normalization logic and assert the documented aliases map.
-  const privateAliases = new Set(['private', 'privat', 'consumer', 'person', 'privatperson', 'individual'])
-  const businessAliases = new Set(['business', 'company', 'foretag', 'företag', 'corporate', 'organization', 'organisation', 'enterprise', 'b2b', 'juridisk_person', 'juridisk person'])
+  // Mirror the current public API boundary: canonical values pass, the legacy
+  // company alias is normalized, and all other values fail closed.
   const normalize = (value) => {
-    const raw = typeof value === 'string' ? value.trim().toLowerCase() : ''
-    if (!raw) return null
-    if (privateAliases.has(raw)) return 'private'
-    if (businessAliases.has(raw)) return 'business'
-    return raw
+    if (value === undefined || value === null || String(value).trim() === '') {
+      return { ok: true, value: null }
+    }
+    const raw = String(value).trim().toLowerCase()
+    if (raw === 'private' || raw === 'business') return { ok: true, value: raw }
+    if (raw === 'company') return { ok: true, value: 'business' }
+    return { ok: false, value: null }
   }
-  ok(normalize('consumer') === 'private', 'consumer maps to private')
-  ok(normalize('company') === 'business', 'company maps to business')
-  ok(normalize('foretag') === 'business' && normalize('företag') === 'business', 'foretag/företag map to business')
-  ok(normalize('organization') === 'business' && normalize('corporate') === 'business', 'organization/corporate map to business')
-  ok(normalize('private') === 'private' && normalize('business') === 'business', 'canonical values pass through')
-  ok(normalize('rocket') === 'rocket', 'unknown values pass through for strict rejection')
-  ok(normalize('') === null, 'empty maps to null so the default applies')
+  ok(normalize('company').value === 'business', 'deprecated company alias maps to business')
+  ok(normalize('private').value === 'private' && normalize('business').value === 'business', 'canonical values pass through')
+  ok(normalize('rocket').ok === false, 'unknown customer types fail closed')
+  ok(normalize('').value === null, 'empty input maps to the documented default path')
 }
 
 // 8) Application response completeness.

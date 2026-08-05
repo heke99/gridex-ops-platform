@@ -134,7 +134,7 @@ export async function ensureAuthorizationScopes(
 
   return ensureAuthorizationScopeFromPowerOfAttorney({
     companyId: input.companyId,
-    actorUserId: input.actorUserId ?? 'system',
+    actorUserId: input.actorUserId ?? null,
     customerId: input.customerId,
     powerOfAttorneyId: input.powerOfAttorneyId ?? null,
     authorizationDocumentId: input.authorizationDocumentId,

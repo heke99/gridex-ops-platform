@@ -303,3 +303,16 @@ database apply/deployment/two-tenant E2E remain pending.
   registry and the uploaded archive contains no dependencies.
 - Updated application deployment and full current-source import remain pending;
   active official SVK geometry rows are currently zero.
+
+## 2026-08-05T15:14:58+02:00 — PHASE-44
+
+Implemented the three-document multitenant legal package, retained immutable
+module evidence, corrected Customer Portal grouped acceptance expansion, and
+hardened POA scope reuse through the supplier-switch authorization chain. Local
+regressions and API release checks pass. Dependency-backed build gates and live
+tenant E2E remain pending.
+
+## 2026-08-05T15:20:07+02:00
+- Re-ran legal package, platform POA, website POA, API version/compatibility/examples/runtime/release gates: all passed.
+- Re-ran TypeScript 5.8.3 syntax transpilation for 17 changed TS/TSX files: passed.
+- Kept full dependency-backed build blocked by package mirror 404 for zod-validation-error@4.0.2.

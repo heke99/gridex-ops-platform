@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-08-04.3`.
+Dokumentationsversion: `2026-08-05.1`.
 
 ## Tenantkonfiguration
 
@@ -169,33 +169,54 @@ Content-Type: application/json
   "customer_number": "DX-100023",
   "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f",
   "power_of_attorney": {
-    "scope": "supplier_switch",
-    "status": "signed",
-    "signed_at": "2026-06-16T15:10:12.647Z",
-    "legal_text_version": "2026-06-12-v1",
-    "reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
-    "document": {
-      "external_document_id": "tenant-doc-123",
-      "document_type": "power_of_attorney",
-      "title": "Signerad fullmakt",
-      "file_url": "https://tenant.se/documents/tenant-doc-123.pdf"
-    }
+    "power_of_attorney_reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
+    "document_reference": "legal_customer_document_...",
+    "scope": ["supplier_switch", "facility_information_lookup"],
+    "accepted": true,
+    "accepted_at": "2026-06-16T15:10:12.647Z",
+    "signer_name": "Kundens namn",
+    "signer_identity_number": "verifierad-identitetsreferens",
+    "method": "bankid",
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0",
+    "valid_from": "2026-06-16"
   },
   "legal_acceptances": [
-    { "acceptance_type": "terms", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
-    { "acceptance_type": "privacy_policy", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
-    { "acceptance_type": "price_snapshot", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" }
+    {
+      "document_reference": "legal_customer_document_...",
+      "document_code": "agreement",
+      "document_version": "legal_customer_version_...",
+      "document_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "accepted": true,
+      "accepted_at": "2026-06-16T15:10:12.647Z"
+    }
   ],
   "documents": [
     {
-      "external_document_id": "tenant-contract-123",
+      "document_reference": "tenant-contract-123",
       "document_type": "contract_confirmation",
       "title": "Avtalsbekräftelse",
-      "file_url": "https://tenant.se/documents/tenant-contract-123.pdf"
+      "secure_url": "https://tenant.se/documents/tenant-contract-123.pdf"
     }
   ]
 }
 ```
+
+Fullmaktens `document_reference` får vara antingen den nya samlade
+`power_of_attorney`-referensen från OPS eller den äldre exakta modulreferensen
+från samma tenantbundna legal bundle. `scope` måste alltid innehålla
+`supplier_switch`; `facility_information_lookup` är det enda valbara tillägget.
+OPS sparar exakt scope oföränderligt och skapar samma authorization chain som
+webbansökan använder. `signer_name`, `signer_identity_number` och `method` krävs
+för att fullmakten ska bli signerad och kunna användas för nätägarbegäran eller
+leverantörsbyte. En äldre payload utan dessa fält tas emot som ett ofullständigt
+utkast och blockerar extern dispatch.
+
+`legal_acceptances` använder samma samlade kunddokument som webbansökan:
+`agreement`, `power_of_attorney` och, när det är tillämpligt, `withdrawal`.
+OPS expanderar varje samlad acceptans till en oföränderlig bevisrad per exakt
+underliggande juridikmodul. Äldre modulreferenser stöds fortsatt, men de får inte
+blandas med samlade dokumentreferenser i samma synkflöde.
 
 OPS sparar:
 
@@ -282,7 +303,7 @@ Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
   },
   "request_id": "req_...",
   "correlation_id": null,
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }
 ```
 
@@ -300,7 +321,7 @@ Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Canonical fastpris, quote och teckningsflöde (`2026-08-04.3`)
+## Canonical fastpris, quote och teckningsflöde (`2026-08-05.1`)
 
 Den aktiva integrationsordningen är:
 
@@ -332,7 +353,7 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-04.3`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-05.1`; versionsvärdet ingår i ETag-underlaget.
 
 ## Publication revision, cache och kanaler
 
@@ -349,9 +370,9 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
 
 
-API-svaret innehåller `contract_schema_version=2026-08-04.3` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-08-05.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
 
-## Avgränsning mot Website Integration API 2026-08-04.3
+## Avgränsning mot Website Integration API 2026-08-05.1
 
 Den här guiden beskriver kundportal och Mina sidor. Website checkout, publicerade erbjudanden, elområdesresolution, aktuellt marknadspris och quote dokumenteras canonicalt i `website-integration-v1.json`.
 

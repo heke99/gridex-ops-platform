@@ -85,3 +85,10 @@ Website and API Public Contracts responses use one explicit canonical DTO mapper
 Status: IMPLEMENTED_STATIC_VERIFIED
 
 Published legal data and historical backfill may use only the exact company-owned locked `contract_publication_versions.legal_bundle_version_id`. First/latest/min/max inference is forbidden. Every module bundle ID must equal the top-level legal bundle version.
+
+## 2026-08-05 — Group presentation, canonical module evidence
+
+Customer-facing legal documents are grouped into agreement, POA and withdrawal.
+Canonical module rows are never merged or deleted; they remain the immutable
+version/hash evidence. A grouped acceptance is expanded to all covered modules.
+POA scope and legal identity are immutable and may never be widened on reuse.

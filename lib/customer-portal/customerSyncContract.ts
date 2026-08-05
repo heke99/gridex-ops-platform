@@ -48,16 +48,62 @@ const legalAcceptance = z.object({
   metadata,
 }).strict()
 
+const TENANT_POWER_OF_ATTORNEY_SCOPES = new Set([
+  'supplier_switch',
+  'facility_information_lookup',
+])
+
 const powerOfAttorney = z.object({
   power_of_attorney_reference: optionalText(120),
   document_reference: z.string().trim().min(20).max(100),
-  scope: z.array(z.string().trim().min(1).max(100)).min(1).max(20),
+  scope: z
+    .array(
+      z.enum([
+        'supplier_switch',
+        'facility_information_lookup',
+      ]),
+    )
+    .min(1)
+    .max(2),
   accepted: z.literal(true),
   accepted_at: z.string().datetime({ offset: true }),
+  signer_name: optionalText(240),
+  signer_identity_number: optionalText(100),
+  method: optionalText(100),
+  ip_address: optionalText(100),
+  user_agent: optionalText(2_000),
   valid_from: optionalText(10),
   valid_to: optionalText(10),
   metadata,
-}).strict()
+}).strict().superRefine((value, context) => {
+  const scopes: string[] = Array.from(
+    new Set<string>(value.scope.map((scope: string) => scope.trim().toLowerCase())),
+  )
+  const unsupported = scopes.filter(
+    (scope) => !TENANT_POWER_OF_ATTORNEY_SCOPES.has(scope),
+  )
+  if (unsupported.length > 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Fullmakten innehåller scopes som inte stöds: ${unsupported.join(', ')}.`,
+      path: ['scope'],
+    })
+  }
+  if (scopes.length !== value.scope.length) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Fullmaktens scope får inte innehålla dubbletter.',
+      path: ['scope'],
+    })
+  }
+  if (!scopes.includes('supplier_switch')) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Fullmakten måste uttryckligen innehålla supplier_switch.',
+      path: ['scope'],
+    })
+  }
+})
 
 const profile = z.object({
   first_name: optionalText(120),

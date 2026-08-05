@@ -8576,29 +8576,18 @@
               "accepted",
               "accepted_at"
             ],
-            "description": "Tenant-synkad fullmakt. signer_name, signer_identity_number och method krävs för att fullmakten ska bli signerad och externt sändbar; äldre payload utan dessa lagras endast som ett ofullständigt utkast och blockerar leverantörsbyte.",
             "properties": {
               "power_of_attorney_reference": {
                 "type": "string"
               },
               "document_reference": {
-                "type": "string",
-                "description": "Accepterar både den nya customer_documents-referensen för power_of_attorney och äldre exakt module_version-referens från samma tenantbundna legal bundle."
+                "type": "string"
               },
               "scope": {
                 "type": "array",
                 "minItems": 1,
-                "maxItems": 2,
-                "uniqueItems": true,
                 "items": {
-                  "type": "string",
-                  "enum": [
-                    "supplier_switch",
-                    "facility_information_lookup"
-                  ]
-                },
-                "contains": {
-                  "const": "supplier_switch"
+                  "type": "string"
                 }
               },
               "accepted": {
@@ -8608,21 +8597,6 @@
               "accepted_at": {
                 "type": "string",
                 "format": "date-time"
-              },
-              "signer_name": {
-                "type": "string"
-              },
-              "signer_identity_number": {
-                "type": "string"
-              },
-              "method": {
-                "type": "string"
-              },
-              "ip_address": {
-                "type": "string"
-              },
-              "user_agent": {
-                "type": "string"
               },
               "valid_from": {
                 "type": "string",

@@ -130,7 +130,7 @@ ok(opsDoc.includes('powerOfAttorney') && opsDoc.includes('power_of_attorney') &&
 const extDoc = read('docs/external-website-api-integration-guide.md')
 ok(extDoc.includes('powerOfAttorney') && extDoc.includes('textVersionId'), 'external integration guide documents structured POA')
 const devPage = read('app/developers/customer-portal-api/page.tsx')
-ok(devPage.includes('powerOfAttorney') && devPage.includes('nextAction') && devPage.includes('automatic_processing'), 'developer API page documents structured POA and asynchronous next-step semantics')
+ok(devPage.includes('powerOfAttorney') && devPage.includes('next_step') && devPage.includes('next_action') && devPage.includes('automatic_processing'), 'developer API page documents structured POA and asynchronous next-step semantics')
 
 // 8) Identity aliases normalized to canonical columns (Task D).
 for (const alias of [

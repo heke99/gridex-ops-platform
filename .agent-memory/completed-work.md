@@ -229,3 +229,12 @@ Status: VERIFIED LOCALLY
 - Added forward migration, safe ledger classifier, postflight and sync script.
 - Verified migration/API/multitenant/onboarding/contract/market regressions and changed-file TypeScript syntax.
 - Preserved honest pending state for database apply, deployment, full npm build and two-tenant E2E.
+
+## 2026-08-05T15:14:58+02:00 — PHASE-44 customer legal package
+
+- Grouped customer legal presentation into agreement, POA and withdrawal.
+- Preserved exact canonical module acceptance evidence and tenant snapshots.
+- Unified website and Customer Portal POA handling with fail-closed scope reuse.
+- Published and verified additive API release 2026-08-05.1.
+
+- 2026-08-05T15:20:07+02:00: Added pre-write rejection for duplicate/mixed grouped-vs-legacy legal acceptance payloads and stopped `power_of_attorney.signed` events unless the POA is actually persisted as a complete signed authorization.

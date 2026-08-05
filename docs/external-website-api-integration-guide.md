@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-08-04.3**
+> **Canonical API-version: 2026-08-05.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -179,7 +179,7 @@ Content-Type: application/json
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }
 ```
 
@@ -209,14 +209,14 @@ Ett lyckat svar innehåller minst:
     "capabilities": {
       "pricing_ready": true,
       "quote_ready": true,
-      "facility_lookup_ready": true,
+      "facility_information_lookup_ready": true,
       "switch_request_creatable": true,
       "switch_dispatch_ready": false
     },
     "blockers": {
       "pricing": [],
       "quote": [],
-      "facility_lookup": [],
+      "facility_information_lookup": [],
       "switch_creation": [],
       "switch_dispatch": [
         {
@@ -248,7 +248,7 @@ hanteras. Statusnamnet `postal_suggested` avgör inte ensamt om pris får visas.
 - `ambiguous` betyder att kandidaterna korsar flera prisområden och blockerar pris;
 - `unresolved` betyder att underlaget saknas, är för svagt eller måste lösas om.
 
-Ett `postal_suggested` med `price_area_assurance.status=estimated`, confidence minst `0.80` och `unique_price_area_count=1` kan därför ha `pricing_ready=true` och `quote_ready=true`. Samma resolution har fortfarande `facility_lookup_ready=false`, `switch_request_creatable=false` och `switch_dispatch_ready=false` tills nätområde, nätägare, anläggning och transportkrav är verifierade.
+Ett `postal_suggested` med `price_area_assurance.status=estimated`, confidence minst `0.80` och `unique_price_area_count=1` kan därför ha `pricing_ready=true` och `quote_ready=true`. Samma resolution har fortfarande `facility_information_lookup_ready=false`, `switch_request_creatable=false` och `switch_dispatch_ready=false` tills nätområde, nätägare, anläggning och transportkrav är verifierade.
 
 Resolutionen är tenantbunden och tidsbegränsad. Pris- och quote-readiness är oberoende av PRODAT-transport. Gammal geodata, låg assurance-confidence, okända kandidater eller konflikt blockerar bara de capabilities som faktiskt påverkas.
 
@@ -390,12 +390,28 @@ Idempotency-Key: required
   },
   "customer_portal_user_id": "uuid-från-verifierad-serversession",
   "auth_user_id": "uuid-från-verifierad-serversession",
-  "legal_bundle_version": "uuid-från-legal-bundle",
+  "legal_bundle_version": "legal_bundle_...",
   "legal_acceptances": [
     {
-      "requirement_code": "general_consumer_terms",
-      "document_reference": "legal_document_...",
-      "document_version": "2026-07-30-v1",
+      "requirement_code": "agreement",
+      "document_reference": "legal_customer_document_...",
+      "document_version": "legal_customer_version_...",
+      "document_hash": "64-teckens-sha256-från-legal-bundle",
+      "accepted": true,
+      "accepted_at": "2026-07-30T10:30:00+02:00"
+    },
+    {
+      "requirement_code": "power_of_attorney",
+      "document_reference": "legal_customer_document_...",
+      "document_version": "legal_customer_version_...",
+      "document_hash": "64-teckens-sha256-från-legal-bundle",
+      "accepted": true,
+      "accepted_at": "2026-07-30T10:30:00+02:00"
+    },
+    {
+      "requirement_code": "withdrawal",
+      "document_reference": "legal_customer_document_...",
+      "document_version": "legal_customer_version_...",
       "document_hash": "64-teckens-sha256-från-legal-bundle",
       "accepted": true,
       "accepted_at": "2026-07-30T10:30:00+02:00"
@@ -427,23 +443,41 @@ Använd de canonicala fälten `customer.personal_number` för privatkund och `cu
 En fullmakt får endast gå vidare till extern nätägar- eller marknadskommunikation när svaret anger `externally_sendable: true`. Vid `externally_sendable: false` ska klienten följa `next_action` och komplettera signerare, identitet, metod eller låst juridisk text; ett äldre consentfält är aldrig tillräckligt som extern fullmakt.
 
 `legal_acceptances` ska byggas exakt från endpointens dynamiska
-`requirements`. OPS verifierar bundle, requirement code, dokument-ID, version,
-SHA-256, `accepted=true` och timestamp. Om paketet ändrats returneras
-`legal_bundle_version_mismatch` eller `legal_acceptance_document_mismatch` och
-Web ska hämta paketet igen. När fullmakt krävs ska tenant även skicka den
-strukturerade `powerOfAttorney`-modellen med signerande namn, identitet, metod,
-exakt scope och publicerat `textVersionId`.
+`requirements`. Den kundsynliga ytan består av högst tre dokument:
+`agreement`, `power_of_attorney` och, för konsumentavtal där ångermoduler ingår,
+`withdrawal`. OPS verifierar bundle, requirement code, dokument-ID, version,
+SHA-256, `accepted=true` och timestamp. De underliggande `module_versions`
+behålls som immutable revisionsbevis men ska inte renderas som separata
+checkboxar. Äldre klienter får under övergången fortsatt skicka en acceptans per
+modul, men ett anrop får aldrig blanda de två formaten.
 
-Canonical `textVersionId` är modulversionsradens UUID, aldrig `document_reference`:
+När fullmakt krävs ska tenant även skicka den strukturerade
+`powerOfAttorney`-modellen med signerande namn, identitet, metod och exakt scope.
+Scope måste innehålla `supplier_switch`; `facility_information_lookup` får läggas till när
+kunden även tillåter inhämtning av anläggningsuppgifter. OPS utökar aldrig scope
+efter godkännandet.
+
+Canonical `textVersionId` är fullmaktskravets `primary_document_id`, aldrig den
+publika `document_reference`:
 
 ```ts
-const powerOfAttorneyVersion = contract.legal.module_versions.find(
-  (version) => version.module_key === "power_of_attorney",
+const powerOfAttorneyRequirement = legalBundle.requirements.find(
+  (requirement) => requirement.requirement_code === "power_of_attorney",
 );
 
-const textVersionId =
-  contract.legal.power_of_attorney_version_id ?? powerOfAttorneyVersion?.id;
+const textVersionId = powerOfAttorneyRequirement?.primary_document_id;
 ```
+
+`textVersionId` måste tillhöra samma tenant och exakt samma legal bundle som
+det accepterade `offer_reference`. Fältet får utelämnas; då binder OPS
+fullmakten till den aktuella publicerade modulversionen automatiskt.
+
+Samma regler gäller om tenant senare synkar fullmakten genom
+`POST /api/v1/customer/sync`: OPS accepterar både den nya samlade
+`power_of_attorney`-referensen och den äldre exakta modulreferensen, normaliserar
+`scope` till den signerade snapshoten och skapar samma authorization chain som
+leverantörsbytes-readiness använder. En befintlig fullmaktsreferens får aldrig
+återanvändas med ett annat scope eller en annan juridikversion.
 
 När avtalet kräver fullmakt men inget sådant canonicalt modul-ID finns ska teckningen stoppas och feeden behandlas som inkonsekvent.
 
@@ -479,7 +513,7 @@ Exempel på accepterat svar:
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-04.3"
+  "contract_schema_version": "2026-08-05.1"
 }
 ```
 
@@ -551,7 +585,7 @@ resolution_tenant_mismatch
 resolution_expired
 resolution_pricing_not_ready
 resolution_quote_not_ready
-resolution_facility_lookup_not_ready
+resolution_facility_information_lookup_not_ready
 resolution_switch_not_ready
 price_area_mismatch
 market_price_unavailable
@@ -595,17 +629,17 @@ Publika OpenAPI-kontrakt:
 ```text
 https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-04.3/website-integration-v1.json
-https://app.gridex.se/api/v1/openapi/2026-08-04.3/customer-portal-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-05.1/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/2026-08-05.1/customer-portal-v1.json
 ```
 
 De två `current`-pekarnas svar använder `no-store`; de två versionsbundna artefakterna är immutabla och får `public, max-age=31536000, immutable`.
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-08-04.3` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-08-05.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-08-04.3
+## Canonical marknadsprisflöde i API 2026-08-05.1
 
 Det finns tre separata operationer:
 
@@ -670,7 +704,7 @@ Canonical scope: website_legal.read. `website_contracts.read` accepteras endast 
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-08-04.3
+## Migrering till kontraktsversion 2026-08-05.1
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const version = '2026-08-04.3'
+const version = '2026-08-05.1'
 const website = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
@@ -56,6 +56,24 @@ assert(
 assert(
   publicContractLegalModule?.properties?.legal_bundle_version_id,
   'public contract legal module bundle version is missing',
+)
+assert(
+  publicContractLegal?.properties?.customer_documents,
+  'public contract customer-facing legal documents are missing',
+)
+assert(
+  website.components.schemas.CustomerLegalDocument?.additionalProperties === false,
+  'customer legal document schema is not closed',
+)
+assert(
+  website.components.schemas.WebsiteLegalBundle?.properties?.requirements?.maxItems === 3,
+  'website legal bundle must expose at most three customer requirements',
+)
+const powerOfAttorneyScope =
+  website.components.schemas.PowerOfAttorneyInput?.properties?.scope
+assert(
+  powerOfAttorneyScope?.contains?.const === 'supplier_switch',
+  'power of attorney scope must explicitly include supplier_switch',
 )
 const priceOption = website.components.schemas.ContractPriceOption
 assert(priceOption?.properties?.is_default, 'canonical is_default is missing')
