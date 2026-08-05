@@ -4,6 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { PublicContractOffer } from '@/lib/website/publicContracts'
 import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { EnergyResolutionBindingError, loadQuoteEnergyResolution } from '@/lib/energy/resolutionBinding'
+import { canonicalQuoteValidUntil } from '@/lib/pricing/quoteIntegrity'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -178,7 +179,7 @@ function fullQuoteIntegrityPayload(input: {
     resolved_base_components: input.resolvedBaseComponents ?? [],
     resolved_price_components: input.resolvedPriceComponents ?? [],
     quote_snapshot: input.quoteSnapshot,
-    valid_until: input.validUntil,
+    valid_until: canonicalQuoteValidUntil(input.validUntil),
   }
 }
 

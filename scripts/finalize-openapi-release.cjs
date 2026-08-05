@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-05.1'
+const version = '2026-08-05.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -18,8 +18,8 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-04.3'
-const publishedVersions = ['2026-08-02.1', '2026-08-03.1', priorVersion, version]
+const priorVersion = '2026-08-05.1'
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -1056,6 +1056,7 @@ quoteValidationRequest.required = Array.from(new Set([
 const quoteData = website.components.schemas.WebsiteQuoteData
 quoteData.additionalProperties = false
 for (const field of [
+  'offer',
   'status',
   'selected_area_price',
   'input',
@@ -1090,8 +1091,10 @@ for (const field of [
 ]) {
   quoteData.properties[field] ??= {}
 }
+quoteData.properties.offer = permissiveObject
 quoteData.required = Array.from(new Set([
   ...(quoteData.required ?? []),
+  'offer',
   'price_option_reference',
   'area_price_reference',
   'invoice_delivery_method',
