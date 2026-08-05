@@ -105,13 +105,14 @@ includesAll(intake, [
 ], "idempotency identity and dates are canonicalized");
 
 includesAll(legalRoute, [
-  "requireIntegrationApiAccess(request, ['website_legal.read'])",
+  "requireIntegrationApiAccess(request, { anyOf: ['website_legal.read', 'website_contracts.read'] })",
   "offer_reference_required",
   "buildWebsiteLegalBundle(auth.client, offerReference)",
-], "legal bundle requires dedicated scope and exact offer");
+], "legal bundle requires dedicated or contract-read scope and exact offer");
 check(
-  !legalRoute.includes("'website_contracts.read'"),
-  "website contract read scope cannot read legal bundles",
+  legalRoute.includes("'website_legal.read'") &&
+    legalRoute.includes("'website_contracts.read'"),
+  "legal bundle remains available through website_legal.read or website_contracts.read",
 );
 includesAll(publicContracts, [
   "required_types",
@@ -194,9 +195,10 @@ includesAll(invoiceExportMigration, [
 ], "canonical invoice export is payload-safe and transactionally projected");
 includesAll(websiteQuotes, [
   "fullQuoteIntegrityPayload",
-  "valid_until: input.validUntil",
-  "quote_hash_version: 'v2_full_quote'",
-  "quote.quote_hash_version === 'v2_full_quote'",
+  "valid_until: canonicalQuoteValidUntil(input.validUntil)",
+  "market_data_timestamp: canonicalQuoteTimestamp(",
+  "quote_hash_version: 'v3_commercial_selection'",
+  "quote.quote_hash_version !== 'v1_snapshot_only'",
 ], "quote hash covers expiry and the complete canonical quote identity");
 includesAll(quoteEventMigration, [
   "new.valid_until is distinct from old.valid_until",
