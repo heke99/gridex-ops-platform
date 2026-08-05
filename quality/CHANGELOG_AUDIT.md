@@ -8,13 +8,12 @@ This file maps verified findings and audit infrastructure changes to files, comm
 |---|---|---|---|---|---|
 | `BUG-001` | Preserve controlled Customer Portal 4xx parser errors and keep unexpected faults generic | portal sync route; dedicated regression script | `aeaa08283e714160181cd007f2c04196d6cf88a2` | dedicated regression passed in expanded V3 CI | `fixed` |
 | `BUG-004` | Record actual repository roots and remove current-report reliance on stale `apps/ops` paths | quality reports; agent handoff | `b40f240f0dc64773c4cbdf4065661b7acbf38059`, `46effd0851f598f258f222694c0a36fedd10c2e7` | source inspection | `partially_fixed` |
-| `BUG-006` | Materialize immutable OpenAPI `2026-08-05.2` snapshots | two release JSON files | `c39794361ec342d5e75a530136724f779f1f2b5e` | release gate exposed missing routes | `partially_fixed` at this commit |
-| `BUG-006` | Expose immutable `2026-08-05.2` routes | two versioned route files | `f5d81c726dbe3f023f00e3f99c3a33829e5a9ac1` | hardening run `31052844335` succeeded | `fixed` |
-| `BUG-007` | Rename reserved local `module` bindings without disabling lint | portal sync and legal package modules | `507340ed8fdbf21bac42e0625e670548cc5360c5`, `f8ea025bb8ef7030bfc6c905b5df5d535ba23d5a` | following expanded run passed lint | `fixed` |
-| `BUG-008` | Align modern legal test fixtures with immutable hashes and current contract version | four public-contract test files | `39e20f587c3e8c2da2dce39a03bbc13d70a2115d`, `5b7e52105f041dba26231ace1011fbfb79abca6b`, `65bec4ee9536d1beb1893d2d7bb724b8eb06e050`, `20220a9b83b65148862685f3fec47bbebff64ae2` | full tests/API/security checks passed; build result recorded in `TEST_RESULTS.md` | `fixed` |
+| `BUG-006` | Materialize immutable OpenAPI `2026-08-05.2` snapshots and routes | two release JSON files; two versioned routes | `c39794361ec342d5e75a530136724f779f1f2b5e`, `f5d81c726dbe3f023f00e3f99c3a33829e5a9ac1` | hardening run `31052844335`; final release verification in `31054238744` | `fixed` |
+| `BUG-007` | Rename reserved local `module` bindings without disabling lint | portal sync and legal package modules | `507340ed8fdbf21bac42e0625e670548cc5360c5`, `f8ea025bb8ef7030bfc6c905b5df5d535ba23d5a` | final lint passed | `fixed` |
+| `BUG-008` | Align modern legal test fixtures with immutable hashes and current contract version | four public-contract test files | `39e20f587c3e8c2da2dce39a03bbc13d70a2115d`, `5b7e52105f041dba26231ace1011fbfb79abca6b`, `65bec4ee9536d1beb1893d2d7bb724b8eb06e050`, `20220a9b83b65148862685f3fec47bbebff64ae2` | full tests and build passed in `31054238744` | `fixed` |
 | Four missing recommended skills | Install exact upstream-pinned Markdown skills and update lock metadata | four `.agents/skills/**/SKILL.md`; `skills-lock.json` | `af19ecaa4dcd85928a4ec46078da5429c2bc9e55`, `b716de24a0381e52d93ffe34a67df36e5c068286` | direct branch reads and source/hash comparison | `fixed` |
 | Skill traceability | Update inventory to 35/35 readable skills, phases, safety and cost/credential boundaries | `quality/SKILL_INVENTORY.md` | `cd14556b16c4f325a6aea93bb953b0d8baa9de3f` | direct reads; manual non-executing review | `fixed` |
-| CI coverage gap | Add script/test typechecks, lint, dedicated portal regression, full tests, API compatibility/release and build | `.github/workflows/ops-hardening.yml` | `20d98ff444dc55f5847fc03ead4ed455eb0f8c9a` | expanded workflow runs documented in `TEST_RESULTS.md` | `fixed` as CI configuration |
+| CI coverage gap | Add script/test typechecks, lint, dedicated portal regression, full tests, API compatibility/release and build | `.github/workflows/ops-hardening.yml` | `20d98ff444dc55f5847fc03ead4ed455eb0f8c9a` | complete matrix passed in `31054238744` | `fixed` |
 
 ## V3 report additions
 
@@ -35,6 +34,16 @@ This file maps verified findings and audit infrastructure changes to files, comm
 | `quality/SECURITY.md` | `5f18c1ac2c18d7bc441fddc971e35dcfdd199e14` | fresh advisor versus direct catalog evidence |
 | `quality/DEPENDENCY_SECURITY.md` | `0b2b94a6d63e4afc62648d63d4f1f40e667cafbe` | V3 skill/supply-chain/scan status |
 | `quality/PERFORMANCE.md` | `93a5669a878b51870480aae5114cecf581ff9d5f` | measurement-first performance and SQL requirements |
+| `quality/TEST_RESULTS.md` | `b82c335aec3646dff1d35f1b71e55538bd2f0a5e` | final green V3 verification matrix and failure chronology |
+| `quality/FINAL_REVIEW.md` | `707ac391d9577f9597502f2eee8961f281474716` | final findings, readiness, blockers and safety confirmations |
+
+## Final verified code matrix
+
+Workflow `OPS hardening`, run `31054238744`, job `92468135354`, completed successfully on code commit `20220a9b83b65148862685f3fec47bbebff64ae2`.
+
+Passed: clean install, migration check, all typechecks, lint, dedicated portal and multitenant regressions, targeted and full tests, hardening/final-contract regressions, API error boundaries, compatibility, release verification, production security audit and build.
+
+Subsequent commits change audit Markdown reports only.
 
 ## Historical audit commits
 
@@ -53,7 +62,7 @@ This file maps verified findings and audit infrastructure changes to files, comm
 - `0ac71e71ec0a2882289162f198b42892b0892551` — V2 test results
 - `f55805e235abf3296aebcabdd8ba1eab21a8b844` — V2 final review
 - `34a15f2304778f610c920bf576383d0185c799b3` — hardening CI evidence
-- `f81126bea4fbe6bf1403496840b47d1fe02becf8` — V2 CI reconciliation/V3 start
+- `f81126bea4fbe6bf1403496840b47d1fe02becf8` — V2 reconciliation and V3 start
 
 ## Database and protected-branch safety
 
