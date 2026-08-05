@@ -11,6 +11,7 @@ const required = [
   '20260803100130_public_contract_snapshot_shared_rpc.sql',
   '20260803131558_external_api_contract_database_hardening_v1.sql',
   '20260803131922_external_api_contract_database_hardening_v2.sql',
+  '20260805085617_api_contract_billing_tenant_hardening.sql',
 ]
 for (const name of required) {
   const file = path.join(root, 'supabase/migrations', name)

@@ -72,6 +72,83 @@ export type ExternalTenantContext = {
   }
 }
 
+/**
+ * Public projection for GET /api/v1/integration/context.
+ *
+ * The readiness service intentionally carries internal diagnostics such as
+ * blockers, warnings, checks and portal routing details. Those fields are not
+ * part of the immutable 2026-08-04.3 IntegrationContext schema and must never
+ * leak into the external response. Keeping the projection explicit prevents
+ * runtime/OpenAPI drift from becoming a downstream pricing failure.
+ */
+export type PublicExternalTenantContext = {
+  tenant_reference: ExternalTenantContext['tenant_reference']
+  api_client_reference: ExternalTenantContext['api_client_reference']
+  api_version: ExternalTenantContext['api_version']
+  contract_version: ExternalTenantContext['contract_version']
+  authoritative_identity: ExternalTenantContext['authoritative_identity']
+  configuration: ExternalTenantContext['configuration']
+  capabilities: Pick<
+    ExternalTenantContext['capabilities'],
+    | 'website_checkout_ready'
+    | 'customer_portal_ready'
+    | 'complete_tenant_website_ready'
+    | 'required_website_scopes'
+    | 'missing_website_scopes'
+    | 'required_customer_portal_scopes'
+    | 'missing_customer_portal_scopes'
+    | 'recommended_scopes'
+    | 'missing_recommended_scopes'
+  >
+}
+
+export function projectPublicExternalTenantContext(
+  context: ExternalTenantContext,
+): PublicExternalTenantContext {
+  return {
+    tenant_reference: context.tenant_reference,
+    api_client_reference: context.api_client_reference,
+    api_version: context.api_version,
+    contract_version: context.contract_version,
+    authoritative_identity: context.authoritative_identity,
+    configuration: {
+      required_environment_variables:
+        context.configuration.required_environment_variables,
+      api_base_url: context.configuration.api_base_url,
+      authentication: {
+        header: context.configuration.authentication.header,
+        scheme: context.configuration.authentication.scheme,
+        server_side_only:
+          context.configuration.authentication.server_side_only,
+      },
+      openapi_url: context.configuration.openapi_url,
+      customer_portal_openapi_url:
+        context.configuration.customer_portal_openapi_url,
+      application_reference_location:
+        context.configuration.application_reference_location,
+      tenant_id_environment_required:
+        context.configuration.tenant_id_environment_required,
+      company_id_environment_required:
+        context.configuration.company_id_environment_required,
+    },
+    capabilities: {
+      website_checkout_ready: context.capabilities.website_checkout_ready,
+      customer_portal_ready: context.capabilities.customer_portal_ready,
+      complete_tenant_website_ready:
+        context.capabilities.complete_tenant_website_ready,
+      required_website_scopes: context.capabilities.required_website_scopes,
+      missing_website_scopes: context.capabilities.missing_website_scopes,
+      required_customer_portal_scopes:
+        context.capabilities.required_customer_portal_scopes,
+      missing_customer_portal_scopes:
+        context.capabilities.missing_customer_portal_scopes,
+      recommended_scopes: context.capabilities.recommended_scopes,
+      missing_recommended_scopes:
+        context.capabilities.missing_recommended_scopes,
+    },
+  }
+}
+
 export async function loadExternalTenantReference(companyId: string): Promise<string> {
   const { data, error } = await supabaseService
     .from('companies')

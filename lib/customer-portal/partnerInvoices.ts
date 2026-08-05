@@ -9,6 +9,8 @@ type PartnerInvoiceLineInput = {
   unitPrice?: number | null
   amountExVat?: number | null
   vatRate?: number | null
+  vatAmount?: number | null
+  amountIncVat?: number | null
   metadata?: Record<string, unknown> | null
   sortOrder?: number | null
 }
@@ -47,12 +49,54 @@ function normalizeStatus(status?: string | null): CustomerInvoiceStatus {
     status === 'paid' ||
     status === 'overdue' ||
     status === 'cancelled' ||
-    status === 'credited'
+    status === 'credited' ||
+    status === 'failed'
   ) {
     return status
   }
 
   return 'issued'
+}
+
+
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+function normalizedPartnerInvoiceLine(
+  companyId: string,
+  invoiceId: string,
+  line: PartnerInvoiceLineInput,
+  index: number,
+) {
+  const amountExVat = line.amountExVat ?? null
+  const vatRate = line.vatRate ?? null
+  const vatAmount =
+    line.vatAmount ??
+    (amountExVat !== null && vatRate !== null
+      ? roundMoney(amountExVat * vatRate)
+      : null)
+  const amountIncVat =
+    line.amountIncVat ??
+    (amountExVat !== null && vatAmount !== null
+      ? roundMoney(amountExVat + vatAmount)
+      : null)
+
+  return {
+    company_id: companyId,
+    invoice_id: invoiceId,
+    line_type: line.lineType ?? 'energy',
+    description: line.description,
+    quantity: line.quantity ?? null,
+    unit: line.unit ?? null,
+    unit_price: line.unitPrice ?? null,
+    amount_ex_vat: amountExVat,
+    vat_rate: vatRate,
+    vat_amount: vatAmount,
+    amount_inc_vat: amountIncVat,
+    metadata: line.metadata ?? {},
+    sort_order: line.sortOrder ?? index + 1,
+  }
 }
 
 export async function upsertPartnerCustomerInvoice(input: PartnerInvoiceUpsertInput) {
@@ -97,6 +141,7 @@ export async function upsertPartnerCustomerInvoice(input: PartnerInvoiceUpsertIn
     const { error: deleteError } = await supabaseService
       .from('customer_invoice_lines')
       .delete()
+      .eq('company_id', input.companyId)
       .eq('invoice_id', invoiceId)
 
     if (deleteError) throw deleteError
@@ -105,18 +150,14 @@ export async function upsertPartnerCustomerInvoice(input: PartnerInvoiceUpsertIn
       const { error: lineError } = await supabaseService
         .from('customer_invoice_lines')
         .insert(
-          input.lines.map((line, index) => ({
-            invoice_id: invoiceId,
-            line_type: line.lineType ?? 'energy',
-            description: line.description,
-            quantity: line.quantity ?? null,
-            unit: line.unit ?? null,
-            unit_price: line.unitPrice ?? null,
-            amount_ex_vat: line.amountExVat ?? null,
-            vat_rate: line.vatRate ?? null,
-            metadata: line.metadata ?? {},
-            sort_order: line.sortOrder ?? index + 1,
-          }))
+          input.lines.map((line, index) =>
+            normalizedPartnerInvoiceLine(
+              input.companyId,
+              invoiceId,
+              line,
+              index,
+            ),
+          )
         )
 
       if (lineError) throw lineError

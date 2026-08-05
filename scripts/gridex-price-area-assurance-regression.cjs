@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 const crypto = require('node:crypto')
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 function read(path) {
   return fs.readFileSync(path, 'utf8')
@@ -13,7 +14,7 @@ function includes(path, needles) {
   for (const needle of needles) check(value.includes(needle), `${path} saknar: ${needle}`)
 }
 
-const version = '2026-08-04.2'
+const version = currentContractVersion
 const migration = 'supabase/migrations/20260804173000_price_area_assurance_and_pricing_readiness.sql'
 const migrationName = migration.split('/').at(-1)
 const manifest = JSON.parse(read('scripts/migration-history-manifest.json'))

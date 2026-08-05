@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -99,7 +100,7 @@ assert.equal(
   openapi.components.schemas.WebsiteQuoteData.additionalProperties,
   false,
 );
-assert.equal(openapi.info.version, "2026-08-04.2");
+assert.equal(openapi.info.version, currentContractVersion);
 
 console.log(
   "contract-commercial-selection-regression: option/component/snapshot chain verified",

@@ -2,6 +2,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = path.resolve(__dirname, '..')
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
@@ -17,7 +18,7 @@ function check(condition, message) {
   }
 }
 
-const version = '2026-08-04.2'
+const version = currentContractVersion
 const website = json('docs/openapi/website-integration-v1.json')
 const portal = json('docs/openapi/customer-portal-v1.json')
 const appStatus = read('lib/website/customerApplicationStatus.ts')
@@ -33,8 +34,28 @@ const websiteEventsRoute = read('app/api/v1/website/customer-events/route.ts')
 const eventsRoute = read('app/api/v1/events/route.ts')
 const legalRoute = read('app/api/v1/website/legal-bundle/route.ts')
 const quoteValidationRoute = read('app/api/v1/website/quote/validate/route.ts')
+const tenantContext = read('lib/integrations/tenantContext.ts')
+const integrationContextRoute = read('app/api/v1/integration/context/route.ts')
+const projectionStart = tenantContext.indexOf('export function projectPublicExternalTenantContext')
+const projectionEnd = tenantContext.indexOf('export async function loadExternalTenantReference', projectionStart)
+const publicContextProjection = projectionStart >= 0 && projectionEnd > projectionStart
+  ? tenantContext.slice(projectionStart, projectionEnd)
+  : ''
 
 check(website.info.version === version && portal.info.version === version, 'both public OpenAPI documents use one canonical release version')
+check(
+  integrationContextRoute.includes('projectPublicExternalTenantContext('),
+  'integration context route projects the internal readiness object to the public OpenAPI DTO',
+)
+for (const internalField of [
+  'portal_identity_required', 'portal_url', 'webhook_delivery_ready',
+  'status_delivery_modes', 'blockers', 'warnings', 'checks',
+]) {
+  check(
+    !publicContextProjection.includes(`${internalField}:`),
+    `integration context public projection excludes internal field ${internalField}`,
+  )
+}
 check(
   website.paths['/api/v1/website/customer-applications/{application_number}']?.get,
   'website application status is documented by public application_number',

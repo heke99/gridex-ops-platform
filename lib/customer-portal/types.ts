@@ -21,6 +21,7 @@ export type CustomerInvoiceStatus =
   | 'overdue'
   | 'cancelled'
   | 'credited'
+  | 'failed'
 
 export type CustomerInvoiceRow = {
   id: string

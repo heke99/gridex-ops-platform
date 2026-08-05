@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = process.cwd()
 // TypeScript sources are formatter-dependent (single vs double quotes); the
@@ -74,7 +75,7 @@ const portalData = read('lib/customer-portal/apiData.ts')
 check(/public_contract_offer_id/.test(portalData) && /offer_reference/.test(portalData) && /signature_snapshot_sha256/.test(portalData), 'Kundportalens avtal exponerar kanonisk offer- och signaturkoppling')
 
 const docsPage = read('app/developers/customer-portal-api/page.tsx')
-for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', '2026-08-04.2']) {
+for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', currentContractVersion]) {
   check(docsPage.includes(term), `Publika dokumentationssidan innehåller ${term}`)
 }
 const websiteDocs = read('docs/openapi/website-integration-v1.json')

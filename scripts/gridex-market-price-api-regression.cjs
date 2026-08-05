@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 const failures = []
 let checks = 0
 function source(file) { return fs.readFileSync(file, 'utf8') }
@@ -42,7 +43,7 @@ const vercel = JSON.parse(source('vercel.json'))
 check(vercel.crons.some((row) => row.path === '/api/cron/pricing/spot-prices' && row.schedule === '15 * * * *'), 'Spot cron must run hourly.')
 const website = JSON.parse(source('docs/openapi/website-integration-v1.json'))
 const portal = JSON.parse(source('docs/openapi/customer-portal-v1.json'))
-check(website.info.version === '2026-08-04.2', 'Website OpenAPI version mismatch.')
+check(website.info.version === currentContractVersion, 'Website OpenAPI version mismatch.')
 check(Boolean(website.paths['/api/v1/website/market-price/current']), 'Website OpenAPI current price endpoint missing.')
 check(!portal.paths['/api/v1/website/market-price/current'], 'Customer portal OpenAPI must not duplicate website market route.')
 check(website.components.schemas.MarketReference.required.includes('price_sek_per_kwh'), 'MarketReference direct price is not required.')

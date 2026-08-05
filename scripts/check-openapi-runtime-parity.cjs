@@ -159,6 +159,77 @@ if (legalSchema.additionalProperties !== false || legalModuleSchema.additionalPr
   failures.push('Legal schemas must remain closed to undocumented fields.')
 }
 
+const integrationContextSchema = website.components.schemas.IntegrationContext
+const integrationContextOperation =
+  website.paths['/api/v1/integration/context']?.get
+const integrationContextResponse =
+  integrationContextOperation?.responses?.['200']?.content?.['application/json']?.schema
+const tenantContextSource = fs.readFileSync(
+  'lib/integrations/tenantContext.ts',
+  'utf8',
+)
+const integrationContextRouteSource = fs.readFileSync(
+  'app/api/v1/integration/context/route.ts',
+  'utf8',
+)
+const projectionStart = tenantContextSource.indexOf(
+  'export function projectPublicExternalTenantContext',
+)
+const projectionEnd = tenantContextSource.indexOf(
+  'export async function loadExternalTenantReference',
+  projectionStart,
+)
+const integrationContextProjection =
+  projectionStart >= 0 && projectionEnd > projectionStart
+    ? tenantContextSource.slice(projectionStart, projectionEnd)
+    : ''
+
+if (!integrationContextResponse?.properties?.data?.$ref?.endsWith('/IntegrationContext')) {
+  failures.push('Integration context 200 response must use IntegrationContext as data.')
+}
+if (integrationContextSchema?.additionalProperties === true) {
+  failures.push('IntegrationContext must not explicitly allow arbitrary fields.')
+}
+const publicContextCapabilities = [
+  'website_checkout_ready',
+  'customer_portal_ready',
+  'complete_tenant_website_ready',
+  'required_website_scopes',
+  'missing_website_scopes',
+  'required_customer_portal_scopes',
+  'missing_customer_portal_scopes',
+  'recommended_scopes',
+  'missing_recommended_scopes',
+]
+for (const field of publicContextCapabilities) {
+  if (!integrationContextSchema?.properties?.capabilities?.properties?.[field]) {
+    failures.push(`IntegrationContext capabilities missing ${field}.`)
+  }
+  if (!integrationContextProjection.includes(`${field}:`)) {
+    failures.push(`Public integration-context projection missing ${field}.`)
+  }
+}
+for (const internalField of [
+  'portal_identity_required',
+  'portal_url',
+  'webhook_delivery_ready',
+  'status_delivery_modes',
+  'blockers',
+  'warnings',
+  'checks',
+]) {
+  if (integrationContextProjection.includes(`${internalField}:`)) {
+    failures.push(
+      `Public integration-context projection leaks internal field ${internalField}.`,
+    )
+  }
+}
+if (!integrationContextRouteSource.includes('projectPublicExternalTenantContext(')) {
+  failures.push(
+    'Integration context route must use the explicit public OpenAPI projection.',
+  )
+}
+
 const runtimeSources = {
   quote: fs.readFileSync('app/api/v1/website/quote/route.ts', 'utf8'),
   validate: fs.readFileSync(

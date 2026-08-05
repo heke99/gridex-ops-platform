@@ -270,7 +270,8 @@
     "gridex:multitenant-website-application-flow-regression": "node scripts/gridex-multitenant-website-application-flow-regression.cjs",
     "verify:multitenant-website-application-flow:static": "npm run db:migrations:check && npm run api:docs && npm run tenant:multitenant:static && npm run gridex:single-api-key-integration-regression && npm run gridex:customer-application-review-regression && npm run gridex:customer-application-continuation-regression && npm run gridex:multitenant-website-application-flow-regression",
     "gridex:price-area-assurance-regression": "node scripts/gridex-price-area-assurance-regression.cjs",
-    "gridex:svk-billing-area-regression": "node scripts/gridex-svk-billing-area-regression.cjs"
+    "gridex:svk-billing-area-regression": "node scripts/gridex-svk-billing-area-regression.cjs",
+    "gridex:api-billing-tenant-hardening-regression": "node scripts/gridex-api-billing-tenant-hardening-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

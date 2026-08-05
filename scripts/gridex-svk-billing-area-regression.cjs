@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 function read(path) {
   return fs.readFileSync(path, 'utf8')
@@ -43,7 +44,7 @@ assert.match(readiness, /contract_price_snapshot_missing/)
 assert.match(readiness, /snapshotsById/)
 assert.match(apiDocs, /låsta `price_area` från quote-\/avtalssnapshoten/)
 assert.match(guide, /Databasen avvisar även direkt skrivning/)
-assert.equal(openapi.info.version, '2026-08-04.2')
+assert.equal(openapi.info.version, currentContractVersion)
 assert.equal(typeof manifest.files[migrationName], 'string')
 assert.equal(typeof manifest.files[guardMigrationName], 'string')
 assert.equal(manifest.files[migrationName].length, 64)

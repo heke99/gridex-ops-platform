@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
+const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = process.cwd()
 const failures = []
@@ -41,7 +42,7 @@ includes('lib/pricing/contractPricingVersioning.ts', [
   'fixedPriceForArea',
   'Fast pris per elområde',
   'fixed_price_sek_per_kwh',
-  'const componentAreas = priceAreas.length > 0 ? priceAreas : [null]',
+  'const fixedComponentAreas = priceAreas.length > 0 ? priceAreas : [null]',
 ], 'Prisversioneringen ska lagra SE1–SE4 under samma product version')
 excludes('lib/pricing/contractPricingVersioning.ts', [
   'Fastpris ska vara samma öre/kWh i alla prisområden',
@@ -74,7 +75,7 @@ check(
   'Saknad API-token ska ge 401 före databas- och schemakontroll',
 )
 includes('app/api/v1/website/quote/route.ts', [
-  "['website_quotes.write']",
+  'website_quotes.write',
   'calculateOfferQuote',
   'status: 201',
 ], 'Canonical quote endpoint ska vara aktiv')
@@ -142,7 +143,7 @@ includes('supabase/migrations/20260723120000_canonical_fixed_area_quote_flow.sql
 ], 'Migrationen ska återaktivera endast etablerade scopes och lägga till audit/read model')
 
 // Runtime/API/docs version alignment.
-includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-04.2'"], 'Canonical runtime contract version ska vara 2026-08-04.2')
+includes('lib/integrations/websiteIntegrationContract.ts', [`WEBSITE_INTEGRATION_CONTRACT_VERSION = '${currentContractVersion}'`], `Canonical runtime contract version ska vara ${currentContractVersion}`)
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 includes('app/developers/customer-portal-api/page.tsx', [
   'documentationVersion',
@@ -151,7 +152,7 @@ includes('app/developers/customer-portal-api/page.tsx', [
 ], 'Utvecklarsidan ska använda canonical version och beskriva area pricing och quote')
 for (const rel of ['docs/openapi/website-integration-v1.json']) {
   const spec = json(rel)
-  check(spec.info?.version === '2026-08-04.2', `${rel} ska ha version 2026-08-04.2`)
+  check(spec.info?.version === currentContractVersion, `${rel} ska ha version ${currentContractVersion}`)
   check(Boolean(spec.paths?.['/api/v1/website/quote']?.post?.responses?.['201']), `${rel} ska dokumentera aktiv quote 201`)
   check(Boolean(spec.paths?.['/api/v1/website/quote/validate']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv quote validation 200`)
   check(Boolean(spec.paths?.['/api/v1/website/energy-area/resolve']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv resolver 200`)
