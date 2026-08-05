@@ -1,7 +1,7 @@
 //app/api/v1/customer-portal/sync/route.ts
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { readJsonObject } from '@/lib/api/strictRequest'
+import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   logIntegrationApiRequest,
@@ -363,15 +363,23 @@ export async function POST(request: NextRequest) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
     return customerPortalJson({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
   } catch (error) {
+    const controlled = error instanceof ApiInputError
+    const status = controlled ? error.status : 500
+    const errorCode = controlled ? error.code : 'portal_sync_failed'
+    const clientMessage = controlled ? error.message : 'Kundlänkning kunde inte behandlas.'
     const errorMetadata = serializePortalSyncError(error)
     await logIntegrationApiRequest({
       client: auth.client,
       request,
-      statusCode: 500,
+      statusCode: status,
       startedAt,
-      errorCode: 'Kundlänkning kunde inte behandlas.',
+      errorCode,
       metadata: { portal_sync_error: errorMetadata },
     })
-    return customerPortalJson({ error: 'Kundlänkning kunde inte behandlas.' }, { status: 500 })
+    return customerPortalJson({
+      error: clientMessage,
+      code: errorCode,
+      ...(controlled && error.field ? { field: error.field } : {}),
+    }, { status })
   }
 }
