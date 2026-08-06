@@ -8,6 +8,7 @@
 - Confidence: Confirmed
 - Recommended status after this branch: `CODE_REMEDIATED`
 - Branch: `remediation/gridex-ops-bl-002-global-read-isolation`
+- Draft PR: `#84`
 - Base main SHA: `ffe4d0b022d82108d902336755d26d5c5d3924ed`
 
 ## Activated skills
@@ -74,11 +75,21 @@ Expected matrix:
 | active platform admin | allow | allow | allow |
 | service role | allow | allow | allow only for the inventoried worker paths |
 
+## Changed files
+
+- `supabase/migrations/20260806133000_gridex_ops_bl_002_global_read_isolation.sql`
+- `scripts/migration-history-manifest.additions.json`
+- `scripts/gridex-ops-bl-002-global-read-isolation-regression.sql`
+- `quality/remediation/GRIDEX_OPS_BL_002_GLOBAL_READ_ISOLATION.md`
+- `quality/remediation/GRIDEX_OPS_REMEDIATION_REGISTER.md`
+- `quality/remediation/GRIDEX_OPS_REMEDIATION_SKILL_ROUTING.md`
+- `quality/remediation/GRIDEX_OPS_REMEDIATION_WORKSTREAM_PLAN.md`
+
 ## Migration
 
 `supabase/migrations/20260806133000_gridex_ops_bl_002_global_read_isolation.sql`
 
-The migration is additive/forward-only and has precondition checks for the canonical helper and all four tables. It does not edit `20260615130000_batch_o3_o6_actor_registry_certificate_hardening.sql` or any other applied migration.
+The migration is additive/forward-only and has precondition checks for the canonical helper and all four tables. It does not edit `20260615130000_batch_o3_o6_actor_registry_certificate_hardening.sql` or any other applied migration. Its SHA-256 is registered in `scripts/migration-history-manifest.additions.json`.
 
 ## Regression
 
@@ -125,6 +136,7 @@ This is not a false positive because:
 - Verified PR #74 is open draft and unmerged; it was not modified or merged.
 - Read `AGENTS.md`, `skills-lock.json`, required project memory, baseline/V3/reconciliation evidence and the original policy migration.
 - Verified 38 locked skills and created complete routing.
+- Verified the remediation branch diff contains only this workstream and its program documents.
 
 ### Supabase read-only inspection
 
@@ -141,6 +153,26 @@ GRIDEX-OPS-BL-002 rollback verification passed
 ```
 
 The transaction ended with `ROLLBACK`; no migration, user, membership, policy or fixture was persisted.
+
+### CI
+
+The first PR run, OPS hardening run `#331` (`31098901641`), correctly failed at migration integrity because the new migration had not yet been registered in the additive checksum manifest. No later step was claimed as passed for that run.
+
+After registering the exact migration SHA-256, OPS hardening run `#332` (`31099032804`) completed successfully on head `4e2b8e073fea6dfa5a693a281f2c8075d37fa8e5`. Passed steps included:
+
+- checkout and Node setup;
+- `npm ci`;
+- `npm run db:migrations:check`;
+- API/billing tenant hardening regression;
+- application typecheck;
+- quote idempotency/multitenant regression;
+- focused Vitest idempotency tests;
+- hardening regressions and behavior regression;
+- final contract regression;
+- API error-boundary check;
+- production dependency security audit.
+
+A final exact-head rerun is required after this evidence-only documentation commit; the PR check state is authoritative for that final commit.
 
 ## Verification commands for a clean checkout/staging database
 
@@ -164,13 +196,14 @@ npm run build
 
 Use only isolated staging/ephemeral credentials. Do not run the fixture regression against production. The migration itself requires normal migration review and deployment approval.
 
-## Blocked checks
+## Blocked controls
 
-- No authenticated local checkout or dependency runtime was available through the connector, so `npm ci`, typecheck, lint, full tests and build were not executed in this run.
+- No authenticated local checkout or dependency runtime was available through the connector. The committed GitHub workflow supplied clean-install and selected automated verification, but it does not replace every requested local/full gate.
+- The current workflow did not run the complete lint suite, complete test suite, script/test typechecks, production build, SAST or secret-history scan; those remain program workstreams and must not be inferred green.
 - No paid Supabase ephemeral branch was created because branch creation requires explicit cost confirmation.
 - The migration was not persistently applied to staging or production.
 - Admin UI and background worker smoke tests remain required after staging apply.
-- CI status can only be evaluated after the draft PR exists on its exact head SHA.
+- Local working-tree `git status` and unstaged `git diff` could not be inspected through the remote connector; remote branch ancestry and PR diff were verified instead.
 
 ## Staging requirements
 
@@ -180,7 +213,7 @@ Use only isolated staging/ephemeral credentials. Do not run the fixture regressi
 4. Sign in as an active platform admin and verify `/admin/network-owners` loads import history.
 5. Execute a controlled actor registry import and certificate refresh worker run using service role.
 6. Inspect logs for request/correlation IDs and ensure no sensitive row contents are emitted.
-7. Run exact-head CI and retain redacted evidence in this report/PR.
+7. Retain the exact-head CI and staging evidence in this report/PR before status closure.
 
 ## Rollback and forward-fix
 
@@ -194,7 +227,7 @@ No new same-root-cause variant was found. The variant scan returned exactly the 
 
 ## Remaining risk and status
 
-The source migration and regression are implemented and the proposed behavior is proven in rollback execution. Because persistent staging apply, smoke tests, exact-head CI and human review are pending, the correct status is:
+The source migration and regression are implemented, the proposed behavior is proven in rollback execution, and the code/checksum head passed OPS hardening. Because persistent staging apply, UI/worker smoke tests and human database/security review are pending, the correct status is:
 
 `CODE_REMEDIATED`
 
