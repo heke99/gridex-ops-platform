@@ -19,6 +19,7 @@ jobs:
       - run: npm run db:migrations:check
       - run: node scripts/gridex-aud-001-customer-document-storage-isolation-regression.cjs
       - run: node scripts/gridex-aud-001-private-storage-helper-regression.cjs
+      - run: npx vitest run __tests__/customer-document-signed-url.test.ts
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
