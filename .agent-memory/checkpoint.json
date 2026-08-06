@@ -1,64 +1,65 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-05T15:20:07+02:00",
-  "branch": "archive working tree",
+  "updated_at": "2026-08-06T08:50:00Z",
+  "branch": "cursor/codebase-health-and-stability-ec6b",
   "last_verified_commit": null,
-  "active_phase": "PHASE-44",
-  "active_task": "WP-044",
-  "active_subtask": "Deploy and prove three-document legal acceptance plus signed POA supplier-switch chain for private and business tenants",
+  "active_phase": "PHASE-45",
+  "active_task": "WP-045",
+  "active_subtask": "Merge health package, deploy OPS, run live quote create/validate smoke",
   "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
   "implemented_not_environment_verified": [
-    "three customer-facing legal documents with immutable source-module evidence",
-    "tenant legal-profile snapshot rendering for historical documents",
-    "website grouped acceptance with legacy module compatibility",
-    "Customer Portal grouped acceptance expansion to exact module rows",
-    "exact signed POA scope and legal-version reuse guards",
-    "OpenAPI 2026-08-05.1 immutable release",
-    "duplicate/mixed legal acceptance prevalidation and signed-event fail-closed guard"
+    "quote timestamptz hash canonicalization",
+    "quote nullable grid-area canonical compares",
+    "fail-closed OpenAPI immutable release verification",
+    "quote example offer seeding",
+    "application/metering-point case-insensitive area compares",
+    "current-market-price example required fields",
+    "developer guide contract version sync to 2026-08-05.2"
   ],
   "active_blockers": [
-    "modified OPS code has not been deployed",
-    "package mirror 404 prevents clean npm ci and full dependency-backed gates",
-    "real private/business two-tenant legal and supplier-switch E2E is pending"
+    "node_modules absent; full npm gates unexecuted",
+    "OPS not deployed from this delivery",
+    "live quote create/validate E2E pending",
+    "sibling PR #80 overlaps subset of package"
   ],
   "verification": [
     {
-      "name": "customer legal package regression",
+      "name": "quote null-grid-area regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "grouping, tenant snapshot, grouped Customer Portal evidence expansion, format prevalidation and signed-event fail-closed checks pass"
+      "evidence": "canonicalQuoteGridAreaCode and timestamptz helper checks pass"
     },
     {
-      "name": "website and platform POA regressions",
+      "name": "website quote integrity and OpenAPI sync regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "structured POA, fail-closed sendability and canonical authorization chain checks pass"
+      "evidence": "offer, market-price required fields, release bytes and developer guide version pass"
     },
     {
-      "name": "API/OpenAPI/docs",
+      "name": "api release/examples/version/compatibility/runtime",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "version, compatibility, examples, runtime boundary and immutable 2026-08-05.1 release pass"
+      "evidence": "verify-openapi-release, documentation examples/version, compatibility and public-contract runtime pass"
     },
     {
-      "name": "changed TypeScript syntax",
+      "name": "explicit input preservation regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "17 changed TS/TSX files transpile with TypeScript 5.8.3"
+      "evidence": "case-insensitive grid-area and metering-point normalizer assertions pass"
     },
     {
       "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "package mirror 404 for zod-validation-error@4.0.2"
+      "evidence": "node_modules absent in sandbox"
     },
     {
-      "name": "live tenant legal/POA/supplier-switch E2E",
+      "name": "live quote create/validate E2E",
       "status": "PENDING",
-      "evidence": "requires sync, deploy, tenant credentials and test customers"
+      "evidence": "requires deploy and tenant credentials"
     }
   ],
-  "next_action": "Sync the changed-files package, deploy OPS, then execute one private and one business tenant legal-bundle/acceptance/POA/supplier-switch smoke flow.",
+  "next_action": "Open/merge health PR, deploy OPS, then execute live quote create → validate smoke.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not collapse canonical legal module storage; only customer presentation is grouped",
-    "Do not allow a POA reference to bind to different legal text or scopes",
-    "Do not mark a legacy schema fallback POA signed",
-    "Do not claim deployment or live E2E before evidence exists"
+    "Do not mutate cleanly shipped immutable OpenAPI releases; unfinished same-day incomplete publishes may still need rematerialize",
+    "Prefer merging one completed health branch; close overlapping siblings",
+    "Nested JSONB timestamps remain frozen at write",
+    "Do not claim full npm gates or live E2E without evidence"
   ]
 }

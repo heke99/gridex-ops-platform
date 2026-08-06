@@ -13,7 +13,7 @@ scopes, error codes, examples and documentation must change together.
 Public application output uses an explicit allowlisted DTO. Internal pricing,
 publication, portal-identity and provider-connection IDs are never exposed.
 
-Current version: `2026-08-05.1`.
+Current version: `2026-08-05.2`.
 
 Public pricing exposes stable `price_options`, `commercial_components`,
 selection policy and invoice methods. Quote accepts `price_option_reference`,
