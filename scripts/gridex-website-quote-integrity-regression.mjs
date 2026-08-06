@@ -159,4 +159,27 @@ assert.ok(
   'developer guide examples must use current contract_schema_version',
 )
 
+// Create may accept mixed-case price_area that matches a resolution case-
+// insensitively; validate must not reject those quotes, and new creates must
+// persist the uppercase Swedish price area used by OPS resolution.
+assert.ok(
+  quotes.includes("input.priceArea.toUpperCase() !== canonicalResolution.priceArea"),
+  'create/validate gate must compare price_area case-insensitively against resolution',
+)
+assert.match(
+  quotes,
+  /price_area:\s*input\.priceArea\.trim\(\)\.toUpperCase\(\)/,
+  'website quote create must persist uppercase price_area',
+)
+assert.match(
+  quotes,
+  /quote\.price_area\.toUpperCase\(\)\s*!==\s*String\(canonicalPriceArea\)\.toUpperCase\(\)/,
+  'quote validate must compare price_area case-insensitively',
+)
+assert.match(
+  quotes,
+  /String\(quote\.resolution_snapshot\?\.price_area \?\? ''\)\.toUpperCase\(\)\s*!==\s*quote\.price_area\.toUpperCase\(\)/,
+  'resolution snapshot price_area compare must be case-insensitive',
+)
+
 console.log('website quote integrity and OpenAPI synchronization regression: ok')

@@ -1,53 +1,34 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-06T08:50:00Z",
-  "branch": "cursor/codebase-health-and-stability-ec6b",
-  "last_verified_commit": "c4bbc681",
-  "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/81",
+  "updated_at": "2026-08-06T08:58:00Z",
+  "branch": "cursor/codebase-health-and-stability-6531",
+  "last_verified_commit": null,
   "active_phase": "PHASE-45",
   "active_task": "WP-045",
-  "active_subtask": "Merge health package, deploy OPS, run live quote create/validate smoke",
+  "active_subtask": "Ship health package with H-009/H-010 case-normalization variants and prefer one merge onto main",
   "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
   "implemented_not_environment_verified": [
-    "quote timestamptz hash canonicalization",
-    "quote nullable grid-area canonical compares",
-    "fail-closed OpenAPI immutable release verification",
-    "quote example offer seeding",
+    "OpenAPI 2026-08-05.2 immutable release verification package",
+    "quote timestamptz and nullable grid-area integrity",
     "application/metering-point case-insensitive area compares",
-    "current-market-price example required fields",
-    "developer guide contract version sync to 2026-08-05.2"
+    "website quote uppercase price_area persist and case-insensitive validate",
+    "AI/BI import grid-area case normalization"
   ],
   "active_blockers": [
-    "node_modules absent; full npm gates unexecuted",
-    "OPS not deployed from this delivery",
-    "live quote create/validate E2E pending",
-    "sibling PR #80 overlaps subset of package"
+    "node_modules absent blocks full npm typecheck/test/lint/build",
+    "live quote create/validate E2E pending deploy",
+    "overlapping sibling health PRs should be closed in favor of one merge"
   ],
   "verification": [
     {
-      "name": "quote null-grid-area regression",
+      "name": "quote and OpenAPI health regressions",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "canonicalQuoteGridAreaCode and timestamptz helper checks pass"
-    },
-    {
-      "name": "website quote integrity and OpenAPI sync regression",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "offer, market-price required fields, release bytes and developer guide version pass"
-    },
-    {
-      "name": "api release/examples/version/compatibility/runtime",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "verify-openapi-release, documentation examples/version, compatibility and public-contract runtime pass"
-    },
-    {
-      "name": "explicit input preservation regression",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "case-insensitive grid-area and metering-point normalizer assertions pass"
+      "evidence": "quote integrity, null grid-area, AI/BI case, explicit-input, examples, version, compatibility, runtime and local release verify pass"
     },
     {
       "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "node_modules absent in sandbox"
+      "evidence": "node_modules absent"
     },
     {
       "name": "live quote create/validate E2E",
@@ -55,12 +36,11 @@
       "evidence": "requires deploy and tenant credentials"
     }
   ],
-  "next_action": "Open/merge health PR, deploy OPS, then execute live quote create → validate smoke.",
+  "next_action": "Open PR for cursor/codebase-health-and-stability-6531, prefer it over sibling health PRs, deploy, then run live quote create/validate.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not mutate cleanly shipped immutable OpenAPI releases; unfinished same-day incomplete publishes may still need rematerialize",
-    "Prefer merging one completed health branch; close overlapping siblings",
-    "Nested JSONB timestamps remain frozen at write",
-    "Do not claim full npm gates or live E2E without evidence"
+    "Do not auto-uppercase price_area inside fullQuoteIntegrityPayload; that would break existing lowercase quote hashes",
+    "Prefer one completed health branch onto main",
+    "Do not claim deployment or live E2E before evidence exists"
   ]
 }

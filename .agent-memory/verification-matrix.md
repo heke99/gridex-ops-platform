@@ -44,3 +44,13 @@
 | API version/compatibility/runtime | PASS | documentation version, compatibility, public-contract runtime |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## PHASE-45 follow-on — 2026-08-06T08:58:00Z (`6531`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Quote price_area case integrity | PASS | website quote integrity regression assertions |
+| AI/BI grid-area case normalize | PASS | `gridex:aibi-grid-area-case-regression` |
+| Prior PHASE-45 package on tip | PASS | merge of `ec6b` + regressions above |
+| Full dependency gates | BLOCKED | `node_modules` absent |
+| Live quote create/validate | PENDING | deployment required |

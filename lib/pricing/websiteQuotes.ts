@@ -259,7 +259,7 @@ export async function persistWebsiteQuote(input: {
     legalBundleVersionId: input.offer.legal_bundle_version_id,
     energyDirection: input.offer.energy_direction,
     customerType: input.customerType,
-    priceArea: input.priceArea,
+    priceArea: input.priceArea.trim().toUpperCase(),
     gridAreaCode: input.gridAreaCode,
     postalCode: input.postalCode,
     annualConsumptionKwh: input.annualConsumptionKwh,
@@ -300,7 +300,7 @@ export async function persistWebsiteQuote(input: {
     legal_bundle_version_id: input.offer.legal_bundle_version_id ?? null,
     energy_direction: input.offer.energy_direction,
     customer_type: input.customerType,
-    price_area: input.priceArea,
+    price_area: input.priceArea.trim().toUpperCase(),
     grid_area_code: input.gridAreaCode ?? null,
     energy_resolution_id: input.resolutionId ?? null,
     resolution_snapshot: input.resolutionSnapshot ?? {},
@@ -346,7 +346,7 @@ export async function persistWebsiteQuote(input: {
     payload: {
       quote_reference: quoteReference,
       offer_reference: input.offerReference,
-      price_area: input.priceArea,
+      price_area: input.priceArea.trim().toUpperCase(),
       valid_until: validUntil,
       quote_hash: immutableQuoteHash,
       market_reference: input.marketReference ?? {},
@@ -532,10 +532,10 @@ export async function validateWebsiteQuote(input: {
   const mismatches: string[] = []
   if (quote.offer_reference !== input.offerReference) mismatches.push('offer_reference')
   if (quote.customer_type !== input.customerType) mismatches.push('customer_type')
-  if (quote.price_area !== canonicalPriceArea) mismatches.push('price_area')
+  if (quote.price_area.toUpperCase() !== String(canonicalPriceArea).toUpperCase()) mismatches.push('price_area')
   if (input.resolutionId && quote.energy_resolution_id !== input.resolutionId) mismatches.push('resolution_id')
   if (quote.resolution_binding_status === 'verified' && !input.resolutionId) mismatches.push('resolution_id')
-  if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.price_area ?? '') !== quote.price_area) mismatches.push('resolution_snapshot.price_area')
+  if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.price_area ?? '').toUpperCase() !== quote.price_area.toUpperCase()) mismatches.push('resolution_snapshot.price_area')
   if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.resolution_id ?? '') !== String(quote.energy_resolution_id ?? '')) mismatches.push('resolution_snapshot.resolution_id')
   if (canonicalResolution && quote.energy_resolution_id !== canonicalResolution.id) mismatches.push('resolution_id')
   if (canonicalResolution && quote.resolver_version !== canonicalResolution.resolverVersion) mismatches.push('resolver_version')
