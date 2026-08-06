@@ -6,229 +6,153 @@
 - Source: baseline BL-002, reconciliation, live non-production verification
 - Severity: High
 - Confidence: Confirmed
-- Recommended status after this branch: `CODE_REMEDIATED`
+- Status: `CODE_REMEDIATED`
 - Branch: `remediation/gridex-ops-bl-002-global-read-isolation`
-- Draft PR: `#84`
+- Pull request: `#84`
 - Base main SHA: `ffe4d0b022d82108d902336755d26d5c5d3924ed`
-
-## Activated skills
-
-Directly activated: acquire-codebase-knowledge, code-review, code-security, differential-review, executing-plans, find-bugs, finishing-a-development-branch, fp-check, quality-playbook, requesting-code-review, security-threat-model, sharp-edges, spec-to-code-compliance, supabase, supabase-postgres-best-practices, systematic-debugging, test-driven-development, threat-model-analyst, using-superpowers, variant-analysis, verification-before-completion, writing-plans and writing-skills.
 
 ## Root cause
 
-The four platform-global operational tables were created with `SELECT` policies equivalent to:
+The four platform-global operational tables used `SELECT` policies equivalent to:
 
 ```sql
 auth.role() = 'service_role' or auth.uid() is not null
 ```
 
-That expression treats every authenticated principal as a platform operator. `company_id` is nullable and current rows are predominantly or entirely global, so tenant membership is not a valid authorization boundary. The canonical active-platform-admin helper already exists and is executable by `authenticated`, but the policies did not use it.
+That expression treated every authenticated principal as a platform operator. The affected data is global or platform-operational, so tenant membership is not a valid authorization boundary.
 
-## Affected tables and policies
+Affected tables:
 
-| Table | Old read policy | Intended interactive reader | Intended privileged worker |
-|---|---|---|---|
-| `actor_registry_conflicts` | `actor_registry_conflicts_read` | Active platform admin | Actor-registry service-role worker |
-| `actor_registry_import_items` | `actor_registry_import_items_read` | Active platform admin | Actor-registry service-role worker |
-| `actor_registry_import_runs` | `actor_registry_import_runs_read` | Active platform admin | Actor-registry service-role worker |
-| `ediel_certificate_refresh_jobs` | `ediel_certificate_refresh_jobs_read` | Active platform admin | Certificate refresh service-role worker |
+- `actor_registry_conflicts`
+- `actor_registry_import_items`
+- `actor_registry_import_runs`
+- `ediel_certificate_refresh_jobs`
+
+## Implemented boundary
+
+For each table the forward migration:
+
+1. keeps RLS enabled;
+2. revokes anonymous `SELECT`;
+3. removes the broad authenticated read policy;
+4. allows authenticated reads only through `gridex_user_is_platform_admin()`;
+5. preserves explicit service-role reads for the actor-registry and certificate workers;
+6. leaves historical migrations and write policies unchanged.
+
+Migration:
+
+`supabase/migrations/20260806122255_gridex_ops_bl_002_global_read_isolation.sql`
+
+SHA-256:
+
+`ccbc18dbb7232841758830235be3e808d55b0512c72a409c6125981a5103d2d6`
+
+The version matches the migration recorded by the non-production Supabase project. The previously proposed filename with version `20260806133000` was removed before merge to prevent migration-history drift.
 
 ## Consumer inventory
 
-- `app/admin/network-owners/page.tsx` is a server component, calls `requirePlatformAdminAccess()` before data loading and reads recent `actor_registry_import_runs` with the authenticated server session. The new platform-admin RLS policy matches this boundary; no service-role promotion or client-side bypass is needed.
-- `lib/actor-registry/importActorRegistry.ts` uses `supabaseService` for registry staging/conflict processing.
-- `lib/ediel/certificates/actorCertificateRefresh.ts` is the certificate-job consumer and is part of the service-role worker path.
-- Repository search found no legitimate tenant UI requiring direct reads of these four tables.
+- `app/admin/network-owners/page.tsx` is guarded by `requirePlatformAdminAccess()` and reads import history with the authenticated server session.
+- `lib/actor-registry/importActorRegistry.ts` uses `supabaseService` for import staging and conflict processing.
+- `lib/ediel/certificates/actorCertificateRefresh.ts` uses `supabaseService` for certificate-refresh jobs.
+- No legitimate tenant UI consumer was found for direct reads of these four tables.
 
-## Before behavior
+## Verification
 
-Live policy catalog on non-production project `piidsfebjqjmnepdpnas` showed the same broad predicate on all four tables. Baseline direct reproduction proved ordinary authenticated sessions could read platform-global records. Current aggregate inspection found:
+### Policy inspection
 
-- `actor_registry_import_items`: 679 rows, all with `company_id is null`;
-- `actor_registry_import_runs`: 1 current row, global;
-- `ediel_certificate_refresh_jobs`: 1,287 rows, all global;
-- `actor_registry_conflicts`: no current rows at inspection time, but the policy was equally broad and the regression creates explicit fixtures.
+Post-apply inspection returned exactly eight target-table read policies:
 
-The baseline audit observed a different import-run count at its earlier snapshot; counts are reported as time-specific evidence, not reconciled by assumption.
+- four platform-admin policies for `authenticated`;
+- four service-role policies;
+- zero remaining target-table read policies containing the former broad `auth.uid() is not null` predicate.
 
-## After behavior
+### Two-company regression
 
-For each table the migration:
+The committed rollback regression was executed after persistent non-production migration apply.
 
-1. keeps RLS enabled;
-2. revokes anonymous SELECT;
-3. preserves SELECT grants for `authenticated` and `service_role`;
-4. drops the broad read policy;
-5. creates one `authenticated` policy using `(select public.gridex_user_is_platform_admin())`;
-6. creates one explicit `service_role` policy for the background worker path;
-7. leaves existing write policies and all historical migrations unchanged.
-
-Expected matrix:
-
-| Principal | Tenant A tagged fixture | Tenant B tagged fixture | Global operational rows |
-|---|---:|---:|---:|
-| anon | deny | deny | deny |
-| ordinary authenticated | deny | deny | deny |
-| active tenant member | deny | deny | deny |
-| company admin | deny | deny | deny |
-| active platform admin | allow | allow | allow |
-| service role | allow | allow | allow only for the inventoried worker paths |
-
-## Changed files
-
-- `supabase/migrations/20260806133000_gridex_ops_bl_002_global_read_isolation.sql`
-- `scripts/migration-history-manifest.additions.json`
-- `scripts/gridex-ops-bl-002-global-read-isolation-regression.sql`
-- `quality/remediation/GRIDEX_OPS_BL_002_GLOBAL_READ_ISOLATION.md`
-- `quality/remediation/GRIDEX_OPS_REMEDIATION_REGISTER.md`
-- `quality/remediation/GRIDEX_OPS_REMEDIATION_SKILL_ROUTING.md`
-- `quality/remediation/GRIDEX_OPS_REMEDIATION_WORKSTREAM_PLAN.md`
-
-## Migration
-
-`supabase/migrations/20260806133000_gridex_ops_bl_002_global_read_isolation.sql`
-
-The migration is additive/forward-only and has precondition checks for the canonical helper and all four tables. It does not edit `20260615130000_batch_o3_o6_actor_registry_certificate_hardening.sql` or any other applied migration. Its SHA-256 is registered in `scripts/migration-history-manifest.additions.json`.
-
-## Regression
-
-`scripts/gridex-ops-bl-002-global-read-isolation-regression.sql`
-
-The test is self-contained and rollback-only. It:
-
-- selects two existing companies and one real active platform admin;
-- creates temporary ordinary, tenant-member and company-admin Auth/profile fixtures;
-- creates two rows per affected table, one tagged to each company;
-- verifies all three non-platform authenticated contexts see zero target rows;
-- verifies the platform admin sees both rows in all four tables;
-- verifies service role sees both rows in all four tables;
-- verifies the broad `auth.uid() is not null` read predicate is absent;
-- verifies exactly eight explicit platform-admin/service-role read policies;
-- rolls back all users, memberships and operational fixtures.
-
-## Variant analysis
-
-A live `pg_policy` scan searched every public `SELECT`/`ALL` policy containing `auth.uid() IS NOT NULL` while excluding platform-admin, tenant, permission and membership-aware predicates. Result: exactly the four policies in this finding. No additional same-root-cause table was identified.
-
-Related but different classes remain separate:
-
-- raw tenant-membership write bypasses are `GRIDEX-OPS-BL-001`;
-- duplicate permissive/per-row policy performance is `GRIDEX-OPS-BL-004`;
-- broad table grants without an allowing policy are not automatically an exposure and require separate effective-access analysis.
-
-## False-positive control
-
-This is not a false positive because:
-
-- the predicate is directly visible in `pg_policy`;
-- `authenticated` has SELECT grants on all four tables;
-- RLS is enabled but the broad policy authorizes every non-null JWT subject;
-- baseline executed an authenticated role/JWT reproduction;
-- intended UI and worker consumers are platform-admin/service-role, not tenant users;
-- a rollback transaction with the proposed policy produced the required deny/allow matrix.
-
-## Verification executed
-
-### Repository and evidence
-
-- Verified main SHA `ffe4d0b022d82108d902336755d26d5c5d3924ed`.
-- Verified PR #74 is open draft and unmerged; it was not modified or merged.
-- Read `AGENTS.md`, `skills-lock.json`, required project memory, baseline/V3/reconciliation evidence and the original policy migration.
-- Verified 38 locked skills and created complete routing.
-- Verified the remediation branch diff contains only this workstream and its program documents.
-
-### Supabase read-only inspection
-
-- Project: `gridex-ops-dev` / `piidsfebjqjmnepdpnas` / `eu-north-1`.
-- Inspected `pg_policy`, table ACLs, RLS flags, function definitions, current migrations, columns and aggregate row counts.
-- Confirmed `public.gridex_user_is_platform_admin()` is stable, security-definer, fail-closed on missing/inactive/unconfirmed users and executable by `authenticated`.
-
-### Rollback execution
-
-Executed the proposed migration plus complete two-company/role regression inside one transaction on the non-production project. Exact final result:
+Exact result:
 
 ```text
-GRIDEX-OPS-BL-002 rollback verification passed
+GRIDEX-OPS-BL-002 two-tenant rollback regression passed.
 ```
 
-The transaction ended with `ROLLBACK`; no migration, user, membership, policy or fixture was persisted.
+Verified matrix:
 
-### CI
+| Principal | Expected and observed result |
+|---|---|
+| Ordinary authenticated | denied |
+| Active tenant member | denied for own and other tenant fixture |
+| Active company admin | denied for own and other tenant fixture |
+| Active platform admin | allowed for both fixtures |
+| Service role | allowed for both worker fixtures |
 
-The first PR run, OPS hardening run `#331` (`31098901641`), correctly failed at migration integrity because the new migration had not yet been registered in the additive checksum manifest. No later step was claimed as passed for that run.
+All generated users, profiles, memberships and operational rows were rolled back.
 
-After registering the exact migration SHA-256, OPS hardening run `#332` (`31099032804`) completed successfully on head `4e2b8e073fea6dfa5a693a281f2c8075d37fa8e5`. Passed steps included:
+### Existing-role read smoke
 
-- checkout and Node setup;
-- `npm ci`;
-- `npm run db:migrations:check`;
-- API/billing tenant hardening regression;
-- application typecheck;
-- quote idempotency/multitenant regression;
-- focused Vitest idempotency tests;
-- hardening regressions and behavior regression;
-- final contract regression;
-- API error-boundary check;
-- production dependency security audit.
+A real active non-platform company admin and a real active platform admin from the non-production environment were used.
 
-A final exact-head rerun is required after this evidence-only documentation commit; the PR check state is authoritative for that final commit.
+Exact result:
 
-## Verification commands for a clean checkout/staging database
-
-```bash
-git status --short --branch
-git diff --check origin/main...HEAD
-npm ci
-npm run db:migrations:check
-psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 \
-  -f supabase/migrations/20260806133000_gridex_ops_bl_002_global_read_isolation.sql
-psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 \
-  -f scripts/gridex-ops-bl-002-global-read-isolation-regression.sql
-npm run typecheck
-npm run typecheck:scripts
-npm run typecheck:tests
-npm run lint
-npm test
-npm run security:rbac
-npm run build
+```text
+role smoke passed
 ```
 
-Use only isolated staging/ephemeral credentials. Do not run the fixture regression against production. The migration itself requires normal migration review and deployment approval.
+Assertions passed:
 
-## Blocked controls
+- company admin saw zero rows across all four platform-global tables;
+- platform-admin helper returned true;
+- platform admin could read existing import history and certificate-refresh jobs.
 
-- No authenticated local checkout or dependency runtime was available through the connector. The committed GitHub workflow supplied clean-install and selected automated verification, but it does not replace every requested local/full gate.
-- The current workflow did not run the complete lint suite, complete test suite, script/test typechecks, production build, SAST or secret-history scan; those remain program workstreams and must not be inferred green.
-- No paid Supabase ephemeral branch was created because branch creation requires explicit cost confirmation.
-- The migration was not persistently applied to staging or production.
-- Admin UI and background worker smoke tests remain required after staging apply.
-- Local working-tree `git status` and unstaged `git diff` could not be inspected through the remote connector; remote branch ancestry and PR diff were verified instead.
+### Service-role CRUD smoke
 
-## Staging requirements
+A rollback-only transaction created and read an import run, import item, conflict and certificate-refresh job under service role. The certificate job was updated from `running` to `completed` and read back.
 
-1. Apply only this migration to an isolated staging/ephemeral database.
-2. Run the committed rollback regression.
-3. Sign in as a non-platform company admin and verify the four PostgREST reads return no rows.
-4. Sign in as an active platform admin and verify `/admin/network-owners` loads import history.
-5. Execute a controlled actor registry import and certificate refresh worker run using service role.
-6. Inspect logs for request/correlation IDs and ensure no sensitive row contents are emitted.
-7. Retain the exact-head CI and staging evidence in this report/PR before status closure.
+Exact result:
+
+```text
+service-role actor-registry and certificate-job CRUD smoke passed
+```
+
+No smoke-test rows remain.
+
+### CI history
+
+- OPS hardening `#331` failed correctly when the migration checksum was missing.
+- OPS hardening `#332` passed after checksum registration.
+- OPS hardening `#333` passed on head `15e59f028e68bb6e065a2c9c0786aedf65f09ef2`.
+- A new exact-head run is required after staging evidence and migration-version reconciliation.
+
+## Staging evidence
+
+Detailed evidence is recorded in:
+
+`quality/remediation/GRIDEX_OPS_BL_002_STAGING_VERIFICATION_2026_08_06.md`
+
+Environment:
+
+- project: `gridex-ops-dev`
+- project reference: `piidsfebjqjmnepdpnas`
+- region: `eu-north-1`
+- classification: non-production development/staging
+
+The migration was persistently applied and registered as version `20260806122255` with name `gridex_ops_bl_002_global_read_isolation`.
+
+## Remaining merge gates
+
+Before merge:
+
+1. exact-head CI must pass after the migration-version reconciliation;
+2. a maintainer must complete or explicitly accept the database/security review;
+3. a browser/session smoke should verify `/admin/network-owners` renders for platform admin and remains inaccessible to company admin;
+4. a controlled application-level actor-registry or certificate action should be followed by log inspection to confirm no sensitive row payloads are emitted.
+
+Database authorization, two-tenant isolation, existing-role reads and worker table CRUD are verified. Browser rendering and external XML/LDAP execution are distinct application-level controls and are not claimed as completed.
 
 ## Rollback and forward-fix
 
-Emergency rollback would drop the eight new read policies and recreate the former four broad policies, but that reopens the confirmed exposure and should be used only to restore a critical unavailable platform operation. The preferred response to a broken legitimate consumer is a forward-fix that routes that specific consumer through the existing platform-admin or service-role boundary without broadening tenant access.
+The migration changes policies and grants only and performs no data rewrite. Recreating the former broad policies would reopen the confirmed exposure. The preferred recovery for a broken legitimate consumer is a narrow forward-fix behind the existing platform-admin or service-role boundary.
 
-No data rewrite or backfill is required, so rollback affects policy/grant definitions only.
+## Status
 
-## New findings
-
-No new same-root-cause variant was found. The variant scan returned exactly the four known tables. Existing assurance gaps and distinct bug classes are recorded in `GRIDEX_OPS_REMEDIATION_REGISTER.md` and remain outside this branch.
-
-## Remaining risk and status
-
-The source migration and regression are implemented, the proposed behavior is proven in rollback execution, and the code/checksum head passed OPS hardening. Because persistent staging apply, UI/worker smoke tests and human database/security review are pending, the correct status is:
-
-`CODE_REMEDIATED`
-
-It is not `VERIFIED_CLOSED`.
+`GRIDEX-OPS-BL-002` is `CODE_REMEDIATED`, not `VERIFIED_CLOSED`.
