@@ -1,44 +1,40 @@
-# PHASE-45 handover — OpenAPI and quote health package
+# PHASE-45 handover — health after BL-002
 
-Branch `cursor/codebase-health-and-stability-6531` completes the incomplete
-`2026-08-05.2` main publish, related case-sensitive area compares, and the
-follow-on price-area / AI-BI variants found after the skill-contract sync.
+Main received `fix(security): isolate platform-global operational reads (#84)`.
+This branch rebases the OpenAPI/quote health package onto that tip and adds
+follow-on case-normalization fixes H-011..H-015.
 
-## What changed
+## What changed on fb8e
 
-- Quote integrity hashes canonicalize top-level timestamptz fields.
-- Quote and application/metering-point grid/price area compares are
-  case-insensitive via shared normalizers.
-- Website quote create persists uppercase `price_area`; validate and snapshot
-  compares are case-insensitive without rewriting historical hash payloads.
-- AI/BI import discrepancy compares normalize grid-area case/whitespace.
-- Local OpenAPI release verification fails closed on missing/divergent
-  immutable artifacts and registry routes.
-- Current market-price and quote examples include required schema fields.
-- Developer guide examples use contract version `2026-08-05.2`.
-- Findings recorded in `quality/findings-2026-08-06-codebase-health.md`.
+- Merged `cursor/codebase-health-and-stability-6531` (H-001..H-010).
+- Added `canonicalSwedishPriceArea` in `lib/pricing/types.ts`.
+- Billing base-component parse/filter, public fixed-offer completeness, and
+  portfolio monthly history filters now canonicalize price areas.
+- Application explicit site/metering grid writers use `normaliseGridAreaCode`.
+- Quote create persists and hashes canonical `grid_area_code`.
+- Findings inventory lists residual BL-002 RLS variants as O-005..O-008 without
+  shipping another migration in this PR.
 
 ## Verification completed
 
+- `npm run gridex:price-area-case-normalization-regression`
 - `npm run gridex:quote-null-grid-area-regression`
 - `npm run gridex:website-quote-integrity-regression`
 - `npm run gridex:aibi-grid-area-case-regression`
-- `node scripts/verify-openapi-release.cjs`
-- `node scripts/check-api-documentation-examples.cjs`
-- `node scripts/check-api-documentation-version.cjs`
-- `node scripts/check-api-compatibility.cjs`
-- `node scripts/check-public-contract-runtime-openapi.cjs`
-- `node scripts/gridex-explicit-input-preservation-regression.cjs`
+- `npm run api:release:verify`
+- `npm run api:docs-examples` / `api:docs-version` / `api:compatibility`
+- `npm run gridex:explicit-input-preservation-regression`
 
 ## Resume
 
-1. Prefer merging this branch onto main; close overlapping sibling health PRs.
-2. Deploy OPS.
-3. Create and validate one website quote for a real tenant.
-4. Confirm hash validation survives PostgREST timestamptz round-trip.
+1. Merge this PR (or the single preferred health PR) onto main.
+2. Close overlapping sibling health PRs `#75`–`#81` / `#83`.
+3. Open a dedicated RLS remediation for `platform_actor_contacts` and the
+   address/energy lookup caches (O-005/O-006).
+4. Deploy and run live quote validate + legal/POA E2E when environment allows.
 
 ## Do not claim yet
 
-- deployed OPS source;
-- clean npm install/full typecheck/test/lint/build;
-- live quote or legal/supplier-switch E2E completion.
+- full npm typecheck/test/lint/build;
+- VERIFIED_CLOSED for BL-002 residual variants;
+- live E2E completion.

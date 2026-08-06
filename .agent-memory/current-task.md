@@ -1,50 +1,36 @@
 # Current task
 
-Last updated: 2026-08-06T08:58:00Z
-Branch: `cursor/codebase-health-and-stability-6531`
+Last updated: 2026-08-06T12:57:00Z
+Branch: `cursor/codebase-health-and-stability-fb8e`
 
 ## Active phase
 
-PHASE-45 — Complete incomplete OpenAPI `2026-08-05.2` health package and related
-quote/grid-area integrity hardening.
+PHASE-45 — Codebase health after GRIDEX-OPS-BL-002 merge.
 
 ## Goal
 
-Close the incomplete main publish of OpenAPI `2026-08-05.2` so quote integrity,
-immutable release verification, market-price examples and related case-sensitive
-grid/price-area compares cannot fail later. Carry the package onto the current
-automation tip after the skill-contract sync and close remaining case-compare
-variants.
+Keep OpenAPI/quote integrity health package current on main tip after BL-002,
+then close remaining case-normalization integrity gaps that can mis-bill or
+drop public fixed/portfolio prices.
 
 ## Implemented
 
-- Merged verified `ec6b` health package onto `6531` (above main `ffe4d0b0`).
-- Canonicalized top-level quote timestamptz hashing (`valid_until`,
-  `market_data_timestamp`).
-- Shared nullable/case-insensitive quote `grid_area_code` normalization.
-- Fail-closed local OpenAPI release verification for immutable artifacts and
-  registry routes.
-- Seeded required quote example `offer` and rematerialized matching release
-  bytes.
-- Normalized application and metering-point grid/price area compares.
-- Completed current-market-price example required fields and developer-guide
-  contract version sync.
-- Persisted uppercase website quote `price_area` and case-insensitive validate
-  / snapshot compares (H-009).
-- Normalized AI/BI import grid-area discrepancy compares (H-010).
-- Recorded findings under `quality/findings-2026-08-06-codebase-health.md`.
+- Merged PHASE-45 package from `cursor/codebase-health-and-stability-6531` onto
+  main+BL-002.
+- Added `canonicalSwedishPriceArea` and wired billing base-component parse/filter,
+  public fixed-offer completeness, and portfolio history filters.
+- Aligned application site/metering grid writers with `normaliseGridAreaCode`.
+- Persisted and hashed canonical quote `grid_area_code`.
+- Recorded residual BL-002 RLS variants as open remediation items (no second
+  overlapping migration in this PR).
 
 ## Verification
 
-- Quote null-grid-area, quote integrity, AI/BI grid-area case, explicit-input,
-  OpenAPI example, version, compatibility, public-contract runtime and local
-  release verify: PASS.
-- Full dependency-backed typecheck/test/lint/build: BLOCKED (`node_modules`
-  absent).
-- Live quote E2E: PENDING deploy.
+- `gridex:price-area-case-normalization-regression`: PASS
+- Quote/AI-BI/OpenAPI local regressions from PHASE-45: PASS
+- Full dependency-backed typecheck/test/lint/build: BLOCKED (`node_modules` absent)
 
 ## Exact next action
 
-Open/refresh the PR for `cursor/codebase-health-and-stability-6531`, prefer it
-over overlapping sibling health PRs, then deploy and run live quote create →
-validate E2E.
+Open/update PR for this branch, then prefer one health merge onto main and
+schedule dedicated RLS remediation for O-005/O-006.

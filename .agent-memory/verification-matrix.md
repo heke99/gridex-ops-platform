@@ -54,3 +54,14 @@
 | Prior PHASE-45 package on tip | PASS | merge of `ec6b` + regressions above |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## PHASE-45 after BL-002 — 2026-08-06T12:57:00Z (`fb8e`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Merge health package onto main+BL-002 | PASS | merge commit of `6531` |
+| Billing/public/portfolio price-area case | PASS | `gridex:price-area-case-normalization-regression` |
+| Quote/AI-BI/OpenAPI package still green | PASS | quote-null, website-quote-integrity, aibi, api:release:verify, docs, compatibility, explicit-input |
+| Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
+| Full dependency gates | BLOCKED | `node_modules` absent |
+| Live quote create/validate | PENDING | deployment required |

@@ -1,46 +1,46 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-06T08:58:00Z",
-  "branch": "cursor/codebase-health-and-stability-6531",
+  "updated_at": "2026-08-06T12:57:00Z",
+  "branch": "cursor/codebase-health-and-stability-fb8e",
   "last_verified_commit": null,
   "active_phase": "PHASE-45",
   "active_task": "WP-045",
-  "active_subtask": "Ship health package with H-009/H-010 case-normalization variants and prefer one merge onto main",
+  "active_subtask": "Ship BL-002-based health package with H-011..H-015 price/grid case normalization",
   "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
   "implemented_not_environment_verified": [
     "OpenAPI 2026-08-05.2 immutable release verification package",
     "quote timestamptz and nullable grid-area integrity",
-    "application/metering-point case-insensitive area compares",
-    "website quote uppercase price_area persist and case-insensitive validate",
-    "AI/BI import grid-area case normalization"
+    "quote/application/metering/AI-BI case normalization (H-001..H-010)",
+    "canonicalSwedishPriceArea for billing components and public contracts (H-011..H-013)",
+    "application grid writers and quote grid persist/hash alignment (H-014..H-015)"
   ],
   "active_blockers": [
-    "node_modules absent blocks full npm typecheck/test/lint/build",
-    "live quote create/validate E2E pending deploy",
-    "overlapping sibling health PRs should be closed in favor of one merge"
+    "node_modules absent — full npm typecheck/test/lint/build blocked",
+    "live quote/legal E2E pending deploy",
+    "BL-002 residual RLS variants deferred to dedicated remediation branches"
   ],
   "verification": [
     {
-      "name": "quote and OpenAPI health regressions",
+      "name": "price-area case normalization regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "quote integrity, null grid-area, AI/BI case, explicit-input, examples, version, compatibility, runtime and local release verify pass"
+      "evidence": "canonicalSwedishPriceArea helper and consumer wiring checks pass"
+    },
+    {
+      "name": "quote/AI-BI/OpenAPI health regressions",
+      "status": "VERIFIED_LOCALLY",
+      "evidence": "quote-null, website-quote-integrity, aibi, api:release:verify, docs-examples/version, compatibility, explicit-input"
     },
     {
       "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "node_modules absent"
-    },
-    {
-      "name": "live quote create/validate E2E",
-      "status": "PENDING",
-      "evidence": "requires deploy and tenant credentials"
+      "evidence": "node_modules absent in cloud sandbox"
     }
   ],
-  "next_action": "Open PR for cursor/codebase-health-and-stability-6531, prefer it over sibling health PRs, deploy, then run live quote create/validate.",
+  "next_action": "Open PR for fb8e, merge one health package onto main, then remediate O-005/O-006 RLS variants separately.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not auto-uppercase price_area inside fullQuoteIntegrityPayload; that would break existing lowercase quote hashes",
-    "Prefer one completed health branch onto main",
-    "Do not claim deployment or live E2E before evidence exists"
+    "Do not start a second overlapping DB/RLS migration in this health PR",
+    "Do not uppercase price_area inside fullQuoteIntegrityPayload",
+    "Prefer closing sibling health PRs after one merge"
   ]
 }

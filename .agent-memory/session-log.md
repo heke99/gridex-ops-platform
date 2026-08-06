@@ -15,6 +15,15 @@
 - Full dependency install/build remains an operator/CI step because the sandbox
   package mirror lacks one indirect package.
 
+## 2026-08-06 — PHASE-45 after BL-002 (`fb8e`)
+
+- Trigger: main push `bb877506` (GRIDEX-OPS-BL-002 platform-global read isolation).
+- Merged health package from `6531` onto `cursor/codebase-health-and-stability-fb8e`.
+- Fixed H-011..H-015: `canonicalSwedishPriceArea`, public/portfolio filters,
+  application grid writers, quote grid persist/hash alignment.
+- Documented residual BL-002 RLS variants O-005..O-008 without a second migration.
+- Verified price-area, quote, AI/BI, OpenAPI local regressions; full npm gates blocked.
+
 # Session log
 
 ## 2026-07-25

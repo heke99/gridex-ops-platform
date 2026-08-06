@@ -1,37 +1,27 @@
 # Current state
 
-Last updated: 2026-08-06T08:58:00Z
+Last updated: 2026-08-06T12:57:00Z
 
-## PHASE-45 OpenAPI / quote health package
+## PHASE-45 health state (post BL-002)
 
-- Contract version remains `2026-08-05.2`.
-- Main publish `daaeca19` left incomplete verification and example gaps; branch
-  `6531` completes them on tip `ffe4d0b0` plus related case-sensitive
-  grid/price-area compares and follow-on variants H-009/H-010.
-- Quote integrity hashes canonicalize top-level timestamptz fields.
-- Website quotes persist uppercase `price_area`; validate compares are
-  case-insensitive without rewriting historical hash payloads.
-- AI/BI import discrepancy compares normalize grid-area case/whitespace.
-- Immutable release JSON/routes for `2026-08-05.2` match current OpenAPI bytes
-  and are fail-closed in local verify.
-- Current market-price example includes required `selected_resolution`,
-  `available_resolutions` and `fallback_used`.
-- Developer guide examples use `2026-08-05.2`.
+- Main includes GRIDEX-OPS-BL-002 (`20260806122255`) isolating four
+  platform-global operational table reads to platform admins + service role.
+- Branch `cursor/codebase-health-and-stability-fb8e` carries the OpenAPI
+  `2026-08-05.2` / quote integrity health package plus H-011..H-015 case
+  normalization for billing components, public contracts, portfolio history,
+  application grid writers and quote grid persistence.
+- Residual same-pattern RLS exposure on contacts/address/energy caches is
+  documented for a dedicated remediation workstream (not shipped here).
 
 ## Verification
 
-- Targeted quote/OpenAPI/application/AI-BI regressions: PASS.
-- Full npm gates: NOT RUN (`node_modules` absent).
+- Price-area case normalization regression: PASS.
+- Quote/AI-BI/OpenAPI local regressions: PASS.
+- Full dependency-backed gates: BLOCKED (`node_modules` absent).
 - Live quote/legal E2E: PENDING.
-
-## Deployment state
-
-- Repository changes: IMPLEMENTED AND STATICALLY VERIFIED on
-  `cursor/codebase-health-and-stability-6531`.
-- Running OPS application: NOT DEPLOYED FROM THIS DELIVERY.
-- Sibling overlap: prefer this branch over `#75`–`#81` for one merge onto main.
 
 ## Prior phase state
 
-See earlier PHASE-44 / PHASE-43 sections retained in git history and archive
-notes. Legal package and SVK/billing work remain deployment-pending separately.
+See earlier PHASE-44 / PHASE-43 sections in git history of this file; legal
+package `2026-08-05.1` and SVK/billing canonicalization remain as previously
+recorded and are not reopened by this health pass.
