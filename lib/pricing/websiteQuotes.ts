@@ -530,7 +530,22 @@ export async function validateWebsiteQuote(input: {
   if (canonicalResolution && quote.energy_resolution_id !== canonicalResolution.id) mismatches.push('resolution_id')
   if (canonicalResolution && quote.resolver_version !== canonicalResolution.resolverVersion) mismatches.push('resolver_version')
   if (canonicalResolution && (quote.geodata_version ?? null) !== (canonicalResolution.geodataVersion ?? null)) mismatches.push('geodata_version')
-  if (canonicalResolution && String(quote.resolution_snapshot?.grid_area_code ?? '') !== canonicalResolution.gridAreaCode) mismatches.push('resolution_snapshot.grid_area_code')
+  // grid_area_code is intentionally nullable while only the price area is
+  // sufficiently verified for pricing/quote. Compare nullable values
+  // canonically so null and an absent JSON value do not become '' !== null.
+  const snapshotGridAreaCode =
+    typeof quote.resolution_snapshot?.grid_area_code === 'string' &&
+    quote.resolution_snapshot.grid_area_code.trim()
+      ? quote.resolution_snapshot.grid_area_code.trim().toUpperCase()
+      : null
+  const canonicalResolutionGridAreaCode =
+    canonicalResolution?.gridAreaCode?.trim().toUpperCase() ?? null
+  if (
+    canonicalResolution &&
+    snapshotGridAreaCode !== canonicalResolutionGridAreaCode
+  ) {
+    mismatches.push('resolution_snapshot.grid_area_code')
+  }
   if (canonicalGridAreaCode && quote.grid_area_code !== canonicalGridAreaCode) mismatches.push('grid_area_code')
   if (input.postalCode && quote.postal_code && quote.postal_code !== input.postalCode) mismatches.push('postal_code')
   if (input.annualConsumptionKwh === null || !sameNumber(quote.annual_consumption_kwh, input.annualConsumptionKwh)) mismatches.push('annual_consumption_kwh')

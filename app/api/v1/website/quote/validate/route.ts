@@ -273,7 +273,18 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     if (error instanceof WebsiteQuoteValidationError) {
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: error.status, startedAt, errorCode: error.code, metadata: { request_id: requestId } })
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: error.status,
+        startedAt,
+        errorCode: error.code,
+        metadata: {
+          request_id: requestId,
+          field: error.field,
+          details: error.details ?? null,
+        },
+      })
       return customerPortalJson(
         responseError({
           code: error.code,
