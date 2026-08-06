@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
+import { buildCustomerDocumentStoragePath } from "@/lib/customer-documents/storagePath";
 import { publicReference } from "@/lib/integrations/publicReferences";
 import {
   reserveApplicationNumber,
@@ -2684,7 +2685,14 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
       null,
       2,
     );
-    const filePath = `companies/${input.companyId}/customers/${input.customerId}/authorizations/${input.powerOfAttorneyId}.json`;
+    const filePath = buildCustomerDocumentStoragePath({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: null,
+      documentType: "power_of_attorney",
+      fileName: `${input.powerOfAttorneyId}.json`,
+      timestampFileName: false,
+    });
     const fileSizeBytes = new TextEncoder().encode(snapshotJson).byteLength;
     const uploadIdempotencyKey = `website-poa:${input.companyId}:${input.applicationId}:${input.powerOfAttorneyId}`;
 

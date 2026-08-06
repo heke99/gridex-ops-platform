@@ -5,6 +5,7 @@ import {
   requireAdminApiAccess,
 } from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
+import { customerDocumentStoragePathMatches } from '@/lib/customer-documents/storagePath'
 import { assertCompanyAccessForGuard } from '@/lib/tenant/entityGuards'
 import { internalApiError } from '@/lib/http/apiError'
 
@@ -24,7 +25,7 @@ export async function GET(
 
   const { data: document, error } = await supabaseService
     .from('customer_authorization_documents')
-    .select('id, customer_id, company_id, storage_bucket, file_path, file_name')
+    .select('id, customer_id, company_id, site_id, storage_bucket, file_path, file_name')
     .eq('id', documentId)
     .maybeSingle()
 
@@ -42,6 +43,14 @@ export async function GET(
 
   if (!document.file_path) {
     return jsonError('Dokumentet saknar lagringsväg', 422)
+  }
+
+  if (!customerDocumentStoragePathMatches(document.file_path, {
+    companyId: document.company_id,
+    customerId: document.customer_id,
+    siteId: document.site_id ?? null,
+  })) {
+    return jsonError('Dokumentets lagringsväg matchar inte kundens bolag och scope', 422)
   }
 
   const bucket = document.storage_bucket || 'customer-documents'

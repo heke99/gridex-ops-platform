@@ -7,6 +7,7 @@ import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
+import { buildCustomerDocumentStoragePath } from '@/lib/customer-documents/storagePath'
 import {
   archiveCustomerAuthorizationDocument,
   assignAuthorizationDocumentToGridOwnerRequest,
@@ -99,24 +100,6 @@ async function requireCustomerDocumentActionContext(
     customer: data as { id: string; company_id: string; status: string | null },
     companyId: data.company_id,
   }
-}
-
-function sanitizeFileName(value: string): string {
-  return value
-    .normalize('NFKD')
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .replace(/_+/g, '_')
-}
-
-function buildCustomerDocumentPath(params: {
-  customerId: string
-  siteId: string | null
-  documentType: 'power_of_attorney' | 'complete_agreement' | 'grid_invoice_suggested'
-  fileName: string
-}): string {
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const scope = params.siteId ? `site-${params.siteId}` : 'customer'
-  return `${params.customerId}/${scope}/${params.documentType}/${stamp}_${sanitizeFileName(params.fileName)}`
 }
 
 function normalizeDateOrNull(value: string | null): string | null {
@@ -1126,7 +1109,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
   }
 
   const bucket = 'customer-documents'
-  const filePath = buildCustomerDocumentPath({
+  const filePath = buildCustomerDocumentStoragePath({
+    companyId: actionContext.companyId,
     customerId,
     siteId,
     documentType,
