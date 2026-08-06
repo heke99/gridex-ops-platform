@@ -20,18 +20,15 @@ jobs:
         with:
           ref: remediation/gridex-aud-001-document-storage-isolation
           fetch-depth: 0
-      - name: Apply focused review fixes
+      - name: Apply final focused review fix
         run: python3 .github/scripts/apply-gridex-aud-001-review-fixes.py
-      - name: Commit fixes and remove temporary patch files
+      - name: Commit fix and remove temporary patch files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/gridex-aud-001-review-fixes.yml
           git rm .github/scripts/apply-gridex-aud-001-review-fixes.py
           git add lib/website/customerApplications.ts
-          git add lib/customer-documents/storagePath.ts
-          git add __tests__/customer-document-signed-url.test.ts
-          git add scripts/gridex-aud-001-customer-document-storage-isolation-regression.cjs
           git add quality/remediation/gridex-aud-001-document-storage-isolation/REMEDIATION_REPORT.md
           git commit -m "fix(aud-001): address ready-for-review findings"
           git push origin HEAD:remediation/gridex-aud-001-document-storage-isolation
