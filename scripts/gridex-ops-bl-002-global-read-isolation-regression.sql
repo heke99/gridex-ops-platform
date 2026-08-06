@@ -2,7 +2,7 @@
 \pset pager off
 
 -- GRIDEX-OPS-BL-002 regression. Run against an isolated/staging database after
--- 20260806133000_gridex_ops_bl_002_global_read_isolation.sql. Everything rolls back.
+-- 20260806122255_gridex_ops_bl_002_global_read_isolation.sql. Everything rolls back.
 begin;
 
 select set_config('gridex.test.ordinary_user_id', gen_random_uuid()::text, true);
