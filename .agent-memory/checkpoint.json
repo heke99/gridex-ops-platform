@@ -1,64 +1,45 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-05T15:20:07+02:00",
-  "branch": "archive working tree",
+  "updated_at": "2026-08-06T07:55:00Z",
+  "branch": "cursor/codebase-health-and-stability-f0c7",
   "last_verified_commit": null,
-  "active_phase": "PHASE-44",
-  "active_task": "WP-044",
-  "active_subtask": "Deploy and prove three-document legal acceptance plus signed POA supplier-switch chain for private and business tenants",
-  "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
+  "active_phase": "HEALTH",
+  "active_task": "WP-HEALTH",
+  "active_subtask": "Push quote/OpenAPI stability fixes and open PR",
+  "status": "IMPLEMENTED_STATIC_VERIFIED_PR_PENDING",
   "implemented_not_environment_verified": [
-    "three customer-facing legal documents with immutable source-module evidence",
-    "tenant legal-profile snapshot rendering for historical documents",
-    "website grouped acceptance with legacy module compatibility",
-    "Customer Portal grouped acceptance expansion to exact module rows",
-    "exact signed POA scope and legal-version reuse guards",
-    "OpenAPI 2026-08-05.1 immutable release",
-    "duplicate/mixed legal acceptance prevalidation and signed-event fail-closed guard"
+    "canonicalQuoteTimestamptz for valid_until and market_data_timestamp",
+    "canonicalQuoteGridAreaCode for nullable quote/resolution comparisons",
+    "immutable OpenAPI 2026-08-05.2 release artifacts and routes",
+    "finalize late-example version re-normalization and quote example offer",
+    "verify-openapi-release immutable artifact checks"
   ],
   "active_blockers": [
-    "modified OPS code has not been deployed",
-    "package mirror 404 prevents clean npm ci and full dependency-backed gates",
-    "real private/business two-tenant legal and supplier-switch E2E is pending"
+    "full dependency-backed typecheck/test/lint/build not executed in this sandbox",
+    "live quote create/validate E2E with null grid area still pending deploy"
   ],
   "verification": [
     {
-      "name": "customer legal package regression",
+      "name": "quote null grid-area regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "grouping, tenant snapshot, grouped Customer Portal evidence expansion, format prevalidation and signed-event fail-closed checks pass"
+      "evidence": "canonical helper cases and source guards pass"
     },
     {
-      "name": "website and platform POA regressions",
+      "name": "quote integrity and OpenAPI sync regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "structured POA, fail-closed sendability and canonical authorization chain checks pass"
+      "evidence": "timestamptz parity, release artifacts, registry routes and quote offer example pass"
     },
     {
-      "name": "API/OpenAPI/docs",
+      "name": "OpenAPI release verify/docs/compatibility",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "version, compatibility, examples, runtime boundary and immutable 2026-08-05.1 release pass"
-    },
-    {
-      "name": "changed TypeScript syntax",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "17 changed TS/TSX files transpile with TypeScript 5.8.3"
-    },
-    {
-      "name": "clean dependency install and full build",
-      "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "package mirror 404 for zod-validation-error@4.0.2"
-    },
-    {
-      "name": "live tenant legal/POA/supplier-switch E2E",
-      "status": "PENDING",
-      "evidence": "requires sync, deploy, tenant credentials and test customers"
+      "evidence": "api:release:verify, documentation version, compatibility, fixture/runtime and examples pass for 2026-08-05.2"
     }
   ],
-  "next_action": "Sync the changed-files package, deploy OPS, then execute one private and one business tenant legal-bundle/acceptance/POA/supplier-switch smoke flow.",
+  "next_action": "Commit/push branch and open PR; then live quote create→validate smoke.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not collapse canonical legal module storage; only customer presentation is grouped",
-    "Do not allow a POA reference to bind to different legal text or scopes",
-    "Do not mark a legacy schema fallback POA signed",
-    "Do not claim deployment or live E2E before evidence exists"
+    "Do not mutate already-published immutable release artifacts after they ship",
+    "Grid area remains nullable; only price area is required for quote pricing",
+    "PHASE-44 deploy/E2E remains separate and still pending"
   ]
 }
