@@ -1,64 +1,46 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-05T15:20:07+02:00",
-  "branch": "archive working tree",
+  "updated_at": "2026-08-06T08:58:00Z",
+  "branch": "cursor/codebase-health-and-stability-6531",
   "last_verified_commit": null,
-  "active_phase": "PHASE-44",
-  "active_task": "WP-044",
-  "active_subtask": "Deploy and prove three-document legal acceptance plus signed POA supplier-switch chain for private and business tenants",
+  "active_phase": "PHASE-45",
+  "active_task": "WP-045",
+  "active_subtask": "Ship health package with H-009/H-010 case-normalization variants and prefer one merge onto main",
   "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
   "implemented_not_environment_verified": [
-    "three customer-facing legal documents with immutable source-module evidence",
-    "tenant legal-profile snapshot rendering for historical documents",
-    "website grouped acceptance with legacy module compatibility",
-    "Customer Portal grouped acceptance expansion to exact module rows",
-    "exact signed POA scope and legal-version reuse guards",
-    "OpenAPI 2026-08-05.1 immutable release",
-    "duplicate/mixed legal acceptance prevalidation and signed-event fail-closed guard"
+    "OpenAPI 2026-08-05.2 immutable release verification package",
+    "quote timestamptz and nullable grid-area integrity",
+    "application/metering-point case-insensitive area compares",
+    "website quote uppercase price_area persist and case-insensitive validate",
+    "AI/BI import grid-area case normalization"
   ],
   "active_blockers": [
-    "modified OPS code has not been deployed",
-    "package mirror 404 prevents clean npm ci and full dependency-backed gates",
-    "real private/business two-tenant legal and supplier-switch E2E is pending"
+    "node_modules absent blocks full npm typecheck/test/lint/build",
+    "live quote create/validate E2E pending deploy",
+    "overlapping sibling health PRs should be closed in favor of one merge"
   ],
   "verification": [
     {
-      "name": "customer legal package regression",
+      "name": "quote and OpenAPI health regressions",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "grouping, tenant snapshot, grouped Customer Portal evidence expansion, format prevalidation and signed-event fail-closed checks pass"
-    },
-    {
-      "name": "website and platform POA regressions",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "structured POA, fail-closed sendability and canonical authorization chain checks pass"
-    },
-    {
-      "name": "API/OpenAPI/docs",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "version, compatibility, examples, runtime boundary and immutable 2026-08-05.1 release pass"
-    },
-    {
-      "name": "changed TypeScript syntax",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "17 changed TS/TSX files transpile with TypeScript 5.8.3"
+      "evidence": "quote integrity, null grid-area, AI/BI case, explicit-input, examples, version, compatibility, runtime and local release verify pass"
     },
     {
       "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "package mirror 404 for zod-validation-error@4.0.2"
+      "evidence": "node_modules absent"
     },
     {
-      "name": "live tenant legal/POA/supplier-switch E2E",
+      "name": "live quote create/validate E2E",
       "status": "PENDING",
-      "evidence": "requires sync, deploy, tenant credentials and test customers"
+      "evidence": "requires deploy and tenant credentials"
     }
   ],
-  "next_action": "Sync the changed-files package, deploy OPS, then execute one private and one business tenant legal-bundle/acceptance/POA/supplier-switch smoke flow.",
+  "next_action": "Open PR for cursor/codebase-health-and-stability-6531, prefer it over sibling health PRs, deploy, then run live quote create/validate.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not collapse canonical legal module storage; only customer presentation is grouped",
-    "Do not allow a POA reference to bind to different legal text or scopes",
-    "Do not mark a legacy schema fallback POA signed",
+    "Do not auto-uppercase price_area inside fullQuoteIntegrityPayload; that would break existing lowercase quote hashes",
+    "Prefer one completed health branch onto main",
     "Do not claim deployment or live E2E before evidence exists"
   ]
 }

@@ -32,3 +32,25 @@
 | Live private/business E2E | PENDING | deployment required |
 
 | 2026-08-05T15:20:07+02:00 | Customer Portal grouped/legacy prevalidation and signed-event fail-closed guard | PASS | `gridex-customer-legal-package-regression.cjs` |
+
+## PHASE-45 — 2026-08-06T08:50:00Z
+
+| Check | Result | Evidence |
+|---|---|---|
+| Quote timestamptz + grid-area integrity | PASS | quote null-grid-area and website quote integrity regressions |
+| OpenAPI immutable release verify | PASS | `verify-openapi-release.cjs` local |
+| Market-price/quote required examples | PASS | documentation examples + integrity regression |
+| Application/metering-point area normalizers | PASS | explicit-input preservation regression |
+| API version/compatibility/runtime | PASS | documentation version, compatibility, public-contract runtime |
+| Full dependency gates | BLOCKED | `node_modules` absent |
+| Live quote create/validate | PENDING | deployment required |
+
+## PHASE-45 follow-on — 2026-08-06T08:58:00Z (`6531`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Quote price_area case integrity | PASS | website quote integrity regression assertions |
+| AI/BI grid-area case normalize | PASS | `gridex:aibi-grid-area-case-regression` |
+| Prior PHASE-45 package on tip | PASS | merge of `ec6b` + regressions above |
+| Full dependency gates | BLOCKED | `node_modules` absent |
+| Live quote create/validate | PENDING | deployment required |

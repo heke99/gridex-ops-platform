@@ -1,8 +1,14 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { normaliseGridAreaCode } from '@/lib/energy/resolver'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function canonicalPriceAreaCode(value: unknown): string | null {
+  const cleaned = text(value)
+  return cleaned ? cleaned.toUpperCase() : null
 }
 
 export async function patchMeteringPointEnergyContext(input: {
@@ -19,10 +25,20 @@ export async function patchMeteringPointEnergyContext(input: {
   if (readError) throw readError
   if (!current) throw new Error('metering_point_not_found_for_tenant')
 
-  const canonicalArea = input.resolution.priceArea
+  const canonicalArea = canonicalPriceAreaCode(input.resolution.priceArea)
+  const resolutionGridAreaCode = normaliseGridAreaCode(input.resolution.gridAreaCode)
   const conflicts: string[] = []
-  const currentPriceArea = text(current.price_area) ?? text(current.price_area_code) ?? text(current.bidding_zone_code)
-  if (text(current.grid_area_code) && input.resolution.gridAreaCode && text(current.grid_area_code) !== input.resolution.gridAreaCode) conflicts.push('grid_area_code')
+  const currentPriceArea =
+    canonicalPriceAreaCode(current.price_area) ??
+    canonicalPriceAreaCode(current.price_area_code) ??
+    canonicalPriceAreaCode(current.bidding_zone_code)
+  if (
+    normaliseGridAreaCode(current.grid_area_code) &&
+    resolutionGridAreaCode &&
+    normaliseGridAreaCode(current.grid_area_code) !== resolutionGridAreaCode
+  ) {
+    conflicts.push('grid_area_code')
+  }
   if (text(current.grid_owner_id) && input.resolution.gridOwnerId && text(current.grid_owner_id) !== input.resolution.gridOwnerId) conflicts.push('grid_owner_id')
   if (currentPriceArea && canonicalArea && currentPriceArea !== canonicalArea) conflicts.push('price_area')
 
@@ -44,7 +60,7 @@ export async function patchMeteringPointEnergyContext(input: {
         updated_at: now,
       }
     : {
-        grid_area_code: input.resolution.gridAreaCode,
+        grid_area_code: resolutionGridAreaCode,
         grid_owner_id: input.resolution.gridOwnerId,
         grid_owner_name: input.resolution.gridOwnerName,
         price_area: canonicalArea,

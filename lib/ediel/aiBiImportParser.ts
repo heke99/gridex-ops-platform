@@ -55,6 +55,12 @@ function clean(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function normaliseAiBiGridAreaCode(value: unknown): string | null {
+  return typeof value === 'string' && value.trim()
+    ? value.trim().replace(/\s+/g, '').toUpperCase()
+    : null
+}
+
 function pick(rawColumns: Record<string, string>, keys: readonly string[]): string | null {
   for (const key of keys) {
     const value = clean(rawColumns[normalizeHeader(key)])
@@ -147,12 +153,15 @@ export function discrepancyReasonsForAiBiRow(input: {
     reasons.push('metering_point_not_found')
   }
 
+  const matchedGridAreaCode = normaliseAiBiGridAreaCode(
+    input.matchedMeteringPoint?.grid_area_code,
+  )
+  const rowGridAreaCode = normaliseAiBiGridAreaCode(input.row.gridAreaCode)
   if (
     input.matchedMeteringPoint &&
-    input.row.gridAreaCode &&
-    typeof input.matchedMeteringPoint.grid_area_code === 'string' &&
-    input.matchedMeteringPoint.grid_area_code.trim() !== '' &&
-    input.matchedMeteringPoint.grid_area_code !== input.row.gridAreaCode
+    rowGridAreaCode &&
+    matchedGridAreaCode &&
+    matchedGridAreaCode !== rowGridAreaCode
   ) {
     reasons.push('grid_area_mismatch')
   }

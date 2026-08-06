@@ -4,7 +4,10 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { PublicContractOffer } from '@/lib/website/publicContracts'
 import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { EnergyResolutionBindingError, loadQuoteEnergyResolution } from '@/lib/energy/resolutionBinding'
-import { canonicalQuoteValidUntil } from '@/lib/pricing/quoteIntegrity'
+import {
+  canonicalQuoteGridAreaCode,
+  canonicalQuoteTimestamptz,
+} from '@/lib/pricing/quoteIntegrity'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -162,7 +165,9 @@ function fullQuoteIntegrityPayload(input: {
     resolver_version: input.resolverVersion ?? null,
     geodata_version: input.geodataVersion ?? null,
     market_reference: input.marketReference ?? {},
-    market_data_timestamp: input.marketDataTimestamp ?? null,
+    market_data_timestamp: input.marketDataTimestamp
+      ? canonicalQuoteTimestamptz(input.marketDataTimestamp)
+      : null,
     market_sources: input.marketSources,
     assumptions: input.assumptions,
     pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
@@ -179,7 +184,7 @@ function fullQuoteIntegrityPayload(input: {
     resolved_base_components: input.resolvedBaseComponents ?? [],
     resolved_price_components: input.resolvedPriceComponents ?? [],
     quote_snapshot: input.quoteSnapshot,
-    valid_until: canonicalQuoteValidUntil(input.validUntil),
+    valid_until: canonicalQuoteTimestamptz(input.validUntil),
   }
 }
 
@@ -254,7 +259,7 @@ export async function persistWebsiteQuote(input: {
     legalBundleVersionId: input.offer.legal_bundle_version_id,
     energyDirection: input.offer.energy_direction,
     customerType: input.customerType,
-    priceArea: input.priceArea,
+    priceArea: input.priceArea.trim().toUpperCase(),
     gridAreaCode: input.gridAreaCode,
     postalCode: input.postalCode,
     annualConsumptionKwh: input.annualConsumptionKwh,
@@ -295,7 +300,7 @@ export async function persistWebsiteQuote(input: {
     legal_bundle_version_id: input.offer.legal_bundle_version_id ?? null,
     energy_direction: input.offer.energy_direction,
     customer_type: input.customerType,
-    price_area: input.priceArea,
+    price_area: input.priceArea.trim().toUpperCase(),
     grid_area_code: input.gridAreaCode ?? null,
     energy_resolution_id: input.resolutionId ?? null,
     resolution_snapshot: input.resolutionSnapshot ?? {},
@@ -341,7 +346,7 @@ export async function persistWebsiteQuote(input: {
     payload: {
       quote_reference: quoteReference,
       offer_reference: input.offerReference,
-      price_area: input.priceArea,
+      price_area: input.priceArea.trim().toUpperCase(),
       valid_until: validUntil,
       quote_hash: immutableQuoteHash,
       market_reference: input.marketReference ?? {},
@@ -431,10 +436,14 @@ export async function validateWebsiteQuote(input: {
       field: 'price_area',
     })
   }
+  const inputGridAreaCode = canonicalQuoteGridAreaCode(input.gridAreaCode)
+  const resolutionGridAreaCode = canonicalQuoteGridAreaCode(
+    canonicalResolution?.gridAreaCode,
+  )
   if (
-    canonicalResolution?.gridAreaCode
-    && input.gridAreaCode
-    && input.gridAreaCode.toUpperCase() !== canonicalResolution.gridAreaCode.toUpperCase()
+    resolutionGridAreaCode &&
+    inputGridAreaCode &&
+    inputGridAreaCode !== resolutionGridAreaCode
   ) {
     throw new WebsiteQuoteValidationError({
       message: 'Inskickad grid_area_code motsäger OPS-resolutionen.',
@@ -444,7 +453,8 @@ export async function validateWebsiteQuote(input: {
     })
   }
   const canonicalPriceArea = canonicalResolution?.priceArea ?? input.priceArea
-  const canonicalGridAreaCode = canonicalResolution?.gridAreaCode ?? input.gridAreaCode ?? null
+  const canonicalGridAreaCode =
+    resolutionGridAreaCode ?? inputGridAreaCode ?? null
   const computedQuoteHash =
     quote.quote_hash_version !== 'v1_snapshot_only'
       ? quoteHash(quoteIntegrityPayloadForVersion(
@@ -522,10 +532,10 @@ export async function validateWebsiteQuote(input: {
   const mismatches: string[] = []
   if (quote.offer_reference !== input.offerReference) mismatches.push('offer_reference')
   if (quote.customer_type !== input.customerType) mismatches.push('customer_type')
-  if (quote.price_area !== canonicalPriceArea) mismatches.push('price_area')
+  if (quote.price_area.toUpperCase() !== String(canonicalPriceArea).toUpperCase()) mismatches.push('price_area')
   if (input.resolutionId && quote.energy_resolution_id !== input.resolutionId) mismatches.push('resolution_id')
   if (quote.resolution_binding_status === 'verified' && !input.resolutionId) mismatches.push('resolution_id')
-  if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.price_area ?? '') !== quote.price_area) mismatches.push('resolution_snapshot.price_area')
+  if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.price_area ?? '').toUpperCase() !== quote.price_area.toUpperCase()) mismatches.push('resolution_snapshot.price_area')
   if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.resolution_id ?? '') !== String(quote.energy_resolution_id ?? '')) mismatches.push('resolution_snapshot.resolution_id')
   if (canonicalResolution && quote.energy_resolution_id !== canonicalResolution.id) mismatches.push('resolution_id')
   if (canonicalResolution && quote.resolver_version !== canonicalResolution.resolverVersion) mismatches.push('resolver_version')
@@ -533,20 +543,21 @@ export async function validateWebsiteQuote(input: {
   // grid_area_code is intentionally nullable while only the price area is
   // sufficiently verified for pricing/quote. Compare nullable values
   // canonically so null and an absent JSON value do not become '' !== null.
-  const snapshotGridAreaCode =
-    typeof quote.resolution_snapshot?.grid_area_code === 'string' &&
-    quote.resolution_snapshot.grid_area_code.trim()
-      ? quote.resolution_snapshot.grid_area_code.trim().toUpperCase()
-      : null
-  const canonicalResolutionGridAreaCode =
-    canonicalResolution?.gridAreaCode?.trim().toUpperCase() ?? null
+  const snapshotGridAreaCode = canonicalQuoteGridAreaCode(
+    quote.resolution_snapshot?.grid_area_code,
+  )
   if (
     canonicalResolution &&
-    snapshotGridAreaCode !== canonicalResolutionGridAreaCode
+    snapshotGridAreaCode !== resolutionGridAreaCode
   ) {
     mismatches.push('resolution_snapshot.grid_area_code')
   }
-  if (canonicalGridAreaCode && quote.grid_area_code !== canonicalGridAreaCode) mismatches.push('grid_area_code')
+  if (
+    canonicalGridAreaCode &&
+    canonicalQuoteGridAreaCode(quote.grid_area_code) !== canonicalGridAreaCode
+  ) {
+    mismatches.push('grid_area_code')
+  }
   if (input.postalCode && quote.postal_code && quote.postal_code !== input.postalCode) mismatches.push('postal_code')
   if (input.annualConsumptionKwh === null || !sameNumber(quote.annual_consumption_kwh, input.annualConsumptionKwh)) mismatches.push('annual_consumption_kwh')
   if (quote.start_date !== input.startDate) mismatches.push('start_date')

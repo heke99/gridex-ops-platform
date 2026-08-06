@@ -54,6 +54,24 @@ mustInclude(apps, 'resolver_grid_area_disagrees_with_claimed_input', 'grid-area 
 mustInclude(apps, 'resolver_price_area_disagrees_with_claimed_input', 'price-area disagreement is surfaced as warning, not silent overwrite')
 mustInclude(apps, 'resolver_grid_owner_disagrees_with_claimed_input', 'grid-owner disagreement is surfaced as warning, not silent overwrite')
 mustInclude(apps, 'claimed_energy_context_not_master_verified', 'claimed-only context is flagged for review')
+mustInclude(apps, 'normaliseGridAreaCode', 'claimed/resolver grid-area compares use shared case-insensitive normalizer')
+mustMatch(
+  apps,
+  /normaliseGridAreaCode\(resolution\.gridAreaCode\)\s*!==\s*explicitGridAreaCode/,
+  'grid-area disagreement must be case-insensitive',
+)
+
+const metering = 'lib/energy/meteringPointContext.ts'
+mustInclude(
+  metering,
+  'normaliseGridAreaCode',
+  'metering-point patch compares grid areas with shared normalizer',
+)
+mustInclude(
+  metering,
+  'canonicalPriceAreaCode',
+  'metering-point patch compares price areas case-insensitively',
+)
 
 // 3. Claims can never make automation sendable on their own; any disagreement
 //    disables automation.
