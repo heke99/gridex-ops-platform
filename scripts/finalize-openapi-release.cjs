@@ -1133,6 +1133,20 @@ if (quoteExample?.data) {
   quoteExample.contract_schema_version = version
 }
 
+const marketPriceExample =
+  website.paths?.['/api/v1/website/market-price/current']?.post?.responses?.[
+    '200'
+  ]?.content?.['application/json']?.example
+if (marketPriceExample?.data) {
+  marketPriceExample.data.selected_resolution ??=
+    marketPriceExample.data.resolution ?? 'hourly'
+  marketPriceExample.data.available_resolutions ??= [
+    marketPriceExample.data.selected_resolution,
+  ]
+  marketPriceExample.data.fallback_used ??= false
+  marketPriceExample.contract_schema_version = version
+}
+
 website.components.schemas.WebsitePortfolioPriceData = {
   type: 'object',
   additionalProperties: false,

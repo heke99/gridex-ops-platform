@@ -127,4 +127,36 @@ assert.ok(
   'quote response example must include required offer',
 )
 
+const marketPriceExample =
+  JSON.parse(
+    fs.readFileSync(
+      new URL('../docs/openapi/website-integration-v1.json', import.meta.url),
+      'utf8',
+    ),
+  ).paths?.['/api/v1/website/market-price/current']?.post?.responses?.['200']
+    ?.content?.['application/json']?.example?.data
+for (const field of [
+  'selected_resolution',
+  'available_resolutions',
+  'fallback_used',
+]) {
+  assert.ok(
+    marketPriceExample && field in marketPriceExample,
+    `current market-price example must include required ${field}`,
+  )
+}
+
+const developerGuide = fs.readFileSync(
+  new URL('../app/developers/customer-portal-api/page.tsx', import.meta.url),
+  'utf8',
+)
+assert.ok(
+  !developerGuide.includes('"contract_schema_version": "2026-08-05.1"'),
+  'developer guide must not pin stale contract_schema_version 2026-08-05.1',
+)
+assert.ok(
+  developerGuide.includes('"contract_schema_version": "2026-08-05.2"'),
+  'developer guide examples must use current contract_schema_version',
+)
+
 console.log('website quote integrity and OpenAPI synchronization regression: ok')
