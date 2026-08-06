@@ -1520,7 +1520,11 @@
                     "selected_component_references": [],
                     "mandatory_component_references": [],
                     "conditional_component_references": [],
-                    "site_count": 1
+                    "site_count": 1,
+                    "offer": {
+                      "offer_reference": "offer_example",
+                      "energy_direction": "consumption"
+                    }
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
                   "contract_schema_version": "2026-08-05.2"

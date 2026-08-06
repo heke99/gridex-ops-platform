@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const crypto = require('node:crypto')
 const fs = require('node:fs')
+const path = require('node:path')
 
 const version = '2026-08-05.2'
 const specifications = [
@@ -20,9 +21,48 @@ function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex')
 }
 
-function exactBytes(path) {
-  const document = JSON.parse(fs.readFileSync(path, 'utf8'))
+function exactBytes(filePath) {
+  const document = JSON.parse(fs.readFileSync(filePath, 'utf8'))
   return `${JSON.stringify(document, null, 2)}\n`
+}
+
+function assertImmutableArtifacts(specification, currentBytes) {
+  const releasePath = path.join(
+    'docs/openapi/releases',
+    version,
+    `${specification.contractName}.json`,
+  )
+  const routePath = path.join(
+    'app/api/v1/openapi',
+    version,
+    `${specification.contractName}.json`,
+    'route.ts',
+  )
+
+  if (!fs.existsSync(releasePath)) {
+    throw new Error(
+      `${specification.key}: missing immutable release artifact ${releasePath}`,
+    )
+  }
+  if (!fs.existsSync(routePath)) {
+    throw new Error(
+      `${specification.key}: missing immutable OpenAPI route ${routePath}`,
+    )
+  }
+
+  const releaseBytes = exactBytes(releasePath)
+  if (releaseBytes !== currentBytes) {
+    throw new Error(
+      `${specification.key}: immutable release artifact diverges from current OpenAPI`,
+    )
+  }
+
+  const routeSource = fs.readFileSync(routePath, 'utf8')
+  if (!routeSource.includes(`docs/openapi/releases/${version}/${specification.contractName}.json`)) {
+    throw new Error(
+      `${specification.key}: immutable route does not import release ${version}`,
+    )
+  }
 }
 
 async function verify() {
@@ -32,8 +72,23 @@ async function verify() {
     if (document.info.version !== version) {
       throw new Error(`${specification.key}: version mismatch`)
     }
+    if (document['x-contract-schema-version'] !== version) {
+      throw new Error(`${specification.key}: x-contract-schema-version mismatch`)
+    }
     if (!/^[a-f0-9]{64}$/.test(sha256(body))) {
       throw new Error(`${specification.key}: invalid sha256`)
+    }
+    assertImmutableArtifacts(specification, body)
+  }
+
+  const registry = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
+  for (const specification of specifications) {
+    const route =
+      `/api/v1/openapi/${version}/${specification.contractName}.json`
+    if (!registry.includes(route)) {
+      throw new Error(
+        `${specification.key}: publicRouteRegistry is missing ${route}`,
+      )
     }
   }
 
