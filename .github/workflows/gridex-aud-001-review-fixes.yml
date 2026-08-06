@@ -8,9 +8,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: gridex-aud-001-review-fixes
+  cancel-in-progress: true
+
 jobs:
   patch-review-findings:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
