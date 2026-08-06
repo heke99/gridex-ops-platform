@@ -1,5 +1,10 @@
 begin;
 
+-- Supabase Storage sets this transaction-local flag before issuing DELETE.
+-- Keeping the protection trigger enabled while setting the same flag exercises
+-- the real DELETE RLS policy without performing unsupported direct deletion.
+select set_config('storage.allow_delete_query', 'true', true);
+
 do $$
 begin
   if not exists (select 1 from storage.buckets where id = 'customer-documents') then
