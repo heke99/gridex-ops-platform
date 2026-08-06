@@ -14,17 +14,14 @@ concurrency:
 
 jobs:
   patch-review-findings:
-    runs-on: windows-2025
-    defaults:
-      run:
-        shell: bash
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: remediation/gridex-aud-001-document-storage-isolation
           fetch-depth: 0
       - name: Apply focused review fixes
-        run: python .github/scripts/apply-gridex-aud-001-review-fixes.py
+        run: python3 .github/scripts/apply-gridex-aud-001-review-fixes.py
       - name: Commit fixes and remove temporary patch files
         run: |
           git config user.name "github-actions[bot]"
