@@ -8,13 +8,10 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: gridex-aud-001-review-fixes
-  cancel-in-progress: true
-
 jobs:
   patch-review-findings:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
