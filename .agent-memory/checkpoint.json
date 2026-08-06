@@ -5,8 +5,9 @@
   "last_verified_commit": null,
   "active_phase": "HEALTH",
   "active_task": "WP-HEALTH",
-  "active_subtask": "Push quote/OpenAPI stability fixes and open PR",
-  "status": "IMPLEMENTED_STATIC_VERIFIED_PR_PENDING",
+  "active_subtask": "Deploy and live-prove null-grid-area quote create→validate",
+  "status": "IMPLEMENTED_STATIC_VERIFIED_PR_OPEN",
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/77",
   "implemented_not_environment_verified": [
     "canonicalQuoteTimestamptz for valid_until and market_data_timestamp",
     "canonicalQuoteGridAreaCode for nullable quote/resolution comparisons",
