@@ -74,6 +74,11 @@ assert.match(
   /documentType:\s*"power_of_attorney"/,
   "website POA path must include the canonical document type",
 );
+assert.match(
+  website,
+  /siteId:\s*input\.customerSiteId/,
+  "website POA path scope must match the persisted site_id",
+);
 
 const signedUrlRoute = read(
   "app/api/admin/customer-documents/[documentId]/route.ts",

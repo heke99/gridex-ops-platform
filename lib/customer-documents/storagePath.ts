@@ -17,6 +17,7 @@ export type ParsedCustomerDocumentStoragePath = {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const MAX_FILE_NAME_LENGTH = 255;
 const DOCUMENT_TYPES = new Set<CustomerDocumentType>([
   "power_of_attorney",
   "complete_agreement",
@@ -48,7 +49,7 @@ export function sanitizeCustomerDocumentFileName(value: string): string {
     return "document";
   }
 
-  return normalized.slice(0, 255);
+  return normalized.slice(0, MAX_FILE_NAME_LENGTH);
 }
 
 export function parseCustomerDocumentStoragePath(
@@ -90,7 +91,7 @@ export function parseCustomerDocumentStoragePath(
     !fileName ||
     fileName === "." ||
     fileName === ".." ||
-    fileName.length > 255 ||
+    fileName.length > MAX_FILE_NAME_LENGTH ||
     !FILE_NAME_PATTERN.test(fileName)
   ) {
     return null;
@@ -144,13 +145,17 @@ export function buildCustomerDocumentStoragePath(params: {
     ? `site-${assertUuid(params.siteId, "siteId")}`
     : "customer";
 
-  const sanitizedFileName = sanitizeCustomerDocumentFileName(params.fileName);
-  const fileName =
+  const timestampPrefix =
     params.timestampFileName === false
-      ? sanitizedFileName
+      ? ""
       : `${(params.now ?? new Date())
           .toISOString()
-          .replace(/[:.]/g, "-")}_${sanitizedFileName}`;
+          .replace(/[:.]/g, "-")}_`;
+  const sanitizedFileName = sanitizeCustomerDocumentFileName(params.fileName);
+  const fileName = `${timestampPrefix}${sanitizedFileName.slice(
+    0,
+    MAX_FILE_NAME_LENGTH - timestampPrefix.length,
+  )}`;
 
   const path = `companies/${companyId}/customers/${customerId}/${scope}/${params.documentType}/${fileName}`;
   if (!parseCustomerDocumentStoragePath(path)) {

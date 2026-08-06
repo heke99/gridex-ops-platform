@@ -37,6 +37,10 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 
 import { GET } from '@/app/api/admin/customer-documents/[documentId]/route'
+import {
+  buildCustomerDocumentStoragePath,
+  parseCustomerDocumentStoragePath,
+} from '@/lib/customer-documents/storagePath'
 
 const companyA = 'a0000000-0000-4000-8000-000000000001'
 const customerA = 'c0000000-0000-4000-8000-000000000001'
@@ -154,5 +158,41 @@ describe('customer document signed URL route', () => {
 
     expect(response.status).toBe(404)
     expect(mocks.createSignedUrl).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('customer document storage path builder', () => {
+  it('preserves site scope for site-bound website documents', () => {
+    const path = buildCustomerDocumentStoragePath({
+      companyId: companyA,
+      customerId: customerA,
+      siteId: siteA,
+      documentType: 'power_of_attorney',
+      fileName: 'authorization.json',
+      timestampFileName: false,
+    })
+
+    expect(parseCustomerDocumentStoragePath(path)).toMatchObject({
+      companyId: companyA,
+      customerId: customerA,
+      siteId: siteA,
+      scope: `site-${siteA}`,
+    })
+  })
+
+  it('caps the complete timestamped filename segment at 255 characters', () => {
+    const path = buildCustomerDocumentStoragePath({
+      companyId: companyA,
+      customerId: customerA,
+      siteId: null,
+      documentType: 'complete_agreement',
+      fileName: `${'a'.repeat(300)}.pdf`,
+      now: new Date('2026-08-06T16:22:04.123Z'),
+    })
+    const parsed = parseCustomerDocumentStoragePath(path)
+
+    expect(parsed).not.toBeNull()
+    expect(parsed?.fileName.length).toBe(255)
+    expect(parsed?.fileName.startsWith('2026-08-06T16-22-04-123Z_')).toBe(true)
   })
 })
