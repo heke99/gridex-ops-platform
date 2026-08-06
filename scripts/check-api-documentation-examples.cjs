@@ -92,11 +92,17 @@ const currentExample = current?.responses?.['200']?.content?.['application/json'
 if (!currentExample?.data) failures.push('Current market-price response example is missing.')
 for (const field of [
   'provider', 'resolution_id', 'price_area', 'reference_type', 'resolution',
-  'time_start', 'time_end', 'price_sek_per_kwh', 'price_ore_per_kwh',
-  'price_ex_vat_sek_per_kwh', 'price_ex_vat_ore_per_kwh', 'source_as_of', 'next_update_at',
+  'selected_resolution', 'available_resolutions', 'time_start', 'time_end',
+  'price_sek_per_kwh', 'price_ore_per_kwh', 'price_ex_vat_sek_per_kwh',
+  'price_ex_vat_ore_per_kwh', 'fallback_used', 'source_as_of', 'next_update_at',
 ]) {
   if (!(field in (currentExample?.data ?? {}))) failures.push(`Current market-price example missing ${field}.`)
 }
+validateExample(
+  currentExample,
+  current?.responses?.['200']?.content?.['application/json']?.schema,
+  'Current market-price response example',
+)
 const quoteExample = website.paths?.['/api/v1/website/quote']?.post?.responses?.['201']?.content?.['application/json']?.example
 validateExample(
   quoteExample,

@@ -1119,6 +1119,10 @@ const quoteResponseContent =
   ]
 const quoteExample = quoteResponseContent.example
 if (quoteExample?.data) {
+  quoteExample.data.offer ??= {
+    offer_reference: quoteExample.data.offer_reference ?? 'offer_example',
+    energy_direction: 'consumption',
+  }
   quoteExample.data.price_option_reference ??= 'price_option_example'
   quoteExample.data.area_price_reference ??= null
   quoteExample.data.invoice_delivery_method ??= 'email'
@@ -1127,6 +1131,20 @@ if (quoteExample?.data) {
   quoteExample.data.conditional_component_references ??= []
   quoteExample.data.site_count ??= 1
   quoteExample.contract_schema_version = version
+}
+
+const marketPriceExample =
+  website.paths?.['/api/v1/website/market-price/current']?.post?.responses?.[
+    '200'
+  ]?.content?.['application/json']?.example
+if (marketPriceExample?.data) {
+  marketPriceExample.data.selected_resolution ??=
+    marketPriceExample.data.resolution ?? 'hourly'
+  marketPriceExample.data.available_resolutions ??= [
+    marketPriceExample.data.selected_resolution,
+  ]
+  marketPriceExample.data.fallback_used ??= false
+  marketPriceExample.contract_schema_version = version
 }
 
 website.components.schemas.WebsitePortfolioPriceData = {
@@ -2546,6 +2564,13 @@ function assertLocalRefs(document, name) {
 
 assertLocalRefs(website, 'website')
 assertLocalRefs(portal, 'customer portal')
+
+// Re-normalize after late example assignment so fixture/example versions cannot
+// drift from info.version / x-contract-schema-version.
+for (const document of [website, portal]) {
+  normalizeContractVersionMetadata(document)
+}
+
 fs.writeFileSync(websitePath, `${JSON.stringify(website, null, 2)}\n`)
 fs.writeFileSync(portalPath, `${JSON.stringify(portal, null, 2)}\n`)
 const hashes = {

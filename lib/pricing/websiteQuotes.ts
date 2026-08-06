@@ -4,7 +4,10 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { PublicContractOffer } from '@/lib/website/publicContracts'
 import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { EnergyResolutionBindingError, loadQuoteEnergyResolution } from '@/lib/energy/resolutionBinding'
-import { canonicalQuoteValidUntil } from '@/lib/pricing/quoteIntegrity'
+import {
+  canonicalQuoteGridAreaCode,
+  canonicalQuoteTimestamptz,
+} from '@/lib/pricing/quoteIntegrity'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -162,7 +165,9 @@ function fullQuoteIntegrityPayload(input: {
     resolver_version: input.resolverVersion ?? null,
     geodata_version: input.geodataVersion ?? null,
     market_reference: input.marketReference ?? {},
-    market_data_timestamp: input.marketDataTimestamp ?? null,
+    market_data_timestamp: input.marketDataTimestamp
+      ? canonicalQuoteTimestamptz(input.marketDataTimestamp)
+      : null,
     market_sources: input.marketSources,
     assumptions: input.assumptions,
     pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
@@ -179,7 +184,7 @@ function fullQuoteIntegrityPayload(input: {
     resolved_base_components: input.resolvedBaseComponents ?? [],
     resolved_price_components: input.resolvedPriceComponents ?? [],
     quote_snapshot: input.quoteSnapshot,
-    valid_until: canonicalQuoteValidUntil(input.validUntil),
+    valid_until: canonicalQuoteTimestamptz(input.validUntil),
   }
 }
 
@@ -431,10 +436,14 @@ export async function validateWebsiteQuote(input: {
       field: 'price_area',
     })
   }
+  const inputGridAreaCode = canonicalQuoteGridAreaCode(input.gridAreaCode)
+  const resolutionGridAreaCode = canonicalQuoteGridAreaCode(
+    canonicalResolution?.gridAreaCode,
+  )
   if (
-    canonicalResolution?.gridAreaCode
-    && input.gridAreaCode
-    && input.gridAreaCode.toUpperCase() !== canonicalResolution.gridAreaCode.toUpperCase()
+    resolutionGridAreaCode &&
+    inputGridAreaCode &&
+    inputGridAreaCode !== resolutionGridAreaCode
   ) {
     throw new WebsiteQuoteValidationError({
       message: 'Inskickad grid_area_code motsäger OPS-resolutionen.',
@@ -444,7 +453,8 @@ export async function validateWebsiteQuote(input: {
     })
   }
   const canonicalPriceArea = canonicalResolution?.priceArea ?? input.priceArea
-  const canonicalGridAreaCode = canonicalResolution?.gridAreaCode ?? input.gridAreaCode ?? null
+  const canonicalGridAreaCode =
+    resolutionGridAreaCode ?? inputGridAreaCode ?? null
   const computedQuoteHash =
     quote.quote_hash_version !== 'v1_snapshot_only'
       ? quoteHash(quoteIntegrityPayloadForVersion(
@@ -533,20 +543,21 @@ export async function validateWebsiteQuote(input: {
   // grid_area_code is intentionally nullable while only the price area is
   // sufficiently verified for pricing/quote. Compare nullable values
   // canonically so null and an absent JSON value do not become '' !== null.
-  const snapshotGridAreaCode =
-    typeof quote.resolution_snapshot?.grid_area_code === 'string' &&
-    quote.resolution_snapshot.grid_area_code.trim()
-      ? quote.resolution_snapshot.grid_area_code.trim().toUpperCase()
-      : null
-  const canonicalResolutionGridAreaCode =
-    canonicalResolution?.gridAreaCode?.trim().toUpperCase() ?? null
+  const snapshotGridAreaCode = canonicalQuoteGridAreaCode(
+    quote.resolution_snapshot?.grid_area_code,
+  )
   if (
     canonicalResolution &&
-    snapshotGridAreaCode !== canonicalResolutionGridAreaCode
+    snapshotGridAreaCode !== resolutionGridAreaCode
   ) {
     mismatches.push('resolution_snapshot.grid_area_code')
   }
-  if (canonicalGridAreaCode && quote.grid_area_code !== canonicalGridAreaCode) mismatches.push('grid_area_code')
+  if (
+    canonicalGridAreaCode &&
+    canonicalQuoteGridAreaCode(quote.grid_area_code) !== canonicalGridAreaCode
+  ) {
+    mismatches.push('grid_area_code')
+  }
   if (input.postalCode && quote.postal_code && quote.postal_code !== input.postalCode) mismatches.push('postal_code')
   if (input.annualConsumptionKwh === null || !sameNumber(quote.annual_consumption_kwh, input.annualConsumptionKwh)) mismatches.push('annual_consumption_kwh')
   if (quote.start_date !== input.startDate) mismatches.push('start_date')
