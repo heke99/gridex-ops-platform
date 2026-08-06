@@ -577,3 +577,17 @@ Files changed: legal package/rendering, public contracts, website intake, Custom
 Migrations: none
 Last updated: 2026-08-05
 Exact next subtask: deploy and prove one private plus one business tenant legal/POA/supplier-switch flow
+
+## WP-045: OpenAPI 2026-08-05.2 health and quote integrity completion
+Status: IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING
+Phase: PHASE-45
+Priority: P0
+Depends on: WP-044
+Affected domains: website quotes, OpenAPI release verification, public contract examples
+Acceptance criteria: top-level quote timestamptz hash-stable; nullable grid-area compares fail-closed without false mismatches; immutable 2026-08-05.2 artifacts match current OpenAPI including required quote offer; local verify fails closed without artifacts/registry
+Required verification: quote null-grid-area and integrity regressions; api:release:verify; docs/compatibility/runtime; live quote create/validate smoke after deploy
+Evidence: local regressions and OpenAPI gates pass on branch cursor/codebase-health-and-stability-609b
+Files changed: quoteIntegrity, websiteQuotes, finalize/verify OpenAPI scripts, release website JSON, package scripts, agent memory
+Migrations: none
+Last updated: 2026-08-06
+Exact next subtask: merge/deploy and prove one live website quote create → validate with PostgREST timestamptz and null grid area

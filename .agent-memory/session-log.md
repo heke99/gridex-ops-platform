@@ -316,3 +316,12 @@ tenant E2E remain pending.
 - Re-ran legal package, platform POA, website POA, API version/compatibility/examples/runtime/release gates: all passed.
 - Re-ran TypeScript 5.8.3 syntax transpilation for 17 changed TS/TSX files: passed.
 - Kept full dependency-backed build blocked by package mirror 404 for zod-validation-error@4.0.2.
+
+## 2026-08-06T08:40:00Z — PHASE-45
+
+Reviewed main OpenAPI publish `2026-08-05.2` (`daaeca19`). Release artifacts
+existed, but quote integrity and local release verification were still weak.
+Ported/completed timestamptz + nullable grid-area hardening, seeded required
+quote example `offer`, rematerialized website immutable release bytes, and made
+`verify-openapi-release` fail closed. Targeted quote/OpenAPI regressions passed.
+Full npm gates and live quote E2E remain pending.

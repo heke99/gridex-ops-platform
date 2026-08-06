@@ -46,6 +46,7 @@
     }
   ],
   "next_action": "Open/merge the health PR, deploy OPS, then execute one live website quote create → validate smoke with PostgREST timestamptz and null grid area.",
+  "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/80",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
     "Do not mutate published immutable OpenAPI artifacts after a release has shipped cleanly; this run only corrected an incomplete same-day 2026-08-05.2 publish",
