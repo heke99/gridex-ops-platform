@@ -1,18 +1,20 @@
 # Open blockers
 
-Last updated: 2026-08-05T15:14:58+02:00
+Last updated: 2026-08-06T08:40:00Z
 
-## PHASE-44 blockers
+## PHASE-45 blockers
 
-1. Deploy the updated OPS source.
-2. Run clean dependency-backed typecheck, tests, lint and production build in an
-   environment where the npm package mirror serves all locked packages.
-3. Execute one private and one business tenant legal-bundle, acceptance, POA and
-   supplier-switch E2E and verify tenant isolation plus immutable evidence.
-4. Synchronize the tenant website against OpenAPI `2026-08-05.1` so it renders
-   the returned grouped `requirements` rather than canonical modules.
+1. Merge and deploy the health branch
+   `cursor/codebase-health-and-stability-609b`.
+2. Run clean dependency-backed typecheck, tests, lint and production build where
+   npm packages are available.
+3. Execute one live website quote create → validate smoke covering PostgREST
+   timestamptz serialization and null grid area.
 
 ## Inherited blockers
 
-Prior SVK import, webhook, emergency-access, Ediel and broader production E2E
-items remain separate and are not closed by PHASE-44.
+- PHASE-44 private/business legal-bundle / POA / supplier-switch E2E still
+  pending after deploy.
+- Synchronize tenant websites against OpenAPI `2026-08-05.2`.
+- Prior SVK import, webhook, emergency-access, Ediel and broader production E2E
+  items remain separate.

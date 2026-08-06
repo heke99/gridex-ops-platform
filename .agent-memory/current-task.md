@@ -1,42 +1,41 @@
 # Current task
 
-Last updated: 2026-08-05T15:14:58+02:00
-Branch: archive working tree
+Last updated: 2026-08-06T08:40:00Z
+Branch: `cursor/codebase-health-and-stability-609b`
 
 ## Active phase
 
-PHASE-44 — Three-document customer legal package and immutable POA chain.
+PHASE-45 — Codebase health after OpenAPI `2026-08-05.2` publish.
 
 ## Goal
 
-Expose at most three tenant-bound customer documents (`agreement`,
-`power_of_attorney`, `withdrawal`) without changing the existing website or
-Customer Portal endpoint structure. Preserve every canonical module as immutable
-evidence and ensure a signed POA received from either API path drives the same
-supplier-switch authorization chain with no scope widening.
+Close the gaps left by the incomplete `2026-08-05.2` publish on main:
+quote integrity hardening, required quote example `offer`, and fail-closed
+local OpenAPI release verification.
 
 ## Implemented
 
-- Grouped all canonical legal modules into three customer-facing documents.
-- Retained exact module IDs, hashes and versions as the evidence source of truth.
-- Added immutable tenant legal-profile snapshot rendering for historical links.
-- Kept website application endpoints and legacy module acceptances compatible.
-- Expanded grouped Customer Portal sync acceptances back to every source module.
-- Bound POA reuse to the same tenant, legal module and exact signed scope snapshot.
-- Made incomplete/legacy POA persistence fail closed for external dispatch.
-- Published additive API/OpenAPI release `2026-08-05.1`.
+- Canonicalize top-level quote timestamptz (`valid_until`,
+  `market_data_timestamp`) via `canonicalQuoteTimestamptz`.
+- Shared nullable/case-insensitive `canonicalQuoteGridAreaCode` for snapshot,
+  resolution and quote-row compares.
+- Finalize seeds required quote example `offer` and re-normalizes contract
+  versions after late example assignment.
+- Rematerialized immutable website OpenAPI `2026-08-05.2` so release bytes
+  match current (includes required `offer`).
+- `verify-openapi-release` now requires matching immutable JSON/routes and
+  publicRouteRegistry entries.
+- Strengthened website quote integrity and null grid-area regressions.
 
 ## Verification
 
-- Customer legal package regression: PASS.
-- Website POA regression: PASS.
-- Legal/POA platform regression: PASS.
-- OpenAPI compatibility, examples, runtime parity and release checks: PASS.
-- TypeScript syntax transpilation for 17 changed TS/TSX files: PASS.
-- Full dependency-backed typecheck/test/lint/build: BLOCKED by package mirror 404.
+- `gridex:quote-null-grid-area-regression`: PASS
+- `gridex:website-quote-integrity-regression`: PASS
+- `api:release:verify`: PASS
+- API documentation version, compatibility and public-contract runtime: PASS
+- Full dependency-backed typecheck/test/lint/build: NOT RUN (no node_modules)
 
 ## Exact next action
 
-Sync and deploy the changed files, then run a real tenant legal-bundle -> three
-acceptances -> signed POA -> authorization document/scope -> supplier-switch smoke
-flow for one private and one business tenant.
+Open/merge the health PR, deploy OPS, then run one live website quote create →
+validate smoke with PostgREST-returned timestamptz and a null grid area.

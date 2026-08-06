@@ -32,3 +32,13 @@
 | Live private/business E2E | PENDING | deployment required |
 
 | 2026-08-05T15:20:07+02:00 | Customer Portal grouped/legacy prevalidation and signed-event fail-closed guard | PASS | `gridex-customer-legal-package-regression.cjs` |
+
+## PHASE-45 — 2026-08-06T08:40:00Z
+
+| Check | Result | Evidence |
+|---|---|---|
+| Quote timestamptz + null grid-area integrity | PASS | quote null-grid-area and website quote integrity regressions |
+| OpenAPI 2026-08-05.2 immutable package | PASS | rematerialized website release includes required quote `offer`; verify fails closed |
+| API docs/compatibility/runtime | PASS | version, compatibility and public-contract runtime checks |
+| Full dependency gates | BLOCKED | `node_modules` absent |
+| Live quote create/validate E2E | PENDING | merge/deploy required |

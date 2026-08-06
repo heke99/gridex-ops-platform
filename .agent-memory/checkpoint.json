@@ -1,64 +1,55 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-05T15:20:07+02:00",
-  "branch": "archive working tree",
-  "last_verified_commit": null,
-  "active_phase": "PHASE-44",
-  "active_task": "WP-044",
-  "active_subtask": "Deploy and prove three-document legal acceptance plus signed POA supplier-switch chain for private and business tenants",
+  "updated_at": "2026-08-06T08:40:00Z",
+  "branch": "cursor/codebase-health-and-stability-609b",
+  "last_verified_commit": "e59ccac1",
+  "active_phase": "PHASE-45",
+  "active_task": "WP-045",
+  "active_subtask": "Merge health fixes and prove live quote create/validate with PostgREST timestamptz plus null grid area",
   "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
   "implemented_not_environment_verified": [
-    "three customer-facing legal documents with immutable source-module evidence",
-    "tenant legal-profile snapshot rendering for historical documents",
-    "website grouped acceptance with legacy module compatibility",
-    "Customer Portal grouped acceptance expansion to exact module rows",
-    "exact signed POA scope and legal-version reuse guards",
-    "OpenAPI 2026-08-05.1 immutable release",
-    "duplicate/mixed legal acceptance prevalidation and signed-event fail-closed guard"
+    "canonicalQuoteTimestamptz for valid_until and market_data_timestamp",
+    "canonicalQuoteGridAreaCode for nullable/case-insensitive compares",
+    "OpenAPI 2026-08-05.2 quote example offer + rematerialized website release",
+    "fail-closed verify-openapi-release for immutable artifacts and registry"
   ],
   "active_blockers": [
-    "modified OPS code has not been deployed",
-    "package mirror 404 prevents clean npm ci and full dependency-backed gates",
-    "real private/business two-tenant legal and supplier-switch E2E is pending"
+    "health branch not yet merged/deployed",
+    "full dependency-backed gates not run in this sandbox",
+    "live website quote create/validate E2E pending"
   ],
   "verification": [
     {
-      "name": "customer legal package regression",
+      "name": "quote null grid-area regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "grouping, tenant snapshot, grouped Customer Portal evidence expansion, format prevalidation and signed-event fail-closed checks pass"
+      "evidence": "gridex:quote-null-grid-area-regression passed"
     },
     {
-      "name": "website and platform POA regressions",
+      "name": "website quote integrity and OpenAPI sync",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "structured POA, fail-closed sendability and canonical authorization chain checks pass"
+      "evidence": "gridex:website-quote-integrity-regression passed including release artifact and quote offer checks"
     },
     {
-      "name": "API/OpenAPI/docs",
+      "name": "API/OpenAPI release gates",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "version, compatibility, examples, runtime boundary and immutable 2026-08-05.1 release pass"
-    },
-    {
-      "name": "changed TypeScript syntax",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "17 changed TS/TSX files transpile with TypeScript 5.8.3"
+      "evidence": "api:release:verify, docs version, compatibility and public-contract runtime passed at 2026-08-05.2"
     },
     {
       "name": "clean dependency install and full build",
       "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "package mirror 404 for zod-validation-error@4.0.2"
+      "evidence": "node_modules absent in sandbox"
     },
     {
-      "name": "live tenant legal/POA/supplier-switch E2E",
+      "name": "live quote create/validate E2E",
       "status": "PENDING",
-      "evidence": "requires sync, deploy, tenant credentials and test customers"
+      "evidence": "requires merge, deploy and PostgREST-backed smoke"
     }
   ],
-  "next_action": "Sync the changed-files package, deploy OPS, then execute one private and one business tenant legal-bundle/acceptance/POA/supplier-switch smoke flow.",
+  "next_action": "Open/merge the health PR, deploy OPS, then execute one live website quote create → validate smoke with PostgREST timestamptz and null grid area.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not collapse canonical legal module storage; only customer presentation is grouped",
-    "Do not allow a POA reference to bind to different legal text or scopes",
-    "Do not mark a legacy schema fallback POA signed",
-    "Do not claim deployment or live E2E before evidence exists"
+    "Do not mutate published immutable OpenAPI artifacts after a release has shipped cleanly; this run only corrected an incomplete same-day 2026-08-05.2 publish",
+    "Nested JSONB timestamps are preserved as stored unless a writer reformats them",
+    "Grid area remains intentionally nullable; only price area is required for quote pricing"
   ]
 }
