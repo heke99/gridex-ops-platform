@@ -25,6 +25,7 @@ import {
   type PublicContractPriceOption,
   type PublicContractPriceOptionAreaPrice,
 } from "@/lib/external-contracts/publicContractModel";
+import { canonicalSwedishPriceArea } from "@/lib/pricing/types";
 
 export type PublicLegalTextVersion = {
   id: string;
@@ -712,7 +713,9 @@ function publicPortfolioMonthlyPrices(
     )
     .map((row) => ({
       period_month: clean(row.period_month) ?? clean(row.delivery_month),
-      price_area_code: clean(row.price_area_code) ?? clean(row.price_area),
+      price_area_code:
+        canonicalSwedishPriceArea(row.price_area_code) ??
+        canonicalSwedishPriceArea(row.price_area),
       amount: numberOrNull(row.amount_ore_per_kwh ?? row.amount),
       unit: clean(row.unit) ?? "ore_per_kwh",
       vat_included: booleanOrNull(row.vat_included) ?? false,
@@ -980,7 +983,9 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     discount_months: numberOrNull(row.discount_months),
     vat_rate: numberOrNull(row.vat_rate),
     price_areas: Array.isArray(row.price_areas)
-      ? row.price_areas.map(String)
+      ? row.price_areas
+          .map((area) => canonicalSwedishPriceArea(area))
+          .filter((area): area is NonNullable<typeof area> => Boolean(area))
       : [],
     automatic_renewal: row.automatic_renewal === true,
     power_of_attorney_required: row.power_of_attorney_required !== false,
@@ -1981,9 +1986,9 @@ async function loadPublishedPriceOptions(
       const publicAreas: PublicContractPriceOptionAreaPrice[] = [];
       const seenAreas = new Set<string>();
       for (const areaRow of areasByOption.get(String(row.id)) ?? []) {
-        const priceArea = clean(areaRow.price_area);
-        if (!priceArea || !["SE1", "SE2", "SE3", "SE4"].includes(priceArea)) {
-          code("price_area_price_unit_invalid", priceArea);
+        const priceArea = canonicalSwedishPriceArea(areaRow.price_area);
+        if (!priceArea) {
+          code("price_area_price_unit_invalid", clean(areaRow.price_area));
           continue;
         }
         if (seenAreas.has(priceArea)) {
@@ -2014,7 +2019,7 @@ async function loadPublishedPriceOptions(
         }
         publicAreas.push({
           area_price_reference: areaReference,
-          price_area: priceArea as PublicContractPriceOptionAreaPrice["price_area"],
+          price_area: priceArea,
           energy_price_ore_per_kwh:
             unit === "sek_per_kwh" ? amount * 100 : amount,
           unit: "ore_per_kwh",
@@ -2026,6 +2031,8 @@ async function loadPublishedPriceOptions(
         const requiredAreas =
           offer.price_areas && offer.price_areas.length > 0
             ? offer.price_areas
+                .map((area) => canonicalSwedishPriceArea(area))
+                .filter((area): area is NonNullable<typeof area> => Boolean(area))
             : ["SE1", "SE2", "SE3", "SE4"];
         const missingAreas = requiredAreas.filter(
           (area) => !publicAreas.some((row) => row.price_area === area),

@@ -10,6 +10,7 @@ import {
   publicContractResponse,
   publicOfferReference,
 } from "@/lib/website/publicContracts";
+import { canonicalSwedishPriceArea } from "@/lib/pricing/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,7 +121,9 @@ export async function GET(request: NextRequest) {
         ? (response.pricing as Record<string, unknown>)
         : {};
     const historical = records(pricing.portfolio_monthly_prices).filter(
-      (row) => !priceArea || row.price_area_code === priceArea,
+      (row) =>
+        !priceArea ||
+        canonicalSwedishPriceArea(row.price_area_code) === priceArea,
     );
     await logIntegrationApiRequest({
       client: auth.client,

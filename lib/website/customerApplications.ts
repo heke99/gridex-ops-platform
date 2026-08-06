@@ -3169,12 +3169,12 @@ function normalizePriceAreaCode(value: unknown): string | null {
 
 function explicitSiteGridAreaCode(input: ApplicationInput): string | null {
   return (
-    clean(input.site?.grid_area_code) ??
-    clean(input.site?.gridAreaCode) ??
-    clean(input.grid_area_code) ??
-    clean(input.gridAreaCode) ??
-    clean(input.metering_point?.grid_area_code) ??
-    clean(input.metering_point?.gridAreaCode)
+    normaliseGridAreaCode(input.site?.grid_area_code) ??
+    normaliseGridAreaCode(input.site?.gridAreaCode) ??
+    normaliseGridAreaCode(input.grid_area_code) ??
+    normaliseGridAreaCode(input.gridAreaCode) ??
+    normaliseGridAreaCode(input.metering_point?.grid_area_code) ??
+    normaliseGridAreaCode(input.metering_point?.gridAreaCode)
   );
 }
 
@@ -3200,8 +3200,8 @@ function explicitSiteGridOwnerId(input: ApplicationInput): string | null {
 
 function explicitMeteringGridAreaCode(input: ApplicationInput): string | null {
   return (
-    clean(input.metering_point?.grid_area_code) ??
-    clean(input.metering_point?.gridAreaCode) ??
+    normaliseGridAreaCode(input.metering_point?.grid_area_code) ??
+    normaliseGridAreaCode(input.metering_point?.gridAreaCode) ??
     explicitSiteGridAreaCode(input)
   );
 }
