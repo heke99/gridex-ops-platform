@@ -238,3 +238,12 @@ Status: VERIFIED LOCALLY
 - Published and verified additive API release 2026-08-05.1.
 
 - 2026-08-05T15:20:07+02:00: Added pre-write rejection for duplicate/mixed grouped-vs-legacy legal acceptance payloads and stopped `power_of_attorney.signed` events unless the POA is actually persisted as a complete signed authorization.
+
+## 2026-08-06T08:50:00Z — PHASE-45 OpenAPI / quote health
+
+- Canonicalized top-level quote timestamptz hashing and nullable grid-area compares.
+- Made local OpenAPI release verification fail closed for immutable artifacts/registry.
+- Completed required quote and current-market-price OpenAPI examples for `2026-08-05.2`.
+- Normalized application and metering-point grid/price area compares case-insensitively.
+- Synchronized developer-guide contract examples to `2026-08-05.2`.
+- Recorded findings in `quality/findings-2026-08-06-codebase-health.md`.

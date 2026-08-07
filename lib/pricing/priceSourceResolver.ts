@@ -1,11 +1,12 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { loadMarketPriceSourcePolicies, policySupports, selectMarketPricePreviewRow, selectMarketPriceRow } from "@/lib/pricing/marketPriceSources";
-import type {
-  BasePriceComponent,
-  BasePriceSourceValues,
-  BillingUnderlayInput,
-  PriceComponent,
-  PriceArea,
+import {
+  canonicalSwedishPriceArea,
+  type BasePriceComponent,
+  type BasePriceSourceValues,
+  type BillingUnderlayInput,
+  type PriceComponent,
+  type PriceArea,
 } from "@/lib/pricing/types";
 
 export class MarketPriceResolutionError extends Error {
@@ -66,15 +67,9 @@ function normalizeBaseComponent(
       numberValue(row.fixed_price_sek_per_kwh) ??
       numberValue(row.fixedPriceSekPerKwh),
     label: stringValue(row.label),
-    priceArea: (() => {
-      const area = stringValue(row.price_area) ?? stringValue(row.priceArea);
-      return area === "SE1" ||
-        area === "SE2" ||
-        area === "SE3" ||
-        area === "SE4"
-        ? area
-        : null;
-    })(),
+    priceArea: canonicalSwedishPriceArea(
+      stringValue(row.price_area) ?? stringValue(row.priceArea),
+    ),
     validFrom: stringValue(row.valid_from) ?? stringValue(row.validFrom),
     validTo: stringValue(row.valid_to) ?? stringValue(row.validTo),
     metadata,
@@ -555,11 +550,13 @@ export function filterBaseComponentsForUnderlay(
   const hasAreaRows = periodRows.some((component) => component.priceArea);
   if (!hasAreaRows) return dedupeBaseComponents(periodRows);
   if (!underlay.priceArea) return [];
+  const underlayPriceArea = canonicalSwedishPriceArea(underlay.priceArea);
+  if (!underlayPriceArea) return [];
   return dedupeBaseComponents(
-    periodRows.filter(
-      (component) =>
-        !component.priceArea || component.priceArea === underlay.priceArea,
-    ),
+    periodRows.filter((component) => {
+      const componentPriceArea = canonicalSwedishPriceArea(component.priceArea);
+      return !componentPriceArea || componentPriceArea === underlayPriceArea;
+    }),
   );
 }
 

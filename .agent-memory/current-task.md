@@ -1,42 +1,36 @@
 # Current task
 
-Last updated: 2026-08-05T15:14:58+02:00
-Branch: archive working tree
+Last updated: 2026-08-06T12:57:00Z
+Branch: `cursor/codebase-health-and-stability-fb8e`
 
 ## Active phase
 
-PHASE-44 — Three-document customer legal package and immutable POA chain.
+PHASE-45 — Codebase health after GRIDEX-OPS-BL-002 merge.
 
 ## Goal
 
-Expose at most three tenant-bound customer documents (`agreement`,
-`power_of_attorney`, `withdrawal`) without changing the existing website or
-Customer Portal endpoint structure. Preserve every canonical module as immutable
-evidence and ensure a signed POA received from either API path drives the same
-supplier-switch authorization chain with no scope widening.
+Keep OpenAPI/quote integrity health package current on main tip after BL-002,
+then close remaining case-normalization integrity gaps that can mis-bill or
+drop public fixed/portfolio prices.
 
 ## Implemented
 
-- Grouped all canonical legal modules into three customer-facing documents.
-- Retained exact module IDs, hashes and versions as the evidence source of truth.
-- Added immutable tenant legal-profile snapshot rendering for historical links.
-- Kept website application endpoints and legacy module acceptances compatible.
-- Expanded grouped Customer Portal sync acceptances back to every source module.
-- Bound POA reuse to the same tenant, legal module and exact signed scope snapshot.
-- Made incomplete/legacy POA persistence fail closed for external dispatch.
-- Published additive API/OpenAPI release `2026-08-05.1`.
+- Merged PHASE-45 package from `cursor/codebase-health-and-stability-6531` onto
+  main+BL-002.
+- Added `canonicalSwedishPriceArea` and wired billing base-component parse/filter,
+  public fixed-offer completeness, and portfolio history filters.
+- Aligned application site/metering grid writers with `normaliseGridAreaCode`.
+- Persisted and hashed canonical quote `grid_area_code`.
+- Recorded residual BL-002 RLS variants as open remediation items (no second
+  overlapping migration in this PR).
 
 ## Verification
 
-- Customer legal package regression: PASS.
-- Website POA regression: PASS.
-- Legal/POA platform regression: PASS.
-- OpenAPI compatibility, examples, runtime parity and release checks: PASS.
-- TypeScript syntax transpilation for 17 changed TS/TSX files: PASS.
-- Full dependency-backed typecheck/test/lint/build: BLOCKED by package mirror 404.
+- `gridex:price-area-case-normalization-regression`: PASS
+- Quote/AI-BI/OpenAPI local regressions from PHASE-45: PASS
+- Full dependency-backed typecheck/test/lint/build: BLOCKED (`node_modules` absent)
 
 ## Exact next action
 
-Sync and deploy the changed files, then run a real tenant legal-bundle -> three
-acceptances -> signed POA -> authorization document/scope -> supplier-switch smoke
-flow for one private and one business tenant.
+Open/update PR for this branch, then prefer one health merge onto main and
+schedule dedicated RLS remediation for O-005/O-006.

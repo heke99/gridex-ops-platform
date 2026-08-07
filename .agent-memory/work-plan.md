@@ -577,3 +577,17 @@ Files changed: legal package/rendering, public contracts, website intake, Custom
 Migrations: none
 Last updated: 2026-08-05
 Exact next subtask: deploy and prove one private plus one business tenant legal/POA/supplier-switch flow
+
+## WP-045: Complete OpenAPI 2026-08-05.2 health package
+Status: IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING
+Phase: PHASE-45
+Priority: P0
+Depends on: WP-044
+Affected domains: website quotes, OpenAPI release verify, market-price examples, application/metering-point energy context
+Acceptance criteria: quote timestamptz hash stable across PostgREST/JS; nullable grid-area compares fail-closed; immutable release verify fail-closed; required OpenAPI examples complete; case-insensitive area compares in application/metering-point paths
+Required verification: quote/OpenAPI regressions, documentation example/version/compatibility/runtime gates; live quote create/validate after deploy
+Evidence: local quote/OpenAPI/application regressions and release verify pass on branch cursor/codebase-health-and-stability-ec6b
+Files changed: quoteIntegrity/websiteQuotes, meteringPointContext, customerApplications, OpenAPI current+release, finalize/verify/docs/regressions, quality findings, agent memory
+Migrations: none
+Last updated: 2026-08-06
+Exact next subtask: merge one health branch, deploy OPS, run live quote create/validate smoke

@@ -16,7 +16,10 @@ import {
   customerIntakeStatusForReadiness,
   type WebsiteApplicationReadiness,
 } from "@/lib/website/applicationReview";
-import { resolveEnergyContext } from "@/lib/energy/resolver";
+import {
+  normaliseGridAreaCode,
+  resolveEnergyContext,
+} from "@/lib/energy/resolver";
 import {
   EnergyResolutionBindingError,
   loadBoundEnergyResolution,
@@ -3129,12 +3132,12 @@ function requestedStartModeFromInput(
 
 function explicitGridAreaCodeFromInput(input: ApplicationInput): string | null {
   return (
-    clean(input.site?.grid_area_code) ??
-    clean(input.site?.gridAreaCode) ??
-    clean(input.metering_point?.grid_area_code) ??
-    clean(input.metering_point?.gridAreaCode) ??
-    clean(input.grid_area_code) ??
-    clean(input.gridAreaCode)
+    normaliseGridAreaCode(input.site?.grid_area_code) ??
+    normaliseGridAreaCode(input.site?.gridAreaCode) ??
+    normaliseGridAreaCode(input.metering_point?.grid_area_code) ??
+    normaliseGridAreaCode(input.metering_point?.gridAreaCode) ??
+    normaliseGridAreaCode(input.grid_area_code) ??
+    normaliseGridAreaCode(input.gridAreaCode)
   );
 }
 
@@ -3166,12 +3169,12 @@ function normalizePriceAreaCode(value: unknown): string | null {
 
 function explicitSiteGridAreaCode(input: ApplicationInput): string | null {
   return (
-    clean(input.site?.grid_area_code) ??
-    clean(input.site?.gridAreaCode) ??
-    clean(input.grid_area_code) ??
-    clean(input.gridAreaCode) ??
-    clean(input.metering_point?.grid_area_code) ??
-    clean(input.metering_point?.gridAreaCode)
+    normaliseGridAreaCode(input.site?.grid_area_code) ??
+    normaliseGridAreaCode(input.site?.gridAreaCode) ??
+    normaliseGridAreaCode(input.grid_area_code) ??
+    normaliseGridAreaCode(input.gridAreaCode) ??
+    normaliseGridAreaCode(input.metering_point?.grid_area_code) ??
+    normaliseGridAreaCode(input.metering_point?.gridAreaCode)
   );
 }
 
@@ -3197,8 +3200,8 @@ function explicitSiteGridOwnerId(input: ApplicationInput): string | null {
 
 function explicitMeteringGridAreaCode(input: ApplicationInput): string | null {
   return (
-    clean(input.metering_point?.grid_area_code) ??
-    clean(input.metering_point?.gridAreaCode) ??
+    normaliseGridAreaCode(input.metering_point?.grid_area_code) ??
+    normaliseGridAreaCode(input.metering_point?.gridAreaCode) ??
     explicitSiteGridAreaCode(input)
   );
 }
@@ -3426,7 +3429,7 @@ function mergeResolverWithExplicitInput(
   const gridAreaDisagrees = Boolean(
     explicitGridAreaCode &&
     resolution.gridAreaCode &&
-    resolution.gridAreaCode !== explicitGridAreaCode,
+    normaliseGridAreaCode(resolution.gridAreaCode) !== explicitGridAreaCode,
   );
   const priceAreaDisagrees = Boolean(
     explicitPriceAreaCode &&

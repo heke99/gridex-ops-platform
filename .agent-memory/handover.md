@@ -1,47 +1,40 @@
-# PHASE-44 handover — Customer legal package and POA consistency
+# PHASE-45 handover — health after BL-002
 
-The source package is implemented and statically verified. It has not been
-deployed or exercised against a live private/business tenant flow.
+Main received `fix(security): isolate platform-global operational reads (#84)`.
+This branch rebases the OpenAPI/quote health package onto that tip and adds
+follow-on case-normalization fixes H-011..H-015.
 
-## What changed
+## What changed on fb8e
 
-- Customer presentation is grouped into `agreement`, `power_of_attorney` and
-  `withdrawal`; missing withdrawal modules naturally produce only two documents.
-- Each grouped identity is tenant- and bundle-bound and hashes the exact source
-  module IDs, versions and SHA-256 values.
-- Website intake accepts the new grouped format and the complete older module
-  format, but rejects mixed requests.
-- Customer Portal sync resolves grouped references and persists one immutable
-  acceptance row per source module, retaining compatibility with old references.
-- The POA path accepts only `supplier_switch` plus optional
-  `facility_information_lookup`, records the exact signed scope snapshot and
-  creates the same authorization document/scope chain used by supplier switch.
-- Published document pages render the tenant identity from the bundle snapshot,
-  not from mutable current company data.
-- API release is `2026-08-05.1`; endpoint paths remain unchanged.
+- Merged `cursor/codebase-health-and-stability-6531` (H-001..H-010).
+- Added `canonicalSwedishPriceArea` in `lib/pricing/types.ts`.
+- Billing base-component parse/filter, public fixed-offer completeness, and
+  portfolio monthly history filters now canonicalize price areas.
+- Application explicit site/metering grid writers use `normaliseGridAreaCode`.
+- Quote create persists and hashes canonical `grid_area_code`.
+- Findings inventory lists residual BL-002 RLS variants as O-005..O-008 without
+  shipping another migration in this PR.
 
 ## Verification completed
 
-- `node scripts/gridex-customer-legal-package-regression.cjs`
-- `node scripts/gridex-legal-poa-platform-hardening-regression.cjs`
-- `node scripts/gridex-website-api-power-of-attorney-regression.cjs`
-- API documentation/version/compatibility/example/runtime/release checks
-- TypeScript syntax transpilation for all 17 changed TS/TSX files
+- `npm run gridex:price-area-case-normalization-regression`
+- `npm run gridex:quote-null-grid-area-regression`
+- `npm run gridex:website-quote-integrity-regression`
+- `npm run gridex:aibi-grid-area-case-regression`
+- `npm run api:release:verify`
+- `npm run api:docs-examples` / `api:docs-version` / `api:compatibility`
+- `npm run gridex:explicit-input-preservation-regression`
 
 ## Resume
 
-Deploy the changed files. Fetch a legal bundle as a private tenant, submit the
-three exact acceptances and a complete signed POA, then verify:
-
-1. exact module acceptance rows exist under the same tenant and bundle;
-2. POA is `signed` with the submitted immutable scope snapshot;
-3. `powers_of_attorney.document_id` points to the authorization document;
-4. authorization scope coverage matches only the signed scopes;
-5. supplier switch uses that authorization document;
-6. a business offer omits withdrawal when no withdrawal modules are published.
+1. Merge this PR (or the single preferred health PR) onto main.
+2. Close overlapping sibling health PRs `#75`–`#81` / `#83`.
+3. Open a dedicated RLS remediation for `platform_actor_contacts` and the
+   address/energy lookup caches (O-005/O-006).
+4. Deploy and run live quote validate + legal/POA E2E when environment allows.
 
 ## Do not claim yet
 
-- deployed OPS source;
-- clean npm install/full typecheck/test/lint/build;
-- live private/business two-tenant E2E completion.
+- full npm typecheck/test/lint/build;
+- VERIFIED_CLOSED for BL-002 residual variants;
+- live E2E completion.

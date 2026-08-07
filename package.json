@@ -75,6 +75,7 @@
     "ops:integration": "node scripts/ops-final-db-integration.cjs",
     "api:error-boundaries": "node scripts/check-api-error-boundaries.cjs",
     "api:finalize": "node scripts/finalize-openapi-release.cjs",
+    "api:materialize": "node scripts/materialize-openapi-release.cjs",
     "api:compatibility": "node scripts/check-api-compatibility.cjs",
     "api:release:verify": "node scripts/verify-openapi-release.cjs",
     "api:runtime:parity": "node scripts/canonical-external-api-runtime-parity.cjs",
@@ -273,7 +274,10 @@
     "gridex:svk-billing-area-regression": "node scripts/gridex-svk-billing-area-regression.cjs",
     "gridex:api-billing-tenant-hardening-regression": "node scripts/gridex-api-billing-tenant-hardening-regression.cjs",
     "verify:customer-legal-package": "node scripts/gridex-customer-legal-package-regression.cjs",
-    "gridex:website-quote-integrity-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-website-quote-integrity-regression.mjs"
+    "gridex:website-quote-integrity-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-website-quote-integrity-regression.mjs",
+    "gridex:quote-null-grid-area-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-quote-null-grid-area-regression.mjs",
+    "gridex:aibi-grid-area-case-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-aibi-grid-area-case-regression.mjs",
+    "gridex:price-area-case-normalization-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-price-area-case-normalization-regression.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
