@@ -1,22 +1,19 @@
 # Open blockers
 
-Last updated: 2026-08-06T12:57:00Z
+Last updated: 2026-08-07T15:45:00Z
 
-## PHASE-45 blockers
+## PHASE-46 blockers
 
-1. Prefer one health-package merge onto main (`fb8e` / superseding `6531`);
-   close overlapping sibling PRs `#75`–`#81` / `#83`.
-2. Run clean dependency-backed typecheck, tests, lint and production build where
+1. Apply `20260807154500_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation`
+   on non-production and run the SQL two-tenant rollback regression.
+2. Exact-head CI and `/admin/network-owners` import-history smoke after merge.
+3. Run clean dependency-backed typecheck, tests, lint and production build where
    `node_modules` can be installed.
-3. Deploy OPS and execute live website quote create → validate for one tenant,
-   including PostgREST timestamptz round-trip and mixed-case price/grid areas.
-4. Private/business legal-bundle → POA → supplier-switch E2E remains pending
-   from PHASE-44.
-5. Schedule dedicated RLS remediation for `platform_actor_contacts` and
-   address/energy lookup caches (findings O-005/O-006); do not combine with
-   this app health PR.
+4. O-008 remains open: `actor_readiness_status` authenticated SELECT can
+   under-count for non-admin JWT; current app uses service role — remediate
+   separately without bundling into BL-006.
 
 ## Inherited blockers
 
-Prior SVK import, webhook, emergency-access, Ediel and broader production E2E
-items remain separate and are not closed by PHASE-45.
+Live quote/legal E2E, SVK import, webhook, emergency-access, Ediel and broader
+production E2E items remain separate and are not closed by PHASE-46.

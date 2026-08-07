@@ -65,3 +65,14 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## PHASE-46 — 2026-08-07T15:45:00Z (`6fc0`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| BL-006 contacts/lookup-cache policy isolation | PASS static | `gridex:ops-bl-006-contacts-lookup-cache-isolation-regression` |
+| Migration integrity including BL-006 checksum | PASS | `db:migrations:integrity` |
+| O-007 import-history service-role read | PASS static | network-owners page uses `supabaseService` after gate |
+| BL-006 SQL two-tenant rollback | PENDING | staging/non-production apply required |
+| O-008 actor_readiness_status | OPEN | deferred; app consumers use service role |
+| Full dependency gates | BLOCKED | `node_modules` absent |

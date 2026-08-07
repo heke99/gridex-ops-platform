@@ -591,3 +591,17 @@ Files changed: quoteIntegrity/websiteQuotes, meteringPointContext, customerAppli
 Migrations: none
 Last updated: 2026-08-06
 Exact next subtask: merge one health branch, deploy OPS, run live quote create/validate smoke
+
+## WP-046: Residual contacts and lookup-cache read isolation (BL-006)
+Status: IMPLEMENTED_STATIC_VERIFIED_STAGING_PENDING
+Phase: PHASE-46
+Priority: P0
+Depends on: WP-045, GRIDEX-OPS-BL-002 on main
+Affected domains: RLS, actor contacts, energy resolver caches, admin network-owners
+Acceptance criteria: contacts and address/energy lookup caches no longer use broad authenticated SELECT; platform admin and service role retain reads; import history on `/admin/network-owners` does not silently empty after platform-admin gate
+Required verification: static BL-006 regression, migration integrity, staging SQL two-tenant rollback, admin import-history smoke
+Evidence: local static regression and migration integrity pass on `cursor/codebase-health-and-stability-6fc0`
+Files changed: BL-006 migration, checksum additions, static/SQL regressions, network-owners page, remediation report/register, findings, agent memory
+Migrations: `20260807154500_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql`
+Last updated: 2026-08-07
+Exact next subtask: open PR, apply on non-production, run SQL rollback regression and admin smoke

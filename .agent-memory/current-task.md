@@ -1,36 +1,36 @@
 # Current task
 
-Last updated: 2026-08-06T12:57:00Z
-Branch: `cursor/codebase-health-and-stability-fb8e`
+Last updated: 2026-08-07T15:45:00Z
+Branch: `cursor/codebase-health-and-stability-6fc0`
 
 ## Active phase
 
-PHASE-45 — Codebase health after GRIDEX-OPS-BL-002 merge.
+PHASE-46 — Residual BL-002 RLS variants (GRIDEX-OPS-BL-006).
 
 ## Goal
 
-Keep OpenAPI/quote integrity health package current on main tip after BL-002,
-then close remaining case-normalization integrity gaps that can mis-bill or
-drop public fixed/portfolio prices.
+Close residual broad authenticated reads on contacts and lookup caches after
+the PHASE-45 health package landed on main, and harden the related admin
+import-history silent-empty path.
 
 ## Implemented
 
-- Merged PHASE-45 package from `cursor/codebase-health-and-stability-6531` onto
-  main+BL-002.
-- Added `canonicalSwedishPriceArea` and wired billing base-component parse/filter,
-  public fixed-offer completeness, and portfolio history filters.
-- Aligned application site/metering grid writers with `normaliseGridAreaCode`.
-- Persisted and hashed canonical quote `grid_area_code`.
-- Recorded residual BL-002 RLS variants as open remediation items (no second
-  overlapping migration in this PR).
+- Forward migration `20260807154500_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql`
+  isolating SELECT on `platform_actor_contacts`, `platform_address_lookup_cache`,
+  and `platform_energy_lookup_cache` to platform admin + service role.
+- Checksum registered in `migration-history-manifest.additions.json`.
+- Static + SQL rollback regressions for BL-006.
+- `/admin/network-owners` import history reads via `supabaseService` after
+  `requirePlatformAdminAccess()` (O-007).
 
 ## Verification
 
-- `gridex:price-area-case-normalization-regression`: PASS
-- Quote/AI-BI/OpenAPI local regressions from PHASE-45: PASS
-- Full dependency-backed typecheck/test/lint/build: BLOCKED (`node_modules` absent)
+- `gridex:ops-bl-006-contacts-lookup-cache-isolation-regression`: PASS
+- `db:migrations:integrity`: PASS
+- Staging SQL two-tenant rollback: PENDING
+- Full npm typecheck/test/lint/build: BLOCKED (`node_modules` absent)
 
 ## Exact next action
 
-Open/update PR for this branch, then prefer one health merge onto main and
-schedule dedicated RLS remediation for O-005/O-006.
+Open/update PR for `6fc0`, apply migration on non-production, run SQL rollback
+regression, then smoke `/admin/network-owners` import history.

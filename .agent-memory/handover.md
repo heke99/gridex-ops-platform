@@ -1,40 +1,34 @@
-# PHASE-45 handover — health after BL-002
+# PHASE-46 handover — residual BL-002 variants (BL-006)
 
-Main received `fix(security): isolate platform-global operational reads (#84)`.
-This branch rebases the OpenAPI/quote health package onto that tip and adds
-follow-on case-normalization fixes H-011..H-015.
+Main received quote/price-area integrity (`#85`) after BL-002 (`#84`). This
+branch remediates residual broad authenticated SELECTs on contacts and lookup
+caches, plus the related admin import-history silent-empty path.
 
-## What changed on fb8e
+## What changed on 6fc0
 
-- Merged `cursor/codebase-health-and-stability-6531` (H-001..H-010).
-- Added `canonicalSwedishPriceArea` in `lib/pricing/types.ts`.
-- Billing base-component parse/filter, public fixed-offer completeness, and
-  portfolio monthly history filters now canonicalize price areas.
-- Application explicit site/metering grid writers use `normaliseGridAreaCode`.
-- Quote create persists and hashes canonical `grid_area_code`.
-- Findings inventory lists residual BL-002 RLS variants as O-005..O-008 without
-  shipping another migration in this PR.
+- Migration `20260807154500_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql`
+- Checksum in `scripts/migration-history-manifest.additions.json`
+- Static/SQL regressions under `scripts/gridex-ops-bl-006-*`
+- `/admin/network-owners` import history uses `supabaseService` after the
+  platform-admin gate
+- Remediation report `quality/remediation/GRIDEX_OPS_BL_006_CONTACTS_AND_LOOKUP_CACHE_READ_ISOLATION.md`
 
 ## Verification completed
 
-- `npm run gridex:price-area-case-normalization-regression`
-- `npm run gridex:quote-null-grid-area-regression`
-- `npm run gridex:website-quote-integrity-regression`
-- `npm run gridex:aibi-grid-area-case-regression`
-- `npm run api:release:verify`
-- `npm run api:docs-examples` / `api:docs-version` / `api:compatibility`
-- `npm run gridex:explicit-input-preservation-regression`
+- `npm run gridex:ops-bl-006-contacts-lookup-cache-isolation-regression`
+- `npm run db:migrations:integrity`
 
 ## Resume
 
-1. Merge this PR (or the single preferred health PR) onto main.
-2. Close overlapping sibling health PRs `#75`–`#81` / `#83`.
-3. Open a dedicated RLS remediation for `platform_actor_contacts` and the
-   address/energy lookup caches (O-005/O-006).
-4. Deploy and run live quote validate + legal/POA E2E when environment allows.
+1. Merge this PR after review.
+2. Apply migration on non-production and run the SQL rollback regression.
+3. Smoke `/admin/network-owners` import history and contact export.
+4. Schedule O-008 (`actor_readiness_status`) separately; keep consumers on
+   service role until then.
 
 ## Do not claim yet
 
+- staging SQL two-tenant rollback;
 - full npm typecheck/test/lint/build;
-- VERIFIED_CLOSED for BL-002 residual variants;
-- live E2E completion.
+- VERIFIED_CLOSED for BL-006;
+- O-008 closed.

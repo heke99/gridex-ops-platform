@@ -1,27 +1,24 @@
 # Current state
 
-Last updated: 2026-08-06T12:57:00Z
+Last updated: 2026-08-07T15:45:00Z
 
-## PHASE-45 health state (post BL-002)
+## PHASE-46 residual RLS state
 
-- Main includes GRIDEX-OPS-BL-002 (`20260806122255`) isolating four
-  platform-global operational table reads to platform admins + service role.
-- Branch `cursor/codebase-health-and-stability-fb8e` carries the OpenAPI
-  `2026-08-05.2` / quote integrity health package plus H-011..H-015 case
-  normalization for billing components, public contracts, portfolio history,
-  application grid writers and quote grid persistence.
-- Residual same-pattern RLS exposure on contacts/address/energy caches is
-  documented for a dedicated remediation workstream (not shipped here).
+- Main includes PHASE-45 quote/price-area integrity (`#85`) and BL-002
+  (`#84`).
+- Branch `cursor/codebase-health-and-stability-6fc0` implements GRIDEX-OPS-BL-006
+  for residual contacts/lookup-cache broad reads (O-005/O-006) and O-007
+  import-history consumer hardening.
+- O-008 (`actor_readiness_status`) remains open and is not part of this PR.
 
 ## Verification
 
-- Price-area case normalization regression: PASS.
-- Quote/AI-BI/OpenAPI local regressions: PASS.
+- BL-006 static regression: PASS.
+- Migration integrity: PASS.
+- Staging SQL rollback: PENDING.
 - Full dependency-backed gates: BLOCKED (`node_modules` absent).
-- Live quote/legal E2E: PENDING.
 
 ## Prior phase state
 
-See earlier PHASE-44 / PHASE-43 sections in git history of this file; legal
-package `2026-08-05.1` and SVK/billing canonicalization remain as previously
-recorded and are not reopened by this health pass.
+PHASE-45 health package is on main via `#85`. See git history of this file for
+earlier PHASE-44 / PHASE-43 legal and SVK notes.

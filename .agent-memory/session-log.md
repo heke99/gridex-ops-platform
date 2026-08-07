@@ -24,6 +24,14 @@
 - Documented residual BL-002 RLS variants O-005..O-008 without a second migration.
 - Verified price-area, quote, AI/BI, OpenAPI local regressions; full npm gates blocked.
 
+## 2026-08-07 — PHASE-46 residual RLS (`6fc0`)
+
+- Trigger: main push `5923b5c1` (quote/price-area integrity health package `#85`).
+- Implemented GRIDEX-OPS-BL-006 for O-005/O-006 contacts and lookup-cache reads.
+- Hardened O-007 `/admin/network-owners` import history to service-role after gate.
+- Static BL-006 regression and migration integrity passed; staging SQL pending.
+- Left O-008 (`actor_readiness_status`) open for a dedicated follow-up.
+
 # Session log
 
 ## 2026-07-25

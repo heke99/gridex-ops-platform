@@ -1,46 +1,43 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-06T12:57:00Z",
-  "branch": "cursor/codebase-health-and-stability-fb8e",
+  "updated_at": "2026-08-07T15:45:00Z",
+  "branch": "cursor/codebase-health-and-stability-6fc0",
   "last_verified_commit": null,
-  "active_phase": "PHASE-45",
-  "active_task": "WP-045",
-  "active_subtask": "Ship BL-002-based health package with H-011..H-015 price/grid case normalization",
-  "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
+  "active_phase": "PHASE-46",
+  "active_task": "WP-046",
+  "active_subtask": "GRIDEX-OPS-BL-006 contacts and lookup-cache read isolation + O-007 import-history hardening",
+  "status": "IMPLEMENTED_STATIC_VERIFIED_STAGING_PENDING",
   "implemented_not_environment_verified": [
-    "OpenAPI 2026-08-05.2 immutable release verification package",
-    "quote timestamptz and nullable grid-area integrity",
-    "quote/application/metering/AI-BI case normalization (H-001..H-010)",
-    "canonicalSwedishPriceArea for billing components and public contracts (H-011..H-013)",
-    "application grid writers and quote grid persist/hash alignment (H-014..H-015)"
+    "BL-006 migration isolating contacts and lookup-cache reads",
+    "network-owners import history service-role read after platform-admin gate"
   ],
   "active_blockers": [
     "node_modules absent — full npm typecheck/test/lint/build blocked",
-    "live quote/legal E2E pending deploy",
-    "BL-002 residual RLS variants deferred to dedicated remediation branches"
+    "staging SQL two-tenant rollback for BL-006 not yet executed",
+    "O-008 actor_readiness_status authenticated SELECT still open"
   ],
   "verification": [
     {
-      "name": "price-area case normalization regression",
+      "name": "BL-006 static regression",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "canonicalSwedishPriceArea helper and consumer wiring checks pass"
+      "evidence": "npm run gridex:ops-bl-006-contacts-lookup-cache-isolation-regression"
     },
     {
-      "name": "quote/AI-BI/OpenAPI health regressions",
+      "name": "migration integrity",
       "status": "VERIFIED_LOCALLY",
-      "evidence": "quote-null, website-quote-integrity, aibi, api:release:verify, docs-examples/version, compatibility, explicit-input"
+      "evidence": "npm run db:migrations:integrity"
     },
     {
-      "name": "clean dependency install and full build",
-      "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "node_modules absent in cloud sandbox"
+      "name": "BL-006 SQL two-tenant rollback",
+      "status": "PENDING_STAGING",
+      "evidence": "scripts/gridex-ops-bl-006-contacts-and-lookup-cache-read-isolation-regression.sql"
     }
   ],
-  "next_action": "Open PR for fb8e, merge one health package onto main, then remediate O-005/O-006 RLS variants separately.",
+  "next_action": "Open PR for 6fc0, apply BL-006 on non-production, run SQL rollback regression and admin import-history smoke.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
-    "Do not start a second overlapping DB/RLS migration in this health PR",
-    "Do not uppercase price_area inside fullQuoteIntegrityPayload",
-    "Prefer closing sibling health PRs after one merge"
+    "Finding ID is GRIDEX-OPS-BL-006; BL-003 remains leaked-password protection",
+    "Do not claim VERIFIED_CLOSED without staging SQL evidence",
+    "Intentional catalogs with auth.uid() IS NOT NULL are out of this remediationscope"
   ]
 }
