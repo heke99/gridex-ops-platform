@@ -1,0 +1,55 @@
+name: GRIDEX AUD-001 final review fix
+
+on:
+  push:
+    branches:
+      - remediation/gridex-aud-001-document-storage-isolation
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gridex-aud-001-final-review-fix
+  cancel-in-progress: true
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: remediation/gridex-aud-001-document-storage-isolation
+          fetch-depth: 0
+      - name: Apply exact site-scope fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/website/customerApplications.ts')
+          text = path.read_text()
+          old = '''    const filePath = buildCustomerDocumentStoragePath({
+              companyId: input.companyId,
+              customerId: input.customerId,
+              siteId: null,
+              documentType: "power_of_attorney",
+              fileName: `${input.powerOfAttorneyId}.json`,
+              timestampFileName: false,
+            });'''.replace('        ', '')
+          new = old.replace('siteId: null,', 'siteId: input.customerSiteId,')
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one website POA path match, found {count}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          grep -n -A6 -B2 'const filePath = buildCustomerDocumentStoragePath' lib/website/customerApplications.ts | grep 'siteId: input.customerSiteId'
+      - name: Commit exact fix and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/gridex-aud-001-finalize-fix.yml
+          git add lib/website/customerApplications.ts
+          git diff --cached --check
+          git commit -m "fix(aud-001): align website POA storage site scope"
+          git push origin HEAD:remediation/gridex-aud-001-document-storage-isolation
