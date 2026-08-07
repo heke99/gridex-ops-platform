@@ -11,12 +11,16 @@ Apply in this exact order:
 2. `migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql`
 3. `migrations/03_db1_backfill_functions_rls_reports_and_finish.sql`
 4. `bootstrap/20260520_metering_permissions_foundation.sql`
-5. `migrations/ediel_rules.sql`
-6. `migrations/Batch 1+2.sql`
-7. `migrations/batch 3.sql`
-8. `migrations/batch 4+5+6.sql`
+5. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
+6. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
+7. `migrations/ediel_rules.sql`
+8. `migrations/Batch 1+2.sql`
+9. `migrations/batch 3.sql`
+10. `migrations/batch 4+5+6.sql`
 
 The fourth input is a derived bootstrap artifact, not a rewritten migration. Its DDL is sourced from the immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. A clean replay proved that `ediel_rules.sql` requires `public.metering_permissions`, while replaying the whole 20260520 source after the later DB1 repair collides with the newer `billing_export_run_items` schema. The derived artifact therefore contains only the prerequisite `metering_permissions` table and indexes. Its own SHA-256 is pinned in `scripts/gridex-aud-003-legacy-foundation.json`, and CI also verifies that the immutable source migration remains checksum-pinned.
+
+The two following historical rulebook migrations are included whole because repository evidence explicitly marks the 20260528 migration safe/idempotent and it creates `ediel_field_rules` / `ediel_code_rules`; the 20260529 v4 compatibility migration then adds the compatibility columns and list representations consumed by `ediel_rules.sql`.
 
 The historical migration files remain immutable inputs. Do not rename or rewrite them to manufacture migration history.
 
@@ -49,7 +53,7 @@ The connected `gridex-ops-dev` migration ledger currently starts at:
 
 `20260531075508` — `fix_customer_internal_notes_customer_fk`
 
-The repository contains canonical 14-digit migrations older than that ledger boundary and historical schema inputs outside the remote ledger. The development schema also contains objects created by that historical foundation, including `public.companies` and `public.metering_permissions`.
+The repository contains canonical 14-digit migrations older than that ledger boundary and historical schema inputs outside the remote ledger. The development schema also contains objects created by that historical foundation, including `public.companies`, `public.metering_permissions`, and the Ediel rulebook tables.
 
 Therefore the remote ledger alone is not a valid empty-database bootstrap source. A clean replay must start from this documented historical foundation contract and then apply the canonical 14-digit set.
 
