@@ -31,9 +31,10 @@ Apply in this exact order:
 23. `bootstrap/20260602_ediel_certificates_foundation.sql`
 24. `bootstrap/20260602_ediel_environment_type_foundation.sql`
 25. `bootstrap/20260605_ediel_outbox_foundation.sql`
-26. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-27. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-28. `bootstrap/20260801_company_capabilities_foundation.sql`
+26. `bootstrap/20260609_webhook_email_readiness_foundation.sql`
+27. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+28. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+29. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 Every derived bootstrap artifact is deliberately narrower than its immutable source and is independently SHA-256 pinned in `scripts/gridex-aud-003-legacy-foundation.json`. CI also verifies the source migration checksum from `scripts/migration-history-manifest.json`.
 
@@ -49,7 +50,9 @@ The 20260521 artifacts restore only the legacy company Ediel production projecti
 
 `bootstrap/20260602_ediel_environment_type_foundation.sql` is sourced from checksum-pinned `migrations/20260602143000_ediel_environment_business_action_locks.sql` and restores only the historical enum values `tgt_test`, `agt_test`, `bilateral_test`, and `production`. Canonical evidence migrations depend on the type but remain responsible for later environment-qualified records and constraints.
 
-The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
+`bootstrap/20260609_webhook_email_readiness_foundation.sql` is sourced from checksum-pinned `migrations/20260609162000_batch_7_website_integration_foundation.sql`. It restores only the source-defined `domain_events`, `webhook_subscriptions`, `webhook_deliveries`, and `company_email_settings` relations and indexes required by tracked canonical tenant-state hardening. It seeds no webhook subscriptions, deliveries, events, email settings, or other product data.
+
+The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, webhook/email readiness, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
 
 Historical migration files remain immutable. Do not rename or rewrite them to manufacture migration history.
 
