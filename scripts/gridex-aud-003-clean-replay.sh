@@ -45,6 +45,7 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260609_website_customer_applications_foundation.sql"
  "$ROOT/supabase/bootstrap/20260611_grid_owner_information_request_foundation.sql"
  "$ROOT/supabase/bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260618_customer_operation_jobs_foundation.sql"
  "$ROOT/supabase/bootstrap/20260618_customer_application_workflows_foundation.sql"
  "$ROOT/supabase/bootstrap/20260724_customer_application_continuation_schema_foundation.sql"
  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
@@ -73,6 +74,7 @@ select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.tenant_email_outbox') is not null as tenant_email_outbox_ok,
  to_regclass('public.integration_api_clients') is not null as integration_api_clients_ok,
  to_regclass('public.website_customer_applications') is not null as website_customer_applications_ok,
+ to_regclass('public.customer_operation_jobs') is not null as customer_operation_jobs_ok,
  to_regclass('public.customer_application_workflows') is not null as customer_application_workflows_ok,
  to_regclass('public.customer_application_workflow_events') is not null as customer_application_workflow_events_ok,
  to_regclass('public.webhook_subscriptions') is not null as webhook_subscriptions_ok,
