@@ -6,6 +6,7 @@ MIGRATIONS="$ROOT/supabase/migrations"
 SEED="$ROOT/supabase/seed.sql"
 LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HISTORY="$ROOT/scripts/migration-history-manifest.json"
+HISTORY_ADDITIONS="$ROOT/scripts/migration-history-manifest.additions.json"
 FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
 EXPECTED_FINGERPRINT="407b9aed9cc2b58a3e78e587ff0e8a656ca52365a1e1088dc55590d8bcd84209"
 HOLD="$(mktemp -d)"
@@ -48,17 +49,19 @@ foundation=(
 )
 
 # Fail before database mutation if any normal replay source has drifted from
-# the immutable migration-history manifest. Historical duplicate versions are
+# the immutable migration-history manifests. Historical duplicate versions are
 # permitted only when explicitly listed in allowedLegacyCollisions; full
 # filename ordering makes their execution deterministic.
-python3 - "$HISTORY" "$HOLD" "$PLAN" "${foundation[@]}" <<'PY'
+python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HOLD" "$PLAN" "${foundation[@]}" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
-root=pathlib.Path(sys.argv[2])
-plan=pathlib.Path(sys.argv[3])
-foundation=[pathlib.Path(p) for p in sys.argv[4:]]
+additions_path=pathlib.Path(sys.argv[2])
+root=pathlib.Path(sys.argv[3])
+plan=pathlib.Path(sys.argv[4])
+foundation=[pathlib.Path(p) for p in sys.argv[5:]]
 history=json.loads(history_path.read_text())
-checksums=history.get('files',{})
+additions=json.loads(additions_path.read_text()) if additions_path.exists() else {'files':{}}
+checksums={**history.get('files',{}),**additions.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 
 def verify(path):
