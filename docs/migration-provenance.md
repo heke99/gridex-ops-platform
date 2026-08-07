@@ -15,29 +15,32 @@ Apply in this exact order:
 7. `bootstrap/20260521_ediel_test_runs_foundation.sql`
 8. `bootstrap/20260521_ediel_test_run_messages_foundation.sql`
 9. `bootstrap/20260522_admin_users_foundation.sql`
-10. `bootstrap/20260528_ediel_test_run_steps_foundation.sql`
-11. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
-12. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
-13. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql`
-14. `migrations/ediel_rules.sql`
-15. `migrations/Batch 1+2.sql`
-16. `bootstrap/20260528_inbound_email_messages_foundation.sql`
-17. `migrations/batch 3.sql`
-18. `migrations/batch 4+5+6.sql`
-19. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
-20. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
-21. `bootstrap/20260602_ediel_certificates_foundation.sql`
-22. `bootstrap/20260602_ediel_environment_type_foundation.sql`
-23. `bootstrap/20260605_ediel_outbox_foundation.sql`
-24. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-25. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-26. `bootstrap/20260801_company_capabilities_foundation.sql`
+10. `bootstrap/20260523_rbac_permission_helpers_foundation.sql`
+11. `bootstrap/20260528_ediel_test_run_steps_foundation.sql`
+12. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
+13. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
+14. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql`
+15. `migrations/ediel_rules.sql`
+16. `migrations/Batch 1+2.sql`
+17. `bootstrap/20260528_inbound_email_messages_foundation.sql`
+18. `migrations/batch 3.sql`
+19. `migrations/batch 4+5+6.sql`
+20. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
+21. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
+22. `bootstrap/20260602_ediel_certificates_foundation.sql`
+23. `bootstrap/20260602_ediel_environment_type_foundation.sql`
+24. `bootstrap/20260605_ediel_outbox_foundation.sql`
+25. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+26. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+27. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 Every derived bootstrap artifact is deliberately narrower than its immutable source and is independently SHA-256 pinned in `scripts/gridex-aud-003-legacy-foundation.json`. CI also verifies the source migration checksum from `scripts/migration-history-manifest.json`.
 
 The 20260521 artifacts restore only the legacy company Ediel production projection, actor-test result ledger, test-run base, and original test-run message relation from checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`.
 
 `bootstrap/20260522_admin_users_foundation.sql` restores the historical platform-admin projection shape verified from `gridex-ops-dev` on 2026-08-07. Immutable DB1/RBAC history corroborates the `user_id`, `role`, and `is_active` semantics. The bootstrap creates no administrator rows and therefore cannot manufacture privileged access in a clean database.
+
+`bootstrap/20260523_rbac_permission_helpers_foundation.sql` is sourced from checksum-pinned `migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql` and restores only `gridex_get_user_permissions(uuid)` plus `gridex_has_permission(uuid,text)`. The helpers preserve the historical role/direct-permission lookup and only grant execution to authenticated users; no new permissions or roles are seeded.
 
 `bootstrap/20260528_ediel_test_run_steps_foundation.sql` is sourced from checksum-pinned `migrations/20260528_batch_2_completion_rulebook_actions_regression.sql` and restores the original test-run step relation, prerequisite run metadata, indexes and RLS. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql` is sourced from checksum-pinned `migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql` and restores only `ediel_test_artifacts.ediel_message_id` with its historical message FK. Tenant ownership and composite tenant FKs remain the responsibility of tracked `20260802013000_ediel_test_evidence_v2.sql`.
 
