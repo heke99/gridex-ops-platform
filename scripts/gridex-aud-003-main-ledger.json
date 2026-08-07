@@ -26,7 +26,7 @@
     {"version":"20260802160000","name":"website_application_committed_canonical_event"},
     {"version":"20260802170000","name":"canonical_security_convergence"},
     {"version":"20260802180000","name":"canonical_provisioning_privilege_convergence"},
-    {"version":"20260803081939","name":"duplicate_primary_client_audit_contract_v3","repositoryVersion":"20260803081939"},
+    {"version":"20260803081939","name":"duplicate_primary_client_audit_contract_v3","ledgerAliasOf":"20260803093300","checksum":"bd4ef630b6404162789efd00ccc612ef6c78f40c2d10a12a2af0ef45faf9b123"},
     {"version":"20260803093000","name":"platform_schema_runtime_columns_v3"},
     {"version":"20260803093100","name":"gridex_runtime_capabilities_v3"},
     {"version":"20260803093200","name":"gridex_migration_governance_v3"},
