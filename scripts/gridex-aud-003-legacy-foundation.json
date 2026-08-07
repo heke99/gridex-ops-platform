@@ -1,13 +1,14 @@
 {
-  "schemaVersion": 19,
+  "schemaVersion": 20,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 33,
+  "expectedBootstrapInputCount": 34,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
     "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
     "bootstrap/20260520_metering_permissions_foundation.sql",
+    "bootstrap/20260520_customer_cases_email_outbox_foundation.sql",
     "bootstrap/20260521_company_ediel_production_profile_foundation.sql",
     "bootstrap/20260521_actor_test_results_foundation.sql",
     "bootstrap/20260521_ediel_test_runs_foundation.sql",
@@ -42,6 +43,7 @@
   ],
   "derivedBootstrap": {
     "bootstrap/20260520_metering_permissions_foundation.sql": {"source":"migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql","artifactSha256":"04061c107d1f963f2a8d61297d75f81a089cbe930f16138273b798602cec9a41","purpose":"Create the metering_permissions prerequisite without replaying unrelated billing tables that conflict with the later DB1 repair schema."},
+    "bootstrap/20260520_customer_cases_email_outbox_foundation.sql": {"source":"migrations/20260520_batch_5_cases_audit_email_ux.sql","artifactSha256":"e26e2abdafbd5f75a07e1b37717ac6957b25cf11539f6f1146dc275182f0f3f4","purpose":"Restore only the directly connected historical customer_cases and tenant_email_outbox relations, indexes and service-role RLS required before canonical tenant-state queue hardening; no product rows are seeded."},
     "bootstrap/20260521_company_ediel_production_profile_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"3975ce739170c62ee499673089eead24cd3b66716178364f34a472915c463a1e","purpose":"Restore only the legacy company production_status, live_ediel_enabled and go-live approval/blocker projection fields still read by the canonical Ediel production-state migration."},
     "bootstrap/20260521_actor_test_results_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"ae8745fbf5fd09b584a6f43c6062ddaccfd594109bc09a5f3a260bd5996baf32","purpose":"Restore only the historical actor_test_results ledger and its original indexes before canonical configuration snapshots attach configuration and staleness evidence."},
     "bootstrap/20260521_ediel_test_runs_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"4d68d752d6a265c3f6c9eeb20119fd3f51f492930a626ed93c634fe7419a5bc3","purpose":"Create only ediel_test_runs before the Ediel rulebook migration without replaying unrelated white-label and production-go-live changes."},
