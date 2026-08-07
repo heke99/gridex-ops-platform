@@ -124,7 +124,7 @@ if (!contract.includes(firstLedgerVersion)) {
 if (!/all.*timestamped|alla.*timestamp/i.test(contract)) {
   fail('migration provenance contract does not document full timestamped replay');
 }
-if (!/no manual|inte manuellt/i.test(contract) || !/ledger/i.test(contract)) {
+if (!/(no manual|never manually|inte manuellt)/i.test(contract) || !/(ledger|schema_migrations)/i.test(contract)) {
   fail('migration provenance contract no longer documents the no-manual-ledger rule');
 }
 
