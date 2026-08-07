@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 18,
+  "expectedBootstrapInputCount": 19,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -15,7 +15,8 @@
     "migrations/Batch 1+2.sql",
     "bootstrap/20260528_inbound_email_messages_foundation.sql",
     "migrations/batch 3.sql",
-    "migrations/batch 4+5+6.sql"
+    "migrations/batch 4+5+6.sql",
+    "bootstrap/20260522_set_updated_at_timestamp_foundation.sql"
   ],
   "controlledReconciliation": [
     "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
@@ -40,6 +41,11 @@
       "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
       "artifactSha256": "daf30f251b6b856669aee3888bbea3f188edfcb71e8755ab9a937ff01f5cb70a",
       "purpose": "Create only inbound_email_messages after Batch 1+2 supplies ediel_mailboxes and before batch 3 enriches inbound-mail routing fields."
+    },
+    "bootstrap/20260522_set_updated_at_timestamp_foundation.sql": {
+      "source": "gridex-ops-dev pg_get_functiondef(public.set_updated_at_timestamp()) verified 2026-08-07; historical existence corroborated by migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
+      "artifactSha256": "82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5",
+      "purpose": "Restore the exact pre-ledger updated_at trigger helper required by later tracked migrations without replaying unrelated historical hardening SQL."
     }
   },
   "rules": {
