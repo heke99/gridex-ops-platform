@@ -40,6 +40,7 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260602_ediel_certificates_foundation.sql"
  "$ROOT/supabase/bootstrap/20260602_ediel_environment_type_foundation.sql"
  "$ROOT/supabase/bootstrap/20260605_ediel_outbox_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260609_webhook_email_readiness_foundation.sql"
  "$ROOT/supabase/bootstrap/20260611_grid_owner_information_request_foundation.sql"
  "$ROOT/supabase/bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
@@ -66,6 +67,9 @@ select to_regclass('public.companies') is not null as companies_ok,
  to_regprocedure('public.gridex_has_permission(uuid,text)') is not null as permission_helper_ok,
  to_regclass('public.customer_cases') is not null as customer_cases_ok,
  to_regclass('public.tenant_email_outbox') is not null as tenant_email_outbox_ok,
+ to_regclass('public.webhook_subscriptions') is not null as webhook_subscriptions_ok,
+ to_regclass('public.webhook_deliveries') is not null as webhook_deliveries_ok,
+ to_regclass('public.company_email_settings') is not null as company_email_settings_ok,
  to_regclass('public.actor_test_results') is not null as actor_test_results_ok,
  to_regclass('public.ediel_test_runs') is not null as test_runs_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
