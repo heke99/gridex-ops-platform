@@ -1,0 +1,12 @@
+{
+  "foundation": [
+    "bootstrap/20260618_customer_operation_jobs_foundation.sql"
+  ],
+  "derivedBootstrap": {
+    "bootstrap/20260618_customer_operation_jobs_foundation.sql": {
+      "source": "migrations/20260618110000_customer_operation_automation_jobs.sql",
+      "artifactSha256": "7db6def1c2f9f78443ef26f8e9124830a8771ef8b34c64f54ca4629ab01864f1",
+      "purpose": "Restore only the source-defined customer_operation_jobs relation, indexes and RLS required by the later application continuation schema; no jobs are seeded and worker RPC behavior is not replayed."
+    }
+  }
+}
