@@ -7,31 +7,31 @@ It does not change the live migration ledger and it does not authorize editing a
 
 Apply in this exact order:
 
-1. `01_db1_schema_repair_core_helpers_and_canonical_tables.sql`
-2. `02_db1_operations_ediel_billing_dedupe_and_storage.sql`
-3. `03_db1_backfill_functions_rls_reports_and_finish.sql`
-4. `20260520_batch_3_4_onboarding_pricing_billing_engine.sql`
-5. `ediel_rules.sql`
-6. `Batch 1+2.sql`
-7. `batch 3.sql`
-8. `batch 4+5+6.sql`
+1. `migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql`
+2. `migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql`
+3. `migrations/03_db1_backfill_functions_rls_reports_and_finish.sql`
+4. `bootstrap/20260520_metering_permissions_foundation.sql`
+5. `migrations/ediel_rules.sql`
+6. `migrations/Batch 1+2.sql`
+7. `migrations/batch 3.sql`
+8. `migrations/batch 4+5+6.sql`
 
-The fourth file is intentionally explicit even though it carries an 8-digit date prefix. A clean replay proved that `ediel_rules.sql` updates `public.metering_permissions`, while `20260520_batch_3_4_onboarding_pricing_billing_engine.sql` is the checksum-pinned idempotent migration that creates that table. Therefore it must precede `ediel_rules.sql` on an empty database.
+The fourth input is a derived bootstrap artifact, not a rewritten migration. Its DDL is sourced from the immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. A clean replay proved that `ediel_rules.sql` requires `public.metering_permissions`, while replaying the whole 20260520 source after the later DB1 repair collides with the newer `billing_export_run_items` schema. The derived artifact therefore contains only the prerequisite `metering_permissions` table and indexes. Its own SHA-256 is pinned in `scripts/gridex-aud-003-legacy-foundation.json`, and CI also verifies that the immutable source migration remains checksum-pinned.
 
-These files are historical immutable inputs. Do not rename or rewrite them to manufacture migration history. Their SHA-256 values are pinned by `scripts/migration-history-manifest.json`.
+The historical migration files remain immutable inputs. Do not rename or rewrite them to manufacture migration history.
 
 ## 2. Controlled legacy reconciliation
 
 These six files are also immutable legacy inputs. They are only executed when the controlled reconciliation procedure is required, and in this exact order:
 
-1. `01_db2_full_view_preflight_schema_and_functions.sql`
-2. `02_db2_execute_controlled_reconciliation.sql`
-3. `03_db2_validation_and_finish.sql`
-4. `01_db2b_preflight_views.sql`
-5. `02_db2b_apply_superadmin_and_membership.sql`
-6. `03_db2b_validation_views.sql`
+1. `migrations/01_db2_full_view_preflight_schema_and_functions.sql`
+2. `migrations/02_db2_execute_controlled_reconciliation.sql`
+3. `migrations/03_db2_validation_and_finish.sql`
+4. `migrations/01_db2b_preflight_views.sql`
+5. `migrations/02_db2b_apply_superadmin_and_membership.sql`
+6. `migrations/03_db2b_validation_views.sql`
 
-A clean empty staging database must prove whether this reconciliation phase is required before it can be omitted from a canonical replay.
+A clean empty database must prove whether this reconciliation phase is required before it can be omitted from a canonical replay.
 
 ## 3. Canonical 14-digit set
 
@@ -41,7 +41,7 @@ After the explicit historical foundation, apply every file matching:
 
 in ascending filename order.
 
-Files with shorter numeric prefixes or free-form names are historical/manual artifacts unless they are explicitly listed in sections 1 or 2. They must not silently enter the canonical replay chain. If a clean replay proves that another historical artifact is a real schema prerequisite, it must be checksum-pinned and deliberately added to this contract before it can enter the bootstrap.
+Files with shorter numeric prefixes or free-form names are historical/manual artifacts unless they are explicitly listed in sections 1 or 2. They must not silently enter the canonical replay chain. If a clean replay proves that another historical artifact is a real schema prerequisite, the source evidence must be checksum-pinned and any derived bootstrap artifact must be deliberately reviewed, independently hashed, and added to this contract.
 
 ## 4. Current provenance boundary
 
@@ -58,14 +58,15 @@ Therefore the remote ledger alone is not a valid empty-database bootstrap source
 - Never manually insert/delete/update rows in `supabase_migrations.schema_migrations` to make history appear complete.
 - Never mutate already-applied migration SQL in place.
 - Never infer missing historical DDL when checksum-pinned repository evidence exists.
+- A derived bootstrap artifact must be narrower than its source and may contain only evidenced prerequisites needed to make a deterministic empty-database replay possible.
 - Never treat a failed Supabase preview branch as staging-verified.
-- Any change to the historical order, checksums, or replay classification must fail CI until this contract and its regression are deliberately updated together.
+- Any change to the historical order, checksums, bootstrap artifacts, or replay classification must fail CI until this contract and its regression are deliberately updated together.
 
 ## 6. Verification gates
 
 `node scripts/gridex-aud-003-migration-provenance-regression.cjs`
 
-verifies the static provenance contract and checksums.
+verifies the static provenance contract, immutable source checksums, derived bootstrap hash and safety constraints.
 
 `bash scripts/gridex-aud-003-clean-replay.sh`
 
