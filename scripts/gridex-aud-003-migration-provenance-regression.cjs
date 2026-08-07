@@ -7,6 +7,7 @@ const migrationsDir = path.join(root, 'supabase', 'migrations');
 const planPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.json');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
 const additionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
+const contractPath = path.join(root, 'docs', 'migration-provenance.md');
 const runbookPath = path.join(root, 'docs', 'production-runbook.md');
 
 function fail(message) {
@@ -24,6 +25,7 @@ const additions = fs.existsSync(additionsPath)
   ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
   : { files: {} };
 const pinnedFiles = { ...(manifest.files || {}), ...(additions.files || {}) };
+const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
 
 const legacyOrder = [...plan.foundation, ...plan.controlledReconciliation];
@@ -43,8 +45,8 @@ for (const file of legacyOrder) {
   if (actual !== expected) {
     fail(`checksum drift for ${file}: expected ${expected}, got ${actual}`);
   }
-  if (!runbook.includes(`\`${file}\``)) {
-    fail(`production runbook no longer documents legacy migration: ${file}`);
+  if (!contract.includes(`\`${file}\``)) {
+    fail(`migration provenance contract no longer documents legacy migration: ${file}`);
   }
 }
 
@@ -73,8 +75,14 @@ if (preLedger.length === 0) {
   fail('expected at least one timestamped repository migration before the current remote ledger start');
 }
 
+if (!contract.includes(plan.firstTrackedRemoteVersion)) {
+  fail('migration provenance contract does not pin the current remote ledger boundary');
+}
 if (!/before.*timestamped|före.*timestamp/i.test(runbook)) {
   fail('production runbook no longer states that the legacy foundation precedes timestamped migrations');
+}
+if (!plan.rules.legacyFilesRemainImmutable || !plan.rules.doNotRenameLegacyFiles || !plan.rules.doNotEditRemoteLedgerDirectly) {
+  fail('provenance safety rules were weakened');
 }
 
 console.log(JSON.stringify({
