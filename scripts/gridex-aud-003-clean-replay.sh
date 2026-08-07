@@ -45,6 +45,7 @@ foundation=(
   "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
   "$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
   "$ROOT/supabase/bootstrap/20260521_company_ediel_production_profile_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260521_actor_test_results_foundation.sql"
   "$ROOT/supabase/bootstrap/20260521_ediel_test_runs_foundation.sql"
   "$HOLD/20260528_batch_2_ediel_rulebook_system_tests.sql"
   "$HOLD/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql"
@@ -122,6 +123,7 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.customers') is not null then 1 else 0 end as customers_ok,
        case when to_regclass('public.customer_sites') is not null then 1 else 0 end as customer_sites_ok,
        case when to_regclass('public.metering_permissions') is not null then 1 else 0 end as metering_permissions_ok,
+       case when to_regclass('public.actor_test_results') is not null then 1 else 0 end as actor_test_results_ok,
        case when to_regclass('public.ediel_test_runs') is not null then 1 else 0 end as ediel_test_runs_ok,
        case when to_regclass('public.ediel_field_rules') is not null then 1 else 0 end as ediel_field_rules_ok,
        case when to_regclass('public.ediel_code_rules') is not null then 1 else 0 end as ediel_code_rules_ok,
