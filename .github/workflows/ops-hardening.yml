@@ -41,4 +41,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
       - name: Clean empty-database replay
-        run: bash scripts/gridex-aud-003-clean-replay.sh
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/gridex-aud-003-clean-replay.sh 2>&1 | tee aud003-clean-replay.log
+      - name: Upload clean-replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-aud-003-clean-replay
+          path: aud003-clean-replay.log
+          if-no-files-found: error
