@@ -77,6 +77,7 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260618_customer_operation_jobs_foundation.sql"
  "$ROOT/supabase/bootstrap/20260618_customer_application_workflows_foundation.sql"
  "$ROOT/supabase/bootstrap/20260721_contract_publication_revisions_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260722_external_tenant_reference_foundation.sql"
  "$ROOT/supabase/bootstrap/20260724_customer_application_continuation_schema_foundation.sql"
  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
 )
@@ -177,6 +178,7 @@ PY
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select to_regclass('public.companies') is not null as companies_ok,
+ exists(select 1 from information_schema.columns where table_schema='public' and table_name='companies' and column_name='external_tenant_reference') as external_tenant_reference_ok,
  to_regclass('public.user_profiles') is not null as user_profiles_ok,
  to_regclass('public.admin_users') is not null as admin_users_ok,
  to_regprocedure('public.gridex_has_permission(uuid,text)') is not null as permission_helper_ok,
