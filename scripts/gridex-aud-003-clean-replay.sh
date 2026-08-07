@@ -69,7 +69,12 @@ for e in data['entries']:
  if len(candidates)!=1: raise SystemExit(f"ledger mapping for {e['version']} {name} expected one file, found {len(candidates)}")
  print(candidates[0])
 PY
-while IFS= read -r file; do apply_sql "$file"; done < "$HOLD/.aud003-ledger-paths"
+while IFS= read -r file; do
+  if [[ "$(basename "$file")" == "20260803093000_platform_schema_runtime_columns_v3.sql" ]]; then
+    apply_sql "$ROOT/supabase/bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql"
+  fi
+  apply_sql "$file"
+done < "$HOLD/.aud003-ledger-paths"
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.user_profiles') is not null as user_profiles_ok,
@@ -89,6 +94,11 @@ select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.webhook_subscriptions') is not null as webhook_subscriptions_ok,
  to_regclass('public.webhook_deliveries') is not null as webhook_deliveries_ok,
  to_regclass('public.company_email_settings') is not null as company_email_settings_ok,
+ to_regclass('public.canonical_migration_manifest') is not null as canonical_migration_manifest_ok,
+ (select count(*) = 4 from information_schema.columns
+    where table_schema='public' and table_name='canonical_migration_manifest'
+      and column_name in ('verified_at','verification_source','release_identifier','schema_fingerprint'))
+      as migration_manifest_verification_columns_ok,
  to_regclass('public.actor_test_results') is not null as actor_test_results_ok,
  to_regclass('public.ediel_test_runs') is not null as test_runs_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
