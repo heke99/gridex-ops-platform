@@ -253,3 +253,14 @@ They must not be guessed into a tenant. Before staging or production rollout, an
 ## Exact next step
 
 Open the draft PR, require exact-head CI to pass, review the nine-object compatibility inventory, then apply the same two forward migrations to an approved staging environment and run real Storage API cross-tenant and signed-URL tests. Keep the finding at `DEV_VERIFIED` until that occurs.
+
+## Ready-for-review follow-up — 2026-08-07
+
+The Ready-for-review pass identified two valid implementation defects and both were remediated before merge:
+
+1. Website POA storage previously used `siteId: null` while the persisted authorization row could carry a non-null `site_id`. The path builder now receives `input.customerSiteId`, so the canonical Storage scope matches the database ownership tuple used by the signed-URL guard.
+2. Timestamp-prefixed admin filenames could exceed the 255-character filename-segment limit. The shared path builder now reserves space for the timestamp prefix before truncating the sanitized filename, with regression coverage.
+
+The temporary one-shot workflow used to apply the large-file site-scope edit removed itself in the same commit and is not part of the final PR diff. The bot-authored fix commit produced an `action_required` PR workflow state without starting a job, so this documentation commit intentionally creates a user-authored exact head for the required final CI run.
+
+Status remains `DEV_VERIFIED`. This follow-up does not claim staging, deployment, or `VERIFIED_CLOSED`.
