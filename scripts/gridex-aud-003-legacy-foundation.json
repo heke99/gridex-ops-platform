@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 20,
+  "schemaVersion": 21,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 34,
+  "expectedBootstrapInputCount": 35,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -29,6 +29,7 @@
     "bootstrap/20260602_ediel_certificates_foundation.sql",
     "bootstrap/20260602_ediel_environment_type_foundation.sql",
     "bootstrap/20260605_ediel_outbox_foundation.sql",
+    "bootstrap/20260609_webhook_email_readiness_foundation.sql",
     "bootstrap/20260611_grid_owner_information_request_foundation.sql",
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
     "bootstrap/20260801_company_capabilities_foundation.sql"
@@ -58,6 +59,7 @@
     "bootstrap/20260602_ediel_certificates_foundation.sql": {"source":"migrations/20260602090000_ediel_operations_platform_core.sql","artifactSha256":"7d150365ae977048e75190ecf99c21aaa80a871f943996cf10e85735db875c63","purpose":"Restore only the historical ediel_certificates registry and its original RLS enablement before canonical configuration snapshot triggers are attached to certificate changes."},
     "bootstrap/20260602_ediel_environment_type_foundation.sql": {"source":"migrations/20260602143000_ediel_environment_business_action_locks.sql","artifactSha256":"fc03e1ca18b21ff086567c4bdfa21868879d312b06b7102c8fcc4c351ea096d3","purpose":"Restore only the historical ediel_environment_type enum before canonical Ediel evidence migrations create environment-qualified attempt records."},
     "bootstrap/20260605_ediel_outbox_foundation.sql": {"source":"migrations/20260605160000_ediel_backend_automation_foundation.sql","artifactSha256":"470b5824b77b153b0e33ad3da94df70560a2e2333b2a5155a1d4a2b51a881c6f","purpose":"Create only the historical ediel_outbox base relation and lock-key uniqueness required by the later tracked message-intent migration, without replaying unrelated backend automation objects."},
+    "bootstrap/20260609_webhook_email_readiness_foundation.sql": {"source":"migrations/20260609162000_batch_7_website_integration_foundation.sql","artifactSha256":"21d00ff7761971acbd841cb65170c40970800f40a99d92596451176dc68ca975","purpose":"Restore only the source-defined domain event/webhook delivery chain and tenant email settings read by canonical tenant-state hardening; no product rows are seeded."},
     "bootstrap/20260611_grid_owner_information_request_foundation.sql": {"source":"migrations/20260611100000_energy_resolver_grid_area_operations.sql","artifactSha256":"2b2411d78708dc26b56bd755253165d46c612a7dd4044fae2ab1e738794790c0","purpose":"Restore only the directly connected historical grid-owner contact-route, customer-site-resolution and information-request relations plus their original indexes before tracked manual grid-owner communication migrations reference them."},
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql": {"source":"migrations/20260613090000_batch_m_ops_master_legal_readiness.sql","artifactSha256":"e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394","purpose":"Restore only powers_of_attorney.customer_site_id with its customer_sites foreign key and historical backfill from site_id before the tracked manual grid-owner pipeline indexes that column."},
     "bootstrap/20260801_company_capabilities_foundation.sql": {"source":"migrations/20260801143000_canonical_multitenant_platform_hardening.sql","artifactSha256":"77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df","purpose":"Restore the historical company_capabilities fail-closed registry, RLS policies, grants, initial capability rows and capability lookup helper before the tracked canonical tenant-operation lifecycle migration inserts canonical operation capabilities."}
