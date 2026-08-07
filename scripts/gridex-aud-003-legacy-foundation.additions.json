@@ -1,6 +1,9 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "bootstrap/20260609_integration_api_client_origins_foundation.sql",
+    "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
+    "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
     "bootstrap/20260618_customer_operation_jobs_foundation.sql"
   ],
   "derivedBootstrap": {
@@ -8,6 +11,21 @@
       "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
       "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
       "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
+    },
+    "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
+      "source": "migrations/20260609150000_batch_6_sync_status_origin_fix.sql",
+      "artifactSha256": "41c346f89b6b390cdc0815c24a2398749e848df8397627f24073ecb2a11185d3",
+      "purpose": "Restore only integration API client origin/runtime columns and the historical origin index required by later runtime capability checks; no clients are seeded."
+    },
+    "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql": {
+      "source": "migrations/20260612193000_platform_tenant_contracts_api_mail.sql",
+      "artifactSha256": "1e9943ac01f25d34e1009a284c42296d63b24d15db08ce7964e2f6c37b4d8a11",
+      "purpose": "Restore only integration API client lifecycle columns required by later runtime capability and duplicate-primary checks; no clients are seeded."
+    },
+    "bootstrap/20260614_integration_api_client_readiness_foundation.sql": {
+      "source": "migrations/20260614140000_ops_production_multitenant_readiness.sql",
+      "artifactSha256": "02667b1bf0d9196c8d8ad8b2bd7511b7c8c4ec5f8374b59d7b498ca2958bfcd4",
+      "purpose": "Restore only integration API client profile/readiness columns used by later canonical runtime capability checks; no clients are seeded."
     },
     "bootstrap/20260618_customer_operation_jobs_foundation.sql": {
       "source": "migrations/20260618110000_customer_operation_automation_jobs.sql",
