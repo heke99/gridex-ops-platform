@@ -19,6 +19,7 @@ foundation=(
  "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
  "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
  "$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260520_customer_cases_email_outbox_foundation.sql"
  "$ROOT/supabase/bootstrap/20260521_company_ediel_production_profile_foundation.sql"
  "$ROOT/supabase/bootstrap/20260521_actor_test_results_foundation.sql"
  "$ROOT/supabase/bootstrap/20260521_ediel_test_runs_foundation.sql"
@@ -63,6 +64,8 @@ psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.admin_users') is not null as admin_users_ok,
  to_regprocedure('public.gridex_has_permission(uuid,text)') is not null as permission_helper_ok,
+ to_regclass('public.customer_cases') is not null as customer_cases_ok,
+ to_regclass('public.tenant_email_outbox') is not null as tenant_email_outbox_ok,
  to_regclass('public.actor_test_results') is not null as actor_test_results_ok,
  to_regclass('public.ediel_test_runs') is not null as test_runs_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
