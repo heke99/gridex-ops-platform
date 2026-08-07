@@ -1,8 +1,14 @@
 {
   "foundation": [
+    "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260618_customer_operation_jobs_foundation.sql"
   ],
   "derivedBootstrap": {
+    "bootstrap/20260519_user_profiles_foundation.sql": {
+      "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
+      "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
+      "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
+    },
     "bootstrap/20260618_customer_operation_jobs_foundation.sql": {
       "source": "migrations/20260618110000_customer_operation_automation_jobs.sql",
       "artifactSha256": "7db6def1c2f9f78443ef26f8e9124830a8771ef8b34c64f54ca4629ab01864f1",
