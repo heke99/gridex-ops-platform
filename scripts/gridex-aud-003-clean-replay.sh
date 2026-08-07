@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATIONS="$ROOT/supabase/migrations"
 SEED="$ROOT/supabase/seed.sql"
+LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HOLD="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
@@ -20,6 +21,7 @@ trap cleanup EXIT
 
 command -v supabase >/dev/null || { echo 'supabase CLI missing' >&2; exit 1; }
 command -v psql >/dev/null || { echo 'psql missing' >&2; exit 1; }
+command -v python3 >/dev/null || { echo 'python3 missing' >&2; exit 1; }
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
@@ -57,14 +59,33 @@ for file in "${foundation[@]}"; do
   apply_sql "$file"
 done
 
-# Canonical replay after the explicit historical foundation: only 14-digit
-# migrations, in lexical/timestamp order. Other historical/manual artifacts do
-# not silently join the replay chain; each prerequisite must be evidenced and
-# added to the explicit bootstrap contract.
+# After the historical baseline, replay the official dev ledger only through
+# the commit that is actually represented by main. This intentionally excludes
+# the two AUD-001 rows already applied in dev from open PR #87.
+python3 - "$LEDGER" "$HOLD" <<'PY' > "$HOLD/.aud003-ledger-paths"
+import json, pathlib, sys
+ledger_path = pathlib.Path(sys.argv[1])
+migrations = pathlib.Path(sys.argv[2])
+data = json.loads(ledger_path.read_text())
+for entry in data['entries']:
+    name = entry['name']
+    repo_version = entry.get('repositoryVersion')
+    if repo_version:
+        exact = migrations / f"{repo_version}_{name}.sql"
+        candidates = [exact] if exact.exists() else []
+    else:
+        candidates = sorted(migrations.glob(f"*_{name}.sql"))
+    if len(candidates) != 1:
+        raise SystemExit(
+            f"ledger mapping for {entry['version']} {name} expected exactly one repository file, found {len(candidates)}: "
+            + ', '.join(p.name for p in candidates)
+        )
+    print(candidates[0])
+PY
+
 while IFS= read -r file; do
   apply_sql "$file"
-done < <(find "$HOLD" -maxdepth 1 -type f -regextype posix-extended \
-  -regex '.*/[0-9]{14}_.+\.sql' -print | LC_ALL=C sort)
+done < "$HOLD/.aud003-ledger-paths"
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select case when to_regclass('public.companies') is not null then 1 else 0 end as companies_ok,
@@ -78,4 +99,4 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.ediel_message_intents') is not null then 1 else 0 end as ediel_intents_ok;
 SQL
 
-echo '[AUD-003 replay] PASS: empty local Supabase -> explicit historical foundation -> canonical 14-digit migrations'
+echo '[AUD-003 replay] PASS: empty local Supabase -> explicit historical baseline -> main-aligned official dev ledger'
