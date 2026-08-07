@@ -10,6 +10,7 @@ HISTORY="$ROOT/scripts/migration-history-manifest.json"
 HISTORY_ADDITIONS="$ROOT/scripts/migration-history-manifest.additions.json"
 FOUNDATION_PLAN="$ROOT/scripts/gridex-aud-003-legacy-foundation.json"
 FOUNDATION_ADDITIONS="$ROOT/scripts/gridex-aud-003-legacy-foundation.additions.json"
+FOUNDATION_ORDER="$ROOT/scripts/gridex-aud-003-foundation-order.json"
 FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
 EXPECTED_FINGERPRINT="407b9aed9cc2b58a3e78e587ff0e8a656ca52365a1e1088dc55590d8bcd84209"
 HOLD="$(mktemp -d)"
@@ -34,72 +35,66 @@ command -v psql >/dev/null
 command -v python3 >/dev/null
 
 test -f "$FINGERPRINT_SQL" || { echo "missing schema fingerprint query" >&2; exit 1; }
+test -f "$FOUNDATION_ORDER" || { echo "missing canonical foundation order" >&2; exit 1; }
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 
-# AUD-003 clean replay model:
-# 1. Apply the ordered, checksum-pinned historical foundation plan. Derived
-#    bootstrap artifacts are narrow substitutes for source migrations whose
-#    direct position creates historical dependency cycles on an empty DB.
-# 2. Apply every remaining timestamped repository migration exactly once,
-#    excluding only migrations already executed directly in foundation or
-#    explicitly substituted by a verified derived bootstrap.
-# 3. Recreate the compact dev ledger through Supabase CLI no-op markers only.
-python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
+# AUD-003 replay: apply the canonical ordered foundation; a derived bootstrap
+# may substitute only its checksum-pinned historical source. Then apply every
+# remaining timestamped repository migration exactly once, and finally rebuild
+# the compact dev ledger using Supabase CLI-owned no-op markers.
+python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
 history_add_path=pathlib.Path(sys.argv[2])
 plan_path=pathlib.Path(sys.argv[3])
 plan_add_path=pathlib.Path(sys.argv[4])
-supabase=pathlib.Path(sys.argv[5])
-hold=pathlib.Path(sys.argv[6])
-foundation_out=pathlib.Path(sys.argv[7])
-timestamp_out=pathlib.Path(sys.argv[8])
+order_path=pathlib.Path(sys.argv[5])
+supabase=pathlib.Path(sys.argv[6])
+hold=pathlib.Path(sys.argv[7])
+foundation_out=pathlib.Path(sys.argv[8])
+timestamp_out=pathlib.Path(sys.argv[9])
 
 history=json.loads(history_path.read_text())
 history_add=json.loads(history_add_path.read_text()) if history_add_path.exists() else {'files':{}}
 plan=json.loads(plan_path.read_text())
 plan_add=json.loads(plan_add_path.read_text()) if plan_add_path.exists() else {'foundation':[],'derivedBootstrap':{}}
+order=json.loads(order_path.read_text())
 checksums={**history.get('files',{}),**history_add.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 derived={**(plan.get('derivedBootstrap') or {}),**(plan_add.get('derivedBootstrap') or {})}
-foundation=[*(plan.get('foundation') or []),*(plan_add.get('foundation') or [])]
-if not foundation:
-    raise SystemExit('foundation plan is empty')
-if len(set(foundation)) != len(foundation):
-    raise SystemExit('foundation plan contains duplicate paths')
+declared=set([*(plan.get('foundation') or []),*(plan_add.get('foundation') or [])])
+foundation=order.get('foundation') or []
+if not foundation or len(set(foundation)) != len(foundation):
+    raise SystemExit('canonical foundation order is empty or contains duplicates')
+if set(foundation) != declared:
+    missing=sorted(declared-set(foundation)); extra=sorted(set(foundation)-declared)
+    raise SystemExit(f'canonical foundation order does not match declared foundation; missing={missing}, extra={extra}')
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 def pinned_source(path):
     expected=checksums.get(path.name)
-    if not expected:
-        raise SystemExit(f'migration source is not checksum-pinned: {path.name}')
+    if not expected: raise SystemExit(f'migration source is not checksum-pinned: {path.name}')
     actual=digest(path)
-    if actual != expected:
-        raise SystemExit(f'migration checksum mismatch {path.name}: {actual} != {expected}')
+    if actual != expected: raise SystemExit(f'migration checksum mismatch {path.name}: {actual} != {expected}')
 
-foundation_paths=[]
-skip_timestamp_names=set()
+foundation_paths=[]; skip_timestamp_names=set()
 for rel in foundation:
     logical=supabase/rel
     actual=(hold/pathlib.Path(rel).name) if rel.startswith('migrations/') else logical
-    if not actual.exists():
-        raise SystemExit(f'missing foundation input: {rel}')
+    if not actual.exists(): raise SystemExit(f'missing foundation input: {rel}')
     meta=derived.get(rel)
     if meta:
-        expected_artifact=meta.get('artifactSha256')
-        if not expected_artifact or digest(actual) != expected_artifact:
+        if not meta.get('artifactSha256') or digest(actual) != meta['artifactSha256']:
             raise SystemExit(f'derived bootstrap checksum drift: {rel}')
         source_rel=meta.get('source')
         source=(hold/pathlib.Path(source_rel).name) if source_rel and source_rel.startswith('migrations/') else supabase/source_rel
-        if not source.exists():
-            raise SystemExit(f'derived bootstrap source missing: {source_rel}')
+        if not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
         pinned_source(source)
-        if source.name != actual.name:
-            skip_timestamp_names.add(source.name)
+        if re.match(r'^\d{14}_.+\.sql$',source.name): skip_timestamp_names.add(source.name)
     else:
         pinned_source(actual)
         if rel.startswith('migrations/') and re.match(r'^\d{14}_.+\.sql$',actual.name):
@@ -111,15 +106,14 @@ for path in hold.iterdir():
     if path.is_file() and re.match(r'^\d{14}_.+\.sql$',path.name):
         pinned_source(path)
         collisions.setdefault(path.name[:14],[]).append(path.name)
-        if path.name not in skip_timestamp_names:
-            files.append(path)
+        if path.name not in skip_timestamp_names: files.append(path)
 for version,names in collisions.items():
     if len(names)>1 and sorted(names) != allowed.get(version,[]):
         raise SystemExit(f'unapproved migration version collision {version}: {sorted(names)}')
 files.sort(key=lambda p:p.name)
 foundation_out.write_text(''.join(str(p)+'\n' for p in foundation_paths))
 timestamp_out.write_text(''.join(str(p)+'\n' for p in files))
-print(f'[AUD-003 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} timestamped substitutions/pre-executions, {len(files)} remaining timestamped files')
+print(f'[AUD-003 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions/pre-executions, {len(files)} remaining timestamped files')
 PY
 
 supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
@@ -130,35 +124,22 @@ apply_sql(){
   echo "[AUD-003 replay] applying ${file#$ROOT/}"
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
-
 while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
 while IFS= read -r file; do apply_sql "$file"; done < "$TIMESTAMP_EXEC"
 
-# Repository history reconstructs schema state. Reproduce the compact ledger
-# observed in gridex-ops-dev separately using temporary no-op markers and
-# Supabase CLI. Direct DML against supabase_migrations is prohibited.
 python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'
 import json,pathlib,sys
-ledger=json.loads(pathlib.Path(sys.argv[1]).read_text())
-out=pathlib.Path(sys.argv[2])
+ledger=json.loads(pathlib.Path(sys.argv[1]).read_text()); out=pathlib.Path(sys.argv[2])
 entries=ledger.get('entries',[])
 if not entries: raise SystemExit('official dev ledger snapshot is empty')
 last=None
 for e in entries:
     version=str(e['version']); name=e['name']
-    if not name or len(version)!=14 or not version.isdigit():
-        raise SystemExit(f'invalid official ledger entry: {e}')
-    if last is not None and version <= last:
-        raise SystemExit(f'official ledger is not strictly ordered: {version} after {last}')
+    if not name or len(version)!=14 or not version.isdigit(): raise SystemExit(f'invalid official ledger entry: {e}')
+    if last is not None and version <= last: raise SystemExit(f'official ledger is not strictly ordered: {version} after {last}')
     last=version
-    (out/f'{version}_{name}.sql').write_text(
-        '-- GRIDEX-AUD-003 local ledger marker.\n'
-        '-- Historical schema effects were reconstructed from checksum-pinned\n'
-        '-- repository history before this marker is recorded by Supabase CLI.\n'
-        'select 1;\n'
-    )
+    (out/f'{version}_{name}.sql').write_text('-- GRIDEX-AUD-003 local ledger marker.\nselect 1;\n')
 PY
-
 cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
 supabase db push --local --include-all --yes
 
@@ -166,13 +147,10 @@ python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys
 ledger=json.load(open(sys.argv[1])); db=sys.argv[2]
 expected=[(str(e['version']),e['name']) for e in ledger['entries']]
-query="select version::text||E'\\t'||name from supabase_migrations.schema_migrations order by version::text;"
-out=subprocess.check_output(['psql',db,'-X','-At','-c',query],text=True)
+out=subprocess.check_output(['psql',db,'-X','-At','-c',"select version::text||E'\\t'||name from supabase_migrations.schema_migrations order by version::text;"],text=True)
 actual=[tuple(line.split('\t',1)) for line in out.splitlines() if line]
 if actual != expected:
-    print('official ledger mismatch after Supabase CLI marker replay',file=sys.stderr)
-    print('expected:',expected,file=sys.stderr); print('actual:',actual,file=sys.stderr)
-    raise SystemExit(1)
+    print('official ledger mismatch after Supabase CLI marker replay',file=sys.stderr); print('expected:',expected,file=sys.stderr); print('actual:',actual,file=sys.stderr); raise SystemExit(1)
 print(f'[AUD-003 replay] Supabase CLI ledger verified: {len(actual)} official rows')
 PY
 
@@ -197,13 +175,9 @@ select
   to_regclass('public.ediel_message_intents') is not null as ediel_message_intents_ok,
   to_regclass('public.company_capabilities') is not null as company_capabilities_ok;
 SQL
-
 ACTUAL_FINGERPRINT="$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -f "$FINGERPRINT_SQL" | tr -d '[:space:]')"
 if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
-  echo "[AUD-003 replay] schema fingerprint mismatch" >&2
-  echo "expected=$EXPECTED_FINGERPRINT" >&2
-  echo "actual=$ACTUAL_FINGERPRINT" >&2
-  exit 1
+  echo "[AUD-003 replay] schema fingerprint mismatch" >&2; echo "expected=$EXPECTED_FINGERPRINT" >&2; echo "actual=$ACTUAL_FINGERPRINT" >&2; exit 1
 fi
 echo "[AUD-003 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
-echo '[AUD-003 replay] PASS: empty local Supabase -> verified foundation/substitutions -> remaining checksum-pinned history -> CLI-owned compact dev ledger'
+echo '[AUD-003 replay] PASS: empty local Supabase -> canonical verified foundation -> remaining checksum-pinned history -> CLI-owned compact dev ledger'
