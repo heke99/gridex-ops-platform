@@ -1,13 +1,14 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 23,
+  "expectedBootstrapInputCount": 25,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
     "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
     "bootstrap/20260520_metering_permissions_foundation.sql",
+    "bootstrap/20260521_company_ediel_production_profile_foundation.sql",
     "bootstrap/20260521_ediel_test_runs_foundation.sql",
     "migrations/20260528_batch_2_ediel_rulebook_system_tests.sql",
     "migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql",
@@ -17,6 +18,7 @@
     "migrations/batch 3.sql",
     "migrations/batch 4+5+6.sql",
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql",
+    "bootstrap/20260601_ediel_production_readiness_foundation.sql",
     "bootstrap/20260605_ediel_outbox_foundation.sql",
     "bootstrap/20260611_grid_owner_information_request_foundation.sql",
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
@@ -36,6 +38,11 @@
       "artifactSha256": "04061c107d1f963f2a8d61297d75f81a089cbe930f16138273b798602cec9a41",
       "purpose": "Create the metering_permissions prerequisite without replaying unrelated billing tables that conflict with the later DB1 repair schema."
     },
+    "bootstrap/20260521_company_ediel_production_profile_foundation.sql": {
+      "source": "migrations/20260521_actor_testing_go_live_module.sql",
+      "artifactSha256": "3975ce739170c62ee499673089eead24cd3b66716178364f34a472915c463a1e",
+      "purpose": "Restore only the legacy company production_status, live_ediel_enabled and go-live approval/blocker projection fields still read by the canonical Ediel production-state migration."
+    },
     "bootstrap/20260521_ediel_test_runs_foundation.sql": {
       "source": "migrations/20260521_actor_testing_go_live_module.sql",
       "artifactSha256": "4d68d752d6a265c3f6c9eeb20119fd3f51f492930a626ed93c634fe7419a5bc3",
@@ -50,6 +57,11 @@
       "source": "migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
       "artifactSha256": "82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5",
       "purpose": "Restore the exact pre-ledger updated_at trigger helper recovered from gridex-ops-dev via pg_get_functiondef on 2026-08-07; the pinned 20260522 lint migration corroborates that this helper already existed before later tracked migrations."
+    },
+    "bootstrap/20260601_ediel_production_readiness_foundation.sql": {
+      "source": "migrations/20260601070000_ediel_production_readiness_hardening.sql",
+      "artifactSha256": "31d5c9773e0f745ff3f767266bfb85f39d34c15b0a75a99aedcf7fa941f6ac66",
+      "purpose": "Restore the historical company Ediel production-state fields plus production readiness checks and go-live evidence tables, indexes and tenant RLS required by the canonical Ediel production-state migration."
     },
     "bootstrap/20260605_ediel_outbox_foundation.sql": {
       "source": "migrations/20260605160000_ediel_backend_automation_foundation.sql",
