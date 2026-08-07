@@ -28,21 +28,32 @@ jobs:
           from pathlib import Path
           path = Path('lib/website/customerApplications.ts')
           text = path.read_text()
-          old = '''    const filePath = buildCustomerDocumentStoragePath({
-              companyId: input.companyId,
-              customerId: input.customerId,
-              siteId: null,
-              documentType: "power_of_attorney",
-              fileName: `${input.powerOfAttorneyId}.json`,
-              timestampFileName: false,
-            });'''.replace('        ', '')
-          new = old.replace('siteId: null,', 'siteId: input.customerSiteId,')
-          count = text.count(old)
+          start_marker = 'async function ensureWebsiteAuthorizationChainFromPowerOfAttorney'
+          end_marker = '\ntype CustomerRow = {'
+          start = text.find(start_marker)
+          end = text.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('Could not isolate website authorization function')
+          segment = text[start:end]
+          old = '      siteId: null,'
+          new = '      siteId: input.customerSiteId,'
+          count = segment.count(old)
           if count != 1:
-              raise SystemExit(f'Expected exactly one website POA path match, found {count}')
-          path.write_text(text.replace(old, new, 1))
+              raise SystemExit(f'Expected exactly one siteId:null in authorization function, found {count}')
+          segment = segment.replace(old, new, 1)
+          path.write_text(text[:start] + segment + text[end:])
           PY
-          grep -n -A6 -B2 'const filePath = buildCustomerDocumentStoragePath' lib/website/customerApplications.ts | grep 'siteId: input.customerSiteId'
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('lib/website/customerApplications.ts').read_text()
+          start = text.index('async function ensureWebsiteAuthorizationChainFromPowerOfAttorney')
+          end = text.index('\ntype CustomerRow = {', start)
+          segment = text[start:end]
+          if segment.count('siteId: input.customerSiteId,') != 1:
+              raise SystemExit('Site-scope verification failed')
+          if 'siteId: null,' in segment:
+              raise SystemExit('Legacy null site scope still present')
+          PY
       - name: Commit exact fix and remove temporary workflow
         shell: bash
         run: |
@@ -51,5 +62,6 @@ jobs:
           git rm .github/workflows/gridex-aud-001-finalize-fix.yml
           git add lib/website/customerApplications.ts
           git diff --cached --check
+          git diff --cached -- lib/website/customerApplications.ts
           git commit -m "fix(aud-001): align website POA storage site scope"
           git push origin HEAD:remediation/gridex-aud-001-document-storage-isolation
