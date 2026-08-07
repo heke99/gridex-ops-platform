@@ -3,12 +3,9 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const root = path.resolve(__dirname, '..');
-const supabaseDir = path.join(root, 'supabase');
-const migrationsDir = path.join(supabaseDir, 'migrations');
-const planPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.json');
-const planAdditionsPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.additions.json');
+const migrationsDir = path.join(root, 'supabase', 'migrations');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
-const additionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
+const ledgerPath = path.join(__dirname, 'gridex-aud-003-main-ledger.json');
 const contractPath = path.join(root, 'docs', 'migration-provenance.md');
 const runbookPath = path.join(root, 'docs', 'production-runbook.md');
 const replayPath = path.join(__dirname, 'gridex-aud-003-clean-replay.sh');
@@ -17,178 +14,126 @@ function fail(message) {
   console.error(`[GRIDEX-AUD-003] ${message}`);
   process.exit(1);
 }
-
 function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
-function supabasePath(relativePath) {
-  return path.join(supabaseDir, relativePath);
-}
-
-const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
-const planAdditions = fs.existsSync(planAdditionsPath)
-  ? JSON.parse(fs.readFileSync(planAdditionsPath, 'utf8'))
-  : { foundation: [], interleaved: [], derivedBootstrap: {} };
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-const additions = fs.existsSync(additionsPath)
-  ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
-  : { files: {} };
-const pinnedFiles = { ...(manifest.files || {}), ...(additions.files || {}) };
+const pinned = manifest.files || {};
+const ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'));
 const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
 const replay = fs.readFileSync(replayPath, 'utf8');
 
-const foundationAdditions = planAdditions.foundation || [];
-const interleaved = planAdditions.interleaved || [];
-const interleavedPaths = interleaved.map((entry) => entry.path);
-const foundation = [...plan.foundation, ...foundationAdditions];
-const derivedBootstrap = { ...(plan.derivedBootstrap || {}), ...(planAdditions.derivedBootstrap || {}) };
-const bootstrapOrder = [...foundation, ...plan.controlledReconciliation, ...interleavedPaths];
-const expectedBootstrapInputCount = plan.expectedBootstrapInputCount + foundationAdditions.length + interleaved.length;
-if (bootstrapOrder.length !== expectedBootstrapInputCount) {
-  fail(`expected ${expectedBootstrapInputCount} documented bootstrap inputs, found ${bootstrapOrder.length}`);
-}
-if (new Set(bootstrapOrder).size !== bootstrapOrder.length) {
-  fail('bootstrap order contains duplicate paths');
+const foundation = [
+  '01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
+  '02_db1_operations_ediel_billing_dedupe_and_storage.sql',
+  '03_db1_backfill_functions_rls_reports_and_finish.sql',
+  'ediel_rules.sql',
+  'Batch 1+2.sql',
+  'batch 3.sql',
+  'batch 4+5+6.sql',
+];
+
+for (const name of foundation) {
+  const filePath = path.join(migrationsDir, name);
+  if (!fs.existsSync(filePath)) fail(`missing runbook foundation file: ${name}`);
+  if (!pinned[name]) fail(`runbook foundation file is not checksum-pinned: ${name}`);
+  const actual = sha256(filePath);
+  if (actual !== pinned[name]) fail(`foundation checksum drift for ${name}: ${actual} != ${pinned[name]}`);
+  if (!replay.includes(name)) fail(`clean replay no longer applies runbook foundation file: ${name}`);
 }
 
-for (const relativePath of bootstrapOrder) {
-  const filePath = supabasePath(relativePath);
-  if (!fs.existsSync(filePath)) fail(`missing bootstrap input: ${relativePath}`);
-
-  const derived = derivedBootstrap[relativePath];
-  if (derived) {
-    const actualArtifactHash = sha256(filePath);
-    if (actualArtifactHash !== derived.artifactSha256) {
-      fail(`derived bootstrap drift for ${relativePath}: expected ${derived.artifactSha256}, got ${actualArtifactHash}`);
-    }
-    const sourcePath = supabasePath(derived.source);
-    if (!fs.existsSync(sourcePath)) fail(`missing derived bootstrap source: ${derived.source}`);
-    const sourceName = path.basename(derived.source);
-    const expectedSourceHash = pinnedFiles[sourceName];
-    if (!expectedSourceHash) fail(`derived bootstrap source is not checksum-pinned: ${sourceName}`);
-    const actualSourceHash = sha256(sourcePath);
-    if (actualSourceHash !== expectedSourceHash) {
-      fail(`source checksum drift for ${sourceName}: expected ${expectedSourceHash}, got ${actualSourceHash}`);
-    }
-  } else {
-    const migrationName = path.basename(relativePath);
-    const expected = pinnedFiles[migrationName];
-    if (!expected) fail(`historical migration is not checksum-pinned: ${migrationName}`);
-    const actual = sha256(filePath);
-    if (actual !== expected) {
-      fail(`checksum drift for ${migrationName}: expected ${expected}, got ${actual}`);
-    }
-  }
-
-  const contractToken = `\`${relativePath}\``;
-  const basenameToken = `\`${path.basename(relativePath)}\``;
-  if (!contract.includes(contractToken) && !contract.includes(basenameToken)) {
-    fail(`migration provenance contract no longer documents bootstrap input: ${relativePath}`);
-  }
-}
-
-for (const entry of interleaved) {
-  if (!entry.path || !/^\d{14}$/.test(entry.afterLedgerVersion || '') || !/^\d{14}$/.test(entry.beforeLedgerVersion || '')) {
-    fail(`invalid interleaved provenance entry: ${JSON.stringify(entry)}`);
-  }
-  if (entry.afterLedgerVersion >= entry.beforeLedgerVersion) {
-    fail(`interleaved provenance bounds are reversed for ${entry.path}`);
-  }
-  if (!replay.includes(entry.path)) fail(`clean replay no longer includes interleaved prerequisite ${entry.path}`);
-  if (!replay.includes(entry.beforeLedgerVersion)) {
-    fail(`clean replay no longer pins the before-ledger boundary ${entry.beforeLedgerVersion} for ${entry.path}`);
-  }
-}
-
-const operationJobsBootstrap = 'bootstrap/20260618_customer_operation_jobs_foundation.sql';
-const workflowsBootstrap = 'bootstrap/20260618_customer_application_workflows_foundation.sql';
-const continuationBootstrap = 'bootstrap/20260724_customer_application_continuation_schema_foundation.sql';
-for (const token of [operationJobsBootstrap, workflowsBootstrap, continuationBootstrap]) {
-  if (!replay.includes(token)) fail(`clean replay no longer includes ${token}`);
-}
-if (replay.indexOf(operationJobsBootstrap) > replay.indexOf(workflowsBootstrap)) {
-  fail('customer operation jobs foundation must run before customer application workflows');
-}
-if (replay.indexOf(operationJobsBootstrap) > replay.indexOf(continuationBootstrap)) {
-  fail('customer operation jobs foundation must run before application continuation schema');
-}
-const operationJobsSql = fs.readFileSync(supabasePath(operationJobsBootstrap), 'utf8');
-if (!/create\s+table\s+if\s+not\s+exists\s+public\.customer_operation_jobs\s*\(/i.test(operationJobsSql)) {
-  fail(`${operationJobsBootstrap} no longer creates public.customer_operation_jobs`);
-}
-if (/gridex_claim_customer_operation_jobs/i.test(operationJobsSql)) {
-  fail(`${operationJobsBootstrap} must not replay worker RPC behavior`);
-}
-
-const corePath = supabasePath(plan.foundation[0]);
-const core = fs.readFileSync(corePath, 'utf8');
-if (!/create\s+table\s+if\s+not\s+exists\s+public\.companies\s*\(/i.test(core)) {
-  fail(`${plan.foundation[0]} no longer creates public.companies`);
-}
-if (!/Kör först|run first|apply.*before/i.test(core)) {
-  fail(`${plan.foundation[0]} no longer carries explicit first-step bootstrap provenance`);
-}
-
-const meteringBootstrap = 'bootstrap/20260520_metering_permissions_foundation.sql';
-const edielRules = 'migrations/ediel_rules.sql';
-if (plan.foundation.indexOf(meteringBootstrap) < 0 || plan.foundation.indexOf(edielRules) < 0) {
-  fail('metering bootstrap and ediel_rules.sql must both be explicit bootstrap inputs');
-}
-if (plan.foundation.indexOf(meteringBootstrap) > plan.foundation.indexOf(edielRules)) {
-  fail('metering permissions bootstrap must run before ediel_rules.sql');
-}
-const meteringSql = fs.readFileSync(supabasePath(meteringBootstrap), 'utf8');
-if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.test(meteringSql)) {
-  fail(`${meteringBootstrap} no longer creates public.metering_permissions`);
-}
-if (/billing_export_(runs|run_items)/i.test(meteringSql)) {
-  fail(`${meteringBootstrap} must not replay unrelated billing export schema`);
-}
-const sourceRel = derivedBootstrap[meteringBootstrap].source;
-const sourceSql = fs.readFileSync(supabasePath(sourceRel), 'utf8');
-if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.test(sourceSql)) {
-  fail(`derived source ${sourceRel} no longer contains public.metering_permissions DDL`);
-}
-
-const timestampedPattern = new RegExp(plan.rules.timestampedMigrationPattern);
 const timestamped = fs.readdirSync(migrationsDir)
-  .filter((name) => timestampedPattern.test(name))
+  .filter((name) => /^\d{14}_.+\.sql$/.test(name))
   .sort();
-if (timestamped.length === 0) fail('no canonical 14-digit timestamp migrations found');
-
-const versions = timestamped.map((name) => name.slice(0, 14));
-const earliestRepoVersion = versions[0];
-if (earliestRepoVersion >= plan.firstTrackedRemoteVersion) {
-  fail(`expected repository history before remote ledger start ${plan.firstTrackedRemoteVersion}, earliest repo version is ${earliestRepoVersion}`);
+if (!timestamped.length) fail('no timestamped migrations found');
+for (const name of timestamped) {
+  if (!pinned[name]) fail(`timestamped migration is not checksum-pinned: ${name}`);
+  const actual = sha256(path.join(migrationsDir, name));
+  if (actual !== pinned[name]) fail(`timestamped migration checksum drift for ${name}: ${actual} != ${pinned[name]}`);
 }
 
-const preLedger = timestamped.filter((name) => name.slice(0, 14) < plan.firstTrackedRemoteVersion);
-if (preLedger.length === 0) {
-  fail('expected at least one timestamped repository migration before the current remote ledger start');
+const collisionVersions = new Map();
+for (const name of timestamped) {
+  const version = name.slice(0, 14);
+  const arr = collisionVersions.get(version) || [];
+  arr.push(name);
+  collisionVersions.set(version, arr);
+}
+const actualCollisions = [...collisionVersions.entries()].filter(([, names]) => names.length > 1);
+const allowed = manifest.allowedLegacyCollisions || {};
+for (const [version, names] of actualCollisions) {
+  const expected = [...(allowed[version] || [])].sort();
+  const actual = [...names].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    fail(`unapproved legacy version collision ${version}: ${actual.join(', ')}`);
+  }
 }
 
-if (!contract.includes(plan.firstTrackedRemoteVersion)) {
-  fail('migration provenance contract does not pin the current remote ledger boundary');
+if (!/Then all `YYYYMMDDHHMMSS_\*\.sql` in order/i.test(runbook)) {
+  fail('production runbook no longer requires all timestamped migrations in order');
 }
-if (!/before.*14-digit|före.*14-siffrig|before.*timestamped|före.*timestamp/i.test(runbook)) {
-  fail('production runbook no longer states that the historical bootstrap precedes canonical migrations');
+if (!replay.includes("re.match(r'^\\d{14}_.+\\.sql$'")) {
+  fail('clean replay no longer derives its timestamped plan from every 14-digit repository migration');
 }
-if (!plan.rules.legacyFilesRemainImmutable || !plan.rules.doNotRenameLegacyFiles || !plan.rules.doNotEditRemoteLedgerDirectly) {
-  fail('provenance safety rules were weakened');
+if (!replay.includes('files.sort(key=lambda p:p.name)')) {
+  fail('clean replay no longer sorts timestamped migrations deterministically by full filename');
+}
+if (!replay.includes('psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"')) {
+  fail('clean replay no longer fails closed while applying historical SQL');
+}
+if (!replay.includes('supabase db push --local --include-all --yes')) {
+  fail('clean replay no longer lets Supabase CLI own the compact ledger replay');
+}
+if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) {
+  fail('clean replay directly mutates the Supabase migration ledger');
+}
+
+const entries = ledger.entries || [];
+if (!entries.length) fail('official dev ledger snapshot is empty');
+let last = '';
+for (const entry of entries) {
+  const version = String(entry.version || '');
+  if (!/^\d{14}$/.test(version)) fail(`invalid official ledger version: ${version}`);
+  if (!entry.name) fail(`official ledger entry ${version} has no name`);
+  if (last && version <= last) fail(`official ledger is not strictly ordered: ${version} after ${last}`);
+  last = version;
+}
+
+const earliestRepoVersion = timestamped[0].slice(0, 14);
+const firstLedgerVersion = String(entries[0].version);
+if (earliestRepoVersion >= firstLedgerVersion) {
+  fail(`expected repository timestamped history before compact ledger start ${firstLedgerVersion}`);
+}
+if (!contract.includes(firstLedgerVersion)) {
+  fail('migration provenance contract does not pin the compact ledger boundary');
+}
+if (!/all.*timestamped|alla.*timestamp/i.test(contract)) {
+  fail('migration provenance contract does not document full timestamped replay');
+}
+if (!/no manual|inte manuellt/i.test(contract) || !/ledger/i.test(contract)) {
+  fail('migration provenance contract no longer documents the no-manual-ledger rule');
+}
+
+for (const token of [
+  'public.price_plans',
+  'public.price_plan_versions',
+  'public.contract_price_options',
+  'public.portfolio_monthly_settlements',
+  'gridex_contract_platform_readiness_internal_v1',
+]) {
+  if (!replay.includes(token)) fail(`clean replay lost critical historical smoke gate: ${token}`);
 }
 
 console.log(JSON.stringify({
   finding: 'GRIDEX-AUD-003',
   status: 'PASS',
-  bootstrap_input_count: bootstrapOrder.length,
+  replay_model: 'runbook_full_timestamped_history_plus_cli_owned_compact_ledger',
   foundation_input_count: foundation.length,
-  interleaved_input_count: interleaved.length,
-  controlled_reconciliation_input_count: plan.controlledReconciliation.length,
-  derived_bootstrap_count: Object.keys(derivedBootstrap).length,
   timestamped_file_count: timestamped.length,
+  allowed_legacy_collision_count: actualCollisions.length,
   earliest_repo_timestamped_version: earliestRepoVersion,
-  tracked_remote_ledger_start: plan.firstTrackedRemoteVersion,
-  timestamped_files_before_remote_ledger: preLedger,
+  compact_dev_ledger_start: firstLedgerVersion,
+  compact_dev_ledger_rows: entries.length,
 }, null, 2));
