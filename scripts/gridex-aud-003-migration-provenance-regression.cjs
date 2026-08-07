@@ -29,7 +29,7 @@ function supabasePath(relativePath) {
 const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
 const planAdditions = fs.existsSync(planAdditionsPath)
   ? JSON.parse(fs.readFileSync(planAdditionsPath, 'utf8'))
-  : { foundation: [], derivedBootstrap: {} };
+  : { foundation: [], interleaved: [], derivedBootstrap: {} };
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const additions = fs.existsSync(additionsPath)
   ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
@@ -39,10 +39,13 @@ const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
 const replay = fs.readFileSync(replayPath, 'utf8');
 
-const foundation = [...plan.foundation, ...(planAdditions.foundation || [])];
+const foundationAdditions = planAdditions.foundation || [];
+const interleaved = planAdditions.interleaved || [];
+const interleavedPaths = interleaved.map((entry) => entry.path);
+const foundation = [...plan.foundation, ...foundationAdditions];
 const derivedBootstrap = { ...(plan.derivedBootstrap || {}), ...(planAdditions.derivedBootstrap || {}) };
-const bootstrapOrder = [...foundation, ...plan.controlledReconciliation];
-const expectedBootstrapInputCount = plan.expectedBootstrapInputCount + (planAdditions.foundation || []).length;
+const bootstrapOrder = [...foundation, ...plan.controlledReconciliation, ...interleavedPaths];
+const expectedBootstrapInputCount = plan.expectedBootstrapInputCount + foundationAdditions.length + interleaved.length;
 if (bootstrapOrder.length !== expectedBootstrapInputCount) {
   fail(`expected ${expectedBootstrapInputCount} documented bootstrap inputs, found ${bootstrapOrder.length}`);
 }
@@ -83,6 +86,19 @@ for (const relativePath of bootstrapOrder) {
   const basenameToken = `\`${path.basename(relativePath)}\``;
   if (!contract.includes(contractToken) && !contract.includes(basenameToken)) {
     fail(`migration provenance contract no longer documents bootstrap input: ${relativePath}`);
+  }
+}
+
+for (const entry of interleaved) {
+  if (!entry.path || !/^\d{14}$/.test(entry.afterLedgerVersion || '') || !/^\d{14}$/.test(entry.beforeLedgerVersion || '')) {
+    fail(`invalid interleaved provenance entry: ${JSON.stringify(entry)}`);
+  }
+  if (entry.afterLedgerVersion >= entry.beforeLedgerVersion) {
+    fail(`interleaved provenance bounds are reversed for ${entry.path}`);
+  }
+  if (!replay.includes(entry.path)) fail(`clean replay no longer includes interleaved prerequisite ${entry.path}`);
+  if (!replay.includes(entry.beforeLedgerVersion)) {
+    fail(`clean replay no longer pins the before-ledger boundary ${entry.beforeLedgerVersion} for ${entry.path}`);
   }
 }
 
@@ -168,6 +184,7 @@ console.log(JSON.stringify({
   status: 'PASS',
   bootstrap_input_count: bootstrapOrder.length,
   foundation_input_count: foundation.length,
+  interleaved_input_count: interleaved.length,
   controlled_reconciliation_input_count: plan.controlledReconciliation.length,
   derived_bootstrap_count: Object.keys(derivedBootstrap).length,
   timestamped_file_count: timestamped.length,
