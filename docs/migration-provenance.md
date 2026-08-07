@@ -11,27 +11,31 @@ Apply in this exact order:
 2. `migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql`
 3. `migrations/03_db1_backfill_functions_rls_reports_and_finish.sql`
 4. `bootstrap/20260520_metering_permissions_foundation.sql`
-5. `bootstrap/20260521_ediel_test_runs_foundation.sql`
-6. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
-7. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
-8. `migrations/ediel_rules.sql`
-9. `migrations/Batch 1+2.sql`
-10. `bootstrap/20260528_inbound_email_messages_foundation.sql`
-11. `migrations/batch 3.sql`
-12. `migrations/batch 4+5+6.sql`
-13. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
-14. `bootstrap/20260605_ediel_outbox_foundation.sql`
-15. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-16. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-17. `bootstrap/20260801_company_capabilities_foundation.sql`
+5. `bootstrap/20260521_company_ediel_production_profile_foundation.sql`
+6. `bootstrap/20260521_ediel_test_runs_foundation.sql`
+7. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
+8. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
+9. `migrations/ediel_rules.sql`
+10. `migrations/Batch 1+2.sql`
+11. `bootstrap/20260528_inbound_email_messages_foundation.sql`
+12. `migrations/batch 3.sql`
+13. `migrations/batch 4+5+6.sql`
+14. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
+15. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
+16. `bootstrap/20260605_ediel_outbox_foundation.sql`
+17. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+18. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+19. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
-The Ediel test-run bootstrap is sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql` and creates only `ediel_test_runs`, which the 20260528 rulebook migration references.
+The company Ediel production-profile bootstrap and Ediel test-run bootstrap are both sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`. The production-profile artifact restores only the legacy `production_status`, `live_ediel_enabled`, go-live approval fields and blocker field that later canonical Ediel state still reads. The test-run artifact creates only `ediel_test_runs`, which the 20260528 rulebook migration references.
 
 The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql`. `Batch 1+2.sql` already creates `ediel_mailboxes`; this artifact adds only `inbound_email_messages`, which `batch 3.sql` immediately updates and indexes.
 
 The updated-at trigger bootstrap restores `public.set_updated_at_timestamp()` exactly as recovered with `pg_get_functiondef` from `gridex-ops-dev` on 2026-08-07. The checksum-pinned `migrations/20260522_batch4f_rbac_database_lint_hardening.sql` corroborates that the helper already existed historically by hardening its search path. The derived artifact contains only that trigger helper and is applied before the tracked EDIEL intent migration that references it.
+
+The Ediel production-readiness bootstrap is sourced from immutable, checksum-pinned `migrations/20260601070000_ediel_production_readiness_hardening.sql`. It restores the canonical precursor fields on `companies`, the `ediel_production_readiness_checks` and `ediel_go_live_events` evidence tables, their original indexes, and tenant-safe RLS policies. It deliberately excludes mailbox, send-lock and unrelated hardening changes. The tracked `20260802011000_canonical_ediel_production_state.sql` requires these relations and fields before it can add snapshot metadata and compile the canonical transition function.
 
 The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migrations/20260605160000_ediel_backend_automation_foundation.sql`. It contains only the original `public.ediel_outbox` base table and `ediel_outbox_lock_key_uidx`. The base columns match the prefix of the current `gridex-ops-dev` table; later tracked migrations remain responsible for intent, locking, transport, certificate, route-contract and rule-pack additions.
 
