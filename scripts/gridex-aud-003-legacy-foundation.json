@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 16,
+  "schemaVersion": 17,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 30,
+  "expectedBootstrapInputCount": 31,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -24,6 +24,7 @@
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql",
     "bootstrap/20260601_ediel_production_readiness_foundation.sql",
     "bootstrap/20260602_ediel_certificates_foundation.sql",
+    "bootstrap/20260602_ediel_environment_type_foundation.sql",
     "bootstrap/20260605_ediel_outbox_foundation.sql",
     "bootstrap/20260611_grid_owner_information_request_foundation.sql",
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
@@ -49,6 +50,7 @@
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql": {"source":"migrations/20260522_batch4f_rbac_database_lint_hardening.sql","artifactSha256":"82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5","purpose":"Restore the exact pre-ledger updated_at trigger helper recovered from gridex-ops-dev via pg_get_functiondef on 2026-08-07; the pinned 20260522 lint migration corroborates that this helper already existed before later tracked migrations."},
     "bootstrap/20260601_ediel_production_readiness_foundation.sql": {"source":"migrations/20260601070000_ediel_production_readiness_hardening.sql","artifactSha256":"31d5c9773e0f745ff3f767266bfb85f39d34c15b0a75a99aedcf7fa941f6ac66","purpose":"Restore the historical company Ediel production-state fields plus production readiness checks and go-live evidence tables, indexes and tenant RLS required by the canonical Ediel production-state migration."},
     "bootstrap/20260602_ediel_certificates_foundation.sql": {"source":"migrations/20260602090000_ediel_operations_platform_core.sql","artifactSha256":"7d150365ae977048e75190ecf99c21aaa80a871f943996cf10e85735db875c63","purpose":"Restore only the historical ediel_certificates registry and its original RLS enablement before canonical configuration snapshot triggers are attached to certificate changes."},
+    "bootstrap/20260602_ediel_environment_type_foundation.sql": {"source":"migrations/20260602143000_ediel_environment_business_action_locks.sql","artifactSha256":"fc03e1ca18b21ff086567c4bdfa21868879d312b06b7102c8fcc4c351ea096d3","purpose":"Restore only the historical ediel_environment_type enum before canonical Ediel evidence migrations create environment-qualified attempt records."},
     "bootstrap/20260605_ediel_outbox_foundation.sql": {"source":"migrations/20260605160000_ediel_backend_automation_foundation.sql","artifactSha256":"470b5824b77b153b0e33ad3da94df70560a2e2333b2a5155a1d4a2b51a881c6f","purpose":"Create only the historical ediel_outbox base relation and lock-key uniqueness required by the later tracked message-intent migration, without replaying unrelated backend automation objects."},
     "bootstrap/20260611_grid_owner_information_request_foundation.sql": {"source":"migrations/20260611100000_energy_resolver_grid_area_operations.sql","artifactSha256":"2b2411d78708dc26b56bd755253165d46c612a7dd4044fae2ab1e738794790c0","purpose":"Restore only the directly connected historical grid-owner contact-route, customer-site-resolution and information-request relations plus their original indexes before tracked manual grid-owner communication migrations reference them."},
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql": {"source":"migrations/20260613090000_batch_m_ops_master_legal_readiness.sql","artifactSha256":"e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394","purpose":"Restore only powers_of_attorney.customer_site_id with its customer_sites foreign key and historical backfill from site_id before the tracked manual grid-owner pipeline indexes that column."},
