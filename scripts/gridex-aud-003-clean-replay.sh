@@ -56,6 +56,7 @@ foundation=(
   "$ROOT/supabase/bootstrap/20260605_ediel_outbox_foundation.sql"
   "$ROOT/supabase/bootstrap/20260611_grid_owner_information_request_foundation.sql"
   "$ROOT/supabase/bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
 )
 
 for file in "${foundation[@]}"; do
@@ -129,6 +130,7 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.customer_site_resolution') is not null then 1 else 0 end as customer_site_resolution_ok,
        case when to_regclass('public.grid_owner_information_requests') is not null then 1 else 0 end as grid_owner_information_requests_ok,
        case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='powers_of_attorney' and column_name='customer_site_id') then 1 else 0 end as poa_customer_site_ok,
+       case when to_regclass('public.company_capabilities') is not null then 1 else 0 end as company_capabilities_ok,
        case when to_regclass('public.ediel_message_intents') is not null then 1 else 0 end as ediel_intents_ok;
 SQL
 
