@@ -21,7 +21,8 @@ Apply in this exact order:
 12. `migrations/batch 4+5+6.sql`
 13. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
 14. `bootstrap/20260605_ediel_outbox_foundation.sql`
-15. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+15. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+16. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
 
 The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
@@ -32,6 +33,8 @@ The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migration
 The updated-at trigger bootstrap restores `public.set_updated_at_timestamp()` exactly as recovered with `pg_get_functiondef` from `gridex-ops-dev` on 2026-08-07. The checksum-pinned `migrations/20260522_batch4f_rbac_database_lint_hardening.sql` corroborates that the helper already existed historically by hardening its search path. The derived artifact contains only that trigger helper and is applied before the tracked EDIEL intent migration that references it.
 
 The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migrations/20260605160000_ediel_backend_automation_foundation.sql`. It contains only the original `public.ediel_outbox` base table and `ediel_outbox_lock_key_uidx`. The base columns match the prefix of the current `gridex-ops-dev` table; later tracked migrations remain responsible for intent, locking, transport, certificate, route-contract and rule-pack additions.
+
+The grid-owner request bootstrap is sourced from immutable, checksum-pinned `migrations/20260611100000_energy_resolver_grid_area_operations.sql`. It restores the original, directly connected `grid_owner_contact_routes`, `customer_site_resolution` and `grid_owner_information_requests` relations plus their original indexes. This preserves the historical foreign-key chain while deliberately excluding unrelated PostGIS geometry, shared master-data and import/cache objects from that larger source migration. The tracked 20260626 manual grid-owner communication migration requires `grid_owner_information_requests` to exist before it can attach outreach foreign keys.
 
 The POA customer-site bootstrap is sourced from immutable, checksum-pinned `migrations/20260613090000_batch_m_ops_master_legal_readiness.sql`. It restores only nullable `powers_of_attorney.customer_site_id`, its `customer_sites(id)` foreign key with `ON DELETE SET NULL`, and the historical `customer_site_id = coalesce(customer_site_id, site_id)` backfill. This is required before the tracked 20260626 manual grid-owner migration indexes `customer_site_id`.
 
