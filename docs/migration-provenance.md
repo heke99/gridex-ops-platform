@@ -23,10 +23,11 @@ Apply in this exact order:
 14. `migrations/batch 4+5+6.sql`
 15. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
 16. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
-17. `bootstrap/20260605_ediel_outbox_foundation.sql`
-18. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-19. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-20. `bootstrap/20260801_company_capabilities_foundation.sql`
+17. `bootstrap/20260602_ediel_certificates_foundation.sql`
+18. `bootstrap/20260605_ediel_outbox_foundation.sql`
+19. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+20. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+21. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
@@ -34,21 +35,21 @@ The company Ediel production-profile, actor-test-result and Ediel test-run boots
 
 The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql`. `Batch 1+2.sql` already creates `ediel_mailboxes`; this artifact adds only `inbound_email_messages`, which `batch 3.sql` immediately updates and indexes.
 
-The updated-at trigger bootstrap restores `public.set_updated_at_timestamp()` exactly as recovered with `pg_get_functiondef` from `gridex-ops-dev` on 2026-08-07. The checksum-pinned `migrations/20260522_batch4f_rbac_database_lint_hardening.sql` corroborates that the helper already existed historically by hardening its search path. The derived artifact contains only that trigger helper and is applied before the tracked EDIEL intent migration that references it.
+The updated-at trigger bootstrap restores `public.set_updated_at_timestamp()` exactly as recovered with `pg_get_functiondef` from `gridex-ops-dev` on 2026-08-07. The checksum-pinned `migrations/20260522_batch4f_rbac_database_lint_hardening.sql` corroborates that the helper already existed historically by hardening its search path.
 
-The Ediel production-readiness bootstrap is sourced from immutable, checksum-pinned `migrations/20260601070000_ediel_production_readiness_hardening.sql`. It restores the canonical precursor fields on `companies`, the `ediel_production_readiness_checks` and `ediel_go_live_events` evidence tables, their original indexes, and tenant-safe RLS policies. It deliberately excludes mailbox, send-lock and unrelated hardening changes. The tracked `20260802011000_canonical_ediel_production_state.sql` requires these relations and fields before it can add snapshot metadata and compile the canonical transition function.
+The Ediel production-readiness bootstrap is sourced from immutable, checksum-pinned `migrations/20260601070000_ediel_production_readiness_hardening.sql`. It restores the canonical precursor fields on `companies`, the `ediel_production_readiness_checks` and `ediel_go_live_events` evidence tables, their indexes, and tenant-safe RLS policies.
 
-The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migrations/20260605160000_ediel_backend_automation_foundation.sql`. It contains only the original `public.ediel_outbox` base table and `ediel_outbox_lock_key_uidx`. The base columns match the prefix of the current `gridex-ops-dev` table; later tracked migrations remain responsible for intent, locking, transport, certificate, route-contract and rule-pack additions.
+The Ediel certificate bootstrap is sourced from immutable, checksum-pinned `migrations/20260602090000_ediel_operations_platform_core.sql`. It restores only `ediel_certificates` and its original RLS enablement so the canonical configuration-snapshot migration can attach change-snapshot triggers. Later certificate migrations remain responsible for recipient and transport hardening.
 
-The grid-owner request bootstrap is sourced from immutable, checksum-pinned `migrations/20260611100000_energy_resolver_grid_area_operations.sql`. It restores the original, directly connected `grid_owner_contact_routes`, `customer_site_resolution` and `grid_owner_information_requests` relations plus their original indexes. This preserves the historical foreign-key chain while deliberately excluding unrelated PostGIS geometry, shared master-data and import/cache objects from that larger source migration. The tracked 20260626 manual grid-owner communication migration requires `grid_owner_information_requests` to exist before it can attach outreach foreign keys.
+The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migrations/20260605160000_ediel_backend_automation_foundation.sql`. It contains only the original `public.ediel_outbox` base table and lock-key uniqueness.
 
-The POA customer-site bootstrap is sourced from immutable, checksum-pinned `migrations/20260613090000_batch_m_ops_master_legal_readiness.sql`. It restores only nullable `powers_of_attorney.customer_site_id`, its `customer_sites(id)` foreign key with `ON DELETE SET NULL`, and the historical `customer_site_id = coalesce(customer_site_id, site_id)` backfill. This is required before the tracked 20260626 manual grid-owner migration indexes `customer_site_id`.
+The grid-owner request bootstrap is sourced from immutable, checksum-pinned `migrations/20260611100000_energy_resolver_grid_area_operations.sql`. It restores the directly connected `grid_owner_contact_routes`, `customer_site_resolution` and `grid_owner_information_requests` relations plus their original indexes.
 
-The company-capabilities bootstrap is sourced from immutable, checksum-pinned `migrations/20260801143000_canonical_multitenant_platform_hardening.sql`, which exists in repository history but is absent from the connected dev ledger sequence used by clean replay. It restores the fail-closed `company_capabilities` registry, its constraints/index, RLS policies/grants, historical disabled capability seeds and `canonical_company_capability_enabled` lookup helper. The tracked `20260802010000_canonical_tenant_operation_policy_lifecycle.sql` requires this registry before inserting canonical operation capabilities and compiling its tenant-operation decision function.
+The POA customer-site bootstrap is sourced from immutable, checksum-pinned `migrations/20260613090000_batch_m_ops_master_legal_readiness.sql`. It restores nullable `powers_of_attorney.customer_site_id`, its `customer_sites(id)` foreign key with `ON DELETE SET NULL`, and the historical backfill from `site_id`.
 
-All derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`; CI also verifies the immutable source migration checksums. The 20260528 Ediel rulebook migration and 20260529 v4 compatibility migration are included whole because they are idempotent historical prerequisites for `ediel_rules.sql`.
+The company-capabilities bootstrap is sourced from immutable, checksum-pinned `migrations/20260801143000_canonical_multitenant_platform_hardening.sql`. It restores the fail-closed `company_capabilities` registry, constraints/index, RLS policies/grants, disabled capability seeds and `canonical_company_capability_enabled` helper.
 
-Historical migration files remain immutable. Do not rename or rewrite them to manufacture migration history.
+All derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`; CI also verifies immutable source migration checksums. Historical migration files remain immutable.
 
 ## 2. Controlled legacy reconciliation
 
@@ -71,7 +72,7 @@ Other short-date or free-form files do not silently enter the bootstrap. If clea
 
 The connected `gridex-ops-dev` ledger currently starts at `20260531075508` — `fix_customer_internal_notes_customer_fk`. Repository history and the live development schema contain required state older than that remote ledger boundary, so the remote ledger alone is not an empty-database bootstrap source.
 
-A historical Supabase MCP ledger row at `20260803081939` is an alias of canonical repository migration `20260803093300_duplicate_primary_client_audit_contract_v3.sql`; both are tied to the same recorded SHA-256. Clean replay validates the alias but executes the canonical SQL only once.
+A historical Supabase MCP ledger row at `20260803081939` is an alias of canonical repository migration `20260803093300_duplicate_primary_client_audit_contract_v3.sql`; clean replay validates the alias but executes the canonical SQL only once.
 
 ## 5. Safety rules
 
