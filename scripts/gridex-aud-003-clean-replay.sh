@@ -8,6 +8,9 @@ LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HISTORY="$ROOT/scripts/migration-history-manifest.json"
 HISTORY_ADDITIONS="$ROOT/scripts/migration-history-manifest.additions.json"
 FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
+METERING_BOOTSTRAP="$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
+METERING_BOOTSTRAP_SHA256="04061c107d1f963f2a8d61297d75f81a089cbe930f16138273b798602cec9a41"
+METERING_SOURCE_NAME="20260520_batch_3_4_onboarding_pricing_billing_engine.sql"
 EXPECTED_FINGERPRINT="407b9aed9cc2b58a3e78e587ff0e8a656ca52365a1e1088dc55590d8bcd84209"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
@@ -30,15 +33,19 @@ command -v psql >/dev/null
 command -v python3 >/dev/null
 
 test -f "$FINGERPRINT_SQL" || { echo "missing schema fingerprint query" >&2; exit 1; }
+test -f "$METERING_BOOTSTRAP" || { echo "missing metering_permissions bootstrap" >&2; exit 1; }
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 
-# Production runbook contract: DB1 + EDIEL/batch foundation, then every
-# timestamped repository migration in deterministic timestamp/filename order.
-foundation=(
+# Production runbook contract: DB1 foundation, EDIEL/batch legacy inputs, then
+# every timestamped repository migration in deterministic timestamp/filename
+# order. AUD-003 proved one pre-EDIEL dependency omitted by the prose runbook:
+# metering_permissions must exist before ediel_rules.sql updates it. Restore
+# only that table/index prerequisite from a checksum-pinned historical source.
+legacy_foundation=(
   "$HOLD/01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
   "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
   "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
@@ -48,27 +55,31 @@ foundation=(
   "$HOLD/batch 4+5+6.sql"
 )
 
-# Fail before database mutation if any normal replay source has drifted from
-# the immutable migration-history manifests. Historical duplicate versions are
-# permitted only when explicitly listed in allowedLegacyCollisions; full
-# filename ordering makes their execution deterministic.
-python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HOLD" "$PLAN" "${foundation[@]}" <<'PY'
+# Fail before database mutation if any replay source has drifted. The derived
+# metering bootstrap is verified both by its own SHA-256 and by the immutable
+# source migration checksum in the combined migration-history manifests.
+python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HOLD" "$PLAN" "$METERING_BOOTSTRAP" "$METERING_BOOTSTRAP_SHA256" "$METERING_SOURCE_NAME" "${legacy_foundation[@]}" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
 additions_path=pathlib.Path(sys.argv[2])
 root=pathlib.Path(sys.argv[3])
 plan=pathlib.Path(sys.argv[4])
-foundation=[pathlib.Path(p) for p in sys.argv[5:]]
+metering_bootstrap=pathlib.Path(sys.argv[5])
+metering_bootstrap_sha=sys.argv[6]
+metering_source_name=sys.argv[7]
+foundation=[pathlib.Path(p) for p in sys.argv[8:]]
 history=json.loads(history_path.read_text())
 additions=json.loads(additions_path.read_text()) if additions_path.exists() else {'files':{}}
 checksums={**history.get('files',{}),**additions.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 def verify(path):
     expected=checksums.get(path.name)
     if not expected:
         raise SystemExit(f'migration source is not checksum-pinned: {path.name}')
-    actual=hashlib.sha256(path.read_bytes()).hexdigest()
+    actual=digest(path)
     if actual != expected:
         raise SystemExit(f'migration checksum mismatch {path.name}: {actual} != {expected}')
 
@@ -76,6 +87,13 @@ for path in foundation:
     if not path.exists():
         raise SystemExit(f'missing foundation source: {path.name}')
     verify(path)
+
+if digest(metering_bootstrap) != metering_bootstrap_sha:
+    raise SystemExit('metering_permissions derived bootstrap checksum drift')
+metering_source=root/metering_source_name
+if not metering_source.exists():
+    raise SystemExit(f'metering bootstrap source missing: {metering_source_name}')
+verify(metering_source)
 
 files=[]
 collisions={}
@@ -91,7 +109,7 @@ files.sort(key=lambda p:p.name)
 if not files:
     raise SystemExit('no timestamped repository migrations found')
 plan.write_text(''.join(str(path)+'\n' for path in files))
-print(f'[AUD-003 replay] source preflight verified: {len(foundation)} foundation + {len(files)} timestamped files')
+print(f'[AUD-003 replay] source preflight verified: {len(foundation)} legacy foundation + 1 derived prerequisite + {len(files)} timestamped files')
 PY
 
 supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
@@ -103,9 +121,15 @@ apply_sql(){
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 
-for file in "${foundation[@]}"; do
-  apply_sql "$file"
-done
+apply_sql "$HOLD/01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
+apply_sql "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
+apply_sql "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
+apply_sql "$METERING_BOOTSTRAP"
+apply_sql "$HOLD/ediel_rules.sql"
+apply_sql "$HOLD/Batch 1+2.sql"
+apply_sql "$HOLD/batch 3.sql"
+apply_sql "$HOLD/batch 4+5+6.sql"
+
 while IFS= read -r file; do
   apply_sql "$file"
 done < "$PLAN"
@@ -157,6 +181,7 @@ PY
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select
   to_regclass('public.companies') is not null as companies_ok,
+  to_regclass('public.metering_permissions') is not null as metering_permissions_ok,
   to_regclass('public.price_plans') is not null as price_plans_ok,
   to_regclass('public.price_plan_versions') is not null as price_plan_versions_ok,
   to_regclass('public.contract_products') is not null as contract_products_ok,
@@ -188,4 +213,4 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[AUD-003 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
-echo '[AUD-003 replay] PASS: empty local Supabase -> runbook foundation -> all checksum-pinned timestamped SQL -> CLI-owned compact dev ledger'
+echo '[AUD-003 replay] PASS: empty local Supabase -> evidenced pre-EDIEL prerequisite -> full checksum-pinned timestamped history -> CLI-owned compact dev ledger'
