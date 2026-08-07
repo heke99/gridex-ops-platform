@@ -23,6 +23,7 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260521_actor_test_results_foundation.sql"
  "$ROOT/supabase/bootstrap/20260521_ediel_test_runs_foundation.sql"
  "$ROOT/supabase/bootstrap/20260521_ediel_test_run_messages_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260522_admin_users_foundation.sql"
  "$ROOT/supabase/bootstrap/20260528_ediel_test_run_steps_foundation.sql"
  "$HOLD/20260528_batch_2_ediel_rulebook_system_tests.sql"
  "$HOLD/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql"
@@ -59,6 +60,7 @@ PY
 while IFS= read -r file; do apply_sql "$file"; done < "$HOLD/.aud003-ledger-paths"
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select to_regclass('public.companies') is not null as companies_ok,
+ to_regclass('public.admin_users') is not null as admin_users_ok,
  to_regclass('public.actor_test_results') is not null as actor_test_results_ok,
  to_regclass('public.ediel_test_runs') is not null as test_runs_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
