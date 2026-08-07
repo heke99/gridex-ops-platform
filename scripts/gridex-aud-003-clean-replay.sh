@@ -209,6 +209,7 @@ select
       as migration_manifest_verification_columns_ok,
  to_regprocedure('public.gridex_contract_platform_readiness(uuid)') is not null as contract_platform_readiness_ok,
  to_regprocedure('public.gridex_contract_platform_readiness_internal_v1(uuid)') is not null as contract_platform_readiness_internal_ok,
+ jsonb_typeof(public.gridex_contract_platform_readiness_internal_v1(gen_random_uuid())) = 'object' as contract_platform_readiness_internal_executes_ok,
  to_regclass('public.actor_test_results') is not null as actor_test_results_ok,
  to_regclass('public.ediel_test_runs') is not null as test_runs_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
