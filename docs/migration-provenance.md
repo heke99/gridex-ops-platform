@@ -16,22 +16,23 @@ Apply in this exact order:
 7. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
 8. `migrations/ediel_rules.sql`
 9. `migrations/Batch 1+2.sql`
-10. `migrations/batch 3.sql`
-11. `migrations/batch 4+5+6.sql`
+10. `bootstrap/20260528_inbound_email_messages_foundation.sql`
+11. `migrations/batch 3.sql`
+12. `migrations/batch 4+5+6.sql`
 
-The metering bootstrap is a derived artifact, not a rewritten migration. Its DDL is sourced from the immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. A clean replay proved that `ediel_rules.sql` requires `public.metering_permissions`, while replaying the whole source after the later DB1 repair collides with the newer billing-export schema. The derived artifact therefore contains only the prerequisite table and indexes.
+The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
-The Ediel test-run bootstrap is also deliberately narrow. Its DDL is sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`. The 20260528 rulebook migration references `public.ediel_test_runs` for test artifacts, but replaying the entire go-live module would pull unrelated white-label and production-go-live state into the historical bootstrap. The derived artifact therefore creates only `ediel_test_runs` and its documented index.
+The Ediel test-run bootstrap is sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql` and creates only `ediel_test_runs`, which the 20260528 rulebook migration references.
 
-Both derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`, and CI verifies the checksum-pinned immutable source migrations as well.
+The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql`. `Batch 1+2.sql` already creates `ediel_mailboxes`; this artifact adds only `inbound_email_messages`, which `batch 3.sql` immediately updates and indexes.
 
-The two following historical rulebook migrations are included whole because repository evidence explicitly marks the 20260528 migration safe/idempotent and it creates `ediel_field_rules` / `ediel_code_rules`; the 20260529 v4 compatibility migration then adds the compatibility columns and list representations consumed by `ediel_rules.sql`.
+All derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`; CI also verifies the immutable source migration checksums. The 20260528 Ediel rulebook migration and 20260529 v4 compatibility migration are included whole because they are idempotent historical prerequisites for `ediel_rules.sql`.
 
-The historical migration files remain immutable inputs. Do not rename or rewrite them to manufacture migration history.
+Historical migration files remain immutable. Do not rename or rewrite them to manufacture migration history.
 
 ## 2. Controlled legacy reconciliation
 
-These six files are also immutable legacy inputs. They are only executed when the controlled reconciliation procedure is required, and in this exact order:
+These six files are immutable legacy inputs and are executed only when controlled reconciliation is required, in this order:
 
 1. `migrations/01_db2_full_view_preflight_schema_and_functions.sql`
 2. `migrations/02_db2_execute_controlled_reconciliation.sql`
@@ -40,43 +41,27 @@ These six files are also immutable legacy inputs. They are only executed when th
 5. `migrations/02_db2b_apply_superadmin_and_membership.sql`
 6. `migrations/03_db2b_validation_views.sql`
 
-A clean empty database must prove whether this reconciliation phase is required before it can be omitted from a canonical replay.
-
 ## 3. Canonical 14-digit set
 
-After the explicit historical foundation, apply every file matching:
+After the explicit historical foundation, apply every file matching `^[0-9]{14}_.+\.sql$` in ascending filename order.
 
-`^[0-9]{14}_.+\.sql$`
-
-in ascending filename order.
-
-Files with shorter numeric prefixes or free-form names are historical/manual artifacts unless they are explicitly listed in sections 1 or 2. They must not silently enter the canonical replay chain. If a clean replay proves that another historical artifact is a real schema prerequisite, the source evidence must be checksum-pinned and any derived bootstrap artifact must be deliberately reviewed, independently hashed, and added to this contract.
+Other short-date or free-form files do not silently enter the bootstrap. If clean replay proves another prerequisite, its source must be checksum-pinned and any derived bootstrap artifact must be narrowly scoped, independently hashed and deliberately added to this contract.
 
 ## 4. Current provenance boundary
 
-The connected `gridex-ops-dev` migration ledger currently starts at:
-
-`20260531075508` — `fix_customer_internal_notes_customer_fk`
-
-The repository contains canonical 14-digit migrations older than that ledger boundary and historical schema inputs outside the remote ledger. The development schema also contains objects created by that historical foundation, including `public.companies`, `public.metering_permissions`, `public.ediel_test_runs`, and the Ediel rulebook tables.
-
-Therefore the remote ledger alone is not a valid empty-database bootstrap source. A clean replay must start from this documented historical foundation contract and then apply the canonical 14-digit set.
+The connected `gridex-ops-dev` ledger currently starts at `20260531075508` — `fix_customer_internal_notes_customer_fk`. Repository history and the live development schema contain required state older than that remote ledger boundary, so the remote ledger alone is not an empty-database bootstrap source.
 
 ## 5. Safety rules
 
-- Never manually insert/delete/update rows in `supabase_migrations.schema_migrations` to make history appear complete.
+- Never manually edit `supabase_migrations.schema_migrations` to manufacture provenance.
 - Never mutate already-applied migration SQL in place.
 - Never infer missing historical DDL when checksum-pinned repository evidence exists.
-- A derived bootstrap artifact must be narrower than its source and may contain only evidenced prerequisites needed to make a deterministic empty-database replay possible.
+- Derived bootstrap artifacts may contain only evidenced prerequisites and must remain narrower than their source migrations.
 - Never treat a failed Supabase preview branch as staging-verified.
-- Any change to the historical order, checksums, bootstrap artifacts, or replay classification must fail CI until this contract and its regression are deliberately updated together.
+- Changes to bootstrap order, checksums, artifacts or classification must fail CI until this contract and regression are deliberately updated together.
 
 ## 6. Verification gates
 
-`node scripts/gridex-aud-003-migration-provenance-regression.cjs`
+`node scripts/gridex-aud-003-migration-provenance-regression.cjs` verifies source checksums, derived hashes, order and safety constraints.
 
-verifies the static provenance contract, immutable source checksums, derived bootstrap hashes and safety constraints.
-
-`bash scripts/gridex-aud-003-clean-replay.sh`
-
-starts an empty local Supabase stack, applies the explicit historical foundation and then the canonical 14-digit migration set with `ON_ERROR_STOP=1`. This isolated replay must pass before `GRIDEX-AUD-003` can be marked `DEV_VERIFIED`.
+`bash scripts/gridex-aud-003-clean-replay.sh` starts an empty local Supabase stack and applies the explicit historical foundation followed by the canonical 14-digit set with `ON_ERROR_STOP=1`. It must pass before `GRIDEX-AUD-003` can be marked `DEV_VERIFIED`.
