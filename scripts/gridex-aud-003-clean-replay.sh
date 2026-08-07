@@ -29,34 +29,34 @@ rm -f "$MIGRATIONS"/*.sql
 # Start a genuinely empty local Supabase stack. Migrations are held aside so
 # Supabase cannot apply the incomplete remote-ledger ordering before the
 # repository's checksum-pinned historical foundation.
-supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
+supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 
 apply_sql() {
   local file="$1"
-  echo "[AUD-003 replay] applying $(basename "$file")"
+  echo "[AUD-003 replay] applying ${file#$ROOT/}"
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 
 foundation=(
-  "01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
-  "02_db1_operations_ediel_billing_dedupe_and_storage.sql"
-  "03_db1_backfill_functions_rls_reports_and_finish.sql"
-  "20260520_batch_3_4_onboarding_pricing_billing_engine.sql"
-  "ediel_rules.sql"
-  "Batch 1+2.sql"
-  "batch 3.sql"
-  "batch 4+5+6.sql"
+  "$HOLD/01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
+  "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
+  "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
+  "$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
+  "$HOLD/ediel_rules.sql"
+  "$HOLD/Batch 1+2.sql"
+  "$HOLD/batch 3.sql"
+  "$HOLD/batch 4+5+6.sql"
 )
 
-for name in "${foundation[@]}"; do
-  test -f "$HOLD/$name" || { echo "missing foundation $name" >&2; exit 1; }
-  apply_sql "$HOLD/$name"
+for file in "${foundation[@]}"; do
+  test -f "$file" || { echo "missing foundation $file" >&2; exit 1; }
+  apply_sql "$file"
 done
 
 # Canonical replay after the explicit historical foundation: only 14-digit
 # migrations, in lexical/timestamp order. Other historical/manual artifacts do
 # not silently join the replay chain; each prerequisite must be evidenced and
-# added to the explicit foundation contract.
+# added to the explicit bootstrap contract.
 while IFS= read -r file; do
   apply_sql "$file"
 done < <(find "$HOLD" -maxdepth 1 -type f -regextype posix-extended \
