@@ -6,10 +6,12 @@ const root = path.resolve(__dirname, '..');
 const supabaseDir = path.join(root, 'supabase');
 const migrationsDir = path.join(supabaseDir, 'migrations');
 const planPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.json');
+const planAdditionsPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.additions.json');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
 const additionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
 const contractPath = path.join(root, 'docs', 'migration-provenance.md');
 const runbookPath = path.join(root, 'docs', 'production-runbook.md');
+const replayPath = path.join(__dirname, 'gridex-aud-003-clean-replay.sh');
 
 function fail(message) {
   console.error(`[GRIDEX-AUD-003] ${message}`);
@@ -25,6 +27,9 @@ function supabasePath(relativePath) {
 }
 
 const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+const planAdditions = fs.existsSync(planAdditionsPath)
+  ? JSON.parse(fs.readFileSync(planAdditionsPath, 'utf8'))
+  : { foundation: [], derivedBootstrap: {} };
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const additions = fs.existsSync(additionsPath)
   ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
@@ -32,10 +37,14 @@ const additions = fs.existsSync(additionsPath)
 const pinnedFiles = { ...(manifest.files || {}), ...(additions.files || {}) };
 const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
+const replay = fs.readFileSync(replayPath, 'utf8');
 
-const bootstrapOrder = [...plan.foundation, ...plan.controlledReconciliation];
-if (bootstrapOrder.length !== plan.expectedBootstrapInputCount) {
-  fail(`expected ${plan.expectedBootstrapInputCount} documented bootstrap inputs, found ${bootstrapOrder.length}`);
+const foundation = [...plan.foundation, ...(planAdditions.foundation || [])];
+const derivedBootstrap = { ...(plan.derivedBootstrap || {}), ...(planAdditions.derivedBootstrap || {}) };
+const bootstrapOrder = [...foundation, ...plan.controlledReconciliation];
+const expectedBootstrapInputCount = plan.expectedBootstrapInputCount + (planAdditions.foundation || []).length;
+if (bootstrapOrder.length !== expectedBootstrapInputCount) {
+  fail(`expected ${expectedBootstrapInputCount} documented bootstrap inputs, found ${bootstrapOrder.length}`);
 }
 if (new Set(bootstrapOrder).size !== bootstrapOrder.length) {
   fail('bootstrap order contains duplicate paths');
@@ -45,7 +54,7 @@ for (const relativePath of bootstrapOrder) {
   const filePath = supabasePath(relativePath);
   if (!fs.existsSync(filePath)) fail(`missing bootstrap input: ${relativePath}`);
 
-  const derived = plan.derivedBootstrap?.[relativePath];
+  const derived = derivedBootstrap[relativePath];
   if (derived) {
     const actualArtifactHash = sha256(filePath);
     if (actualArtifactHash !== derived.artifactSha256) {
@@ -77,6 +86,26 @@ for (const relativePath of bootstrapOrder) {
   }
 }
 
+const operationJobsBootstrap = 'bootstrap/20260618_customer_operation_jobs_foundation.sql';
+const workflowsBootstrap = 'bootstrap/20260618_customer_application_workflows_foundation.sql';
+const continuationBootstrap = 'bootstrap/20260724_customer_application_continuation_schema_foundation.sql';
+for (const token of [operationJobsBootstrap, workflowsBootstrap, continuationBootstrap]) {
+  if (!replay.includes(token)) fail(`clean replay no longer includes ${token}`);
+}
+if (replay.indexOf(operationJobsBootstrap) > replay.indexOf(workflowsBootstrap)) {
+  fail('customer operation jobs foundation must run before customer application workflows');
+}
+if (replay.indexOf(operationJobsBootstrap) > replay.indexOf(continuationBootstrap)) {
+  fail('customer operation jobs foundation must run before application continuation schema');
+}
+const operationJobsSql = fs.readFileSync(supabasePath(operationJobsBootstrap), 'utf8');
+if (!/create\s+table\s+if\s+not\s+exists\s+public\.customer_operation_jobs\s*\(/i.test(operationJobsSql)) {
+  fail(`${operationJobsBootstrap} no longer creates public.customer_operation_jobs`);
+}
+if (/gridex_claim_customer_operation_jobs/i.test(operationJobsSql)) {
+  fail(`${operationJobsBootstrap} must not replay worker RPC behavior`);
+}
+
 const corePath = supabasePath(plan.foundation[0]);
 const core = fs.readFileSync(corePath, 'utf8');
 if (!/create\s+table\s+if\s+not\s+exists\s+public\.companies\s*\(/i.test(core)) {
@@ -101,7 +130,7 @@ if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.t
 if (/billing_export_(runs|run_items)/i.test(meteringSql)) {
   fail(`${meteringBootstrap} must not replay unrelated billing export schema`);
 }
-const sourceRel = plan.derivedBootstrap[meteringBootstrap].source;
+const sourceRel = derivedBootstrap[meteringBootstrap].source;
 const sourceSql = fs.readFileSync(supabasePath(sourceRel), 'utf8');
 if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.test(sourceSql)) {
   fail(`derived source ${sourceRel} no longer contains public.metering_permissions DDL`);
@@ -138,9 +167,9 @@ console.log(JSON.stringify({
   finding: 'GRIDEX-AUD-003',
   status: 'PASS',
   bootstrap_input_count: bootstrapOrder.length,
-  foundation_input_count: plan.foundation.length,
+  foundation_input_count: foundation.length,
   controlled_reconciliation_input_count: plan.controlledReconciliation.length,
-  derived_bootstrap_count: Object.keys(plan.derivedBootstrap || {}).length,
+  derived_bootstrap_count: Object.keys(derivedBootstrap).length,
   timestamped_file_count: timestamped.length,
   earliest_repo_timestamped_version: earliestRepoVersion,
   tracked_remote_ledger_start: plan.firstTrackedRemoteVersion,
