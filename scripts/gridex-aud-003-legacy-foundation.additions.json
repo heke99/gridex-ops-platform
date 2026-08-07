@@ -54,7 +54,7 @@
     "bootstrap/20260722_external_tenant_reference_foundation.sql": {
       "source": "migrations/20260722133000_external_tenant_quote_api_completion.sql",
       "artifactSha256": "b55bd0991ec9d01c74df7783247e95ecd7a058b2739891a65d342d09478b23d6",
-      "purpose": "Restore only the source-defined stable external tenant reference function, company column, uniqueness and format constraint required by tracked public-contract snapshot migrations; no tenants or integration records are seeded."
+      "purpose": "Restore only the source-defined stable external tenant reference function, company column, uniqueness index and format constraint required by tracked public-contract snapshot migrations; no tenants or integration records are seeded."
     },
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
@@ -63,8 +63,8 @@
     },
     "bootstrap/20260716_contract_platform_readiness_foundation.sql": {
       "source": "migrations/20260716183000_contract_canonical_finalization.sql",
-      "artifactSha256": "a0a21aca76d2b3395b9e6905e9c5ee83f4da5199f52d9850a484cec63bdd3486",
-      "purpose": "Restore only the source-defined pre-hardening gridex_contract_platform_readiness(uuid) implementation required by 20260803131558; the exact implementation is corroborated by the preserved internal_v1 definition in gridex-ops-dev and no product data is seeded."
+      "artifactSha256": "408c3afc331c6f7ec0d2456ffccc154d80dc5477db1d75e29e26280cdb7b8d90",
+      "purpose": "Restore only the exact source-defined pre-hardening gridex_contract_platform_readiness(uuid) body and grants required by 20260803131558; the body is corroborated by gridex-ops-dev internal_v1 and no product or tenant data is seeded."
     }
   }
 }
