@@ -1,11 +1,13 @@
 {
-  "schemaVersion": 1,
-  "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before timestamped migrations.",
+  "schemaVersion": 2,
+  "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
+  "expectedLegacyInputCount": 14,
   "foundation": [
     "01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "02_db1_operations_ediel_billing_dedupe_and_storage.sql",
     "03_db1_backfill_functions_rls_reports_and_finish.sql",
+    "20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
     "ediel_rules.sql",
     "Batch 1+2.sql",
     "batch 3.sql",
