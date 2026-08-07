@@ -1,14 +1,15 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 25,
+  "expectedBootstrapInputCount": 26,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
     "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
     "bootstrap/20260520_metering_permissions_foundation.sql",
     "bootstrap/20260521_company_ediel_production_profile_foundation.sql",
+    "bootstrap/20260521_actor_test_results_foundation.sql",
     "bootstrap/20260521_ediel_test_runs_foundation.sql",
     "migrations/20260528_batch_2_ediel_rulebook_system_tests.sql",
     "migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql",
@@ -42,6 +43,11 @@
       "source": "migrations/20260521_actor_testing_go_live_module.sql",
       "artifactSha256": "3975ce739170c62ee499673089eead24cd3b66716178364f34a472915c463a1e",
       "purpose": "Restore only the legacy company production_status, live_ediel_enabled and go-live approval/blocker projection fields still read by the canonical Ediel production-state migration."
+    },
+    "bootstrap/20260521_actor_test_results_foundation.sql": {
+      "source": "migrations/20260521_actor_testing_go_live_module.sql",
+      "artifactSha256": "ae8745fbf5fd09b584a6f43c6062ddaccfd594109bc09a5f3a260bd5996baf32",
+      "purpose": "Restore only the historical actor_test_results ledger and its original indexes before canonical configuration snapshots attach configuration and staleness evidence."
     },
     "bootstrap/20260521_ediel_test_runs_foundation.sql": {
       "source": "migrations/20260521_actor_testing_go_live_module.sql",
