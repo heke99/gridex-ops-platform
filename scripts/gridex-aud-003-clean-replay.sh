@@ -44,6 +44,8 @@ foundation=(
   "$ROOT/supabase/bootstrap/20260521_company_ediel_production_profile_foundation.sql"
   "$ROOT/supabase/bootstrap/20260521_actor_test_results_foundation.sql"
   "$ROOT/supabase/bootstrap/20260521_ediel_test_runs_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260521_ediel_test_run_messages_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260528_ediel_test_run_steps_foundation.sql"
   "$HOLD/20260528_batch_2_ediel_rulebook_system_tests.sql"
   "$HOLD/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql"
   "$HOLD/ediel_rules.sql"
@@ -107,6 +109,8 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.metering_permissions') is not null then 1 else 0 end as metering_permissions_ok,
        case when to_regclass('public.actor_test_results') is not null then 1 else 0 end as actor_test_results_ok,
        case when to_regclass('public.ediel_test_runs') is not null then 1 else 0 end as ediel_test_runs_ok,
+       case when to_regclass('public.ediel_test_run_messages') is not null then 1 else 0 end as ediel_test_run_messages_ok,
+       case when to_regclass('public.ediel_test_run_steps') is not null then 1 else 0 end as ediel_test_run_steps_ok,
        case when to_regclass('public.ediel_production_readiness_checks') is not null then 1 else 0 end as readiness_ok,
        case when to_regclass('public.ediel_go_live_events') is not null then 1 else 0 end as go_live_events_ok,
        case when to_regclass('public.ediel_certificates') is not null then 1 else 0 end as ediel_certificates_ok,
