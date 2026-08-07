@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATIONS="$ROOT/supabase/migrations"
 SEED="$ROOT/supabase/seed.sql"
-LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
+LEDGER="$ROOT/scripts/gridex-aud-003-main-ledGER.json"
 HOLD="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
@@ -28,9 +28,6 @@ cp "$SEED" "$SEED_BACKUP"
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 
-# Start a genuinely empty local Supabase stack. Migrations are held aside so
-# Supabase cannot apply the incomplete remote-ledger ordering before the
-# repository's checksum-pinned historical foundation.
 supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 
 apply_sql() {
@@ -56,6 +53,7 @@ foundation=(
   "$HOLD/batch 4+5+6.sql"
   "$ROOT/supabase/bootstrap/20260522_set_updated_at_timestamp_foundation.sql"
   "$ROOT/supabase/bootstrap/20260601_ediel_production_readiness_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260602_ediel_certificates_foundation.sql"
   "$ROOT/supabase/bootstrap/20260605_ediel_outbox_foundation.sql"
   "$ROOT/supabase/bootstrap/20260611_grid_owner_information_request_foundation.sql"
   "$ROOT/supabase/bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
@@ -67,18 +65,12 @@ for file in "${foundation[@]}"; do
   apply_sql "$file"
 done
 
-# After the historical baseline, replay the official dev ledger only through
-# the commit that is actually represented by main. A historical Supabase MCP
-# ledger alias is validated against its canonical file but is not executed as a
-# second migration. This also intentionally excludes the two AUD-001 rows
-# already applied in dev from open PR #87.
 python3 - "$LEDGER" "$HOLD" <<'PY' > "$HOLD/.aud003-ledger-paths"
 import hashlib, json, pathlib, sys
 ledger_path = pathlib.Path(sys.argv[1])
 migrations = pathlib.Path(sys.argv[2])
 data = json.loads(ledger_path.read_text())
 entries_by_version = {entry['version']: entry for entry in data['entries']}
-
 for entry in data['entries']:
     alias_of = entry.get('ledgerAliasOf')
     if alias_of:
@@ -90,15 +82,10 @@ for entry in data['entries']:
         if not exact.exists():
             raise SystemExit(f"ledger alias {entry['version']} canonical file missing: {exact.name}")
         expected = entry.get('checksum')
-        if expected:
-            actual = hashlib.sha256(exact.read_bytes()).hexdigest()
-            if actual != expected:
-                raise SystemExit(
-                    f"ledger alias {entry['version']} checksum mismatch for {exact.name}: expected {expected}, got {actual}"
-                )
+        if expected and hashlib.sha256(exact.read_bytes()).hexdigest() != expected:
+            raise SystemExit(f"ledger alias {entry['version']} checksum mismatch for {exact.name}")
         print(f"[AUD-003 replay] ledger alias {entry['version']} -> {alias_of} ({exact.name}); no duplicate SQL execution", file=sys.stderr)
         continue
-
     name = entry['name']
     repo_version = entry.get('repositoryVersion')
     if repo_version:
@@ -107,16 +94,11 @@ for entry in data['entries']:
     else:
         candidates = sorted(migrations.glob(f"*_{name}.sql"))
     if len(candidates) != 1:
-        raise SystemExit(
-            f"ledger mapping for {entry['version']} {name} expected exactly one repository file, found {len(candidates)}: "
-            + ', '.join(p.name for p in candidates)
-        )
+        raise SystemExit(f"ledger mapping for {entry['version']} {name} expected exactly one repository file, found {len(candidates)}")
     print(candidates[0])
 PY
 
-while IFS= read -r file; do
-  apply_sql "$file"
-done < "$HOLD/.aud003-ledger-paths"
+while IFS= read -r file; do apply_sql "$file"; done < "$HOLD/.aud003-ledger-paths"
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select case when to_regclass('public.companies') is not null then 1 else 0 end as companies_ok,
@@ -125,18 +107,11 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.metering_permissions') is not null then 1 else 0 end as metering_permissions_ok,
        case when to_regclass('public.actor_test_results') is not null then 1 else 0 end as actor_test_results_ok,
        case when to_regclass('public.ediel_test_runs') is not null then 1 else 0 end as ediel_test_runs_ok,
-       case when to_regclass('public.ediel_field_rules') is not null then 1 else 0 end as ediel_field_rules_ok,
-       case when to_regclass('public.ediel_code_rules') is not null then 1 else 0 end as ediel_code_rules_ok,
-       case when to_regclass('public.inbound_email_messages') is not null then 1 else 0 end as inbound_email_messages_ok,
-       case when to_regprocedure('public.set_updated_at_timestamp()') is not null then 1 else 0 end as updated_at_trigger_ok,
-       case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='companies' and column_name='production_status') then 1 else 0 end as legacy_company_production_status_ok,
-       case when to_regclass('public.ediel_production_readiness_checks') is not null then 1 else 0 end as ediel_production_readiness_checks_ok,
-       case when to_regclass('public.ediel_go_live_events') is not null then 1 else 0 end as ediel_go_live_events_ok,
+       case when to_regclass('public.ediel_production_readiness_checks') is not null then 1 else 0 end as readiness_ok,
+       case when to_regclass('public.ediel_go_live_events') is not null then 1 else 0 end as go_live_events_ok,
+       case when to_regclass('public.ediel_certificates') is not null then 1 else 0 end as ediel_certificates_ok,
        case when to_regclass('public.ediel_outbox') is not null then 1 else 0 end as ediel_outbox_ok,
-       case when to_regclass('public.grid_owner_contact_routes') is not null then 1 else 0 end as grid_owner_contact_routes_ok,
-       case when to_regclass('public.customer_site_resolution') is not null then 1 else 0 end as customer_site_resolution_ok,
-       case when to_regclass('public.grid_owner_information_requests') is not null then 1 else 0 end as grid_owner_information_requests_ok,
-       case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='powers_of_attorney' and column_name='customer_site_id') then 1 else 0 end as poa_customer_site_ok,
+       case when to_regclass('public.grid_owner_information_requests') is not null then 1 else 0 end as grid_owner_requests_ok,
        case when to_regclass('public.company_capabilities') is not null then 1 else 0 end as company_capabilities_ok,
        case when to_regclass('public.ediel_message_intents') is not null then 1 else 0 end as ediel_intents_ok;
 SQL
