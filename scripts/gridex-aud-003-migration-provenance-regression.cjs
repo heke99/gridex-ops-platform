@@ -29,8 +29,8 @@ const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
 
 const legacyOrder = [...plan.foundation, ...plan.controlledReconciliation];
-if (legacyOrder.length !== 13) {
-  fail(`expected exactly 13 documented legacy foundation/reconciliation files, found ${legacyOrder.length}`);
+if (legacyOrder.length !== plan.expectedLegacyInputCount) {
+  fail(`expected ${plan.expectedLegacyInputCount} documented legacy inputs, found ${legacyOrder.length}`);
 }
 if (new Set(legacyOrder).size !== legacyOrder.length) {
   fail('legacy migration order contains duplicate file names');
@@ -56,6 +56,19 @@ if (!/create\s+table\s+if\s+not\s+exists\s+public\.companies\s*\(/i.test(core)) 
 }
 if (!/Kör först|run first|apply.*before/i.test(core)) {
   fail(`${plan.foundation[0]} no longer carries explicit first-step bootstrap provenance`);
+}
+
+const meteringFoundation = '20260520_batch_3_4_onboarding_pricing_billing_engine.sql';
+const edielRules = 'ediel_rules.sql';
+if (plan.foundation.indexOf(meteringFoundation) < 0 || plan.foundation.indexOf(edielRules) < 0) {
+  fail('metering foundation and ediel_rules.sql must both be explicit bootstrap inputs');
+}
+if (plan.foundation.indexOf(meteringFoundation) > plan.foundation.indexOf(edielRules)) {
+  fail('metering permissions foundation must run before ediel_rules.sql');
+}
+const meteringSql = fs.readFileSync(path.join(migrationsDir, meteringFoundation), 'utf8');
+if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.test(meteringSql)) {
+  fail(`${meteringFoundation} no longer creates public.metering_permissions`);
 }
 
 const timestampedPattern = new RegExp(plan.rules.timestampedMigrationPattern);
