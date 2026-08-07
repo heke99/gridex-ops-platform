@@ -23,6 +23,7 @@ Apply in this exact order:
 14. `bootstrap/20260605_ediel_outbox_foundation.sql`
 15. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
 16. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+17. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
@@ -37,6 +38,8 @@ The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migration
 The grid-owner request bootstrap is sourced from immutable, checksum-pinned `migrations/20260611100000_energy_resolver_grid_area_operations.sql`. It restores the original, directly connected `grid_owner_contact_routes`, `customer_site_resolution` and `grid_owner_information_requests` relations plus their original indexes. This preserves the historical foreign-key chain while deliberately excluding unrelated PostGIS geometry, shared master-data and import/cache objects from that larger source migration. The tracked 20260626 manual grid-owner communication migration requires `grid_owner_information_requests` to exist before it can attach outreach foreign keys.
 
 The POA customer-site bootstrap is sourced from immutable, checksum-pinned `migrations/20260613090000_batch_m_ops_master_legal_readiness.sql`. It restores only nullable `powers_of_attorney.customer_site_id`, its `customer_sites(id)` foreign key with `ON DELETE SET NULL`, and the historical `customer_site_id = coalesce(customer_site_id, site_id)` backfill. This is required before the tracked 20260626 manual grid-owner migration indexes `customer_site_id`.
+
+The company-capabilities bootstrap is sourced from immutable, checksum-pinned `migrations/20260801143000_canonical_multitenant_platform_hardening.sql`, which exists in repository history but is absent from the connected dev ledger sequence used by clean replay. It restores the fail-closed `company_capabilities` registry, its constraints/index, RLS policies/grants, historical disabled capability seeds and `canonical_company_capability_enabled` lookup helper. The tracked `20260802010000_canonical_tenant_operation_policy_lifecycle.sql` requires this registry before inserting canonical operation capabilities and compiling its tenant-operation decision function.
 
 All derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`; CI also verifies the immutable source migration checksums. The 20260528 Ediel rulebook migration and 20260529 v4 compatibility migration are included whole because they are idempotent historical prerequisites for `ediel_rules.sql`.
 
