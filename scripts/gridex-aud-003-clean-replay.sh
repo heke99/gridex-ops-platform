@@ -18,6 +18,7 @@ foundation=(
  "$HOLD/01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
  "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
  "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
+ "$ROOT/supabase/bootstrap/20260519_user_profiles_foundation.sql"
  "$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
  "$ROOT/supabase/bootstrap/20260520_customer_cases_email_outbox_foundation.sql"
  "$ROOT/supabase/bootstrap/20260521_company_ediel_production_profile_foundation.sql"
@@ -68,6 +69,7 @@ PY
 while IFS= read -r file; do apply_sql "$file"; done < "$HOLD/.aud003-ledger-paths"
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select to_regclass('public.companies') is not null as companies_ok,
+ to_regclass('public.user_profiles') is not null as user_profiles_ok,
  to_regclass('public.admin_users') is not null as admin_users_ok,
  to_regprocedure('public.gridex_has_permission(uuid,text)') is not null as permission_helper_ok,
  to_regclass('public.customer_cases') is not null as customer_cases_ok,
