@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 22,
+  "expectedBootstrapInputCount": 23,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -19,7 +19,8 @@
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql",
     "bootstrap/20260605_ediel_outbox_foundation.sql",
     "bootstrap/20260611_grid_owner_information_request_foundation.sql",
-    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
+    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
+    "bootstrap/20260801_company_capabilities_foundation.sql"
   ],
   "controlledReconciliation": [
     "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
@@ -64,6 +65,11 @@
       "source": "migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
       "artifactSha256": "e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394",
       "purpose": "Restore only powers_of_attorney.customer_site_id with its customer_sites foreign key and historical backfill from site_id before the tracked manual grid-owner pipeline indexes that column."
+    },
+    "bootstrap/20260801_company_capabilities_foundation.sql": {
+      "source": "migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+      "artifactSha256": "77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df",
+      "purpose": "Restore the historical company_capabilities fail-closed registry, RLS policies, grants, initial capability rows and capability lookup helper before the tracked canonical tenant-operation lifecycle migration inserts canonical operation capabilities."
     }
   },
   "rules": {
