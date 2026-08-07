@@ -76,6 +76,7 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260614_integration_api_client_readiness_foundation.sql"
  "$ROOT/supabase/bootstrap/20260618_customer_operation_jobs_foundation.sql"
  "$ROOT/supabase/bootstrap/20260618_customer_application_workflows_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260721_contract_publication_revisions_foundation.sql"
  "$ROOT/supabase/bootstrap/20260724_customer_application_continuation_schema_foundation.sql"
  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
 )
@@ -190,6 +191,7 @@ select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.customer_operation_jobs') is not null as customer_operation_jobs_ok,
  to_regclass('public.customer_application_workflows') is not null as customer_application_workflows_ok,
  to_regclass('public.customer_application_workflow_events') is not null as customer_application_workflow_events_ok,
+ to_regclass('public.contract_publication_revisions') is not null as contract_publication_revisions_ok,
  to_regclass('public.webhook_subscriptions') is not null as webhook_subscriptions_ok,
  to_regclass('public.webhook_deliveries') is not null as webhook_deliveries_ok,
  to_regclass('public.company_email_settings') is not null as company_email_settings_ok,
