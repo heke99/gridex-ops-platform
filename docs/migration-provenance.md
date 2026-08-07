@@ -20,6 +20,7 @@ Apply in this exact order:
 11. `migrations/batch 3.sql`
 12. `migrations/batch 4+5+6.sql`
 13. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
+14. `bootstrap/20260605_ediel_outbox_foundation.sql`
 
 The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
@@ -28,6 +29,8 @@ The Ediel test-run bootstrap is sourced from immutable, checksum-pinned `migrati
 The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql`. `Batch 1+2.sql` already creates `ediel_mailboxes`; this artifact adds only `inbound_email_messages`, which `batch 3.sql` immediately updates and indexes.
 
 The updated-at trigger bootstrap restores `public.set_updated_at_timestamp()` exactly as recovered with `pg_get_functiondef` from `gridex-ops-dev` on 2026-08-07. The checksum-pinned `migrations/20260522_batch4f_rbac_database_lint_hardening.sql` corroborates that the helper already existed historically by hardening its search path. The derived artifact contains only that trigger helper and is applied before the tracked EDIEL intent migration that references it.
+
+The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migrations/20260605160000_ediel_backend_automation_foundation.sql`. It contains only the original `public.ediel_outbox` base table and `ediel_outbox_lock_key_uidx`. The base columns match the prefix of the current `gridex-ops-dev` table; later tracked migrations remain responsible for intent, locking, transport, certificate, route-contract and rule-pack additions.
 
 All derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`; CI also verifies the immutable source migration checksums. The 20260528 Ediel rulebook migration and 20260529 v4 compatibility migration are included whole because they are idempotent historical prerequisites for `ediel_rules.sql`.
 
