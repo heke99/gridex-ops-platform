@@ -14,24 +14,28 @@ Apply in this exact order:
 5. `bootstrap/20260521_company_ediel_production_profile_foundation.sql`
 6. `bootstrap/20260521_actor_test_results_foundation.sql`
 7. `bootstrap/20260521_ediel_test_runs_foundation.sql`
-8. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
-9. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
-10. `migrations/ediel_rules.sql`
-11. `migrations/Batch 1+2.sql`
-12. `bootstrap/20260528_inbound_email_messages_foundation.sql`
-13. `migrations/batch 3.sql`
-14. `migrations/batch 4+5+6.sql`
-15. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
-16. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
-17. `bootstrap/20260602_ediel_certificates_foundation.sql`
-18. `bootstrap/20260605_ediel_outbox_foundation.sql`
-19. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-20. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-21. `bootstrap/20260801_company_capabilities_foundation.sql`
+8. `bootstrap/20260521_ediel_test_run_messages_foundation.sql`
+9. `bootstrap/20260528_ediel_test_run_steps_foundation.sql`
+10. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
+11. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
+12. `migrations/ediel_rules.sql`
+13. `migrations/Batch 1+2.sql`
+14. `bootstrap/20260528_inbound_email_messages_foundation.sql`
+15. `migrations/batch 3.sql`
+16. `migrations/batch 4+5+6.sql`
+17. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
+18. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
+19. `bootstrap/20260602_ediel_certificates_foundation.sql`
+20. `bootstrap/20260605_ediel_outbox_foundation.sql`
+21. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+22. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+23. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
 
-The company Ediel production-profile, actor-test-result and Ediel test-run bootstraps are sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`. They restore only the legacy production projection fields still read by canonical Ediel state, the historical `actor_test_results` ledger and its original indexes, and `ediel_test_runs`. Later canonical migrations remain responsible for configuration snapshot and staleness fields.
+The company Ediel production-profile, actor-test-result, test-run and test-run-message bootstraps are sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`. They restore only the legacy production projection fields still read by canonical Ediel state, `actor_test_results`, `ediel_test_runs`, and the original `ediel_test_run_messages` relation plus uniqueness index. The message relation deliberately remains tenant-unqualified until the tracked `20260802013000_ediel_test_evidence_v2.sql` adds `company_id` and composite tenant foreign keys.
+
+The test-run-step bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_2_completion_rulebook_actions_regression.sql`. It restores only the historical run metadata required by that source, `ediel_test_run_steps`, its original indexes and RLS enablement. Tenant ownership and composite foreign keys remain the responsibility of `20260802013000_ediel_test_evidence_v2.sql`.
 
 The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql`. `Batch 1+2.sql` already creates `ediel_mailboxes`; this artifact adds only `inbound_email_messages`, which `batch 3.sql` immediately updates and indexes.
 
