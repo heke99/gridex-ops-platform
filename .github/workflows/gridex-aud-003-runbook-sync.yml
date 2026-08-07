@@ -1,0 +1,75 @@
+name: GRIDEX AUD-003 runbook sync
+
+on:
+  push:
+    branches:
+      - remediation/gridex-aud-003-migration-provenance
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: remediation/gridex-aud-003-migration-provenance
+          fetch-depth: 0
+      - name: Replace stale migration ordering block
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('docs/production-runbook.md')
+          text = path.read_text()
+          old = '''## 2. Migration ordering (important)
+
+`supabase/migrations` contains 13 non-timestamped legacy foundation files. On a
+fresh database apply in this order **before** the timestamped set:
+
+1. `01_db1_schema_repair_core_helpers_and_canonical_tables.sql`
+2. `02_db1_operations_ediel_billing_dedupe_and_storage.sql`
+3. `03_db1_backfill_functions_rls_reports_and_finish.sql`
+4. `ediel_rules.sql`
+5. `Batch 1+2.sql`, `batch 3.sql`, `batch 4+5+6.sql`
+6. (db2/db2b files only as part of the controlled reconciliation procedure)
+
+Then all `YYYYMMDDHHMMSS_*.sql` in order. `npm run db:migrations:check` verifies
+no duplicate versions. The production database already has all of these; do not
+rename the legacy files.
+'''
+          new = '''## 2. Migration ordering (important)
+
+A fresh database must use the checksum-pinned provenance contract in
+`docs/migration-provenance.md`. Apply the explicit historical foundation in this
+order **before** the canonical 14-digit migration set:
+
+1. `01_db1_schema_repair_core_helpers_and_canonical_tables.sql`
+2. `02_db1_operations_ediel_billing_dedupe_and_storage.sql`
+3. `03_db1_backfill_functions_rls_reports_and_finish.sql`
+4. `20260520_batch_3_4_onboarding_pricing_billing_engine.sql`
+5. `ediel_rules.sql`
+6. `Batch 1+2.sql`, `batch 3.sql`, `batch 4+5+6.sql`
+7. (db2/db2b files only as part of the controlled reconciliation procedure)
+
+The 8-digit `20260520...` file is explicit because it creates
+`public.metering_permissions`, which `ediel_rules.sql` expects. Then apply all
+`YYYYMMDDHHMMSS_*.sql` in order. `npm run db:migrations:check` plus the AUD-003
+provenance and clean-replay gates verify the contract. Do not rename or rewrite
+legacy files and never repair provenance by editing the remote migration ledger.
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one stale runbook block, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit runbook and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/gridex-aud-003-runbook-sync.yml
+          git add docs/production-runbook.md
+          git diff --cached --check
+          git commit -m "docs(aud-003): correct fresh database migration order"
+          git push origin HEAD:remediation/gridex-aud-003-migration-provenance
