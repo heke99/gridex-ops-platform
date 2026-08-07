@@ -9,39 +9,42 @@ Apply in this exact order:
 1. `migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql`
 2. `migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql`
 3. `migrations/03_db1_backfill_functions_rls_reports_and_finish.sql`
-4. `bootstrap/20260520_metering_permissions_foundation.sql`
-5. `bootstrap/20260520_customer_cases_email_outbox_foundation.sql`
-6. `bootstrap/20260521_company_ediel_production_profile_foundation.sql`
-7. `bootstrap/20260521_actor_test_results_foundation.sql`
-8. `bootstrap/20260521_ediel_test_runs_foundation.sql`
-9. `bootstrap/20260521_ediel_test_run_messages_foundation.sql`
-10. `bootstrap/20260522_admin_users_foundation.sql`
-11. `bootstrap/20260523_rbac_permission_helpers_foundation.sql`
-12. `bootstrap/20260528_ediel_test_run_steps_foundation.sql`
-13. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
-14. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
-15. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql`
-16. `migrations/ediel_rules.sql`
-17. `migrations/Batch 1+2.sql`
-18. `bootstrap/20260528_inbound_email_messages_foundation.sql`
-19. `migrations/batch 3.sql`
-20. `migrations/batch 4+5+6.sql`
-21. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
-22. `bootstrap/20260531_integration_api_clients_foundation.sql`
-23. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
-24. `bootstrap/20260602_ediel_certificates_foundation.sql`
-25. `bootstrap/20260602_ediel_environment_type_foundation.sql`
-26. `bootstrap/20260605_ediel_outbox_foundation.sql`
-27. `bootstrap/20260609_webhook_email_readiness_foundation.sql`
-28. `bootstrap/20260609_website_customer_applications_foundation.sql`
-29. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-30. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-31. `bootstrap/20260618_customer_operation_jobs_foundation.sql`
-32. `bootstrap/20260618_customer_application_workflows_foundation.sql`
-33. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
-34. `bootstrap/20260801_company_capabilities_foundation.sql`
+4. `bootstrap/20260519_user_profiles_foundation.sql`
+5. `bootstrap/20260520_metering_permissions_foundation.sql`
+6. `bootstrap/20260520_customer_cases_email_outbox_foundation.sql`
+7. `bootstrap/20260521_company_ediel_production_profile_foundation.sql`
+8. `bootstrap/20260521_actor_test_results_foundation.sql`
+9. `bootstrap/20260521_ediel_test_runs_foundation.sql`
+10. `bootstrap/20260521_ediel_test_run_messages_foundation.sql`
+11. `bootstrap/20260522_admin_users_foundation.sql`
+12. `bootstrap/20260523_rbac_permission_helpers_foundation.sql`
+13. `bootstrap/20260528_ediel_test_run_steps_foundation.sql`
+14. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
+15. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
+16. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql`
+17. `migrations/ediel_rules.sql`
+18. `migrations/Batch 1+2.sql`
+19. `bootstrap/20260528_inbound_email_messages_foundation.sql`
+20. `migrations/batch 3.sql`
+21. `migrations/batch 4+5+6.sql`
+22. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
+23. `bootstrap/20260531_integration_api_clients_foundation.sql`
+24. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
+25. `bootstrap/20260602_ediel_certificates_foundation.sql`
+26. `bootstrap/20260602_ediel_environment_type_foundation.sql`
+27. `bootstrap/20260605_ediel_outbox_foundation.sql`
+28. `bootstrap/20260609_webhook_email_readiness_foundation.sql`
+29. `bootstrap/20260609_website_customer_applications_foundation.sql`
+30. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+31. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+32. `bootstrap/20260618_customer_operation_jobs_foundation.sql`
+33. `bootstrap/20260618_customer_application_workflows_foundation.sql`
+34. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
+35. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 Every derived bootstrap artifact is deliberately narrower than its immutable source and is independently SHA-256 pinned in `scripts/gridex-aud-003-legacy-foundation.json` or the machine-verified `scripts/gridex-aud-003-legacy-foundation.additions.json`. CI also verifies the source migration checksum from `scripts/migration-history-manifest.json`.
+
+`bootstrap/20260519_user_profiles_foundation.sql` is sourced from checksum-pinned `migrations/20260519_auth_callback_email_reset_sync.sql`. It restores only the historical `user_profiles` relation, auth-state columns, constraint and indexes required by canonical actor authorization. It creates no auth users or profiles and does not replay the unrelated auth-email event ledger or backfill.
 
 `bootstrap/20260520_customer_cases_email_outbox_foundation.sql` is sourced from checksum-pinned `migrations/20260520_batch_5_cases_audit_email_ux.sql`. It restores only the directly connected historical `customer_cases` and `tenant_email_outbox` relations, their original indexes and fail-closed service-role RLS. It seeds no cases, messages or other product data. The canonical queue hardening migration remains responsible for the later blocked-tenant-state fields and status constraint.
 
@@ -65,7 +68,7 @@ The 20260521 artifacts restore only the legacy company Ediel production projecti
 
 `bootstrap/20260724_customer_application_continuation_schema_foundation.sql` is sourced from checksum-pinned `migrations/20260724210000_customer_application_continuation_orchestrator.sql`. It restores only the continuation workflow columns, `customer_application_workflow_events` ledger, queue linkage, indexes and foreign key required by later canonical event projection. It deliberately omits orchestration RPC behavior and seeds no workflows, jobs or events.
 
-The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, webhook/email readiness, website-application/workflow, operation-job, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
+The user-profile, metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, webhook/email readiness, website-application/workflow, operation-job, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
 
 Historical migration files remain immutable. Do not rename or rewrite them to manufacture migration history.
 
