@@ -42,12 +42,15 @@ Apply these inputs before the official 14-digit ledger replay, in this order:
 34. `bootstrap/20260614_integration_api_client_readiness_foundation.sql`
 35. `bootstrap/20260618_customer_operation_jobs_foundation.sql`
 36. `bootstrap/20260618_customer_application_workflows_foundation.sql`
-37. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
-38. `bootstrap/20260801_company_capabilities_foundation.sql`
+37. `bootstrap/20260721_contract_publication_revisions_foundation.sql`
+38. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
+39. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 All derived bootstrap artifacts are intentionally narrower than their immutable historical source. Artifact SHA-256 values and source mappings are pinned in `scripts/gridex-aud-003-legacy-foundation.json` and `scripts/gridex-aud-003-legacy-foundation.additions.json`; source migration checksums are pinned by `scripts/migration-history-manifest.json`.
 
-The foundation restores schema prerequisites only. It must not seed auth users, administrators, API clients, customer applications, workflows, jobs, webhook deliveries, customer cases, email messages or other operational product rows. Worker/orchestration RPC behavior is excluded from derived bootstraps unless separately proven necessary.
+The foundation restores schema prerequisites only. It must not seed auth users, administrators, API clients, customer applications, workflows, jobs, contract publication revision rows, webhook deliveries, customer cases, email messages or other operational product rows. Worker/orchestration RPC behavior is excluded from derived bootstraps unless separately proven necessary.
+
+`bootstrap/20260721_contract_publication_revisions_foundation.sql` is derived from checksum-pinned `migrations/20260721170000_contract_graph_api_revision_hardening.sql`. It restores only the historical `contract_publication_revisions` relation and fail-closed RLS required by the tracked shared public-contract snapshot schema/RPC. It does not seed revision rows or replay publication-event functions.
 
 ## 2. Controlled legacy reconciliation
 
@@ -62,17 +65,17 @@ These immutable legacy inputs are not part of the normal foundation and may be e
 
 ## 3. Canonical ledger replay and interleaved prerequisite
 
-After the historical foundation, replay the official development ledger represented by `scripts/gridex-aud-003-main-ledger.json`. Historical ledger aliases are checksum-validated against their canonical repository migration and canonical SQL is executed only once.
+After the historical foundation, replay the official development ledger represented by `scripts/gridex-aud-003-main-ledger.json`. The replay stages checksum-validated repository SQL under the official ledger version/name and uses Supabase CLI to apply it so `supabase_migrations.schema_migrations` is created and maintained by Supabase itself. Historical ledger aliases are represented by a no-op migration at the official alias version so canonical SQL executes only once.
 
 One historical prerequisite cannot run in the pre-ledger foundation because its target table is created by the tracked ledger itself. Therefore apply `bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql` after ledger version `20260802180000` and immediately before ledger version `20260803093000`.
 
-That interleaved artifact is derived from checksum-pinned `migrations/20260802232000_migration_truth_readiness.sql` and restores only `canonical_migration_manifest.verified_at`, `verification_source`, `release_identifier`, and `schema_fingerprint`. It creates no manifest rows and manufactures no verification evidence. The tracked `20260803093000_platform_schema_runtime_columns_v3.sql` remains responsible for the later ledger/effect metadata, and `20260803093200_gridex_migration_governance_v3.sql` remains responsible for the v3 governance view.
+That interleaved artifact is derived from checksum-pinned `migrations/20260802232000_migration_truth_readiness.sql` and restores only `canonical_migration_manifest.verified_at`, `verification_source`, `release_identifier`, and `schema_fingerprint`. It creates no manifest rows and manufactures no verification evidence. The tracked `20260803093000_platform_schema_runtime_columns_v3.sql` remains responsible for later ledger/effect metadata, and `20260803093200_gridex_migration_governance_v3.sql` remains responsible for the v3 governance view.
 
 ## 4. Provenance boundary
 
 The connected `gridex-ops-dev` ledger starts at `20260531075508` (`fix_customer_internal_notes_customer_fk`). Repository history and the verified development schema contain prerequisite state older than that boundary, so the remote ledger alone is not a valid empty-database bootstrap source.
 
-Historical Supabase ledger row `20260803081939` is an explicit alias of canonical repository migration `20260803093300_duplicate_primary_client_audit_contract_v3.sql`; replay validates the alias and does not execute duplicate SQL.
+Historical Supabase ledger row `20260803081939` is an explicit alias of canonical repository migration `20260803093300_duplicate_primary_client_audit_contract_v3.sql`; replay validates the alias and records it through Supabase CLI without executing duplicate canonical SQL.
 
 ## 5. Safety rules
 
@@ -80,6 +83,7 @@ Historical Supabase ledger row `20260803081939` is an explicit alias of canonica
 - Never mutate already-applied migration SQL in place.
 - Never infer missing historical DDL when checksum-pinned repository or verified schema evidence exists.
 - Derived bootstrap artifacts must remain narrower than their source migration and contain only evidenced prerequisites.
+- The clean replay must let Supabase CLI create/update its local official migration ledger; direct DML against the ledger is prohibited.
 - A failed or missing staging target must never be represented as staging-verified.
 - Any change to bootstrap order, source checksum, artifact checksum, alias mapping or interleaved boundary must fail CI until the contract and regression are updated together.
 
@@ -87,6 +91,6 @@ Historical Supabase ledger row `20260803081939` is an explicit alias of canonica
 
 `node scripts/gridex-aud-003-migration-provenance-regression.cjs` verifies immutable source checksums, derived artifact hashes, foundation order, interleaved bounds, replay inclusion and safety constraints.
 
-`bash scripts/gridex-aud-003-clean-replay.sh` starts an empty local Supabase stack, applies the explicit historical foundation, injects the checksum-pinned interleaved prerequisite at its declared ledger boundary, replays the main-aligned official dev ledger with `ON_ERROR_STOP=1`, and performs final schema smoke checks.
+`bash scripts/gridex-aud-003-clean-replay.sh` starts an empty local Supabase stack, applies the explicit historical foundation, lets Supabase CLI apply and record the official dev ledger, injects the checksum-pinned interleaved prerequisite at its declared boundary, compares the resulting CLI-owned ledger rad-for-rad against `scripts/gridex-aud-003-main-ledger.json`, and performs final schema smoke checks.
 
 Both the full OPS verify job and clean migration replay must pass on the exact same commit before `GRIDEX-AUD-003` can be marked `DEV_VERIFIED` or merged.
