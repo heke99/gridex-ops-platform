@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 17,
+  "expectedBootstrapInputCount": 18,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -13,6 +13,7 @@
     "migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql",
     "migrations/ediel_rules.sql",
     "migrations/Batch 1+2.sql",
+    "bootstrap/20260528_inbound_email_messages_foundation.sql",
     "migrations/batch 3.sql",
     "migrations/batch 4+5+6.sql"
   ],
@@ -34,6 +35,11 @@
       "source": "migrations/20260521_actor_testing_go_live_module.sql",
       "artifactSha256": "4d68d752d6a265c3f6c9eeb20119fd3f51f492930a626ed93c634fe7419a5bc3",
       "purpose": "Create only ediel_test_runs before the Ediel rulebook migration without replaying unrelated white-label and production-go-live changes."
+    },
+    "bootstrap/20260528_inbound_email_messages_foundation.sql": {
+      "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
+      "artifactSha256": "daf30f251b6b856669aee3888bbea3f188edfcb71e8755ab9a937ff01f5cb70a",
+      "purpose": "Create only inbound_email_messages after Batch 1+2 supplies ediel_mailboxes and before batch 3 enriches inbound-mail routing fields."
     }
   },
   "rules": {
