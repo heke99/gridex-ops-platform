@@ -26,16 +26,19 @@ Apply in this exact order:
 18. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
 19. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
 20. `bootstrap/20260602_ediel_certificates_foundation.sql`
-21. `bootstrap/20260605_ediel_outbox_foundation.sql`
-22. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-23. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-24. `bootstrap/20260801_company_capabilities_foundation.sql`
+21. `bootstrap/20260602_ediel_environment_type_foundation.sql`
+22. `bootstrap/20260605_ediel_outbox_foundation.sql`
+23. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+24. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+25. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 Every derived bootstrap artifact is deliberately narrower than its immutable source and is independently SHA-256 pinned in `scripts/gridex-aud-003-legacy-foundation.json`. CI also verifies the source migration checksum from `scripts/migration-history-manifest.json`.
 
 The 20260521 artifacts restore only the legacy company Ediel production projection, actor-test result ledger, test-run base, and original test-run message relation from checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`.
 
 `bootstrap/20260528_ediel_test_run_steps_foundation.sql` is sourced from checksum-pinned `migrations/20260528_batch_2_completion_rulebook_actions_regression.sql` and restores the original test-run step relation, prerequisite run metadata, indexes and RLS. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql` is sourced from checksum-pinned `migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql` and restores only `ediel_test_artifacts.ediel_message_id` with its historical message FK. Tenant ownership and composite tenant FKs remain the responsibility of tracked `20260802013000_ediel_test_evidence_v2.sql`.
+
+`bootstrap/20260602_ediel_environment_type_foundation.sql` is sourced from checksum-pinned `migrations/20260602143000_ediel_environment_business_action_locks.sql` and restores only the historical enum values `tgt_test`, `agt_test`, `bilateral_test`, and `production`. Canonical evidence migrations depend on the type but remain responsible for later environment-qualified records and constraints.
 
 The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
 
