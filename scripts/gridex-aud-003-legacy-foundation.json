@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before timestamped migrations.",
+  "firstTrackedRemoteVersion": "20260531075508",
+  "foundation": [
+    "01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+    "02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+    "03_db1_backfill_functions_rls_reports_and_finish.sql",
+    "ediel_rules.sql",
+    "Batch 1+2.sql",
+    "batch 3.sql",
+    "batch 4+5+6.sql"
+  ],
+  "controlledReconciliation": [
+    "01_db2_full_view_preflight_schema_and_functions.sql",
+    "02_db2_execute_controlled_reconciliation.sql",
+    "03_db2_validation_and_finish.sql",
+    "01_db2b_preflight_views.sql",
+    "02_db2b_apply_superadmin_and_membership.sql",
+    "03_db2b_validation_views.sql"
+  ],
+  "rules": {
+    "legacyFilesRemainImmutable": true,
+    "doNotRenameLegacyFiles": true,
+    "doNotEditRemoteLedgerDirectly": true,
+    "timestampedMigrationPattern": "^[0-9]{14}_.+\\.sql$"
+  }
+}
