@@ -27,14 +27,18 @@ Apply in this exact order:
 19. `migrations/batch 3.sql`
 20. `migrations/batch 4+5+6.sql`
 21. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
-22. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
-23. `bootstrap/20260602_ediel_certificates_foundation.sql`
-24. `bootstrap/20260602_ediel_environment_type_foundation.sql`
-25. `bootstrap/20260605_ediel_outbox_foundation.sql`
-26. `bootstrap/20260609_webhook_email_readiness_foundation.sql`
-27. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-28. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-29. `bootstrap/20260801_company_capabilities_foundation.sql`
+22. `bootstrap/20260531_integration_api_clients_foundation.sql`
+23. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
+24. `bootstrap/20260602_ediel_certificates_foundation.sql`
+25. `bootstrap/20260602_ediel_environment_type_foundation.sql`
+26. `bootstrap/20260605_ediel_outbox_foundation.sql`
+27. `bootstrap/20260609_webhook_email_readiness_foundation.sql`
+28. `bootstrap/20260609_website_customer_applications_foundation.sql`
+29. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+30. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+31. `bootstrap/20260618_customer_application_workflows_foundation.sql`
+32. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
+33. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 Every derived bootstrap artifact is deliberately narrower than its immutable source and is independently SHA-256 pinned in `scripts/gridex-aud-003-legacy-foundation.json`. CI also verifies the source migration checksum from `scripts/migration-history-manifest.json`.
 
@@ -48,11 +52,17 @@ The 20260521 artifacts restore only the legacy company Ediel production projecti
 
 `bootstrap/20260528_ediel_test_run_steps_foundation.sql` is sourced from checksum-pinned `migrations/20260528_batch_2_completion_rulebook_actions_regression.sql` and restores the original test-run step relation, prerequisite run metadata, indexes and RLS. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql` is sourced from checksum-pinned `migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql` and restores only `ediel_test_artifacts.ediel_message_id` with its historical message FK. Tenant ownership and composite tenant FKs remain the responsibility of tracked `20260802013000_ediel_test_evidence_v2.sql`.
 
+`bootstrap/20260531_integration_api_clients_foundation.sql` is sourced from checksum-pinned `migrations/20260531111600_system_readiness_foundation.sql`. It restores only the historical `integration_api_clients` relation and indexes needed by the website-application foreign key. It creates no API clients and seeds no secrets.
+
 `bootstrap/20260602_ediel_environment_type_foundation.sql` is sourced from checksum-pinned `migrations/20260602143000_ediel_environment_business_action_locks.sql` and restores only the historical enum values `tgt_test`, `agt_test`, `bilateral_test`, and `production`. Canonical evidence migrations depend on the type but remain responsible for later environment-qualified records and constraints.
 
-`bootstrap/20260609_webhook_email_readiness_foundation.sql` is sourced from checksum-pinned `migrations/20260609162000_batch_7_website_integration_foundation.sql`. It restores only the source-defined `domain_events`, `webhook_subscriptions`, `webhook_deliveries`, and `company_email_settings` relations and indexes required by tracked canonical tenant-state hardening. It seeds no webhook subscriptions, deliveries, events, email settings, or other product data.
+`bootstrap/20260609_webhook_email_readiness_foundation.sql` and `bootstrap/20260609_website_customer_applications_foundation.sql` are sourced from checksum-pinned `migrations/20260609162000_batch_7_website_integration_foundation.sql`. Together they restore only the source-defined domain-event/webhook/email-readiness relations and the historical `website_customer_applications` relation required by later workflow provenance. They seed no webhook subscriptions, deliveries, events, email settings or customer applications.
 
-The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, webhook/email readiness, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
+`bootstrap/20260618_customer_application_workflows_foundation.sql` is sourced from checksum-pinned `migrations/20260618213000_ops_completion_workflows_health.sql` and restores the original durable `customer_application_workflows` relation, indexes and fail-closed RLS without workflow rows.
+
+`bootstrap/20260724_customer_application_continuation_schema_foundation.sql` is sourced from checksum-pinned `migrations/20260724210000_customer_application_continuation_orchestrator.sql`. It restores only the continuation workflow columns, `customer_application_workflow_events` ledger, queue linkage, indexes and foreign key required by later canonical event projection. It deliberately omits orchestration RPC behavior and seeds no workflows, jobs or events.
+
+The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, webhook/email readiness, website-application/workflow, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
 
 Historical migration files remain immutable. Do not rename or rewrite them to manufacture migration history.
 
