@@ -66,13 +66,17 @@ These immutable legacy inputs are not part of the normal foundation and may be e
 5. `migrations/02_db2b_apply_superadmin_and_membership.sql`
 6. `migrations/03_db2b_validation_views.sql`
 
-## 3. Canonical ledger replay and interleaved prerequisite
+## 3. Canonical ledger replay and interleaved prerequisites
 
 After the historical foundation, replay the official development ledger represented by `scripts/gridex-aud-003-main-ledger.json`. The replay stages checksum-validated repository SQL under the official ledger version/name and uses Supabase CLI to apply it so `supabase_migrations.schema_migrations` is created and maintained by Supabase itself. Historical ledger aliases are represented by a no-op migration at the official alias version so canonical SQL executes only once.
 
-One historical prerequisite cannot run in the pre-ledger foundation because its target table is created by the tracked ledger itself. Therefore apply `bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql` after ledger version `20260802180000` and immediately before ledger version `20260803093000`.
+Two historical prerequisites must be interleaved because their target/dependent objects occur inside the tracked ledger sequence rather than entirely before it.
 
-That interleaved artifact is derived from checksum-pinned `migrations/20260802232000_migration_truth_readiness.sql` and restores only `canonical_migration_manifest.verified_at`, `verification_source`, `release_identifier`, and `schema_fingerprint`. It creates no manifest rows and manufactures no verification evidence. The tracked `20260803093000_platform_schema_runtime_columns_v3.sql` remains responsible for later ledger/effect metadata, and `20260803093200_gridex_migration_governance_v3.sql` remains responsible for the v3 governance view.
+First, apply `bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql` after ledger version `20260802180000` and immediately before ledger version `20260803093000`. This artifact is derived from checksum-pinned `migrations/20260802232000_migration_truth_readiness.sql` and restores only `canonical_migration_manifest.verified_at`, `verification_source`, `release_identifier`, and `schema_fingerprint`. It creates no manifest rows and manufactures no verification evidence. The tracked `20260803093000_platform_schema_runtime_columns_v3.sql` remains responsible for later ledger/effect metadata, and `20260803093200_gridex_migration_governance_v3.sql` remains responsible for the v3 governance view.
+
+Second, apply `bootstrap/20260716_contract_platform_readiness_foundation.sql` after ledger version `20260803100130` and immediately before `20260803131558`. Its source is checksum-pinned `migrations/20260716183000_contract_canonical_finalization.sql`, which created `gridex_contract_platform_readiness(uuid)`. The exact pre-hardening implementation is independently corroborated by the preserved `gridex_contract_platform_readiness_internal_v1(uuid)` definition in `gridex-ops-dev`: migration `20260803131558_external_api_contract_database_hardening_v1.sql` renames the historical function to that internal name before installing the tenant-authorized facade. The bootstrap restores only that RPC and seeds no product data.
+
+Neither interleaved prerequisite inserts or updates `supabase_migrations.schema_migrations`; only Supabase CLI owns the replay ledger.
 
 ## 4. Provenance boundary
 
@@ -94,6 +98,6 @@ Historical Supabase ledger row `20260803081939` is an explicit alias of canonica
 
 `node scripts/gridex-aud-003-migration-provenance-regression.cjs` verifies immutable source checksums, derived artifact hashes, foundation order, interleaved bounds, replay inclusion and safety constraints.
 
-`bash scripts/gridex-aud-003-clean-replay.sh` starts an empty local Supabase stack, applies the explicit historical foundation, lets Supabase CLI apply and record the official dev ledger, injects the checksum-pinned interleaved prerequisite at its declared boundary, compares the resulting CLI-owned ledger rad-for-rad against `scripts/gridex-aud-003-main-ledger.json`, and performs final schema smoke checks.
+`bash scripts/gridex-aud-003-clean-replay.sh` starts an empty local Supabase stack, applies the explicit historical foundation, lets Supabase CLI apply and record the official dev ledger in controlled phases, injects each checksum-pinned interleaved prerequisite only at its declared boundary, compares the resulting CLI-owned ledger row-for-row against `scripts/gridex-aud-003-main-ledger.json`, and performs final schema smoke checks.
 
 Both the full OPS verify job and clean migration replay must pass on the exact same commit before `GRIDEX-AUD-003` can be marked `DEV_VERIFIED` or merged.
