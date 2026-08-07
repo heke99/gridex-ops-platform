@@ -60,14 +60,37 @@ for file in "${foundation[@]}"; do
 done
 
 # After the historical baseline, replay the official dev ledger only through
-# the commit that is actually represented by main. This intentionally excludes
-# the two AUD-001 rows already applied in dev from open PR #87.
+# the commit that is actually represented by main. A historical Supabase MCP
+# ledger alias is validated against its canonical file but is not executed as a
+# second migration. This also intentionally excludes the two AUD-001 rows
+# already applied in dev from open PR #87.
 python3 - "$LEDGER" "$HOLD" <<'PY' > "$HOLD/.aud003-ledger-paths"
-import json, pathlib, sys
+import hashlib, json, pathlib, sys
 ledger_path = pathlib.Path(sys.argv[1])
 migrations = pathlib.Path(sys.argv[2])
 data = json.loads(ledger_path.read_text())
+entries_by_version = {entry['version']: entry for entry in data['entries']}
+
 for entry in data['entries']:
+    alias_of = entry.get('ledgerAliasOf')
+    if alias_of:
+        target = entries_by_version.get(alias_of)
+        if not target:
+            raise SystemExit(f"ledger alias {entry['version']} points to missing canonical version {alias_of}")
+        repo_version = target.get('repositoryVersion', alias_of)
+        exact = migrations / f"{repo_version}_{target['name']}.sql"
+        if not exact.exists():
+            raise SystemExit(f"ledger alias {entry['version']} canonical file missing: {exact.name}")
+        expected = entry.get('checksum')
+        if expected:
+            actual = hashlib.sha256(exact.read_bytes()).hexdigest()
+            if actual != expected:
+                raise SystemExit(
+                    f"ledger alias {entry['version']} checksum mismatch for {exact.name}: expected {expected}, got {actual}"
+                )
+        print(f"[AUD-003 replay] ledger alias {entry['version']} -> {alias_of} ({exact.name}); no duplicate SQL execution", file=sys.stderr)
+        continue
+
     name = entry['name']
     repo_version = entry.get('repositoryVersion')
     if repo_version:
