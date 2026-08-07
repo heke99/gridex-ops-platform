@@ -43,9 +43,9 @@
       "purpose": "Create only inbound_email_messages after Batch 1+2 supplies ediel_mailboxes and before batch 3 enriches inbound-mail routing fields."
     },
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql": {
-      "source": "gridex-ops-dev pg_get_functiondef(public.set_updated_at_timestamp()) verified 2026-08-07; historical existence corroborated by migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
+      "source": "migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
       "artifactSha256": "82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5",
-      "purpose": "Restore the exact pre-ledger updated_at trigger helper required by later tracked migrations without replaying unrelated historical hardening SQL."
+      "purpose": "Restore the exact pre-ledger updated_at trigger helper recovered from gridex-ops-dev via pg_get_functiondef on 2026-08-07; the pinned 20260522 lint migration corroborates that this helper already existed before later tracked migrations."
     }
   },
   "rules": {
