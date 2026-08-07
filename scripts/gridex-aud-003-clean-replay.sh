@@ -52,6 +52,7 @@ foundation=(
   "$ROOT/supabase/bootstrap/20260528_inbound_email_messages_foundation.sql"
   "$HOLD/batch 3.sql"
   "$HOLD/batch 4+5+6.sql"
+  "$ROOT/supabase/bootstrap/20260522_set_updated_at_timestamp_foundation.sql"
 )
 
 for file in "${foundation[@]}"; do
@@ -119,6 +120,7 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.ediel_field_rules') is not null then 1 else 0 end as ediel_field_rules_ok,
        case when to_regclass('public.ediel_code_rules') is not null then 1 else 0 end as ediel_code_rules_ok,
        case when to_regclass('public.inbound_email_messages') is not null then 1 else 0 end as inbound_email_messages_ok,
+       case when to_regprocedure('public.set_updated_at_timestamp()') is not null then 1 else 0 end as updated_at_trigger_ok,
        case when to_regclass('public.ediel_message_intents') is not null then 1 else 0 end as ediel_intents_ok;
 SQL
 
