@@ -6,14 +6,39 @@ MIGRATIONS="$ROOT/supabase/migrations"
 SEED="$ROOT/supabase/seed.sql"
 LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HOLD="$(mktemp -d)"
+STAGED="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-cleanup(){ set +e; supabase stop --no-backup >/dev/null 2>&1 || true; rm -f "$MIGRATIONS"/*.sql; cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true; cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true; rm -rf "$HOLD" "$SEED_BACKUP"; }
+INTERLEAVED="$ROOT/supabase/bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql"
+PHASE_TWO_START="20260803093000"
+
+cleanup(){
+  set +e
+  supabase stop --no-backup >/dev/null 2>&1 || true
+  rm -f "$MIGRATIONS"/*.sql
+  cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
+  cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
+  rm -rf "$HOLD" "$STAGED" "$SEED_BACKUP"
+}
 trap cleanup EXIT
-command -v supabase >/dev/null; command -v psql >/dev/null; command -v python3 >/dev/null
-cp -a "$MIGRATIONS"/. "$HOLD"/; cp "$SEED" "$SEED_BACKUP"; rm -f "$MIGRATIONS"/*.sql; : > "$SEED"
+
+command -v supabase >/dev/null
+command -v psql >/dev/null
+command -v python3 >/dev/null
+
+cp -a "$MIGRATIONS"/. "$HOLD"/
+cp "$SEED" "$SEED_BACKUP"
+rm -f "$MIGRATIONS"/*.sql
+: > "$SEED"
+
 supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
-apply_sql(){ local file="$1"; echo "[AUD-003 replay] applying ${file#$ROOT/}"; psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"; }
+
+apply_sql(){
+  local file="$1"
+  echo "[AUD-003 replay] applying ${file#$ROOT/}"
+  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
+}
+
 foundation=(
  "$HOLD/01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
  "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
@@ -54,27 +79,101 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260724_customer_application_continuation_schema_foundation.sql"
  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
 )
-for file in "${foundation[@]}"; do test -f "$file" || { echo "missing foundation $file" >&2; exit 1; }; apply_sql "$file"; done
-python3 - "$LEDGER" "$HOLD" <<'PY' > "$HOLD/.aud003-ledger-paths"
-import hashlib,json,pathlib,sys
-ledger=pathlib.Path(sys.argv[1]); migrations=pathlib.Path(sys.argv[2]); data=json.loads(ledger.read_text()); by={e['version']:e for e in data['entries']}
-for e in data['entries']:
- a=e.get('ledgerAliasOf')
- if a:
-  t=by.get(a); rv=t.get('repositoryVersion',a); exact=migrations/f"{rv}_{t['name']}.sql"; exp=e.get('checksum')
-  if not t or not exact.exists(): raise SystemExit(f"invalid ledger alias {e['version']}")
-  if exp and hashlib.sha256(exact.read_bytes()).hexdigest()!=exp: raise SystemExit(f"ledger alias checksum mismatch {e['version']}")
-  print(f"[AUD-003 replay] ledger alias {e['version']} -> {a} ({exact.name}); no duplicate SQL execution",file=sys.stderr); continue
- rv=e.get('repositoryVersion'); name=e['name']; exact=migrations/f"{rv}_{name}.sql" if rv else None; candidates=[exact] if exact and exact.exists() else sorted(migrations.glob(f"*_{name}.sql"))
- if len(candidates)!=1: raise SystemExit(f"ledger mapping for {e['version']} {name} expected one file, found {len(candidates)}")
- print(candidates[0])
-PY
-while IFS= read -r file; do
-  if [[ "$(basename "$file")" == "20260803093000_platform_schema_runtime_columns_v3.sql" ]]; then
-    apply_sql "$ROOT/supabase/bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql"
-  fi
+
+for file in "${foundation[@]}"; do
+  test -f "$file" || { echo "missing foundation $file" >&2; exit 1; }
   apply_sql "$file"
-done < "$HOLD/.aud003-ledger-paths"
+done
+
+# Stage the official development ledger as Supabase-native migration filenames.
+# SQL is copied from checksum-validated repository sources. Historical aliases
+# are represented by a no-op migration so the alias is recorded naturally by
+# Supabase CLI without executing canonical SQL twice.
+python3 - "$LEDGER" "$HOLD" "$STAGED" "$PHASE_TWO_START" <<'PY'
+import hashlib,json,pathlib,shutil,sys
+ledger_path=pathlib.Path(sys.argv[1])
+migrations=pathlib.Path(sys.argv[2])
+staged=pathlib.Path(sys.argv[3])
+phase_two_start=sys.argv[4]
+data=json.loads(ledger_path.read_text())
+by={e['version']:e for e in data['entries']}
+(staged/'phase1').mkdir(parents=True,exist_ok=True)
+(staged/'phase2').mkdir(parents=True,exist_ok=True)
+
+for e in data['entries']:
+    version=e['version']
+    name=e['name']
+    target_dir=staged/('phase2' if version >= phase_two_start else 'phase1')
+    target=target_dir/f"{version}_{name}.sql"
+    alias=e.get('ledgerAliasOf')
+    if alias:
+        canonical=by.get(alias)
+        if not canonical:
+            raise SystemExit(f"invalid ledger alias {version} -> {alias}")
+        rv=canonical.get('repositoryVersion',alias)
+        source=migrations/f"{rv}_{canonical['name']}.sql"
+        if not source.exists():
+            raise SystemExit(f"alias source missing: {source.name}")
+        expected=e.get('checksum')
+        actual=hashlib.sha256(source.read_bytes()).hexdigest()
+        if expected and actual != expected:
+            raise SystemExit(f"ledger alias checksum mismatch {version}: {actual} != {expected}")
+        target.write_text(
+            f"-- AUD-003 ledger alias {version} -> {alias}.\n"
+            f"-- Canonical SQL executes once at {alias}; this no-op only preserves official ledger provenance.\n"
+        )
+        continue
+
+    rv=e.get('repositoryVersion')
+    exact=migrations/f"{rv}_{name}.sql" if rv else None
+    candidates=[exact] if exact and exact.exists() else sorted(migrations.glob(f"*_{name}.sql"))
+    if len(candidates) != 1:
+        raise SystemExit(f"ledger mapping for {version} {name} expected one file, found {len(candidates)}")
+    source=candidates[0]
+    expected=e.get('checksum')
+    actual=hashlib.sha256(source.read_bytes()).hexdigest()
+    if expected and actual != expected:
+        raise SystemExit(f"ledger source checksum mismatch {version} {name}: {actual} != {expected}")
+    shutil.copyfile(source,target)
+PY
+
+install_phase(){
+  local phase="$1"
+  find "$STAGED/$phase" -maxdepth 1 -type f -name '*.sql' -print0 | sort -z | while IFS= read -r -d '' file; do
+    cp "$file" "$MIGRATIONS/$(basename "$file")"
+  done
+}
+
+# Phase 1 records the official ledger through the explicit 20260803081939 alias.
+install_phase phase1
+supabase db push --local --include-all --yes
+
+# This historical prerequisite targets canonical_migration_manifest, which was
+# created during phase 1 but was never represented in the official dev ledger.
+# Apply it without fabricating a ledger row, then continue the official ledger.
+apply_sql "$INTERLEAVED"
+
+install_phase phase2
+supabase db push --local --include-all --yes
+
+# Prove that the CLI, not direct SQL manipulation, owns the local ledger and that
+# it matches the official dev ledger versions/names exactly.
+python3 - "$LEDGER" "$DB_URL" <<'PY'
+import json,subprocess,sys
+ledger=json.load(open(sys.argv[1]))
+db=sys.argv[2]
+expected=[(e['version'],e['name']) for e in ledger['entries']]
+query="select version::text||E'\\t'||name from supabase_migrations.schema_migrations order by version::text;"
+out=subprocess.check_output(['psql',db,'-X','-At','-c',query],text=True)
+actual=[tuple(line.split('\t',1)) for line in out.splitlines() if line]
+if actual != expected:
+    print('official ledger mismatch after Supabase CLI replay',file=sys.stderr)
+    print('expected:',expected,file=sys.stderr)
+    print('actual:',actual,file=sys.stderr)
+    raise SystemExit(1)
+print(f"[AUD-003 replay] Supabase CLI ledger verified: {len(actual)} official rows")
+PY
+
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.user_profiles') is not null as user_profiles_ok,
@@ -112,4 +211,5 @@ select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.company_capabilities') is not null as capabilities_ok,
  to_regclass('public.ediel_message_intents') is not null as intents_ok;
 SQL
-echo '[AUD-003 replay] PASS: empty local Supabase -> explicit historical baseline -> main-aligned official dev ledger'
+
+echo '[AUD-003 replay] PASS: empty local Supabase -> explicit historical baseline -> Supabase-native official dev ledger replay'
