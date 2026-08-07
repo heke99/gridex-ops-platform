@@ -13,6 +13,11 @@
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
+    },
+    {
+      "path": "bootstrap/20260716_contract_platform_readiness_foundation.sql",
+      "afterLedgerVersion": "20260803100130",
+      "beforeLedgerVersion": "20260803131558"
     }
   ],
   "derivedBootstrap": {
@@ -55,6 +60,11 @@
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
       "artifactSha256": "24db9894315e5a95e976889db3332acb5a3d49744ad3dffab3b8e2dce9871015",
       "purpose": "Restore only canonical migration-manifest verification metadata required by the tracked v3 governance view; no manifest rows or verification evidence are seeded."
+    },
+    "bootstrap/20260716_contract_platform_readiness_foundation.sql": {
+      "source": "migrations/20260716183000_contract_canonical_finalization.sql",
+      "artifactSha256": "a0a21aca76d2b3395b9e6905e9c5ee83f4da5199f52d9850a484cec63bdd3486",
+      "purpose": "Restore only the source-defined pre-hardening gridex_contract_platform_readiness(uuid) implementation required by 20260803131558; the exact implementation is corroborated by the preserved internal_v1 definition in gridex-ops-dev and no product data is seeded."
     }
   }
 }
