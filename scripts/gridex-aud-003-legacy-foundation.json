@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 13,
+  "schemaVersion": 14,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 26,
+  "expectedBootstrapInputCount": 27,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -20,6 +20,7 @@
     "migrations/batch 4+5+6.sql",
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql",
     "bootstrap/20260601_ediel_production_readiness_foundation.sql",
+    "bootstrap/20260602_ediel_certificates_foundation.sql",
     "bootstrap/20260605_ediel_outbox_foundation.sql",
     "bootstrap/20260611_grid_owner_information_request_foundation.sql",
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
@@ -68,6 +69,11 @@
       "source": "migrations/20260601070000_ediel_production_readiness_hardening.sql",
       "artifactSha256": "31d5c9773e0f745ff3f767266bfb85f39d34c15b0a75a99aedcf7fa941f6ac66",
       "purpose": "Restore the historical company Ediel production-state fields plus production readiness checks and go-live evidence tables, indexes and tenant RLS required by the canonical Ediel production-state migration."
+    },
+    "bootstrap/20260602_ediel_certificates_foundation.sql": {
+      "source": "migrations/20260602090000_ediel_operations_platform_core.sql",
+      "artifactSha256": "7d150365ae977048e75190ecf99c21aaa80a871f943996cf10e85735db875c63",
+      "purpose": "Restore only the historical ediel_certificates registry and its original RLS enablement before canonical configuration snapshot triggers are attached to certificate changes."
     },
     "bootstrap/20260605_ediel_outbox_foundation.sql": {
       "source": "migrations/20260605160000_ediel_backend_automation_foundation.sql",
