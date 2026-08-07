@@ -1,26 +1,33 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedLegacyInputCount": 14,
+  "expectedBootstrapInputCount": 14,
   "foundation": [
-    "01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
-    "02_db1_operations_ediel_billing_dedupe_and_storage.sql",
-    "03_db1_backfill_functions_rls_reports_and_finish.sql",
-    "20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
-    "ediel_rules.sql",
-    "Batch 1+2.sql",
-    "batch 3.sql",
-    "batch 4+5+6.sql"
+    "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+    "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+    "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
+    "bootstrap/20260520_metering_permissions_foundation.sql",
+    "migrations/ediel_rules.sql",
+    "migrations/Batch 1+2.sql",
+    "migrations/batch 3.sql",
+    "migrations/batch 4+5+6.sql"
   ],
   "controlledReconciliation": [
-    "01_db2_full_view_preflight_schema_and_functions.sql",
-    "02_db2_execute_controlled_reconciliation.sql",
-    "03_db2_validation_and_finish.sql",
-    "01_db2b_preflight_views.sql",
-    "02_db2b_apply_superadmin_and_membership.sql",
-    "03_db2b_validation_views.sql"
+    "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+    "migrations/02_db2_execute_controlled_reconciliation.sql",
+    "migrations/03_db2_validation_and_finish.sql",
+    "migrations/01_db2b_preflight_views.sql",
+    "migrations/02_db2b_apply_superadmin_and_membership.sql",
+    "migrations/03_db2b_validation_views.sql"
   ],
+  "derivedBootstrap": {
+    "bootstrap/20260520_metering_permissions_foundation.sql": {
+      "source": "migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
+      "artifactSha256": "04061c107d1f963f2a8d61297d75f81a089cbe930f16138273b798602cec9a41",
+      "purpose": "Create the metering_permissions prerequisite without replaying unrelated billing tables that conflict with the later DB1 repair schema."
+    }
+  },
   "rules": {
     "legacyFilesRemainImmutable": true,
     "doNotRenameLegacyFiles": true,
