@@ -2688,7 +2688,7 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
     const filePath = buildCustomerDocumentStoragePath({
       companyId: input.companyId,
       customerId: input.customerId,
-      siteId: null,
+      siteId: input.customerSiteId,
       documentType: "power_of_attorney",
       fileName: `${input.powerOfAttorneyId}.json`,
       timestampFileName: false,
