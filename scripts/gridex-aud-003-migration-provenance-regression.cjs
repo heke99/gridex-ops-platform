@@ -5,10 +5,12 @@ const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const migrationsDir = path.join(root, 'supabase', 'migrations');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
+const additionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
 const ledgerPath = path.join(__dirname, 'gridex-aud-003-main-ledger.json');
 const contractPath = path.join(root, 'docs', 'migration-provenance.md');
 const runbookPath = path.join(root, 'docs', 'production-runbook.md');
 const replayPath = path.join(__dirname, 'gridex-aud-003-clean-replay.sh');
+const fingerprintPath = path.join(__dirname, 'gridex-aud-003-schema-fingerprint.sql');
 
 function fail(message) {
   console.error(`[GRIDEX-AUD-003] ${message}`);
@@ -19,7 +21,10 @@ function sha256(filePath) {
 }
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-const pinned = manifest.files || {};
+const additions = fs.existsSync(additionsPath)
+  ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
+  : { files: {} };
+const pinned = { ...(manifest.files || {}), ...(additions.files || {}) };
 const ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'));
 const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
@@ -89,6 +94,13 @@ if (!replay.includes('supabase db push --local --include-all --yes')) {
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) {
   fail('clean replay directly mutates the Supabase migration ledger');
 }
+if (!fs.existsSync(fingerprintPath)) fail('schema fingerprint query is missing');
+if (!/EXPECTED_FINGERPRINT="[0-9a-f]{64}"/.test(replay)) {
+  fail('clean replay does not pin an exact 64-character dev schema fingerprint');
+}
+if (!replay.includes('ACTUAL_FINGERPRINT')) {
+  fail('clean replay no longer compares the reconstructed schema fingerprint');
+}
 
 const entries = ledger.entries || [];
 if (!entries.length) fail('official dev ledger snapshot is empty');
@@ -132,6 +144,7 @@ console.log(JSON.stringify({
   replay_model: 'runbook_full_timestamped_history_plus_cli_owned_compact_ledger',
   foundation_input_count: foundation.length,
   timestamped_file_count: timestamped.length,
+  manifest_addition_count: Object.keys(additions.files || {}).length,
   allowed_legacy_collision_count: actualCollisions.length,
   earliest_repo_timestamped_version: earliestRepoVersion,
   compact_dev_ledger_start: firstLedgerVersion,
