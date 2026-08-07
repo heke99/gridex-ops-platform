@@ -17,6 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
