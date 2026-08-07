@@ -43,14 +43,17 @@ Apply these inputs before the official 14-digit ledger replay, in this order:
 35. `bootstrap/20260618_customer_operation_jobs_foundation.sql`
 36. `bootstrap/20260618_customer_application_workflows_foundation.sql`
 37. `bootstrap/20260721_contract_publication_revisions_foundation.sql`
-38. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
-39. `bootstrap/20260801_company_capabilities_foundation.sql`
+38. `bootstrap/20260722_external_tenant_reference_foundation.sql`
+39. `bootstrap/20260724_customer_application_continuation_schema_foundation.sql`
+40. `bootstrap/20260801_company_capabilities_foundation.sql`
 
 All derived bootstrap artifacts are intentionally narrower than their immutable historical source. Artifact SHA-256 values and source mappings are pinned in `scripts/gridex-aud-003-legacy-foundation.json` and `scripts/gridex-aud-003-legacy-foundation.additions.json`; source migration checksums are pinned by `scripts/migration-history-manifest.json`.
 
-The foundation restores schema prerequisites only. It must not seed auth users, administrators, API clients, customer applications, workflows, jobs, contract publication revision rows, webhook deliveries, customer cases, email messages or other operational product rows. Worker/orchestration RPC behavior is excluded from derived bootstraps unless separately proven necessary.
+The foundation restores schema prerequisites only. It must not seed auth users, administrators, API clients, customer applications, workflows, jobs, contract publication revision rows, tenants, webhook deliveries, customer cases, email messages or other operational product rows. Worker/orchestration RPC behavior is excluded from derived bootstraps unless separately proven necessary.
 
 `bootstrap/20260721_contract_publication_revisions_foundation.sql` is derived from checksum-pinned `migrations/20260721170000_contract_graph_api_revision_hardening.sql`. It restores only the historical `contract_publication_revisions` relation and fail-closed RLS required by the tracked shared public-contract snapshot schema/RPC. It does not seed revision rows or replay publication-event functions.
+
+`bootstrap/20260722_external_tenant_reference_foundation.sql` is derived from checksum-pinned `migrations/20260722133000_external_tenant_quote_api_completion.sql`. It restores only the stable opaque external tenant reference generator, `companies.external_tenant_reference`, uniqueness index and format constraint required by tracked public-contract snapshot migrations. It creates no tenant rows or integration records.
 
 ## 2. Controlled legacy reconciliation
 
