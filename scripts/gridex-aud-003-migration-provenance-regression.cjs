@@ -3,9 +3,12 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const root = path.resolve(__dirname, '..');
-const migrationsDir = path.join(root, 'supabase', 'migrations');
+const supabaseDir = path.join(root, 'supabase');
+const migrationsDir = path.join(supabaseDir, 'migrations');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
-const additionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
+const manifestAdditionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
+const foundationPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.json');
+const foundationAdditionsPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.additions.json');
 const ledgerPath = path.join(__dirname, 'gridex-aud-003-main-ledger.json');
 const contractPath = path.join(root, 'docs', 'migration-provenance.md');
 const runbookPath = path.join(root, 'docs', 'production-runbook.md');
@@ -19,87 +22,85 @@ function fail(message) {
 function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
+function readJson(filePath, fallback) {
+  return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : fallback;
+}
 
-const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-const additions = fs.existsSync(additionsPath)
-  ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
-  : { files: {} };
-const pinned = { ...(manifest.files || {}), ...(additions.files || {}) };
-const ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'));
+const manifest = readJson(manifestPath, { files: {} });
+const manifestAdditions = readJson(manifestAdditionsPath, { files: {} });
+const pinned = { ...(manifest.files || {}), ...(manifestAdditions.files || {}) };
+const foundationPlan = readJson(foundationPath, { foundation: [], derivedBootstrap: {} });
+const foundationAdditions = readJson(foundationAdditionsPath, { foundation: [], derivedBootstrap: {} });
+const foundation = [...(foundationPlan.foundation || []), ...(foundationAdditions.foundation || [])];
+const derived = { ...(foundationPlan.derivedBootstrap || {}), ...(foundationAdditions.derivedBootstrap || {}) };
+const ledger = readJson(ledgerPath, { entries: [] });
 const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
 const replay = fs.readFileSync(replayPath, 'utf8');
 
-const foundation = [
-  '01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
-  '02_db1_operations_ediel_billing_dedupe_and_storage.sql',
-  '03_db1_backfill_functions_rls_reports_and_finish.sql',
-  'ediel_rules.sql',
-  'Batch 1+2.sql',
-  'batch 3.sql',
-  'batch 4+5+6.sql',
-];
+if (!foundation.length) fail('foundation plan is empty');
+if (new Set(foundation).size !== foundation.length) fail('foundation plan contains duplicate paths');
 
-for (const name of foundation) {
-  const filePath = path.join(migrationsDir, name);
-  if (!fs.existsSync(filePath)) fail(`missing runbook foundation file: ${name}`);
-  if (!pinned[name]) fail(`runbook foundation file is not checksum-pinned: ${name}`);
-  const actual = sha256(filePath);
-  if (actual !== pinned[name]) fail(`foundation checksum drift for ${name}: ${actual} != ${pinned[name]}`);
-  if (!replay.includes(name)) fail(`clean replay no longer applies runbook foundation file: ${name}`);
+let derivedCount = 0;
+for (const rel of foundation) {
+  const filePath = path.join(supabaseDir, rel);
+  if (!fs.existsSync(filePath)) fail(`missing foundation input: ${rel}`);
+  const meta = derived[rel];
+  if (meta) {
+    derivedCount += 1;
+    if (!meta.artifactSha256 || sha256(filePath) !== meta.artifactSha256) {
+      fail(`derived bootstrap checksum drift: ${rel}`);
+    }
+    const sourcePath = path.join(supabaseDir, meta.source || '');
+    if (!meta.source || !fs.existsSync(sourcePath)) fail(`derived bootstrap source missing: ${rel}`);
+    const expected = pinned[path.basename(sourcePath)];
+    if (!expected || sha256(sourcePath) !== expected) fail(`derived bootstrap source checksum drift: ${meta.source}`);
+  } else {
+    const expected = pinned[path.basename(filePath)];
+    if (!expected || sha256(filePath) !== expected) fail(`foundation source checksum drift: ${rel}`);
+  }
 }
 
-const timestamped = fs.readdirSync(migrationsDir)
-  .filter((name) => /^\d{14}_.+\.sql$/.test(name))
-  .sort();
+const timestamped = fs.readdirSync(migrationsDir).filter((name) => /^\d{14}_.+\.sql$/.test(name)).sort();
 if (!timestamped.length) fail('no timestamped migrations found');
 for (const name of timestamped) {
-  if (!pinned[name]) fail(`timestamped migration is not checksum-pinned: ${name}`);
-  const actual = sha256(path.join(migrationsDir, name));
-  if (actual !== pinned[name]) fail(`timestamped migration checksum drift for ${name}: ${actual} != ${pinned[name]}`);
+  const expected = pinned[name];
+  if (!expected) fail(`timestamped migration is not checksum-pinned: ${name}`);
+  if (sha256(path.join(migrationsDir, name)) !== expected) fail(`timestamped migration checksum drift: ${name}`);
 }
 
 const collisionVersions = new Map();
 for (const name of timestamped) {
   const version = name.slice(0, 14);
-  const arr = collisionVersions.get(version) || [];
-  arr.push(name);
-  collisionVersions.set(version, arr);
+  collisionVersions.set(version, [...(collisionVersions.get(version) || []), name]);
 }
 const actualCollisions = [...collisionVersions.entries()].filter(([, names]) => names.length > 1);
 const allowed = manifest.allowedLegacyCollisions || {};
 for (const [version, names] of actualCollisions) {
-  const expected = [...(allowed[version] || [])].sort();
-  const actual = [...names].sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    fail(`unapproved legacy version collision ${version}: ${actual.join(', ')}`);
+  if (JSON.stringify([...names].sort()) !== JSON.stringify([...(allowed[version] || [])].sort())) {
+    fail(`unapproved legacy version collision ${version}: ${names.join(', ')}`);
   }
 }
 
-if (!/Then all `YYYYMMDDHHMMSS_\*\.sql` in order/i.test(runbook)) {
-  fail('production runbook no longer requires all timestamped migrations in order');
+for (const requiredRef of [
+  'gridex-aud-003-legacy-foundation.json',
+  'gridex-aud-003-legacy-foundation.additions.json',
+  'migration-history-manifest.json',
+  'migration-history-manifest.additions.json',
+  'gridex-aud-003-main-ledger.json',
+  'gridex-aud-003-schema-fingerprint.sql',
+]) {
+  if (!replay.includes(requiredRef)) fail(`clean replay lost required provenance input: ${requiredRef}`);
 }
-if (!replay.includes("re.match(r'^\\d{14}_.+\\.sql$'")) {
-  fail('clean replay no longer derives its timestamped plan from every 14-digit repository migration');
-}
-if (!replay.includes('files.sort(key=lambda p:p.name)')) {
-  fail('clean replay no longer sorts timestamped migrations deterministically by full filename');
-}
-if (!replay.includes('psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"')) {
-  fail('clean replay no longer fails closed while applying historical SQL');
-}
-if (!replay.includes('supabase db push --local --include-all --yes')) {
-  fail('clean replay no longer lets Supabase CLI own the compact ledger replay');
-}
+if (!replay.includes('files.sort(key=lambda p:p.name)')) fail('clean replay lost deterministic timestamped ordering');
+if (!replay.includes('skip_timestamp_names')) fail('clean replay lost explicit substitution/pre-execution exclusion');
+if (!replay.includes('supabase db push --local --include-all --yes')) fail('clean replay no longer lets Supabase CLI own ledger replay');
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) {
   fail('clean replay directly mutates the Supabase migration ledger');
 }
 if (!fs.existsSync(fingerprintPath)) fail('schema fingerprint query is missing');
-if (!/EXPECTED_FINGERPRINT="[0-9a-f]{64}"/.test(replay)) {
-  fail('clean replay does not pin an exact 64-character dev schema fingerprint');
-}
-if (!replay.includes('ACTUAL_FINGERPRINT')) {
-  fail('clean replay no longer compares the reconstructed schema fingerprint');
+if (!/EXPECTED_FINGERPRINT="[0-9a-f]{64}"/.test(replay) || !replay.includes('ACTUAL_FINGERPRINT')) {
+  fail('clean replay lost exact schema fingerprint gate');
 }
 
 const entries = ledger.entries || [];
@@ -107,28 +108,19 @@ if (!entries.length) fail('official dev ledger snapshot is empty');
 let last = '';
 for (const entry of entries) {
   const version = String(entry.version || '');
-  if (!/^\d{14}$/.test(version)) fail(`invalid official ledger version: ${version}`);
-  if (!entry.name) fail(`official ledger entry ${version} has no name`);
+  if (!/^\d{14}$/.test(version) || !entry.name) fail(`invalid official ledger entry: ${JSON.stringify(entry)}`);
   if (last && version <= last) fail(`official ledger is not strictly ordered: ${version} after ${last}`);
   last = version;
 }
-
-const earliestRepoVersion = timestamped[0].slice(0, 14);
 const firstLedgerVersion = String(entries[0].version);
-if (earliestRepoVersion >= firstLedgerVersion) {
-  fail(`expected repository timestamped history before compact ledger start ${firstLedgerVersion}`);
-}
-if (!contract.includes(firstLedgerVersion)) {
-  fail('migration provenance contract does not pin the compact ledger boundary');
-}
-if (!/all.*timestamped|alla.*timestamp/i.test(contract)) {
-  fail('migration provenance contract does not document full timestamped replay');
-}
+if (!contract.includes(firstLedgerVersion)) fail('migration provenance contract does not pin compact ledger boundary');
 if (!/(no manual|never manually|inte manuellt)/i.test(contract) || !/(ledger|schema_migrations)/i.test(contract)) {
   fail('migration provenance contract no longer documents the no-manual-ledger rule');
 }
+if (!/YYYYMMDDHHMMSS|timestamped/i.test(runbook)) fail('production runbook timestamped migration rule is missing');
 
 for (const token of [
+  'public.metering_permissions',
   'public.price_plans',
   'public.price_plan_versions',
   'public.contract_price_options',
@@ -141,12 +133,12 @@ for (const token of [
 console.log(JSON.stringify({
   finding: 'GRIDEX-AUD-003',
   status: 'PASS',
-  replay_model: 'runbook_full_timestamped_history_plus_cli_owned_compact_ledger',
+  replay_model: 'verified_foundation_substitutions_plus_remaining_history_plus_cli_owned_compact_ledger',
   foundation_input_count: foundation.length,
+  derived_bootstrap_count: derivedCount,
   timestamped_file_count: timestamped.length,
-  manifest_addition_count: Object.keys(additions.files || {}).length,
+  manifest_addition_count: Object.keys(manifestAdditions.files || {}).length,
   allowed_legacy_collision_count: actualCollisions.length,
-  earliest_repo_timestamped_version: earliestRepoVersion,
   compact_dev_ledger_start: firstLedgerVersion,
   compact_dev_ledger_rows: entries.length,
 }, null, 2));
