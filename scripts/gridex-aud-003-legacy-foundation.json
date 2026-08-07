@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 29,
+  "expectedBootstrapInputCount": 30,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -15,6 +15,7 @@
     "bootstrap/20260528_ediel_test_run_steps_foundation.sql",
     "migrations/20260528_batch_2_ediel_rulebook_system_tests.sql",
     "migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql",
+    "bootstrap/20260529_ediel_test_artifact_message_foundation.sql",
     "migrations/ediel_rules.sql",
     "migrations/Batch 1+2.sql",
     "bootstrap/20260528_inbound_email_messages_foundation.sql",
@@ -37,81 +38,21 @@
     "migrations/03_db2b_validation_views.sql"
   ],
   "derivedBootstrap": {
-    "bootstrap/20260520_metering_permissions_foundation.sql": {
-      "source": "migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
-      "artifactSha256": "04061c107d1f963f2a8d61297d75f81a089cbe930f16138273b798602cec9a41",
-      "purpose": "Create the metering_permissions prerequisite without replaying unrelated billing tables that conflict with the later DB1 repair schema."
-    },
-    "bootstrap/20260521_company_ediel_production_profile_foundation.sql": {
-      "source": "migrations/20260521_actor_testing_go_live_module.sql",
-      "artifactSha256": "3975ce739170c62ee499673089eead24cd3b66716178364f34a472915c463a1e",
-      "purpose": "Restore only the legacy company production_status, live_ediel_enabled and go-live approval/blocker projection fields still read by the canonical Ediel production-state migration."
-    },
-    "bootstrap/20260521_actor_test_results_foundation.sql": {
-      "source": "migrations/20260521_actor_testing_go_live_module.sql",
-      "artifactSha256": "ae8745fbf5fd09b584a6f43c6062ddaccfd594109bc09a5f3a260bd5996baf32",
-      "purpose": "Restore only the historical actor_test_results ledger and its original indexes before canonical configuration snapshots attach configuration and staleness evidence."
-    },
-    "bootstrap/20260521_ediel_test_runs_foundation.sql": {
-      "source": "migrations/20260521_actor_testing_go_live_module.sql",
-      "artifactSha256": "4d68d752d6a265c3f6c9eeb20119fd3f51f492930a626ed93c634fe7419a5bc3",
-      "purpose": "Create only ediel_test_runs before the Ediel rulebook migration without replaying unrelated white-label and production-go-live changes."
-    },
-    "bootstrap/20260521_ediel_test_run_messages_foundation.sql": {
-      "source": "migrations/20260521_actor_testing_go_live_module.sql",
-      "artifactSha256": "9c2c64c23626055a548345bcdd23cdf04ce709bfc52d1841dc463a1ac62fee2d",
-      "purpose": "Restore only the historical ediel_test_run_messages relation and uniqueness index before tenant-qualified Ediel test evidence v2 adds company ownership and composite foreign keys."
-    },
-    "bootstrap/20260528_ediel_test_run_steps_foundation.sql": {
-      "source": "migrations/20260528_batch_2_completion_rulebook_actions_regression.sql",
-      "artifactSha256": "8b0683a1f252a0866616c5b8a618ab2e412d42f8140314c33936d7c202a5b2b3",
-      "purpose": "Restore the historical ediel_test_run_steps relation, prerequisite run metadata, indexes and RLS enablement before tenant-qualified Ediel test evidence v2 adds company ownership and composite foreign keys."
-    },
-    "bootstrap/20260528_inbound_email_messages_foundation.sql": {
-      "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
-      "artifactSha256": "daf30f251b6b856669aee3888bbea3f188edfcb71e8755ab9a937ff01f5cb70a",
-      "purpose": "Create only inbound_email_messages after Batch 1+2 supplies ediel_mailboxes and before batch 3 enriches inbound-mail routing fields."
-    },
-    "bootstrap/20260522_set_updated_at_timestamp_foundation.sql": {
-      "source": "migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
-      "artifactSha256": "82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5",
-      "purpose": "Restore the exact pre-ledger updated_at trigger helper recovered from gridex-ops-dev via pg_get_functiondef on 2026-08-07; the pinned 20260522 lint migration corroborates that this helper already existed before later tracked migrations."
-    },
-    "bootstrap/20260601_ediel_production_readiness_foundation.sql": {
-      "source": "migrations/20260601070000_ediel_production_readiness_hardening.sql",
-      "artifactSha256": "31d5c9773e0f745ff3f767266bfb85f39d34c15b0a75a99aedcf7fa941f6ac66",
-      "purpose": "Restore the historical company Ediel production-state fields plus production readiness checks and go-live evidence tables, indexes and tenant RLS required by the canonical Ediel production-state migration."
-    },
-    "bootstrap/20260602_ediel_certificates_foundation.sql": {
-      "source": "migrations/20260602090000_ediel_operations_platform_core.sql",
-      "artifactSha256": "7d150365ae977048e75190ecf99c21aaa80a871f943996cf10e85735db875c63",
-      "purpose": "Restore only the historical ediel_certificates registry and its original RLS enablement before canonical configuration snapshot triggers are attached to certificate changes."
-    },
-    "bootstrap/20260605_ediel_outbox_foundation.sql": {
-      "source": "migrations/20260605160000_ediel_backend_automation_foundation.sql",
-      "artifactSha256": "470b5824b77b153b0e33ad3da94df70560a2e2333b2a5155a1d4a2b51a881c6f",
-      "purpose": "Create only the historical ediel_outbox base relation and lock-key uniqueness required by the later tracked message-intent migration, without replaying unrelated backend automation objects."
-    },
-    "bootstrap/20260611_grid_owner_information_request_foundation.sql": {
-      "source": "migrations/20260611100000_energy_resolver_grid_area_operations.sql",
-      "artifactSha256": "2b2411d78708dc26b56bd755253165d46c612a7dd4044fae2ab1e738794790c0",
-      "purpose": "Restore only the directly connected historical grid-owner contact-route, customer-site-resolution and information-request relations plus their original indexes before tracked manual grid-owner communication migrations reference them."
-    },
-    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql": {
-      "source": "migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
-      "artifactSha256": "e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394",
-      "purpose": "Restore only powers_of_attorney.customer_site_id with its customer_sites foreign key and historical backfill from site_id before the tracked manual grid-owner pipeline indexes that column."
-    },
-    "bootstrap/20260801_company_capabilities_foundation.sql": {
-      "source": "migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
-      "artifactSha256": "77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df",
-      "purpose": "Restore the historical company_capabilities fail-closed registry, RLS policies, grants, initial capability rows and capability lookup helper before the tracked canonical tenant-operation lifecycle migration inserts canonical operation capabilities."
-    }
+    "bootstrap/20260520_metering_permissions_foundation.sql": {"source":"migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql","artifactSha256":"04061c107d1f963f2a8d61297d75f81a089cbe930f16138273b798602cec9a41","purpose":"Create the metering_permissions prerequisite without replaying unrelated billing tables that conflict with the later DB1 repair schema."},
+    "bootstrap/20260521_company_ediel_production_profile_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"3975ce739170c62ee499673089eead24cd3b66716178364f34a472915c463a1e","purpose":"Restore only the legacy company production_status, live_ediel_enabled and go-live approval/blocker projection fields still read by the canonical Ediel production-state migration."},
+    "bootstrap/20260521_actor_test_results_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"ae8745fbf5fd09b584a6f43c6062ddaccfd594109bc09a5f3a260bd5996baf32","purpose":"Restore only the historical actor_test_results ledger and its original indexes before canonical configuration snapshots attach configuration and staleness evidence."},
+    "bootstrap/20260521_ediel_test_runs_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"4d68d752d6a265c3f6c9eeb20119fd3f51f492930a626ed93c634fe7419a5bc3","purpose":"Create only ediel_test_runs before the Ediel rulebook migration without replaying unrelated white-label and production-go-live changes."},
+    "bootstrap/20260521_ediel_test_run_messages_foundation.sql": {"source":"migrations/20260521_actor_testing_go_live_module.sql","artifactSha256":"9c2c64c23626055a548345bcdd23cdf04ce709bfc52d1841dc463a1ac62fee2d","purpose":"Restore only the historical ediel_test_run_messages relation and uniqueness index before tenant-qualified Ediel test evidence v2 adds company ownership and composite foreign keys."},
+    "bootstrap/20260528_ediel_test_run_steps_foundation.sql": {"source":"migrations/20260528_batch_2_completion_rulebook_actions_regression.sql","artifactSha256":"8b0683a1f252a0866616c5b8a618ab2e412d42f8140314c33936d7c202a5b2b3","purpose":"Restore the historical ediel_test_run_steps relation, prerequisite run metadata, indexes and RLS enablement before tenant-qualified Ediel test evidence v2 adds company ownership and composite foreign keys."},
+    "bootstrap/20260529_ediel_test_artifact_message_foundation.sql": {"source":"migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql","artifactSha256":"6c5a2919c0befa017303b24b513b67c41cb2864bfe7c830d57d1e26a29ff7276","purpose":"Restore only ediel_test_artifacts.ediel_message_id and its historical message foreign key before tenant-qualified Ediel test evidence v2 validates artifact/message tenant ownership."},
+    "bootstrap/20260528_inbound_email_messages_foundation.sql": {"source":"migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql","artifactSha256":"daf30f251b6b856669aee3888bbea3f188edfcb71e8755ab9a937ff01f5cb70a","purpose":"Create only inbound_email_messages after Batch 1+2 supplies ediel_mailboxes and before batch 3 enriches inbound-mail routing fields."},
+    "bootstrap/20260522_set_updated_at_timestamp_foundation.sql": {"source":"migrations/20260522_batch4f_rbac_database_lint_hardening.sql","artifactSha256":"82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5","purpose":"Restore the exact pre-ledger updated_at trigger helper recovered from gridex-ops-dev via pg_get_functiondef on 2026-08-07; the pinned 20260522 lint migration corroborates that this helper already existed before later tracked migrations."},
+    "bootstrap/20260601_ediel_production_readiness_foundation.sql": {"source":"migrations/20260601070000_ediel_production_readiness_hardening.sql","artifactSha256":"31d5c9773e0f745ff3f767266bfb85f39d34c15b0a75a99aedcf7fa941f6ac66","purpose":"Restore the historical company Ediel production-state fields plus production readiness checks and go-live evidence tables, indexes and tenant RLS required by the canonical Ediel production-state migration."},
+    "bootstrap/20260602_ediel_certificates_foundation.sql": {"source":"migrations/20260602090000_ediel_operations_platform_core.sql","artifactSha256":"7d150365ae977048e75190ecf99c21aaa80a871f943996cf10e85735db875c63","purpose":"Restore only the historical ediel_certificates registry and its original RLS enablement before canonical configuration snapshot triggers are attached to certificate changes."},
+    "bootstrap/20260605_ediel_outbox_foundation.sql": {"source":"migrations/20260605160000_ediel_backend_automation_foundation.sql","artifactSha256":"470b5824b77b153b0e33ad3da94df70560a2e2333b2a5155a1d4a2b51a881c6f","purpose":"Create only the historical ediel_outbox base relation and lock-key uniqueness required by the later tracked message-intent migration, without replaying unrelated backend automation objects."},
+    "bootstrap/20260611_grid_owner_information_request_foundation.sql": {"source":"migrations/20260611100000_energy_resolver_grid_area_operations.sql","artifactSha256":"2b2411d78708dc26b56bd755253165d46c612a7dd4044fae2ab1e738794790c0","purpose":"Restore only the directly connected historical grid-owner contact-route, customer-site-resolution and information-request relations plus their original indexes before tracked manual grid-owner communication migrations reference them."},
+    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql": {"source":"migrations/20260613090000_batch_m_ops_master_legal_readiness.sql","artifactSha256":"e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394","purpose":"Restore only powers_of_attorney.customer_site_id with its customer_sites foreign key and historical backfill from site_id before the tracked manual grid-owner pipeline indexes that column."},
+    "bootstrap/20260801_company_capabilities_foundation.sql": {"source":"migrations/20260801143000_canonical_multitenant_platform_hardening.sql","artifactSha256":"77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df","purpose":"Restore the historical company_capabilities fail-closed registry, RLS policies, grants, initial capability rows and capability lookup helper before the tracked canonical tenant-operation lifecycle migration inserts canonical operation capabilities."}
   },
-  "rules": {
-    "legacyFilesRemainImmutable": true,
-    "doNotRenameLegacyFiles": true,
-    "doNotEditRemoteLedgerDirectly": true,
-    "timestampedMigrationPattern": "^[0-9]{14}_.+\\.sql$"
-  }
+  "rules": {"legacyFilesRemainImmutable":true,"doNotRenameLegacyFiles":true,"doNotEditRemoteLedgerDirectly":true,"timestampedMigrationPattern":"^[0-9]{14}_.+\\.sql$"}
 }
