@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 19,
+  "expectedBootstrapInputCount": 20,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -16,7 +16,8 @@
     "bootstrap/20260528_inbound_email_messages_foundation.sql",
     "migrations/batch 3.sql",
     "migrations/batch 4+5+6.sql",
-    "bootstrap/20260522_set_updated_at_timestamp_foundation.sql"
+    "bootstrap/20260522_set_updated_at_timestamp_foundation.sql",
+    "bootstrap/20260605_ediel_outbox_foundation.sql"
   ],
   "controlledReconciliation": [
     "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
@@ -46,6 +47,11 @@
       "source": "migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
       "artifactSha256": "82896d6d5ff0f7e522766336844aaa5434c0c45572ba4347f71f59d977934be5",
       "purpose": "Restore the exact pre-ledger updated_at trigger helper recovered from gridex-ops-dev via pg_get_functiondef on 2026-08-07; the pinned 20260522 lint migration corroborates that this helper already existed before later tracked migrations."
+    },
+    "bootstrap/20260605_ediel_outbox_foundation.sql": {
+      "source": "migrations/20260605160000_ediel_backend_automation_foundation.sql",
+      "artifactSha256": "470b5824b77b153b0e33ad3da94df70560a2e2333b2a5155a1d4a2b51a881c6f",
+      "purpose": "Create only the historical ediel_outbox base relation and lock-key uniqueness required by the later tracked message-intent migration, without replaying unrelated backend automation objects."
     }
   },
   "rules": {
