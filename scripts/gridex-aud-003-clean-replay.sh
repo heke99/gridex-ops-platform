@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATIONS="$ROOT/supabase/migrations"
 SEED="$ROOT/supabase/seed.sql"
-LEDGER="$ROOT/scripts/gridex-aud-003-main-ledGER.json"
+LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HOLD="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
