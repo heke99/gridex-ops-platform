@@ -35,6 +35,7 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260522_set_updated_at_timestamp_foundation.sql"
  "$ROOT/supabase/bootstrap/20260601_ediel_production_readiness_foundation.sql"
  "$ROOT/supabase/bootstrap/20260602_ediel_certificates_foundation.sql"
+ "$ROOT/supabase/bootstrap/20260602_ediel_environment_type_foundation.sql"
  "$ROOT/supabase/bootstrap/20260605_ediel_outbox_foundation.sql"
  "$ROOT/supabase/bootstrap/20260611_grid_owner_information_request_foundation.sql"
  "$ROOT/supabase/bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
@@ -63,6 +64,7 @@ select to_regclass('public.companies') is not null as companies_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
  to_regclass('public.ediel_test_run_steps') is not null as test_run_steps_ok,
  exists(select 1 from information_schema.columns where table_schema='public' and table_name='ediel_test_artifacts' and column_name='ediel_message_id') as artifact_message_ok,
+ to_regtype('public.ediel_environment_type') is not null as environment_type_ok,
  to_regclass('public.ediel_production_readiness_checks') is not null as readiness_ok,
  to_regclass('public.ediel_certificates') is not null as certificates_ok,
  to_regclass('public.ediel_outbox') is not null as outbox_ok,
