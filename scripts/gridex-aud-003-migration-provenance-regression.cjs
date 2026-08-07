@@ -3,7 +3,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const root = path.resolve(__dirname, '..');
-const migrationsDir = path.join(root, 'supabase', 'migrations');
+const supabaseDir = path.join(root, 'supabase');
+const migrationsDir = path.join(supabaseDir, 'migrations');
 const planPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.json');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
 const additionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
@@ -19,6 +20,10 @@ function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
+function supabasePath(relativePath) {
+  return path.join(supabaseDir, relativePath);
+}
+
 const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const additions = fs.existsSync(additionsPath)
@@ -28,29 +33,52 @@ const pinnedFiles = { ...(manifest.files || {}), ...(additions.files || {}) };
 const contract = fs.readFileSync(contractPath, 'utf8');
 const runbook = fs.readFileSync(runbookPath, 'utf8');
 
-const legacyOrder = [...plan.foundation, ...plan.controlledReconciliation];
-if (legacyOrder.length !== plan.expectedLegacyInputCount) {
-  fail(`expected ${plan.expectedLegacyInputCount} documented legacy inputs, found ${legacyOrder.length}`);
+const bootstrapOrder = [...plan.foundation, ...plan.controlledReconciliation];
+if (bootstrapOrder.length !== plan.expectedBootstrapInputCount) {
+  fail(`expected ${plan.expectedBootstrapInputCount} documented bootstrap inputs, found ${bootstrapOrder.length}`);
 }
-if (new Set(legacyOrder).size !== legacyOrder.length) {
-  fail('legacy migration order contains duplicate file names');
-}
-
-for (const file of legacyOrder) {
-  const filePath = path.join(migrationsDir, file);
-  if (!fs.existsSync(filePath)) fail(`missing legacy migration: ${file}`);
-  const expected = pinnedFiles[file];
-  if (!expected) fail(`legacy migration is not checksum-pinned: ${file}`);
-  const actual = sha256(filePath);
-  if (actual !== expected) {
-    fail(`checksum drift for ${file}: expected ${expected}, got ${actual}`);
-  }
-  if (!contract.includes(`\`${file}\``)) {
-    fail(`migration provenance contract no longer documents legacy migration: ${file}`);
-  }
+if (new Set(bootstrapOrder).size !== bootstrapOrder.length) {
+  fail('bootstrap order contains duplicate paths');
 }
 
-const core = fs.readFileSync(path.join(migrationsDir, plan.foundation[0]), 'utf8');
+for (const relativePath of bootstrapOrder) {
+  const filePath = supabasePath(relativePath);
+  if (!fs.existsSync(filePath)) fail(`missing bootstrap input: ${relativePath}`);
+
+  const derived = plan.derivedBootstrap?.[relativePath];
+  if (derived) {
+    const actualArtifactHash = sha256(filePath);
+    if (actualArtifactHash !== derived.artifactSha256) {
+      fail(`derived bootstrap drift for ${relativePath}: expected ${derived.artifactSha256}, got ${actualArtifactHash}`);
+    }
+    const sourcePath = supabasePath(derived.source);
+    if (!fs.existsSync(sourcePath)) fail(`missing derived bootstrap source: ${derived.source}`);
+    const sourceName = path.basename(derived.source);
+    const expectedSourceHash = pinnedFiles[sourceName];
+    if (!expectedSourceHash) fail(`derived bootstrap source is not checksum-pinned: ${sourceName}`);
+    const actualSourceHash = sha256(sourcePath);
+    if (actualSourceHash !== expectedSourceHash) {
+      fail(`source checksum drift for ${sourceName}: expected ${expectedSourceHash}, got ${actualSourceHash}`);
+    }
+  } else {
+    const migrationName = path.basename(relativePath);
+    const expected = pinnedFiles[migrationName];
+    if (!expected) fail(`historical migration is not checksum-pinned: ${migrationName}`);
+    const actual = sha256(filePath);
+    if (actual !== expected) {
+      fail(`checksum drift for ${migrationName}: expected ${expected}, got ${actual}`);
+    }
+  }
+
+  const contractToken = `\`${relativePath}\``;
+  const basenameToken = `\`${path.basename(relativePath)}\``;
+  if (!contract.includes(contractToken) && !contract.includes(basenameToken)) {
+    fail(`migration provenance contract no longer documents bootstrap input: ${relativePath}`);
+  }
+}
+
+const corePath = supabasePath(plan.foundation[0]);
+const core = fs.readFileSync(corePath, 'utf8');
 if (!/create\s+table\s+if\s+not\s+exists\s+public\.companies\s*\(/i.test(core)) {
   fail(`${plan.foundation[0]} no longer creates public.companies`);
 }
@@ -58,17 +86,25 @@ if (!/Kör först|run first|apply.*before/i.test(core)) {
   fail(`${plan.foundation[0]} no longer carries explicit first-step bootstrap provenance`);
 }
 
-const meteringFoundation = '20260520_batch_3_4_onboarding_pricing_billing_engine.sql';
-const edielRules = 'ediel_rules.sql';
-if (plan.foundation.indexOf(meteringFoundation) < 0 || plan.foundation.indexOf(edielRules) < 0) {
-  fail('metering foundation and ediel_rules.sql must both be explicit bootstrap inputs');
+const meteringBootstrap = 'bootstrap/20260520_metering_permissions_foundation.sql';
+const edielRules = 'migrations/ediel_rules.sql';
+if (plan.foundation.indexOf(meteringBootstrap) < 0 || plan.foundation.indexOf(edielRules) < 0) {
+  fail('metering bootstrap and ediel_rules.sql must both be explicit bootstrap inputs');
 }
-if (plan.foundation.indexOf(meteringFoundation) > plan.foundation.indexOf(edielRules)) {
-  fail('metering permissions foundation must run before ediel_rules.sql');
+if (plan.foundation.indexOf(meteringBootstrap) > plan.foundation.indexOf(edielRules)) {
+  fail('metering permissions bootstrap must run before ediel_rules.sql');
 }
-const meteringSql = fs.readFileSync(path.join(migrationsDir, meteringFoundation), 'utf8');
+const meteringSql = fs.readFileSync(supabasePath(meteringBootstrap), 'utf8');
 if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.test(meteringSql)) {
-  fail(`${meteringFoundation} no longer creates public.metering_permissions`);
+  fail(`${meteringBootstrap} no longer creates public.metering_permissions`);
+}
+if (/billing_export_(runs|run_items)/i.test(meteringSql)) {
+  fail(`${meteringBootstrap} must not replay unrelated billing export schema`);
+}
+const sourceRel = plan.derivedBootstrap[meteringBootstrap].source;
+const sourceSql = fs.readFileSync(supabasePath(sourceRel), 'utf8');
+if (!/create\s+table\s+if\s+not\s+exists\s+public\.metering_permissions\s*\(/i.test(sourceSql)) {
+  fail(`derived source ${sourceRel} no longer contains public.metering_permissions DDL`);
 }
 
 const timestampedPattern = new RegExp(plan.rules.timestampedMigrationPattern);
@@ -91,8 +127,8 @@ if (preLedger.length === 0) {
 if (!contract.includes(plan.firstTrackedRemoteVersion)) {
   fail('migration provenance contract does not pin the current remote ledger boundary');
 }
-if (!/before.*timestamped|före.*timestamp/i.test(runbook)) {
-  fail('production runbook no longer states that the legacy foundation precedes timestamped migrations');
+if (!/before.*14-digit|före.*14-siffrig|before.*timestamped|före.*timestamp/i.test(runbook)) {
+  fail('production runbook no longer states that the historical bootstrap precedes canonical migrations');
 }
 if (!plan.rules.legacyFilesRemainImmutable || !plan.rules.doNotRenameLegacyFiles || !plan.rules.doNotEditRemoteLedgerDirectly) {
   fail('provenance safety rules were weakened');
@@ -101,9 +137,10 @@ if (!plan.rules.legacyFilesRemainImmutable || !plan.rules.doNotRenameLegacyFiles
 console.log(JSON.stringify({
   finding: 'GRIDEX-AUD-003',
   status: 'PASS',
-  legacy_file_count: legacyOrder.length,
-  foundation_file_count: plan.foundation.length,
-  controlled_reconciliation_file_count: plan.controlledReconciliation.length,
+  bootstrap_input_count: bootstrapOrder.length,
+  foundation_input_count: plan.foundation.length,
+  controlled_reconciliation_input_count: plan.controlledReconciliation.length,
+  derived_bootstrap_count: Object.keys(plan.derivedBootstrap || {}).length,
   timestamped_file_count: timestamped.length,
   earliest_repo_timestamped_version: earliestRepoVersion,
   tracked_remote_ledger_start: plan.firstTrackedRemoteVersion,
