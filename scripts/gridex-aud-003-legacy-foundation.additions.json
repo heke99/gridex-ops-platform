@@ -4,8 +4,14 @@
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
-    "bootstrap/20260618_customer_operation_jobs_foundation.sql",
-    "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql"
+    "bootstrap/20260618_customer_operation_jobs_foundation.sql"
+  ],
+  "interleaved": [
+    {
+      "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
+      "afterLedgerVersion": "20260802180000",
+      "beforeLedgerVersion": "20260803093000"
+    }
   ],
   "derivedBootstrap": {
     "bootstrap/20260519_user_profiles_foundation.sql": {
