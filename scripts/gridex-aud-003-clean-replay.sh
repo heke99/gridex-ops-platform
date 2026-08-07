@@ -9,8 +9,11 @@ HOLD="$(mktemp -d)"
 STAGED="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-INTERLEAVED="$ROOT/supabase/bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql"
-PHASE_TWO_START="20260803093000"
+
+MANIFEST_BOOTSTRAP="$ROOT/supabase/bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql"
+MANIFEST_BEFORE="20260803093000"
+READINESS_BOOTSTRAP="$ROOT/supabase/bootstrap/20260716_contract_platform_readiness_foundation.sql"
+READINESS_BEFORE="20260803131558"
 
 cleanup(){
   set +e
@@ -35,6 +38,7 @@ supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 
 apply_sql(){
   local file="$1"
+  test -f "$file" || { echo "missing replay prerequisite $file" >&2; exit 1; }
   echo "[AUD-003 replay] applying ${file#$ROOT/}"
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
@@ -82,42 +86,39 @@ foundation=(
  "$ROOT/supabase/bootstrap/20260801_company_capabilities_foundation.sql"
 )
 
-for file in "${foundation[@]}"; do
-  test -f "$file" || { echo "missing foundation $file" >&2; exit 1; }
-  apply_sql "$file"
-done
+for file in "${foundation[@]}"; do apply_sql "$file"; done
 
-# Stage the official development ledger as Supabase-native migration filenames.
-# SQL is copied from checksum-validated repository sources. Historical aliases
-# are represented by a no-op migration so the alias is recorded naturally by
-# Supabase CLI without executing canonical SQL twice.
-python3 - "$LEDGER" "$HOLD" "$STAGED" "$PHASE_TWO_START" <<'PY'
+# Build three Supabase-native ledger phases. Historical aliases become no-op
+# migrations so the CLI records the official ledger without executing canonical
+# SQL twice. Interleaved bootstrap SQL is direct, untracked prerequisite SQL.
+python3 - "$LEDGER" "$HOLD" "$STAGED" "$MANIFEST_BEFORE" "$READINESS_BEFORE" <<'PY'
 import hashlib,json,pathlib,shutil,sys
 ledger_path=pathlib.Path(sys.argv[1])
 migrations=pathlib.Path(sys.argv[2])
 staged=pathlib.Path(sys.argv[3])
-phase_two_start=sys.argv[4]
+boundary2=sys.argv[4]
+boundary3=sys.argv[5]
 data=json.loads(ledger_path.read_text())
 by={e['version']:e for e in data['entries']}
-(staged/'phase1').mkdir(parents=True,exist_ok=True)
-(staged/'phase2').mkdir(parents=True,exist_ok=True)
+for phase in ('phase1','phase2','phase3'):
+    (staged/phase).mkdir(parents=True,exist_ok=True)
+
+def phase_for(version):
+    if version < boundary2: return 'phase1'
+    if version < boundary3: return 'phase2'
+    return 'phase3'
 
 for e in data['entries']:
-    version=e['version']
-    name=e['name']
-    target_dir=staged/('phase2' if version >= phase_two_start else 'phase1')
-    target=target_dir/f"{version}_{name}.sql"
+    version=e['version']; name=e['name']
+    target=staged/phase_for(version)/f"{version}_{name}.sql"
     alias=e.get('ledgerAliasOf')
     if alias:
         canonical=by.get(alias)
-        if not canonical:
-            raise SystemExit(f"invalid ledger alias {version} -> {alias}")
+        if not canonical: raise SystemExit(f"invalid ledger alias {version} -> {alias}")
         rv=canonical.get('repositoryVersion',alias)
         source=migrations/f"{rv}_{canonical['name']}.sql"
-        if not source.exists():
-            raise SystemExit(f"alias source missing: {source.name}")
-        expected=e.get('checksum')
-        actual=hashlib.sha256(source.read_bytes()).hexdigest()
+        if not source.exists(): raise SystemExit(f"alias source missing: {source.name}")
+        expected=e.get('checksum'); actual=hashlib.sha256(source.read_bytes()).hexdigest()
         if expected and actual != expected:
             raise SystemExit(f"ledger alias checksum mismatch {version}: {actual} != {expected}")
         target.write_text(
@@ -132,8 +133,7 @@ for e in data['entries']:
     if len(candidates) != 1:
         raise SystemExit(f"ledger mapping for {version} {name} expected one file, found {len(candidates)}")
     source=candidates[0]
-    expected=e.get('checksum')
-    actual=hashlib.sha256(source.read_bytes()).hexdigest()
+    expected=e.get('checksum'); actual=hashlib.sha256(source.read_bytes()).hexdigest()
     if expected and actual != expected:
         raise SystemExit(f"ledger source checksum mismatch {version} {name}: {actual} != {expected}")
     shutil.copyfile(source,target)
@@ -141,43 +141,48 @@ PY
 
 install_phase(){
   local phase="$1"
-  find "$STAGED/$phase" -maxdepth 1 -type f -name '*.sql' -print0 | sort -z | while IFS= read -r -d '' file; do
-    cp "$file" "$MIGRATIONS/$(basename "$file")"
-  done
+  find "$STAGED/$phase" -maxdepth 1 -type f -name '*.sql' -print0 |
+    sort -z |
+    while IFS= read -r -d '' file; do
+      cp "$file" "$MIGRATIONS/$(basename "$file")"
+    done
 }
 
-# Phase 1 records the official ledger through the explicit 20260803081939 alias.
 install_phase phase1
 supabase db push --local --include-all --yes
 
-# This historical prerequisite targets canonical_migration_manifest, which was
-# created during phase 1 but was never represented in the official dev ledger.
-# Apply it without fabricating a ledger row, then continue the official ledger.
-apply_sql "$INTERLEAVED"
+# canonical_migration_manifest now exists; add only its historical verification
+# columns before v3 runtime/governance migrations. No ledger row is inserted.
+apply_sql "$MANIFEST_BOOTSTRAP"
 
 install_phase phase2
 supabase db push --local --include-all --yes
 
-# Prove that the CLI, not direct SQL manipulation, owns the local ledger and that
-# it matches the official dev ledger versions/names exactly.
+# The July canonical finalization RPC existed in deployed history but is outside
+# the official dev ledger. Restore it immediately before the August hardening
+# migration that renames it to _internal_v1.
+apply_sql "$READINESS_BOOTSTRAP"
+
+install_phase phase3
+supabase db push --local --include-all --yes
+
 python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys
-ledger=json.load(open(sys.argv[1]))
-db=sys.argv[2]
+ledger=json.load(open(sys.argv[1])); db=sys.argv[2]
 expected=[(e['version'],e['name']) for e in ledger['entries']]
 query="select version::text||E'\\t'||name from supabase_migrations.schema_migrations order by version::text;"
 out=subprocess.check_output(['psql',db,'-X','-At','-c',query],text=True)
 actual=[tuple(line.split('\t',1)) for line in out.splitlines() if line]
 if actual != expected:
     print('official ledger mismatch after Supabase CLI replay',file=sys.stderr)
-    print('expected:',expected,file=sys.stderr)
-    print('actual:',actual,file=sys.stderr)
+    print('expected:',expected,file=sys.stderr); print('actual:',actual,file=sys.stderr)
     raise SystemExit(1)
 print(f"[AUD-003 replay] Supabase CLI ledger verified: {len(actual)} official rows")
 PY
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
-select to_regclass('public.companies') is not null as companies_ok,
+select
+ to_regclass('public.companies') is not null as companies_ok,
  exists(select 1 from information_schema.columns where table_schema='public' and table_name='companies' and column_name='external_tenant_reference') as external_tenant_reference_ok,
  to_regclass('public.user_profiles') is not null as user_profiles_ok,
  to_regclass('public.admin_users') is not null as admin_users_ok,
@@ -202,6 +207,8 @@ select to_regclass('public.companies') is not null as companies_ok,
     where table_schema='public' and table_name='canonical_migration_manifest'
       and column_name in ('verified_at','verification_source','release_identifier','schema_fingerprint'))
       as migration_manifest_verification_columns_ok,
+ to_regprocedure('public.gridex_contract_platform_readiness(uuid)') is not null as contract_platform_readiness_ok,
+ to_regprocedure('public.gridex_contract_platform_readiness_internal_v1(uuid)') is not null as contract_platform_readiness_internal_ok,
  to_regclass('public.actor_test_results') is not null as actor_test_results_ok,
  to_regclass('public.ediel_test_runs') is not null as test_runs_ok,
  to_regclass('public.ediel_test_run_messages') is not null as test_run_messages_ok,
