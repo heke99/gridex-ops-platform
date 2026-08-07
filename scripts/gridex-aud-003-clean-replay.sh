@@ -6,6 +6,8 @@ MIGRATIONS="$ROOT/supabase/migrations"
 SEED="$ROOT/supabase/seed.sql"
 LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HISTORY="$ROOT/scripts/migration-history-manifest.json"
+FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
+EXPECTED_FINGERPRINT="407b9aed9cc2b58a3e78e587ff0e8a656ca52365a1e1088dc55590d8bcd84209"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
@@ -26,16 +28,15 @@ command -v supabase >/dev/null
 command -v psql >/dev/null
 command -v python3 >/dev/null
 
+test -f "$FINGERPRINT_SQL" || { echo "missing schema fingerprint query" >&2; exit 1; }
+
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 
-# The production runbook is explicit: fresh databases start with the DB1
-# foundation, EDIEL rules and batch files, then every timestamped repository
-# migration in timestamp/filename order. The connected dev ledger is not a
-# complete schema source, so clean replay must reconstruct historical effects
-# from checksum-pinned repository SQL instead of inventing missing objects.
+# Production runbook contract: DB1 + EDIEL/batch foundation, then every
+# timestamped repository migration in deterministic timestamp/filename order.
 foundation=(
   "$HOLD/01_db1_schema_repair_core_helpers_and_canonical_tables.sql"
   "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
@@ -46,9 +47,10 @@ foundation=(
   "$HOLD/batch 4+5+6.sql"
 )
 
-# Validate every replayed source file against the immutable migration-history
-# manifest and emit the deterministic timestamped execution plan. Allowed
-# historical version collisions are ordered by full filename.
+# Fail before database mutation if any normal replay source has drifted from
+# the immutable migration-history manifest. Historical duplicate versions are
+# permitted only when explicitly listed in allowedLegacyCollisions; full
+# filename ordering makes their execution deterministic.
 python3 - "$HISTORY" "$HOLD" "$PLAN" "${foundation[@]}" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
@@ -57,15 +59,15 @@ plan=pathlib.Path(sys.argv[3])
 foundation=[pathlib.Path(p) for p in sys.argv[4:]]
 history=json.loads(history_path.read_text())
 checksums=history.get('files',{})
+allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 
 def verify(path):
-    name=path.name
-    expected=checksums.get(name)
+    expected=checksums.get(path.name)
     if not expected:
-        raise SystemExit(f'migration source is not checksum-pinned: {name}')
+        raise SystemExit(f'migration source is not checksum-pinned: {path.name}')
     actual=hashlib.sha256(path.read_bytes()).hexdigest()
     if actual != expected:
-        raise SystemExit(f'migration checksum mismatch {name}: {actual} != {expected}')
+        raise SystemExit(f'migration checksum mismatch {path.name}: {actual} != {expected}')
 
 for path in foundation:
     if not path.exists():
@@ -73,10 +75,15 @@ for path in foundation:
     verify(path)
 
 files=[]
+collisions={}
 for path in root.iterdir():
     if path.is_file() and re.match(r'^\d{14}_.+\.sql$',path.name):
         verify(path)
         files.append(path)
+        collisions.setdefault(path.name[:14],[]).append(path.name)
+for version,names in collisions.items():
+    if len(names)>1 and sorted(names) != allowed.get(version,[]):
+        raise SystemExit(f'unapproved migration version collision {version}: {sorted(names)}')
 files.sort(key=lambda p:p.name)
 if not files:
     raise SystemExit('no timestamped repository migrations found')
@@ -96,15 +103,13 @@ apply_sql(){
 for file in "${foundation[@]}"; do
   apply_sql "$file"
 done
-
 while IFS= read -r file; do
   apply_sql "$file"
 done < "$PLAN"
 
-# The historical SQL above reconstructs schema state. The current connected dev
-# project has a compact/incomplete official Supabase ledger, captured exactly in
-# gridex-aud-003-main-ledger.json. Reproduce that ledger locally using CLI-owned
-# no-op markers only; direct DML against supabase_migrations is prohibited.
+# Repository SQL reconstructs historical schema state. Reproduce the compact
+# ledger observed in gridex-ops-dev separately using temporary no-op markers and
+# Supabase CLI. This is local verification only; no direct ledger DML is used.
 python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'
 import json,pathlib,sys
 ledger=json.loads(pathlib.Path(sys.argv[1]).read_text())
@@ -115,14 +120,15 @@ if not entries:
 last=None
 for e in entries:
     version=str(e['version']); name=e['name']
+    if not name or len(version)!=14 or not version.isdigit():
+        raise SystemExit(f'invalid official ledger entry: {e}')
     if last is not None and version <= last:
         raise SystemExit(f'official ledger is not strictly ordered: {version} after {last}')
     last=version
-    path=out/f'{version}_{name}.sql'
-    path.write_text(
+    (out/f'{version}_{name}.sql').write_text(
         '-- GRIDEX-AUD-003 local ledger marker.\n'
         '-- Historical schema effects were reconstructed from checksum-pinned\n'
-        '-- repository migrations before this marker was recorded by Supabase CLI.\n'
+        '-- repository SQL before this marker is recorded by Supabase CLI.\n'
         'select 1;\n'
     )
 PY
@@ -145,9 +151,6 @@ if actual != expected:
 print(f'[AUD-003 replay] Supabase CLI ledger verified: {len(actual)} official rows')
 PY
 
-# Fail closed on the key historical objects that previously disappeared when
-# replay used only the compact dev ledger. Execute the preserved readiness body
-# as a runtime dependency check, not merely an existence check.
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select
   to_regclass('public.companies') is not null as companies_ok,
@@ -174,4 +177,12 @@ select
   to_regclass('public.company_capabilities') is not null as company_capabilities_ok;
 SQL
 
+ACTUAL_FINGERPRINT="$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -f "$FINGERPRINT_SQL" | tr -d '[:space:]')"
+if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
+  echo "[AUD-003 replay] schema fingerprint mismatch" >&2
+  echo "expected=$EXPECTED_FINGERPRINT" >&2
+  echo "actual=$ACTUAL_FINGERPRINT" >&2
+  exit 1
+fi
+echo "[AUD-003 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
 echo '[AUD-003 replay] PASS: empty local Supabase -> runbook foundation -> all checksum-pinned timestamped SQL -> CLI-owned compact dev ledger'
