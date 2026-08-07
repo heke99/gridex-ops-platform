@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "purpose": "Deterministic bootstrap order for a fresh Gridex OPS database before canonical 14-digit migrations.",
   "firstTrackedRemoteVersion": "20260531075508",
-  "expectedBootstrapInputCount": 20,
+  "expectedBootstrapInputCount": 21,
   "foundation": [
     "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
@@ -17,7 +17,8 @@
     "migrations/batch 3.sql",
     "migrations/batch 4+5+6.sql",
     "bootstrap/20260522_set_updated_at_timestamp_foundation.sql",
-    "bootstrap/20260605_ediel_outbox_foundation.sql"
+    "bootstrap/20260605_ediel_outbox_foundation.sql",
+    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
   ],
   "controlledReconciliation": [
     "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
@@ -52,6 +53,11 @@
       "source": "migrations/20260605160000_ediel_backend_automation_foundation.sql",
       "artifactSha256": "470b5824b77b153b0e33ad3da94df70560a2e2333b2a5155a1d4a2b51a881c6f",
       "purpose": "Create only the historical ediel_outbox base relation and lock-key uniqueness required by the later tracked message-intent migration, without replaying unrelated backend automation objects."
+    },
+    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql": {
+      "source": "migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+      "artifactSha256": "e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394",
+      "purpose": "Restore only powers_of_attorney.customer_site_id with its customer_sites foreign key and historical backfill from site_id before the tracked manual grid-owner pipeline indexes that column."
     }
   },
   "rules": {
