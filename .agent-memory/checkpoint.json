@@ -1,12 +1,13 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-07T15:45:00Z",
+  "updated_at": "2026-08-07T15:50:00Z",
   "branch": "cursor/codebase-health-and-stability-6fc0",
-  "last_verified_commit": null,
+  "last_verified_commit": "42d33cdc",
   "active_phase": "PHASE-46",
   "active_task": "WP-046",
   "active_subtask": "GRIDEX-OPS-BL-006 contacts and lookup-cache read isolation + O-007 import-history hardening",
   "status": "IMPLEMENTED_STATIC_VERIFIED_STAGING_PENDING",
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/89",
   "implemented_not_environment_verified": [
     "BL-006 migration isolating contacts and lookup-cache reads",
     "network-owners import history service-role read after platform-admin gate"
@@ -33,7 +34,7 @@
       "evidence": "scripts/gridex-ops-bl-006-contacts-and-lookup-cache-read-isolation-regression.sql"
     }
   ],
-  "next_action": "Open PR for 6fc0, apply BL-006 on non-production, run SQL rollback regression and admin import-history smoke.",
+  "next_action": "Apply BL-006 on non-production, run SQL rollback regression and admin import-history smoke, then merge #89.",
   "resume_from": ".agent-memory/handover.md",
   "context_notes": [
     "Finding ID is GRIDEX-OPS-BL-006; BL-003 remains leaked-password protection",
