@@ -44,6 +44,7 @@ foundation=(
   "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
   "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
   "$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260521_company_ediel_production_profile_foundation.sql"
   "$ROOT/supabase/bootstrap/20260521_ediel_test_runs_foundation.sql"
   "$HOLD/20260528_batch_2_ediel_rulebook_system_tests.sql"
   "$HOLD/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql"
@@ -53,6 +54,7 @@ foundation=(
   "$HOLD/batch 3.sql"
   "$HOLD/batch 4+5+6.sql"
   "$ROOT/supabase/bootstrap/20260522_set_updated_at_timestamp_foundation.sql"
+  "$ROOT/supabase/bootstrap/20260601_ediel_production_readiness_foundation.sql"
   "$ROOT/supabase/bootstrap/20260605_ediel_outbox_foundation.sql"
   "$ROOT/supabase/bootstrap/20260611_grid_owner_information_request_foundation.sql"
   "$ROOT/supabase/bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql"
@@ -125,6 +127,9 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.ediel_code_rules') is not null then 1 else 0 end as ediel_code_rules_ok,
        case when to_regclass('public.inbound_email_messages') is not null then 1 else 0 end as inbound_email_messages_ok,
        case when to_regprocedure('public.set_updated_at_timestamp()') is not null then 1 else 0 end as updated_at_trigger_ok,
+       case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='companies' and column_name='production_status') then 1 else 0 end as legacy_company_production_status_ok,
+       case when to_regclass('public.ediel_production_readiness_checks') is not null then 1 else 0 end as ediel_production_readiness_checks_ok,
+       case when to_regclass('public.ediel_go_live_events') is not null then 1 else 0 end as ediel_go_live_events_ok,
        case when to_regclass('public.ediel_outbox') is not null then 1 else 0 end as ediel_outbox_ok,
        case when to_regclass('public.grid_owner_contact_routes') is not null then 1 else 0 end as grid_owner_contact_routes_ok,
        case when to_regclass('public.customer_site_resolution') is not null then 1 else 0 end as customer_site_resolution_ok,
