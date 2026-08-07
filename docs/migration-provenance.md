@@ -1,7 +1,6 @@
 # Gridex OPS migration provenance contract
 
-This document is the machine-verifiable bootstrap contract for a fresh Gridex OPS database.
-It does not change the live migration ledger and it does not authorize editing already-applied migrations.
+This document is the machine-verifiable bootstrap contract for a fresh Gridex OPS database. It does not change the live migration ledger and it does not authorize editing already-applied migrations.
 
 ## 1. Explicit historical foundation — always before canonical 14-digit migrations
 
@@ -18,42 +17,29 @@ Apply in this exact order:
 9. `bootstrap/20260528_ediel_test_run_steps_foundation.sql`
 10. `migrations/20260528_batch_2_ediel_rulebook_system_tests.sql`
 11. `migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql`
-12. `migrations/ediel_rules.sql`
-13. `migrations/Batch 1+2.sql`
-14. `bootstrap/20260528_inbound_email_messages_foundation.sql`
-15. `migrations/batch 3.sql`
-16. `migrations/batch 4+5+6.sql`
-17. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
-18. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
-19. `bootstrap/20260602_ediel_certificates_foundation.sql`
-20. `bootstrap/20260605_ediel_outbox_foundation.sql`
-21. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-22. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
-23. `bootstrap/20260801_company_capabilities_foundation.sql`
+12. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql`
+13. `migrations/ediel_rules.sql`
+14. `migrations/Batch 1+2.sql`
+15. `bootstrap/20260528_inbound_email_messages_foundation.sql`
+16. `migrations/batch 3.sql`
+17. `migrations/batch 4+5+6.sql`
+18. `bootstrap/20260522_set_updated_at_timestamp_foundation.sql`
+19. `bootstrap/20260601_ediel_production_readiness_foundation.sql`
+20. `bootstrap/20260602_ediel_certificates_foundation.sql`
+21. `bootstrap/20260605_ediel_outbox_foundation.sql`
+22. `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+23. `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+24. `bootstrap/20260801_company_capabilities_foundation.sql`
 
-The metering bootstrap is a derived artifact sourced from immutable, checksum-pinned `migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. It contains only `metering_permissions`, because replaying the whole historical source after the later DB1 repair collides with the newer billing-export schema.
+Every derived bootstrap artifact is deliberately narrower than its immutable source and is independently SHA-256 pinned in `scripts/gridex-aud-003-legacy-foundation.json`. CI also verifies the source migration checksum from `scripts/migration-history-manifest.json`.
 
-The company Ediel production-profile, actor-test-result, test-run and test-run-message bootstraps are sourced from immutable, checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`. They restore only the legacy production projection fields still read by canonical Ediel state, `actor_test_results`, `ediel_test_runs`, and the original `ediel_test_run_messages` relation plus uniqueness index. The message relation deliberately remains tenant-unqualified until the tracked `20260802013000_ediel_test_evidence_v2.sql` adds `company_id` and composite tenant foreign keys.
+The 20260521 artifacts restore only the legacy company Ediel production projection, actor-test result ledger, test-run base, and original test-run message relation from checksum-pinned `migrations/20260521_actor_testing_go_live_module.sql`.
 
-The test-run-step bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_2_completion_rulebook_actions_regression.sql`. It restores only the historical run metadata required by that source, `ediel_test_run_steps`, its original indexes and RLS enablement. Tenant ownership and composite foreign keys remain the responsibility of `20260802013000_ediel_test_evidence_v2.sql`.
+`bootstrap/20260528_ediel_test_run_steps_foundation.sql` is sourced from checksum-pinned `migrations/20260528_batch_2_completion_rulebook_actions_regression.sql` and restores the original test-run step relation, prerequisite run metadata, indexes and RLS. `bootstrap/20260529_ediel_test_artifact_message_foundation.sql` is sourced from checksum-pinned `migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql` and restores only `ediel_test_artifacts.ediel_message_id` with its historical message FK. Tenant ownership and composite tenant FKs remain the responsibility of tracked `20260802013000_ediel_test_evidence_v2.sql`.
 
-The inbound-mail bootstrap is sourced from immutable, checksum-pinned `migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql`. `Batch 1+2.sql` already creates `ediel_mailboxes`; this artifact adds only `inbound_email_messages`, which `batch 3.sql` immediately updates and indexes.
+The metering, inbound-mail, updated-at trigger, Ediel production readiness, Ediel certificate, Ediel outbox, grid-owner request, POA customer-site and company-capabilities artifacts similarly restore only prerequisites proven necessary by clean replay. They do not replay unrelated historical product behavior.
 
-The updated-at trigger bootstrap restores `public.set_updated_at_timestamp()` exactly as recovered with `pg_get_functiondef` from `gridex-ops-dev` on 2026-08-07. The checksum-pinned `migrations/20260522_batch4f_rbac_database_lint_hardening.sql` corroborates that the helper already existed historically by hardening its search path.
-
-The Ediel production-readiness bootstrap is sourced from immutable, checksum-pinned `migrations/20260601070000_ediel_production_readiness_hardening.sql`. It restores the canonical precursor fields on `companies`, the `ediel_production_readiness_checks` and `ediel_go_live_events` evidence tables, their indexes, and tenant-safe RLS policies.
-
-The Ediel certificate bootstrap is sourced from immutable, checksum-pinned `migrations/20260602090000_ediel_operations_platform_core.sql`. It restores only `ediel_certificates` and its original RLS enablement so the canonical configuration-snapshot migration can attach change-snapshot triggers. Later certificate migrations remain responsible for recipient and transport hardening.
-
-The Ediel outbox bootstrap is sourced from immutable, checksum-pinned `migrations/20260605160000_ediel_backend_automation_foundation.sql`. It contains only the original `public.ediel_outbox` base table and lock-key uniqueness.
-
-The grid-owner request bootstrap is sourced from immutable, checksum-pinned `migrations/20260611100000_energy_resolver_grid_area_operations.sql`. It restores the directly connected `grid_owner_contact_routes`, `customer_site_resolution` and `grid_owner_information_requests` relations plus their original indexes.
-
-The POA customer-site bootstrap is sourced from immutable, checksum-pinned `migrations/20260613090000_batch_m_ops_master_legal_readiness.sql`. It restores nullable `powers_of_attorney.customer_site_id`, its `customer_sites(id)` foreign key with `ON DELETE SET NULL`, and the historical backfill from `site_id`.
-
-The company-capabilities bootstrap is sourced from immutable, checksum-pinned `migrations/20260801143000_canonical_multitenant_platform_hardening.sql`. It restores the fail-closed `company_capabilities` registry, constraints/index, RLS policies/grants, disabled capability seeds and `canonical_company_capability_enabled` helper.
-
-All derived artifacts have independent SHA-256 pins in `scripts/gridex-aud-003-legacy-foundation.json`; CI also verifies immutable source migration checksums. Historical migration files remain immutable.
+Historical migration files remain immutable. Do not rename or rewrite them to manufacture migration history.
 
 ## 2. Controlled legacy reconciliation
 
@@ -68,24 +54,22 @@ These six files are immutable legacy inputs and are executed only when controlle
 
 ## 3. Canonical 14-digit set
 
-After the explicit historical foundation, replay the official dev ledger through the commit represented by `main`. Historical ledger aliases are checksum-validated against their canonical repository migration and are not executed twice.
-
-Other short-date or free-form files do not silently enter the bootstrap. If clean replay proves another prerequisite, its source must be checksum-pinned and any derived bootstrap artifact must be narrowly scoped, independently hashed and deliberately added to this contract.
+After the explicit historical foundation, replay the official dev ledger through the commit represented by `main`. Historical ledger aliases are checksum-validated against their canonical repository migration and are not executed twice. Other short-date or free-form files do not silently enter the bootstrap.
 
 ## 4. Current provenance boundary
 
 The connected `gridex-ops-dev` ledger currently starts at `20260531075508` — `fix_customer_internal_notes_customer_fk`. Repository history and the live development schema contain required state older than that remote ledger boundary, so the remote ledger alone is not an empty-database bootstrap source.
 
-A historical Supabase MCP ledger row at `20260803081939` is an alias of canonical repository migration `20260803093300_duplicate_primary_client_audit_contract_v3.sql`; clean replay validates the alias but executes the canonical SQL only once.
+Historical Supabase MCP ledger row `20260803081939` is an alias of canonical repository migration `20260803093300_duplicate_primary_client_audit_contract_v3.sql`; clean replay validates the alias but executes canonical SQL once.
 
 ## 5. Safety rules
 
 - Never manually edit `supabase_migrations.schema_migrations` to manufacture provenance.
 - Never mutate already-applied migration SQL in place.
 - Never infer missing historical DDL when checksum-pinned repository or live-schema evidence exists.
-- Derived bootstrap artifacts may contain only evidenced prerequisites and must remain narrower than their source migrations.
+- Derived bootstrap artifacts may contain only evidenced prerequisites and must remain narrower than source migrations.
 - Never treat a failed Supabase preview branch as staging-verified.
-- Changes to bootstrap order, checksums, artifacts or classification must fail CI until this contract and regression are deliberately updated together.
+- Changes to bootstrap order, checksums, artifacts or classification must fail CI until contract and regression are deliberately updated together.
 
 ## 6. Verification gates
 
