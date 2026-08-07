@@ -42,6 +42,8 @@ foundation=(
   "$HOLD/02_db1_operations_ediel_billing_dedupe_and_storage.sql"
   "$HOLD/03_db1_backfill_functions_rls_reports_and_finish.sql"
   "$ROOT/supabase/bootstrap/20260520_metering_permissions_foundation.sql"
+  "$HOLD/20260528_batch_2_ediel_rulebook_system_tests.sql"
+  "$HOLD/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql"
   "$HOLD/ediel_rules.sql"
   "$HOLD/Batch 1+2.sql"
   "$HOLD/batch 3.sql"
@@ -67,6 +69,8 @@ select case when to_regclass('public.companies') is not null then 1 else 0 end a
        case when to_regclass('public.customers') is not null then 1 else 0 end as customers_ok,
        case when to_regclass('public.customer_sites') is not null then 1 else 0 end as customer_sites_ok,
        case when to_regclass('public.metering_permissions') is not null then 1 else 0 end as metering_permissions_ok,
+       case when to_regclass('public.ediel_field_rules') is not null then 1 else 0 end as ediel_field_rules_ok,
+       case when to_regclass('public.ediel_code_rules') is not null then 1 else 0 end as ediel_code_rules_ok,
        case when to_regclass('public.ediel_message_intents') is not null then 1 else 0 end as ediel_intents_ok;
 SQL
 
