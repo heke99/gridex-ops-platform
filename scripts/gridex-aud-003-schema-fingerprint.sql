@@ -28,4 +28,4 @@ with target_tables(table_name) as (values
    'functions',(select coalesce(jsonb_agg(to_jsonb(funcs) order by proname,args),'[]'::jsonb) from funcs)
  )::text as body
 )
-select encode(digest(body,'sha256'),'hex') from payload;
+select encode(extensions.digest(body,'sha256'),'hex') from payload;
