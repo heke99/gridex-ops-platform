@@ -47,6 +47,11 @@
       "beforeLedgerVersion": "20260617183000"
     },
     {
+      "path": "bootstrap/20260618_ediel_outbox_claim_lock_prerequisite.sql",
+      "afterLedgerVersion": "20260618194500",
+      "beforeLedgerVersion": "20260618200000"
+    },
+    {
       "path": "bootstrap/20260618_inbound_processing_jobs_prerequisite.sql",
       "afterLedgerVersion": "20260618194500",
       "beforeLedgerVersion": "20260618200000"
@@ -204,6 +209,11 @@
       "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
       "artifactSha256": "3cb5d36d1bfae9f44ca8614fb636f17e46ded7e82cdc1f7ab4e1a25110f60cf8",
       "purpose": "Restore only the source-defined inbound_processing_jobs relation, base status index and source RLS policies immediately before canonical 20260618200000 claim-lock hardening references its row type; no jobs are seeded."
+    },
+    "bootstrap/20260618_ediel_outbox_claim_lock_prerequisite.sql": {
+      "source": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+      "artifactSha256": "278b30d6fd9a428f3d57d33bc4daadb39c5afb9fffb67080d2247bc94ce77192",
+      "purpose": "Restore only the source-defined ediel_outbox claim-lock fields consumed by canonical 20260618200000 queue hardening (locked_at, locked_by, send_attempt_count, current_send_attempt_id); no outbox rows are seeded or modified."
     }
   }
 }
