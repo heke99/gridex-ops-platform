@@ -10,8 +10,10 @@ permissions:
 
 jobs:
   refresh-lock:
-    if: "github.event.head_commit.message == 'chore(ci) one-shot nanoid lock refresh v5'"
+    if: "github.event.head_commit.message == 'chore(ci) one-shot nanoid lock refresh v6'"
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: Checkout remediation branch
         uses: actions/checkout@v4
