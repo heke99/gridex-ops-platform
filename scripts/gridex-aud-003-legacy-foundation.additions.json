@@ -199,8 +199,8 @@
     },
     "bootstrap/20260520_companies_support_email_foundation.sql": {
       "source": "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
-      "artifactSha256": "0d9b0853accf38682c0a9399b1a6085800f77f8c53ad742f2d852663c79151df",
-      "purpose": "Restore only the source-defined companies.support_email field required by later canonical tenant event-mail readiness; no company rows are seeded."
+      "artifactSha256": "f9a900abd5b2c7a3b80a4fa6c336700b04114330b68e0e8999f5c3b086efeac2",
+      "purpose": "Restore only source-defined companies.support_email and companies.billing_contact_email required by later canonical tenant-mail and legal-profile flows; no company rows are seeded or rewritten."
     },
     "bootstrap/20260616_customer_portal_user_email_prerequisite.sql": {
       "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
