@@ -1,15 +1,15 @@
 # Current task
 
-Last updated: 2026-08-08T16:15:00Z
+Last updated: 2026-08-08T16:21:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
-`GRIDEX-REM-002` remains the active release blocker.
+Active: `GRIDEX-REM-002` deterministic canonical empty-database replay.
 
-Verified prior failure: `20260615230000_tenant_legal_defaults_live_test_intake_tracking.sql` reads `companies.primary_contact_email` and `companies.support_email`; those fields are defined by pre-ledger canonical source files but were absent from clean replay.
+Current first SQL failure from exact replay evidence: `20260616150000_public_contract_offer_api_visibility_fix.sql:70`, `relation public.legal_bundles does not exist`.
 
-Current implementation adds only those two schema prerequisites and pins their provenance in `scripts/gridex-aud-003-legacy-foundation.additions.json`.
+Canonical owner `20260614140000_ops_production_multitenant_readiness.sql` is additive/idempotent and creates `legal_bundles`, `legal_bundle_items`, `price_books`, `price_book_lines`, launch state/intake structures and their readiness columns. It was skipped because the existing narrow integration API-client readiness bootstrap referenced it.
 
-Independent large-file DoD blocker is fixed and locally workflow-verified: the customer application pipeline is split into <=2500-line modules and repository typecheck passed.
+Current implementation preserves that narrow prerequisite while enabling complete source replay at 20260614140000.
 
-Next action: exact-HEAD CI. No further discovery unless a defined release gate actually fails.
+Next action: exact-HEAD CI only; no new discovery absent a failing defined release gate.

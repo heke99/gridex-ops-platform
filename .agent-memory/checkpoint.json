@@ -1,29 +1,25 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T16:15:00Z",
+  "updated_at": "2026-08-08T16:21:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "ed3d746cfdc4489920bc56e3686d92affedcc8d3",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore verified company contact prerequisites for tenant mail readiness",
+  "active_subtask": "Preserve complete 20260614140000 production multitenant readiness source replay",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "exact_known_failure": {
-    "migration": "20260615230000_tenant_legal_defaults_live_test_intake_tracking.sql",
-    "line": 302,
-    "error": "column c.primary_contact_email does not exist",
-    "required_same_view_fields": [
-      "companies.primary_contact_email",
-      "companies.support_email"
-    ]
+    "migration": "20260616150000_public_contract_offer_api_visibility_fix.sql",
+    "line": 70,
+    "error": "relation public.legal_bundles does not exist",
+    "owner_source": "20260614140000_ops_production_multitenant_readiness.sql"
   },
   "large_file_gate": {
     "customer_applications_before_lines": 9808,
-    "split_workflow_typecheck": "PASS",
     "generated_files_over_2500": 0,
-    "ordinary_ci_pending": true
+    "ordinary_ci_typecheck": "PASS",
+    "final_same_head_ci_pending": true
   },
-  "next_action": "Run exact-HEAD OPS hardening; continue only from an actual failing release gate.",
+  "next_action": "Run exact-HEAD CI and continue only from an actual failing release gate.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

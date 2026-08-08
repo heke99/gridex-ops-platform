@@ -137,7 +137,8 @@
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql": {
       "source": "migrations/20260614140000_ops_production_multitenant_readiness.sql",
       "artifactSha256": "02667b1bf0d9196c8d8ad8b2bd7511b7c8c4ec5f8374b59d7b498ca2958bfcd4",
-      "purpose": "Restore only integration API client profile/readiness columns used by later canonical runtime capability checks; no clients are seeded."
+      "purpose": "Restore early integration API client profile/readiness columns while preserving the complete additive/idempotent 20260614140000 production multitenant readiness source for normal chronological replay, including canonical legal bundles and price books required by later migrations.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260618_customer_operation_jobs_foundation.sql": {
       "source": "migrations/20260618110000_customer_operation_automation_jobs.sql",

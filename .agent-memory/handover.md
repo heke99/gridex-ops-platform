@@ -3,8 +3,8 @@
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
-The customer application large-file blocker is fixed by a behavior-preserving module split; dedicated workflow verification passed repository typecheck and every generated module is <=2500 lines. Temporary split tooling has been removed.
+Large-file blocker: customer application pipeline split into <=2500-line modules; ordinary CI typecheck is green. The one hardening-regression failure was a stale file-path assertion and is corrected without weakening the token check.
 
-`GRIDEX-REM-002` remains open. The latest replay first failure was `20260615230000_tenant_legal_defaults_live_test_intake_tracking.sql`, whose event-mail readiness view reads `companies.primary_contact_email` and `companies.support_email`. Current changes restore only those two source-defined columns from `20260519_final_saas_hardening.sql` and `20260520_batch_6e_rbac_tenant_stats_whitelabel.sql`.
+Database blocker: clean replay now reaches `20260616150000` and fails on missing `public.legal_bundles`. Canonical additive/idempotent `20260614140000_ops_production_multitenant_readiness.sql` owns that relation and was being skipped because of a narrow derived bootstrap. Current metadata sets `preserveSourceReplay=true` so complete source replay returns at its chronological position.
 
-Continue only from exact CI evidence. Once full clean replay + fingerprint + same-HEAD gates pass, mark REM-002 VERIFIED, run one bounded release rescan, update final reports/memory, merge PR #90 to main and verify main.
+Continue only from exact CI evidence. On clean replay + fingerprint success, mark REM-002 VERIFIED, stop migration archaeology, run one bounded release rescan, update final state, merge PR #90 and verify main.

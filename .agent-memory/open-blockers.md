@@ -1,9 +1,9 @@
 # Open blockers
 
-Last updated: 2026-08-08T16:15:00Z
+Last updated: 2026-08-08T16:21:00Z
 
-1. `GRIDEX-REM-002` clean replay/fingerprint remains open until exact-HEAD CI passes end-to-end. Current implementation restores the two company contact columns required by the first failing tenant-mail readiness view.
+`GRIDEX-REM-002` remains the active database release blocker until clean replay and fingerprint pass on the final same HEAD. Current implementation restores complete 20260614140000 production multitenant readiness source replay to resolve the verified `legal_bundles` failure.
 
-2. Large-file implementation must still be confirmed by ordinary OPS-hardening CI on the same descendant HEAD, although the dedicated split workflow already passed full repository typecheck and the <=2500 line gate.
+The customer application large-file implementation is complete structurally and has passed ordinary CI typecheck; final same-HEAD regression/security verification remains required.
 
-PR #90 remains unmerged until same-HEAD release verification is green.
+PR #90 remains unmerged until all final release gates are green.
