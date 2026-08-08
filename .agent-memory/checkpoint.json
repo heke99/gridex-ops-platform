@@ -1,33 +1,29 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T15:52:00Z",
+  "updated_at": "2026-08-08T16:15:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "4216cb69e6b6eaf7374c84cb0bc87c38b07edd62",
+  "last_verified_commit": "ed3d746cfdc4489920bc56e3686d92affedcc8d3",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Preserve complete 20260612193000 tenant-contract/API/mail source replay",
+  "active_subtask": "Restore verified company contact prerequisites for tenant mail readiness",
   "status": "IMPLEMENTED_NOT_VERIFIED",
-  "ci_state": {
-    "head": "4216cb69e6b6eaf7374c84cb0bc87c38b07edd62",
-    "verify": "PASS",
-    "migration_provenance_regression": "PASS",
-    "security_audit_production": "PASS",
-    "clean_migration_replay": "FAIL"
-  },
   "exact_known_failure": {
-    "migration": "20260615214500_public_contract_offer_api_readiness_fix.sql",
-    "line": 87,
-    "error": "column o.publication_status does not exist",
-    "owner_source": "20260612193000_platform_tenant_contracts_api_mail.sql"
+    "migration": "20260615230000_tenant_legal_defaults_live_test_intake_tracking.sql",
+    "line": 302,
+    "error": "column c.primary_contact_email does not exist",
+    "required_same_view_fields": [
+      "companies.primary_contact_email",
+      "companies.support_email"
+    ]
   },
-  "implemented_not_verified": [
-    "preserveSourceReplay enabled for integration API-client lifecycle artifact so complete 20260612193000 tenant-contract/API/mail source replays"
-  ],
-  "other_release_blockers": [
-    "lib/website/customerApplications.ts is approximately 9800 lines and exceeds the <=2500 handwritten production line gate"
-  ],
-  "next_action": "Inspect PR #90 clean replay on the new HEAD; continue only from an actual replay failure, then close replay/fingerprint and complete large-file modularization before final release verification.",
+  "large_file_gate": {
+    "customer_applications_before_lines": 9808,
+    "split_workflow_typecheck": "PASS",
+    "generated_files_over_2500": 0,
+    "ordinary_ci_pending": true
+  },
+  "next_action": "Run exact-HEAD OPS hardening; continue only from an actual failing release gate.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

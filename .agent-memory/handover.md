@@ -1,15 +1,10 @@
-# Remediation handover — GRIDEX-REM-002
+# Remediation handover
 
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
-Current CI HEAD: `4216cb69e6b6eaf7374c84cb0bc87c38b07edd62`
 
-Verified on current HEAD: verify/provenance/typecheck/targeted regressions/security PASS. Clean replay FAIL. REM-002 not VERIFIED.
+The customer application large-file blocker is fixed by a behavior-preserving module split; dedicated workflow verification passed repository typecheck and every generated module is <=2500 lines. Temporary split tooling has been removed.
 
-The 20260613 metering identifier prerequisite is CI-proven: complete Batch M and later O6 migrations now pass. Replay reaches `20260615214500_public_contract_offer_api_readiness_fix.sql:87`, which fails because `public_contract_offers.publication_status` is absent.
+`GRIDEX-REM-002` remains open. The latest replay first failure was `20260615230000_tenant_legal_defaults_live_test_intake_tracking.sql`, whose event-mail readiness view reads `companies.primary_contact_email` and `companies.support_email`. Current changes restore only those two source-defined columns from `20260519_final_saas_hardening.sql` and `20260520_batch_6e_rbac_tenant_stats_whitelabel.sql`.
 
-Canonical additive/idempotent `20260612193000_platform_tenant_contracts_api_mail.sql` creates the missing publication fields, but complete source replay was suppressed because the existing narrow `bootstrap/20260612_integration_api_client_lifecycle_foundation.sql` points at it. Current implementation sets `preserveSourceReplay=true`, retaining the early API-client prerequisite while restoring complete 20260612193000 source replay. No live Supabase mutation or historical source edit occurs.
-
-Independent final DoD blocker: `lib/website/customerApplications.ts` is ~9,800 handwritten lines and must be behavior-preservingly split to <=2,500 per file.
-
-Next: inspect exact-HEAD replay and continue only from a real first SQL error. On full replay/fingerprint success, close REM-002, finish large-file gate, run one bounded release verification, update final reports/memory and merge PR #90 when same-HEAD gates are green.
+Continue only from exact CI evidence. Once full clean replay + fingerprint + same-HEAD gates pass, mark REM-002 VERIFIED, run one bounded release rescan, update final reports/memory, merge PR #90 to main and verify main.

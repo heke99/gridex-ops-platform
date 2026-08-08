@@ -1,7 +1,9 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
+    "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
@@ -161,6 +163,16 @@
       "source": "migrations/20260716183000_contract_canonical_finalization.sql",
       "artifactSha256": "408c3afc331c6f7ec0d2456ffccc154d80dc5477db1d75e29e26280cdb7b8d90",
       "purpose": "Restore only the exact source-defined pre-hardening gridex_contract_platform_readiness(uuid) body and grants required by 20260803131558; the body is corroborated by gridex-ops-dev internal_v1 and no product or tenant data is seeded."
+    },
+    "bootstrap/20260519_companies_primary_contact_email_foundation.sql": {
+      "source": "migrations/20260519_final_saas_hardening.sql",
+      "artifactSha256": "fbdc09f9d0c463b8568ae70b96f518c2dcbc87f41d54df60099b76d9706d435a",
+      "purpose": "Restore only the source-defined companies.primary_contact_email field required by later canonical tenant event-mail readiness; no company rows are seeded."
+    },
+    "bootstrap/20260520_companies_support_email_foundation.sql": {
+      "source": "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
+      "artifactSha256": "0d9b0853accf38682c0a9399b1a6085800f77f8c53ad742f2d852663c79151df",
+      "purpose": "Restore only the source-defined companies.support_email field required by later canonical tenant event-mail readiness; no company rows are seeded."
     }
   }
 }

@@ -1,9 +1,9 @@
 # Open blockers
 
-Last updated: 2026-08-08T15:52:00Z
+Last updated: 2026-08-08T16:15:00Z
 
-1. `GRIDEX-REM-002` clean replay remains active. On `4216cb69e6b6eaf7374c84cb0bc87c38b07edd62`, verify/provenance/typecheck/regressions/security PASS; replay now reaches `20260615214500` and fails because `public_contract_offers.publication_status` is missing. Current fix restores complete additive/idempotent `20260612193000_platform_tenant_contracts_api_mail.sql` source replay via `preserveSourceReplay=true`.
+1. `GRIDEX-REM-002` clean replay/fingerprint remains open until exact-HEAD CI passes end-to-end. Current implementation restores the two company contact columns required by the first failing tenant-mail readiness view.
 
-2. Final large-file release gate is red: handwritten production file `lib/website/customerApplications.ts` is ~9,800 lines; campaign DoD requires every in-scope handwritten production file <=2,500 before merge.
+2. Large-file implementation must still be confirmed by ordinary OPS-hardening CI on the same descendant HEAD, although the dedicated split workflow already passed full repository typecheck and the <=2500 line gate.
 
-PR #90 remains draft/unmerged until replay/fingerprint, large-file gate, bounded final release rescan and all final same-HEAD required checks are green.
+PR #90 remains unmerged until same-HEAD release verification is green.
