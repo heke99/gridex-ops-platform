@@ -42,6 +42,11 @@
       "beforeLedgerVersion": "20260616223000"
     },
     {
+      "path": "bootstrap/20260617_powers_of_attorney_customer_contract_prerequisite.sql",
+      "afterLedgerVersion": "20260617170000",
+      "beforeLedgerVersion": "20260617183000"
+    },
+    {
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
@@ -184,6 +189,11 @@
       "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
       "artifactSha256": "09beeca9a8e0c70fbab2888cb2b6bb0993a0e5f09e516ed8518b90c5106c95c6",
       "purpose": "Restore only the source-defined customer_portal_accounts runtime fields consumed by the canonical 20260616223000 portal bundle resolver (user_email, is_active, activated_at, verified_at, match_method) plus the empty-replay-safe email backfill; no portal accounts are seeded."
+    },
+    "bootstrap/20260617_powers_of_attorney_customer_contract_prerequisite.sql": {
+      "source": "migrations/20260528_debug_post_repair_schema_guardrails.sql",
+      "artifactSha256": "0dd8f05ef993d6b4c55aa4ac2217de1e6b8d392a2efcf03ad0edf24d4a3460d5",
+      "purpose": "Restore only the source-defined powers_of_attorney.customer_contract_id runtime field immediately before the canonical 20260617183000 portal-document backfill reads it; no POA rows are seeded or rewritten."
     }
   }
 }
