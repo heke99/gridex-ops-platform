@@ -182,7 +182,8 @@
     "bootstrap/20260722_external_tenant_reference_foundation.sql": {
       "source": "migrations/20260722133000_external_tenant_quote_api_completion.sql",
       "artifactSha256": "b55bd0991ec9d01c74df7783247e95ecd7a058b2739891a65d342d09478b23d6",
-      "purpose": "Restore only the source-defined stable external tenant reference function, company column, uniqueness index and format constraint required by tracked public-contract snapshot migrations; no tenants or integration records are seeded."
+      "purpose": "Restore the early stable external tenant reference prerequisite while preserving complete checksum-pinned, forward-only/tenant-safe 20260722133000 external tenant quote/API completion for chronological replay, including website_contract_quotes and canonical external publication/API contracts.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
