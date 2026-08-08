@@ -9,6 +9,7 @@
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
+    "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
@@ -95,6 +96,11 @@
       "source": "migrations/20260521_batch_2c_end_to_end_operations.sql",
       "artifactSha256": "446ea8443bd4fa9f71f42016f11323feb67bab5f53d7b1bd6d890d0f16258b16",
       "purpose": "Restore only the source-defined external_contract_intakes relation, base index and source RLS policies required by later launch-readiness extensions/views; no intake rows or tenant/customer data are seeded."
+    },
+    "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql": {
+      "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
+      "artifactSha256": "5a40429f7370068f4ce588cb84e63f748920c922d4a9945d0c2266a4369341ef",
+      "purpose": "Restore only the source-defined customer_invoice_lines runtime metadata required by later canonical invoice synchronization: line_type, unit, vat_rate and sort_order; no invoice or invoice-line rows are seeded or rewritten."
     },
     "bootstrap/20260526_customer_blockers_foundation.sql": {
       "source": "migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql",
