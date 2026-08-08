@@ -1,0 +1,23 @@
+name: Remediation source export
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: read
+
+jobs:
+  export-customer-applications-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact remediation HEAD
+        uses: actions/checkout@v4
+      - name: Upload customer applications source
+        uses: actions/upload-artifact@v4
+        with:
+          name: remediation-customer-applications-source
+          path: lib/website/customerApplications.ts
+          if-no-files-found: error
+          retention-days: 1
