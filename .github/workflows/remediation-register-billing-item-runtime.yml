@@ -1,0 +1,59 @@
+name: Register billing export item replay prerequisite
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  register-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Register checksum-pinned replay prerequisite
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const path = 'scripts/gridex-aud-003-legacy-foundation.additions.json';
+          const artifact = 'supabase/bootstrap/20260716_billing_export_run_items_runtime_prerequisite.sql';
+          const rel = 'bootstrap/20260716_billing_export_run_items_runtime_prerequisite.sql';
+          const expected = 'e259335304bf3fa66d75183eb546a1430698dcfc0672f73423990801c443a910';
+          const actual = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
+          if (actual !== expected) throw new Error(`artifact checksum mismatch: ${actual}`);
+          const doc = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (!doc.interleaved.some((item) => item.path === rel)) {
+            doc.interleaved.push({
+              path: rel,
+              afterLedgerVersion: '20260715170000',
+              beforeLedgerVersion: '20260716010000'
+            });
+          }
+          doc.interleaved.sort((a, b) => a.beforeLedgerVersion.localeCompare(b.beforeLedgerVersion) || a.path.localeCompare(b.path));
+          doc.derivedBootstrap[rel] = {
+            source: 'migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql',
+            artifactSha256: expected,
+            purpose: 'Restore only the source-defined billing_export_run_items runtime field family consumed by canonical 20260716010000 contract/billing completion; the source is safe/idempotent and no export rows are seeded or rewritten.'
+          };
+          fs.writeFileSync(path, JSON.stringify(doc, null, 2) + '\n');
+          NODE
+      - name: Verify static migration provenance
+        run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Commit metadata and remove temporary workflow
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/gridex-aud-003-legacy-foundation.additions.json
+          git rm .github/workflows/remediation-register-billing-item-runtime.yml
+          git commit -m "fix(db): register billing item replay lineage"
+          git push origin "HEAD:${BRANCH}"
