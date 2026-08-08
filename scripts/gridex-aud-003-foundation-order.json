@@ -31,6 +31,7 @@
     "migrations/20260602090000_ediel_operations_platform_core.sql",
     "bootstrap/20260602_ediel_certificates_foundation.sql",
     "bootstrap/20260602_ediel_environment_type_foundation.sql",
+    "migrations/20260605160000_ediel_backend_automation_foundation.sql",
     "bootstrap/20260605_ediel_outbox_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
     "bootstrap/20260609_webhook_email_readiness_foundation.sql",
