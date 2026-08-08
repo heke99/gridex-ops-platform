@@ -7,6 +7,7 @@
     "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
+    "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260520_metering_permissions_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",

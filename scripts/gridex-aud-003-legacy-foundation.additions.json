@@ -2,6 +2,7 @@
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
+    "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
@@ -232,6 +233,11 @@
       "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
       "artifactSha256": "e259335304bf3fa66d75183eb546a1430698dcfc0672f73423990801c443a910",
       "purpose": "Restore only the source-defined billing_export_run_items runtime field family consumed by canonical 20260716010000 contract/billing completion; the source is safe/idempotent and no export rows are seeded or rewritten."
+    },
+    "bootstrap/20260519_companies_governance_foundation.sql": {
+      "source": "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
+      "artifactSha256": "7e245a6f95321c4fcf3fd0194b2c50a8ea99f9af4cfa05c917741e496ed6a41d",
+      "purpose": "Restore only the source-defined companies lifecycle/governance block required by later canonical company/legal-profile and tenant lifecycle flows: canonical tenant status constraint, status reason, lifecycle audit timestamps/actors and governance status index; no company rows are seeded or rewritten."
     }
   }
 }
