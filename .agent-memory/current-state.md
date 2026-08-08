@@ -1,19 +1,21 @@
 # Current state
 
-Last updated: 2026-08-08T15:26:00Z
+Last updated: 2026-08-08T15:41:00Z
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - Draft PR: `#90`
-- Current CI HEAD: `bc3479574904ae886916aed28209bf68dfc76264`
+- Current CI HEAD: `3cf290d86b07960eb6058d788a911621e99599a5`
 - Active finding: `GRIDEX-REM-002`
 - Status: `IMPLEMENTED_NOT_VERIFIED`
 
-At `bc3479...`, verify/provenance/typecheck/targeted regressions/security all PASS. Clean replay also confirms the complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` now executes successfully: replay passes the former `platform_grid_owners` failure and advances through the actor-readiness migrations to `20260615203000_platform_go_live_route_resolver_message_center.sql`.
+At `3cf290...`, verify/provenance/typecheck/targeted regressions/security all PASS. Clean replay proves the complete checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql` now executes, but it fails inside Batch M while creating readiness views because `metering_points.ediel_metering_point_id` is not yet present.
 
-Current first failure: `20260615203000_platform_go_live_route_resolver_message_center.sql:248`, `relation public.legal_text_versions does not exist`.
+Exact first failure: `20260613090000_batch_m_ops_master_legal_readiness.sql:378`, `column mp.ediel_metering_point_id does not exist`.
 
-Root cause: base derived artifact `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql` is sourced from `20260613090000_batch_m_ops_master_legal_readiness.sql`, so normal substitution skips the complete Batch M migration. Batch M owns `legal_text_versions`, `customer_legal_acceptances` and the related legal/readiness views used by later canonical migrations.
+Verified source: canonical forward/idempotent `20260708210000_website_application_canonical_dispatch_alignment.sql` adds `metering_points.ediel_metering_point_id`. Batch M reads that canonical identifier earlier than the historical migration that creates it.
 
-Current work overrides that existing derived artifact with `preserveSourceReplay=true`. Its narrow, idempotent `powers_of_attorney.customer_site_id` prerequisite still executes early, while the complete immutable Batch M source is restored to chronological replay at `20260613090000`. No live Supabase write is introduced.
+Current implementation adds a narrow interleaved prerequisite immediately before Batch M that creates only `metering_points.ediel_metering_point_id`, with `preserveSourceReplay=true` so the complete immutable 20260708210000 source still replays normally later. No live Supabase write and no historical migration edit.
 
-Next: verify exact-HEAD PR #90 CI and continue only from the next actual clean-replay error. REM-002 stays open until replay + schema fingerprint + all same-HEAD gates are green.
+Separately, the final large-file release gate is confirmed red: handwritten production file `lib/website/customerApplications.ts` extends beyond 3,500 lines and must be split to <=2,500 before merge.
+
+Next: verify exact-HEAD replay after the prerequisite; continue only from an actual replay error. When replay/fingerprint pass, close REM-002, complete the required large-file split, perform the single bounded release rescan and merge when all same-HEAD gates are green.

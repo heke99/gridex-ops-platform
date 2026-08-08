@@ -1,28 +1,33 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T15:26:00Z",
+  "updated_at": "2026-08-08T15:41:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "bc3479574904ae886916aed28209bf68dfc76264",
+  "last_verified_commit": "3cf290d86b07960eb6058d788a911621e99599a5",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Preserve complete 20260613090000 Batch M legal-readiness source replay",
+  "active_subtask": "Pre-create canonical metering_points.ediel_metering_point_id before Batch M",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "bc3479574904ae886916aed28209bf68dfc76264",
+    "head": "3cf290d86b07960eb6058d788a911621e99599a5",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260615203000_platform_go_live_route_resolver_message_center.sql",
-    "line": 248,
-    "error": "relation public.legal_text_versions does not exist",
-    "owner_source": "20260613090000_batch_m_ops_master_legal_readiness.sql"
+    "migration": "20260613090000_batch_m_ops_master_legal_readiness.sql",
+    "line": 378,
+    "error": "column mp.ediel_metering_point_id does not exist",
+    "owner_source": "20260708210000_website_application_canonical_dispatch_alignment.sql"
   },
-  "implemented_not_verified": ["preserveSourceReplay enabled for the 20260613090000-derived powers_of_attorney customer-site prerequisite"],
-  "next_action": "Inspect PR #90 clean replay on the new HEAD and continue only from the next actual replay failure until all same-HEAD release gates pass.",
+  "implemented_not_verified": [
+    "interleaved metering_points.ediel_metering_point_id prerequisite before Batch M with preserveSourceReplay"
+  ],
+  "other_release_blockers": [
+    "lib/website/customerApplications.ts exceeds the <=2500 handwritten production line gate"
+  ],
+  "next_action": "Inspect PR #90 clean replay on the new HEAD; continue only from an actual replay failure, then close replay/fingerprint and complete the large-file gate before final release verification.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

@@ -1,11 +1,9 @@
 # Open blockers
 
-Last updated: 2026-08-08T15:26:00Z
+Last updated: 2026-08-08T15:41:00Z
 
-`GRIDEX-REM-002` clean replay remains the only active release blocker in the current CI run.
+1. `GRIDEX-REM-002` clean replay remains active. On current CI HEAD `3cf290d86b07960eb6058d788a911621e99599a5`, verify/provenance/typecheck/regressions/security PASS; replay fails inside complete Batch M because `metering_points.ediel_metering_point_id` has not yet been created. The current fix interleaves only that source-defined column before Batch M while preserving full 20260708210000 replay.
 
-Current HEAD `bc3479574904ae886916aed28209bf68dfc76264`: verify/provenance/typecheck/regressions/security PASS. Replay passes the former Energy Resolver/platform-grid-owner failure and now fails at `20260615203000_platform_go_live_route_resolver_message_center.sql:248` because `public.legal_text_versions` is absent.
+2. Final large-file release gate is red: handwritten production file `lib/website/customerApplications.ts` is >3,500 lines; campaign DoD requires all in-scope handwritten production files <=2,500 before merge.
 
-The missing relation belongs to the checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql`. Its complete source was skipped because `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql` uses it as a derived source. The current fix preserves normal source replay while retaining the early narrow prerequisite.
-
-PR #90 remains draft/unmerged until REM-002, the bounded final release rescan and all final same-HEAD release gates are green.
+PR #90 remains draft/unmerged until replay/fingerprint, the large-file gate, bounded final release rescan and all final same-HEAD required checks are green.

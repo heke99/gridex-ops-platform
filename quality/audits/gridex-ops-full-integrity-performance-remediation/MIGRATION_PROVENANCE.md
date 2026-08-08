@@ -19,28 +19,27 @@ Historical applied SQL remains immutable. Replay uses checksum-pinned derived ar
 
 ### CI-confirmed progression
 
-On `bc3479574904ae886916aed28209bf68dfc76264`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS.
+On `3cf290d86b07960eb6058d788a911621e99599a5`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS.
 
-The previously implemented `preserveSourceReplay` corrections are now CI-proven through two important boundaries:
+CI now proves all of these source-preserving boundaries execute as intended:
 
 - the early `platform_usage_events` prerequisite executes before `20260612160000`, while complete `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql` still executes later;
-- complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` now executes at its chronological position, eliminating the former `platform_grid_owners` failure and allowing replay to advance through the actor-readiness migration family.
+- complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` executes chronologically, eliminating the former `platform_grid_owners` blocker;
+- complete checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql` is no longer skipped by the early powers-of-attorney prerequisite.
 
-Clean replay now advances to `20260615203000_platform_go_live_route_resolver_message_center.sql:248` and fails because `public.legal_text_versions` is absent.
+The current clean-replay failure is now inside Batch M itself at line 378: `column mp.ediel_metering_point_id does not exist` while creating the readiness view.
 
-### Current lineage correction — preserve complete Batch M legal source
+### Current chronological prerequisite — canonical metering identifier
 
-`legal_text_versions`, `customer_legal_acceptances` and related legal/customer/tenant readiness views are defined by checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql`. The source describes itself as safe/idempotent and uses idempotent table/column/index/policy patterns for the relevant schema.
+The exact missing column is canonically added by forward-only/idempotent `20260708210000_website_application_canonical_dispatch_alignment.sql` using:
 
-The complete source was excluded from timestamped replay because the existing early derived artifact:
+`alter table if exists public.metering_points add column if not exists ediel_metering_point_id text`.
 
-- `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+Batch M reads that canonical identifier before the later historical migration that creates it. The remediation therefore adds only that source-defined column in `bootstrap/20260613_metering_points_ediel_id_prerequisite.sql`, interleaved after `20260612203000` and before `20260613090000`.
 
-references Batch M as its source. That artifact intentionally restores only `powers_of_attorney.customer_site_id` before later tracked grid-owner pipeline migrations need it. Its SQL uses `add column if not exists` plus an empty-replay-safe backfill, so it can remain an early prerequisite without replacing the complete source.
+The derived metadata pins artifact SHA-256 `9edd81f9eacbec7abb118167fa2991fd66d7ecf96b57234e6b6c8b1fd9674a29` to source `20260708210000_website_application_canonical_dispatch_alignment.sql` and sets `preserveSourceReplay: true`. The complete immutable July migration therefore still executes at its natural timestamp. No source migration is edited and no live database is mutated.
 
-Resolution: override the existing derived-artifact metadata with `preserveSourceReplay: true`. The narrow prerequisite still executes in foundation order, while the complete immutable `20260613090000_batch_m_ops_master_legal_readiness.sql` remains in normal chronological replay. This restores canonical legal/readiness schema from its original checksum-pinned source instead of duplicating those objects in a new bootstrap artifact.
-
-Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove Batch M executes successfully and replay advances beyond `20260615203000`.
+Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove replay advances through Batch M.
 
 ### Definition of VERIFIED
 

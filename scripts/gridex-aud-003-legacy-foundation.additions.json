@@ -30,6 +30,11 @@
       "beforeLedgerVersion": "20260612160000"
     },
     {
+      "path": "bootstrap/20260613_metering_points_ediel_id_prerequisite.sql",
+      "afterLedgerVersion": "20260612203000",
+      "beforeLedgerVersion": "20260613090000"
+    },
+    {
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
@@ -119,6 +124,12 @@
       "artifactSha256": "e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394",
       "preserveSourceReplay": true,
       "purpose": "Restore the early powers_of_attorney.customer_site_id prerequisite while preserving the complete checksum-pinned 20260613090000 Batch M legal-readiness migration for normal chronological replay."
+    },
+    "bootstrap/20260613_metering_points_ediel_id_prerequisite.sql": {
+      "source": "migrations/20260708210000_website_application_canonical_dispatch_alignment.sql",
+      "artifactSha256": "9edd81f9eacbec7abb118167fa2991fd66d7ecf96b57234e6b6c8b1fd9674a29",
+      "preserveSourceReplay": true,
+      "purpose": "Pre-create only metering_points.ediel_metering_point_id immediately before Batch M reads it, while preserving the complete checksum-pinned 20260708210000 canonical dispatch-alignment migration for normal later replay."
     },
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql": {
       "source": "migrations/20260614140000_ops_production_multitenant_readiness.sql",
