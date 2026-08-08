@@ -37,6 +37,11 @@
       "beforeLedgerVersion": "20260613090000"
     },
     {
+      "path": "bootstrap/20260616_customer_portal_user_email_prerequisite.sql",
+      "afterLedgerVersion": "20260616205000",
+      "beforeLedgerVersion": "20260616223000"
+    },
+    {
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
@@ -174,6 +179,11 @@
       "source": "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
       "artifactSha256": "0d9b0853accf38682c0a9399b1a6085800f77f8c53ad742f2d852663c79151df",
       "purpose": "Restore only the source-defined companies.support_email field required by later canonical tenant event-mail readiness; no company rows are seeded."
+    },
+    "bootstrap/20260616_customer_portal_user_email_prerequisite.sql": {
+      "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
+      "artifactSha256": "8771db9f8f90bce00542164f5ec8ed498840309a0dbd2e3e0a885329c0f6724f",
+      "purpose": "Restore only the source-defined customer_portal_accounts.user_email field and empty-replay-safe email backfill immediately before the canonical 20260616223000 portal bundle resolver indexes it; no portal accounts are seeded."
     }
   }
 }
