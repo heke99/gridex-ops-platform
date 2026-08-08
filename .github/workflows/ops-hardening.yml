@@ -21,12 +21,34 @@ jobs:
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
-      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts
+      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
+
+  quality-release-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck:scripts
+      - run: npm run typecheck:tests
+      - run: npm test
+      - run: npm run api:compatibility
+      - run: npm run api:release:verify
+      - run: npm run build
 
   clean-migration-replay:
     runs-on: ubuntu-latest
