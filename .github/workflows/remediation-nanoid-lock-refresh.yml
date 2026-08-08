@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   refresh-lock:
-    if: "github.event.head_commit.message == 'chore(ci) one-shot nanoid lock refresh v2'"
+    if: "github.event.head_commit.message == 'chore(ci) one-shot nanoid lock refresh v3'"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout remediation branch
@@ -50,11 +50,14 @@ jobs:
           git diff --check
           git diff -- package-lock.json
 
-      - name: Verify install and production security gate
-        run: |
-          npm ci
-          npm run security:audit-production
-          npm run typecheck
+      - name: Validate dependency install
+        run: npm ci
+
+      - name: Validate production security audit
+        run: npm run security:audit-production
+
+      - name: Validate typecheck
+        run: npm run typecheck
 
       - name: Commit verified lock-only remediation
         shell: bash
