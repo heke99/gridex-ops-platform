@@ -23,7 +23,7 @@ const checks = [
   ['supabase/migrations/20260618213000_ops_completion_workflows_health.sql', 'gridex_commit_customer_site_address'],
   ['lib/customer-sites/addressIntake.ts', 'gridex_commit_customer_site_address'],
   ['lib/website/applicationWorkflow.ts', 'customer_application_workflows'],
-  ['lib/website/customerApplications.ts', 'application_workflow_transition'],
+  ['lib/website/customerApplicationShared.ts', 'application_workflow_transition'],
   ['lib/integrations/webhooks.ts', 'finalizeClaimedDelivery'],
   ['lib/energy/svkGeometryImport.ts', 'runSvkGeometryImport'],
   ['app/api/internal/platform/grid-areas/import/cron/route.ts', 'svk_import_resume_failed'],
