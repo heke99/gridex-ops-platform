@@ -177,7 +177,8 @@
     "bootstrap/20260721_contract_publication_revisions_foundation.sql": {
       "source": "migrations/20260721170000_contract_graph_api_revision_hardening.sql",
       "artifactSha256": "a0c8078e55461c15a95d817ab8f7db9c314dbb19c132a0ab7655f72e093f5777",
-      "purpose": "Restore only the source-defined contract publication revision relation and fail-closed RLS required by tracked shared public-contract snapshot migrations; no revision rows or publication events are seeded."
+      "purpose": "Restore the early contract publication revision relation while preserving complete checksum-pinned, forward-only 20260721170000 contract graph/API revision hardening for chronological replay, including company_market_price_sources, publication graph integrity and external API lifecycle contracts.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260722_external_tenant_reference_foundation.sql": {
       "source": "migrations/20260722133000_external_tenant_quote_api_completion.sql",
