@@ -1,6 +1,8 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "bootstrap/20260528_route_decision_logs_foundation.sql",
+    "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
@@ -25,6 +27,16 @@
       "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
       "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
       "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
+    },
+    "bootstrap/20260528_route_decision_logs_foundation.sql": {
+      "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
+      "artifactSha256": "fa61d42da133d845622238a6341c074058e2d8743e594d3be1cff3a353ae1188",
+      "purpose": "Restore only the source-defined route_decision_logs relation and base indexes required before canonical Ediel actor identity creates routing-decision foreign keys; no route decisions are seeded."
+    },
+    "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql": {
+      "source": "migrations/20260528_batch_1_completion_customer_flow.sql",
+      "artifactSha256": "c3d6fe34ff9223c419bc176fbb1875df8618508d834b77fcd1aa996964caedc1",
+      "purpose": "Restore only the pre-ledger current_supplier_id trace column and partial index observed in the canonical live route_decision_logs schema; no route decisions are seeded."
     },
     "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
       "source": "migrations/20260609150000_batch_6_sync_status_origin_fix.sql",

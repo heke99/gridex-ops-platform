@@ -20,6 +20,8 @@
     "bootstrap/20260529_ediel_test_artifact_message_foundation.sql",
     "migrations/ediel_rules.sql",
     "migrations/Batch 1+2.sql",
+    "bootstrap/20260528_route_decision_logs_foundation.sql",
+    "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
     "bootstrap/20260528_inbound_email_messages_foundation.sql",
     "migrations/batch 3.sql",
     "migrations/batch 4+5+6.sql",
