@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T14:48:00Z
+Last updated: 2026-08-08T14:57:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -9,10 +9,10 @@ PR: `#90`
 
 Status: `IMPLEMENTED_NOT_VERIFIED`
 
-Last verified HEAD `02e0dca29584fd6854e117f03043382b9a709f77`: verify/provenance/security PASS; clean replay FAIL.
+Last verified HEAD `a2189aa684f1bc65149d15e283723b2f75875858`: all verify/provenance/security gates PASS; clean replay FAIL.
 
-Current exact failure: `20260612123000_performance_batches_1_to_3_db_acceleration.sql:593`, `relation public.customer_info_requests does not exist`.
+Current exact failure occurs inside `bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql`: DB1 already created `billing_export_run_items` with `export_run_id`; create-if-absent does not add the source `billing_export_run_id`, so its source index fails.
 
-Current implementation: add `20260520_onboarding_billing_auxiliary_foundation.sql` from the same checksum-pinned source already used by metering/pricing bootstraps. It reconstructs the remaining schema-only source family rather than one missing table at a time; no business data is seeded.
+Current implementation reconciles the DB1/source billing shapes additively while preserving compatibility columns. Corrected artifact SHA-256: `2b35100fb19b805d5aaabd7404c43574fddc3cb3950b7a200f074cd7cd2476fc`.
 
-Exact next action: push and inspect PR #90 CI for the new HEAD; use the next artifact's first SQL error if replay fails. On replay success, confirm final schema fingerprint and all same-HEAD gates before REM-002 VERIFIED.
+Exact next action: push, inspect PR #90 CI on the new HEAD, and use the next clean-replay artifact's first exact SQL error if it fails. On success, confirm final schema fingerprint plus all same-HEAD gates before REM-002 VERIFIED.

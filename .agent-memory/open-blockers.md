@@ -1,11 +1,11 @@
 # Open blockers
 
-Last updated: 2026-08-08T14:48:00Z
+Last updated: 2026-08-08T14:57:00Z
 
 `GRIDEX-REM-002` clean replay remains the active blocker.
 
-Last verified HEAD `02e0dca29584fd6854e117f03043382b9a709f77`: verify/provenance/security PASS; replay FAIL at `20260612123000...:593` because `public.customer_info_requests` is absent.
+Last verified HEAD `a2189aa684f1bc65149d15e283723b2f75875858`: verify/provenance/security PASS; replay FAIL inside `20260520_onboarding_billing_auxiliary_foundation.sql` because DB1's older billing-export table shape was not additively reconciled before the source index.
 
-The root cause is broader than one table: the checksum-pinned pre-ledger 20260520 onboarding/billing source is substituted, while prior derived artifacts covered only part of its schema. The comprehensive schema-only auxiliary reconstruction is implemented and awaits CI.
+The corrected checksum-bound auxiliary artifact now adds the source billing columns/FK/defaults/indexes/RLS while preserving DB1 compatibility columns and seeds no rows. It awaits CI.
 
 PR #90 remains draft/unmerged until REM-002, final rescan, all remaining audit/remediation items and final same-HEAD release gates are green.

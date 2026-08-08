@@ -2,12 +2,12 @@
 
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
-Last verified CI HEAD: `02e0dca29584fd6854e117f03043382b9a709f77`
+Last verified CI HEAD: `a2189aa684f1bc65149d15e283723b2f75875858`
 
 Verified: verify/provenance/security PASS. Clean replay FAIL. REM-002 not VERIFIED.
 
-Current failure: `20260612123000...:593` cannot resolve `public.customer_info_requests`. This is part of the remaining schema-only family in checksum-pinned pre-ledger `20260520_batch_3_4_onboarding_pricing_billing_engine.sql`, whose full source is excluded because narrower derived artifacts already substitute it.
+Current failure is inside the 20260520 auxiliary bootstrap, not a tracked migration: DB1 already creates billing export tables with the older `export_run_id`/`payload` shape, so source `CREATE TABLE IF NOT EXISTS` semantics do not add `billing_export_run_id`/`readiness_status`/`payload_snapshot` before source indexes.
 
-Current implementation adds one comprehensive source-bound auxiliary bootstrap for info requests/events, authorization scopes, metering permission sites, billing export tables, source metadata extensions, indexes and service-role RLS. No business rows or live database state are changed.
+Current implementation changes the derived bootstrap to additive reconciliation: preserve DB1 columns, add source-defined columns/FK/defaults/not-null/indexes/RLS on the empty replay. Live dev confirms the final table legitimately contains both billing export run identifiers.
 
-Next: push, inspect exact-HEAD CI, continue from first replay error until replay + schema fingerprint pass; then verify all same-HEAD gates, mark REM-002 VERIFIED, run final campaign rescan, close remaining findings, and merge only when the complete release gate is green.
+Next: push corrected artifact, inspect exact-HEAD CI, continue from first replay error until replay + schema fingerprint pass; then verify all same-HEAD gates, mark REM-002 VERIFIED, run final campaign rescan, resolve remaining findings, and merge only when the complete release gate is green.

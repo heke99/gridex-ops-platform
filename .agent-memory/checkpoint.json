@@ -1,28 +1,27 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:48:00Z",
+  "updated_at": "2026-08-08T14:57:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "02e0dca29584fd6854e117f03043382b9a709f77",
+  "last_verified_commit": "a2189aa684f1bc65149d15e283723b2f75875858",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore remaining schema-only 20260520 onboarding/billing source family",
+  "active_subtask": "Reconcile DB1 and 20260520 billing export table shapes additively",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "02e0dca29584fd6854e117f03043382b9a709f77",
+    "head": "a2189aa684f1bc65149d15e283723b2f75875858",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260612123000_performance_batches_1_to_3_db_acceleration.sql",
-    "line": 593,
-    "error": "relation public.customer_info_requests does not exist",
-    "missing_prerequisite": "remaining schema-only family from 20260520_batch_3_4_onboarding_pricing_billing_engine.sql"
+    "location": "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
+    "error": "column billing_export_run_id does not exist",
+    "root_cause": "DB1 pre-creates billing_export_run_items with older export_run_id shape; CREATE TABLE IF NOT EXISTS does not reconcile later source columns"
   },
-  "implemented_not_verified": ["Checksum-bound 20260520 onboarding/billing auxiliary foundation"],
-  "next_action": "Push, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
+  "implemented_not_verified": ["Additive DB1/source billing-export reconciliation; corrected artifact sha256 2b35100fb19b805d5aaabd7404c43574fddc3cb3950b7a200f074cd7cd2476fc"],
+  "next_action": "Push corrected work unit, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

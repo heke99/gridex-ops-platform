@@ -123,10 +123,47 @@ create table if not exists public.billing_export_runs (
   metadata jsonb not null default '{}'::jsonb,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint billing_export_runs_status_check
-    check (status in ('draft','ready','ready_with_flags','blocked','sent','acknowledged','failed','cancelled'))
+  updated_at timestamptz not null default now()
 );
+
+alter table public.billing_export_runs
+  add column if not exists company_id uuid,
+  add column if not exists period_month text,
+  add column if not exists target_system text,
+  add column if not exists export_format text,
+  add column if not exists status text,
+  add column if not exists rows_total integer,
+  add column if not exists rows_ready integer,
+  add column if not exists rows_blocked integer,
+  add column if not exists rows_exported integer,
+  add column if not exists blocker_summary jsonb,
+  add column if not exists metadata jsonb,
+  add column if not exists created_by uuid,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
+alter table public.billing_export_runs
+  alter column company_id set not null,
+  alter column period_month set not null,
+  alter column target_system set default 'billing_partner',
+  alter column target_system set not null,
+  alter column export_format set default 'json',
+  alter column export_format set not null,
+  alter column status set default 'draft',
+  alter column rows_total set default 0,
+  alter column rows_ready set default 0,
+  alter column rows_blocked set default 0,
+  alter column rows_exported set default 0,
+  alter column blocker_summary set default '[]'::jsonb,
+  alter column metadata set default '{}'::jsonb,
+  alter column created_at set default now(),
+  alter column updated_at set default now();
+
+alter table public.billing_export_runs
+  drop constraint if exists billing_export_runs_status_check;
+alter table public.billing_export_runs
+  add constraint billing_export_runs_status_check
+  check (status in ('draft','ready','ready_with_flags','blocked','sent','acknowledged','failed','cancelled'));
 
 create index if not exists billing_export_runs_company_period_idx
   on public.billing_export_runs(company_id, period_month, created_at desc);
@@ -145,6 +182,48 @@ create table if not exists public.billing_export_run_items (
   payload_snapshot jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.billing_export_run_items
+  add column if not exists company_id uuid,
+  add column if not exists billing_export_run_id uuid,
+  add column if not exists billing_underlay_id uuid,
+  add column if not exists customer_id uuid,
+  add column if not exists site_id uuid,
+  add column if not exists metering_point_id uuid,
+  add column if not exists status text,
+  add column if not exists readiness_status text,
+  add column if not exists blocker_reasons jsonb,
+  add column if not exists payload_snapshot jsonb,
+  add column if not exists created_at timestamptz;
+
+alter table public.billing_export_run_items
+  alter column company_id set not null,
+  alter column billing_export_run_id set not null,
+  alter column status set default 'blocked',
+  alter column status set not null,
+  alter column readiness_status set default 'blocked',
+  alter column readiness_status set not null,
+  alter column blocker_reasons set default '[]'::jsonb,
+  alter column blocker_reasons set not null,
+  alter column payload_snapshot set default '{}'::jsonb,
+  alter column payload_snapshot set not null,
+  alter column created_at set default now(),
+  alter column created_at set not null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.billing_export_run_items'::regclass
+      and conname = 'billing_export_run_items_billing_export_run_id_fkey'
+  ) then
+    alter table public.billing_export_run_items
+      add constraint billing_export_run_items_billing_export_run_id_fkey
+      foreign key (billing_export_run_id)
+      references public.billing_export_runs(id)
+      on delete cascade;
+  end if;
+end $$;
 
 create index if not exists billing_export_run_items_run_status_idx
   on public.billing_export_run_items(billing_export_run_id, status);

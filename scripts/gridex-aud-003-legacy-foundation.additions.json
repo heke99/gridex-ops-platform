@@ -48,8 +48,8 @@
     },
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql": {
       "source": "migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
-      "artifactSha256": "976a9d56a38732973c60429a31e56ffe40f00a1ec6f6a68791a8a2dd5e95ed8e",
-      "purpose": "Restore the remaining source-defined schema-only onboarding/billing prerequisites omitted by narrower metering/pricing artifacts: customer info requests/events, authorization scopes, metering permission sites, billing export tables and source metadata extensions; no business rows are seeded."
+      "artifactSha256": "2b35100fb19b805d5aaabd7404c43574fddc3cb3950b7a200f074cd7cd2476fc",
+      "purpose": "Restore the remaining source-defined schema-only onboarding/billing prerequisites omitted by narrower metering/pricing artifacts, additively reconciling the older DB1 billing-export shape before source indexes/RLS; no business rows are seeded."
     },
     "bootstrap/20260521_external_contract_intakes_foundation.sql": {
       "source": "migrations/20260521_batch_2c_end_to_end_operations.sql",
