@@ -1,34 +1,34 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:16:00Z",
+  "updated_at": "2026-08-08T14:23:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d",
+  "last_verified_commit": "e331041b1a724d659592cd04e7262495a1eb5bed",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore customer_contracts energy-resolution columns omitted by source substitution",
+  "active_subtask": "Restore company_memberships.role_key from pre-ledger canonical source",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d",
+    "head": "e331041b1a724d659592cd04e7262495a1eb5bed",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql",
-    "line": 399,
-    "error": "column cc.price_area_used does not exist",
-    "relation": "public.customer_contracts",
-    "missing_prerequisite": "five energy-resolution fields from 20260611100000_energy_resolver_grid_area_operations.sql"
+    "migration": "20260612123000_performance_batches_1_to_3_db_acceleration.sql",
+    "line": 146,
+    "error": "column cm.role_key does not exist",
+    "relation": "public.company_memberships",
+    "missing_prerequisite": "role_key from 20260527_fix_company_user_invite_runtime_columns.sql"
   },
   "implemented_not_verified": [
-    "Checksum-bound customer_contracts energy-resolution derived foundation"
+    "Checksum-bound company_memberships.role_key derived foundation"
   ],
   "unverified_assumptions": [
     "The next clean-replay failure, if any, is unknown until real CI executes the next HEAD"
   ],
-  "next_action": "Push current work unit, inspect PR #90 clean replay on the new HEAD, and continue failure-by-failure until all same-HEAD gates pass.",
+  "next_action": "Push current work unit, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

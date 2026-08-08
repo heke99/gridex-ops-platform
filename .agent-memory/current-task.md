@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T14:16:00Z
+Last updated: 2026-08-08T14:23:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -12,22 +12,22 @@ Status: `IMPLEMENTED_NOT_VERIFIED`
 
 ## Last verified HEAD
 
-`1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d`
+`e331041b1a724d659592cd04e7262495a1eb5bed`
 
 All verify/security/provenance gates pass; clean replay fails.
 
 ## Exact current failure
 
-- migration: `20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql`
-- line: 399
-- error: `column cc.price_area_used does not exist`
-- relation: `public.customer_contracts`
-- prerequisite: the five customer-contract energy-resolution fields from checksum-pinned source `20260611100000_energy_resolver_grid_area_operations.sql`
+- migration: `20260612123000_performance_batches_1_to_3_db_acceleration.sql`
+- line: 146
+- error: `column cm.role_key does not exist`
+- relation: `public.company_memberships`
+- source: checksum-pinned pre-ledger `20260527_fix_company_user_invite_runtime_columns.sql`
 
 ## Current implementation
 
-Add `supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql`, register it as a checksum-bound derived artifact and include it in foundation order. The artifact adds only `requested_start_mode`, `calculated_earliest_start_date`, `price_area_used`, `grid_area_code_used`, and `resolution_status`; no rows are seeded and no live DB write occurs.
+Add `supabase/bootstrap/20260527_company_memberships_role_key_foundation.sql` containing only `company_memberships.role_key text`, register it as derived bootstrap and include it in foundation order. Empty replay has no membership rows to backfill. Do not add `user_roles.role_key` because live canonical schema does not contain it.
 
 ## Exact next action
 
-Push and inspect PR #90 CI for the exact new HEAD. On clean-replay failure, use the new artifact's first SQL error as the next work unit. On clean-replay success, confirm schema fingerprint and all same-HEAD gates before marking REM-002 VERIFIED.
+Push and inspect PR #90 CI for the new HEAD. Use the next clean-replay artifact's first exact SQL error if it fails. On clean-replay success, confirm schema fingerprint plus all same-HEAD gates before marking REM-002 VERIFIED.

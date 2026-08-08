@@ -15,41 +15,36 @@ The branch restores the two already-applied AUD-001 migration files under the ex
 Severity: P1
 Status: IMPLEMENTED / CI FAILED / NOT VERIFIED
 
-Historical applied SQL remains immutable. Replay uses checksum-pinned narrow reconstruction artifacts, explicit source substitution and chronological interleaving where a skipped source historically sat between tracked migrations. No replay fix writes to live Supabase.
+Historical applied SQL remains immutable. Replay uses checksum-pinned narrow reconstruction artifacts, explicit source substitution and chronological interleaving where required. No clean-replay reconciliation writes to live Supabase.
 
-### Security dependency gate
+### Confirmed replay progression
 
-Resolved. The transitive production NanoID path now resolves `nanoid 3.3.17`; `security:audit-production` remains enabled and passes on the verified remediation heads.
+- `c627f810...`: missing `pricing_component_rules` at `20260609100000`.
+- `8e678aae...`: pricing prerequisite fixed; next missing `communication_logs.customer_number` at `20260609183000`.
+- `5212e454...`: communication-log prerequisite fixed; next missing `external_contract_intakes` at `20260611150000`.
+- `1ac3e0d2...`: external intake fixed; next missing `customer_contracts.price_area_used` at `20260611170000`.
+- `e331041b...`: customer-contract energy fields fixed; next failure at `20260612123000_performance_batches_1_to_3_db_acceleration.sql:146`: `column cm.role_key does not exist`.
 
-### Replay progression confirmed by CI
+On `e331041b1a724d659592cd04e7262495a1eb5bed`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` all PASS; only clean replay fails.
 
-- `c627f810...` failed at `20260609100000` because `pricing_component_rules` was absent.
-- `8e678aae...` confirmed that prerequisite fixed, then failed at `20260609183000` because `communication_logs.customer_number` was absent.
-- `5212e454...` confirmed the Batch 8 prerequisite fixed, then failed at `20260611150000` because `external_contract_intakes` was absent.
-- `1ac3e0d2...` confirmed the external-intake prerequisite fixed, then failed at `20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql:399` because `customer_contracts.price_area_used` was absent.
+### Current RBAC root cause
 
-On `1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d`, `verify`, migration/provenance regression, targeted regressions and `security:audit-production` all PASS; only clean replay fails.
+Tracked performance hardening defines `gridex_can_write_company(uuid)` using `company_memberships.role_key`, with fallbacks to `membership_role` and `role`. The clean-replay foundation lacks `role_key`.
 
-### Current root cause — customer contract energy-resolution fields
-
-`20260611100000_energy_resolver_grid_area_operations.sql` is checksum-pinned and intentionally substituted by derived bootstrap content, so the source file itself is excluded from normal replay. Existing reconstruction restored its grid-owner/request relations but omitted its five additive `customer_contracts` fields:
-
-- `requested_start_mode text not null default 'earliest_possible'` with source check constraint,
-- `calculated_earliest_start_date date`,
-- `price_area_used text`,
-- `grid_area_code_used text`,
-- `resolution_status text`.
-
-The later billing readiness view in `20260611170000` references `cc.price_area_used`. Live `gridex-ops-dev` confirms all five source-defined columns with matching types/defaults.
+Checksum-pinned pre-ledger source `20260527_fix_company_user_invite_runtime_columns.sql` adds `company_memberships.role_key`. Live `gridex-ops-dev` confirms this column exists canonical. Live `user_roles` does **not** have `role_key`; therefore earlier caught notices about `ur.role_key` are not repaired by inventing a noncanonical live column.
 
 ### Current reconciliation
 
-Add `supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql` as a second narrow derived artifact from the same immutable source. It only adds those five columns to the already-founded `customer_contracts` table and seeds no contracts or tenant/customer data.
+Add `supabase/bootstrap/20260527_company_memberships_role_key_foundation.sql` containing only `company_memberships.role_key text`. Empty replay has no membership data requiring the source backfill.
 
-Artifact SHA-256: `ae725b25b9abbfc8281c4ac1eda783886d214935834c436a4b59fdbbb26bd2ea`.
+Artifact SHA-256: `69775f5d6f64fbb6d1ef0deb7d159a3ff5a6930d27b3e73f641cafc7ebafb5ae`.
 
 Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove replay advances.
 
+### Security dependency gate
+
+Resolved. Production NanoID resolves to `3.3.17`; `security:audit-production` remains enabled and green.
+
 ### Definition of VERIFIED
 
-`GRIDEX-REM-002` remains open until full empty-database replay, final schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Only after that may the campaign proceed to final rescan/merge readiness.
+REM-002 remains open until full clean replay, schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Only then may final campaign rescan and merge-readiness work proceed.

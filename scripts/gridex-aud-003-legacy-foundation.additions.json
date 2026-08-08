@@ -3,6 +3,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
+    "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
     "migrations/20260602090000_ediel_operations_platform_core.sql",
@@ -47,6 +48,11 @@
       "source": "migrations/20260521_batch_2c_end_to_end_operations.sql",
       "artifactSha256": "446ea8443bd4fa9f71f42016f11323feb67bab5f53d7b1bd6d890d0f16258b16",
       "purpose": "Restore only the source-defined external_contract_intakes relation, base index and source RLS policies required by later launch-readiness extensions/views; no intake rows or tenant/customer data are seeded."
+    },
+    "bootstrap/20260527_company_memberships_role_key_foundation.sql": {
+      "source": "migrations/20260527_fix_company_user_invite_runtime_columns.sql",
+      "artifactSha256": "69775f5d6f64fbb6d1ef0deb7d159a3ff5a6930d27b3e73f641cafc7ebafb5ae",
+      "purpose": "Restore only company_memberships.role_key required by tracked tenant write-access helpers; empty replay has no membership rows to backfill and user_roles.role_key is intentionally not created because it is absent from canonical live schema."
     },
     "bootstrap/20260528_route_decision_logs_foundation.sql": {
       "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
