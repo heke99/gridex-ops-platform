@@ -47,6 +47,11 @@
       "beforeLedgerVersion": "20260617183000"
     },
     {
+      "path": "bootstrap/20260618_inbound_processing_jobs_prerequisite.sql",
+      "afterLedgerVersion": "20260618194500",
+      "beforeLedgerVersion": "20260618200000"
+    },
+    {
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
@@ -194,6 +199,11 @@
       "source": "migrations/20260528_debug_post_repair_schema_guardrails.sql",
       "artifactSha256": "0dd8f05ef993d6b4c55aa4ac2217de1e6b8d392a2efcf03ad0edf24d4a3460d5",
       "purpose": "Restore only the source-defined powers_of_attorney.customer_contract_id runtime field immediately before the canonical 20260617183000 portal-document backfill reads it; no POA rows are seeded or rewritten."
+    },
+    "bootstrap/20260618_inbound_processing_jobs_prerequisite.sql": {
+      "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
+      "artifactSha256": "3cb5d36d1bfae9f44ca8614fb636f17e46ded7e82cdc1f7ab4e1a25110f60cf8",
+      "purpose": "Restore only the source-defined inbound_processing_jobs relation, base status index and source RLS policies immediately before canonical 20260618200000 claim-lock hardening references its row type; no jobs are seeded."
     }
   }
 }
