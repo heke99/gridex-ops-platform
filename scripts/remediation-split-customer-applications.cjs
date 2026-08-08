@@ -24,6 +24,7 @@ host.readFile = (name) => (name === sourcePath ? text : undefined);
 const checker = ts.createProgram([sourcePath], compilerOpts, host).getTypeChecker();
 
 const groups = [
+  { key: 'shared', start: 0, end: 0, file: 'customerApplicationShared.ts' },
   { key: 'schemas', start: 91, end: 1307, file: 'customerApplicationSchemas.ts' },
   { key: 'legal', start: 1309, end: 2856, file: 'customerApplicationLegal.ts' },
   { key: 'core', start: 2858, end: 4570, file: 'customerApplicationCore.ts' },
@@ -41,7 +42,12 @@ function lineAt(pos) {
 
 function groupFor(statement) {
   const line = lineAt(statement.getStart(sf));
-  return groups.find((group) => line >= group.start && line <= group.end);
+  if ((line >= 2858 && line <= 3120) || (line >= 3632 && line <= 3769)) {
+    return byKey.shared;
+  }
+  return groups.find(
+    (group) => group.key !== 'shared' && line >= group.start && line <= group.end,
+  );
 }
 
 function namesOf(statement) {
@@ -138,6 +144,11 @@ for (const statement of sf.statements) {
   if (group) visit(statement, group);
 }
 
+const neededExports = new Set();
+for (const group of groups) {
+  for (const name of usage[group.key].internal) neededExports.add(name);
+}
+
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
 function filteredExternalImports(group) {
@@ -202,7 +213,8 @@ function hasExport(statement) {
 
 function exportedRaw(statement) {
   let raw = text.slice(statement.getFullStart(), statement.end);
-  if (!hasExport(statement)) {
+  const needsExport = namesOf(statement).some((name) => neededExports.has(name));
+  if (!hasExport(statement) && needsExport) {
     const offset = statement.getStart(sf) - statement.getFullStart();
     raw = `${raw.slice(0, offset)}export ${raw.slice(offset)}`;
   }
