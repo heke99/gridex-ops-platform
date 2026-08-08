@@ -1,4 +1,4 @@
-name: Remediation source export
+name: Remediation customer application split
 
 on:
   push:
@@ -6,18 +6,40 @@ on:
       - remediation/gridex-ops-full-integrity-performance
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export-customer-applications-source:
+  split-and-verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact remediation HEAD
         uses: actions/checkout@v4
-      - name: Upload customer applications source
-        uses: actions/upload-artifact@v4
         with:
-          name: remediation-customer-applications-source
-          path: lib/website/customerApplications.ts
-          if-no-files-found: error
-          retention-days: 1
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Split oversized customer application module
+        run: node scripts/remediation-split-customer-applications.cjs
+      - name: Verify TypeScript after split
+        run: npm run typecheck
+      - name: Verify line-count gate
+        run: |
+          test "$(wc -l < lib/website/customerApplications.ts)" -le 2500
+          for file in lib/website/customerApplicationSchemas.ts lib/website/customerApplicationLegal.ts lib/website/customerApplicationCore.ts lib/website/customerApplicationCommunication.ts lib/website/customerApplicationPersistence.ts lib/website/customerApplicationOnboarding.ts lib/website/customerApplicationProcess.ts lib/website/customerApplicationRepair.ts; do
+            test "$(wc -l < "$file")" -le 2500
+          done
+      - name: Commit verified split and remove remediation tooling
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/website/customerApplications.ts lib/website/customerApplication*.ts
+          git rm .github/workflows/remediation-source-export.yml scripts/remediation-split-customer-applications.cjs
+          git commit -m "refactor(website): split customer application pipeline"
+          git push origin "HEAD:${BRANCH}"
