@@ -1,0 +1,47 @@
+name: Preserve OPS completion source replay
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  register-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Preserve full checksum-pinned source replay
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'scripts/gridex-aud-003-legacy-foundation.additions.json';
+          const rel = 'bootstrap/20260618_customer_application_workflows_foundation.sql';
+          const doc = JSON.parse(fs.readFileSync(path, 'utf8'));
+          doc.derivedBootstrap[rel] = {
+            source: 'migrations/20260618213000_ops_completion_workflows_health.sql',
+            artifactSha256: '2b0a033e83e713eaca3998b78317790656a4d8c98862746d10c1c4003abc23e2',
+            preserveSourceReplay: true,
+            purpose: 'Restore the early customer_application_workflows relation while preserving complete checksum-pinned, forward-only/additive 20260618213000 OPS completion hardening for chronological replay, including customer_operation_jobs heartbeat/snapshot runtime fields required by later customer-info repair.'
+          };
+          fs.writeFileSync(path, JSON.stringify(doc, null, 2) + '\n');
+          NODE
+      - name: Verify static migration provenance
+        run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Commit metadata and remove temporary workflow
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/gridex-aud-003-legacy-foundation.additions.json
+          git rm .github/workflows/remediation-preserve-ops-completion-source.yml
+          git commit -m "fix(db): preserve OPS completion source replay"
+          git push origin "HEAD:${BRANCH}"
