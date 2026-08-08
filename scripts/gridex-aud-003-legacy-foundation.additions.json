@@ -1,0 +1,70 @@
+{
+  "foundation": [
+    "bootstrap/20260519_user_profiles_foundation.sql",
+    "bootstrap/20260609_integration_api_client_origins_foundation.sql",
+    "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
+    "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
+    "bootstrap/20260618_customer_operation_jobs_foundation.sql",
+    "bootstrap/20260721_contract_publication_revisions_foundation.sql",
+    "bootstrap/20260722_external_tenant_reference_foundation.sql"
+  ],
+  "interleaved": [
+    {
+      "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
+      "afterLedgerVersion": "20260802180000",
+      "beforeLedgerVersion": "20260803093000"
+    },
+    {
+      "path": "bootstrap/20260716_contract_platform_readiness_foundation.sql",
+      "afterLedgerVersion": "20260803100130",
+      "beforeLedgerVersion": "20260803131558"
+    }
+  ],
+  "derivedBootstrap": {
+    "bootstrap/20260519_user_profiles_foundation.sql": {
+      "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
+      "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
+      "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
+    },
+    "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
+      "source": "migrations/20260609150000_batch_6_sync_status_origin_fix.sql",
+      "artifactSha256": "41c346f89b6b390cdc0815c24a2398749e848df8397627f24073ecb2a11185d3",
+      "purpose": "Restore only integration API client origin/runtime columns and the historical origin index required by later runtime capability checks; no clients are seeded."
+    },
+    "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql": {
+      "source": "migrations/20260612193000_platform_tenant_contracts_api_mail.sql",
+      "artifactSha256": "1e9943ac01f25d34e1009a284c42296d63b24d15db08ce7964e2f6c37b4d8a11",
+      "purpose": "Restore only integration API client lifecycle columns required by later runtime capability and duplicate-primary checks; no clients are seeded."
+    },
+    "bootstrap/20260614_integration_api_client_readiness_foundation.sql": {
+      "source": "migrations/20260614140000_ops_production_multitenant_readiness.sql",
+      "artifactSha256": "02667b1bf0d9196c8d8ad8b2bd7511b7c8c4ec5f8374b59d7b498ca2958bfcd4",
+      "purpose": "Restore only integration API client profile/readiness columns used by later canonical runtime capability checks; no clients are seeded."
+    },
+    "bootstrap/20260618_customer_operation_jobs_foundation.sql": {
+      "source": "migrations/20260618110000_customer_operation_automation_jobs.sql",
+      "artifactSha256": "7db6def1c2f9f78443ef26f8e9124830a8771ef8b34c64f54ca4629ab01864f1",
+      "purpose": "Restore only the source-defined customer_operation_jobs relation, indexes and RLS required by the later application continuation schema; no jobs are seeded and worker RPC behavior is not replayed."
+    },
+    "bootstrap/20260721_contract_publication_revisions_foundation.sql": {
+      "source": "migrations/20260721170000_contract_graph_api_revision_hardening.sql",
+      "artifactSha256": "a0c8078e55461c15a95d817ab8f7db9c314dbb19c132a0ab7655f72e093f5777",
+      "purpose": "Restore only the source-defined contract publication revision relation and fail-closed RLS required by tracked shared public-contract snapshot migrations; no revision rows or publication events are seeded."
+    },
+    "bootstrap/20260722_external_tenant_reference_foundation.sql": {
+      "source": "migrations/20260722133000_external_tenant_quote_api_completion.sql",
+      "artifactSha256": "b55bd0991ec9d01c74df7783247e95ecd7a058b2739891a65d342d09478b23d6",
+      "purpose": "Restore only the source-defined stable external tenant reference function, company column, uniqueness index and format constraint required by tracked public-contract snapshot migrations; no tenants or integration records are seeded."
+    },
+    "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
+      "source": "migrations/20260802232000_migration_truth_readiness.sql",
+      "artifactSha256": "24db9894315e5a95e976889db3332acb5a3d49744ad3dffab3b8e2dce9871015",
+      "purpose": "Restore only canonical migration-manifest verification metadata required by the tracked v3 governance view; no manifest rows or verification evidence are seeded."
+    },
+    "bootstrap/20260716_contract_platform_readiness_foundation.sql": {
+      "source": "migrations/20260716183000_contract_canonical_finalization.sql",
+      "artifactSha256": "408c3afc331c6f7ec0d2456ffccc154d80dc5477db1d75e29e26280cdb7b8d90",
+      "purpose": "Restore only the exact source-defined pre-hardening gridex_contract_platform_readiness(uuid) body and grants required by 20260803131558; the body is corroborated by gridex-ops-dev internal_v1 and no product or tenant data is seeded."
+    }
+  }
+}
