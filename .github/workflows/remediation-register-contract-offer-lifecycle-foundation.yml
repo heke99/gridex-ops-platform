@@ -1,0 +1,66 @@
+name: Register contract offer lifecycle replay foundation
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  register-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Register checksum-pinned foundation and order
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const additionsPath = 'scripts/gridex-aud-003-legacy-foundation.additions.json';
+          const orderPath = 'scripts/gridex-aud-003-foundation-order.json';
+          const artifact = 'supabase/bootstrap/20260519_contract_offers_lifecycle_foundation.sql';
+          const rel = 'bootstrap/20260519_contract_offers_lifecycle_foundation.sql';
+          const expected = 'd4d1a4393ca71d8d70896fa9a21e1e4f897053e4a3c55724c833a4e4b378614d';
+          const actual = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
+          if (actual !== expected) throw new Error(`artifact checksum mismatch: ${actual}`);
+
+          const additions = JSON.parse(fs.readFileSync(additionsPath, 'utf8'));
+          if (!additions.foundation.includes(rel)) {
+            const anchor = 'bootstrap/20260519_contract_offer_versions_foundation.sql';
+            const idx = additions.foundation.indexOf(anchor);
+            additions.foundation.splice(idx >= 0 ? idx + 1 : 0, 0, rel);
+          }
+          additions.derivedBootstrap[rel] = {
+            source: 'migrations/20260519_customer_intake_contracts_tenant_hardening.sql',
+            artifactSha256: expected,
+            purpose: 'Restore only the source-defined contract_offers lifecycle metadata required by later canonical contract/invoice completion: version_number, published_at, archived_at, last_price_change_at and the company/status index; no offer rows are seeded or rewritten.'
+          };
+          fs.writeFileSync(additionsPath, JSON.stringify(additions, null, 2) + '\n');
+
+          const order = JSON.parse(fs.readFileSync(orderPath, 'utf8'));
+          if (!order.foundation.includes(rel)) {
+            const anchor = 'bootstrap/20260519_contract_offer_versions_foundation.sql';
+            const idx = order.foundation.indexOf(anchor);
+            order.foundation.splice(idx >= 0 ? idx + 1 : 0, 0, rel);
+          }
+          fs.writeFileSync(orderPath, JSON.stringify(order, null, 2) + '\n');
+          NODE
+      - name: Verify static migration provenance
+        run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Commit metadata/order and remove temporary workflow
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/gridex-aud-003-legacy-foundation.additions.json scripts/gridex-aud-003-foundation-order.json
+          git rm .github/workflows/remediation-register-contract-offer-lifecycle-foundation.yml
+          git commit -m "fix(db): register contract offer lifecycle replay lineage"
+          git push origin "HEAD:${BRANCH}"
