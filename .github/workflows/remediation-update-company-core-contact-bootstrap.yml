@@ -1,0 +1,51 @@
+name: Update company core contact replay bootstrap
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  register-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Update checksum-pinned replay metadata
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const path = 'scripts/gridex-aud-003-legacy-foundation.additions.json';
+          const artifact = 'supabase/bootstrap/20260519_companies_primary_contact_email_foundation.sql';
+          const rel = 'bootstrap/20260519_companies_primary_contact_email_foundation.sql';
+          const expected = '9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23';
+          const actual = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
+          if (actual !== expected) throw new Error(`artifact checksum mismatch: ${actual}`);
+          const doc = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const current = doc.derivedBootstrap[rel];
+          if (!current) throw new Error('missing company core contact bootstrap metadata');
+          if (current.source !== 'migrations/20260519_final_saas_hardening.sql') throw new Error(`unexpected source: ${current.source}`);
+          current.artifactSha256 = expected;
+          current.purpose = 'Restore only source-defined companies primary-contact fields required by later canonical tenant-mail and legal-profile flows: primary_contact_email, primary_contact_name, phone and website; no company rows are seeded or rewritten.';
+          fs.writeFileSync(path, JSON.stringify(doc, null, 2) + '\n');
+          NODE
+      - name: Verify static migration provenance
+        run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Commit metadata and remove temporary workflow
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/gridex-aud-003-legacy-foundation.additions.json
+          git rm .github/workflows/remediation-update-company-core-contact-bootstrap.yml
+          git commit -m "fix(db): align company core contact replay lineage"
+          git push origin "HEAD:${BRANCH}"
