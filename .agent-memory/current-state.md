@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-08-08T20:46:00Z
+Last updated: 2026-08-08T20:52:00Z
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - PR: `#90`
@@ -9,8 +9,8 @@ Last updated: 2026-08-08T20:46:00Z
 
 Large-file split remains ordinary-CI proven and all customer-application production modules are <=2500 lines. Verify remains green on the preceding exact heads, including migrations/provenance, typecheck, regressions, final contract, error boundaries and production security audit.
 
-Exact replay on `ec3ec70bad485c2e98eb3cf2e6c3fd2ac43aabca` proved `companies.billing_contact_email` was restored correctly and advanced further inside `20260717190000_company_legal_profile_single_editor.sql`, where `companies.address_line_1` was the next missing source prerequisite.
+Exact replay on `89210e97804f8fbf2fb68b7b1f77db7c0a3bfa1e` proved the complete Batch 6E company-metadata prerequisite family works and advanced further inside `20260717190000_company_legal_profile_single_editor.sql`. The next missing source prerequisite was `companies.primary_contact_name`.
 
-Both fields belong to the same checksum-pinned Batch 6E company-metadata block. Current implementation therefore restores that complete source-defined metadata block together instead of continuing column by column: billing/support contacts, postal address, Ediel identity fields, operating environment, branding, billing settings, plus the source operating-environment constraint and supporting indexes. No company rows are seeded or rewritten, no live Supabase write occurs and no historical migration is edited. Artifact checksum and static migration provenance pass.
+`primary_contact_name`, `primary_contact_email`, `phone` and `website` belong to the same checksum-pinned 20260519 company-core contact block. Current implementation broadens the existing derived bootstrap to exactly those four source-defined contact fields required by later tenant-mail/legal-profile flows. It does not replay the source's older status constraints, SaaS/RBAC seed or unrelated tables. Artifact checksum and static migration provenance pass. No company rows are seeded or rewritten, no live Supabase write occurs and no historical migration is edited.
 
 Next: exact-HEAD required CI. Continue only from an actual replay or required-check failure. Stop migration work immediately when full replay/fingerprint passes.
