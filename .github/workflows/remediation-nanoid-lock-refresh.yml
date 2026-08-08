@@ -1,0 +1,67 @@
+name: Remediation NanoID lock refresh
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    if: ${{ github.event.head_commit.message == 'chore(ci): one-shot nanoid lock refresh' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: remediation/gridex-ops-full-integrity-performance
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Patch only vulnerable NanoID lock entry
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('package-lock.json')
+          text = path.read_text()
+          old = '''    "node_modules/nanoid": {
+                "version": "3.3.16",
+                "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.16.tgz",
+                "integrity": "sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==",'''
+          new = '''    "node_modules/nanoid": {
+                "version": "3.3.17",
+                "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.17.tgz",
+                "integrity": "sha512-Hykn1AcBEk/vfu51NRPGKA87gB7QXEHPpbgrCsLmltb+GbpnEJ+/K0HL+VRTuNcAnKYSPEajQtytxr6Z9UB1/g==",'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one vulnerable NanoID lock entry, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          test "$(git diff --name-only)" = "package-lock.json"
+          git diff --check
+          git diff -- package-lock.json
+
+      - name: Verify install and production security gate
+        run: |
+          npm ci
+          npm run security:audit-production
+          npm run typecheck
+
+      - name: Commit verified lock-only remediation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          test "$(git diff --cached --name-only)" = "package-lock.json"
+          git commit -m "fix(deps): remediate nanoid production advisory"
+          git push origin HEAD:remediation/gridex-ops-full-integrity-performance
