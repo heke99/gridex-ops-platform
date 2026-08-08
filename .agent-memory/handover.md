@@ -2,7 +2,7 @@
 
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
-Last verified CI HEAD: `5212e454f7c8feca30732cd9d3122bd8eaf62728`
+Last verified CI HEAD: `1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d`
 
 ## Verified state
 
@@ -10,30 +10,23 @@ Last verified CI HEAD: `5212e454f7c8feca30732cd9d3122bd8eaf62728`
 - migration integrity/provenance regression: PASS.
 - `security:audit-production`: PASS.
 - `clean-migration-replay`: FAIL.
-- NanoID remains resolved at `3.3.17`.
-- `GRIDEX-REM-002` is not VERIFIED.
+- REM-002 is not VERIFIED.
 
-## Replay progress
+## Replay progression
 
-CI has confirmed the pricing-component and communication-log reconstruction fixes advance replay.
+CI has confirmed fixes for missing `pricing_component_rules`, `communication_logs` 7D trace fields, and `external_contract_intakes` all advance the empty-database replay.
 
 Current exact failure:
 
-- migration: `20260611150000_launch_readiness_security_routes_stats.sql`
-- line: 451
-- error: `relation "public.external_contract_intakes" does not exist`
+`20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql:399` -> `column cc.price_area_used does not exist`.
 
-The checksum-pinned pre-ledger source `20260521_batch_2c_end_to_end_operations.sql` creates the canonical base relation; live dev confirms the same base plus later additive columns.
-
-## Current implementation
-
-`supabase/bootstrap/20260521_external_contract_intakes_foundation.sql` restores only the source relation, initial status/idempotency constraints, base company/status index and source RLS policies after RBAC helper foundation. It seeds no data and does not modify live Supabase or historical migration SQL.
+The skipped source `20260611100000_energy_resolver_grid_area_operations.sql` defines five `customer_contracts` energy-resolution fields. Live dev confirms them with matching types/defaults. The current implementation restores only those five fields through a checksum-bound derived bootstrap; no rows are seeded and no live DB mutation occurs.
 
 ## Next deterministic action
 
 1. Push the current work-unit commit.
 2. Read PR #90 CI for that exact HEAD.
-3. If replay fails, download the new artifact and use its first SQL failure as the next finding.
-4. Repeat until clean replay passes.
-5. Verify `verify`, provenance, security, replay and schema fingerprint on the same final HEAD.
-6. Only then mark `GRIDEX-REM-002` VERIFIED and continue immediately to database/code full consistency.
+3. If replay fails, download the artifact and remediate its first SQL failure.
+4. Repeat until replay succeeds and schema fingerprint passes.
+5. Confirm verify/provenance/security on the same final HEAD.
+6. Then mark REM-002 VERIFIED, run the remaining campaign rescan, and merge only if all release gates remain green.

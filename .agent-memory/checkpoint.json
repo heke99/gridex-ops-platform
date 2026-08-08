@@ -1,40 +1,34 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:07:00Z",
+  "updated_at": "2026-08-08T14:16:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "5212e454f7c8feca30732cd9d3122bd8eaf62728",
+  "last_verified_commit": "1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore checksum-pinned external_contract_intakes pre-ledger foundation",
+  "active_subtask": "Restore customer_contracts energy-resolution columns omitted by source substitution",
   "status": "IMPLEMENTED_NOT_VERIFIED",
-  "last_completed_check": "PR #90 same-HEAD verify PASS plus clean-replay artifact and live Supabase external_contract_intakes verification",
   "ci_state": {
-    "head": "5212e454f7c8feca30732cd9d3122bd8eaf62728",
+    "head": "1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260611150000_launch_readiness_security_routes_stats.sql",
-    "line": 451,
-    "error": "relation public.external_contract_intakes does not exist",
-    "missing_prerequisite": "pre-ledger external_contract_intakes relation from 20260521_batch_2c_end_to_end_operations.sql"
+    "migration": "20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql",
+    "line": 399,
+    "error": "column cc.price_area_used does not exist",
+    "relation": "public.customer_contracts",
+    "missing_prerequisite": "five energy-resolution fields from 20260611100000_energy_resolver_grid_area_operations.sql"
   },
   "implemented_not_verified": [
-    "Checksum-bound external_contract_intakes foundation after RBAC helper foundation"
+    "Checksum-bound customer_contracts energy-resolution derived foundation"
   ],
   "unverified_assumptions": [
     "The next clean-replay failure, if any, is unknown until real CI executes the next HEAD"
   ],
-  "next_action": "Push current work unit, inspect PR #90 clean-replay artifact on the new HEAD, and continue failure-by-failure.",
-  "remaining_p0": [
-    "Full database/code consistency and the remaining remediation queue after GRIDEX-REM-002"
-  ],
-  "remaining_p1": [
-    "GRIDEX-REM-002 remains unverified until full empty-database replay passes on the same final HEAD as verify/security"
-  ],
+  "next_action": "Push current work unit, inspect PR #90 clean replay on the new HEAD, and continue failure-by-failure until all same-HEAD gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

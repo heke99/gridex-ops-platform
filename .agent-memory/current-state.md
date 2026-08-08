@@ -1,41 +1,36 @@
 # Current state
 
-Last updated: 2026-08-08T14:07:00Z
+Last updated: 2026-08-08T14:16:00Z
 
 ## Active remediation campaign
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - Draft PR: `#90`
 - Baseline: `5923b5c17fe96c0453048bdc102203efb65f7d7a`
-- Last verified CI HEAD: `5212e454f7c8feca30732cd9d3122bd8eaf62728`
+- Last verified CI HEAD: `1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d`
 - Active finding: `GRIDEX-REM-002` canonical migration lineage / empty-database replay.
 - Lifecycle state: `IMPLEMENTED_NOT_VERIFIED`.
 
-## Same-HEAD CI evidence
+## Same-HEAD evidence
 
-At `5212e454f7c8feca30732cd9d3122bd8eaf62728`:
+At `1ac3e0d2...`:
 
 - `verify`: PASS.
 - migration integrity/provenance regression: PASS.
-- typecheck/targeted regressions: PASS.
+- targeted regressions/typecheck: PASS.
 - `security:audit-production`: PASS.
 - `clean-migration-replay`: FAIL.
 
-## Replay progress
+CI confirms the prior pricing rules, communication-log trace, and external-intake reconstruction fixes all moved replay forward.
 
-The pricing-component and communication-log reconstruction fixes are confirmed by CI to move replay forward.
+## Current first failure
 
-Current first failure:
+`20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql:399`
 
-- migration: `20260611150000_launch_readiness_security_routes_stats.sql`
-- line: 451
-- error: `relation "public.external_contract_intakes" does not exist`
-- missing prerequisite: pre-ledger external contract intake foundation from `20260521_batch_2c_end_to_end_operations.sql`
+`ERROR: column cc.price_area_used does not exist`
 
-Live `gridex-ops-dev` confirms the source-defined base intake model followed by later additive columns.
-
-The current work unit adds a checksum-bound derived foundation for only `external_contract_intakes`, its base index and source RLS policies after the RBAC helper foundation. It seeds no rows, edits no historical migration, and performs no live DB write.
+The skipped checksum-pinned source `20260611100000_energy_resolver_grid_area_operations.sql` defines five energy-resolution fields on `customer_contracts`; live dev confirms all five. The current work unit restores only those columns through `20260611_customer_contract_energy_resolution_foundation.sql`.
 
 ## Next deterministic action
 
-Commit/push this foundation, read PR #90 CI on the exact new HEAD, and continue from the next exact replay failure. Do not mark `GRIDEX-REM-002` VERIFIED until clean replay and `verify` are green on the same final HEAD and the schema fingerprint passes.
+Push this work unit, inspect PR #90 CI on the exact new HEAD, and continue from the next exact replay failure. Do not mark REM-002 VERIFIED until replay, schema fingerprint, verify/provenance/security all pass on one final HEAD.

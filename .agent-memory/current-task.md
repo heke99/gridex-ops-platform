@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T14:07:00Z
+Last updated: 2026-08-08T14:16:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -12,25 +12,22 @@ Status: `IMPLEMENTED_NOT_VERIFIED`
 
 ## Last verified HEAD
 
-`5212e454f7c8feca30732cd9d3122bd8eaf62728`
+`1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d`
 
-- `verify`: PASS
-- provenance/migration integrity: PASS
-- `security:audit-production`: PASS
-- clean replay: FAIL
+All verify/security/provenance gates pass; clean replay fails.
 
 ## Exact current failure
 
-- migration: `20260611150000_launch_readiness_security_routes_stats.sql`
-- line: 451
-- statement: creation of `gridex_company_operations_statistics_v`
-- error: `relation "public.external_contract_intakes" does not exist`
-- prerequisite: source-defined pre-ledger `external_contract_intakes` table from `20260521_batch_2c_end_to_end_operations.sql`
+- migration: `20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql`
+- line: 399
+- error: `column cc.price_area_used does not exist`
+- relation: `public.customer_contracts`
+- prerequisite: the five customer-contract energy-resolution fields from checksum-pinned source `20260611100000_energy_resolver_grid_area_operations.sql`
 
 ## Current implementation
 
-Add `supabase/bootstrap/20260521_external_contract_intakes_foundation.sql` after the RBAC helper foundation. It restores only the source table, initial constraint/idempotency uniqueness, base company/status index and source RLS policies. No rows are seeded and no live DB write is performed.
+Add `supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql`, register it as a checksum-bound derived artifact and include it in foundation order. The artifact adds only `requested_start_mode`, `calculated_earliest_start_date`, `price_area_used`, `grid_area_code_used`, and `resolution_status`; no rows are seeded and no live DB write occurs.
 
 ## Exact next action
 
-Push this work unit, inspect PR #90 CI on the new HEAD, download the clean-replay artifact if it fails, and continue from its first exact SQL failure. Mark REM-002 VERIFIED only after all same-HEAD gates and schema fingerprint pass.
+Push and inspect PR #90 CI for the exact new HEAD. On clean-replay failure, use the new artifact's first SQL error as the next work unit. On clean-replay success, confirm schema fingerprint and all same-HEAD gates before marking REM-002 VERIFIED.

@@ -39,6 +39,7 @@
     "bootstrap/20260609_webhook_email_readiness_foundation.sql",
     "bootstrap/20260609_website_customer_applications_foundation.sql",
     "bootstrap/20260611_grid_owner_information_request_foundation.sql",
+    "bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
     "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",

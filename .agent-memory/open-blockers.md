@@ -1,20 +1,22 @@
 # Open blockers
 
-Last updated: 2026-08-08T14:07:00Z
+Last updated: 2026-08-08T14:16:00Z
 
-## Active remediation blockers
+## Active remediation blocker
 
-1. `GRIDEX-REM-002` clean empty-database replay is not green yet.
-2. On last verified HEAD `5212e454f7c8feca30732cd9d3122bd8eaf62728`, the first failure is missing `public.external_contract_intakes` in `20260611150000_launch_readiness_security_routes_stats.sql:451`.
-3. The checksum-bound pre-ledger external-intake foundation is implemented but requires real PR #90 CI before this failure can be closed.
-4. The next replay failure, if any, is intentionally unknown until that CI artifact is read.
+`GRIDEX-REM-002` clean empty-database replay is not green yet.
 
-## Resolved blockers
+On last verified HEAD `1ac3e0d2ec4893902ed2f1b2e228ffc6c83b1c1d`, the first failure is missing `public.customer_contracts.price_area_used` in `20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql:399`.
 
-- `pricing_component_rules` prerequisite: CI-confirmed advanced beyond `20260609100000`.
-- `communication_logs.customer_number`/7D trace prerequisite: CI-confirmed advanced through the Batch 8 migration area.
-- NanoID production advisory: resolved at `nanoid 3.3.17`; same-HEAD verify/security passes.
+The checksum-bound five-column customer-contract energy-resolution reconstruction is implemented but requires real PR #90 CI before this failure can be closed. The next replay failure, if any, is intentionally unknown until that CI artifact is read.
 
-## Remaining campaign work
+## Resolved replay blockers
 
-After `GRIDEX-REM-002` is VERIFIED on one final HEAD, continue directly with database/code consistency, tenancy/RLS/RBAC, flows, concurrency/idempotency, database and application performance, cache/rate limits, security, API/OpenAPI, large-file remediation and the final full rescan.
+- `pricing_component_rules`: CI-confirmed fixed.
+- `communication_logs` 7D trace columns: CI-confirmed fixed.
+- `external_contract_intakes`: CI-confirmed fixed.
+- NanoID production advisory: resolved at `nanoid 3.3.17`; verify/security gates pass.
+
+## Merge blocker
+
+PR #90 must remain draft/unmerged until REM-002, the final full rescan, all release gates and the final same-HEAD CI are green.

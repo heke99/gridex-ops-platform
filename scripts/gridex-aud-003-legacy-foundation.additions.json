@@ -8,6 +8,7 @@
     "migrations/20260602090000_ediel_operations_platform_core.sql",
     "migrations/20260605160000_ediel_backend_automation_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
+    "bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
     "bootstrap/20260618_customer_operation_jobs_foundation.sql",
@@ -66,6 +67,11 @@
       "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
       "artifactSha256": "0554a1e68a04c7b85951cc4e49d23ae0094bd9d542ffb6407231a3c0409dc56b",
       "purpose": "Restore only the source-defined communication log identity/trace columns and customer-number index at the source migration's chronological boundary before Batch 8; no communication rows or tenant/customer data are seeded."
+    },
+    "bootstrap/20260611_customer_contract_energy_resolution_foundation.sql": {
+      "source": "migrations/20260611100000_energy_resolver_grid_area_operations.sql",
+      "artifactSha256": "ae725b25b9abbfc8281c4ac1eda783886d214935834c436a4b59fdbbb26bd2ea",
+      "purpose": "Restore only the source-defined customer_contracts energy-resolution columns required by later launch/billing-readiness views; no contracts or tenant/customer data are seeded."
     },
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql": {
       "source": "migrations/20260612193000_platform_tenant_contracts_api_mail.sql",
