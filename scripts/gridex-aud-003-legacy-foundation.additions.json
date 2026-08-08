@@ -3,6 +3,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
+    "migrations/20260602090000_ediel_operations_platform_core.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql",
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
