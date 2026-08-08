@@ -9,13 +9,16 @@
 -- This migration intentionally patches only that single JOIN signature. It fails closed if the
 -- canonical view shape has drifted, rather than guessing or silently rewriting a different view.
 
+begin;
 set local search_path = public, pg_catalog;
 
 do $migration$
 declare
   v_definition text;
   v_patched text;
-  v_join_pattern text := '(?s)LEFT JOIN platform_market_actors a ON .*?\n             LEFT JOIN actor_ids ai';
+  v_match_count integer;
+  v_join_pattern text := $pattern$(?s)LEFT JOIN platform_market_actors a ON .*?
+             LEFT JOIN actor_ids ai$pattern$;
   v_join_replacement text := $join$
 LEFT JOIN public.platform_market_actors a ON
                a.id = g.platform_market_actor_id
@@ -54,13 +57,17 @@ begin
     return;
   end if;
 
-  v_patched := regexp_replace(v_definition, v_join_pattern, v_join_replacement);
+  select count(*)
+    into v_match_count
+  from regexp_matches(v_definition, v_join_pattern, 'g');
 
-  if v_patched = v_definition then
-    raise exception 'gridex_verified_grid_owners_v canonical actor join signature was not found';
+  if v_match_count <> 1 then
+    raise exception 'gridex_verified_grid_owners_v expected exactly one canonical actor join, found %', v_match_count;
   end if;
 
-  if v_patched not like '%g.platform_market_actor_id IS NULL%' then
+  v_patched := regexp_replace(v_definition, v_join_pattern, v_join_replacement);
+
+  if v_patched = v_definition or v_patched not like '%g.platform_market_actor_id IS NULL%' then
     raise exception 'gridex_verified_grid_owners_v actor join optimization did not materialize';
   end if;
 
@@ -70,3 +77,5 @@ $migration$;
 
 comment on view public.gridex_verified_grid_owners_v is
   'Canonical grid-owner verification view. Direct platform_market_actor_id is authoritative; EDIEL/org/name fallback matching runs only when the direct actor link is absent, preventing duplicate fallback matches and the measured full actor-registry OR scan.';
+
+commit;
