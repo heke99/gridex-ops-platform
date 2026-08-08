@@ -1,38 +1,40 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T13:40:00Z",
+  "updated_at": "2026-08-08T13:58:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "c627f81024e9c166aab5b9189192f54e160c0190",
+  "last_verified_commit": "8e678aaee387ffb15bc68072e48dc141e8947090",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore checksum-pinned pre-ledger pricing_component_rules foundation for clean replay",
+  "active_subtask": "Restore communication_logs 7D trace columns at the skipped 20260609162000 source boundary",
   "status": "IMPLEMENTED_NOT_VERIFIED",
-  "last_completed_check": "PR #90 CI artifact + live Supabase schema verification",
+  "last_completed_check": "PR #90 same-HEAD verify PASS plus clean-replay artifact and live Supabase schema verification",
   "ci_state": {
-    "head": "c627f81024e9c166aab5b9189192f54e160c0190",
+    "head": "8e678aaee387ffb15bc68072e48dc141e8947090",
     "verify": "PASS",
+    "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql",
-    "line": 17,
-    "error": "relation public.pricing_component_rules does not exist",
-    "missing_prerequisite": "pre-ledger pricing_component_rules relation"
+    "migration": "20260609183000_batch_8_admin_operations_website_email_webhooks.sql",
+    "line": 67,
+    "error": "column customer_number does not exist",
+    "relation": "public.communication_logs",
+    "missing_prerequisite": "7D communication log trace columns from 20260609162000_batch_7_website_integration_foundation.sql"
   },
   "implemented_not_verified": [
-    "Derived bootstrap for source-defined pricing_component_rules relation and base indexes"
+    "Interleaved checksum-bound communication log trace reconstruction after 20260609143000 and before 20260609183000"
   ],
   "unverified_assumptions": [
-    "The next clean-replay failure, if any, is unknown until real CI executes the new HEAD"
+    "The next clean-replay failure, if any, is unknown until real CI executes the next HEAD"
   ],
   "next_action": "Push current work unit, inspect PR #90 clean-replay artifact on the new HEAD, and continue failure-by-failure.",
   "remaining_p0": [
     "Full database/code consistency and the remaining remediation queue after GRIDEX-REM-002"
   ],
   "remaining_p1": [
-    "GRIDEX-REM-002 remains unverified until full empty-database replay passes on the same HEAD as verify/security"
+    "GRIDEX-REM-002 remains unverified until full empty-database replay passes on the same final HEAD as verify/security"
   ],
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"

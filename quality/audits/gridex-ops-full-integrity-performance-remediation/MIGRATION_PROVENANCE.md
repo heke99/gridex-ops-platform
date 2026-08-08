@@ -32,69 +32,62 @@ AUD-001 was applied to dev before its repository remediation was merged. PR #87 
 
 Restore the already-applied SQL to Git using the exact versions and names recorded by the live Supabase ledger while preserving the PR source contents byte-for-byte. Record those source-file hashes in `scripts/migration-history-manifest.additions.json`.
 
-This work intentionally does **not**:
+This work intentionally does **not** reapply either migration to dev, edit applied SQL, rename/delete a live ledger entry, mark a migration applied manually, or mutate `supabase_migrations.schema_migrations`.
 
-- reapply either migration to dev,
-- edit an applied migration's SQL,
-- rename or delete a live ledger entry,
-- mark a migration as applied manually,
-- mutate `supabase_migrations.schema_migrations`.
-
-### Files restored
-
-- `supabase/migrations/20260806151106_gridex_aud_001_customer_document_storage_isolation.sql`
-- `supabase/migrations/20260806152004_gridex_aud_001_storage_helper_private_schema.sql`
-
-### Verification required before VERIFIED
-
-- repository migration-history integrity check,
-- branch diff review,
-- repository versions/names compared with live ledger,
-- live helper/policy state remains present without any database mutation.
-
-## GRIDEX-REM-002 — clean replay logic remains open
+## GRIDEX-REM-002 — canonical clean replay
 
 Severity: P1
 Status: IMPLEMENTED / CI FAILED / NOT VERIFIED
 
-Closed PR #88 established a legacy-foundation replay experiment, but CI failed at `20260530123000_gridcore_active_ediel_scope_rules_and_aibi_imports.sql` because `public.ediel_message_rules.application_reference` was absent.
+The branch makes the replay boundary explicit with checksum-pinned reconstructed foundation inputs, narrow derived bootstrap artifacts, explicit noncanonical classification, chronological interleaved substitutions, deterministic remaining migration execution, and Supabase CLI-owned markers for the observed dev ledger.
 
-The live dev ledger does not contain version `20260530123000`. PR #88's legacy-foundation metadata declares `20260531075508` as `firstTrackedRemoteVersion`, while its replay script still iterates all 14-digit migration files not selected as foundation, including pre-ledger files. That mixes untracked pre-ledger history into the canonical tracked replay path.
+The original `20260530123000_gridcore_active_ediel_scope_rules_and_aibi_imports.sql` failure is classified rather than repaired by changing today's live schema: the live ledger does not contain that version and final live `ediel_message_rules` does not contain its expected `application_reference` column.
 
-The current live final `public.ediel_message_rules` schema also does not contain `application_reference`, so adding that column blindly to today's canonical schema is not an acceptable fix.
+### NanoID blocker
 
-The branch now makes the replay boundary explicit with checksum-pinned legacy foundation inputs, derived bootstrap substitutions, explicit noncanonical artifact classification, interleaved substitutions where later tracked history needs verified pre-ledger prerequisites, and the observed Supabase dev ledger recreated only through CLI-owned marker migrations.
+Resolved. `nanoid` is not direct. The production path is Next/PostCSS -> `nanoid`; the current lock resolves `nanoid` to `3.3.17`. No audit gate was weakened. PR #90 `verify` including `security:audit-production` passes on the relevant replay commits.
 
-### Current same-HEAD verification state
+### Replay iteration 1 — pricing component rules
 
-At PR #90 HEAD `c627f81024e9c166aab5b9189192f54e160c0190`:
-
-- `verify`: PASS, including `security:audit-production`.
-- `clean-migration-replay`: FAIL.
-- `GRIDEX-REM-002`: not VERIFIED.
-
-The previous NanoID blocker is resolved without changing `package.json`: `next@16.2.12` depends on PostCSS, the project pins/overrides PostCSS to `8.5.25`, PostCSS declares `nanoid ^3.3.16`, and the lockfile now resolves `nanoid` to `3.3.17`. This is a transitive production dependency path; CI validates `npm ci`, the production audit, typecheck and build.
-
-### Current first replay failure
-
-CI artifact `gridex-rem-002-clean-replay` shows the first failure at:
+At HEAD `c627f81024e9c166aab5b9189192f54e160c0190`, CI first failed at:
 
 `20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql:17`
 
-with:
+with `ERROR: relation "public.pricing_component_rules" does not exist`.
 
-`ERROR: relation "public.pricing_component_rules" does not exist`
+The checksum-pinned pre-ledger source `20260520_batch_3_4_onboarding_pricing_billing_engine.sql` defines that relation and base indexes, and live `gridex-ops-dev` confirms the same base model plus the three columns later added by `20260609100000`.
 
-Immediately before the error, `ALTER TABLE IF EXISTS public.pricing_component_rules` skips because the relation is absent, but the migration then creates `pricing_component_rules_company_unit_idx` unconditionally.
+Resolution: add narrow derived bootstrap `20260520_pricing_component_rules_foundation.sql`; no rows seeded, no historical SQL edited, no live DB write.
 
-The immutable pre-ledger source `20260520_batch_3_4_onboarding_pricing_billing_engine.sql` defines `pricing_component_rules`. That same source is already checksum-pinned and already supplies a narrow derived bootstrap for `metering_permissions`. Live `gridex-ops-dev` confirms `public.pricing_component_rules` exists with the same base columns/indexes plus the three columns added by `20260609100000`.
+Commit `8e678aaee387ffb15bc68072e48dc141e8947090` verifies that this moved clean replay past `20260609100000`. On that same HEAD, `verify`, migrations integrity, provenance regression, typecheck, targeted tests and `security:audit-production` all PASS.
 
-### Current reconciliation
+### Replay iteration 2 — communication log trace columns
 
-Add a second narrow derived bootstrap from the same immutable source containing only the source-defined `pricing_component_rules` relation and its base indexes. Keep product/tenant rows empty. Do not modify the historical source migration and do not apply a new live migration.
+On HEAD `8e678aaee387ffb15bc68072e48dc141e8947090`, the next clean-replay failure is:
 
-Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; real PR CI must replay from an empty database before this subtask can be marked verified.
+`20260609183000_batch_8_admin_operations_website_email_webhooks.sql:67`
+
+with `ERROR: column "customer_number" does not exist` while creating `communication_logs_customer_number_created_idx` on `public.communication_logs(company_id, customer_number, created_at desc)`.
+
+The missing column is `communication_logs.customer_number` (not `customers.customer_number`). The checksum-pinned source `20260609162000_batch_7_website_integration_foundation.sql` defines the canonical 7D communication-log additions:
+
+- `customer_number text`
+- `external_customer_id text`
+- `contract_id uuid`
+- `template_version_id uuid`
+- `metadata jsonb not null default '{}'::jsonb`
+- index `communication_logs_customer_number_idx`
+
+Live `gridex-ops-dev` confirms all five columns and the source index. The older `20260531213000_resend_tenant_email_engine.sql` creates the base `communication_logs` relation without those fields.
+
+Because the `20260609162000` source is intentionally replaced by narrow derived artifacts and the base table exists only after timestamped history begins, this 7D reconstruction must **not** run in the pre-history foundation. It is interleaved at the source's chronological boundary after `20260609143000` and before `20260609183000`.
+
+Artifact: `supabase/bootstrap/20260609_communication_log_trace_foundation.sql`
+
+Artifact SHA-256: `0554a1e68a04c7b85951cc4e49d23ae0094bd9d542ffb6407231a3c0409dc56b`
+
+Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; real PR #90 CI must confirm the replay advances.
 
 ### Definition of VERIFIED
 
-`GRIDEX-REM-002` remains open until the entire canonical empty-database replay, provenance regression, security audit and `verify` suite all pass on the same final HEAD and the final schema fingerprint matches.
+`GRIDEX-REM-002` remains open until the entire canonical empty-database replay, provenance regression, production security audit and `verify` suite all pass on the same final HEAD, the final schema fingerprint matches, memory/report are updated, and that final commit itself is CI-verified.

@@ -1,27 +1,19 @@
 # Open blockers
 
-Last updated: 2026-08-08T13:40:00Z
+Last updated: 2026-08-08T13:58:00Z
 
 ## Active remediation blockers
 
 1. `GRIDEX-REM-002` clean empty-database replay is not green yet.
-2. The current first failure is the missing pre-ledger
-   `public.pricing_component_rules` prerequisite at
-   `20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql:17`.
-3. The narrow derived bootstrap fix is implemented but requires real PR #90 CI
-   before the failure can be considered closed.
-4. The next replay failure, if any, is intentionally unknown until the new CI
-   artifact is read.
+2. On last verified HEAD `8e678aaee387ffb15bc68072e48dc141e8947090`, the first failure is missing `public.communication_logs.customer_number` in `20260609183000_batch_8_admin_operations_website_email_webhooks.sql:67`.
+3. The checksum-bound 7D communication-log reconstruction is implemented at the correct interleaved source boundary but requires real PR #90 CI before this failure can be closed.
+4. The next replay failure, if any, is intentionally unknown until that CI artifact is read.
 
-## Resolved blocker on the last verified HEAD
+## Resolved blockers
 
-The production NanoID advisory is resolved: `nanoid` now resolves to `3.3.17`,
-and PR #90 `verify` including `security:audit-production` passes on
-`c627f81024e9c166aab5b9189192f54e160c0190`.
+- The prior `pricing_component_rules` replay prerequisite is confirmed fixed by CI; replay advances beyond `20260609100000`.
+- The production NanoID advisory remains resolved at `nanoid 3.3.17`; same-HEAD `verify` and `security:audit-production` pass on `8e678a...`.
 
 ## Remaining campaign work
 
-After `GRIDEX-REM-002` is VERIFIED on one final HEAD, continue directly with
-database/code consistency, tenancy/RLS/RBAC, flows, concurrency/idempotency,
-database and application performance, cache/rate limits, security, API/OpenAPI,
-large-file remediation and the final full rescan.
+After `GRIDEX-REM-002` is VERIFIED on one final HEAD, continue directly with database/code consistency, tenancy/RLS/RBAC, flows, concurrency/idempotency, database and application performance, cache/rate limits, security, API/OpenAPI, large-file remediation and the final full rescan.

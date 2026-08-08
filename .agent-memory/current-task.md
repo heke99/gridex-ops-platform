@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T13:40:00Z
+Last updated: 2026-08-08T13:58:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -10,32 +10,29 @@ PR: `#90`
 
 Status: `IMPLEMENTED_NOT_VERIFIED`
 
-## Evidence
+## Last verified HEAD
 
-On HEAD `c627f81024e9c166aab5b9189192f54e160c0190`, `verify` is green,
-including the production dependency audit, while `clean-migration-replay` fails.
+`8e678aaee387ffb15bc68072e48dc141e8947090`
 
-The CI evidence artifact identifies the first failure as:
+- `verify`: PASS
+- provenance/migration integrity: PASS
+- `security:audit-production`: PASS
+- clean replay: FAIL
 
-- migration: `20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql`
-- line: 17
-- error: `relation "public.pricing_component_rules" does not exist`
-- prerequisite: pre-ledger `pricing_component_rules` foundation
+## Exact current failure
 
-Live `gridex-ops-dev` and the immutable source
-`20260520_batch_3_4_onboarding_pricing_billing_engine.sql` agree on the base
-relation and indexes.
+- migration: `20260609183000_batch_8_admin_operations_website_email_webhooks.sql`
+- line: 67
+- statement: create index over `public.communication_logs(company_id, customer_number, created_at desc)`
+- error: `column "customer_number" does not exist`
+- prerequisite: 7D communication-log trace additions from `20260609162000_batch_7_website_integration_foundation.sql`
 
-## Implemented in this work unit
+## Current implementation
 
-- add `supabase/bootstrap/20260520_pricing_component_rules_foundation.sql`;
-- register its checksum and source in the derived-bootstrap additions;
-- insert it into the explicit canonical foundation order;
-- document the exact CI failure and reconciliation.
+Add `supabase/bootstrap/20260609_communication_log_trace_foundation.sql` containing only the source-defined 7D columns and source customer-number index. Register it as a checksum-bound derived artifact and interleave it after `20260609143000` and before `20260609183000` so the base `communication_logs` table already exists.
+
+No rows are seeded. No historical migration is edited. No live DB write is performed.
 
 ## Exact next action
 
-After push, inspect PR #90 CI for the new HEAD. If clean replay fails, read the
-new artifact/log and remediate the next exact failure. If clean replay passes,
-verify `verify`, security audit, provenance gate and replay on that same HEAD
-before changing `GRIDEX-REM-002` to VERIFIED.
+Push this work unit and inspect PR #90 CI on the new HEAD. Continue replay failure-by-failure until the full clean replay passes; then verify all same-HEAD gates before marking `GRIDEX-REM-002` VERIFIED.

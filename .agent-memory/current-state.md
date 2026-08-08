@@ -1,49 +1,43 @@
 # Current state
 
-Last updated: 2026-08-08T13:40:00Z
+Last updated: 2026-08-08T13:58:00Z
 
 ## Active remediation campaign
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - Draft PR: `#90`
 - Baseline: `5923b5c17fe96c0453048bdc102203efb65f7d7a`
-- Last observed pre-fix HEAD: `c627f81024e9c166aab5b9189192f54e160c0190`
+- Last verified CI HEAD: `8e678aaee387ffb15bc68072e48dc141e8947090`
 - Active finding: `GRIDEX-REM-002` canonical migration lineage / empty-database replay.
 - Lifecycle state: `IMPLEMENTED_NOT_VERIFIED`.
 
-This campaign supersedes the older PHASE-45 task as the active work item. Historical
-PHASE-45 state remains available in Git history.
+## Same-HEAD CI evidence
 
-## Same-HEAD CI evidence before the current replay fix
-
-At `c627f81024e9c166aab5b9189192f54e160c0190`:
+At `8e678aaee387ffb15bc68072e48dc141e8947090`:
 
 - `verify`: PASS.
+- migration integrity/provenance regression: PASS.
 - `security:audit-production`: PASS.
 - `clean-migration-replay`: FAIL.
 
-The NanoID production advisory is resolved in the lockfile: the transitive path is
-Next -> PostCSS -> NanoID, and `nanoid` resolves to `3.3.17` without a direct
-`package.json` dependency.
+The NanoID production advisory remains resolved at `nanoid 3.3.17`.
 
-## Current clean-replay failure and remediation
+## Replay progress
 
-The PR #90 clean-replay artifact reports the first failure at
-`20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql:17`:
+The prior missing `pricing_component_rules` prerequisite was fixed by a narrow checksum-bound derived bootstrap; CI now advances beyond `20260609100000`.
 
-`ERROR: relation "public.pricing_component_rules" does not exist`
+Current first failure:
 
-The checksum-pinned pre-ledger source
-`20260520_batch_3_4_onboarding_pricing_billing_engine.sql` defines that relation.
-Live `gridex-ops-dev` confirms the relation, source-defined base columns/indexes,
-and the three columns later added by `20260609100000`.
+- migration: `20260609183000_batch_8_admin_operations_website_email_webhooks.sql`
+- line: 67
+- error: `column "customer_number" does not exist`
+- relation: `public.communication_logs`
+- missing prerequisite: the 7D communication-log trace columns from checksum-pinned source `20260609162000_batch_7_website_integration_foundation.sql`.
 
-The current work unit adds a narrow checksum-bound derived bootstrap for only
-`pricing_component_rules` and its source-defined base indexes. It does not edit
-historical migration SQL and does not mutate the live database.
+Live `gridex-ops-dev` confirms the five source-defined 7D fields and `communication_logs_customer_number_idx`.
+
+The current work unit adds a narrow derived artifact and interleaves it after `20260609143000` and before `20260609183000`, matching the skipped source migration's chronological position. No historical SQL or live database state is modified.
 
 ## Next deterministic action
 
-Push this work unit, read the new PR #90 clean-replay result, and continue from
-the next exact SQL failure. Do not mark `GRIDEX-REM-002` VERIFIED until clean
-replay and `verify` both pass on the same final HEAD.
+Commit/push the interleaved communication-log reconstruction, read PR #90 CI on that exact new HEAD, and continue from the next exact replay failure. `GRIDEX-REM-002` stays open until clean replay and `verify` are both green on one final HEAD.
