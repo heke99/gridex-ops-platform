@@ -2,12 +2,14 @@
 
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
-Last verified CI HEAD: `4cbea122dce56f08da67bd4b4df0798c8ad5349a`
+Current CI HEAD: `bc3479574904ae886916aed28209bf68dfc76264`
 
-Verified: verify/provenance/security PASS. Clean replay FAIL. REM-002 not VERIFIED.
+Verified on current HEAD: verify/provenance/typecheck/targeted regressions/security PASS. Clean replay FAIL. REM-002 not VERIFIED.
 
-The replay engine's `preserveSourceReplay` mode is CI-proven. Current failure is `20260613100000...:85`, where `platform_grid_owners` is absent because the complete `20260611100000_energy_resolver_grid_area_operations.sql` source was being skipped after two narrow prerequisites referenced it.
+The `preserveSourceReplay` correction for the Energy Resolver source is CI-proven: full `20260611100000_energy_resolver_grid_area_operations.sql` now replays, the former `platform_grid_owners` blocker is gone, and replay advances to `20260615203000_platform_go_live_route_resolver_message_center.sql:248`.
 
-Current implementation marks both 20260611-derived prerequisites `preserveSourceReplay=true`. This keeps their early prerequisite effects but restores the complete immutable Energy Resolver migration to chronological replay, including platform grid-owner/grid-area/geodata/cache/import/resolver schema and source policies/functions. No live Supabase mutation occurs.
+Current failure is `relation public.legal_text_versions does not exist`. The table is defined in checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql`, but that complete source is skipped because the early derived `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql` references it.
 
-Next: push, inspect exact-HEAD CI, continue from first replay error until replay + schema fingerprint pass; then verify all same-HEAD gates, mark REM-002 VERIFIED, run final campaign rescan, close all remaining findings, and merge only when the complete release gate is green.
+Current implementation overrides that existing derived artifact with `preserveSourceReplay=true`. This keeps the early idempotent `powers_of_attorney.customer_site_id` prerequisite while restoring complete Batch M to chronological replay. No live Supabase mutation occurs.
+
+Next: inspect exact-HEAD CI, continue only from a real replay error until replay + schema fingerprint pass; then verify all same-HEAD release gates, mark REM-002 VERIFIED, run the single bounded release rescan, update final memory/reports and merge PR #90 when green.

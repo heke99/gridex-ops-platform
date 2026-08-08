@@ -1,11 +1,11 @@
 # Open blockers
 
-Last updated: 2026-08-08T15:20:00Z
+Last updated: 2026-08-08T15:26:00Z
 
-`GRIDEX-REM-002` clean replay remains the active blocker.
+`GRIDEX-REM-002` clean replay remains the only active release blocker in the current CI run.
 
-Last verified HEAD `4cbea122dce56f08da67bd4b4df0798c8ad5349a`: verify/provenance/security PASS; replay reaches `20260613100000` and fails because `platform_grid_owners` is absent.
+Current HEAD `bc3479574904ae886916aed28209bf68dfc76264`: verify/provenance/typecheck/regressions/security PASS. Replay passes the former Energy Resolver/platform-grid-owner failure and now fails at `20260615203000_platform_go_live_route_resolver_message_center.sql:248` because `public.legal_text_versions` is absent.
 
-The complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` is now preserved for normal chronological replay while both narrow prerequisites continue to run early. CI must prove this restores the platform Energy Resolver family.
+The missing relation belongs to the checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql`. Its complete source was skipped because `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql` uses it as a derived source. The current fix preserves normal source replay while retaining the early narrow prerequisite.
 
-PR #90 remains draft/unmerged until REM-002, final rescan, all remaining audit/remediation items and final same-HEAD release gates are green.
+PR #90 remains draft/unmerged until REM-002, the bounded final release rescan and all final same-HEAD release gates are green.

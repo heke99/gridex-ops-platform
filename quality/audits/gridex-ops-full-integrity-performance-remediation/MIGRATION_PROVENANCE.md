@@ -19,23 +19,29 @@ Historical applied SQL remains immutable. Replay uses checksum-pinned derived ar
 
 ### CI-confirmed progression
 
-On `4cbea122dce56f08da67bd4b4df0798c8ad5349a`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS. The `preserveSourceReplay` model is also proven: the early `platform_usage_events` prerequisite executes before `20260612160000`, while the complete `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql` still executes later.
+On `bc3479574904ae886916aed28209bf68dfc76264`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS.
 
-Clean replay then advances through `20260612203000` and fails at `20260613100000_actor_auto_readiness_certificates.sql:85` because `public.platform_grid_owners` is absent.
+The previously implemented `preserveSourceReplay` corrections are now CI-proven through two important boundaries:
 
-### Current lineage correction — preserve the complete Energy Resolver source
+- the early `platform_usage_events` prerequisite executes before `20260612160000`, while complete `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql` still executes later;
+- complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` now executes at its chronological position, eliminating the former `platform_grid_owners` failure and allowing replay to advance through the actor-readiness migration family.
 
-`platform_grid_owners` and the related platform grid-area/geodata/cache/import/resolver family are defined by checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql`. That source was being excluded because two early derived artifacts reference it:
+Clean replay now advances to `20260615203000_platform_go_live_route_resolver_message_center.sql:248` and fails because `public.legal_text_versions` is absent.
 
-- `bootstrap/20260611_grid_owner_information_request_foundation.sql`
-- `bootstrap/20260611_customer_contract_energy_resolution_foundation.sql`
+### Current lineage correction — preserve complete Batch M legal source
 
-Those early artifacts are still required as prerequisites, but excluding the complete source omits canonical platform masterdata tables, PostGIS geometry, resolver/import functions, RLS/policies and additional website/site/metering fields.
+`legal_text_versions`, `customer_legal_acceptances` and related legal/customer/tenant readiness views are defined by checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql`. The source describes itself as safe/idempotent and uses idempotent table/column/index/policy patterns for the relevant schema.
 
-Resolution: override both derived-artifact metadata entries with `preserveSourceReplay: true`. Their narrow prerequisite SQL still executes in foundation order, while the complete immutable `20260611100000_energy_resolver_grid_area_operations.sql` now remains in normal chronological timestamped replay. This restores the missing platform family from its original source instead of duplicating it in another derived artifact.
+The complete source was excluded from timestamped replay because the existing early derived artifact:
 
-Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove the full Energy Resolver source executes successfully and replay advances beyond `20260613100000`.
+- `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql`
+
+references Batch M as its source. That artifact intentionally restores only `powers_of_attorney.customer_site_id` before later tracked grid-owner pipeline migrations need it. Its SQL uses `add column if not exists` plus an empty-replay-safe backfill, so it can remain an early prerequisite without replacing the complete source.
+
+Resolution: override the existing derived-artifact metadata with `preserveSourceReplay: true`. The narrow prerequisite still executes in foundation order, while the complete immutable `20260613090000_batch_m_ops_master_legal_readiness.sql` remains in normal chronological replay. This restores canonical legal/readiness schema from its original checksum-pinned source instead of duplicating those objects in a new bootstrap artifact.
+
+Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove Batch M executes successfully and replay advances beyond `20260615203000`.
 
 ### Definition of VERIFIED
 
-REM-002 remains open until full clean replay, final schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Then the campaign must complete final database/code consistency and full remediation rescan before merge.
+REM-002 remains open until full clean replay, final schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Once these defined gates are green, the campaign performs one bounded release verification/rescan and does not continue historical migration discovery absent an actual failing gate.

@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T15:20:00Z
+Last updated: 2026-08-08T15:26:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -9,10 +9,12 @@ PR: `#90`
 
 Status: `IMPLEMENTED_NOT_VERIFIED`
 
-Last verified HEAD `4cbea122dce56f08da67bd4b4df0798c8ad5349a`: all verify/provenance/security gates PASS; clean replay reaches `20260613100000`.
+Current CI HEAD `bc3479574904ae886916aed28209bf68dfc76264`: verify/provenance/typecheck/regressions/security PASS; clean replay advances through the previously missing Energy Resolver platform schema and now reaches `20260615203000`.
 
-Exact failure: `20260613100000_actor_auto_readiness_certificates.sql:85`, `relation public.platform_grid_owners does not exist`.
+Exact failure: `20260615203000_platform_go_live_route_resolver_message_center.sql:248`, `relation public.legal_text_versions does not exist`.
 
-Current implementation: set `preserveSourceReplay=true` on both derived artifacts sourced from `20260611100000_energy_resolver_grid_area_operations.sql`. Their early prerequisite content remains, while the complete checksum-pinned Energy Resolver migration now executes at its natural timestamp and supplies platform grid-owner/grid-area/geodata/cache/import/resolver schema.
+Verified root cause: `bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql` references `20260613090000_batch_m_ops_master_legal_readiness.sql`, causing normal derived-source substitution to skip the full Batch M source that creates `legal_text_versions` and related canonical legal/readiness schema.
 
-Exact next action: push, inspect exact-HEAD PR #90 CI, and use the next clean-replay artifact's first SQL error if it fails. On replay success, confirm final fingerprint and all same-HEAD gates before REM-002 VERIFIED.
+Current implementation: override the existing 20260613 artifact metadata with `preserveSourceReplay=true`. The early `customer_site_id` prerequisite remains, while the complete checksum-pinned, idempotent Batch M migration executes at its natural timestamp.
+
+Exact next action: inspect exact-HEAD PR #90 CI and use only the next first SQL error if replay fails. On replay success, confirm final fingerprint and all same-HEAD gates before REM-002 VERIFIED.

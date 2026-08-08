@@ -1,28 +1,28 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T15:20:00Z",
+  "updated_at": "2026-08-08T15:26:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "4cbea122dce56f08da67bd4b4df0798c8ad5349a",
+  "last_verified_commit": "bc3479574904ae886916aed28209bf68dfc76264",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Preserve complete 20260611100000 Energy Resolver source replay",
+  "active_subtask": "Preserve complete 20260613090000 Batch M legal-readiness source replay",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "4cbea122dce56f08da67bd4b4df0798c8ad5349a",
+    "head": "bc3479574904ae886916aed28209bf68dfc76264",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260613100000_actor_auto_readiness_certificates.sql",
-    "line": 85,
-    "error": "relation public.platform_grid_owners does not exist",
-    "owner_source": "20260611100000_energy_resolver_grid_area_operations.sql"
+    "migration": "20260615203000_platform_go_live_route_resolver_message_center.sql",
+    "line": 248,
+    "error": "relation public.legal_text_versions does not exist",
+    "owner_source": "20260613090000_batch_m_ops_master_legal_readiness.sql"
   },
-  "implemented_not_verified": ["preserveSourceReplay enabled for both 20260611100000-derived prerequisite artifacts"],
-  "next_action": "Push, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
+  "implemented_not_verified": ["preserveSourceReplay enabled for the 20260613090000-derived powers_of_attorney customer-site prerequisite"],
+  "next_action": "Inspect PR #90 clean replay on the new HEAD and continue only from the next actual replay failure until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

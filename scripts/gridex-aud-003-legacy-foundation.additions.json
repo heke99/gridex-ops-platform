@@ -114,6 +114,12 @@
       "artifactSha256": "1e9943ac01f25d34e1009a284c42296d63b24d15db08ce7964e2f6c37b4d8a11",
       "purpose": "Restore only integration API client lifecycle columns required by later runtime capability and duplicate-primary checks; no clients are seeded."
     },
+    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql": {
+      "source": "migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+      "artifactSha256": "e8f8138993eed8e7cbffcb3710dfcd1d828cd10444b5189ec6f2e3ca30635394",
+      "preserveSourceReplay": true,
+      "purpose": "Restore the early powers_of_attorney.customer_site_id prerequisite while preserving the complete checksum-pinned 20260613090000 Batch M legal-readiness migration for normal chronological replay."
+    },
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql": {
       "source": "migrations/20260614140000_ops_production_multitenant_readiness.sql",
       "artifactSha256": "02667b1bf0d9196c8d8ad8b2bd7511b7c8c4ec5f8374b59d7b498ca2958bfcd4",
