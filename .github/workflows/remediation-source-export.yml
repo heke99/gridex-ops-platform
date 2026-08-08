@@ -25,12 +25,14 @@ jobs:
         run: npm ci
       - name: Split oversized customer application module
         run: node scripts/remediation-split-customer-applications.cjs
+      - name: Persist compiler heap budget
+        run: npm pkg set 'scripts.typecheck=node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json'
       - name: Verify TypeScript after split
         run: npm run typecheck
       - name: Verify line-count gate
         run: |
           test "$(wc -l < lib/website/customerApplications.ts)" -le 2500
-          for file in lib/website/customerApplicationSchemas.ts lib/website/customerApplicationLegal.ts lib/website/customerApplicationCore.ts lib/website/customerApplicationCommunication.ts lib/website/customerApplicationPersistence.ts lib/website/customerApplicationOnboarding.ts lib/website/customerApplicationProcess.ts lib/website/customerApplicationRepair.ts; do
+          for file in lib/website/customerApplicationShared.ts lib/website/customerApplicationSchemas.ts lib/website/customerApplicationLegal.ts lib/website/customerApplicationCore.ts lib/website/customerApplicationCommunication.ts lib/website/customerApplicationPersistence.ts lib/website/customerApplicationOnboarding.ts lib/website/customerApplicationProcess.ts lib/website/customerApplicationRepair.ts; do
             test "$(wc -l < "$file")" -le 2500
           done
       - name: Commit verified split and remove remediation tooling
@@ -39,7 +41,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/website/customerApplications.ts lib/website/customerApplication*.ts
+          git add package.json lib/website/customerApplications.ts lib/website/customerApplication*.ts
           git rm .github/workflows/remediation-source-export.yml scripts/remediation-split-customer-applications.cjs
           git commit -m "refactor(website): split customer application pipeline"
           git push origin "HEAD:${BRANCH}"
