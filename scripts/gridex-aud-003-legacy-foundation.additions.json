@@ -214,6 +214,12 @@
       "source": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
       "artifactSha256": "278b30d6fd9a428f3d57d33bc4daadb39c5afb9fffb67080d2247bc94ce77192",
       "purpose": "Restore only the source-defined ediel_outbox claim-lock fields consumed by canonical 20260618200000 queue hardening (locked_at, locked_by, send_attempt_count, current_send_attempt_id); no outbox rows are seeded or modified."
+    },
+    "bootstrap/20260618_customer_application_workflows_foundation.sql": {
+      "source": "migrations/20260618213000_ops_completion_workflows_health.sql",
+      "artifactSha256": "2b0a033e83e713eaca3998b78317790656a4d8c98862746d10c1c4003abc23e2",
+      "preserveSourceReplay": true,
+      "purpose": "Restore the early customer_application_workflows relation while preserving complete checksum-pinned, forward-only/additive 20260618213000 OPS completion hardening for chronological replay, including customer_operation_jobs heartbeat/snapshot runtime fields required by later customer-info repair."
     }
   }
 }
