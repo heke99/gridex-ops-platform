@@ -1,27 +1,49 @@
 # Current state
 
-Last updated: 2026-08-06T12:57:00Z
+Last updated: 2026-08-08T13:40:00Z
 
-## PHASE-45 health state (post BL-002)
+## Active remediation campaign
 
-- Main includes GRIDEX-OPS-BL-002 (`20260806122255`) isolating four
-  platform-global operational table reads to platform admins + service role.
-- Branch `cursor/codebase-health-and-stability-fb8e` carries the OpenAPI
-  `2026-08-05.2` / quote integrity health package plus H-011..H-015 case
-  normalization for billing components, public contracts, portfolio history,
-  application grid writers and quote grid persistence.
-- Residual same-pattern RLS exposure on contacts/address/energy caches is
-  documented for a dedicated remediation workstream (not shipped here).
+- Branch: `remediation/gridex-ops-full-integrity-performance`
+- Draft PR: `#90`
+- Baseline: `5923b5c17fe96c0453048bdc102203efb65f7d7a`
+- Last observed pre-fix HEAD: `c627f81024e9c166aab5b9189192f54e160c0190`
+- Active finding: `GRIDEX-REM-002` canonical migration lineage / empty-database replay.
+- Lifecycle state: `IMPLEMENTED_NOT_VERIFIED`.
 
-## Verification
+This campaign supersedes the older PHASE-45 task as the active work item. Historical
+PHASE-45 state remains available in Git history.
 
-- Price-area case normalization regression: PASS.
-- Quote/AI-BI/OpenAPI local regressions: PASS.
-- Full dependency-backed gates: BLOCKED (`node_modules` absent).
-- Live quote/legal E2E: PENDING.
+## Same-HEAD CI evidence before the current replay fix
 
-## Prior phase state
+At `c627f81024e9c166aab5b9189192f54e160c0190`:
 
-See earlier PHASE-44 / PHASE-43 sections in git history of this file; legal
-package `2026-08-05.1` and SVK/billing canonicalization remain as previously
-recorded and are not reopened by this health pass.
+- `verify`: PASS.
+- `security:audit-production`: PASS.
+- `clean-migration-replay`: FAIL.
+
+The NanoID production advisory is resolved in the lockfile: the transitive path is
+Next -> PostCSS -> NanoID, and `nanoid` resolves to `3.3.17` without a direct
+`package.json` dependency.
+
+## Current clean-replay failure and remediation
+
+The PR #90 clean-replay artifact reports the first failure at
+`20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql:17`:
+
+`ERROR: relation "public.pricing_component_rules" does not exist`
+
+The checksum-pinned pre-ledger source
+`20260520_batch_3_4_onboarding_pricing_billing_engine.sql` defines that relation.
+Live `gridex-ops-dev` confirms the relation, source-defined base columns/indexes,
+and the three columns later added by `20260609100000`.
+
+The current work unit adds a narrow checksum-bound derived bootstrap for only
+`pricing_component_rules` and its source-defined base indexes. It does not edit
+historical migration SQL and does not mutate the live database.
+
+## Next deterministic action
+
+Push this work unit, read the new PR #90 clean-replay result, and continue from
+the next exact SQL failure. Do not mark `GRIDEX-REM-002` VERIFIED until clean
+replay and `verify` both pass on the same final HEAD.

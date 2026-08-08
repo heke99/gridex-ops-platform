@@ -1,6 +1,7 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
     "migrations/20260602090000_ediel_operations_platform_core.sql",
@@ -29,6 +30,11 @@
       "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
       "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
       "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
+    },
+    "bootstrap/20260520_pricing_component_rules_foundation.sql": {
+      "source": "migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
+      "artifactSha256": "6efb503f4be58f7e973ff9fb2772299a97a56c879ab7085cbe38e8e19594a6e3",
+      "purpose": "Restore only the source-defined pricing_component_rules relation and base indexes required by the later canonical Capway/invoice foundation; no pricing rules or tenant/product data are seeded."
     },
     "bootstrap/20260528_route_decision_logs_foundation.sql": {
       "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",

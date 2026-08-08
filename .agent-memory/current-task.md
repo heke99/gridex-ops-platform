@@ -1,36 +1,41 @@
 # Current task
 
-Last updated: 2026-08-06T12:57:00Z
-Branch: `cursor/codebase-health-and-stability-fb8e`
+Last updated: 2026-08-08T13:40:00Z
+Branch: `remediation/gridex-ops-full-integrity-performance`
+PR: `#90`
 
-## Active phase
+## Active finding
 
-PHASE-45 — Codebase health after GRIDEX-OPS-BL-002 merge.
+`GRIDEX-REM-002` — canonical migration lineage and deterministic empty-database replay.
 
-## Goal
+Status: `IMPLEMENTED_NOT_VERIFIED`
 
-Keep OpenAPI/quote integrity health package current on main tip after BL-002,
-then close remaining case-normalization integrity gaps that can mis-bill or
-drop public fixed/portfolio prices.
+## Evidence
 
-## Implemented
+On HEAD `c627f81024e9c166aab5b9189192f54e160c0190`, `verify` is green,
+including the production dependency audit, while `clean-migration-replay` fails.
 
-- Merged PHASE-45 package from `cursor/codebase-health-and-stability-6531` onto
-  main+BL-002.
-- Added `canonicalSwedishPriceArea` and wired billing base-component parse/filter,
-  public fixed-offer completeness, and portfolio history filters.
-- Aligned application site/metering grid writers with `normaliseGridAreaCode`.
-- Persisted and hashed canonical quote `grid_area_code`.
-- Recorded residual BL-002 RLS variants as open remediation items (no second
-  overlapping migration in this PR).
+The CI evidence artifact identifies the first failure as:
 
-## Verification
+- migration: `20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql`
+- line: 17
+- error: `relation "public.pricing_component_rules" does not exist`
+- prerequisite: pre-ledger `pricing_component_rules` foundation
 
-- `gridex:price-area-case-normalization-regression`: PASS
-- Quote/AI-BI/OpenAPI local regressions from PHASE-45: PASS
-- Full dependency-backed typecheck/test/lint/build: BLOCKED (`node_modules` absent)
+Live `gridex-ops-dev` and the immutable source
+`20260520_batch_3_4_onboarding_pricing_billing_engine.sql` agree on the base
+relation and indexes.
+
+## Implemented in this work unit
+
+- add `supabase/bootstrap/20260520_pricing_component_rules_foundation.sql`;
+- register its checksum and source in the derived-bootstrap additions;
+- insert it into the explicit canonical foundation order;
+- document the exact CI failure and reconciliation.
 
 ## Exact next action
 
-Open/update PR for this branch, then prefer one health merge onto main and
-schedule dedicated RLS remediation for O-005/O-006.
+After push, inspect PR #90 CI for the new HEAD. If clean replay fails, read the
+new artifact/log and remediate the next exact failure. If clean replay passes,
+verify `verify`, security audit, provenance gate and replay on that same HEAD
+before changing `GRIDEX-REM-002` to VERIFIED.

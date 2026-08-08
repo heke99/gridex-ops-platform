@@ -1,46 +1,39 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-06T12:57:00Z",
-  "branch": "cursor/codebase-health-and-stability-fb8e",
-  "last_verified_commit": null,
-  "active_phase": "PHASE-45",
-  "active_task": "WP-045",
-  "active_subtask": "Ship BL-002-based health package with H-011..H-015 price/grid case normalization",
-  "status": "IMPLEMENTED_STATIC_VERIFIED_DEPLOYMENT_PENDING",
-  "implemented_not_environment_verified": [
-    "OpenAPI 2026-08-05.2 immutable release verification package",
-    "quote timestamptz and nullable grid-area integrity",
-    "quote/application/metering/AI-BI case normalization (H-001..H-010)",
-    "canonicalSwedishPriceArea for billing components and public contracts (H-011..H-013)",
-    "application grid writers and quote grid persist/hash alignment (H-014..H-015)"
+  "updated_at": "2026-08-08T13:40:00Z",
+  "branch": "remediation/gridex-ops-full-integrity-performance",
+  "pr": 90,
+  "last_verified_commit": "c627f81024e9c166aab5b9189192f54e160c0190",
+  "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
+  "active_task": "GRIDEX-REM-002",
+  "active_subtask": "Restore checksum-pinned pre-ledger pricing_component_rules foundation for clean replay",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "last_completed_check": "PR #90 CI artifact + live Supabase schema verification",
+  "ci_state": {
+    "head": "c627f81024e9c166aab5b9189192f54e160c0190",
+    "verify": "PASS",
+    "security_audit_production": "PASS",
+    "clean_migration_replay": "FAIL"
+  },
+  "exact_known_failure": {
+    "migration": "20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql",
+    "line": 17,
+    "error": "relation public.pricing_component_rules does not exist",
+    "missing_prerequisite": "pre-ledger pricing_component_rules relation"
+  },
+  "implemented_not_verified": [
+    "Derived bootstrap for source-defined pricing_component_rules relation and base indexes"
   ],
-  "active_blockers": [
-    "node_modules absent — full npm typecheck/test/lint/build blocked",
-    "live quote/legal E2E pending deploy",
-    "BL-002 residual RLS variants deferred to dedicated remediation branches"
+  "unverified_assumptions": [
+    "The next clean-replay failure, if any, is unknown until real CI executes the new HEAD"
   ],
-  "verification": [
-    {
-      "name": "price-area case normalization regression",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "canonicalSwedishPriceArea helper and consumer wiring checks pass"
-    },
-    {
-      "name": "quote/AI-BI/OpenAPI health regressions",
-      "status": "VERIFIED_LOCALLY",
-      "evidence": "quote-null, website-quote-integrity, aibi, api:release:verify, docs-examples/version, compatibility, explicit-input"
-    },
-    {
-      "name": "clean dependency install and full build",
-      "status": "BLOCKED_BY_ENVIRONMENT",
-      "evidence": "node_modules absent in cloud sandbox"
-    }
+  "next_action": "Push current work unit, inspect PR #90 clean-replay artifact on the new HEAD, and continue failure-by-failure.",
+  "remaining_p0": [
+    "Full database/code consistency and the remaining remediation queue after GRIDEX-REM-002"
   ],
-  "next_action": "Open PR for fb8e, merge one health package onto main, then remediate O-005/O-006 RLS variants separately.",
-  "resume_from": ".agent-memory/handover.md",
-  "context_notes": [
-    "Do not start a second overlapping DB/RLS migration in this health PR",
-    "Do not uppercase price_area inside fullQuoteIntegrityPayload",
-    "Prefer closing sibling health PRs after one merge"
-  ]
+  "remaining_p1": [
+    "GRIDEX-REM-002 remains unverified until full empty-database replay passes on the same HEAD as verify/security"
+  ],
+  "external_blockers": [],
+  "resume_from": ".agent-memory/handover.md"
 }

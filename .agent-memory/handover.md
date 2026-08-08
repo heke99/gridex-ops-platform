@@ -1,40 +1,43 @@
-# PHASE-45 handover — health after BL-002
+# Remediation handover — GRIDEX-REM-002
 
-Main received `fix(security): isolate platform-global operational reads (#84)`.
-This branch rebases the OpenAPI/quote health package onto that tip and adds
-follow-on case-normalization fixes H-011..H-015.
+Branch: `remediation/gridex-ops-full-integrity-performance`
+PR: `#90`
+Last verified CI HEAD: `c627f81024e9c166aab5b9189192f54e160c0190`
 
-## What changed on fb8e
+## Verified state
 
-- Merged `cursor/codebase-health-and-stability-6531` (H-001..H-010).
-- Added `canonicalSwedishPriceArea` in `lib/pricing/types.ts`.
-- Billing base-component parse/filter, public fixed-offer completeness, and
-  portfolio monthly history filters now canonicalize price areas.
-- Application explicit site/metering grid writers use `normaliseGridAreaCode`.
-- Quote create persists and hashes canonical `grid_area_code`.
-- Findings inventory lists residual BL-002 RLS variants as O-005..O-008 without
-  shipping another migration in this PR.
+- `verify`: PASS.
+- `security:audit-production`: PASS.
+- `clean-migration-replay`: FAIL.
+- NanoID is transitive through PostCSS and now resolves to `3.3.17`.
+- `GRIDEX-REM-002` is not VERIFIED.
 
-## Verification completed
+## Exact current replay failure
 
-- `npm run gridex:price-area-case-normalization-regression`
-- `npm run gridex:quote-null-grid-area-regression`
-- `npm run gridex:website-quote-integrity-regression`
-- `npm run gridex:aibi-grid-area-case-regression`
-- `npm run api:release:verify`
-- `npm run api:docs-examples` / `api:docs-version` / `api:compatibility`
-- `npm run gridex:explicit-input-preservation-regression`
+CI artifact `gridex-rem-002-clean-replay`:
 
-## Resume
+- migration: `20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql`
+- line: 17
+- error: `relation "public.pricing_component_rules" does not exist`
+- root cause: replay foundation extracted `metering_permissions` from the
+  checksum-pinned `20260520_batch_3_4_onboarding_pricing_billing_engine.sql`
+  source but omitted the source-defined `pricing_component_rules` prerequisite.
 
-1. Merge this PR (or the single preferred health PR) onto main.
-2. Close overlapping sibling health PRs `#75`–`#81` / `#83`.
-3. Open a dedicated RLS remediation for `platform_actor_contacts` and the
-   address/energy lookup caches (O-005/O-006).
-4. Deploy and run live quote validate + legal/POA E2E when environment allows.
+Live `gridex-ops-dev` confirms the canonical relation and indexes.
 
-## Do not claim yet
+## Current implementation
 
-- full npm typecheck/test/lint/build;
-- VERIFIED_CLOSED for BL-002 residual variants;
-- live E2E completion.
+A narrow derived bootstrap now restores only `pricing_component_rules` and its
+source-defined base indexes before timestamped history. No rows are seeded, no
+historical migration is edited, and no live database migration is applied.
+
+## Next deterministic action
+
+1. Confirm the pushed branch HEAD.
+2. Read PR #90 CI for that exact HEAD.
+3. If replay fails, download/read the new clean-replay artifact and use its
+   first SQL failure as the next finding.
+4. Repeat until clean replay passes.
+5. Verify `verify`, security and replay on the same final HEAD.
+6. Only then update `GRIDEX-REM-002` to VERIFIED and continue immediately to
+   database/code full consistency.
