@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   refresh-lock:
-    if: "github.event.head_commit.message == 'chore(ci) one-shot nanoid lock refresh v4'"
+    if: "github.event.head_commit.message == 'chore(ci) one-shot nanoid lock refresh v5'"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout remediation branch
@@ -40,7 +40,7 @@ jobs:
           new = '''    "node_modules/nanoid": {
                 "version": "3.3.17",
                 "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.17.tgz",
-                "integrity": "sha512-Hykn1AcBEk/vfu51NRPGKA87gB7QXEHPpbgrCsLmltb+GbpnEJ+/K0HL+VRTuNcAnKYSPEajQtytxr6Z9UB1/g==",'''
+                "integrity": "sha512-xQLf0A3HOMlgHq0n247/LRuAOYmB7dXJ/DvAxGvsSBij45XtBSmQycu+F8ODbHwns/XyFZagyL1+J0Offw1E0g==",'''
           if text.count(old) != 1:
               raise SystemExit(f'expected exactly one vulnerable NanoID lock entry, found {text.count(old)}')
           path.write_text(text.replace(old, new, 1))
@@ -48,17 +48,25 @@ jobs:
           test "$(git diff --name-only)" = "package-lock.json"
           git diff --check
 
-      - name: Validate dependency install with diagnostic log
+      - name: Validate dependency install
+        run: npm ci
+
+      - name: Validate production security audit
+        run: npm run security:audit-production
+
+      - name: Validate typecheck
+        run: npm run typecheck
+
+      - name: Validate production build
+        run: npm run build
+
+      - name: Commit verified lock-only remediation
         shell: bash
         run: |
-          set -o pipefail
-          npm ci 2>&1 | tee nanoid-npm-ci.log
-
-      - name: Upload npm ci diagnostic
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nanoid-npm-ci-diagnostic
-          path: nanoid-npm-ci.log
-          if-no-files-found: error
-          retention-days: 1
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          test "$(git diff --cached --name-only)" = "package-lock.json"
+          git diff --cached --check
+          git commit -m "fix(deps): remediate nanoid production advisory"
+          git push origin HEAD:remediation/gridex-ops-full-integrity-performance
