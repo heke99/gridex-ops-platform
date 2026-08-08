@@ -1,27 +1,27 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T15:08:00Z",
+  "updated_at": "2026-08-08T15:20:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "6304e65110544082559320863c0e717f7cf8256c",
+  "last_verified_commit": "4cbea122dce56f08da67bd4b4df0798c8ad5349a",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Pre-execute platform_usage_events without skipping its later tracked source",
+  "active_subtask": "Preserve complete 20260611100000 Energy Resolver source replay",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "6304e65110544082559320863c0e717f7cf8256c",
+    "head": "4cbea122dce56f08da67bd4b4df0798c8ad5349a",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "migration": "20260612160000_ops_points_1_to_8_hardening.sql",
-    "line": 18,
-    "error": "relation public.platform_usage_events does not exist",
-    "creator": "20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql"
+    "migration": "20260613100000_actor_auto_readiness_certificates.sql",
+    "line": 85,
+    "error": "relation public.platform_grid_owners does not exist",
+    "owner_source": "20260611100000_energy_resolver_grid_area_operations.sql"
   },
-  "implemented_not_verified": ["preserveSourceReplay replay mode plus interleaved platform_usage_events prerequisite"],
+  "implemented_not_verified": ["preserveSourceReplay enabled for both 20260611100000-derived prerequisite artifacts"],
   "next_action": "Push, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"

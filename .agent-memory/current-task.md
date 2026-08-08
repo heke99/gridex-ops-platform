@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T15:08:00Z
+Last updated: 2026-08-08T15:20:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -9,10 +9,10 @@ PR: `#90`
 
 Status: `IMPLEMENTED_NOT_VERIFIED`
 
-Last verified HEAD `6304e65110544082559320863c0e717f7cf8256c`: all verify/provenance/security gates PASS; clean replay FAIL after reaching `20260612160000`.
+Last verified HEAD `4cbea122dce56f08da67bd4b4df0798c8ad5349a`: all verify/provenance/security gates PASS; clean replay reaches `20260613100000`.
 
-Exact failure: line 18 of `20260612160000_ops_points_1_to_8_hardening.sql`, where `platform_usage_events` is referenced before its creator `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql` runs.
+Exact failure: `20260613100000_actor_auto_readiness_certificates.sql:85`, `relation public.platform_grid_owners does not exist`.
 
-Current implementation: add `20260612_platform_usage_events_prerequisite.sql` after 121430/before 121600, and add replay metadata `preserveSourceReplay=true` so the later full 121930 migration is not skipped. Artifact SHA-256 `02decf76fa4ead89ae07fa403aa19ab6a7de6d047df8c6169f49e74c16886f06`.
+Current implementation: set `preserveSourceReplay=true` on both derived artifacts sourced from `20260611100000_energy_resolver_grid_area_operations.sql`. Their early prerequisite content remains, while the complete checksum-pinned Energy Resolver migration now executes at its natural timestamp and supplies platform grid-owner/grid-area/geodata/cache/import/resolver schema.
 
-Exact next action: push, inspect exact-HEAD PR #90 CI, continue from the next first SQL error. On replay success, confirm fingerprint and all same-HEAD gates before REM-002 VERIFIED.
+Exact next action: push, inspect exact-HEAD PR #90 CI, and use the next clean-replay artifact's first SQL error if it fails. On replay success, confirm final fingerprint and all same-HEAD gates before REM-002 VERIFIED.

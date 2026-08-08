@@ -19,24 +19,23 @@ Historical applied SQL remains immutable. Replay uses checksum-pinned derived ar
 
 ### CI-confirmed progression
 
-At `6304e65110544082559320863c0e717f7cf8256c`, the corrected DB1/20260520 additive billing reconciliation passes. `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS. Clean replay advances through `20260612143000_performance_policy_consolidation_and_index_cleanup.sql` and next fails at `20260612160000_ops_points_1_to_8_hardening.sql:18` because `public.platform_usage_events` does not yet exist.
+On `4cbea122dce56f08da67bd4b4df0798c8ad5349a`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS. The `preserveSourceReplay` model is also proven: the early `platform_usage_events` prerequisite executes before `20260612160000`, while the complete `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql` still executes later.
 
-### Current lineage defect — forward prerequisite
+Clean replay then advances through `20260612203000` and fails at `20260613100000_actor_auto_readiness_certificates.sql:85` because `public.platform_grid_owners` is absent.
 
-`20260612160000` creates a monthly usage view over `platform_usage_events`, but that table is created by the later checksum-pinned migration `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql`. Substituting/skipping the whole 1930 migration would be incorrect because it also contains independent governance, retention and cleanup schema.
+### Current lineage correction — preserve the complete Energy Resolver source
 
-The replay engine is therefore extended with explicit `preserveSourceReplay` metadata. A derived interleaved prerequisite may execute an exact checksum-bound excerpt before an earlier dependent migration while the full source migration remains in normal timestamped replay.
+`platform_grid_owners` and the related platform grid-area/geodata/cache/import/resolver family are defined by checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql`. That source was being excluded because two early derived artifacts reference it:
 
-Artifact: `supabase/bootstrap/20260612_platform_usage_events_prerequisite.sql`
-Source: `supabase/migrations/20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql`
-Boundary: after `20260612143000`, before `20260612160000`
-Artifact SHA-256: `02decf76fa4ead89ae07fa403aa19ab6a7de6d047df8c6169f49e74c16886f06`
-Metadata: `preserveSourceReplay: true`
+- `bootstrap/20260611_grid_owner_information_request_foundation.sql`
+- `bootstrap/20260611_customer_contract_energy_resolution_foundation.sql`
 
-The artifact creates only the exact source-defined `platform_usage_events` table and seeds no rows. The full 1930 source remains checksum-pinned and will execute later, enabling RLS, indexes and its remaining governance changes.
+Those early artifacts are still required as prerequisites, but excluding the complete source omits canonical platform masterdata tables, PostGIS geometry, resolver/import functions, RLS/policies and additional website/site/metering fields.
 
-Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove both the early prerequisite and later full source replay work.
+Resolution: override both derived-artifact metadata entries with `preserveSourceReplay: true`. Their narrow prerequisite SQL still executes in foundation order, while the complete immutable `20260611100000_energy_resolver_grid_area_operations.sql` now remains in normal chronological timestamped replay. This restores the missing platform family from its original source instead of duplicating it in another derived artifact.
+
+Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove the full Energy Resolver source executes successfully and replay advances beyond `20260613100000`.
 
 ### Definition of VERIFIED
 
-REM-002 remains open until full clean replay, final schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Then the campaign must complete final consistency/rescan before merge.
+REM-002 remains open until full clean replay, final schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Then the campaign must complete final database/code consistency and full remediation rescan before merge.

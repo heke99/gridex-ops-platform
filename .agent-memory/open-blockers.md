@@ -1,11 +1,11 @@
 # Open blockers
 
-Last updated: 2026-08-08T15:08:00Z
+Last updated: 2026-08-08T15:20:00Z
 
 `GRIDEX-REM-002` clean replay remains the active blocker.
 
-Last verified HEAD `6304e65110544082559320863c0e717f7cf8256c`: verify/provenance/security PASS; replay reaches `20260612160000` and fails because `platform_usage_events` is created only by later tracked migration `20260612193000`.
+Last verified HEAD `4cbea122dce56f08da67bd4b4df0798c8ad5349a`: verify/provenance/security PASS; replay reaches `20260613100000` and fails because `platform_grid_owners` is absent.
 
-The replay engine now has an implemented `preserveSourceReplay` prerequisite mode and a checksum-bound platform-usage table artifact. CI must prove that the artifact runs before 121600 while the full 121930 source still executes later.
+The complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` is now preserved for normal chronological replay while both narrow prerequisites continue to run early. CI must prove this restores the platform Energy Resolver family.
 
 PR #90 remains draft/unmerged until REM-002, final rescan, all remaining audit/remediation items and final same-HEAD release gates are green.
