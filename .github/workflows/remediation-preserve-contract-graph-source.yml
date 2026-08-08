@@ -1,0 +1,46 @@
+name: Preserve contract graph source replay
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  register-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Preserve full checksum-pinned source replay
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'scripts/gridex-aud-003-legacy-foundation.additions.json';
+          const rel = 'bootstrap/20260721_contract_publication_revisions_foundation.sql';
+          const doc = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const current = doc.derivedBootstrap[rel];
+          if (!current) throw new Error('missing contract publication revisions derived bootstrap');
+          if (current.source !== 'migrations/20260721170000_contract_graph_api_revision_hardening.sql') throw new Error(`unexpected source: ${current.source}`);
+          current.preserveSourceReplay = true;
+          current.purpose = 'Restore the early contract publication revision relation while preserving complete checksum-pinned, forward-only 20260721170000 contract graph/API revision hardening for chronological replay, including company_market_price_sources, publication graph integrity and external API lifecycle contracts.';
+          fs.writeFileSync(path, JSON.stringify(doc, null, 2) + '\n');
+          NODE
+      - name: Verify static migration provenance
+        run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Commit metadata and remove temporary workflow
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/gridex-aud-003-legacy-foundation.additions.json
+          git rm .github/workflows/remediation-preserve-contract-graph-source.yml
+          git commit -m "fix(db): preserve contract graph source replay"
+          git push origin "HEAD:${BRANCH}"
