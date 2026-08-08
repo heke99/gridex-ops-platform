@@ -3,6 +3,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
+    "bootstrap/20260519_contract_offer_versions_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
@@ -238,6 +239,11 @@
       "source": "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
       "artifactSha256": "7e245a6f95321c4fcf3fd0194b2c50a8ea99f9af4cfa05c917741e496ed6a41d",
       "purpose": "Restore only the source-defined companies lifecycle/governance block required by later canonical company/legal-profile and tenant lifecycle flows: canonical tenant status constraint, status reason, lifecycle audit timestamps/actors and governance status index; no company rows are seeded or rewritten."
+    },
+    "bootstrap/20260519_contract_offer_versions_foundation.sql": {
+      "source": "migrations/20260519_final_saas_hardening.sql",
+      "artifactSha256": "dfc498aa35f02dcc1b4ab30481f8f52981a8987ccde911c06e4b52541d0c63e6",
+      "purpose": "Restore only source-defined contract_offer_versions and its company/offer history index required by later canonical contract/invoice completion; no offer versions or tenant/product rows are seeded."
     }
   }
 }
