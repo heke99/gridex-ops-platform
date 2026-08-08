@@ -25,6 +25,11 @@
       "beforeLedgerVersion": "20260609183000"
     },
     {
+      "path": "bootstrap/20260612_platform_usage_events_prerequisite.sql",
+      "afterLedgerVersion": "20260612143000",
+      "beforeLedgerVersion": "20260612160000"
+    },
+    {
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
@@ -90,6 +95,12 @@
       "source": "migrations/20260611100000_energy_resolver_grid_area_operations.sql",
       "artifactSha256": "ae725b25b9abbfc8281c4ac1eda783886d214935834c436a4b59fdbbb26bd2ea",
       "purpose": "Restore only the source-defined customer_contracts energy-resolution columns required by later launch/billing-readiness views; no contracts or tenant/customer data are seeded."
+    },
+    "bootstrap/20260612_platform_usage_events_prerequisite.sql": {
+      "source": "migrations/20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql",
+      "artifactSha256": "02decf76fa4ead89ae07fa403aa19ab6a7de6d047df8c6169f49e74c16886f06",
+      "preserveSourceReplay": true,
+      "purpose": "Pre-create only platform_usage_events before 20260612160000, while preserving the full checksum-pinned 20260612193000 source migration for its normal later replay; no usage rows are seeded."
     },
     "bootstrap/20260612_integration_api_client_lifecycle_foundation.sql": {
       "source": "migrations/20260612193000_platform_tenant_contracts_api_mail.sql",

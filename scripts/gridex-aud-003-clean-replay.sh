@@ -46,10 +46,11 @@ rm -f "$MIGRATIONS"/*.sql
 # GRIDEX-REM-002 replay model:
 # 1) execute the checksum-pinned reconstructed legacy foundation in explicit order;
 # 2) substitute only checksum-pinned derived bootstrap artifacts for their exact historical sources;
-# 3) exclude only explicitly classified, checksum-bound noncanonical repository artifacts;
-# 4) execute every remaining timestamped repository migration deterministically, inserting declared
-#    interleaved bootstrap substitutions at their exact verified boundaries;
-# 5) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
+# 3) allow explicitly marked prerequisite extractions to execute early while preserving full source replay;
+# 4) exclude only explicitly classified, checksum-bound noncanonical repository artifacts;
+# 5) execute every remaining timestamped repository migration deterministically, inserting declared
+#    interleaved bootstrap artifacts at their exact verified boundaries;
+# 6) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
 python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
@@ -102,7 +103,10 @@ def validate_derived(rel):
     source=resolve(source_rel) if source_rel else None
     if not source or not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
     pinned_source(source)
-    return actual,source
+    return actual,source,meta
+
+def should_skip_timestamp_source(source,meta):
+    return re.match(r'^\d{14}_.+\.sql$',source.name) and not bool(meta.get('preserveSourceReplay',False))
 
 foundation_paths=[]
 skip_timestamp_names=set()
@@ -110,8 +114,8 @@ for rel in foundation:
     actual=resolve(rel)
     if not actual.exists(): raise SystemExit(f'missing foundation input: {rel}')
     if rel in derived:
-        actual,source=validate_derived(rel)
-        if re.match(r'^\d{14}_.+\.sql$',source.name): skip_timestamp_names.add(source.name)
+        actual,source,meta=validate_derived(rel)
+        if should_skip_timestamp_source(source,meta): skip_timestamp_names.add(source.name)
     else:
         pinned_source(actual)
         if rel.startswith('migrations/') and re.match(r'^\d{14}_.+\.sql$',actual.name):
@@ -126,8 +130,8 @@ for item in interleaved:
     if rel in declared: raise SystemExit(f'interleaved artifact is also declared foundation: {rel}')
     if not re.fullmatch(r'\d{14}',after) or not re.fullmatch(r'\d{14}',before) or after >= before:
         raise SystemExit(f'invalid interleaved boundary for {rel}: {after}..{before}')
-    actual,source=validate_derived(rel)
-    if re.match(r'^\d{14}_.+\.sql$',source.name): skip_timestamp_names.add(source.name)
+    actual,source,meta=validate_derived(rel)
+    if should_skip_timestamp_source(source,meta): skip_timestamp_names.add(source.name)
     interleaved_paths.append((actual,after,before))
 
 excluded=set()
@@ -177,7 +181,7 @@ for actual,after,before in sorted(interleaved_paths,key=lambda row: row[2]):
 
 foundation_out.write_text(''.join(str(p)+'\n' for p in foundation_paths))
 timestamp_out.write_text(''.join(str(p)+'\n' for p in execution))
-print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions/pre-executions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved substitutions, {len(files)} canonical timestamped files')
+print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(files)} canonical timestamped files')
 PY
 
 supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector

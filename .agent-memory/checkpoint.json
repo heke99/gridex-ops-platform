@@ -1,27 +1,28 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:57:00Z",
+  "updated_at": "2026-08-08T15:08:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "a2189aa684f1bc65149d15e283723b2f75875858",
+  "last_verified_commit": "6304e65110544082559320863c0e717f7cf8256c",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Reconcile DB1 and 20260520 billing export table shapes additively",
+  "active_subtask": "Pre-execute platform_usage_events without skipping its later tracked source",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "a2189aa684f1bc65149d15e283723b2f75875858",
+    "head": "6304e65110544082559320863c0e717f7cf8256c",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
     "clean_migration_replay": "FAIL"
   },
   "exact_known_failure": {
-    "location": "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
-    "error": "column billing_export_run_id does not exist",
-    "root_cause": "DB1 pre-creates billing_export_run_items with older export_run_id shape; CREATE TABLE IF NOT EXISTS does not reconcile later source columns"
+    "migration": "20260612160000_ops_points_1_to_8_hardening.sql",
+    "line": 18,
+    "error": "relation public.platform_usage_events does not exist",
+    "creator": "20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql"
   },
-  "implemented_not_verified": ["Additive DB1/source billing-export reconciliation; corrected artifact sha256 2b35100fb19b805d5aaabd7404c43574fddc3cb3950b7a200f074cd7cd2476fc"],
-  "next_action": "Push corrected work unit, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
+  "implemented_not_verified": ["preserveSourceReplay replay mode plus interleaved platform_usage_events prerequisite"],
+  "next_action": "Push, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }
