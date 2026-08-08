@@ -182,8 +182,8 @@
     },
     "bootstrap/20260616_customer_portal_user_email_prerequisite.sql": {
       "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
-      "artifactSha256": "8771db9f8f90bce00542164f5ec8ed498840309a0dbd2e3e0a885329c0f6724f",
-      "purpose": "Restore only the source-defined customer_portal_accounts.user_email field and empty-replay-safe email backfill immediately before the canonical 20260616223000 portal bundle resolver indexes it; no portal accounts are seeded."
+      "artifactSha256": "09beeca9a8e0c70fbab2888cb2b6bb0993a0e5f09e516ed8518b90c5106c95c6",
+      "purpose": "Restore only the source-defined customer_portal_accounts runtime fields consumed by the canonical 20260616223000 portal bundle resolver (user_email, is_active, activated_at, verified_at, match_method) plus the empty-replay-safe email backfill; no portal accounts are seeded."
     }
   }
 }
