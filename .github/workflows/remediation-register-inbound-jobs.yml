@@ -1,0 +1,59 @@
+name: Register inbound processing replay prerequisite
+
+on:
+  push:
+    branches:
+      - remediation/gridex-ops-full-integrity-performance
+
+permissions:
+  contents: write
+
+jobs:
+  register-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Register checksum-pinned replay prerequisite
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const path = 'scripts/gridex-aud-003-legacy-foundation.additions.json';
+          const artifact = 'supabase/bootstrap/20260618_inbound_processing_jobs_prerequisite.sql';
+          const rel = 'bootstrap/20260618_inbound_processing_jobs_prerequisite.sql';
+          const expected = '3cb5d36d1bfae9f44ca8614fb636f17e46ded7e82cdc1f7ab4e1a25110f60cf8';
+          const actual = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
+          if (actual !== expected) throw new Error(`artifact checksum mismatch: ${actual}`);
+          const doc = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (!doc.interleaved.some((item) => item.path === rel)) {
+            doc.interleaved.push({
+              path: rel,
+              afterLedgerVersion: '20260618194500',
+              beforeLedgerVersion: '20260618200000'
+            });
+          }
+          doc.interleaved.sort((a, b) => a.beforeLedgerVersion.localeCompare(b.beforeLedgerVersion));
+          doc.derivedBootstrap[rel] = {
+            source: 'migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql',
+            artifactSha256: expected,
+            purpose: 'Restore only the source-defined inbound_processing_jobs relation, base status index and source RLS policies immediately before canonical 20260618200000 claim-lock hardening references its row type; no jobs are seeded.'
+          };
+          fs.writeFileSync(path, JSON.stringify(doc, null, 2) + '\n');
+          NODE
+      - name: Verify static migration provenance
+        run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Commit metadata and remove temporary workflow
+        env:
+          BRANCH: remediation/gridex-ops-full-integrity-performance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/gridex-aud-003-legacy-foundation.additions.json
+          git rm .github/workflows/remediation-register-inbound-jobs.yml
+          git commit -m "fix(db): register inbound processing replay lineage"
+          git push origin "HEAD:${BRANCH}"
