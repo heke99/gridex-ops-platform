@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T14:23:00Z
+Last updated: 2026-08-08T14:32:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -12,7 +12,7 @@ Status: `IMPLEMENTED_NOT_VERIFIED`
 
 ## Last verified HEAD
 
-`e331041b1a724d659592cd04e7262495a1eb5bed`
+`532573df73003d272230d7222553e493c03fda5d`
 
 All verify/security/provenance gates pass; clean replay fails.
 
@@ -20,13 +20,13 @@ All verify/security/provenance gates pass; clean replay fails.
 
 - migration: `20260612123000_performance_batches_1_to_3_db_acceleration.sql`
 - line: 146
-- error: `column cm.role_key does not exist`
+- error: `column cm.membership_role does not exist`
 - relation: `public.company_memberships`
-- source: checksum-pinned pre-ledger `20260527_fix_company_user_invite_runtime_columns.sql`
+- source family: checksum-pinned `20260527_fix_company_user_invite_runtime_columns.sql`
 
 ## Current implementation
 
-Add `supabase/bootstrap/20260527_company_memberships_role_key_foundation.sql` containing only `company_memberships.role_key text`, register it as derived bootstrap and include it in foundation order. Empty replay has no membership rows to backfill. Do not add `user_roles.role_key` because live canonical schema does not contain it.
+Broaden `supabase/bootstrap/20260527_company_memberships_role_key_foundation.sql` to reconstruct the source-defined company membership runtime columns used by canonical RBAC helpers, plus the source role/status constraints and supporting indexes. Empty replay has no membership rows to backfill. Do not add `user_roles.role_key`, which is absent live.
 
 ## Exact next action
 

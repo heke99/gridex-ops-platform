@@ -1,15 +1,15 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:23:00Z",
+  "updated_at": "2026-08-08T14:32:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "e331041b1a724d659592cd04e7262495a1eb5bed",
+  "last_verified_commit": "532573df73003d272230d7222553e493c03fda5d",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore company_memberships.role_key from pre-ledger canonical source",
+  "active_subtask": "Restore complete source-defined company_memberships runtime family",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "e331041b1a724d659592cd04e7262495a1eb5bed",
+    "head": "532573df73003d272230d7222553e493c03fda5d",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
@@ -18,15 +18,12 @@
   "exact_known_failure": {
     "migration": "20260612123000_performance_batches_1_to_3_db_acceleration.sql",
     "line": 146,
-    "error": "column cm.role_key does not exist",
+    "error": "column cm.membership_role does not exist",
     "relation": "public.company_memberships",
-    "missing_prerequisite": "role_key from 20260527_fix_company_user_invite_runtime_columns.sql"
+    "missing_prerequisite": "company membership runtime column family from 20260527_fix_company_user_invite_runtime_columns.sql"
   },
   "implemented_not_verified": [
-    "Checksum-bound company_memberships.role_key derived foundation"
-  ],
-  "unverified_assumptions": [
-    "The next clean-replay failure, if any, is unknown until real CI executes the next HEAD"
+    "Broadened checksum-bound company_memberships runtime foundation with source constraints and indexes"
   ],
   "next_action": "Push current work unit, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
