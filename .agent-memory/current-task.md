@@ -1,6 +1,6 @@
 # Current task
 
-Last updated: 2026-08-08T15:41:00Z
+Last updated: 2026-08-08T15:52:00Z
 Branch: `remediation/gridex-ops-full-integrity-performance`
 PR: `#90`
 
@@ -9,14 +9,14 @@ PR: `#90`
 
 Status: `IMPLEMENTED_NOT_VERIFIED`
 
-Current CI HEAD `3cf290d86b07960eb6058d788a911621e99599a5`: verify/provenance/typecheck/regressions/security PASS. Complete Batch M now begins chronological replay.
+Current CI HEAD `4216cb69e6b6eaf7374c84cb0bc87c38b07edd62`: verify/provenance/typecheck/regressions/security PASS. Replay now passes Batch M and advances to `20260615214500`.
 
-Exact failure: `20260613090000_batch_m_ops_master_legal_readiness.sql:378`, `column mp.ediel_metering_point_id does not exist`.
+Exact failure: `20260615214500_public_contract_offer_api_readiness_fix.sql:87`, `column o.publication_status does not exist`.
 
-Verified root cause: Batch M readiness SQL reads `metering_points.ediel_metering_point_id`, while canonical forward/idempotent `20260708210000_website_application_canonical_dispatch_alignment.sql` adds that column only later.
+Verified root cause: `20260612193000_platform_tenant_contracts_api_mail.sql` is additive/idempotent and creates `public_contract_offers.publication_status`, but full source replay is suppressed by the existing integration API-client lifecycle derived artifact.
 
-Current implementation: interleave a nine-line schema-only prerequisite immediately before Batch M; create only the source-defined `ediel_metering_point_id` column and use `preserveSourceReplay=true` so the complete 20260708210000 source remains in its chronological position.
+Current implementation: set `preserveSourceReplay=true` for `bootstrap/20260612_integration_api_client_lifecycle_foundation.sql`; preserve the early prerequisite and replay the complete checksum-pinned 20260612193000 source chronologically.
 
-Known independent merge blocker: `lib/website/customerApplications.ts` is >2500 handwritten production lines and requires behavior-preserving extraction before final merge.
+Known independent merge blocker: `lib/website/customerApplications.ts` is ~9,800 handwritten production lines; final gate requires <=2,500.
 
-Exact next action: inspect PR #90 CI on the new HEAD and use only the next first SQL error if replay fails. On replay success, confirm fingerprint, then complete the large-file gate and final bounded release verification.
+Exact next action: inspect exact-HEAD PR #90 CI and continue only from the next actual replay error. On replay success, confirm fingerprint, then finish large-file modularization and the bounded release closeout.

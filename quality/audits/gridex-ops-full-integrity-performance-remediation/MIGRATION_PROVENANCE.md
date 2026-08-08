@@ -19,27 +19,21 @@ Historical applied SQL remains immutable. Replay uses checksum-pinned derived ar
 
 ### CI-confirmed progression
 
-On `3cf290d86b07960eb6058d788a911621e99599a5`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS.
+On `4216cb69e6b6eaf7374c84cb0bc87c38b07edd62`, `verify`, migration/provenance checks, targeted regressions, typecheck and `security:audit-production` all PASS.
 
-CI now proves all of these source-preserving boundaries execute as intended:
+CI now proves that complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql`, complete Batch M `20260613090000_batch_m_ops_master_legal_readiness.sql`, and the interleaved canonical metering identifier prerequisite all execute successfully. Replay passes Batch M, the O6 family and `20260615203000_platform_go_live_route_resolver_message_center.sql`.
 
-- the early `platform_usage_events` prerequisite executes before `20260612160000`, while complete `20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql` still executes later;
-- complete checksum-pinned `20260611100000_energy_resolver_grid_area_operations.sql` executes chronologically, eliminating the former `platform_grid_owners` blocker;
-- complete checksum-pinned `20260613090000_batch_m_ops_master_legal_readiness.sql` is no longer skipped by the early powers-of-attorney prerequisite.
+The current first failure is `20260615214500_public_contract_offer_api_readiness_fix.sql:87`: `column o.publication_status does not exist`.
 
-The current clean-replay failure is now inside Batch M itself at line 378: `column mp.ediel_metering_point_id does not exist` while creating the readiness view.
+### Current lineage correction — tenant contract/API/mail source
 
-### Current chronological prerequisite — canonical metering identifier
+Canonical `20260612193000_platform_tenant_contracts_api_mail.sql` is explicitly additive/idempotent and creates the missing `public_contract_offers.publication_status` plus related public-offer publication fields. The complete source had been excluded because `bootstrap/20260612_integration_api_client_lifecycle_foundation.sql` references it as a narrow derived prerequisite.
 
-The exact missing column is canonically added by forward-only/idempotent `20260708210000_website_application_canonical_dispatch_alignment.sql` using:
+Resolution: set `preserveSourceReplay: true` for that existing derived artifact. The early API-client lifecycle prerequisite remains in foundation order, while the complete immutable `20260612193000_platform_tenant_contracts_api_mail.sql` returns to normal chronological replay. This uses the original checksum-pinned source instead of duplicating publication schema in another bootstrap artifact.
 
-`alter table if exists public.metering_points add column if not exists ediel_metering_point_id text`.
+No historical migration source is edited and no live Supabase write is introduced.
 
-Batch M reads that canonical identifier before the later historical migration that creates it. The remediation therefore adds only that source-defined column in `bootstrap/20260613_metering_points_ediel_id_prerequisite.sql`, interleaved after `20260612203000` and before `20260613090000`.
-
-The derived metadata pins artifact SHA-256 `9edd81f9eacbec7abb118167fa2991fd66d7ecf96b57234e6b6c8b1fd9674a29` to source `20260708210000_website_application_canonical_dispatch_alignment.sql` and sets `preserveSourceReplay: true`. The complete immutable July migration therefore still executes at its natural timestamp. No source migration is edited and no live database is mutated.
-
-Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove replay advances through Batch M.
+Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove full 20260612193000 source replay and advancement beyond `20260615214500`.
 
 ### Definition of VERIFIED
 
