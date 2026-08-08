@@ -1,15 +1,15 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:40:00Z",
+  "updated_at": "2026-08-08T14:48:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "7d7911d39fbedb05d9adad04e794d10d2a848b0d",
+  "last_verified_commit": "02e0dca29584fd6854e117f03043382b9a709f77",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore pre-ledger customer_blockers workflow foundation",
+  "active_subtask": "Restore remaining schema-only 20260520 onboarding/billing source family",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "7d7911d39fbedb05d9adad04e794d10d2a848b0d",
+    "head": "02e0dca29584fd6854e117f03043382b9a709f77",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
@@ -18,10 +18,10 @@
   "exact_known_failure": {
     "migration": "20260612123000_performance_batches_1_to_3_db_acceleration.sql",
     "line": 593,
-    "error": "relation public.customer_blockers does not exist",
-    "missing_prerequisite": "customer_blockers from 20260526_batch_3a_3b_customer_intake_blockers_documents.sql"
+    "error": "relation public.customer_info_requests does not exist",
+    "missing_prerequisite": "remaining schema-only family from 20260520_batch_3_4_onboarding_pricing_billing_engine.sql"
   },
-  "implemented_not_verified": ["Checksum-bound customer_blockers workflow foundation"],
+  "implemented_not_verified": ["Checksum-bound 20260520 onboarding/billing auxiliary foundation"],
   "next_action": "Push, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"

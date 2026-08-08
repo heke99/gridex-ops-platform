@@ -15,21 +15,21 @@ The branch restores the two already-applied AUD-001 migration files under the ex
 Severity: P1
 Status: IMPLEMENTED / CI FAILED / NOT VERIFIED
 
-Historical applied SQL remains immutable. Replay uses checksum-pinned narrow reconstruction artifacts and chronological interleaving where required. No replay reconciliation writes to live Supabase.
+Historical applied SQL remains immutable. Replay uses checksum-pinned derived reconstruction artifacts and chronological interleaving where required. No replay fix writes to live Supabase.
 
 ### Confirmed progression
 
-The replay has sequentially advanced past missing prerequisites for pricing component rules, communication-log trace fields, external contract intakes, customer-contract energy-resolution fields and the complete company-membership RBAC runtime shape.
+Replay has moved beyond the previously missing pricing, communication-log, external-intake, contract-energy, membership-RBAC and customer-blocker prerequisites.
 
-On `7d7911d39fbedb05d9adad04e794d10d2a848b0d`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` all PASS. Clean replay next fails at `20260612123000_performance_batches_1_to_3_db_acceleration.sql:593` because `public.customer_blockers` does not exist.
+At `02e0dca29584fd6854e117f03043382b9a709f77`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` all PASS. Clean replay next fails at `20260612123000_performance_batches_1_to_3_db_acceleration.sql:593` because `public.customer_info_requests` does not exist.
 
-### Current reconciliation — customer blockers
+### Current source-family reconciliation
 
-The checksum-pinned pre-ledger source `20260526_batch_3a_3b_customer_intake_blockers_documents.sql` creates `customer_blockers` as a workflow relation. Live `gridex-ops-dev` matches the source columns/types/defaults. The tracked performance migration later creates bulk blocker functions that unconditionally reference the table.
+`customer_info_requests` belongs to checksum-pinned pre-ledger source `20260520_batch_3_4_onboarding_pricing_billing_engine.sql`. That source is already substituted by narrow `metering_permissions` and `pricing_component_rules` artifacts, so its other schema objects are absent from replay too.
 
-Add `supabase/bootstrap/20260526_customer_blockers_foundation.sql` restoring only the source table, severity/status checks, three base indexes and service-role RLS policy. No blocker rows, document objects or customer data are seeded.
+Rather than repair one omitted relation at a time, add `supabase/bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql` covering the remaining schema-only source family: `customer_info_requests`, `customer_info_request_events`, `authorization_scopes`, `metering_permission_sites`, `billing_export_runs`, `billing_export_run_items`, the source-defined POA/contract-offer metadata extensions, indexes and service-role RLS. No customer requests, scopes, export rows or product data are seeded.
 
-Artifact SHA-256: `27eda3bf35547d945443fa0402b460ea206106e9fe0fa4a6c635905efa53ed69`.
+Artifact SHA-256: `976a9d56a38732973c60429a31e56ffe40f00a1ec6f6a68791a8a2dd5e95ed8e`.
 
 Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove replay advances.
 
@@ -39,4 +39,4 @@ Resolved. Production NanoID resolves to `3.3.17`; `security:audit-production` re
 
 ### Definition of VERIFIED
 
-REM-002 remains open until full clean replay, schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Only then may final campaign rescan and merge-readiness work proceed.
+REM-002 remains open until full clean replay, final schema fingerprint, migration/provenance regression, production security audit and `verify` all pass on the same final HEAD. Then the campaign must complete its final rescan and all remaining findings before merge.

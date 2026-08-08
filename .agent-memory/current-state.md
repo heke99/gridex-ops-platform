@@ -1,17 +1,15 @@
 # Current state
 
-Last updated: 2026-08-08T14:40:00Z
+Last updated: 2026-08-08T14:48:00Z
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - Draft PR: `#90`
-- Last verified CI HEAD: `7d7911d39fbedb05d9adad04e794d10d2a848b0d`
+- Last verified CI HEAD: `02e0dca29584fd6854e117f03043382b9a709f77`
 - Active finding: `GRIDEX-REM-002`
 - Status: `IMPLEMENTED_NOT_VERIFIED`
 
-At `7d7911...`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` PASS; clean replay FAILS.
+At `02e0dc...`, verify/provenance/security PASS; clean replay FAILS at `20260612123000...:593` because `public.customer_info_requests` is absent.
 
-Replay has advanced past the pricing, communication-log, external-intake, contract-energy and membership-RBAC prerequisite families. Current first failure is `20260612123000_performance_batches_1_to_3_db_acceleration.sql:593`: `public.customer_blockers` does not exist.
+This reveals an omitted source family: pre-ledger `20260520_batch_3_4_onboarding_pricing_billing_engine.sql` is already source-substituted, but previous derived artifacts covered only metering permissions and pricing rules. Current work adds a checksum-bound schema-only auxiliary artifact for the remaining source relations/extensions (info requests/events, authorization scopes, permission sites, billing export tables, source metadata extensions/indexes/RLS), with no business rows.
 
-Current work adds a checksum-bound pre-ledger `customer_blockers` foundation from `20260526_batch_3a_3b_customer_intake_blockers_documents.sql`, restoring only the source table/checks/indexes/service-role RLS and no data.
-
-Next: push, inspect exact-HEAD PR #90 CI, and continue from the next exact replay failure. Do not mark REM-002 VERIFIED until replay, schema fingerprint and all same-HEAD gates are green.
+Next: push, inspect exact-HEAD PR #90 CI, and continue from the next exact replay failure. REM-002 stays open until replay + fingerprint + all same-HEAD gates are green.

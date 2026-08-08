@@ -8,6 +8,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260520_metering_permissions_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
+    "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
     "bootstrap/20260520_customer_cases_email_outbox_foundation.sql",
     "bootstrap/20260521_company_ediel_production_profile_foundation.sql",
     "bootstrap/20260521_actor_test_results_foundation.sql",
