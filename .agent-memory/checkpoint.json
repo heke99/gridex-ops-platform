@@ -1,15 +1,15 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-08T14:32:00Z",
+  "updated_at": "2026-08-08T14:40:00Z",
   "branch": "remediation/gridex-ops-full-integrity-performance",
   "pr": 90,
-  "last_verified_commit": "532573df73003d272230d7222553e493c03fda5d",
+  "last_verified_commit": "7d7911d39fbedb05d9adad04e794d10d2a848b0d",
   "active_phase": "FULL_INTEGRITY_PERFORMANCE_REMEDIATION",
   "active_task": "GRIDEX-REM-002",
-  "active_subtask": "Restore complete source-defined company_memberships runtime family",
+  "active_subtask": "Restore pre-ledger customer_blockers workflow foundation",
   "status": "IMPLEMENTED_NOT_VERIFIED",
   "ci_state": {
-    "head": "532573df73003d272230d7222553e493c03fda5d",
+    "head": "7d7911d39fbedb05d9adad04e794d10d2a848b0d",
     "verify": "PASS",
     "migration_provenance_regression": "PASS",
     "security_audit_production": "PASS",
@@ -17,15 +17,12 @@
   },
   "exact_known_failure": {
     "migration": "20260612123000_performance_batches_1_to_3_db_acceleration.sql",
-    "line": 146,
-    "error": "column cm.membership_role does not exist",
-    "relation": "public.company_memberships",
-    "missing_prerequisite": "company membership runtime column family from 20260527_fix_company_user_invite_runtime_columns.sql"
+    "line": 593,
+    "error": "relation public.customer_blockers does not exist",
+    "missing_prerequisite": "customer_blockers from 20260526_batch_3a_3b_customer_intake_blockers_documents.sql"
   },
-  "implemented_not_verified": [
-    "Broadened checksum-bound company_memberships runtime foundation with source constraints and indexes"
-  ],
-  "next_action": "Push current work unit, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
+  "implemented_not_verified": ["Checksum-bound customer_blockers workflow foundation"],
+  "next_action": "Push, inspect PR #90 clean replay on the new HEAD, and continue until all same-HEAD release gates pass.",
   "external_blockers": [],
   "resume_from": ".agent-memory/handover.md"
 }

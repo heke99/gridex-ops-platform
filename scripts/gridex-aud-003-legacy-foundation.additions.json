@@ -3,6 +3,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
+    "bootstrap/20260526_customer_blockers_foundation.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
@@ -48,6 +49,11 @@
       "source": "migrations/20260521_batch_2c_end_to_end_operations.sql",
       "artifactSha256": "446ea8443bd4fa9f71f42016f11323feb67bab5f53d7b1bd6d890d0f16258b16",
       "purpose": "Restore only the source-defined external_contract_intakes relation, base index and source RLS policies required by later launch-readiness extensions/views; no intake rows or tenant/customer data are seeded."
+    },
+    "bootstrap/20260526_customer_blockers_foundation.sql": {
+      "source": "migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql",
+      "artifactSha256": "27eda3bf35547d945443fa0402b460ea206106e9fe0fa4a6c635905efa53ed69",
+      "purpose": "Restore only the source-defined customer_blockers workflow relation, base indexes and service-role RLS required by tracked bulk blocker operations; no blocker rows, documents or tenant/customer data are seeded."
     },
     "bootstrap/20260527_company_memberships_role_key_foundation.sql": {
       "source": "migrations/20260527_fix_company_user_invite_runtime_columns.sql",

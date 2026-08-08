@@ -15,26 +15,21 @@ The branch restores the two already-applied AUD-001 migration files under the ex
 Severity: P1
 Status: IMPLEMENTED / CI FAILED / NOT VERIFIED
 
-Historical applied SQL remains immutable. Replay uses checksum-pinned narrow reconstruction artifacts, explicit source substitution and chronological interleaving where required. No replay reconciliation writes to live Supabase.
+Historical applied SQL remains immutable. Replay uses checksum-pinned narrow reconstruction artifacts and chronological interleaving where required. No replay reconciliation writes to live Supabase.
 
-### Confirmed replay progression
+### Confirmed progression
 
-- `c627f810...`: missing `pricing_component_rules` at `20260609100000`.
-- `8e678aae...`: pricing fixed; next missing `communication_logs.customer_number` at `20260609183000`.
-- `5212e454...`: communication trace fixed; next missing `external_contract_intakes` at `20260611150000`.
-- `1ac3e0d2...`: external intake fixed; next missing `customer_contracts.price_area_used` at `20260611170000`.
-- `e331041b...`: contract energy fields fixed; next missing `company_memberships.role_key` at `20260612123000`.
-- `532573df...`: `role_key` fixed; replay immediately exposed the rest of the same RBAC prerequisite family: `company_memberships.membership_role` missing in `20260612123000_performance_batches_1_to_3_db_acceleration.sql:146`.
+The replay has sequentially advanced past missing prerequisites for pricing component rules, communication-log trace fields, external contract intakes, customer-contract energy-resolution fields and the complete company-membership RBAC runtime shape.
 
-On `532573df73003d272230d7222553e493c03fda5d`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` all PASS; only clean replay fails.
+On `7d7911d39fbedb05d9adad04e794d10d2a848b0d`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` all PASS. Clean replay next fails at `20260612123000_performance_batches_1_to_3_db_acceleration.sql:593` because `public.customer_blockers` does not exist.
 
-### Current RBAC reconciliation
+### Current reconciliation — customer blockers
 
-The tracked performance helper reads `company_memberships.status`, `is_active`, `role_key`, `membership_role` and `role`, and its supporting indexes depend on the same runtime shape. The checksum-pinned pre-ledger source `20260527_fix_company_user_invite_runtime_columns.sql` defines that company-membership runtime family and the role/status checks. Live `gridex-ops-dev` confirms the canonical membership columns, the same role/status value sets and the supporting indexes. Live `user_roles` does not contain `role_key`, so no noncanonical user_roles field is introduced.
+The checksum-pinned pre-ledger source `20260526_batch_3a_3b_customer_intake_blockers_documents.sql` creates `customer_blockers` as a workflow relation. Live `gridex-ops-dev` matches the source columns/types/defaults. The tracked performance migration later creates bulk blocker functions that unconditionally reference the table.
 
-The existing `supabase/bootstrap/20260527_company_memberships_role_key_foundation.sql` is therefore broadened to reconstruct the complete source-defined membership runtime column family, source role/status constraints and supporting company/user/status indexes. Empty replay has no membership rows, so the source data backfill is intentionally omitted.
+Add `supabase/bootstrap/20260526_customer_blockers_foundation.sql` restoring only the source table, severity/status checks, three base indexes and service-role RLS policy. No blocker rows, document objects or customer data are seeded.
 
-Artifact SHA-256: `46c5e05a35063f84547dcf6554bc378d9c90d62171cd38843383542c6fe602c5`.
+Artifact SHA-256: `27eda3bf35547d945443fa0402b460ea206106e9fe0fa4a6c635905efa53ed69`.
 
 Status after implementation: `IMPLEMENTED_NOT_VERIFIED`; PR #90 CI must prove replay advances.
 

@@ -1,24 +1,17 @@
 # Current state
 
-Last updated: 2026-08-08T14:32:00Z
-
-## Active remediation campaign
+Last updated: 2026-08-08T14:40:00Z
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - Draft PR: `#90`
-- Baseline: `5923b5c17fe96c0453048bdc102203efb65f7d7a`
-- Last verified CI HEAD: `532573df73003d272230d7222553e493c03fda5d`
-- Active finding: `GRIDEX-REM-002` canonical migration lineage / empty-database replay.
-- Lifecycle state: `IMPLEMENTED_NOT_VERIFIED`.
+- Last verified CI HEAD: `7d7911d39fbedb05d9adad04e794d10d2a848b0d`
+- Active finding: `GRIDEX-REM-002`
+- Status: `IMPLEMENTED_NOT_VERIFIED`
 
-## Same-HEAD evidence
+At `7d7911...`, `verify`, migration/provenance checks, targeted regressions and `security:audit-production` PASS; clean replay FAILS.
 
-At `532573df...`, `verify`, provenance/migration checks, typecheck, targeted regressions and `security:audit-production` all PASS. `clean-migration-replay` FAILS.
+Replay has advanced past the pricing, communication-log, external-intake, contract-energy and membership-RBAC prerequisite families. Current first failure is `20260612123000_performance_batches_1_to_3_db_acceleration.sql:593`: `public.customer_blockers` does not exist.
 
-The latest failure is `20260612123000_performance_batches_1_to_3_db_acceleration.sql:146`, where `company_memberships.membership_role` is missing after the prior single-column `role_key` fix.
+Current work adds a checksum-bound pre-ledger `customer_blockers` foundation from `20260526_batch_3a_3b_customer_intake_blockers_documents.sql`, restoring only the source table/checks/indexes/service-role RLS and no data.
 
-The current work broadens the same checksum-bound 20260527 reconstruction to the complete source-defined `company_memberships` runtime family, role/status constraints and supporting indexes. Live dev confirms that canonical shape; no `user_roles.role_key` is added because live schema does not contain it.
-
-## Next deterministic action
-
-Push this work unit, inspect PR #90 CI on the exact new HEAD, and continue from the next exact replay failure. REM-002 remains open until clean replay, schema fingerprint and all verify/provenance/security gates pass on one final HEAD.
+Next: push, inspect exact-HEAD PR #90 CI, and continue from the next exact replay failure. Do not mark REM-002 VERIFIED until replay, schema fingerprint and all same-HEAD gates are green.
