@@ -9,6 +9,7 @@
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260519_contract_offer_versions_foundation.sql",
+    "bootstrap/20260519_contract_offers_lifecycle_foundation.sql",
     "bootstrap/20260520_metering_permissions_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",

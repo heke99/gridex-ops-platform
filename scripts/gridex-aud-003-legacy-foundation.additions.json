@@ -4,6 +4,7 @@
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260519_contract_offer_versions_foundation.sql",
+    "bootstrap/20260519_contract_offers_lifecycle_foundation.sql",
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
@@ -244,6 +245,11 @@
       "source": "migrations/20260519_final_saas_hardening.sql",
       "artifactSha256": "dfc498aa35f02dcc1b4ab30481f8f52981a8987ccde911c06e4b52541d0c63e6",
       "purpose": "Restore only source-defined contract_offer_versions and its company/offer history index required by later canonical contract/invoice completion; no offer versions or tenant/product rows are seeded."
+    },
+    "bootstrap/20260519_contract_offers_lifecycle_foundation.sql": {
+      "source": "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
+      "artifactSha256": "d4d1a4393ca71d8d70896fa9a21e1e4f897053e4a3c55724c833a4e4b378614d",
+      "purpose": "Restore only the source-defined contract_offers lifecycle metadata required by later canonical contract/invoice completion: version_number, published_at, archived_at, last_price_change_at and the company/status index; no offer rows are seeded or rewritten."
     }
   }
 }
