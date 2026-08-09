@@ -610,26 +610,28 @@ export async function logIntegrationApiRequest(input: {
   // Integration request rows are operational telemetry, not the legal/economic
   // transaction itself. Detach the insert so a successful API response is not
   // held open by a second write roundtrip.
-  void supabaseService
-    .from('integration_api_requests')
-    .insert({
-      company_id: input.client?.company_id ?? null,
-      api_client_id: input.client?.id ?? null,
-      request_id: input.request.headers.get('x-request-id'),
-      method: input.request.method,
-      route,
-      status_code: input.statusCode,
-      duration_ms: Math.max(0, Date.now() - input.startedAt),
-      ip_address: requestIp(input.request),
-      user_agent: input.request.headers.get('user-agent'),
-      idempotency_key: input.request.headers.get('idempotency-key'),
-      error_code: input.errorCode ?? null,
-      metadata: input.metadata ?? {},
-    })
+  void Promise.resolve(
+    supabaseService
+      .from('integration_api_requests')
+      .insert({
+        company_id: input.client?.company_id ?? null,
+        api_client_id: input.client?.id ?? null,
+        request_id: input.request.headers.get('x-request-id'),
+        method: input.request.method,
+        route,
+        status_code: input.statusCode,
+        duration_ms: Math.max(0, Date.now() - input.startedAt),
+        ip_address: requestIp(input.request),
+        user_agent: input.request.headers.get('user-agent'),
+        idempotency_key: input.request.headers.get('idempotency-key'),
+        error_code: input.errorCode ?? null,
+        metadata: input.metadata ?? {},
+      }),
+  )
     .then(({ error }) => {
       if (error) console.warn('[integration-api] request telemetry write failed', { route, code: error.code })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.warn('[integration-api] request telemetry write failed', { route, error })
     })
 }
