@@ -28,7 +28,7 @@ as $$
       coalesce(r.revision, 0)::bigint as publication_revision,
       r.updated_at as publication_updated_at,
       (current_timestamp at time zone 'Europe/Stockholm')::date as stockholm_date,
-      coalesce(r.revision_token, 'initial') as revision_token
+      coalesce(r.revision_token::text, 'initial') as revision_token
     from (select 1) x
     left join public.contract_publication_revisions r
       on r.company_id = p_company_id
