@@ -110,7 +110,7 @@ export async function evaluateEdielRouteContract(message: EdielMessageRow): Prom
     return { ok: false, blocker: 'route_not_active', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (runtime.environment !== message.environment) {
-    return { ok: false, blocker: 'route_environment_mismatch', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_environment_mismatch', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
 
   const receiverEdielId = clean(runtime.receiver_ediel_id)
