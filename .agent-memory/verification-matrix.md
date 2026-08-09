@@ -65,3 +65,15 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## Post-#99 health residuals — 2026-08-09T15:10:00Z (`7f6c`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Legacy portal sync controlled errors (#99) | PASS | `gridex-customer-portal-sync-error-contract-regression.cjs` |
+| Customer sync / portal-bundle parse-outside-try variants | PASS | `gridex-ops-v3-bug-001-portal-sync-controlled-errors-regression.cjs` |
+| Shared portal ApiInputError helper contract | PASS | `vitest run __tests__/portal-controlled-input-errors.test.ts` (3/3) |
+| O-008 PUBLIC privilege residual static | PASS | `gridex-ops-o008-public-privilege-hardening-regression.cjs`; checksum `093c959de60ea3f426548dd82df779fb244c34adfa6c6baa567654cf70f36349` |
+| Migration integrity with new forward version | PASS | `check-migration-versions.cjs` (380 files) |
+| GitHub Actions full gates | BLOCKED | owner-authorized; hosted jobs billing-blocked before step 1 |
+| Live DB apply of `20260809151500` | PENDING | requires authorized migration apply |

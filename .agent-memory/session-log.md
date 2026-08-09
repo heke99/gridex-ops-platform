@@ -15,6 +15,19 @@
 - Full dependency install/build remains an operator/CI step because the sandbox
   package mirror lacks one indirect package.
 
+## 2026-08-09 — post-#99 health residuals (`7f6c`)
+
+- Trigger: main push `2f02fb10` (#99 portal/lint/fixture port).
+- Confirmed #99 already closed legacy portal-sync classifier, reserved-module
+  renames, and public-contract fixture drift.
+- Confirmed residuals still open: customer/sync and portal-bundle POST
+  parse-outside-try variants; O-008 PUBLIC privilege revoke
+  (`20260809151500`, exact donor checksum from unmerged #98).
+- Implemented those residuals with static regressions + vitest helper coverage.
+- Migration integrity, BL-001 and base O-008 static regressions remain PASS.
+- Overlapping open PRs `#96`/`#98` noted; this branch lands the remaining
+  production-code gap on a fresh tip without reopening #99 work.
+
 ## 2026-08-06 — PHASE-45 after BL-002 (`fb8e`)
 
 - Trigger: main push `bb877506` (GRIDEX-OPS-BL-002 platform-global read isolation).
