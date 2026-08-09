@@ -4,7 +4,7 @@ Last updated: 2026-08-09T15:10:00Z
 Branch: `cursor/codebase-health-and-stability-7f6c`
 Trigger: main push `#99` (`2f02fb10`)
 
-Status: `IN_PROGRESS` — post-#99 residual remediation.
+Status: `IMPLEMENTED_NOT_VERIFIED` — PR `#100` opened; local static/vitest PASS.
 
 ## Skill routing
 
@@ -35,4 +35,5 @@ Close confirmed residuals that `#99` did not land:
 
 ## Next action
 
-Commit/push residual fixes, open PR from `7f6c`, record verification evidence.
+Review/merge PR `#100`; apply `20260809151500` on the authorized ledger path;
+supersede overlapping residual PRs `#96` / `#98` after merge.

@@ -6,7 +6,8 @@
   "trigger": "main push #99",
   "active_phase": "POST_99_HEALTH_RESIDUALS",
   "active_task": "PORTAL_PARSE_OUTSIDE_TRY_AND_O008_PUBLIC",
-  "status": "IN_PROGRESS",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "pr": 100,
   "owner_instruction": "Proceed without GitHub Actions; hosted jobs are account/billing blocked before step 1.",
   "confirmed_residuals": [
     {
@@ -38,6 +39,6 @@
     "bl001_static": "PASS",
     "o008_base_static": "PASS"
   },
-  "next_action": "Commit, push branch cursor/codebase-health-and-stability-7f6c, open PR",
+  "next_action": "Review/merge PR #100; apply 20260809151500; supersede #96/#98",
   "resume_from": ".agent-memory/current-task.md"
 }
