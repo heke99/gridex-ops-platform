@@ -1,6 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { type IntegrationApiClient } from '@/lib/integrations/apiAuth'
-import { publicReference } from '@/lib/integrations/publicReferences'
+import { requiredPublicReference } from '@/lib/integrations/publicReferences'
 import { loadTenantWebsiteFlowReadiness, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
@@ -194,7 +194,7 @@ export async function loadExternalTenantContext(client: IntegrationApiClient): P
 
   return {
     tenant_reference: tenantReference,
-    api_client_reference: publicReference('client', client.company_id, client.id),
+    api_client_reference: requiredPublicReference('client', client.company_id, client.id),
     api_version: 'v1',
     contract_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
     authoritative_identity: 'api_key',
