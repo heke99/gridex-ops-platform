@@ -47,9 +47,16 @@ function schemaNotReady(error: unknown): never {
   throw error
 }
 
+function rowsFromUnknown(data: unknown): Row[] {
+  if (!Array.isArray(data)) return []
+  return data.filter(
+    (row): row is Row => Boolean(row) && typeof row === 'object' && !Array.isArray(row),
+  )
+}
+
 function resultRows(result: { data: unknown; error: unknown }): Row[] {
   if (result.error) schemaNotReady(result.error)
-  return Array.isArray(result.data) ? result.data as Row[] : []
+  return rowsFromUnknown(result.data)
 }
 
 /**
@@ -145,7 +152,7 @@ export async function readPortalApplicationsPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'created_at',
     map: (row) => publicPortalApplication(context.companyId, row),
