@@ -32,8 +32,11 @@ begin
   if nullif(current_setting('gridex.test.actor_id', true), '') is null then
     raise exception 'platform_market_actor_fixture_unavailable';
   end if;
-  if to_regprocedure('public.gridex_actor_open_blocking_conflict_counts()') is null then
-    raise exception 'conflict_count_helper_missing';
+  if to_regprocedure('gridex_private.gridex_actor_open_blocking_conflict_counts()') is null then
+    raise exception 'private_conflict_count_helper_missing';
+  end if;
+  if to_regprocedure('public.gridex_actor_open_blocking_conflict_counts()') is not null then
+    raise exception 'public_conflict_count_helper_should_not_exist';
   end if;
 end;
 $$;
@@ -96,7 +99,7 @@ declare
 begin
   select open_blocking_conflicts
     into v_count
-  from public.gridex_actor_open_blocking_conflict_counts()
+  from gridex_private.gridex_actor_open_blocking_conflict_counts()
   where actor_id = current_setting('gridex.test.actor_id')::uuid;
 
   if coalesce(v_count, 0) < 1 then
