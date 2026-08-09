@@ -36,8 +36,6 @@ alter table public.platform_actor_contacts enable row level security;
 alter table public.platform_address_lookup_cache enable row level security;
 alter table public.platform_energy_lookup_cache enable row level security;
 
--- Data API grants are explicit because Supabase no longer guarantees automatic
--- exposure for newly-created objects. Anonymous callers have no legitimate path.
 revoke select on table
   public.platform_actor_contacts,
   public.platform_address_lookup_cache,
@@ -50,9 +48,6 @@ grant select on table
   public.platform_energy_lookup_cache
 to authenticated, service_role;
 
--- Policy compaction may rename policies to gridex_mp_* and split them by database
--- role. Remove any SELECT policy reachable by PUBLIC/anon/authenticated/authenticator,
--- plus the old canonical names, without disturbing dashboard/internal-only policies.
 do $$
 declare
   v_table text;
@@ -136,8 +131,6 @@ comment on policy platform_energy_lookup_cache_platform_admin_read on public.pla
 comment on policy platform_energy_lookup_cache_service_role_read on public.platform_energy_lookup_cache
   is 'GRIDEX-OPS-BL-006: service-role access for energy-resolver cache reads.';
 
--- Fail closed if any externally reachable SELECT policy other than the intended
--- authenticated platform-admin policy survived, or if auth.uid() IS NOT NULL remains.
 do $$
 declare
   v_table text;
@@ -153,18 +146,16 @@ begin
     from pg_policy p
     where p.polrelid = to_regclass('public.' || v_table)
       and p.polcmd = 'r'
+      and exists (
+        select 1
+        from unnest(p.polroles) as role_oid(oid)
+        left join pg_roles r on r.oid = role_oid.oid
+        where role_oid.oid = 0
+           or r.rolname in ('anon', 'authenticated', 'authenticator')
+      )
       and (
         pg_get_expr(p.polqual, p.polrelid, true) ilike '%auth.uid()%IS NOT NULL%'
-        or (
-          p.polname <> v_table || '_platform_admin_read'
-          and exists (
-            select 1
-            from unnest(p.polroles) as role_oid(oid)
-            left join pg_roles r on r.oid = role_oid.oid
-            where role_oid.oid = 0
-               or r.rolname in ('anon', 'authenticated', 'authenticator')
-          )
-        )
+        or p.polname <> v_table || '_platform_admin_read'
       );
 
     if v_bad <> 0 then
