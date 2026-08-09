@@ -277,7 +277,8 @@
     "gridex:website-quote-integrity-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-website-quote-integrity-regression.mjs",
     "gridex:quote-null-grid-area-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-quote-null-grid-area-regression.mjs",
     "gridex:aibi-grid-area-case-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-aibi-grid-area-case-regression.mjs",
-    "gridex:price-area-case-normalization-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-price-area-case-normalization-regression.mjs"
+    "gridex:price-area-case-normalization-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-price-area-case-normalization-regression.mjs",
+    "gridex:ops-bl-006-contacts-lookup-cache-isolation-regression": "node scripts/gridex-ops-bl-006-contacts-and-lookup-cache-read-isolation-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

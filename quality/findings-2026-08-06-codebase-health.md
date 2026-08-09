@@ -31,9 +31,9 @@ Based on `main` after GRIDEX-OPS-BL-002 (`bb877506`) plus the PHASE-45 health pa
 | O-002 | PENDING | Live quote create → validate E2E after deploy |
 | O-003 | PENDING | Private/business legal-bundle → POA → supplier-switch E2E (PHASE-44) |
 | O-004 | OPEN | Prefer one health merge onto main; close overlapping siblings `#75`–`#81` / `#83` |
-| O-005 | OPEN | BL-002 variant: `platform_actor_contacts` still has broad authenticated SELECT (`auth.uid() is not null`) — dedicated RLS remediation, not this app fix PR |
-| O-006 | OPEN | BL-002 variant: `platform_address_lookup_cache` / `platform_energy_lookup_cache` broad authenticated SELECT — dedicated RLS remediation |
-| O-007 | OPEN | Admin `/admin/network-owners` import history can look empty if app platform-admin gate and `gridex_user_is_platform_admin()` (email confirmed) diverge — align guard or service-role read after gate |
+| O-005 | CODE_REMEDIATED | BL-002 variant: `platform_actor_contacts` broad authenticated SELECT — remediated as GRIDEX-OPS-BL-006 (`20260809123000`) |
+| O-006 | CODE_REMEDIATED | BL-002 variant: lookup-cache broad authenticated SELECT — remediated as GRIDEX-OPS-BL-006 (`20260809123000`) |
+| O-007 | CODE_REMEDIATED | Admin `/admin/network-owners` import history now reads via `supabaseService` after `requirePlatformAdminAccess()` |
 | O-008 | OPEN | `actor_readiness_status` (security_invoker) can under-count conflicts for non-admin JWT; current app uses service role — revoke authenticated SELECT or keep consumers on service role |
 
 ## Unverified / out of scope this pass
