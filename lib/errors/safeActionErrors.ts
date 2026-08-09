@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { contractDatabaseErrorMessage } from '@/lib/contracts/lifecycleErrors'
+import { redactLogText, safeLogError, sanitizeLogMetadata } from '@/lib/logging/redaction'
 import { supabaseService } from '@/lib/supabase/service'
 
 type DatabaseLikeError = {
@@ -33,6 +34,12 @@ function rawMessage(error: unknown): string {
   return typeof message === 'string' ? message.trim() : ''
 }
 
+function safeOptionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim()
+    ? redactLogText(value.trim())
+    : null
+}
+
 export function isDeploymentMigrationDrift(error: unknown): boolean {
   const code = errorCode(error)
   const message = rawMessage(error)
@@ -45,16 +52,17 @@ function correlationReference(): string {
 
 function logTechnicalError(error: unknown, context: ErrorContext, reference: string) {
   const record = errorRecord(error)
+  const safeError = safeLogError(error)
   console.error('[safe-action-error]', {
     reference,
     action: context.action,
     companyId: context.companyId ?? null,
     userId: context.userId ?? null,
-    code: errorCode(error) || null,
-    message: rawMessage(error) || null,
-    details: typeof record.details === 'string' ? record.details : null,
-    hint: typeof record.hint === 'string' ? record.hint : null,
-    metadata: context.metadata ?? {},
+    code: safeError.code,
+    message: safeError.message,
+    details: safeOptionalText(record.details),
+    hint: safeOptionalText(record.hint),
+    metadata: sanitizeLogMetadata(context.metadata ?? {}),
   })
 }
 
@@ -140,13 +148,15 @@ export async function toSafeContractErrorPersisted(
   const reference = correlationReference()
   logTechnicalError(error, context, reference)
   const record = errorRecord(error)
-  const metadata = context.metadata ?? {}
+  const metadata = sanitizeLogMetadata(context.metadata ?? {})
+  const originalMetadata = context.metadata ?? {}
   const offerId =
-    typeof metadata.offerId === 'string' ? metadata.offerId : null
+    typeof originalMetadata.offerId === 'string' ? originalMetadata.offerId : null
   const contractProductId =
-    typeof metadata.contractProductId === 'string'
-      ? metadata.contractProductId
+    typeof originalMetadata.contractProductId === 'string'
+      ? originalMetadata.contractProductId
       : null
+  const safeError = safeLogError(error)
 
   try {
     const { error: persistError } = await supabaseService
@@ -158,25 +168,26 @@ export async function toSafeContractErrorPersisted(
         action: context.action,
         offer_id: offerId,
         contract_product_id: contractProductId,
-        sqlstate: errorCode(error) || null,
-        error_message: rawMessage(error) || 'unknown_error',
-        error_detail:
-          typeof record.details === 'string' ? record.details : null,
-        error_hint: typeof record.hint === 'string' ? record.hint : null,
+        sqlstate: safeError.code,
+        error_message: safeError.message,
+        error_detail: safeOptionalText(record.details),
+        error_hint: safeOptionalText(record.hint),
         metadata,
       })
     if (persistError) {
+      const safePersistError = safeLogError(persistError)
       console.error('[safe-action-error-persistence-failed]', {
         reference,
-        code: persistError.code ?? null,
-        message: persistError.message,
+        code: safePersistError.code,
+        message: safePersistError.message,
       })
     }
   } catch (persistError) {
+    const safePersistError = safeLogError(persistError)
     console.error('[safe-action-error-persistence-failed]', {
       reference,
-      message:
-        persistError instanceof Error ? persistError.message : 'unknown_error',
+      code: safePersistError.code,
+      message: safePersistError.message,
     })
   }
 

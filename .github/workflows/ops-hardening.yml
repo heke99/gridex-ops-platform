@@ -17,12 +17,61 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - run: node scripts/gridex-ops-health-regression.cjs
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
-      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts
+      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
+
+  quality-release-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck:scripts
+      - run: npm run typecheck:tests
+      - run: npm test
+      - run: npm run api:compatibility
+      - run: npm run api:release:verify
+      - run: npm run build
+
+  clean-migration-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Clean empty-database replay
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/gridex-aud-003-clean-replay.sh 2>&1 | tee rem002-clean-replay.log
+      - name: Upload clean-replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-rem-002-clean-replay
+          path: rem002-clean-replay.log
+          if-no-files-found: error

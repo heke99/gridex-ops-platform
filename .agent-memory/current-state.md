@@ -1,27 +1,35 @@
 # Current state
 
-Last updated: 2026-08-06T12:57:00Z
+Last updated: 2026-08-09T09:21:00Z
 
-## PHASE-45 health state (post BL-002)
+- Branch: `remediation/gridex-ops-full-integrity-performance`
+- PR: `#90`
+- Release path: `NO_ACTIONS_RELEASE_VALIDATION`
+- Owner instruction: proceed without GitHub Actions because hosted jobs are account/billing blocked before step 1.
 
-- Main includes GRIDEX-OPS-BL-002 (`20260806122255`) isolating four
-  platform-global operational table reads to platform admins + service role.
-- Branch `cursor/codebase-health-and-stability-fb8e` carries the OpenAPI
-  `2026-08-05.2` / quote integrity health package plus H-011..H-015 case
-  normalization for billing components, public contracts, portfolio history,
-  application grid writers and quote grid persistence.
-- Residual same-pattern RLS exposure on contacts/address/energy caches is
-  documented for a dedicated remediation workstream (not shipped here).
+## Remediation state
 
-## Verification
+The campaign has implemented the audit/runtime fixes on the branch without editing historical migration sources or applying destructive writes to the connected default Supabase project.
 
-- Price-area case normalization regression: PASS.
-- Quote/AI-BI/OpenAPI local regressions: PASS.
-- Full dependency-backed gates: BLOCKED (`node_modules` absent).
-- Live quote/legal E2E: PENDING.
+The last real clean replay before the runner outage reached `20260728170000_live_schema_code_canonical_sync.sql` and failed first on missing `customer_invoice_lines.vat_rate`. The complete source-defined invoice-line runtime family (`line_type`, `unit`, `vat_rate`, `sort_order`) is now restored through checksum-pinned `bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql`, registered in provenance metadata and deterministic foundation order.
 
-## Prior phase state
+Fresh no-Actions release validation on 2026-08-09 confirmed:
 
-See earlier PHASE-44 / PHASE-43 sections in git history of this file; legal
-package `2026-08-05.1` and SVK/billing canonicalization remain as previously
-recorded and are not reopened by this health pass.
+- branch was ahead of main with no behind commits before the final status commits;
+- PR diff edits no historical timestamp migration; database changes are new forward migrations plus derived bootstrap/replay artifacts;
+- Grid Owner performance migration matches exactly one current canonical join and materializes the direct-first guard; prior read-only benchmark was ~1.09 s / 186 rows versus ~26 ms / 183 rows;
+- OPS health migration matches exactly five current ambiguous `status` signatures and fails closed on shape drift;
+- storage isolation validates company/customer/site ownership and RBAC and moves its SECURITY DEFINER helper out of the PostgREST-exposed public schema;
+- `nanoid` lockfile resolution is upgraded from 3.3.16 to 3.3.17;
+- central log redaction now normalizes sensitive metadata keys across snake_case, camelCase and separator variants;
+- customer application orchestration remains split from ~9,808 lines into <=2500-line production modules.
+
+GitHub Actions is not used as the release gate for this merge by explicit owner instruction. The final empty-database replay after the invoice-line prerequisite remains unavailable and must not be represented as passed.
+
+## External configuration gaps
+
+- `main` is reported unprotected; connector has no branch-protection/ruleset write operation.
+- Supabase Leaked Password Protection is disabled; connector has no hosted Auth/Management configuration write operation.
+- No isolated Supabase preview database exists for a destructive final replay.
+
+Proceed with PR #90 ready/merge using the documented no-Actions validation path, then verify the resulting `main` SHA and production deployment state.

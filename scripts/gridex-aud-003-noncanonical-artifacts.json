@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Explicit checksum-bound repository artifacts that are preserved for historical evidence but excluded from canonical empty-database replay because evidence proves they were not deployed in the canonical lineage.",
+  "artifacts": [
+    {
+      "path": "migrations/20260530123000_gridcore_active_ediel_scope_rules_and_aibi_imports.sql",
+      "sha256": "5f3b3b9701720adb5736d6912185a86c6dc44df43e13fffe282371cda5e9f4f1",
+      "status": "merged_repository_artifact_not_deployed",
+      "finding": "GRIDEX-REM-002",
+      "reason": "The migration reads ediel_message_rules.application_reference although no known predecessor creates that column on ediel_message_rules. The live canonical table does not contain the column, runtime EdielMessageRuleRow does not model it, and live Supabase migration history contains no 20260530123000 row. application_reference belongs to adjacent Ediel message/actor models, not the rules row model.",
+      "evidence": [
+        "git:0bb5b4fd6584ef759eeb07649c9c156dc0cda031",
+        "supabase:gridex-ops-dev:information_schema.columns(public.ediel_message_rules):2026-08-08",
+        "supabase:gridex-ops-dev:supabase_migrations.schema_migrations:2026-08-08",
+        "repo:lib/ediel/types.ts:EdielMessageRuleRow",
+        "repo:scripts/migration-history-manifest.json"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { safeLogError, sanitizeLogMetadata } from '@/lib/logging/redaction'
 
 export type PublicApiError = {
   error: string
@@ -22,11 +23,12 @@ export function isSchemaError(error: unknown): boolean {
 
 export function traceApiError(context: string, error: unknown, metadata: Record<string, unknown> = {}) {
   const traceId = randomUUID()
+  const safeError = safeLogError(error)
   console.error(`[${context}] failed`, {
     traceId,
-    code: errorCode(error),
-    error: error instanceof Error ? error.message : String(error),
-    ...metadata,
+    code: safeError.code,
+    error: safeError.message,
+    ...sanitizeLogMetadata(metadata),
   })
   return traceId
 }

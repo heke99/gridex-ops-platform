@@ -9,7 +9,7 @@ const migration = read('supabase/migrations/20260618230000_ops_final_completion_
 const saga = read('lib/website/provisioningSaga.ts')
 const contract = read('lib/ediel/outbox/routeContract.ts')
 const sender = read('lib/ediel/outbox/sendOutboxItem.ts')
-const customerApplications = read('lib/website/customerApplications.ts')
+const customerApplicationProcess = read('lib/website/customerApplicationProcess.ts')
 
 for (const needle of [
   'gridex_commit_customer_application_provisioning',
@@ -27,5 +27,5 @@ for (const needle of ['route_environment_mismatch', 'route_message_code_mismatch
   assert.ok(contract.includes(needle), `missing route contract blocker: ${needle}`)
 }
 assert.ok(sender.includes('route_contract_fingerprint'), 'outbox must persist the route contract fingerprint')
-assert.ok(customerApplications.includes('commitApplicationProvisioning'), 'external automation must follow atomic workflow commit')
+assert.ok(customerApplicationProcess.includes('commitApplicationProvisioning'), 'external automation must follow atomic workflow commit')
 console.log('ops final contract regression passed')
