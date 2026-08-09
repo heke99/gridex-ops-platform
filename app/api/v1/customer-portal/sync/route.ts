@@ -1,4 +1,3 @@
-//app/api/v1/customer-portal/sync/route.ts
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import {
@@ -6,18 +5,21 @@ import {
   executeIdempotentPortalWrite,
   readJsonObject,
 } from '@/lib/api/strictRequest'
-import { supabaseService } from '@/lib/supabase/service'
-import {
-  logIntegrationApiRequest,
-  requireIntegrationApiAccess,
-} from '@/lib/integrations/apiAuth'
 import {
   customerPortalJson,
   normalizeDigits,
   normalizeEmail,
-  normalizeFacility,
 } from '@/lib/customer-portal/externalApi'
+import {
+  resolvePortalCustomerCandidates,
+  type PortalCustomerCandidate,
+} from '@/lib/customer-portal/identityResolver'
 import { publicPortalIdentity } from '@/lib/customer-portal/publicIdentity'
+import {
+  logIntegrationApiRequest,
+  requireIntegrationApiAccess,
+} from '@/lib/integrations/apiAuth'
+import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,32 +45,14 @@ const SyncPayloadSchema = z.object({
   }
 })
 
-type SyncPayload = z.infer<typeof SyncPayloadSchema>
-
-type CustomerCandidate = {
-  id: string
-  company_id: string
-  customer_number: string | null
-  email: string | null
-  personal_number: string | null
-  org_number: string | null
-}
-
 type PortalIdentityDbStatus = 'active' | 'pending_review' | 'rejected' | 'disabled'
 type PortalIdentityApiStatus = 'linked' | 'pending_review' | 'rejected'
 type PortalIdentityMatchStrength = 'strong' | 'weak' | 'manual'
-
-function missingSchema(error: unknown): boolean {
-  const code = (error as { code?: string } | null)?.code ?? ''
-  const message = (error as { message?: string } | null)?.message ?? ''
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
-}
 
 function serializePortalSyncError(error: unknown): Record<string, unknown> {
   if (!error || typeof error !== 'object') {
     return { message: String(error ?? 'Okänt fel') }
   }
-
   const record = error as Record<string, unknown>
   return {
     name: error instanceof Error ? error.name : undefined,
@@ -79,107 +63,13 @@ function serializePortalSyncError(error: unknown): Record<string, unknown> {
   }
 }
 
-function strongMatch(input: {
-  emailMatched: boolean
-  customerNumberMatched: boolean
-  identifierMatched: boolean
-  facilityMatched: boolean
-}) {
+function strongMatch(input: PortalCustomerCandidate['flags']): boolean {
   return (
     (input.emailMatched && input.customerNumberMatched) ||
     (input.emailMatched && input.identifierMatched) ||
     (input.customerNumberMatched && input.facilityMatched) ||
     (input.identifierMatched && input.facilityMatched)
   )
-}
-
-async function facilityCustomerIds(companyId: string, facilityId: string): Promise<Set<string>> {
-  const normalized = normalizeFacility(facilityId)
-  if (!normalized) return new Set()
-
-  const variants = Array.from(new Set([facilityId.trim(), normalized].filter(Boolean)))
-  const { data, error } = await supabaseService
-    .from('customer_sites')
-    .select('customer_id')
-    .eq('company_id', companyId)
-    .in('facility_id', variants)
-
-  if (error) throw error
-  return new Set((data ?? []).map((row) => String(row.customer_id)).filter(Boolean))
-}
-
-async function loadCandidates(
-  companyId: string,
-  payload: Required<Pick<SyncPayload, 'email' | 'customer_number' | 'facility_id'>> & { identifier: string },
-): Promise<{ candidates: CustomerCandidate[]; facilityMatches: Set<string> }> {
-  const customerIds = new Set<string>()
-  const candidates: CustomerCandidate[] = []
-  const facilityMatches = payload.facility_id
-    ? await facilityCustomerIds(companyId, payload.facility_id)
-    : new Set<string>()
-
-  const addRows = (rows: CustomerCandidate[] | null | undefined) => {
-    for (const row of rows ?? []) {
-      if (!customerIds.has(row.id)) {
-        customerIds.add(row.id)
-        candidates.push(row)
-      }
-    }
-  }
-
-  if (payload.customer_number) {
-    const { data, error } = await supabaseService
-      .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
-      .eq('company_id', companyId)
-      .eq('customer_number', payload.customer_number)
-      .limit(10)
-    if (error) throw error
-    addRows(data as CustomerCandidate[])
-  }
-
-  if (payload.email) {
-    const { data, error } = await supabaseService
-      .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
-      .eq('company_id', companyId)
-      .ilike('email', payload.email)
-      .limit(20)
-    if (error) throw error
-    addRows(data as CustomerCandidate[])
-  }
-
-  if (payload.identifier) {
-    let result = await supabaseService
-      .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
-      .eq('company_id', companyId)
-      .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier},normalized_personal_number.eq.${payload.identifier},normalized_org_number.eq.${payload.identifier}`)
-      .limit(20)
-
-    if (result.error && missingSchema(result.error)) {
-      result = await supabaseService
-        .from('customers')
-        .select('id,company_id,customer_number,email,personal_number,org_number')
-        .eq('company_id', companyId)
-        .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier}`)
-        .limit(20)
-    }
-    if (result.error) throw result.error
-    addRows(result.data as CustomerCandidate[])
-  }
-
-  if (facilityMatches.size > 0) {
-    const { data, error } = await supabaseService
-      .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
-      .eq('company_id', companyId)
-      .in('id', Array.from(facilityMatches))
-    if (error) throw error
-    addRows(data as CustomerCandidate[])
-  }
-
-  return { candidates, facilityMatches }
 }
 
 async function upsertIdentity(input: {
@@ -196,29 +86,26 @@ async function upsertIdentity(input: {
   metadata: Record<string, unknown>
 }) {
   const now = new Date().toISOString()
-  const payload = {
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    provider: 'gridex_website',
-    external_customer_id: input.externalCustomerId,
-    external_account_id: input.externalAccountId,
-    auth_user_id: input.authUserId,
-    customer_portal_user_id: input.authUserId,
-    email: input.email,
-    status: input.dbStatus,
-    match_strength: input.matchStrength,
-    match_method: input.matchMethod,
-    linked_at: input.status === 'linked' ? now : null,
-    metadata: input.metadata,
-    updated_at: now,
-  }
-
   const { data, error } = await supabaseService
     .from('customer_portal_identities')
-    .upsert(payload, { onConflict: 'company_id,provider,external_customer_id' })
+    .upsert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      provider: 'gridex_website',
+      external_customer_id: input.externalCustomerId,
+      external_account_id: input.externalAccountId,
+      auth_user_id: input.authUserId,
+      customer_portal_user_id: input.authUserId,
+      email: input.email,
+      status: input.dbStatus,
+      match_strength: input.matchStrength,
+      match_method: input.matchMethod,
+      linked_at: input.status === 'linked' ? now : null,
+      metadata: input.metadata,
+      updated_at: now,
+    }, { onConflict: 'company_id,provider,external_customer_id' })
     .select('id,status,customer_id,match_strength,match_method,linked_at,last_seen_at')
     .single()
-
   if (error) throw error
   return data
 }
@@ -226,10 +113,15 @@ async function upsertIdentity(input: {
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
   const auth = await requireIntegrationApiAccess(request, ['customer_sync.write'])
-
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return customerPortalJson({ error: auth.error }, { status: auth.status })
+    await logIntegrationApiRequest({
+      client: auth.client ?? null,
+      request,
+      statusCode: auth.status,
+      startedAt,
+      errorCode: auth.errorCode,
+    })
+    return customerPortalJson({ error: auth.error, code: auth.errorCode }, { status: auth.status })
   }
 
   try {
@@ -242,12 +134,8 @@ export async function POST(request: NextRequest) {
       }, { status: 422 })
     }
     const body = parsed.data
-    const portalUserIdHeader = request.headers
-      .get('x-gridex-customer-portal-user-id')
-      ?.trim()
-    const authUserIdHeader = request.headers
-      .get('x-gridex-auth-user-id')
-      ?.trim()
+    const portalUserIdHeader = request.headers.get('x-gridex-customer-portal-user-id')?.trim()
+    const authUserIdHeader = request.headers.get('x-gridex-auth-user-id')?.trim()
     if (
       !portalUserIdHeader ||
       !authUserIdHeader ||
@@ -291,11 +179,22 @@ export async function POST(request: NextRequest) {
             matchMethod: 'insufficient_identity_factors',
             metadata: {
               reason: 'E-post eller en ensam uppgift räcker inte för åtkomst.',
-              received_factors: { email: Boolean(email), customer_number: Boolean(customerNumber), identifier: Boolean(identifier), facility_id: Boolean(facilityId) },
+              received_factors: {
+                email: Boolean(email),
+                customer_number: Boolean(customerNumber),
+                identifier: Boolean(identifier),
+                facility_id: Boolean(facilityId),
+              },
               source_payload: body.metadata ?? {},
             },
           })
-          await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'rejected', identity_id: identity.id } })
+          await logIntegrationApiRequest({
+            client: auth.client,
+            request,
+            statusCode: 200,
+            startedAt,
+            metadata: { outcome: 'rejected', identity_id: identity.id },
+          })
           return {
             statusCode: 200,
             body: {
@@ -304,27 +203,31 @@ export async function POST(request: NextRequest) {
                 status: 'rejected',
                 access_granted: false,
                 reason: 'insufficient_identity_factors',
-                portal_identity_reference: publicPortalIdentity(auth.context.companyId, identity).portal_identity_reference,
+                portal_identity_reference: publicPortalIdentity(
+                  auth.context.companyId,
+                  identity,
+                ).portal_identity_reference,
               },
             },
           }
         }
 
-        const resolved = await loadCandidates(auth.context.companyId, {
+        const candidates = await resolvePortalCustomerCandidates({
+          companyId: auth.context.companyId,
           email,
-          customer_number: customerNumber,
-          facility_id: facilityId,
+          customerNumber,
           identifier,
+          facilityId,
         })
 
-        let best: { customer: CustomerCandidate; flags: Record<string, boolean>; isStrong: boolean } | null = null
-        for (const customer of resolved.candidates) {
-          const flags = {
-            emailMatched: Boolean(email && normalizeEmail(customer.email) === email),
-            customerNumberMatched: Boolean(customerNumber && customer.customer_number === customerNumber),
-            identifierMatched: Boolean(identifier && (normalizeDigits(customer.personal_number) === identifier || normalizeDigits(customer.org_number) === identifier)),
-            facilityMatched: Boolean(facilityId && resolved.facilityMatches.has(customer.id)),
-          }
+        let best: {
+          customer: PortalCustomerCandidate
+          flags: PortalCustomerCandidate['flags']
+          isStrong: boolean
+        } | null = null
+
+        for (const customer of candidates) {
+          const flags = customer.flags
           const isStrong = strongMatch(flags)
           if (isStrong) {
             best = { customer, flags, isStrong }
@@ -346,14 +249,27 @@ export async function POST(request: NextRequest) {
             status: 'linked',
             dbStatus: 'active',
             matchStrength: 'strong',
-            matchMethod: Object.entries(best.flags).filter(([, ok]) => ok).map(([key]) => key).join('+'),
+            matchMethod: Object.entries(best.flags)
+              .filter(([, ok]) => ok)
+              .map(([key]) => key)
+              .join('+'),
             metadata: {
               matched_customer_id: best.customer.id,
               flags: best.flags,
               source_payload: body.metadata ?? {},
             },
           })
-          await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
+          await logIntegrationApiRequest({
+            client: auth.client,
+            request,
+            statusCode: 200,
+            startedAt,
+            metadata: {
+              outcome: 'linked',
+              identity_id: identity.id,
+              customer_id: best.customer.id,
+            },
+          })
           return {
             statusCode: 200,
             body: {
@@ -362,7 +278,10 @@ export async function POST(request: NextRequest) {
                 customer_reference: externalCustomerId,
                 customer_number: best.customer.customer_number,
                 external_customer_id: externalCustomerId,
-                portal_identity_reference: publicPortalIdentity(auth.context.companyId, identity).portal_identity_reference,
+                portal_identity_reference: publicPortalIdentity(
+                  auth.context.companyId,
+                  identity,
+                ).portal_identity_reference,
                 portal_role: 'owner',
                 created: false,
                 access_granted: true,
@@ -388,9 +307,14 @@ export async function POST(request: NextRequest) {
             source_payload: body.metadata ?? {},
           },
         })
-
         const outcome = best ? 'pending_review' : 'lead_created'
-        await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
+        await logIntegrationApiRequest({
+          client: auth.client,
+          request,
+          statusCode: 200,
+          startedAt,
+          metadata: { outcome, identity_id: identity.id },
+        })
         return {
           statusCode: 200,
           body: {
@@ -398,7 +322,10 @@ export async function POST(request: NextRequest) {
               outcome,
               status: 'pending_review',
               access_granted: false,
-              portal_identity_reference: publicPortalIdentity(auth.context.companyId, identity).portal_identity_reference,
+              portal_identity_reference: publicPortalIdentity(
+                auth.context.companyId,
+                identity,
+              ).portal_identity_reference,
             },
           },
         }
@@ -411,14 +338,13 @@ export async function POST(request: NextRequest) {
     const status = controlled ? error.status : 500
     const errorCode = controlled ? error.code : 'portal_sync_failed'
     const clientMessage = controlled ? error.message : 'Kundlänkning kunde inte behandlas.'
-    const errorMetadata = serializePortalSyncError(error)
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: status,
       startedAt,
       errorCode,
-      metadata: { portal_sync_error: errorMetadata },
+      metadata: { portal_sync_error: serializePortalSyncError(error) },
     })
     return customerPortalJson({
       error: clientMessage,
