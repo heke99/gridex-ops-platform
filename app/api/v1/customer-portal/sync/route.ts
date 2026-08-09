@@ -1,7 +1,11 @@
 //app/api/v1/customer-portal/sync/route.ts
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
+import {
+  ApiInputError,
+  executeIdempotentPortalWrite,
+  readJsonObject,
+} from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   logIntegrationApiRequest,
@@ -13,6 +17,7 @@ import {
   normalizeEmail,
   normalizeFacility,
 } from '@/lib/customer-portal/externalApi'
+import { publicPortalIdentity } from '@/lib/customer-portal/publicIdentity'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -103,9 +108,15 @@ async function facilityCustomerIds(companyId: string, facilityId: string): Promi
   return new Set((data ?? []).map((row) => String(row.customer_id)).filter(Boolean))
 }
 
-async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayload, 'email' | 'customer_number' | 'facility_id'>> & { identifier: string }) {
+async function loadCandidates(
+  companyId: string,
+  payload: Required<Pick<SyncPayload, 'email' | 'customer_number' | 'facility_id'>> & { identifier: string },
+): Promise<{ candidates: CustomerCandidate[]; facilityMatches: Set<string> }> {
   const customerIds = new Set<string>()
   const candidates: CustomerCandidate[] = []
+  const facilityMatches = payload.facility_id
+    ? await facilityCustomerIds(companyId, payload.facility_id)
+    : new Set<string>()
 
   const addRows = (rows: CustomerCandidate[] | null | undefined) => {
     for (const row of rows ?? []) {
@@ -158,20 +169,17 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
     addRows(result.data as CustomerCandidate[])
   }
 
-  if (payload.facility_id) {
-    const siteCustomerIds = await facilityCustomerIds(companyId, payload.facility_id)
-    if (siteCustomerIds.size > 0) {
-      const { data, error } = await supabaseService
-        .from('customers')
-        .select('id,company_id,customer_number,email,personal_number,org_number')
-        .eq('company_id', companyId)
-        .in('id', Array.from(siteCustomerIds))
-      if (error) throw error
-      addRows(data as CustomerCandidate[])
-    }
+  if (facilityMatches.size > 0) {
+    const { data, error } = await supabaseService
+      .from('customers')
+      .select('id,company_id,customer_number,email,personal_number,org_number')
+      .eq('company_id', companyId)
+      .in('id', Array.from(facilityMatches))
+    if (error) throw error
+    addRows(data as CustomerCandidate[])
   }
 
-  return candidates
+  return { candidates, facilityMatches }
 }
 
 async function upsertIdentity(input: {
@@ -208,7 +216,7 @@ async function upsertIdentity(input: {
   const { data, error } = await supabaseService
     .from('customer_portal_identities')
     .upsert(payload, { onConflict: 'company_id,provider,external_customer_id' })
-    .select('id,status,customer_id,match_strength,match_method')
+    .select('id,status,customer_id,match_strength,match_method,linked_at,last_seen_at')
     .single()
 
   if (error) throw error
@@ -252,116 +260,152 @@ export async function POST(request: NextRequest) {
         code: 'portal_identity_mismatch',
       }, { status: 422 })
     }
-    const externalCustomerId = body.external_customer_id
-    const externalAccountId = String(body.external_account_id ?? '').trim() || null
-    const email = normalizeEmail(body.email)
-    const customerNumber = String(body.customer_number ?? '').trim()
-    const identifier = normalizeDigits(body.personal_number ?? body.organization_number)
-    const facilityId = String(body.facility_id ?? '').trim()
 
-    const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
-    if (identityFactors < 2) {
-      const identity = await upsertIdentity({
-        companyId: auth.context.companyId,
-        customerId: null,
-        externalCustomerId,
-        externalAccountId,
-        authUserId: body.auth_user_id,
-        email: email || null,
-        status: 'rejected',
-        dbStatus: 'rejected',
-        matchStrength: 'manual',
-        matchMethod: 'insufficient_identity_factors',
-        metadata: {
-          reason: 'E-post eller en ensam uppgift räcker inte för åtkomst.',
-          received_factors: { email: Boolean(email), customer_number: Boolean(customerNumber), identifier: Boolean(identifier), facility_id: Boolean(facilityId) },
-          source_payload: body.metadata ?? {},
-        },
-      })
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'rejected', identity_id: identity.id } })
-      return customerPortalJson({ data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } })
-    }
-
-    const candidates = await loadCandidates(auth.context.companyId, {
-      email,
-      customer_number: customerNumber,
-      facility_id: facilityId,
-      identifier,
-    })
-
-    const facilityMatches = facilityId ? await facilityCustomerIds(auth.context.companyId, facilityId) : new Set<string>()
-
-    let best: { customer: CustomerCandidate; flags: Record<string, boolean>; isStrong: boolean } | null = null
-    for (const customer of candidates) {
-      const flags = {
-        emailMatched: Boolean(email && normalizeEmail(customer.email) === email),
-        customerNumberMatched: Boolean(customerNumber && customer.customer_number === customerNumber),
-        identifierMatched: Boolean(identifier && (normalizeDigits(customer.personal_number) === identifier || normalizeDigits(customer.org_number) === identifier)),
-        facilityMatched: Boolean(facilityId && facilityMatches.has(customer.id)),
-      }
-      const isStrong = strongMatch(flags)
-      if (isStrong) {
-        best = { customer, flags, isStrong }
-        break
-      }
-      if (!best && Object.values(flags).filter(Boolean).length > 0) {
-        best = { customer, flags, isStrong: false }
-      }
-    }
-
-    if (best?.isStrong) {
-      const identity = await upsertIdentity({
-        companyId: auth.context.companyId,
-        customerId: best.customer.id,
-        externalCustomerId,
-        externalAccountId,
-        authUserId: body.auth_user_id,
-        email: email || best.customer.email,
-        status: 'linked',
-        dbStatus: 'active',
-        matchStrength: 'strong',
-        matchMethod: Object.entries(best.flags).filter(([, ok]) => ok).map(([key]) => key).join('+'),
-        metadata: {
-          matched_customer_id: best.customer.id,
-          flags: best.flags,
-          source_payload: body.metadata ?? {},
-        },
-      })
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
-      return customerPortalJson({ data: {
-        status: 'linked',
-        customer_reference: externalCustomerId,
-        customer_number: best.customer.customer_number,
-        external_customer_id: externalCustomerId,
-        customer_portal_user_id: body.customer_portal_user_id,
-        auth_user_id: body.auth_user_id,
-        portal_role: 'owner',
-        created: false,
-        access_granted: true,
-      } })
-    }
-
-    const identity = await upsertIdentity({
+    const write = await executeIdempotentPortalWrite<Record<string, unknown>>({
+      request,
       companyId: auth.context.companyId,
-      customerId: best?.customer.id ?? null,
-      externalCustomerId,
-      externalAccountId,
-      authUserId: body.auth_user_id,
-      email: email || best?.customer.email || null,
-      status: 'pending_review',
-      dbStatus: 'pending_review',
-      matchStrength: best ? 'weak' : 'manual',
-      matchMethod: best ? 'partial_match' : 'no_match',
-      metadata: {
-        candidate_customer_id: best?.customer.id ?? null,
-        flags: best?.flags ?? {},
-        source_payload: body.metadata ?? {},
+      clientId: auth.client.id,
+      customerId: null,
+      operation: '/api/v1/customer-portal/sync',
+      payload: body,
+      execute: async () => {
+        const externalCustomerId = body.external_customer_id
+        const externalAccountId = String(body.external_account_id ?? '').trim() || null
+        const email = normalizeEmail(body.email)
+        const customerNumber = String(body.customer_number ?? '').trim()
+        const identifier = normalizeDigits(body.personal_number ?? body.organization_number)
+        const facilityId = String(body.facility_id ?? '').trim()
+
+        const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
+        if (identityFactors < 2) {
+          const identity = await upsertIdentity({
+            companyId: auth.context.companyId,
+            customerId: null,
+            externalCustomerId,
+            externalAccountId,
+            authUserId: body.auth_user_id,
+            email: email || null,
+            status: 'rejected',
+            dbStatus: 'rejected',
+            matchStrength: 'manual',
+            matchMethod: 'insufficient_identity_factors',
+            metadata: {
+              reason: 'E-post eller en ensam uppgift räcker inte för åtkomst.',
+              received_factors: { email: Boolean(email), customer_number: Boolean(customerNumber), identifier: Boolean(identifier), facility_id: Boolean(facilityId) },
+              source_payload: body.metadata ?? {},
+            },
+          })
+          await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'rejected', identity_id: identity.id } })
+          return {
+            statusCode: 200,
+            body: {
+              data: {
+                outcome: 'rejected',
+                status: 'rejected',
+                access_granted: false,
+                reason: 'insufficient_identity_factors',
+                portal_identity_reference: publicPortalIdentity(auth.context.companyId, identity).portal_identity_reference,
+              },
+            },
+          }
+        }
+
+        const resolved = await loadCandidates(auth.context.companyId, {
+          email,
+          customer_number: customerNumber,
+          facility_id: facilityId,
+          identifier,
+        })
+
+        let best: { customer: CustomerCandidate; flags: Record<string, boolean>; isStrong: boolean } | null = null
+        for (const customer of resolved.candidates) {
+          const flags = {
+            emailMatched: Boolean(email && normalizeEmail(customer.email) === email),
+            customerNumberMatched: Boolean(customerNumber && customer.customer_number === customerNumber),
+            identifierMatched: Boolean(identifier && (normalizeDigits(customer.personal_number) === identifier || normalizeDigits(customer.org_number) === identifier)),
+            facilityMatched: Boolean(facilityId && resolved.facilityMatches.has(customer.id)),
+          }
+          const isStrong = strongMatch(flags)
+          if (isStrong) {
+            best = { customer, flags, isStrong }
+            break
+          }
+          if (!best && Object.values(flags).filter(Boolean).length > 0) {
+            best = { customer, flags, isStrong: false }
+          }
+        }
+
+        if (best?.isStrong) {
+          const identity = await upsertIdentity({
+            companyId: auth.context.companyId,
+            customerId: best.customer.id,
+            externalCustomerId,
+            externalAccountId,
+            authUserId: body.auth_user_id,
+            email: email || best.customer.email,
+            status: 'linked',
+            dbStatus: 'active',
+            matchStrength: 'strong',
+            matchMethod: Object.entries(best.flags).filter(([, ok]) => ok).map(([key]) => key).join('+'),
+            metadata: {
+              matched_customer_id: best.customer.id,
+              flags: best.flags,
+              source_payload: body.metadata ?? {},
+            },
+          })
+          await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
+          return {
+            statusCode: 200,
+            body: {
+              data: {
+                status: 'linked',
+                customer_reference: externalCustomerId,
+                customer_number: best.customer.customer_number,
+                external_customer_id: externalCustomerId,
+                portal_identity_reference: publicPortalIdentity(auth.context.companyId, identity).portal_identity_reference,
+                portal_role: 'owner',
+                created: false,
+                access_granted: true,
+              },
+            },
+          }
+        }
+
+        const identity = await upsertIdentity({
+          companyId: auth.context.companyId,
+          customerId: best?.customer.id ?? null,
+          externalCustomerId,
+          externalAccountId,
+          authUserId: body.auth_user_id,
+          email: email || best?.customer.email || null,
+          status: 'pending_review',
+          dbStatus: 'pending_review',
+          matchStrength: best ? 'weak' : 'manual',
+          matchMethod: best ? 'partial_match' : 'no_match',
+          metadata: {
+            candidate_customer_id: best?.customer.id ?? null,
+            flags: best?.flags ?? {},
+            source_payload: body.metadata ?? {},
+          },
+        })
+
+        const outcome = best ? 'pending_review' : 'lead_created'
+        await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
+        return {
+          statusCode: 200,
+          body: {
+            data: {
+              outcome,
+              status: 'pending_review',
+              access_granted: false,
+              portal_identity_reference: publicPortalIdentity(auth.context.companyId, identity).portal_identity_reference,
+            },
+          },
+        }
       },
     })
 
-    const outcome = best ? 'pending_review' : 'lead_created'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
-    return customerPortalJson({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
+    return customerPortalJson(write.body, { status: write.statusCode })
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
