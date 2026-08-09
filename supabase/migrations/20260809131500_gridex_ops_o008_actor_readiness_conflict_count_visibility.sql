@@ -5,9 +5,10 @@
 -- company-admin JWTs silently under-count open blocking conflicts and can observe false
 -- readiness through dependent views such as gridex_verified_grid_owners_v.
 --
--- Fix: expose only aggregated conflict counts through a SECURITY DEFINER helper and patch
--- the conflicts CTE in actor_readiness_status to use that helper. Conflict row details stay
--- admin/service-role only. Historical migrations are not rewritten.
+-- Fix: expose only aggregated conflict counts through a SECURITY DEFINER helper in the
+-- non-PostgREST gridex_private schema and patch the conflicts CTE in actor_readiness_status
+-- to use that helper. Conflict row details stay admin/service-role only. Historical
+-- migrations are not rewritten.
 
 begin;
 set local search_path = public, pg_catalog;
@@ -23,7 +24,11 @@ begin
 end;
 $$;
 
-create or replace function public.gridex_actor_open_blocking_conflict_counts()
+create schema if not exists gridex_private;
+revoke all on schema gridex_private from public, anon;
+grant usage on schema gridex_private to authenticated, service_role;
+
+create or replace function gridex_private.gridex_actor_open_blocking_conflict_counts()
 returns table (
   actor_id uuid,
   open_blocking_conflicts integer
@@ -31,7 +36,7 @@ returns table (
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = pg_catalog, gridex_private, pg_temp
 as $$
   select
     c.actor_id,
@@ -43,11 +48,13 @@ as $$
   group by c.actor_id;
 $$;
 
-comment on function public.gridex_actor_open_blocking_conflict_counts() is
-  'GRIDEX-OPS-O-008: aggregated open blocking conflict counts for readiness views. Returns no conflict row payloads.';
+comment on function gridex_private.gridex_actor_open_blocking_conflict_counts() is
+  'GRIDEX-OPS-O-008: non-API aggregate of open blocking conflict counts for readiness views. Returns no conflict row payloads.';
 
-revoke all on function public.gridex_actor_open_blocking_conflict_counts() from public;
-grant execute on function public.gridex_actor_open_blocking_conflict_counts() to authenticated, service_role;
+revoke all on function gridex_private.gridex_actor_open_blocking_conflict_counts()
+from public, anon, authenticated, service_role;
+grant execute on function gridex_private.gridex_actor_open_blocking_conflict_counts()
+to authenticated, service_role;
 
 do $migration$
 declare
@@ -58,7 +65,7 @@ declare
   v_replacement text := $repl$conflicts AS (
          SELECT actor_id,
             open_blocking_conflicts
-           FROM public.gridex_actor_open_blocking_conflict_counts()
+           FROM gridex_private.gridex_actor_open_blocking_conflict_counts()
         )$repl$;
   v_patterns text[] := array[
     -- pg_get_viewdef(pretty) common shape
@@ -72,7 +79,7 @@ begin
   select pg_get_viewdef('public.actor_readiness_status'::regclass, true)
     into v_definition;
 
-  if v_definition ~* 'gridex_actor_open_blocking_conflict_counts\s*\(' then
+  if v_definition ~* 'gridex_private\.gridex_actor_open_blocking_conflict_counts\s*\(' then
     return;
   end if;
 
@@ -90,7 +97,7 @@ begin
 
   if v_patched is null
      or v_patched = v_definition
-     or v_patched !~* 'gridex_actor_open_blocking_conflict_counts\s*\('
+     or v_patched !~* 'gridex_private\.gridex_actor_open_blocking_conflict_counts\s*\('
      or v_patched ~* 'from\s+(?:public\.)?actor_registry_conflicts' then
     raise exception 'actor_readiness_status conflict-count helper patch did not materialize cleanly';
   end if;
@@ -100,7 +107,7 @@ end;
 $migration$;
 
 comment on view public.actor_readiness_status is
-  'Role-aware actor readiness. Open blocking conflict counts come from gridex_actor_open_blocking_conflict_counts() so security_invoker callers cannot under-count conflicts after BL-002 RLS hardening.';
+  'Role-aware actor readiness. Open blocking conflict counts come from gridex_private.gridex_actor_open_blocking_conflict_counts() so security_invoker callers cannot under-count conflicts after BL-002 RLS hardening.';
 
 -- Dashboard/role views that application code already reads via service_role. Revoke
 -- authenticated SELECT so PostgREST cannot serve under-privileged direct reads of those
