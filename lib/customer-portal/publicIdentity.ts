@@ -1,7 +1,7 @@
 import { publicReference } from '@/lib/integrations/publicReferences'
 
 type PublicIdentitySource = {
-  id: string
+  id: string | null
   status?: string | null
   match_strength?: string | null
   match_method?: string | null
@@ -27,6 +27,10 @@ export function publicPortalIdentity(
   companyId: string,
   identity: PublicIdentitySource,
 ): PublicPortalIdentityV1 {
+  if (!identity.id) {
+    throw new Error('portal_identity_reference_unavailable')
+  }
+
   return {
     portal_identity_reference: publicReference(
       'portal_identity',
