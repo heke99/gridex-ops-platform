@@ -65,3 +65,14 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## POST-97 health residuals — 2026-08-09T14:58:00Z
+
+| Check | Result | Evidence |
+|---|---|---|
+| V3-BUG-001 static regression | PASS | `node scripts/gridex-ops-v3-bug-001-portal-sync-controlled-errors-regression.cjs` |
+| V3-BUG-001 vitest | PASS | `vitest run __tests__/portal-controlled-input-errors.test.ts` (3/3) |
+| O-008 PUBLIC residual static | PASS | `node scripts/gridex-ops-o008-public-privilege-hardening-regression.cjs` |
+| BL-001 static still green | PASS | `node scripts/gridex-ops-bl-001-write-permission-hardening-regression.cjs` |
+| Logging redaction | PASS | `vitest run __tests__/logging-redaction.test.ts` (5/5) |
+| GitHub Actions | BLOCKED | Owner-authorized no-Actions path; hosted jobs billing-blocked |

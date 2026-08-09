@@ -1,24 +1,30 @@
 # Current task
 
-Last updated: 2026-08-09T10:05:00Z
-Branch: `main`
-Primary PR: `#90` merged
-Follow-up PR: `#92` merged
+Last updated: 2026-08-09T14:58:00Z
+Branch: `cursor/codebase-health-and-stability-026e`
+Base: `main` @ `725b024a` (includes PR #97 BL-001)
 
-Status: `REMEDIATION_COMPLETE_WITH_EXTERNAL_DATA_CONFIG_GAPS`.
+Status: `IN_PROGRESS_POST_97_HEALTH_RESIDUALS`
 
-The audited code remediation and post-release code follow-up are merged and deployed. GitHub Actions was intentionally bypassed as a release gate by explicit repository-owner instruction because hosted jobs are account/billing blocked before step 1.
+## Active work item
 
-Verified production application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`. Vercel production deployment `dpl_DdPGCM3epEPccQPGToBEaE15865c` is READY and passed production compilation, TypeScript, page-data and static-generation stages.
+Post-#97 codebase health residual remediation on the automation branch.
 
-Exact Supabase ledger versions applied and verified: `20260808214500`, `20260809110000`, `20260809114500`. Health SQLSTATE `42702` is resolved; Grid Owner direct-first performance fix is live; Ediel `renewal_available` certificate status handling is consistent between route guard, strict resolver and health logic.
+### Atomic subtask (current)
 
-No further code remediation is required by this campaign based on currently verified evidence. Remaining work is external configuration or authoritative masterdata/onboarding:
+Close confirmed residuals that remained open after #95/#97:
 
-- enable GitHub `main` protection/ruleset using an account surface that supports it;
-- enable Supabase Leaked Password Protection using hosted Auth settings;
-- supply authoritative mappings for 35 platform grid owners affecting 60 active areas;
-- supply receiver Ediel IDs for 2 routes that have no internal source;
-- complete recipient-certificate onboarding through the official secret-protected actor-readiness/external lookup path.
+1. **GRIDEX-OPS-V3-BUG-001** — legacy customer-portal sync forced every catch to 500; wrap controlled `ApiInputError` through `handleCustomerPortalRouteError` and close same-class parse-outside-try variants on `/api/v1/customer/sync` and `/api/v1/customer/portal-bundle` POST.
+2. **GRIDEX-OPS-O-008 PUBLIC residual** — forward migration `20260809151500` revokes PUBLIC grants on readiness views (timestamp `20260809143000` already used by BL-001).
+3. **GRIDEX-OPS-V3-BUG-007** — rename reserved local `module` binding in `tenantSync.ts`.
 
-Do not guess any of those identifiers or certificate mappings. Do not claim the unavailable post-invoice-fix empty-database replay passed.
+### Intentionally not changed
+
+- External/config gaps (GitHub protection, leaked-password Auth setting, grid-owner masterdata, Ediel receiver IDs, certificate onboarding).
+- Catalog tables with intentional broad authenticated SELECT.
+- Authenticated SELECT on `actor_readiness_status` retained for company flows.
+- person_number / network-owner import residuals already present on main.
+
+### Exact next action
+
+Commit/push verified residual fixes, open PR, update checkpoint/handover after push.

@@ -334,3 +334,11 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-09 — post-#97 health residuals (`026e`)
+
+- Trigger: main push `725b024a` (BL-001 write permission hardening #97).
+- Confirmed residuals still open on main tip: V3-BUG-001 portal 500 collapse, O-008 PUBLIC grants, reserved `module` binding.
+- Implemented controlled portal error routing, forward migration `20260809151500`, and `legalModule` rename.
+- Static + vitest regressions PASS; BL-001 static regression remains PASS.
+- person_number redaction and network-owner import-history service-role read already present on main (false reopen).
