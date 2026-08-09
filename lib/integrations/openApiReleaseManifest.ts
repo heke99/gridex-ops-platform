@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import customerPortalOpenApi from '@/docs/openapi/customer-portal-v1.json'
 import websiteIntegrationOpenApi from '@/docs/openapi/website-integration-v1.json'
+import { CURRENT_API_CONTRACT } from '@/lib/integrations/apiContract'
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
   CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL,
@@ -10,7 +11,7 @@ import {
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-08-05T22:07:00.000Z' as const
+export const OPENAPI_RELEASED_AT = CURRENT_API_CONTRACT.releasedAt
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -20,6 +21,7 @@ function sha256(document: unknown): string {
 
 export function buildOpenApiReleaseManifest() {
   const version = WEBSITE_INTEGRATION_CONTRACT_VERSION
+  const compatibility = CURRENT_API_CONTRACT.compatibilityClassification
   return {
     release_version: version,
     website_openapi_version: websiteIntegrationOpenApi.info.version,
@@ -32,7 +34,7 @@ export function buildOpenApiReleaseManifest() {
       process.env.VERCEL_GIT_COMMIT_SHA ??
       process.env.GIT_COMMIT_SHA ??
       'unknown',
-    compatibility_classification: 'additive-price-area-assurance-and-readiness-correction',
+    compatibility_classification: compatibility,
     deprecated_features: [
       {
         feature: 'diagnostics=true on public-contracts',
@@ -44,6 +46,11 @@ export function buildOpenApiReleaseManifest() {
         replacement: 'Authorization: Bearer <GRIDEX_API_KEY>',
         sunset_at: '2026-10-31T23:59:59.000Z',
       },
+      {
+        feature: 'customer_portal.read / customer_portal.write scope aliases',
+        replacement: 'granular customer_* scopes from /api/v1/integration/context',
+        sunset_at: '2026-10-31T23:59:59.000Z',
+      },
     ],
     minimum_tenant_integration_version: version,
     specifications: {
@@ -53,7 +60,7 @@ export function buildOpenApiReleaseManifest() {
         url: WEBSITE_INTEGRATION_OPENAPI_URL,
         immutable_url: WEBSITE_INTEGRATION_VERSIONED_OPENAPI_URL,
         sha256: sha256(websiteIntegrationOpenApi),
-        compatibility: 'additive-response-field-and-readiness-correction',
+        compatibility,
       },
       customer_portal: {
         contract_name: 'customer-portal-v1',
@@ -61,7 +68,7 @@ export function buildOpenApiReleaseManifest() {
         url: CUSTOMER_PORTAL_OPENAPI_URL,
         immutable_url: CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL,
         sha256: sha256(customerPortalOpenApi),
-        compatibility: 'additive',
+        compatibility,
       },
     },
   } as const
