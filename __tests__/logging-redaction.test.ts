@@ -39,6 +39,20 @@ describe('logging redaction', () => {
     expect(value.nested).toEqual({ payload: '[REDACTED]', code: 'P0001' })
   })
 
+  it('normalizes camelCase and separator variants before classifying sensitive keys', () => {
+    const value = sanitizeLogMetadata({
+      accessToken: 'opaque-secret-token',
+      'client-secret': 'opaque-client-secret',
+      customerEmail: 'not-an-email-shaped-secret',
+      requestId: 'request-safe-id',
+    })
+
+    expect(value.accessToken).toBe('[REDACTED]')
+    expect(value['client-secret']).toBe('[REDACTED]')
+    expect(value.customerEmail).toBe('[REDACTED]')
+    expect(value.requestId).toBe('request-safe-id')
+  })
+
   it('keeps technical error codes but redacts personal data from messages', () => {
     const error = Object.assign(new Error('Failed for anna@example.com from 10.0.0.8'), {
       code: 'PGRST205',
