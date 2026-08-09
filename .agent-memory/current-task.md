@@ -24,5 +24,6 @@ the portal controlled-input half of closed PR `#100`.
 
 ## Exact next action
 
-Open PR for `5bc605c5`, then record PR number and continue any newly evidenced
-residuals only.
+PR `#102` opened. After merge/apply, run staging privilege matrix for
+anon/authenticated/service_role on readiness views. Supersede stale draft `#96`
+once reviewed. No further code residual currently evidenced on tip.

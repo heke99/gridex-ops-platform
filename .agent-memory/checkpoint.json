@@ -32,6 +32,7 @@
     "ggshield": "UNAVAILABLE",
     "staging_sql_matrix": "NOT_RUN"
   },
-  "next_action": "Open PR for O-008 PUBLIC residual and record number.",
+  "pr": 102,
+  "next_action": "Await merge/apply of PR #102; then run staging privilege matrix. Supersede draft #96 after review.",
   "resume_from": ".agent-memory/current-task.md"
 }
