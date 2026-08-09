@@ -107,7 +107,6 @@ describe('public contract publication graph repair', () => {
     )
   })
 
-
   it('blocks publication when invoice fee configuration is not canonical', () => {
     expect(migration).toContain(
       'create or replace function public.gridex_invoice_fee_ready_v1',
@@ -134,7 +133,6 @@ describe('public contract publication graph repair', () => {
     )
     expect(migration).toContain('PUBLICATION_PRICE_OPTION_DUPLICATE')
   })
-
 
   it('preserves commercial locks and only allows relation-policy completion', () => {
     expect(migration).toContain(
@@ -169,7 +167,6 @@ describe('public contract publication graph repair', () => {
     expect(migration).toContain('source.option_reference=target.option_reference')
     expect(migration).toContain("coalesce(source.metadata->>'fixed_price','')=coalesce(target.metadata->>'fixed_price','')")
   })
-
 
   it('restores every missing template option without moving snapshot rows', () => {
     expect(migration).toContain('template_missing_count')
@@ -290,7 +287,8 @@ describe('public contract publication graph repair', () => {
               version: '2',
               title: 'Allmänna konsumentvillkor',
               published_at: null,
-              content_sha256: null,
+              content_sha256:
+                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               origin: 'canonical_bundle_document',
             },
           ],

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-04.3.json'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const mocks = vi.hoisted(() => ({
   logIntegrationApiRequest: vi.fn(async () => undefined),
@@ -188,7 +189,7 @@ describe('real public contracts route against published OpenAPI', () => {
     const runtimeResponse = await getPublicContracts(request)
     expect(runtimeResponse.status).toBe(200)
     expect(runtimeResponse.headers.get('x-gridex-contract-version')).toBe(
-      publicContractsFixture.meta.contract_schema_version,
+      WEBSITE_INTEGRATION_CONTRACT_VERSION,
     )
     expect(runtimeResponse.headers.get('etag')).toMatch(/^"contracts-[A-Za-z0-9_-]{43}"$/)
     expect(runtimeResponse.headers.get('cache-control')).toBe(
@@ -208,7 +209,7 @@ describe('real public contracts route against published OpenAPI', () => {
     )
     expect(openApiResponse.status).toBe(200)
     expect(openApiResponse.headers.get('x-gridex-contract-version')).toBe(
-      publicContractsFixture.meta.contract_schema_version,
+      WEBSITE_INTEGRATION_CONTRACT_VERSION,
     )
     const openApi = (await openApiResponse.json()) as JsonObject
     const schema = (
@@ -232,7 +233,7 @@ describe('real public contracts route against published OpenAPI', () => {
     expect(bundleId).toBeTruthy()
     expect(
       (legal.module_versions as Array<JsonObject>).every(
-        (module) => module.legal_bundle_version_id === bundleId,
+        (legalModule) => legalModule.legal_bundle_version_id === bundleId,
       ),
     ).toBe(true)
   })

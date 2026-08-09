@@ -285,23 +285,23 @@ async function resolveLegalDocument(input: {
     publicReference('legal_document', input.companyId, String(row.id)) === input.documentReference)
 
   if (exactRow) {
-    const module = resolvedLegalModule(exactRow)
+    const legalModule = resolvedLegalModule(exactRow)
     assertAcceptedDocumentEvidence({
       expectedCode: input.expectedCode,
       expectedVersion: input.expectedVersion,
       expectedHash: input.expectedHash,
-      actualCode: module.moduleKey,
-      actualVersion: module.version,
-      actualHash: module.hash,
+      actualCode: legalModule.moduleKey,
+      actualVersion: legalModule.version,
+      actualHash: legalModule.hash,
     })
     return {
-      documentCode: module.moduleKey,
-      documentVersion: module.version,
-      documentHash: module.hash,
-      title: module.title,
+      documentCode: legalModule.moduleKey,
+      documentVersion: legalModule.version,
+      documentHash: legalModule.hash,
+      title: legalModule.title,
       legalBundleVersionId: input.refs.legalBundleVersionId,
       referenceKind: 'module',
-      modules: [module],
+      modules: [legalModule],
     }
   }
 

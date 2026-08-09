@@ -53,7 +53,8 @@ function legal(overrides: Record<string, unknown> = {}) {
         version: '2',
         title: 'Allmänna konsumentvillkor',
         published_at: null,
-        content_sha256: null,
+        content_sha256:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         origin: 'canonical_bundle_document',
         internal_audit_id: 'must-not-leak',
       },
@@ -64,7 +65,8 @@ function legal(overrides: Record<string, unknown> = {}) {
         version: '1',
         title: 'Prisvillkor',
         published_at: null,
-        content_sha256: null,
+        content_sha256:
+          'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         origin: 'canonical_bundle_document',
       },
       {
@@ -74,7 +76,8 @@ function legal(overrides: Record<string, unknown> = {}) {
         version: '3',
         title: 'Fullmakt',
         published_at: null,
-        content_sha256: null,
+        content_sha256:
+          'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
         origin: 'canonical_bundle_document',
       },
     ],
@@ -154,7 +157,7 @@ describe('canonical public contract legal snapshot', () => {
     )
     expect(
       result.module_versions.every(
-        (module) => module.legal_bundle_version_id === bundleId,
+        (legalModule) => legalModule.legal_bundle_version_id === bundleId,
       ),
     ).toBe(true)
     expect(JSON.stringify(result)).not.toContain('internal_audit_id')
@@ -253,7 +256,7 @@ describe('canonical public contract legal snapshot', () => {
     const value = {
       ...baseValue,
       module_versions: baseValue.module_versions.filter(
-        (module) => module.module_key !== 'power_of_attorney',
+        (legalModule) => legalModule.module_key !== 'power_of_attorney',
       ),
     }
     expect(() =>
