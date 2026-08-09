@@ -182,16 +182,18 @@ export function buildCustomerLegalDocuments(input: {
     CustomerLegalModuleVersion[]
   >()
 
-  for (const module of input.modules) {
+  for (const legalModule of input.modules) {
     if (
-      requiredText(module.legal_bundle_version_id, 'module_bundle_version_id') !==
-      legalBundleVersionId
+      requiredText(
+        legalModule.legal_bundle_version_id,
+        'module_bundle_version_id',
+      ) !== legalBundleVersionId
     ) {
       throw new Error('customer_legal_document_bundle_mismatch')
     }
-    const kind = customerLegalDocumentKindForModule(module.module_key)
+    const kind = customerLegalDocumentKindForModule(legalModule.module_key)
     const current = groups.get(kind) ?? []
-    current.push(module)
+    current.push(legalModule)
     groups.set(kind, current)
   }
 
