@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('node:fs')
+const { currentContractVersion } = require('./lib/current-api-contract.cjs')
 
 const failures = []
 
@@ -17,7 +18,6 @@ const helper = read('lib/integrations/writeIdempotency.ts')
 const migration = read(
   'supabase/migrations/20260804200732_usage_event_identity_and_integration_write_idempotency.sql',
 )
-const contractSource = read('lib/integrations/websiteIntegrationContract.ts')
 const guide = read('docs/external-website-api-integration-guide.md')
 const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 const quoteOperation = openapi.paths?.['/api/v1/website/quote']?.post
@@ -99,14 +99,9 @@ if (!quoteOperation) {
   }
 }
 
-const sourceVersionMatch = contractSource.match(
-  /WEBSITE_INTEGRATION_CONTRACT_VERSION = '([^']+)'/,
-)
-if (!sourceVersionMatch) {
-  failures.push('Contract source: version constant missing')
-} else if (openapi.info?.version !== sourceVersionMatch[1]) {
+if (openapi.info?.version !== currentContractVersion) {
   failures.push(
-    `Contract version drift: source=${sourceVersionMatch[1]} openapi=${openapi.info?.version}`,
+    `Contract version drift: source=${currentContractVersion} openapi=${openapi.info?.version}`,
   )
 }
 
