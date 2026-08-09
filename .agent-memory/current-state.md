@@ -1,38 +1,35 @@
 # Current state
 
-Last updated: 2026-08-09T09:05:00Z
+Last updated: 2026-08-09T09:21:00Z
 
 - Branch: `remediation/gridex-ops-full-integrity-performance`
 - PR: `#90`
-- Active database finding: `GRIDEX-REM-002`
-- Release status: `IMPLEMENTED_NOT_VERIFIED`
+- Release path: `NO_ACTIONS_RELEASE_VALIDATION`
+- Owner instruction: proceed without GitHub Actions because hosted jobs are account/billing blocked before step 1.
 
-## Proven/implemented remediation
+## Remediation state
 
-The customer-application orchestration split remains ordinary-CI proven and all production modules are <=2500 lines. The last real required-CI execution before the GitHub account runner block had `verify` fully green, including migration/provenance checks, API billing hardening, typecheck, idempotency/multitenant regressions, hardening/final-contract/error-boundary tests and production security audit.
+The campaign has implemented the audit/runtime fixes on the branch without editing historical migration sources or applying destructive writes to the connected default Supabase project.
 
-Exact clean replay on `4cd7539d9da6d01e0fb493edef60a41bd2a0c9e9` advanced through the canonical history to `20260728170000_live_schema_code_canonical_sync.sql`. Its first real SQL failure was missing `customer_invoice_lines.vat_rate`. The coherent source-defined Batch 1B invoice-line family (`line_type`, `unit`, `vat_rate`, `sort_order`) is now restored by `bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql`, checksum-pinned and included in deterministic replay order. It has not yet received final runner replay verification.
+The last real clean replay before the runner outage reached `20260728170000_live_schema_code_canonical_sync.sql` and failed first on missing `customer_invoice_lines.vat_rate`. The complete source-defined invoice-line runtime family (`line_type`, `unit`, `vat_rate`, `sort_order`) is now restored through checksum-pinned `bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql`, registered in provenance metadata and deterministic foundation order.
 
-The current branch also contains:
+Fresh no-Actions release validation on 2026-08-09 confirmed:
 
-- customer-document storage isolation forward migrations;
-- application log redaction for credentials, personal data and raw payload/body/SQL/document content plus regression coverage;
-- expanded CI release gates for lint, script/test typechecks, full tests, OpenAPI compatibility/release verification and production build;
-- checksum-registered `20260808214500_grid_owner_direct_actor_join_performance.sql`, whose read-only live benchmark reduced the actor-resolution join from about 1.09 s / 186 joined rows to about 26 ms / exactly 183 rows by using direct actor links first and fallback matching only when no direct link exists;
-- checksum-registered `20260809110000_ops_health_status_qualification.sql` plus `scripts/gridex-ops-health-regression.cjs`.
+- branch was ahead of main with no behind commits before the final status commits;
+- PR diff edits no historical timestamp migration; database changes are new forward migrations plus derived bootstrap/replay artifacts;
+- Grid Owner performance migration matches exactly one current canonical join and materializes the direct-first guard; prior read-only benchmark was ~1.09 s / 186 rows versus ~26 ms / 183 rows;
+- OPS health migration matches exactly five current ambiguous `status` signatures and fails closed on shape drift;
+- storage isolation validates company/customer/site ownership and RBAC and moves its SECURITY DEFINER helper out of the PostgREST-exposed public schema;
+- `nanoid` lockfile resolution is upgraded from 3.3.16 to 3.3.17;
+- central log redaction now normalizes sensitive metadata keys across snake_case, camelCase and separator variants;
+- customer application orchestration remains split from ~9,808 lines into <=2500-line production modules.
 
-## Production/runtime evidence
+GitHub Actions is not used as the release gate for this merge by explicit owner instruction. The final empty-database replay after the invoice-line prerequisite remains unavailable and must not be represented as passed.
 
-Vercel production is `READY` on `main` SHA `5923b5c17fe96c0453048bdc102203efb65f7d7a` (PR #85). Over the latest 24-hour Vercel runtime-error window, exactly one active error group remains: `/api/internal/system/health`, SQLSTATE `42702`, last observed `2026-08-09T02:35:06Z`.
+## External configuration gaps
 
-Read-only execution on connected Supabase reproduces that failure in `gridex_ops_health_checks()`: PL/pgSQL output variable `status` conflicts with unqualified `tenant_email_outbox.status`. The same function contains five remaining ambiguous unqualified status references. The new forward migration patches exactly those five references in the installed canonical function using `pg_get_functiondef()`, fails closed on shape drift, and leaves historical migrations untouched. Read-only signature validation found exactly five expected matches. No live Supabase DDL/DML was performed.
+- `main` is reported unprotected; connector has no branch-protection/ruleset write operation.
+- Supabase Leaked Password Protection is disabled; connector has no hosted Auth/Management configuration write operation.
+- No isolated Supabase preview database exists for a destructive final replay.
 
-## External release gates
-
-GitHub Actions on current remediation commits still fails before step 1: `verify`, `quality-release-gates` and `clean-migration-replay` all return `steps=null`. A manual rerun behaved identically. This remains the GitHub account billing/spending-limit block previously annotated by GitHub, not a code/test result.
-
-`main` is still unprotected and the installed GitHub connector exposes no branch-protection/ruleset write action.
-
-No reusable Supabase development branch exists. Creating one is a billable operation that requires explicit cost confirmation; production/default Supabase is not used for destructive replay.
-
-Do not merge PR #90 until exact-final-HEAD required gates, deterministic replay/ledger/smoke/fingerprint and the repository-protection release requirement are genuinely satisfied.
+Proceed with PR #90 ready/merge using the documented no-Actions validation path, then verify the resulting `main` SHA and production deployment state.
