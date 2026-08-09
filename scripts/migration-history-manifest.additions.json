@@ -11,6 +11,7 @@
     "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
     "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
-    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b"
+    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b",
+    "20260809151500_gridex_ops_o008_public_privilege_hardening.sql": "093c959de60ea3f426548dd82df779fb244c34adfa6c6baa567654cf70f36349"
   }
 }
