@@ -65,3 +65,13 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## O-008 residual — 2026-08-09T10:20:00Z (`af99`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| O-008 static regression | PASS | `npm run gridex:ops-o008-actor-readiness-conflict-count-visibility-regression` |
+| Migration integrity | PASS | `npm run db:migrations:integrity` (377 files) |
+| Staging SQL O-008 matrix | PENDING | isolated DB unavailable in this run |
+| Exact-head CI | BLOCKED | Actions billing/spending-limit |
+| BL-006 duplicate | SKIPPED | open PR #91 |

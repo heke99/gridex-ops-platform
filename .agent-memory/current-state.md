@@ -1,12 +1,15 @@
 # Current state
 
-Last updated: 2026-08-09T10:05:00Z
+Last updated: 2026-08-09T10:20:00Z
 
-- Branch: `main`
+- Active branch: `cursor/codebase-health-and-stability-af99` (from `main` @ `188a391c`)
 - Primary remediation PR: `#90` — merged
 - Follow-up consistency PR: `#92` — merged
-- Current verified application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`
+- Documentation finalization PR: `#93` — merged
+- Current verified application SHA before O-008 residual work: `55ad4053c64ec78ae5fe111eecef572edbd352dd`
 - Release path: `NO_ACTIONS_RELEASE_VALIDATION`
+- Active residual: **GRIDEX-OPS-O-008** code-remediated on `af99`; staging SQL pending
+- Parallel open PR `#91` covers BL-006; do not duplicate on this branch
 
 ## Completed release state
 

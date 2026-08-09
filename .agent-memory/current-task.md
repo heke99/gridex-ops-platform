@@ -1,24 +1,35 @@
 # Current task
 
-Last updated: 2026-08-09T10:05:00Z
-Branch: `main`
-Primary PR: `#90` merged
-Follow-up PR: `#92` merged
+Last updated: 2026-08-09T10:20:00Z
+Branch: `cursor/codebase-health-and-stability-af99`
+Base: `main` @ `188a391c5391b84e6a2e35df82276d3c83a873ac`
 
-Status: `REMEDIATION_COMPLETE_WITH_EXTERNAL_DATA_CONFIG_GAPS`.
+Status: `IN_PROGRESS`
 
-The audited code remediation and post-release code follow-up are merged and deployed. GitHub Actions was intentionally bypassed as a release gate by explicit repository-owner instruction because hosted jobs are account/billing blocked before step 1.
+## Active work item
 
-Verified production application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`. Vercel production deployment `dpl_DdPGCM3epEPccQPGToBEaE15865c` is READY and passed production compilation, TypeScript, page-data and static-generation stages.
+**GRIDEX-OPS-O-008** — actor readiness conflict-count visibility under `security_invoker`.
 
-Exact Supabase ledger versions applied and verified: `20260808214500`, `20260809110000`, `20260809114500`. Health SQLSTATE `42702` is resolved; Grid Owner direct-first performance fix is live; Ediel `renewal_available` certificate status handling is consistent between route guard, strict resolver and health logic.
+### Skill routing
 
-No further code remediation is required by this campaign based on currently verified evidence. Remaining work is external configuration or authoritative masterdata/onboarding:
+Activated:
+- `using-superpowers` — route skills before action
+- `find-bugs` / residual review — inspect post-remediation open findings
+- `fp-check` — confirm O-008 is a true positive against company-admin `listGridOwners` path
+- `supabase` + `supabase-postgres-best-practices` — forward migration / view / grant changes
+- `test-driven-development` — static + SQL regression before claim
+- `code-security` — SECURITY DEFINER aggregate helper scope
+- `verification-before-completion` — run static/migration integrity before push
 
-- enable GitHub `main` protection/ruleset using an account surface that supports it;
-- enable Supabase Leaked Password Protection using hosted Auth settings;
-- supply authoritative mappings for 35 platform grid owners affecting 60 active areas;
-- supply receiver Ediel IDs for 2 routes that have no internal source;
-- complete recipient-certificate onboarding through the official secret-protected actor-readiness/external lookup path.
+Conditional later:
+- `requesting-code-review` / `finishing-a-development-branch` after PR opens
+- staging SQL matrix when an isolated database is available
 
-Do not guess any of those identifiers or certificate mappings. Do not claim the unavailable post-invoice-fix empty-database replay passed.
+Skipped:
+- BL-006 reimplementation — already open as PR #91 on `cursor/codebase-health-and-stability-8f9d`
+- `quality-playbook` / full threat-model suite — out of scope for this focused residual fix
+- `install-hooks` — no hook-install request
+
+### Exact next action
+
+Commit and push O-008 remediation; open PR; record verification evidence.

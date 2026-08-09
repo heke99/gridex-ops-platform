@@ -334,3 +334,7 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-09T10:20:00Z — O-008 residual on af99
+
+Confirmed O-008 true positive: company-admin JWT path through `listGridOwners` → `gridex_verified_grid_owners_v` → `actor_readiness_status` under-counted conflicts after BL-002. Implemented SECURITY DEFINER aggregate helper + view patch + service-role-only dashboard view grants. Static regression and migration integrity PASS. Did not duplicate BL-006 (PR #91).
