@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { type IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { publicReference } from '@/lib/integrations/publicReferences'
 import { loadTenantWebsiteFlowReadiness, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
@@ -77,9 +78,9 @@ export type ExternalTenantContext = {
  *
  * The readiness service intentionally carries internal diagnostics such as
  * blockers, warnings, checks and portal routing details. Those fields are not
- * part of the immutable 2026-08-04.3 IntegrationContext schema and must never
- * leak into the external response. Keeping the projection explicit prevents
- * runtime/OpenAPI drift from becoming a downstream pricing failure.
+ * part of the public IntegrationContext schema and must never leak into the
+ * external response. Keeping the projection explicit prevents runtime/OpenAPI
+ * drift from becoming a downstream integration failure.
  */
 export type PublicExternalTenantContext = {
   tenant_reference: ExternalTenantContext['tenant_reference']
@@ -193,7 +194,7 @@ export async function loadExternalTenantContext(client: IntegrationApiClient): P
 
   return {
     tenant_reference: tenantReference,
-    api_client_reference: `client_${client.id.replaceAll('-', '')}`,
+    api_client_reference: publicReference('client', client.company_id, client.id),
     api_version: 'v1',
     contract_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
     authoritative_identity: 'api_key',
