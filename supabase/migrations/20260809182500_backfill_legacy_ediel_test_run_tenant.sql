@@ -18,7 +18,7 @@ declare
   v_candidate_count integer;
   v_unexpected_count integer;
 begin
-  select count(*)::integer, min(id)
+  select count(*)::integer, (array_agg(id order by id))[1]
     into v_company_count, v_company_id
   from public.companies
   where test_ediel_id = '92825';
