@@ -5,12 +5,7 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalInvoices, portalContextFromResolved } from '@/lib/customer-portal/apiData'
-import {
-  pagePublicItems,
-  publicPageInput,
-  publicPortalInvoice,
-} from '@/lib/customer-portal/publicDto'
+import { readPortalInvoicesPage } from '@/lib/customer-portal/publicReadModel'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,21 +15,21 @@ export async function GET(request: NextRequest) {
   if (!context.ok) return context.response
 
   try {
-    const portalContext = portalContextFromResolved({
-      companyId: context.client.company_id,
-      customerId: context.identity.customer_id,
-      externalCustomerId: context.identity.external_customer_id,
-      customerNumber: context.identity.customer_number,
-      provider: context.identity.provider,
-    })
-    const invoices = await listPortalInvoices(portalContext)
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: invoices.length })
-    const page = pagePublicItems(
-      invoices.map((row) =>
-        publicPortalInvoice(context.client.company_id, row),
-      ),
-      publicPageInput(request.nextUrl.searchParams),
+    const page = await readPortalInvoicesPage(
+      {
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        externalCustomerId: context.identity.external_customer_id,
+        customerNumber: context.identity.customer_number,
+      },
+      request.nextUrl.searchParams,
     )
+    await logCustomerPortalSuccess({
+      request,
+      client: context.client,
+      startedAt: context.startedAt,
+      resultCount: page.items.length,
+    })
     return customerPortalJson({ data: page.items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
