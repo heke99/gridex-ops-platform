@@ -1,0 +1,208 @@
+-- Finalize authenticate_integration_request_v1 so the caller supplies only the
+-- route cost (read=1, write=2, expensive=5). The canonical per-client base
+-- limit is read inside the same function, preserving a single DB roundtrip.
+
+begin;
+set local search_path = public, pg_catalog;
+
+drop function if exists public.authenticate_integration_request_v1(
+  text,text,text,text[],text[],text,text,integer,integer
+);
+
+create or replace function public.authenticate_integration_request_v1(
+  p_key_prefix text,
+  p_secret_hash text,
+  p_route text,
+  p_required_all text[] default array[]::text[],
+  p_required_any text[] default array[]::text[],
+  p_client_ip text default null,
+  p_origin text default null,
+  p_rate_limit_cost integer default 1,
+  p_window_seconds integer default 60
+)
+returns table (
+  auth_outcome text,
+  error_code text,
+  tenant_status text,
+  client_id uuid,
+  company_id uuid,
+  client_name text,
+  client_status text,
+  key_prefix text,
+  secret_hash text,
+  scopes text[],
+  allowed_ips text[],
+  allowed_origins text[],
+  metadata jsonb,
+  rate_limit_per_minute integer,
+  expires_at timestamptz,
+  request_count integer,
+  route_limit integer,
+  reset_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_client public.integration_api_clients%rowtype;
+  v_tenant_status text;
+  v_rate record;
+  v_required text;
+  v_scope_ok boolean;
+  v_ip_ok boolean := true;
+  v_route_limit integer;
+begin
+  if nullif(btrim(coalesce(p_key_prefix,'')),'') is null
+     or nullif(btrim(coalesce(p_secret_hash,'')),'') is null
+     or nullif(btrim(coalesce(p_route,'')),'') is null then
+    raise exception 'credential prefix/hash and route are required' using errcode='22023';
+  end if;
+
+  select c.* into v_client
+  from public.integration_api_clients c
+  where c.key_prefix = p_key_prefix
+    and c.secret_hash = p_secret_hash
+    and c.deleted_at is null
+  limit 1;
+
+  if v_client.id is null then
+    return query select
+      'denied'::text,'invalid_api_token'::text,null::text,
+      null::uuid,null::uuid,null::text,null::text,null::text,null::text,
+      null::text[],null::text[],null::text[],null::jsonb,null::integer,
+      null::timestamptz,null::integer,null::integer,null::timestamptz;
+    return;
+  end if;
+
+  v_route_limit := greatest(
+    1,
+    floor(
+      v_client.rate_limit_per_minute::numeric /
+      greatest(1, least(coalesce(p_rate_limit_cost,1), 100))::numeric
+    )::integer
+  );
+
+  select c.status into v_tenant_status
+  from public.companies c
+  where c.id = v_client.company_id;
+
+  if v_client.status <> 'active' or v_client.revoked_at is not null then
+    return query select 'denied','api_client_inactive',v_tenant_status,
+      v_client.id,v_client.company_id,v_client.name,v_client.status,
+      v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+      v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+      v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+    return;
+  end if;
+
+  if v_client.expires_at is not null and v_client.expires_at <= clock_timestamp() then
+    return query select 'denied','api_token_expired',v_tenant_status,
+      v_client.id,v_client.company_id,v_client.name,v_client.status,
+      v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+      v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+      v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+    return;
+  end if;
+
+  if v_tenant_status is null then
+    return query select 'unavailable','tenant_status_unavailable',null::text,
+      v_client.id,v_client.company_id,v_client.name,v_client.status,
+      v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+      v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+      v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+    return;
+  end if;
+
+  if v_tenant_status <> 'active' then
+    return query select 'denied','tenant_' || v_tenant_status,v_tenant_status,
+      v_client.id,v_client.company_id,v_client.name,v_client.status,
+      v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+      v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+      v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+    return;
+  end if;
+
+  foreach v_required in array coalesce(p_required_all,array[]::text[]) loop
+    if not public.integration_api_scope_present_v1(v_client.scopes,v_required) then
+      return query select 'denied','api_scope_missing',v_tenant_status,
+        v_client.id,v_client.company_id,v_client.name,v_client.status,
+        v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+        v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+        v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+      return;
+    end if;
+  end loop;
+
+  if cardinality(coalesce(p_required_any,array[]::text[])) > 0 then
+    select bool_or(public.integration_api_scope_present_v1(v_client.scopes,s))
+      into v_scope_ok
+    from unnest(p_required_any) s;
+    if not coalesce(v_scope_ok,false) then
+      return query select 'denied','api_scope_missing',v_tenant_status,
+        v_client.id,v_client.company_id,v_client.name,v_client.status,
+        v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+        v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+        v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+      return;
+    end if;
+  end if;
+
+  if cardinality(coalesce(v_client.allowed_ips,array[]::text[])) > 0 then
+    v_ip_ok := false;
+    if p_client_ip is not null and pg_input_is_valid(p_client_ip,'inet') then
+      select exists(
+        select 1
+        from unnest(v_client.allowed_ips) rule
+        where pg_input_is_valid(rule,'inet')
+          and p_client_ip::inet <<= rule::inet
+      ) into v_ip_ok;
+    end if;
+    if not v_ip_ok then
+      return query select 'denied','api_ip_not_allowed',v_tenant_status,
+        v_client.id,v_client.company_id,v_client.name,v_client.status,
+        v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+        v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+        v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+      return;
+    end if;
+  end if;
+
+  if cardinality(coalesce(v_client.allowed_origins,array[]::text[])) > 0
+     and p_origin is not null
+     and not (p_origin = any(v_client.allowed_origins)) then
+    return query select 'denied','api_origin_not_allowed',v_tenant_status,
+      v_client.id,v_client.company_id,v_client.name,v_client.status,
+      v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+      v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+      v_client.expires_at,null::integer,v_route_limit,null::timestamptz;
+    return;
+  end if;
+
+  select * into v_rate
+  from public.integration_api_rate_limit_check(
+    v_client.id,
+    p_route,
+    v_route_limit,
+    p_window_seconds
+  );
+
+  return query select
+    case when v_rate.allowed then 'allowed' else 'rate_limited' end,
+    case when v_rate.allowed then null::text else 'rate_limited'::text end,
+    v_tenant_status,
+    v_client.id,v_client.company_id,v_client.name,v_client.status,
+    v_client.key_prefix,v_client.secret_hash,v_client.scopes,v_client.allowed_ips,
+    v_client.allowed_origins,v_client.metadata,v_client.rate_limit_per_minute,
+    v_client.expires_at,v_rate.request_count,v_rate.limit_value,v_rate.reset_at;
+end;
+$$;
+
+revoke all on function public.authenticate_integration_request_v1(
+  text,text,text,text[],text[],text,text,integer,integer
+) from public, anon, authenticated;
+grant execute on function public.authenticate_integration_request_v1(
+  text,text,text,text[],text[],text,text,integer,integer
+) to service_role;
+
+commit;
