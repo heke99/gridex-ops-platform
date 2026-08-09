@@ -30,14 +30,17 @@ conflict aggregates without reopening conflict-row details.
 Forward migration
 `20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql`:
 
-1. adds `gridex_actor_open_blocking_conflict_counts()` (`SECURITY DEFINER`,
-   `search_path` pinned) returning only `(actor_id, open_blocking_conflicts)`;
-2. patches the `conflicts` CTE in `actor_readiness_status` to use that helper;
-3. keeps `security_invoker` on the readiness view;
-4. revokes authenticated/anon SELECT on service-role dashboard views
+1. adds `gridex_private.gridex_actor_open_blocking_conflict_counts()`
+   (`SECURITY DEFINER`, hardened `search_path`) returning only
+   `(actor_id, open_blocking_conflicts)` from a non-PostgREST schema;
+2. grants only the SQL privileges needed for authenticated/service-role view
+   evaluation while keeping the helper out of the exposed `public` RPC surface;
+3. patches the `conflicts` CTE in `actor_readiness_status` to use that helper;
+4. keeps `security_invoker` on the readiness view;
+5. revokes authenticated/anon SELECT on service-role dashboard views
    (`actor_readiness_by_role_v`, role-specific readiness views) while preserving
    `service_role` SELECT;
-5. leaves conflict-row RLS and historical migrations unchanged.
+6. leaves conflict-row RLS and historical migrations unchanged.
 
 ## Verification
 
