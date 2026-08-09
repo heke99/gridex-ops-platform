@@ -1,0 +1,64 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const crypto = require('crypto')
+const fs = require('fs')
+const path = require('path')
+
+const root = process.cwd()
+const migrationName = '20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql'
+const migrationPath = path.join(root, 'supabase', 'migrations', migrationName)
+const additionsPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
+const pagePath = path.join(root, 'app', 'admin', 'network-owners', 'page.tsx')
+const sqlRegressionPath = path.join(root, 'scripts', 'gridex-ops-bl-006-contacts-and-lookup-cache-read-isolation-regression.sql')
+
+function fail(message) { console.error(`GRIDEX-OPS-BL-006 static regression failed: ${message}`); process.exit(1) }
+function check(condition, message) { if (!condition) fail(message) }
+
+check(fs.existsSync(migrationPath), `missing migration ${migrationName}`)
+check(fs.existsSync(sqlRegressionPath), 'missing SQL rollback regression script')
+check(fs.existsSync(pagePath), 'missing network-owners page')
+
+const migrationSql = fs.readFileSync(migrationPath, 'utf8')
+const checksum = crypto.createHash('sha256').update(fs.readFileSync(migrationPath)).digest('hex')
+const additions = JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
+const pageSource = fs.readFileSync(pagePath, 'utf8')
+
+const tables = ['platform_actor_contacts','platform_address_lookup_cache','platform_energy_lookup_cache']
+for (const table of tables) {
+  check(migrationSql.includes(`alter table public.${table} enable row level security`), `${table} RLS enable missing`)
+  check(migrationSql.includes(`${table}_platform_admin_read`), `${table} platform-admin read policy missing`)
+  check(migrationSql.includes(`${table}_service_role_read`), `${table} service-role read policy missing`)
+}
+
+check(migrationSql.includes("r.rolname in ('anon', 'authenticated', 'authenticator')"), 'generated external-role policy cleanup missing')
+check(migrationSql.includes("p.polcmd = 'r'"), 'SELECT-policy-only cleanup guard missing')
+check(migrationSql.includes('drop policy if exists %I on public.%I'), 'dynamic generated-policy drop missing')
+check(migrationSql.includes('revoke select on table') && migrationSql.includes('from public, anon'), 'PUBLIC/anon table SELECT revoke missing')
+check(migrationSql.includes('grant select on table') && migrationSql.includes('to authenticated, service_role'), 'explicit Data API grants missing')
+check(migrationSql.includes('gridex_user_is_platform_admin()'), 'platform-admin helper missing')
+check(migrationSql.includes('bl006_external_read_policy_residual'), 'fail-closed residual-policy check missing')
+check(migrationSql.includes("pg_get_expr(p.polqual, p.polrelid, true) ilike '%auth.uid()%IS NOT NULL%'"), 'broad auth.uid residual detection missing')
+check(additions.files?.[migrationName] === checksum, 'migration checksum missing or mismatched in additions manifest')
+
+check(pageSource.includes("from '@/lib/supabase/service'"), 'network-owners page missing supabaseService import')
+check(/supabaseService\s*\n?\s*\.from\('actor_registry_import_runs'\)/.test(pageSource), 'import history must use supabaseService after platform-admin gate')
+
+const consumerFiles = [
+  'app/admin/ediel/route-readiness/page.tsx',
+  'app/admin/ediel/route-readiness/actions.ts',
+  'app/api/admin/ediel/supplier-contacts/export/route.ts',
+  'lib/energy/resolver.ts',
+]
+for (const relative of consumerFiles) {
+  const source = fs.readFileSync(path.join(root, relative), 'utf8')
+  if (relative.includes('resolver')) {
+    check(source.includes("from('platform_address_lookup_cache')"), `${relative} address cache consumer missing`)
+    check(source.includes('supabaseService'), `${relative} must use service role for lookup cache`)
+  } else {
+    check(source.includes("from('platform_actor_contacts')"), `${relative} contacts consumer missing`)
+    check(source.includes('supabaseService'), `${relative} must use service role for contacts`)
+  }
+}
+
+console.log('GRIDEX-OPS-BL-006 static regression passed.')
+console.log(`Migration: ${migrationName}`)
+console.log(`Checksum: ${checksum}`)

@@ -5,7 +5,7 @@ const MAX_OBJECT_KEYS = 50
 const MAX_DEPTH = 5
 
 const SECRET_KEY_PATTERN = /(^|_)(authorization|cookie|set_cookie|password|passwd|secret|token|access_token|refresh_token|api_key|apikey|private_key|client_secret|signature|raw|payload|body|document|content|certificate|pem|sql|query|statement)(_|$)/i
-const PERSONAL_KEY_PATTERN = /(^|_)(email|e_mail|phone|mobile|personnummer|personal_number|personal_id|ssn|ip|ip_address|address|first_name|last_name|full_name)(_|$)/i
+const PERSONAL_KEY_PATTERN = /(^|_)(email|e_mail|phone|mobile|personnummer|person_number|personal_number|personal_id|ssn|ip|ip_address|address|first_name|last_name|full_name)(_|$)/i
 
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 const SWEDISH_PERSON_NUMBER_PATTERN = /\b(?:19|20)?\d{6}[-+]?\d{4}\b/g
