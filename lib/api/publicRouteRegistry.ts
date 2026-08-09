@@ -3,10 +3,24 @@ export type PublicApiRouteContract = {
   path: string
   publicPath?: string
   scopes: string[]
+  scopeMode?: 'all' | 'any'
   description: string
   idempotencyRequired?: boolean
   rateLimitClass: 'read' | 'write' | 'expensive'
 }
+
+const PORTAL_BUNDLE_READ_SCOPES = [
+  'customer_profile.read',
+  'customer_sites.read',
+  'customer_contracts.read',
+  'customer_invoices.read',
+  'customer_metering.read',
+  'customer_legal.read',
+  'customer_events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_power_of_attorney.read',
+] as const
 
 /** Canonical source for the public V1 endpoint catalogue and documentation. */
 export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
@@ -39,14 +53,14 @@ export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'POST', path: '/api/v1/website/quote/validate', scopes: ['website_quotes.validate'], description: 'Validera att quote_reference fortfarande matchar tenant, offer, kundtyp, SE-område, förbrukning och startdatum.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/energy-area/resolve', scopes: ['website_energy_area.resolve'], description: 'Lös SE1–SE4 med separat price-area assurance; nätområde, nätägare och EDIFACT har egna readiness-krav.', rateLimitClass: 'expensive' },
   { method: 'GET', path: '/api/v1/website/switch-status', scopes: ['website_switch_status.read'], description: 'Läs aktuell leverantörsbytesstatus via tenantens application_number.', rateLimitClass: 'read' },
-  { method: 'GET', path: '/api/v1/website/legal-bundle', scopes: ['website_legal.read', 'website_contracts.read'], description: 'Hämta publicerade juridikversioner och länkar. Ett av angivna scopes räcker.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/website/legal-bundle', scopes: ['website_legal.read', 'website_contracts.read'], scopeMode: 'any', description: 'Hämta publicerade juridikversioner och länkar. Ett av angivna scopes räcker.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/customer-applications', scopes: ['website_applications.write'], description: 'Skapa kundansökan och juridiska godkännanden.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/website/customer-applications/[applicationId]', publicPath: '/api/v1/website/customer-applications/[application_number]', scopes: ['website_switch_status.read'], description: 'Läs tenant-skopad status för en accepterad kundansökan och OPS fortsatta automation.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/customer-events', scopes: ['website_events.write'], description: 'Skicka kundhändelse från hemsida eller kundportal.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/events', scopes: ['website_events.write'], description: 'Skicka kundhändelse.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/events', scopes: ['events.read'], description: 'Läs bolagets domänhändelser.', rateLimitClass: 'read' },
-  { method: 'GET', path: '/api/v1/customer/portal-bundle', scopes: ['customer_portal.read'], description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
-  { method: 'POST', path: '/api/v1/customer/portal-bundle', scopes: ['customer_portal.read'], description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/portal-bundle', scopes: [...PORTAL_BUNDLE_READ_SCOPES], scopeMode: 'all', description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/customer/portal-bundle', scopes: [...PORTAL_BUNDLE_READ_SCOPES], scopeMode: 'all', description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/customer-portal/sync', scopes: ['customer_sync.write'], description: 'Länka eller granska extern portalidentitet.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/customer/sync', scopes: ['customer_sync.write'], description: 'Synka kundkompletteringar till OPS.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/customer/me', scopes: ['customer_profile.read'], description: 'Hämta länkad kundprofil.', rateLimitClass: 'read' },
@@ -65,9 +79,21 @@ export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'POST', path: '/api/v1/customer/move-out', scopes: ['customer_facility_data.write'], description: 'Skicka flyttanmälan.', idempotencyRequired: true, rateLimitClass: 'write' },
 ]
 
+export function publicApiOperationId(route: Pick<PublicApiRouteContract, 'method' | 'publicPath' | 'path'>): string {
+  const path = route.publicPath ?? route.path
+  const words = path
+    .split('/')
+    .filter(Boolean)
+    .flatMap((segment) => segment.replace(/^\[|\]$/g, '').split(/[^a-zA-Z0-9]+/))
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('')
+  return `${route.method.toLowerCase()}${words}`
+}
+
 export const PUBLIC_API_ENDPOINT_ROWS = PUBLIC_API_ROUTES.map((route) => [
   route.method,
   route.publicPath ?? route.path,
-  route.scopes.join(' eller '),
+  route.scopes.join(route.scopeMode === 'all' ? ' och ' : ' eller '),
   `${route.description}${route.idempotencyRequired ? ' Idempotency-Key krävs.' : ''}`,
 ] as const)
