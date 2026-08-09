@@ -74,7 +74,7 @@ function certificateRequired(runtime: EdielRouteRuntimeRow, message: EdielMessag
 function certificateUsable(row: CertificateRow, message: EdielMessageRow, runtime: EdielRouteRuntimeRow): string | null {
   const now = Date.now()
   const status = clean(row.status)?.toLowerCase()
-  if (status && !['valid', 'active'].includes(status)) return `receiver_certificate_status_${status}`
+  if (status && !['valid', 'active', 'renewal_available'].includes(status)) return `receiver_certificate_status_${status}`
   const validFrom = clean(row.valid_from)
   if (validFrom && new Date(validFrom).getTime() > now) return 'receiver_certificate_not_yet_valid'
   const validTo = clean(row.valid_to)

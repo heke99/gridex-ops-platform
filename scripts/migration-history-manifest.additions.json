@@ -7,6 +7,7 @@
     "20260806151106_gridex_aud_001_customer_document_storage_isolation.sql": "0d51528c3d7dcb8e2bd2c92cb8d83eea9212438232d25bb5422158be43d46d16",
     "20260806152004_gridex_aud_001_storage_helper_private_schema.sql": "ae8274a9a37a1ecf672ae1257ee225619fbc48369aaf929af5f07f63e8241d5f",
     "20260808214500_grid_owner_direct_actor_join_performance.sql": "c5b1eb1c23f6423845ac3b93053d997c9244112dd7d2376183b0e550ed9bfd43",
-    "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37d69b37adcc3"
+    "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37d69b37adcc3",
+    "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94"
   }
 }
