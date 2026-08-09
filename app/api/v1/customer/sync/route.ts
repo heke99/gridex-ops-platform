@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
+import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -14,13 +15,17 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-  const body = parseTenantCustomerSyncPayload(
-    await readJsonObject(request),
-  ) as TenantCustomerSyncPayload
-  const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'])
-  if (!context.ok) return context.response
+  const startedAt = Date.now()
+  let client: IntegrationApiClient | null = null
 
   try {
+    const body = parseTenantCustomerSyncPayload(
+      await readJsonObject(request),
+    ) as TenantCustomerSyncPayload
+    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'])
+    if (!context.ok) return context.response
+    client = context.client
+
     const write = await executeIdempotentPortalWrite<Record<string, unknown>>({
       request,
       companyId: context.client.company_id,
@@ -55,6 +60,6 @@ export async function POST(request: NextRequest) {
     })
     return customerPortalJson(write.body, { status: write.statusCode })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
+    return handleCustomerPortalRouteError({ request, client, startedAt, error })
   }
 }

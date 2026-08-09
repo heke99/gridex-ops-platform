@@ -356,15 +356,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await readJsonObject(request)
-  const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_profile.read', 'customer_sites.read', 'customer_contracts.read', 'customer_invoices.read', 'customer_metering.read', 'customer_legal.read', 'customer_events.read', 'customer_documents.read', 'customer_notifications.read', 'customer_power_of_attorney.read'])
-  if (!context.ok) return context.response
-  return buildBundleResponse({
-    request,
-    client: context.client,
-    identity: context.identity,
-    startedAt: context.startedAt,
-    accessMode: 'json_payload',
-    options: parseBundleOptions(request),
-  })
+  const startedAt = Date.now()
+  let client: IntegrationApiClient | null = null
+
+  try {
+    const body = await readJsonObject(request)
+    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_profile.read', 'customer_sites.read', 'customer_contracts.read', 'customer_invoices.read', 'customer_metering.read', 'customer_legal.read', 'customer_events.read', 'customer_documents.read', 'customer_notifications.read', 'customer_power_of_attorney.read'])
+    if (!context.ok) return context.response
+    client = context.client
+    return buildBundleResponse({
+      request,
+      client: context.client,
+      identity: context.identity,
+      startedAt: context.startedAt,
+      accessMode: 'json_payload',
+      options: parseBundleOptions(request),
+    })
+  } catch (error) {
+    return handleCustomerPortalRouteError({ request, client, startedAt, error })
+  }
 }
