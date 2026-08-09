@@ -9,6 +9,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import {
   customerPortalJson,
+  handleCustomerPortalRouteError,
   normalizeDigits,
   normalizeEmail,
   normalizeFacility,
@@ -57,21 +58,6 @@ function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
-}
-
-function serializePortalSyncError(error: unknown): Record<string, unknown> {
-  if (!error || typeof error !== 'object') {
-    return { message: String(error ?? 'Okänt fel') }
-  }
-
-  const record = error as Record<string, unknown>
-  return {
-    name: error instanceof Error ? error.name : undefined,
-    message: error instanceof Error ? error.message : record.message,
-    code: record.code,
-    details: record.details,
-    hint: record.hint,
-  }
 }
 
 function strongMatch(input: {
@@ -363,15 +349,13 @@ export async function POST(request: NextRequest) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
     return customerPortalJson({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
   } catch (error) {
-    const errorMetadata = serializePortalSyncError(error)
-    await logIntegrationApiRequest({
-      client: auth.client,
+    // Preserve controlled ApiInputError statuses (400/413/…) from readJsonObject
+    // and shared portal contracts. Unexpected failures remain generic 500.
+    return handleCustomerPortalRouteError({
       request,
-      statusCode: 500,
+      client: auth.client,
       startedAt,
-      errorCode: 'Kundlänkning kunde inte behandlas.',
-      metadata: { portal_sync_error: errorMetadata },
+      error,
     })
-    return customerPortalJson({ error: 'Kundlänkning kunde inte behandlas.' }, { status: 500 })
   }
 }
