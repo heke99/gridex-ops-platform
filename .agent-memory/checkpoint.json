@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-09T09:45:00Z",
+  "updated_at": "2026-08-09T09:46:00Z",
   "branch": "cursor/codebase-health-and-stability-8f9d",
   "base_main_sha": "6c86e547131f50472def8893ce2861c6e06a7ba2",
   "active_phase": "POST_MERGE_HEALTH_FOLLOWUP",
@@ -19,8 +19,16 @@
       "verification-before-completion",
       "scan-secrets"
     ],
-    "conditional": ["fp-check", "variant-analysis"],
-    "skipped": ["threat-model-analyst", "quality-playbook", "install-hooks", "web-design-guidelines"]
+    "conditional": [
+      "fp-check",
+      "variant-analysis"
+    ],
+    "skipped": [
+      "threat-model-analyst",
+      "quality-playbook",
+      "install-hooks",
+      "web-design-guidelines"
+    ]
   },
   "implemented": {
     "migration": "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql",
@@ -39,6 +47,7 @@
     "destructive empty-database replay",
     "GitHub Actions hosted runner billing"
   ],
-  "next_action": "Open PR, then stage-apply migration and run SQL rollback regression.",
-  "resume_from": ".agent-memory/handover.md"
+  "next_action": "Await review/merge of PR #91; then stage-apply migration and run SQL rollback regression.",
+  "resume_from": ".agent-memory/handover.md",
+  "pr": 91
 }
