@@ -14,6 +14,7 @@ import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors
 import {
   buildPublicContractRepresentationEtag,
   ifNoneMatchMatches,
+  loadPublicContractFeedFingerprint,
   loadPublicationRevision,
   parsePublicContractsQuery,
   PublicContractsQueryError,
@@ -77,22 +78,52 @@ export async function GET(request: NextRequest) {
 
   let currentTenantReference: string | null = null
   try {
-    const [revision, tenant] = await Promise.all([
-      loadPublicationRevision(auth.context.companyId, 'website'),
+    const [fingerprint, tenant] = await Promise.all([
+      loadPublicContractFeedFingerprint({
+        companyId: auth.context.companyId,
+        customerType: query.customerType,
+        channel: 'website',
+      }),
       loadExternalTenantContext(auth.client),
     ])
     currentTenantReference = tenant.tenant_reference
+
+    const revision = fingerprint
+      ? {
+          revision: fingerprint.revision,
+          updatedAt: fingerprint.updatedAt,
+        }
+      : await loadPublicationRevision(auth.context.companyId, 'website')
+
     const headers = responseHeaders({
+      etag: fingerprint?.etag,
       limit: auth.rateLimit.limit,
       remaining: auth.rateLimit.remaining,
       resetAt: auth.rateLimit.resetAt,
       requestId: currentRequestId,
     })
 
-    // The canonical feed must be loaded and serialized before evaluating
-    // If-None-Match. Revision counters are operational metadata, not a safe
-    // representation fingerprint because time windows and dependencies can
-    // change the response without incrementing the counter.
+    // In migrated environments the dependency fingerprint covers the same
+    // canonical sources used below (including date-sensitive readiness and
+    // pricing/legal/portfolio dependencies). A matching ETag can therefore
+    // return 304 before feed materialisation. Environments that have not yet
+    // received the migration fall back to the existing representation hash.
+    if (!query.diagnostics && fingerprint && ifNoneMatchMatches(request, fingerprint.etag)) {
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: 304,
+        startedAt,
+        metadata: {
+          request_id: currentRequestId,
+          publication_revision: revision.revision,
+          feed_fingerprint_etag: fingerprint.etag,
+          early_not_modified: true,
+        },
+      })
+      return new NextResponse(null, { status: 304, headers })
+    }
+
     const offers = await listPublicContractOffers({ client: auth.client, customerType: query.customerType })
     const data: Record<string, unknown>[] = []
     const mappingIssues: Array<{
@@ -110,21 +141,12 @@ export async function GET(request: NextRequest) {
           }),
         )
       } catch (mappingError) {
-        const mapping = mappingError as {
-          name?: unknown
-          code?: unknown
-          path?: unknown
-        }
-        const offerReference =
-          offer.canonical_offer_reference ?? offer.offer_code ?? offer.id
+        const mapping = mappingError as { name?: unknown; code?: unknown; path?: unknown }
+        const offerReference = offer.canonical_offer_reference ?? offer.offer_code ?? offer.id
         mappingIssues.push({
           canonical_offer_reference: offerReference,
-          publication_version_id:
-            offer.contract_publication_version_id ?? null,
-          diagnostic_code:
-            typeof mapping.code === 'string'
-              ? mapping.code
-              : 'PUBLIC_CONTRACT_SCHEMA_INVALID',
+          publication_version_id: offer.contract_publication_version_id ?? null,
+          diagnostic_code: typeof mapping.code === 'string' ? mapping.code : 'PUBLIC_CONTRACT_SCHEMA_INVALID',
         })
         console.error('[public-contracts] rejected malformed publication', {
           requestId: currentRequestId,
@@ -142,9 +164,8 @@ export async function GET(request: NextRequest) {
         })
       }
     }
-    if (mappingIssues.length > 0) {
-      throw new PublicContractFeedConsistencyError(mappingIssues)
-    }
+    if (mappingIssues.length > 0) throw new PublicContractFeedConsistencyError(mappingIssues)
+
     const canonicalDiagnostics = query.diagnostics || data.length === 0
       ? await diagnosePublicContractOffers({ client: auth.client, customerType: query.customerType })
       : null
@@ -168,31 +189,21 @@ export async function GET(request: NextRequest) {
           },
         ])
       }
-      const blockers = Array.from(
-        new Set(canonicalDiagnostics.offers.flatMap((offer) => offer.blockers)),
-      ).sort()
+      const blockers = Array.from(new Set(canonicalDiagnostics.offers.flatMap((offer) => offer.blockers))).sort()
       const affectedOfferReferences = Array.from(
-        new Set(
-          canonicalDiagnostics.offers
-            .map((offer) => offer.offer_reference)
-            .filter((value): value is string => Boolean(value)),
-        ),
+        new Set(canonicalDiagnostics.offers.map((offer) => offer.offer_reference).filter((value): value is string => Boolean(value))),
       ).sort()
       const reason = canonicalDiagnostics.total === 0
         ? 'no_canonical_publications'
-        : canonicalDiagnostics.offers.every((offer) =>
-            offer.blockers.includes('PUBLICATION_EXPIRED'),
-          )
+        : canonicalDiagnostics.offers.every((offer) => offer.blockers.includes('PUBLICATION_EXPIRED'))
           ? 'publication_validity_ended'
           : canonicalDiagnostics.offers.every((offer) =>
-              offer.blockers.some((blocker) =>
-                [
-                  'PUBLICATION_NOT_PUBLISHED',
-                  'PUBLICATION_VERSION_NOT_PUBLISHED',
-                  'WEBSITE_PUBLICATION_NOT_PUBLISHED',
-                  'PUBLICATION_MISSING',
-                ].includes(blocker),
-              ),
+              offer.blockers.some((blocker) => [
+                'PUBLICATION_NOT_PUBLISHED',
+                'PUBLICATION_VERSION_NOT_PUBLISHED',
+                'WEBSITE_PUBLICATION_NOT_PUBLISHED',
+                'PUBLICATION_MISSING',
+              ].includes(blocker)),
             )
             ? 'canonical_unpublished_or_archived'
             : 'canonical_no_visible_contracts'
@@ -205,6 +216,7 @@ export async function GET(request: NextRequest) {
         blockers,
       }
     })()
+
     const responseBody = {
       data,
       contracts: data,
@@ -223,7 +235,8 @@ export async function GET(request: NextRequest) {
       ...(diagnosticsPayload ? { diagnostics: diagnosticsPayload } : {}),
       request_id: currentRequestId,
     }
-    const representationEtag = buildPublicContractRepresentationEtag({
+
+    const responseEtag = fingerprint?.etag ?? buildPublicContractRepresentationEtag({
       tenantReference: tenant.tenant_reference,
       channel: 'website',
       customerType: query.customerType,
@@ -233,9 +246,9 @@ export async function GET(request: NextRequest) {
       emptyFeedAuthorization,
       ...(diagnosticsPayload ? { diagnostics: diagnosticsPayload } : {}),
     })
-    headers.ETag = representationEtag
+    headers.ETag = responseEtag
 
-    if (!query.diagnostics && ifNoneMatchMatches(request, representationEtag)) {
+    if (!fingerprint && !query.diagnostics && ifNoneMatchMatches(request, responseEtag)) {
       await logIntegrationApiRequest({
         client: auth.client,
         request,
@@ -244,7 +257,8 @@ export async function GET(request: NextRequest) {
         metadata: {
           request_id: currentRequestId,
           publication_revision: revision.revision,
-          representation_etag: representationEtag,
+          representation_etag: responseEtag,
+          early_not_modified: false,
         },
       })
       return new NextResponse(null, { status: 304, headers })
@@ -262,7 +276,8 @@ export async function GET(request: NextRequest) {
         customer_type: query.customerType,
         diagnostics: query.diagnostics,
         publication_revision: revision.revision,
-        representation_etag: representationEtag,
+        response_etag: responseEtag,
+        fingerprint_fast_path: Boolean(fingerprint),
       },
     })
     await logUsageEvent({
@@ -280,7 +295,7 @@ export async function GET(request: NextRequest) {
         rejected_contracts: 0,
         customer_type: query.customerType,
         diagnostics: query.diagnostics,
-        representation_etag: representationEtag,
+        response_etag: responseEtag,
       },
     })
 
@@ -300,10 +315,9 @@ export async function GET(request: NextRequest) {
       databaseCode: classified.databaseCode,
       contractVersion: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
       schema: 'website-integration-v1.json',
-      errorName:
-        error && typeof error === 'object' && 'name' in error
-          ? String((error as { name?: unknown }).name ?? '')
-          : null,
+      errorName: error && typeof error === 'object' && 'name' in error
+        ? String((error as { name?: unknown }).name ?? '')
+        : null,
     })
     await logIntegrationApiRequest({
       client: auth.client,
