@@ -39,14 +39,21 @@ const autoReadiness = fs.readFileSync(autoReadinessPath, 'utf8')
 const listGridOwners = fs.readFileSync(listGridOwnersPath, 'utf8')
 
 check(
-  migrationSql.includes('create or replace function public.gridex_actor_open_blocking_conflict_counts()'),
-  'conflict-count helper missing'
+  migrationSql.includes('create or replace function gridex_private.gridex_actor_open_blocking_conflict_counts()'),
+  'private conflict-count helper missing'
 )
 check(migrationSql.includes('security definer'), 'helper must be SECURITY DEFINER')
-check(migrationSql.includes("set search_path = public, pg_temp"), 'helper search_path hardening missing')
 check(
-  migrationSql.includes('gridex_actor_open_blocking_conflict_counts()'),
-  'view patch must call conflict-count helper'
+  migrationSql.includes('set search_path = pg_catalog, gridex_private, pg_temp'),
+  'helper search_path hardening missing'
+)
+check(
+  migrationSql.includes('gridex_private.gridex_actor_open_blocking_conflict_counts()'),
+  'view patch must call private conflict-count helper'
+)
+check(
+  !migrationSql.includes('create or replace function public.gridex_actor_open_blocking_conflict_counts()'),
+  'conflict-count helper must not be created in exposed public schema'
 )
 check(
   migrationSql.includes('revoke select on') && migrationSql.includes('actor_readiness_by_role_v'),
