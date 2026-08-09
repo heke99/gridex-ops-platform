@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { readJsonObject } from '@/lib/api/strictRequest'
-import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
-import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
+import {
+  loadPortalStatusSnapshot,
+  readPortalBundlePages,
+} from '@/lib/customer-portal/bundleReadModel'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -10,164 +11,52 @@ import {
   portalIdentifiersFromPayload,
   requireCustomerPortalApiContext,
   requireCustomerPortalApiContextForIdentifiers,
+  type LinkedPortalIdentity,
 } from '@/lib/customer-portal/externalApi'
-import {
-  listPortalContracts,
-  listPortalDocuments,
-  listPortalEvents,
-  listPortalInvoices,
-  listPortalLegalAcceptances,
-  listPortalMeteringPoints,
-  listPortalMeteringValues,
-  listPortalNotifications,
-  listPortalPowersOfAttorney,
-  listPortalSites,
-  listPortalWebsiteApplications,
-  portalContextFromResolved,
-  portalQueryErrorMetadata,
-} from '@/lib/customer-portal/apiData'
+import { publicPortalCustomer } from '@/lib/customer-portal/publicDto'
+import { publicPortalIdentity } from '@/lib/customer-portal/publicIdentity'
 import {
   buildPortalCustomerStatus,
   displayNameFromCustomer,
   hasContractPricePlan,
   removeFalsePricePlanBlockers,
 } from '@/lib/customer-portal/status'
-import {
-  publicPortalBundleRows,
-  publicPortalCustomer,
-} from '@/lib/customer-portal/publicDto'
+import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { startRouteTimer } from '@/lib/performance/timing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Optional heavy sections that callers may exclude or limit. Core sections
-// (contracts, sites, metering points, powers of attorney, legal acceptances,
-// website applications) are always loaded because the derived customer_status
-// depends on them. When no options are supplied the full default bundle is
-// returned unchanged for backward compatibility.
 const OPTIONAL_SECTIONS = ['metering_values', 'documents', 'events', 'invoices', 'notifications'] as const
 type OptionalSection = (typeof OPTIONAL_SECTIONS)[number]
 
 type BundleOptions = {
   summary: boolean
   includedOptionalSections: Set<OptionalSection>
-  meteringValuesLimit: number | null
-  documentsLimit: number | null
-  eventsLimit: number | null
 }
-
-const SUMMARY_HEAVY_LIMIT = 30
 
 function parseBooleanFlag(value: string | null): boolean {
   return value === '1' || value === 'true' || value === 'yes'
 }
 
-function parseLimitParam(value: string | null): number | null {
-  if (!value) return null
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null
-}
-
 function parseBundleOptions(request: NextRequest): BundleOptions {
   const params = request.nextUrl.searchParams
   const summary = parseBooleanFlag(params.get('summary'))
-
   const includeRaw = params.get('include')
-  let includedOptionalSections: Set<OptionalSection>
-  if (includeRaw && includeRaw.trim()) {
-    const requested = new Set(
-      includeRaw
-        .split(',')
-        .map((part) => part.trim().toLowerCase())
-        .filter(Boolean)
-    )
-    includedOptionalSections = new Set(OPTIONAL_SECTIONS.filter((section) => requested.has(section)))
-  } else {
-    includedOptionalSections = new Set(OPTIONAL_SECTIONS)
-  }
+  const includedOptionalSections = includeRaw && includeRaw.trim()
+    ? new Set<OptionalSection>(
+        OPTIONAL_SECTIONS.filter((section) =>
+          new Set(
+            includeRaw
+              .split(',')
+              .map((part) => part.trim().toLowerCase())
+              .filter(Boolean),
+          ).has(section),
+        ),
+      )
+    : new Set<OptionalSection>(OPTIONAL_SECTIONS)
 
-  const summaryLimit = summary ? SUMMARY_HEAVY_LIMIT : null
-  return {
-    summary,
-    includedOptionalSections,
-    meteringValuesLimit: parseLimitParam(params.get('metering_values_limit')) ?? summaryLimit,
-    documentsLimit: parseLimitParam(params.get('documents_limit')) ?? summaryLimit,
-    eventsLimit: parseLimitParam(params.get('events_limit')) ?? summaryLimit,
-  }
-}
-
-type PortalRows = Array<Record<string, unknown>>
-type BundleSection =
-  | 'contracts'
-  | 'sites'
-  | 'metering_points'
-  | 'invoices'
-  | 'metering_values'
-  | 'documents'
-  | 'legal_acceptances'
-  | 'powers_of_attorney'
-  | 'notifications'
-  | 'events'
-  | 'website_applications'
-
-type BundleWarning = {
-  section: BundleSection
-  code: 'section_unavailable'
-  message: string
-  trace_id: string
-}
-
-const REQUIRED_BUNDLE_SECTIONS = new Set<BundleSection>([
-  'contracts',
-  'sites',
-  'metering_points',
-  'legal_acceptances',
-  'powers_of_attorney',
-  'website_applications',
-])
-
-function safeWarning(section: BundleSection, error: unknown): BundleWarning {
-  const traceId = randomUUID()
-  // Keep provider/schema details in server logs only; the portal response must
-  // never reveal table names, SQL errors or internal integration endpoints.
-  console.error('[customer portal bundle] section failed', {
-    traceId,
-    section,
-    error: portalQueryErrorMetadata(error),
-  })
-  return {
-    section,
-    code: 'section_unavailable',
-    message: 'Den här delen av kunduppgifterna kunde inte hämtas just nu.',
-    trace_id: traceId,
-  }
-}
-
-async function optionalSection(
-  section: BundleSection,
-  read: () => Promise<PortalRows>,
-  warnings: BundleWarning[]
-): Promise<PortalRows> {
-  try {
-    return await read()
-  } catch (error) {
-    warnings.push(safeWarning(section, error))
-    return []
-  }
-}
-
-// Like optionalSection, but skips the read entirely (returning an empty array)
-// when the caller excluded the section via ?include=. The response key is still
-// present, so no public/customer response fields are removed.
-async function gatedSection(
-  section: BundleSection,
-  enabled: boolean,
-  read: () => Promise<PortalRows>,
-  warnings: BundleWarning[]
-): Promise<PortalRows> {
-  if (!enabled) return []
-  return optionalSection(section, read, warnings)
+  return { summary, includedOptionalSections }
 }
 
 async function buildBundleResponse(input: {
@@ -180,79 +69,72 @@ async function buildBundleResponse(input: {
 }) {
   const timer = startRouteTimer('/api/v1/customer/portal-bundle')
   try {
-    const portalContext = portalContextFromResolved({
+    const context = {
       companyId: input.client.company_id,
       customerId: input.identity.customer_id,
       externalCustomerId: input.identity.external_customer_id,
       customerNumber: input.identity.customer_number,
-      provider: input.identity.provider,
-    })
-    const route = '/api/v1/customer/portal-bundle'
-    const warnings: BundleWarning[] = []
-    const { options } = input
+    }
 
-    const [rawContracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events, rawWebsiteApplications] = await Promise.all([
-      optionalSection('contracts', () => listPortalContracts(portalContext, route), warnings),
-      optionalSection('sites', () => listPortalSites(portalContext, route), warnings),
-      gatedSection('invoices', options.includedOptionalSections.has('invoices'), () => listPortalInvoices(portalContext, route), warnings),
-      gatedSection('metering_values', options.includedOptionalSections.has('metering_values'), () => listPortalMeteringValues(portalContext, route, options.meteringValuesLimit), warnings),
-      gatedSection('documents', options.includedOptionalSections.has('documents'), () => listPortalDocuments(portalContext, route, options.documentsLimit), warnings),
-      optionalSection('legal_acceptances', () => listPortalLegalAcceptances(portalContext, route), warnings),
-      optionalSection('powers_of_attorney', () => listPortalPowersOfAttorney(portalContext, route), warnings),
-      gatedSection('notifications', options.includedOptionalSections.has('notifications'), () => listPortalNotifications(portalContext, route), warnings),
-      gatedSection('events', options.includedOptionalSections.has('events'), () => listPortalEvents(portalContext, route, options.eventsLimit), warnings),
-      optionalSection('website_applications', () => listPortalWebsiteApplications(portalContext, route), warnings),
+    const [pages, statusSnapshot] = await Promise.all([
+      readPortalBundlePages({
+        context,
+        searchParams: input.request.nextUrl.searchParams,
+        includedOptionalSections: input.options.includedOptionalSections,
+        summary: input.options.summary,
+      }),
+      loadPortalStatusSnapshot({
+        companyId: input.client.company_id,
+        customerId: input.identity.customer_id,
+      }),
     ])
-    const meteringPoints = await optionalSection(
-      'metering_points',
-      () => listPortalMeteringPoints(portalContext, sites, route),
-      warnings
+
+    const hasPricePlan =
+      statusSnapshot.contracts.some(hasContractPricePlan) ||
+      statusSnapshot.applications.some((application) => Boolean(
+        application.price_plan_id ||
+        application.price_plan_version_id ||
+        application.contract_id ||
+        (application.response_payload && typeof application.response_payload === 'object' && (
+          (application.response_payload as Record<string, unknown>).price_plan_id ||
+          (application.response_payload as Record<string, unknown>).price_plan_version_id ||
+          (application.response_payload as Record<string, unknown>).offer_reference
+        )),
+      ))
+
+    const statusContracts = statusSnapshot.contracts.map((row) =>
+      removeFalsePricePlanBlockers(row, hasPricePlan),
     )
-    const requiredWarnings = warnings.filter((warning) =>
-      REQUIRED_BUNDLE_SECTIONS.has(warning.section)
+    const statusApplications = statusSnapshot.applications.map((row) =>
+      removeFalsePricePlanBlockers(row, hasPricePlan),
     )
-    const responseStatus = requiredWarnings.length > 0 ? 503 : 200
-    const hasPricePlan = rawContracts.some(hasContractPricePlan) || rawWebsiteApplications.some((application) => {
-      const response = application.response_payload && typeof application.response_payload === 'object'
-        ? application.response_payload as Record<string, unknown>
-        : null
-      return Boolean(
-        response?.price_plan_id ||
-        response?.price_plan_version_id ||
-        response?.offer_reference ||
-        application.contract_id
-      )
-    })
-    const contracts = rawContracts.map((contract) => removeFalsePricePlanBlockers(contract, hasPricePlan))
-    const websiteApplications = rawWebsiteApplications.map((application) => removeFalsePricePlanBlockers(application, hasPricePlan))
     const customerStatus = buildPortalCustomerStatus({
       customer: input.identity.customer,
-      contracts,
-      sites,
-      meteringPoints,
-      powersOfAttorney,
-      legalAcceptances,
-      applications: websiteApplications,
+      contracts: statusContracts,
+      sites: statusSnapshot.sites,
+      meteringPoints: statusSnapshot.meteringPoints,
+      powersOfAttorney: statusSnapshot.powersOfAttorney,
+      legalAcceptances: statusSnapshot.legalAcceptances,
+      applications: statusApplications,
     })
-    const displayName = displayNameFromCustomer(input.identity.customer, input.identity.email ?? null)
-    const publicRows = publicPortalBundleRows(input.client.company_id, {
-      contracts,
-      sites,
-      meteringPoints,
-      invoices,
-      meteringValues,
-      documents,
-      legalAcceptances,
-      powersOfAttorney,
-      notifications,
-      events,
-      applications: websiteApplications,
-    })
+
+    const displayName = displayNameFromCustomer(
+      input.identity.customer,
+      input.identity.email ?? null,
+    )
     const publicCustomer = publicPortalCustomer(input.identity.customer, {
       external_customer_id: input.identity.external_customer_id,
       customer_number: input.identity.customer_number,
       email: input.identity.email,
     })
+    const portalIdentity = publicPortalIdentity(
+      input.client.company_id,
+      input.identity,
+    )
+
+    const excludedSections = OPTIONAL_SECTIONS.filter(
+      (section) => !input.options.includedOptionalSections.has(section),
+    )
 
     await logCustomerPortalSuccess({
       request: input.request,
@@ -261,31 +143,32 @@ async function buildBundleResponse(input: {
       resultCount: 1,
       metadata: {
         access_mode: input.accessMode,
-        contracts: contracts.length,
-        sites: sites.length,
-        invoices: invoices.length,
-        metering_points: meteringPoints.length,
-        metering_values: meteringValues.length,
-        documents: documents.length,
-        legal_acceptances: legalAcceptances.length,
-        powers_of_attorney: powersOfAttorney.length,
-        notifications: notifications.length,
-        events: events.length,
-        partial_bundle: warnings.length > 0,
+        contracts: pages.contracts.items.length,
+        sites: pages.sites.sites.length,
+        invoices: pages.invoices?.items.length ?? 0,
+        metering_points: pages.sites.meteringPoints.length,
+        metering_values: pages.meteringValues?.items.length ?? 0,
+        documents: pages.documents?.items.length ?? 0,
+        legal_acceptances: pages.legalAcceptances.items.length,
+        powers_of_attorney: pages.powersOfAttorney.items.length,
+        notifications: pages.notifications?.items.length ?? 0,
+        events: pages.events?.items.length ?? 0,
+        website_applications: pages.applications.items.length,
         customer_status: customerStatus.code,
-        data_quality_issues: customerStatus.issues,
-        failed_sections: warnings.map((warning) => warning.section),
-        section_errors: warnings,
-        summary_mode: options.summary,
-        included_optional_sections: Array.from(options.includedOptionalSections),
+        summary_mode: input.options.summary,
+        excluded_optional_sections: excludedSections,
       },
     })
 
     timer.stop({
-      status: responseStatus,
-      count: contracts.length + sites.length + meteringPoints.length + invoices.length,
+      status: 200,
+      count:
+        pages.contracts.items.length +
+        pages.sites.sites.length +
+        pages.sites.meteringPoints.length +
+        (pages.invoices?.items.length ?? 0),
       companyId: input.client.company_id,
-      meta: { summary: options.summary, partial: warnings.length > 0 },
+      meta: { summary: input.options.summary },
     })
 
     return customerPortalJson({
@@ -293,57 +176,78 @@ async function buildBundleResponse(input: {
         customer: {
           ...publicCustomer,
           display_name: displayName,
-          portal_identity: {
-            external_customer_id: input.identity.external_customer_id,
-            customer_number: input.identity.customer_number,
-            match_strength: input.identity.match_strength,
-            provider: input.identity.provider,
-          },
+          portal_identity: portalIdentity,
         },
         profile: {
           customer_reference: publicCustomer.customer_reference,
-          customer_number: input.identity.customer_number ?? input.identity.customer.customer_number ?? null,
-          external_customer_id: input.identity.external_customer_id,
+          customer_number: publicCustomer.customer_number,
+          external_customer_id: publicCustomer.external_customer_id,
           display_name: displayName,
-          email: input.identity.email ?? input.identity.customer.email ?? null,
-          full_name: input.identity.customer.full_name ?? displayName,
-          first_name: input.identity.customer.first_name ?? null,
-          last_name: input.identity.customer.last_name ?? null,
-          phone: input.identity.customer.phone ?? null,
+          email: publicCustomer.email,
+          first_name: publicCustomer.first_name,
+          last_name: publicCustomer.last_name,
+          phone: publicCustomer.phone,
         },
-        contracts: publicRows.contracts,
-        sites: publicRows.sites,
-        metering_points: publicRows.meteringPoints,
-        invoices: publicRows.invoices,
-        metering_values: publicRows.meteringValues,
-        documents: publicRows.documents,
-        legal_acceptances: publicRows.legalAcceptances,
-        powers_of_attorney: publicRows.powersOfAttorney,
-        notifications: publicRows.notifications,
-        events: publicRows.events,
-        website_applications: publicRows.applications,
+        contracts: pages.contracts.items,
+        sites: pages.sites.sites,
+        metering_points: pages.sites.meteringPoints,
+        invoices: pages.invoices?.items ?? [],
+        metering_values: pages.meteringValues?.items ?? [],
+        documents: pages.documents?.items ?? [],
+        legal_acceptances: pages.legalAcceptances.items,
+        powers_of_attorney: pages.powersOfAttorney.items,
+        notifications: pages.notifications?.items ?? [],
+        events: pages.events?.items ?? [],
+        website_applications: pages.applications.items,
         customer_status: customerStatus,
         data_quality: {
-          status: customerStatus.severity === 'success' ? 'complete' : customerStatus.severity === 'blocking' ? 'needs_action' : 'review',
+          status:
+            customerStatus.severity === 'success'
+              ? 'complete'
+              : customerStatus.severity === 'blocking'
+                ? 'needs_action'
+                : 'review',
           issues: customerStatus.issues,
           false_blockers_removed: hasPricePlan,
         },
         bundle_status: {
-          status: requiredWarnings.length > 0 ? 'unavailable' : warnings.length > 0 ? 'partial' : 'complete',
-          complete: requiredWarnings.length === 0,
-          unavailable_sections: warnings.map((warning) => warning.section),
-          warnings,
+          status: 'complete',
+          complete: true,
+          excluded_sections: excludedSections,
+          summary_mode: input.options.summary,
         },
       },
-    }, { status: responseStatus })
+      page: pages.page,
+    })
   } catch (error) {
-    timer.stop({ status: 500, companyId: input.client.company_id })
-    return handleCustomerPortalRouteError({ request: input.request, client: input.client, startedAt: input.startedAt, error })
+    const status = typeof error === 'object' && error && 'status' in error
+      ? Number((error as { status?: number }).status ?? 500)
+      : 500
+    timer.stop({ status, companyId: input.client.company_id })
+    return handleCustomerPortalRouteError({
+      request: input.request,
+      client: input.client,
+      startedAt: input.startedAt,
+      error,
+    })
   }
 }
 
+const BUNDLE_SCOPES = [
+  'customer_profile.read',
+  'customer_sites.read',
+  'customer_contracts.read',
+  'customer_invoices.read',
+  'customer_metering.read',
+  'customer_legal.read',
+  'customer_events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_power_of_attorney.read',
+] as const
+
 export async function GET(request: NextRequest) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_profile.read', 'customer_sites.read', 'customer_contracts.read', 'customer_invoices.read', 'customer_metering.read', 'customer_legal.read', 'customer_events.read', 'customer_documents.read', 'customer_notifications.read', 'customer_power_of_attorney.read'])
+  const context = await requireCustomerPortalApiContext(request, [...BUNDLE_SCOPES])
   if (!context.ok) return context.response
   return buildBundleResponse({
     request,
@@ -361,7 +265,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await readJsonObject(request)
-    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_profile.read', 'customer_sites.read', 'customer_contracts.read', 'customer_invoices.read', 'customer_metering.read', 'customer_legal.read', 'customer_events.read', 'customer_documents.read', 'customer_notifications.read', 'customer_power_of_attorney.read'])
+    const context = await requireCustomerPortalApiContextForIdentifiers(
+      request,
+      portalIdentifiersFromPayload(body),
+      [...BUNDLE_SCOPES],
+    )
     if (!context.ok) return context.response
     client = context.client
     return buildBundleResponse({
