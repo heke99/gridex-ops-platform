@@ -38,9 +38,29 @@ export const WEBSITE_CHECKOUT_REQUIRED_SCOPES = [
   'website_switch_status.read',
 ] as const
 
+/**
+ * Canonical scopes for new customer-portal integrations.
+ *
+ * `customer_portal.read` and `customer_portal.write` remain accepted by the
+ * authentication compatibility layer for already provisioned clients, but
+ * new clients must be provisioned with the granular scopes below.
+ */
 export const CUSTOMER_PORTAL_REQUIRED_SCOPES = [
-  'customer_portal.read',
-  'customer_portal.write',
+  'customer_profile.read',
+  'customer_sites.read',
+  'customer_contracts.read',
+  'customer_invoices.read',
+  'customer_metering.read',
+  'customer_legal.read',
+  'customer_events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_power_of_attorney.read',
+  'customer_sync.write',
+  'customer_contact.write',
+  'customer_facility_data.write',
+  'customer_power_of_attorney.write',
+  'customer_notifications.write',
 ] as const
 
 export const TENANT_WEBSITE_RECOMMENDED_SCOPES = [
@@ -48,11 +68,5 @@ export const TENANT_WEBSITE_RECOMMENDED_SCOPES = [
   ...CUSTOMER_PORTAL_REQUIRED_SCOPES,
   'website_events.write',
   'events.read',
-  'customer_documents.read',
   'customer_documents.write',
-  'customer_notifications.read',
-  'customer_notifications.write',
-  'customer_contact.write',
-  'customer_facility_data.write',
-  'customer_power_of_attorney.write',
 ] as const
