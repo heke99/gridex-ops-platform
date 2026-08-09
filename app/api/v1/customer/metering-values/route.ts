@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server'
-import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -7,21 +6,10 @@ import {
   normalizeFacility,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { isMissingSchemaError } from '@/lib/customer-portal/apiData'
-import {
-  pagePublicItems,
-  publicPageInput,
-  publicPortalMeteringValue,
-} from '@/lib/customer-portal/publicDto'
+import { readPortalMeteringValuesPage } from '@/lib/customer-portal/publicReadModel'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-function limitFromRequest(request: NextRequest): number {
-  const parsed = Number.parseInt(request.nextUrl.searchParams.get('limit') ?? '200', 10)
-  if (!Number.isFinite(parsed)) return 200
-  return Math.min(Math.max(parsed, 1), 1000)
-}
 
 function optionalParam(request: NextRequest, key: string): string | null {
   const value = request.nextUrl.searchParams.get(key)?.trim()
@@ -38,48 +26,34 @@ export async function GET(request: NextRequest) {
     const facilityId = optionalParam(request, 'facility_id')
     const normalizedFacilityId = facilityId ? normalizeFacility(facilityId) : null
 
-    let query = supabaseService
-      .from('normalized_metering_values')
-      .select('id,customer_id,customer_site_id,site_id,metering_point_id,facility_id,price_area,period_start,period_end,resolution,quantity_kwh,quality_status,source_type,status,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('customer_id', context.identity.customer_id)
-      .order('period_start', { ascending: false, nullsFirst: false })
-      .limit(limitFromRequest(request))
-
-    if (from) query = query.gte('period_start', from)
-    if (to) query = query.lte('period_end', to)
-    if (normalizedFacilityId) query = query.eq('facility_id', normalizedFacilityId)
-
-    const { data, error } = await query
-    if (error) {
-      if (isMissingSchemaError(error)) {
-        await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0 })
-        return customerPortalJson({ data: [] })
-      }
-      throw error
-    }
+    const page = await readPortalMeteringValuesPage(
+      {
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        externalCustomerId: context.identity.external_customer_id,
+        customerNumber: context.identity.customer_number,
+      },
+      request.nextUrl.searchParams,
+      {
+        from,
+        to,
+        facilityId: normalizedFacilityId,
+      },
+    )
 
     await logCustomerPortalSuccess({
       request,
       client: context.client,
       startedAt: context.startedAt,
-      resultCount: data?.length ?? 0,
+      resultCount: page.items.length,
       metadata: {
         source_table: 'normalized_metering_values',
-        external_customer_id: context.identity.external_customer_id,
-        customer_id: context.identity.customer_id,
         from,
         to,
         facility_id: normalizedFacilityId,
       },
     })
 
-    const page = pagePublicItems(
-      (data ?? []).map((row) =>
-        publicPortalMeteringValue(context.client.company_id, row),
-      ),
-      publicPageInput(request.nextUrl.searchParams),
-    )
     return customerPortalJson({ data: page.items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
