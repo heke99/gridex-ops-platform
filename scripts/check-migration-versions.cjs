@@ -53,13 +53,16 @@ for (const [version, files] of byVersion.entries()) {
 }
 
 for (const name of actualNames) {
+  const filePath = path.join(directory, name)
+  const actual = sha256(filePath)
   const expected = expectedFiles[name]
   if (!expected) {
-    failures.push(`Migration is missing from checksum manifest: ${name}`)
+    failures.push(`Migration is missing from checksum manifest: ${name} (sha256=${actual})`)
     continue
   }
-  const actual = sha256(path.join(directory, name))
-  if (actual !== expected) failures.push(`Migration checksum changed: ${name}`)
+  if (actual !== expected) {
+    failures.push(`Migration checksum changed: ${name} (expected=${expected}, actual=${actual})`)
+  }
 }
 
 for (const name of Object.keys(expectedFiles)) {
@@ -69,6 +72,7 @@ for (const name of Object.keys(expectedFiles)) {
 if (failures.length > 0) {
   console.error(`Migration integrity check failed (${failures.length} issue(s)):`)
   for (const failure of failures) console.error(`- ${failure}`)
+  console.error('Register intentional new migrations with: npm run db:migrations:register -- <migration.sql>')
   process.exit(1)
 }
 
