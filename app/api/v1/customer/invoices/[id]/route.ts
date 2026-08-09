@@ -1,24 +1,31 @@
 import { NextRequest } from 'next/server'
-import { supabaseService } from '@/lib/supabase/service'
+import { ApiInputError } from '@/lib/api/strictRequest'
+import { isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import {
-  isMissingSchemaError,
-  listPortalInvoices,
-  portalContextFromResolved,
-} from '@/lib/customer-portal/apiData'
-import {
-  publicPortalDocument,
-  publicPortalInvoice,
-} from '@/lib/customer-portal/publicDto'
+import { readPortalInvoiceByReference } from '@/lib/customer-portal/publicReadModel'
+import { publicPortalDocument } from '@/lib/customer-portal/publicDto'
 import { publicReference } from '@/lib/integrations/publicReferences'
+import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function requireDetailSchema(error: unknown): void {
+  if (!error) return
+  if (isMissingPortalSchemaError(error)) {
+    throw new ApiInputError(
+      'Fakturadetaljens datamodell är inte tillgänglig.',
+      'platform_schema_not_ready',
+      503,
+    )
+  }
+  throw error
+}
 
 export async function GET(request: NextRequest, contextInput: { params: Promise<{ id: string }> }) {
   const context = await requireCustomerPortalApiContext(request, ['customer_invoices.read'])
@@ -26,50 +33,44 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
 
   try {
     const { id } = await contextInput.params
-    const portalContext = portalContextFromResolved({
-      companyId: context.client.company_id,
-      customerId: context.identity.customer_id,
-      externalCustomerId: context.identity.external_customer_id,
-      customerNumber: context.identity.customer_number,
-      provider: context.identity.provider,
-    })
-    const invoices = await listPortalInvoices(portalContext)
-    const invoice = invoices.find((candidate) => {
-      const publicInvoice = publicPortalInvoice(
-        context.client.company_id,
-        candidate,
-      )
-      return publicInvoice.invoice_reference === id
-    })
-    if (!invoice || typeof invoice.id !== 'string') {
+    const invoice = await readPortalInvoiceByReference(
+      {
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        externalCustomerId: context.identity.external_customer_id,
+        customerNumber: context.identity.customer_number,
+      },
+      id,
+    )
+    if (!invoice || typeof invoice.raw.id !== 'string') {
       await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0, metadata: { invoice_reference: id, found: false } })
       return customerPortalJson({ error: 'Fakturan hittades inte.', code: 'invoice_not_found' }, { status: 404 })
     }
-    const internalInvoiceId = invoice.id
+    const internalInvoiceId = invoice.raw.id
 
-    const { data: lines, error: lineError } = await supabaseService
-      .from('customer_invoice_lines')
-      .select('id,description,quantity,unit_price,amount_ex_vat,vat_amount,amount_inc_vat,metadata,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('invoice_id', internalInvoiceId)
-      .order('created_at', { ascending: true })
+    const [lineResult, documentResult] = await Promise.all([
+      supabaseService
+        .from('customer_invoice_lines')
+        .select('id,description,quantity,unit_price,amount_ex_vat,vat_amount,amount_inc_vat,created_at')
+        .eq('company_id', context.client.company_id)
+        .eq('invoice_id', internalInvoiceId)
+        .order('created_at', { ascending: true }),
+      supabaseService
+        .from('customer_invoice_documents')
+        .select('id,document_type,title,public_url,source_system,created_at')
+        .eq('company_id', context.client.company_id)
+        .eq('invoice_id', internalInvoiceId)
+        .order('created_at', { ascending: false }),
+    ])
 
-    if (lineError && !isMissingSchemaError(lineError)) throw lineError
-
-    const { data: documents, error: documentError } = await supabaseService
-      .from('customer_invoice_documents')
-      .select('id,document_type,title,public_url,source_system,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('invoice_id', internalInvoiceId)
-      .order('created_at', { ascending: false })
-
-    if (documentError && !isMissingSchemaError(documentError)) throw documentError
+    requireDetailSchema(lineResult.error)
+    requireDetailSchema(documentResult.error)
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { invoice_reference: id } })
     return customerPortalJson({
       data: {
-        invoice: publicPortalInvoice(context.client.company_id, invoice),
-        lines: (lineError ? [] : lines ?? []).map((line) => ({
+        invoice: invoice.publicInvoice,
+        lines: (lineResult.data ?? []).map((line) => ({
           line_reference: publicReference(
             'invoice_line',
             context.client.company_id,
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
           amount_inc_vat: line.amount_inc_vat ?? null,
           created_at: line.created_at ?? null,
         })),
-        documents: (documentError ? [] : documents ?? []).map((document) =>
+        documents: (documentResult.data ?? []).map((document) =>
           publicPortalDocument(context.client.company_id, document),
         ),
       },
