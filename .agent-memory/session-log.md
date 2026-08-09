@@ -1,3 +1,13 @@
+## 2026-08-09 — Post-#95 health residual (`7aa1`)
+
+- Trigger: main push `7bdebeab` (#95 BL-006 + O-008).
+- Verified #95 static regressions PASS; findings inventory O-005..O-008 closed/updated.
+- Confirmed residual GRIDEX-OPS-V3-BUG-001: legacy portal sync forced 500 on controlled ApiInputError.
+- Fixed legacy sync + same-class parse-outside-try variants on customer sync / portal-bundle.
+- Added O-008 PUBLIC privilege hardening migration `20260809143000`.
+- Verification: V3-BUG-001/O-008 residual static regressions, vitest controlled-error suite, migration integrity PASS.
+- ggshield unavailable in environment (secret scan blocked as tool absence, not findings).
+
 ## 2026-08-03 23:37 CEST — PHASE-41 runtime schema readiness v4
 
 - Inspected the supplied OPS archive, official Customer Portal API documentation

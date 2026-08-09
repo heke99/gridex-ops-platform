@@ -65,3 +65,17 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## Post-#95 health residual — 2026-08-09T14:40:00Z (`7aa1`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| BL-006 static regression on main tip | PASS | `node scripts/gridex-ops-bl-006-contacts-and-lookup-cache-read-isolation-regression.cjs` |
+| O-008 static regression on main tip | PASS | `node scripts/gridex-ops-o008-actor-readiness-conflict-count-visibility-regression.cjs` |
+| V3-BUG-001 static regression | PASS | `node scripts/gridex-ops-v3-bug-001-portal-sync-controlled-errors-regression.cjs` |
+| O-008 PUBLIC privilege residual static | PASS | `node scripts/gridex-ops-o008-public-privilege-hardening-regression.cjs` |
+| Portal controlled-error vitest | PASS | `npx vitest run __tests__/portal-controlled-input-errors.test.ts` (3/3) |
+| Logging redaction vitest | PASS | `npx vitest run __tests__/logging-redaction.test.ts` |
+| Migration integrity | PASS | `npm run db:migrations:integrity` |
+| Staging SQL matrix for `20260809143000` | NOT_RUN | no isolated DB in this environment |
+| Exact-head CI | BLOCKED | Actions billing/spending-limit per owner instruction |
