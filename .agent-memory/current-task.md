@@ -1,15 +1,24 @@
 # Current task
 
-Last updated: 2026-08-09T09:21:00Z
-Branch: `remediation/gridex-ops-full-integrity-performance`
-PR: `#90`
+Last updated: 2026-08-09T10:05:00Z
+Branch: `main`
+Primary PR: `#90` merged
+Follow-up PR: `#92` merged
 
-Release mode: `NO_ACTIONS_RELEASE_VALIDATION`.
+Status: `REMEDIATION_COMPLETE_WITH_EXTERNAL_DATA_CONFIG_GAPS`.
 
-The repository owner explicitly instructed this campaign to proceed without GitHub Actions because hosted jobs are account/billing blocked before step 1. Do not treat the red Actions checks as executed test failures and do not claim they passed.
+The audited code remediation and post-release code follow-up are merged and deployed. GitHub Actions was intentionally bypassed as a release gate by explicit repository-owner instruction because hosted jobs are account/billing blocked before step 1.
 
-Alternative release evidence has been completed: PR/base diff hygiene, no historical timestamp migration edits, checksum/provenance registration, fresh read-only Supabase validation of the Grid Owner and OPS-health patch signatures, storage/RBAC source review, package security resolution review, and log-redaction hardening.
+Verified production application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`. Vercel production deployment `dpl_DdPGCM3epEPccQPGToBEaE15865c` is READY and passed production compilation, TypeScript, page-data and static-generation stages.
 
-The last real empty-database replay reached `20260728170000_live_schema_code_canonical_sync.sql` and failed on missing `customer_invoice_lines.vat_rate`; the complete source-defined invoice-line runtime family has since been restored and registered. A post-fix destructive replay is unavailable and remains an explicitly recorded evidence gap accepted for this release path.
+Exact Supabase ledger versions applied and verified: `20260808214500`, `20260809110000`, `20260809114500`. Health SQLSTATE `42702` is resolved; Grid Owner direct-first performance fix is live; Ediel `renewal_available` certificate status handling is consistent between route guard, strict resolver and health logic.
 
-Next action: mark PR #90 ready, merge to `main`, verify the merged SHA/tree and inspect production deployment/runtime state. If a concrete post-merge defect appears, remediate it immediately rather than attributing it to the unavailable Actions runner.
+No further code remediation is required by this campaign based on currently verified evidence. Remaining work is external configuration or authoritative masterdata/onboarding:
+
+- enable GitHub `main` protection/ruleset using an account surface that supports it;
+- enable Supabase Leaked Password Protection using hosted Auth settings;
+- supply authoritative mappings for 35 platform grid owners affecting 60 active areas;
+- supply receiver Ediel IDs for 2 routes that have no internal source;
+- complete recipient-certificate onboarding through the official secret-protected actor-readiness/external lookup path.
+
+Do not guess any of those identifiers or certificate mappings. Do not claim the unavailable post-invoice-fix empty-database replay passed.

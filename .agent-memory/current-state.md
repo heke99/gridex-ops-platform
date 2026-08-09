@@ -1,35 +1,45 @@
 # Current state
 
-Last updated: 2026-08-09T09:21:00Z
+Last updated: 2026-08-09T10:05:00Z
 
-- Branch: `remediation/gridex-ops-full-integrity-performance`
-- PR: `#90`
+- Branch: `main`
+- Primary remediation PR: `#90` — merged
+- Follow-up consistency PR: `#92` — merged
+- Current verified application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`
 - Release path: `NO_ACTIONS_RELEASE_VALIDATION`
-- Owner instruction: proceed without GitHub Actions because hosted jobs are account/billing blocked before step 1.
 
-## Remediation state
+## Completed release state
 
-The campaign has implemented the audit/runtime fixes on the branch without editing historical migration sources or applying destructive writes to the connected default Supabase project.
+The full integrity/performance/security remediation campaign is merged to `main`. GitHub Actions was intentionally not used as a release gate after explicit repository-owner instruction because hosted jobs are blocked before step 1 by account billing/spending-limit state; those red checks are not code/test evidence and must never be reported as passing.
 
-The last real clean replay before the runner outage reached `20260728170000_live_schema_code_canonical_sync.sql` and failed first on missing `customer_invoice_lines.vat_rate`. The complete source-defined invoice-line runtime family (`line_type`, `unit`, `vat_rate`, `sort_order`) is now restored through checksum-pinned `bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql`, registered in provenance metadata and deterministic foundation order.
+Production Vercel deployment `dpl_DdPGCM3epEPccQPGToBEaE15865c` built exact SHA `55ad4053c64ec78ae5fe111eecef572edbd352dd` successfully: dependency install, Next.js production compilation, TypeScript, page-data collection and 13/13 static-page generation all completed, and the deployment became `READY` on `app.gridex.se`. No error/fatal runtime logs were observed for the deployment during the post-release check.
 
-Fresh no-Actions release validation on 2026-08-09 confirmed:
+The connected Supabase migration ledger contains the three release migrations with their exact repository versions:
 
-- branch was ahead of main with no behind commits before the final status commits;
-- PR diff edits no historical timestamp migration; database changes are new forward migrations plus derived bootstrap/replay artifacts;
-- Grid Owner performance migration matches exactly one current canonical join and materializes the direct-first guard; prior read-only benchmark was ~1.09 s / 186 rows versus ~26 ms / 183 rows;
-- OPS health migration matches exactly five current ambiguous `status` signatures and fails closed on shape drift;
-- storage isolation validates company/customer/site ownership and RBAC and moves its SECURITY DEFINER helper out of the PostgREST-exposed public schema;
-- `nanoid` lockfile resolution is upgraded from 3.3.16 to 3.3.17;
-- central log redaction now normalizes sensitive metadata keys across snake_case, camelCase and separator variants;
-- customer application orchestration remains split from ~9,808 lines into <=2500-line production modules.
+- `20260808214500` — `grid_owner_direct_actor_join_performance`
+- `20260809110000` — `ops_health_status_qualification`
+- `20260809114500` — `ediel_certificate_status_consistency`
 
-GitHub Actions is not used as the release gate for this merge by explicit owner instruction. The final empty-database replay after the invoice-line prerequisite remains unavailable and must not be represented as passed.
+Post-apply database verification confirmed:
 
-## External configuration gaps
+- `gridex_verified_grid_owners_v` returns 183 rows for 183 distinct grid owners with zero duplicate rows; the direct-first guard is installed. Prior actor-resolution measurement was ~1.09 s / 186 joined rows; the direct-first actor stage is ~26 ms and the full count query was ~36.7 ms.
+- `gridex_ops_health_checks_v3()` executes without SQLSTATE `42702`; all five ambiguous status references are qualified.
+- `gridex_ops_health_checks_v2()` now treats `renewal_available` recipient certificates consistently with the strict outbound certificate resolver.
 
-- `main` is reported unprotected; connector has no branch-protection/ruleset write operation.
-- Supabase Leaked Password Protection is disabled; connector has no hosted Auth/Management configuration write operation.
-- No isolated Supabase preview database exists for a destructive final replay.
+No historical timestamp migration was edited during the campaign.
 
-Proceed with PR #90 ready/merge using the documented no-Actions validation path, then verify the resulting `main` SHA and production deployment state.
+## Deterministic replay evidence caveat
+
+The last real destructive empty-database replay before the hosted-runner outage reached `20260728170000_live_schema_code_canonical_sync.sql` and failed first on missing `customer_invoice_lines.vat_rate`. The complete source-defined invoice-line runtime family (`line_type`, `unit`, `vat_rate`, `sort_order`) was subsequently restored through checksum-pinned replay foundations. A post-fix full empty-database replay was not available and must not be claimed as a PASS.
+
+## Remaining non-code / canonical-data gaps
+
+These are not unresolved application defects and must not be filled by guessing:
+
+- GitHub `main` is reported unprotected; the installed connector has no branch-protection/ruleset write operation.
+- Supabase Leaked Password Protection is disabled; the installed connector has no hosted Auth/Management configuration write operation.
+- 60 active grid areas depend on 35 platform grid owners with no deterministic OPS-grid-owner counterpart; exact actor/Ediel/owner-code candidate matching found zero candidates for all 35.
+- 2 active Ediel route profiles lack receiver Ediel ID and have no internal fallback value in the profile, communication route or linked grid-owner data.
+- Ediel recipient-certificate readiness still reports operational onboarding gaps. The official `/api/cron/ediel/actor-readiness` self-healing path is secret-protected and may perform external certificate lookup; the connector cannot access or bypass that secret. Ambiguous or absent certificate mappings must not be invented.
+
+Code remediation is complete for the audited and post-release code defects. Remaining items above require repository/account configuration or authoritative external/canonical masterdata.
