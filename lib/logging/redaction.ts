@@ -20,6 +20,18 @@ function truncate(value: string): string {
     : `${value.slice(0, MAX_STRING_LENGTH)}…[TRUNCATED]`
 }
 
+function normalizeMetadataKey(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .toLowerCase()
+}
+
+function isSensitiveMetadataKey(key: string): boolean {
+  const normalizedKey = normalizeMetadataKey(key)
+  return SECRET_KEY_PATTERN.test(normalizedKey) || PERSONAL_KEY_PATTERN.test(normalizedKey)
+}
+
 export function redactLogText(value: string): string {
   return truncate(value)
     .replace(BEARER_PATTERN, 'Bearer [REDACTED]')
@@ -34,7 +46,7 @@ function sanitizeLogValueInternal(value: unknown, key: string | null, depth: num
   if (value == null || typeof value === 'boolean' || typeof value === 'number') return value
   if (depth > MAX_DEPTH) return '[TRUNCATED_DEPTH]'
 
-  if (key && (SECRET_KEY_PATTERN.test(key) || PERSONAL_KEY_PATTERN.test(key))) {
+  if (key && isSensitiveMetadataKey(key)) {
     return REDACTED
   }
 
