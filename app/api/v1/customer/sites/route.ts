@@ -5,13 +5,7 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalMeteringPoints, listPortalSites, portalContextFromResolved } from '@/lib/customer-portal/apiData'
-import {
-  pagePublicItems,
-  publicPageInput,
-  publicPortalMeteringPoint,
-  publicPortalSite,
-} from '@/lib/customer-portal/publicDto'
+import { readPortalSitesPage } from '@/lib/customer-portal/publicReadModel'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,42 +15,36 @@ export async function GET(request: NextRequest) {
   if (!context.ok) return context.response
 
   try {
-    const portalContext = portalContextFromResolved({
-      companyId: context.client.company_id,
-      customerId: context.identity.customer_id,
-      externalCustomerId: context.identity.external_customer_id,
-      customerNumber: context.identity.customer_number,
-      provider: context.identity.provider,
-    })
-    const sites = await listPortalSites(portalContext)
-    const meteringPoints = await listPortalMeteringPoints(portalContext, sites)
+    const result = await readPortalSitesPage(
+      {
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        externalCustomerId: context.identity.external_customer_id,
+        customerNumber: context.identity.customer_number,
+      },
+      request.nextUrl.searchParams,
+    )
 
     await logCustomerPortalSuccess({
       request,
       client: context.client,
       startedAt: context.startedAt,
-      resultCount: sites.length,
-      metadata: { metering_points: meteringPoints.length },
+      resultCount: result.sites.length,
+      metadata: { metering_points: result.meteringPoints.length },
     })
-    const pageInput = publicPageInput(request.nextUrl.searchParams)
-    const publicSites = pagePublicItems(
-      sites.map((row) => publicPortalSite(context.client.company_id, row)),
-      pageInput,
-    )
-    const publicMeteringPoints = pagePublicItems(
-      meteringPoints.map((row) =>
-        publicPortalMeteringPoint(context.client.company_id, row),
-      ),
-      pageInput,
-    )
     return customerPortalJson({
       data: {
-        sites: publicSites.items,
-        metering_points: publicMeteringPoints.items,
+        sites: result.sites,
+        metering_points: result.meteringPoints,
       },
       page: {
-        sites: publicSites.page,
-        metering_points: publicMeteringPoints.page,
+        sites: result.page,
+        metering_points: {
+          limit: result.meteringPoints.length,
+          returned: result.meteringPoints.length,
+          has_more: false,
+          next_cursor: null,
+        },
       },
     })
   } catch (error) {
