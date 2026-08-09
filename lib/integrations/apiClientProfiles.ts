@@ -6,6 +6,11 @@
  * sync with integration_api_client_profiles if that table is used.
  */
 
+import {
+  CUSTOMER_PORTAL_REQUIRED_SCOPES,
+  WEBSITE_CHECKOUT_REQUIRED_SCOPES,
+} from '@/lib/integrations/websiteIntegrationContract'
+
 export type ApiClientProfileKey =
   | 'website_read_only'
   | 'website_signup'
@@ -35,15 +40,7 @@ export const API_CLIENT_PROFILES: Record<ApiClientProfileKey, ApiClientProfile> 
     key: 'website_signup',
     label: 'Hemsida (canonical teckning)',
     defaultScopes: [
-      'integration_context.read',
-      'website_contracts.read',
-      'website_energy_area.resolve',
-      'website_market_prices.read',
-      'website_quotes.write',
-      'website_quotes.validate',
-      'website_legal.read',
-      'website_applications.write',
-      'website_switch_status.read',
+      ...WEBSITE_CHECKOUT_REQUIRED_SCOPES,
       'website_events.write',
       'events.read',
     ],
@@ -53,49 +50,18 @@ export const API_CLIENT_PROFILES: Record<ApiClientProfileKey, ApiClientProfile> 
     key: 'tenant_website',
     label: 'Tenanthemsida + Mina sidor (en API-nyckel)',
     defaultScopes: [
-      'integration_context.read',
-      'website_contracts.read',
-      'website_energy_area.resolve',
-      'website_market_prices.read',
-      'website_quotes.write',
-      'website_quotes.validate',
-      'website_legal.read',
-      'website_applications.write',
-      'website_switch_status.read',
-      'customer_portal.read',
-      'customer_portal.write',
+      ...WEBSITE_CHECKOUT_REQUIRED_SCOPES,
+      ...CUSTOMER_PORTAL_REQUIRED_SCOPES,
       'website_events.write',
       'events.read',
-      'customer_documents.read',
       'customer_documents.write',
-      'customer_notifications.read',
-      'customer_notifications.write',
-      'customer_contact.write',
-      'customer_facility_data.write',
-      'customer_power_of_attorney.write',
     ],
     requireAllowedOrigins: true,
   },
   customer_portal: {
     key: 'customer_portal',
     label: 'Kundportal',
-    defaultScopes: [
-      'customer_profile.read',
-      'customer_sites.read',
-      'customer_contracts.read',
-      'customer_invoices.read',
-      'customer_metering.read',
-      'customer_legal.read',
-      'customer_events.read',
-      'customer_documents.read',
-      'customer_notifications.read',
-      'customer_power_of_attorney.read',
-      'customer_notifications.write',
-      'customer_contact.write',
-      'customer_facility_data.write',
-      'customer_power_of_attorney.write',
-      'customer_sync.write',
-    ],
+    defaultScopes: [...CUSTOMER_PORTAL_REQUIRED_SCOPES],
     requireAllowedOrigins: true,
   },
   events_webhooks: {
