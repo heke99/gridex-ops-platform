@@ -77,7 +77,7 @@ function payloadHash(payload: unknown): string {
 export async function claimPortalWriteIdempotency(input: {
   companyId: string
   clientId: string
-  customerId: string
+  customerId: string | null
   operation: string
   idempotencyKey: string
   payload: unknown
@@ -106,15 +106,19 @@ export async function claimPortalWriteIdempotency(input: {
 
   if (String(inserted.error?.code ?? '') !== '23505') throw inserted.error
 
-  const existing = await supabaseService
+  let existingQuery = supabaseService
     .from('customer_portal_write_idempotency')
     .select('id,status,response_status,response_body,request_hash,started_at')
     .eq('company_id', input.companyId)
     .eq('api_client_id', input.clientId)
-    .eq('customer_id', input.customerId)
     .eq('route', input.operation)
     .eq('idempotency_key', input.idempotencyKey)
-    .maybeSingle()
+
+  existingQuery = input.customerId
+    ? existingQuery.eq('customer_id', input.customerId)
+    : existingQuery.is('customer_id', null)
+
+  const existing = await existingQuery.maybeSingle()
   if (existing.error) throw existing.error
   if (!existing.data) throw new Error('Idempotency-raden kunde inte läsas efter konflikt.')
   if (String(existing.data.request_hash) !== requestHash) {
@@ -132,7 +136,7 @@ export async function claimPortalWriteIdempotency(input: {
     String(existing.data.status) === 'failed' &&
     input.operation === '/api/v1/customer/move-out'
   ) {
-    const retried = await supabaseService
+    let retryQuery = supabaseService
       .from('customer_portal_write_idempotency')
       .update({
         status: 'processing',
@@ -146,8 +150,12 @@ export async function claimPortalWriteIdempotency(input: {
       .eq('id', existing.data.id)
       .eq('company_id', input.companyId)
       .eq('status', 'failed')
-      .select('id')
-      .maybeSingle()
+
+    retryQuery = input.customerId
+      ? retryQuery.eq('customer_id', input.customerId)
+      : retryQuery.is('customer_id', null)
+
+    const retried = await retryQuery.select('id').maybeSingle()
     if (retried.error) throw retried.error
     if (retried.data) {
       return { replay: false, recordId: String(retried.data.id) }
@@ -212,6 +220,10 @@ export type IdempotentWriteResult<T> = {
 
 /**
  * Executes an external customer write once for a tenant/client/customer tuple.
+ * `customerId` may be null only for pre-resolution operations such as legacy
+ * portal identity sync; those claims are isolated by a dedicated partial
+ * unique index in the canonical schema.
+ *
  * The callback must contain the complete business mutation. Replays return the
  * stored response and conflicting payloads are rejected before any write runs.
  */
@@ -219,7 +231,7 @@ export async function executeIdempotentPortalWrite<T>(input: {
   request: NextRequest
   companyId: string
   clientId: string
-  customerId: string
+  customerId: string | null
   operation: string
   payload: unknown
   execute: () => Promise<IdempotentWriteResult<T>>
