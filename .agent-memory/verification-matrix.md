@@ -65,3 +65,14 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## 2026-08-09T09:45:00Z — GRIDEX-OPS-BL-006 post-merge follow-up
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| BL-006 static regression | PASS | `npm run gridex:ops-bl-006-contacts-lookup-cache-isolation-regression` |
+| AUD-003 provenance | PASS | `node scripts/gridex-aud-003-migration-provenance-regression.cjs` |
+| Migration integrity | PASS | `npm run db:migrations:integrity` (376 files; 280 version groups) |
+| Logging redaction vitest | PASS | `npx vitest run __tests__/logging-redaction.test.ts` (5 tests) |
+| BL-006 SQL two-tenant rollback | NOT RUN | isolated DB unavailable in this sandbox |
+| O-008 revoke | OUT OF SCOPE | recorded open |

@@ -334,3 +334,11 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-09T09:45:00Z — post-merge health automation after PR #90
+
+- Trigger: main push `6c86e547` (PR #90 remediation campaign).
+- Confirmed closed PR #89 never merged; O-005/O-006/O-007 still open on main.
+- Implemented GRIDEX-OPS-BL-006 as `20260809123000` + network-owners service-role import history + `person_number` redaction.
+- Static verification green; staging SQL matrix still pending.
+- O-008 left open by design.
