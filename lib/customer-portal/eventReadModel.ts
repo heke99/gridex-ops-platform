@@ -169,7 +169,10 @@ export async function readPortalEventsPage(input: {
   return {
     items: pageRows.map((row) => publicPortalEvent(input.companyId, {
       ...row,
-      event_source_key: `${row.source_table}:${row.id}`,
+      // Make the public event reference source-aware without leaking either
+      // underlying UUID. The encrypted cursor still uses the real UUID as an
+      // internal tie-breaker.
+      id: `${row.source_table}:${row.id}`,
     })),
     page: {
       limit: pageInput.limit,
