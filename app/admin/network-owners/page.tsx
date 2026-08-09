@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { supabaseService } from '@/lib/supabase/service'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getGridOwnerById, listGridOwners } from '@/lib/masterdata/db'
 import GridOwnerForm from '@/components/admin/masterdata/GridOwnerForm'
@@ -116,10 +117,13 @@ export default async function NetworkOwnersPage({
  const actionStatus = params?.status
  const actionMessage = params?.message
 
+ // Import history is platform-global operational data. After the app platform-admin
+ // gate, read via service role so a helper mismatch between gridex_get_user_roles
+ // and gridex_user_is_platform_admin(email_confirmed) cannot silently empty the panel.
  const [gridOwnersResult, editingGridOwnerResult, importRunsResult] = await Promise.allSettled([
    listGridOwners(supabase),
    editId ? getGridOwnerById(supabase, editId) : Promise.resolve(null),
-   supabase
+   supabaseService
      .from('actor_registry_import_runs')
      .select('id,source_filename,status,total_records,created_count,updated_count,unchanged_count,conflict_count,error_count,started_at,finished_at')
      .order('started_at', { ascending: false })
