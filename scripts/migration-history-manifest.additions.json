@@ -11,6 +11,14 @@
     "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
     "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
-    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b"
+    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b",
+    "20260809181500_gridex_ops_external_api_performance_foundation.sql": "74e65e00ba2ec8dd3eae541e77959a71f6a8f0e3aeb809ee722aa7fbfde6cee8",
+    "20260809182500_backfill_legacy_ediel_test_run_tenant.sql": "b81cae6203354e1075f50c519324e85d8f5da2c1c83f7089497ce90c4f8d8bce",
+    "20260809183000_validate_pending_public_constraints.sql": "88a5a0c73152223f164ac6c2b851804d8249773d654fa5edf6ac78d260eba4cb",
+    "20260809184000_portal_event_keyset_read_model.sql": "582f92c3981954b8f4ccb46b614c494f97cf1b38ea46090d6cd3f5370b3327b4",
+    "20260809185000_authenticate_integration_request_v1.sql": "942dbaf5050784525808de7b5c5719acea0f1feb8a8ecbd3a4ff5c057ae5e279",
+    "20260809185500_authenticate_integration_request_route_cost.sql": "ca06bed6db36f8c2c8955eb500f842c443c81945d24021af8886ab94afddfbc6",
+    "20260809190000_resolve_portal_customer_identity_v1.sql": "c6707aa39b5985118bc577677669ec6e2f812f689a73e4ac39ed72683e38e0e1",
+    "20260809191000_public_contract_feed_fingerprint_v1.sql": "775a8e0300167d9e73768c26dd856998c71bb8f912703550669240eb4b20e5b8"
   }
 }
