@@ -5,7 +5,8 @@
   "base_main_sha": "188a391c5391b84e6a2e35df82276d3c83a873ac",
   "active_phase": "POST_RELEASE_RESIDUAL_HARDENING",
   "active_task": "GRIDEX-OPS-O-008",
-  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "pull_request": 94,
+  "status": "CODE_REMEDIATED_AWAITING_STAGING",
   "notes": {
     "skipped_bl_006": "PR #91 already covers GRIDEX-OPS-BL-006; do not duplicate on this branch",
     "o008_approach": "SECURITY DEFINER aggregate conflict counts; keep authenticated SELECT on actor_readiness_status for company-scoped verified grid-owner reads"
@@ -24,6 +25,6 @@
     "Staging SQL rollback matrix against isolated database",
     "Exact-head CI (Actions billing-blocked unless account state changes)"
   ],
-  "next_action": "Commit/push O-008 changes and open PR from cursor/codebase-health-and-stability-af99",
+  "next_action": "Apply 20260809131500 on isolated/staging Supabase and run scripts/gridex-ops-o008-actor-readiness-conflict-count-visibility-regression.sql",
   "resume_from": ".agent-memory/current-task.md"
 }

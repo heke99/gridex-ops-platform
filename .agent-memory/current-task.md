@@ -4,7 +4,8 @@ Last updated: 2026-08-09T10:20:00Z
 Branch: `cursor/codebase-health-and-stability-af99`
 Base: `main` @ `188a391c5391b84e6a2e35df82276d3c83a873ac`
 
-Status: `IN_PROGRESS`
+Status: `CODE_REMEDIATED_AWAITING_STAGING`
+PR: `#94`
 
 ## Active work item
 
@@ -32,4 +33,4 @@ Skipped:
 
 ### Exact next action
 
-Commit and push O-008 remediation; open PR; record verification evidence.
+Apply `20260809131500` on isolated/staging Supabase and run the O-008 SQL regression matrix. Do not claim VERIFIED_CLOSED until that passes.
