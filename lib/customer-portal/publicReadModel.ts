@@ -39,25 +39,40 @@ function schemaNotReady(error: unknown): never {
   throw error
 }
 
+function rowsFromUnknown(data: unknown): Row[] {
+  if (!Array.isArray(data)) return []
+  return data.filter(
+    (row): row is Row => Boolean(row) && typeof row === 'object' && !Array.isArray(row),
+  )
+}
+
+function rowFromUnknown(data: unknown): Row | null {
+  return data && typeof data === 'object' && !Array.isArray(data)
+    ? data as Row
+    : null
+}
+
 function recordReadAccess(
   context: PortalPublicReadContext,
   route: string,
   action: string,
   metadata?: Record<string, unknown>,
 ): void {
-  void supabaseService
-    .from('customer_portal_api_access_logs')
-    .insert({
-      company_id: context.companyId,
-      customer_id: context.customerId,
-      external_customer_id: context.externalCustomerId ?? null,
-      route,
-      action,
-      metadata: {
-        customer_number: context.customerNumber ?? null,
-        ...(metadata ?? {}),
-      },
-    })
+  void Promise.resolve(
+    supabaseService
+      .from('customer_portal_api_access_logs')
+      .insert({
+        company_id: context.companyId,
+        customer_id: context.customerId,
+        external_customer_id: context.externalCustomerId ?? null,
+        route,
+        action,
+        metadata: {
+          customer_number: context.customerNumber ?? null,
+          ...(metadata ?? {}),
+        },
+      }),
+  )
     .then(({ error }) => {
       if (error) {
         console.warn('[customer-portal-access-log] write failed', {
@@ -66,7 +81,7 @@ function recordReadAccess(
         })
       }
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.warn('[customer-portal-access-log] write failed', { route, error })
     })
 }
@@ -126,7 +141,7 @@ export async function readPortalContractsPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'created_at',
     map: (row) => publicPortalContract(context.companyId, row),
@@ -192,7 +207,7 @@ export async function readPortalSitesPage(
   if (sitesResult.error) schemaNotReady(sitesResult.error)
 
   const finalized = finalizeKeysetPage({
-    rows: (sitesResult.data ?? []) as Row[],
+    rows: rowsFromUnknown(sitesResult.data),
     limit: pageInput.limit,
     sortColumn: 'created_at',
     map: (row) => row,
@@ -215,7 +230,7 @@ export async function readPortalSitesPage(
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
     if (meteringResult.error) schemaNotReady(meteringResult.error)
-    meteringPointRows = (meteringResult.data ?? []) as Row[]
+    meteringPointRows = rowsFromUnknown(meteringResult.data)
   }
 
   return {
@@ -273,7 +288,7 @@ export async function readPortalInvoicesPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'created_at',
     map: (row) => publicPortalInvoice(context.companyId, row),
@@ -308,7 +323,8 @@ export async function readPortalInvoiceByReference(
   }
 
   if (!result.data) return null
-  const row = result.data as Row
+  const row = rowFromUnknown(result.data)
+  if (!row) throw new Error('portal_invoice_row_invalid')
   return {
     raw: row,
     publicInvoice: publicPortalInvoice(context.companyId, row),
@@ -354,7 +370,7 @@ export async function readPortalMeteringValuesPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'period_start',
     map: (row) => publicPortalMeteringValue(context.companyId, row),
@@ -379,7 +395,7 @@ export async function readPortalEventsPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'occurred_at',
     map: (row) => publicPortalEvent(context.companyId, row),
@@ -404,7 +420,7 @@ export async function readPortalNotificationsPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'created_at',
     map: (row) => publicPortalNotification(context.companyId, row),
@@ -429,7 +445,7 @@ export async function readPortalLegalAcceptancesPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'accepted_at',
     map: (row) => publicPortalLegalAcceptance(context.companyId, row),
@@ -454,7 +470,7 @@ export async function readPortalPowersOfAttorneyPage(
   const { data, error } = await query
   if (error) schemaNotReady(error)
   return finalizeKeysetPage({
-    rows: (data ?? []) as Row[],
+    rows: rowsFromUnknown(data),
     limit: pageInput.limit,
     sortColumn: 'created_at',
     map: (row) => publicPortalPowerOfAttorney(context.companyId, row),
