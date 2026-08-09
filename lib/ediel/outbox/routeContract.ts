@@ -74,7 +74,7 @@ function certificateRequired(runtime: EdielRouteRuntimeRow, message: EdielMessag
 function certificateUsable(row: CertificateRow, message: EdielMessageRow, runtime: EdielRouteRuntimeRow): string | null {
   const now = Date.now()
   const status = clean(row.status)?.toLowerCase()
-  if (status && !['valid', 'active'].includes(status)) return `receiver_certificate_status_${status}`
+  if (status && !['valid', 'active', 'renewal_available'].includes(status)) return `receiver_certificate_status_${status}`
   const validFrom = clean(row.valid_from)
   if (validFrom && new Date(validFrom).getTime() > now) return 'receiver_certificate_not_yet_valid'
   const validTo = clean(row.valid_to)
@@ -110,7 +110,7 @@ export async function evaluateEdielRouteContract(message: EdielMessageRow): Prom
     return { ok: false, blocker: 'route_not_active', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (runtime.environment !== message.environment) {
-    return { ok: false, blocker: 'route_environment_mismatch', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_environment_mismatch', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
   }
 
   const receiverEdielId = clean(runtime.receiver_ediel_id)
