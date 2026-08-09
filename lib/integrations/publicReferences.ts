@@ -24,6 +24,23 @@ export function publicReference(
   return `${normalizedKind}_${digest}`
 }
 
+/**
+ * Use at public DTO boundaries where the resource reference is required by the
+ * contract. Missing tenant/internal identity is a server-side invariant breach
+ * and must fail closed rather than serializing a nullable or internal ID.
+ */
+export function requiredPublicReference(
+  kind: string,
+  tenantId: string,
+  internalId: unknown,
+): string {
+  const reference = publicReference(kind, tenantId, internalId)
+  if (!reference) {
+    throw new Error(`public_reference_unavailable:${kind}`)
+  }
+  return reference
+}
+
 export function isPublicReference(value: unknown): value is string {
   return (
     typeof value === 'string' &&
