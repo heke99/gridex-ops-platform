@@ -1,50 +1,29 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-09T14:40:00Z",
+  "updated_at": "2026-08-09T14:42:00Z",
   "branch": "cursor/codebase-health-and-stability-7aa1",
   "base_main_sha": "7bdebeab91c4b46c30fcd2280ec2fe222de967a2",
+  "pr": 96,
   "active_phase": "POST_95_HEALTH_STABILITY",
-  "active_task": "GRIDEX-OPS-V3-BUG-001 + O-008 PUBLIC privilege residual",
-  "status": "IN_PROGRESS",
-  "skill_routing": {
-    "activated": [
-      "using-superpowers",
-      "find-bugs",
-      "differential-review",
-      "code-review",
-      "variant-analysis",
-      "test-driven-development",
-      "supabase",
-      "supabase-postgres-best-practices",
-      "code-security",
-      "verification-before-completion",
-      "scan-secrets"
-    ],
-    "skipped": [
-      "brainstorming",
-      "threat-model-analyst",
-      "security-threat-model",
-      "quality-playbook",
-      "web-design-guidelines",
-      "install-hooks"
-    ]
-  },
-  "verified_on_main": {
-    "bl006_migration": "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql",
-    "o008_migration": "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql",
-    "static_regressions": [
-      "gridex-ops-bl-006-contacts-and-lookup-cache-read-isolation-regression.cjs",
-      "gridex-ops-o008-actor-readiness-conflict-count-visibility-regression.cjs"
-    ]
-  },
-  "in_progress_artifacts": [
-    "app/api/v1/customer-portal/sync/route.ts",
-    "app/api/v1/customer/sync/route.ts",
-    "app/api/v1/customer/portal-bundle/route.ts",
-    "supabase/migrations/20260809143000_gridex_ops_o008_public_privilege_hardening.sql",
-    "scripts/gridex-ops-v3-bug-001-portal-sync-controlled-errors-regression.cjs",
-    "scripts/gridex-ops-o008-public-privilege-hardening-regression.cjs",
-    "__tests__/portal-controlled-input-errors.test.ts"
+  "active_task": "NONE",
+  "status": "CODE_REMEDIATED_PR_OPEN",
+  "completed_this_run": [
+    "GRIDEX-OPS-V3-BUG-001",
+    "portal sync/parse-outside-try variants",
+    "O-008 PUBLIC privilege residual 20260809143000"
   ],
-  "next_action": "Complete verification, commit/push branch, open PR for V3-BUG-001 and O-008 PUBLIC residual."
+  "verification": {
+    "v3_bug_001_static": "PASS",
+    "o008_public_static": "PASS",
+    "bl006_static": "PASS",
+    "o008_static": "PASS",
+    "db_migrations_integrity": "PASS",
+    "vitest_portal_controlled_errors": "PASS_3_OF_3",
+    "vitest_logging_redaction": "PASS",
+    "staging_sql_matrix": "NOT_RUN",
+    "exact_head_ci": "BLOCKED_ACTIONS_BILLING",
+    "ggshield": "BLOCKED_CLI_ABSENT"
+  },
+  "next_action": "Await review/merge of PR #96; apply 20260809143000 on staging when available.",
+  "resume_from": ".agent-memory/handover.md"
 }
