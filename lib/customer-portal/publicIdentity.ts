@@ -1,4 +1,4 @@
-import { publicReference } from '@/lib/integrations/publicReferences'
+import { requiredPublicReference } from '@/lib/integrations/publicReferences'
 
 type PublicIdentitySource = {
   id: string | null
@@ -27,12 +27,8 @@ export function publicPortalIdentity(
   companyId: string,
   identity: PublicIdentitySource,
 ): PublicPortalIdentityV1 {
-  if (!identity.id) {
-    throw new Error('portal_identity_reference_unavailable')
-  }
-
   return {
-    portal_identity_reference: publicReference(
+    portal_identity_reference: requiredPublicReference(
       'portal_identity',
       companyId,
       identity.id,
