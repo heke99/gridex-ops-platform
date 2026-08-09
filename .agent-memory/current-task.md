@@ -27,4 +27,4 @@ Close confirmed residuals that remained open after #95/#97:
 
 ### Exact next action
 
-Commit/push verified residual fixes, open PR, update checkpoint/handover after push.
+Await review/merge of PR #98, then apply forward migration `20260809151500` on target environments.

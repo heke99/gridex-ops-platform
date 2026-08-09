@@ -6,7 +6,8 @@
   "trigger": "push_to_main_pr97_bl001",
   "active_phase": "POST_97_HEALTH_RESIDUALS",
   "active_task": "V3-BUG-001 + O-008 PUBLIC + V3-BUG-007",
-  "status": "CODE_CHANGES_VERIFIED_PENDING_PUSH_PR",
+  "status": "PR_OPEN_VERIFIED",
+  "pull_request": 98,
   "owner_instruction": "Proceed without GitHub Actions; hosted jobs are account/billing blocked before step 1.",
   "skill_routing": {
     "activated": [
@@ -50,6 +51,6 @@
     }
   ],
   "forward_migration": "20260809151500_gridex_ops_o008_public_privilege_hardening.sql",
-  "next_action": "Commit and push residual fixes; open PR to main; refresh handover.",
+  "next_action": "Await review/merge of PR #98; then apply migration 20260809151500 on target environments.",
   "resume_from": ".agent-memory/current-task.md"
 }
