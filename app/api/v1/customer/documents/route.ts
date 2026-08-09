@@ -5,12 +5,7 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalDocuments, portalContextFromResolved } from '@/lib/customer-portal/apiData'
-import {
-  pagePublicItems,
-  publicPageInput,
-  publicPortalDocument,
-} from '@/lib/customer-portal/publicDto'
+import { readPortalDocumentsPage } from '@/lib/customer-portal/documentReadModel'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,21 +15,17 @@ export async function GET(request: NextRequest) {
   if (!context.ok) return context.response
 
   try {
-    const portalContext = portalContextFromResolved({
+    const page = await readPortalDocumentsPage({
       companyId: context.client.company_id,
       customerId: context.identity.customer_id,
-      externalCustomerId: context.identity.external_customer_id,
-      customerNumber: context.identity.customer_number,
-      provider: context.identity.provider,
+      searchParams: request.nextUrl.searchParams,
     })
-    const documents = await listPortalDocuments(portalContext)
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: documents.length })
-    const page = pagePublicItems(
-      documents.map((row) =>
-        publicPortalDocument(context.client.company_id, row),
-      ),
-      publicPageInput(request.nextUrl.searchParams),
-    )
+    await logCustomerPortalSuccess({
+      request,
+      client: context.client,
+      startedAt: context.startedAt,
+      resultCount: page.items.length,
+    })
     return customerPortalJson({ data: page.items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
