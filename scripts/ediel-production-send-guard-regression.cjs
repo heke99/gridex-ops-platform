@@ -17,6 +17,7 @@ assert(approval.includes('canonical_production_state_missing') && approval.inclu
 assert(guard.includes('const productionApprovalBlocker = await getProductionSendApprovalBlocker') && guard.indexOf('const productionApprovalBlocker = await getProductionSendApprovalBlocker') < guard.indexOf('const routeContract = await evaluateEdielRouteContract'), 'outbound readiness checks production lock before route contract send')
 assert(send.includes('getEdielOutboundReadinessBlocker'), 'send path uses outbound readiness guard before SMTP')
 assert(routeContract.includes('receiver_certificate_missing') && routeContract.includes('certificateRequired'), 'route contract blocks missing S/MIME receiver certificate')
+assert(routeContract.includes("['valid', 'active', 'renewal_available']"), 'route contract accepts the same renewal-available receiver certificate status as the strict certificate resolver')
 assert(actions.includes('approveFirstProductionSendAction'), 'platform admin approval action exists')
 assert(migration.includes('ediel_production_send_approvals') && migration.includes('gridex_approve_first_production_send'), 'SQL approval audit/function exists')
 if (process.exitCode) process.exit(process.exitCode)
