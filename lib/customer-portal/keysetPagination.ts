@@ -6,10 +6,11 @@ import {
 } from 'node:crypto'
 import { ApiInputError } from '@/lib/api/strictRequest'
 
-type KeysetCursorV1 = {
+export type KeysetCursorV1 = {
   v: 1
   sort: string
   id: string
+  source?: string
 }
 
 export type KeysetPageInput = {
@@ -41,7 +42,7 @@ function cursorKey(): Buffer {
   return createHash('sha256').update(material).digest()
 }
 
-function encryptCursor(cursor: KeysetCursorV1): string {
+export function encodeKeysetCursor(cursor: KeysetCursorV1): string {
   const iv = randomBytes(12)
   const cipher = createCipheriv('aes-256-gcm', cursorKey(), iv)
   const plaintext = Buffer.from(JSON.stringify(cursor), 'utf8')
@@ -50,7 +51,7 @@ function encryptCursor(cursor: KeysetCursorV1): string {
   return Buffer.concat([Buffer.from([1]), iv, tag, ciphertext]).toString('base64url')
 }
 
-function decryptCursor(token: string): KeysetCursorV1 {
+export function decodeKeysetCursor(token: string): KeysetCursorV1 {
   try {
     const payload = Buffer.from(token, 'base64url')
     if (payload.length < 30 || payload[0] !== 1) throw new Error('cursor_version')
@@ -69,7 +70,9 @@ function decryptCursor(token: string): KeysetCursorV1 {
       typeof parsed.sort !== 'string' ||
       !parsed.sort ||
       typeof parsed.id !== 'string' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.id)
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.id) ||
+      (parsed.source !== undefined &&
+        (typeof parsed.source !== 'string' || !/^[a-z0-9_:-]{1,80}$/i.test(parsed.source)))
     ) {
       throw new Error('cursor_shape')
     }
@@ -108,7 +111,7 @@ export function keysetPageInput(
   const rawCursor = searchParams.get('cursor')?.trim() ?? ''
   return {
     limit,
-    cursor: rawCursor ? decryptCursor(rawCursor) : null,
+    cursor: rawCursor ? decodeKeysetCursor(rawCursor) : null,
   }
 }
 
@@ -139,7 +142,7 @@ export function finalizeKeysetPage<T extends Record<string, unknown>, U>(input: 
   const last = rows.at(-1)
   const nextCursor =
     hasMore && last
-      ? encryptCursor({
+      ? encodeKeysetCursor({
           v: 1,
           sort: String(last[input.sortColumn] ?? ''),
           id: String(last.id ?? ''),
