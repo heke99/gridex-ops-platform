@@ -1,3 +1,5 @@
+import { CURRENT_API_CONTRACT } from '@/lib/integrations/apiContract'
+
 /**
  * Canonical public contract for a tenant website integration.
  *
@@ -6,7 +8,7 @@
  * production API base URL and request-field placement are part of the V1
  * contract and must never be controlled by tenant environment flags.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-05.2' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = CURRENT_API_CONTRACT.version
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
