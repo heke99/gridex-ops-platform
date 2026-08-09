@@ -68,12 +68,14 @@ declare
            FROM gridex_private.gridex_actor_open_blocking_conflict_counts()
         )$repl$;
   v_patterns text[] := array[
+    -- production pg_get_viewdef shape with qualified actor_registry_conflicts columns
+    $p0$(?is)conflicts\s+as\s*\(\s*select\s+(?:(?:public\.)?actor_registry_conflicts\.)?actor_id\s*,\s*\(?count\(\*\)\)?::integer\s+as\s+open_blocking_conflicts\s+from\s+(?:public\.)?actor_registry_conflicts\s+where\s+(?:(?:public\.)?actor_registry_conflicts\.)?status\s*=\s*'open'(?:::text)?\s+and\s+(?:(?:public\.)?actor_registry_conflicts\.)?severity\s*=\s*'blocking'(?:::text)?\s+and\s+(?:(?:public\.)?actor_registry_conflicts\.)?actor_id\s+is\s+not\s+null\s+group\s+by\s+(?:(?:public\.)?actor_registry_conflicts\.)?actor_id\s*\)$p0$,
     -- pg_get_viewdef(pretty) common shape
     $p1$(?is)conflicts\s+as\s*\(\s*select\s+actor_id\s*,\s*\(count\(\*\)\)::integer\s+as\s+open_blocking_conflicts\s+from\s+(?:public\.)?actor_registry_conflicts\s+where\s*\(\(status\s*=\s*'open'::text\)\s+and\s+\(severity\s*=\s*'blocking'::text\)\s+and\s+\(actor_id\s+is\s+not\s+null\)\)\s+group\s+by\s+actor_id\s*\)$p1$,
     -- source-shaped migration text
     $p2$(?is)conflicts\s+as\s*\(\s*select\s+actor_id\s*,\s*count\(\*\)::integer\s+as\s+open_blocking_conflicts\s+from\s+(?:public\.)?actor_registry_conflicts\s+where\s+status\s*=\s*'open'\s+and\s+severity\s*=\s*'blocking'\s+and\s+actor_id\s+is\s+not\s+null\s+group\s+by\s+actor_id\s*\)$p2$,
     -- tolerant fallback: any conflicts CTE that still scans actor_registry_conflicts
-    $p3$(?is)conflicts\s+as\s*\(\s*select\s+actor_id\s*,\s*\(?count\(\*\)\)?::integer\s+as\s+open_blocking_conflicts\s+from\s+(?:public\.)?actor_registry_conflicts\s+where[\s\S]+?group\s+by\s+actor_id\s*\)$p3$
+    $p3$(?is)conflicts\s+as\s*\(\s*select\s+(?:(?:public\.)?actor_registry_conflicts\.)?actor_id\s*,\s*\(?count\(\*\)\)?::integer\s+as\s+open_blocking_conflicts\s+from\s+(?:public\.)?actor_registry_conflicts\s+where[\s\S]+?group\s+by\s+(?:(?:public\.)?actor_registry_conflicts\.)?actor_id\s*\)$p3$
   ];
 begin
   select pg_get_viewdef('public.actor_readiness_status'::regclass, true)
