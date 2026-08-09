@@ -106,6 +106,55 @@ export type PublicationRevision = {
   etag: string
 }
 
+export type PublicContractFeedFingerprint = {
+  fingerprint: string
+  revision: number
+  updatedAt: string | null
+  stockholmDate: string
+  etag: string
+}
+
+function missingFingerprintRpc(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42883', 'PGRST202'].includes(code)
+    || /public_contract_feed_fingerprint_v1.*not found|schema cache/i.test(message)
+}
+
+/**
+ * Returns a conservative dependency fingerprint when the forward migration is
+ * installed. `null` means the current environment has not yet received the
+ * migration and callers must use the existing representation-hash fallback.
+ */
+export async function loadPublicContractFeedFingerprint(input: {
+  companyId: string
+  customerType: 'private' | 'business' | null
+  channel: 'website'
+}): Promise<PublicContractFeedFingerprint | null> {
+  const { data, error } = await supabaseService.rpc('public_contract_feed_fingerprint_v1', {
+    p_company_id: input.companyId,
+    p_customer_type: input.customerType,
+    p_channel: input.channel,
+  })
+  if (error) {
+    if (missingFingerprintRpc(error)) return null
+    throw error
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null
+  const fingerprint = typeof row?.fingerprint === 'string' ? row.fingerprint : ''
+  if (!fingerprint) return null
+  const revision = Number(row?.publication_revision ?? 0)
+  const updatedAt = row?.publication_updated_at ? String(row.publication_updated_at) : null
+  const stockholmDate = row?.stockholm_date ? String(row.stockholm_date) : ''
+  return {
+    fingerprint,
+    revision: Number.isFinite(revision) ? revision : 0,
+    updatedAt,
+    stockholmDate,
+    etag: `"contracts-feed-${fingerprint}"`,
+  }
+}
+
 export async function loadPublicationRevision(companyId: string, channel: 'website' | 'api'): Promise<PublicationRevision> {
   const { data, error } = await supabaseService
     .from('contract_publication_revisions')
