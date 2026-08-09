@@ -1,24 +1,28 @@
 # Current task
 
-Last updated: 2026-08-09T10:05:00Z
-Branch: `main`
-Primary PR: `#90` merged
-Follow-up PR: `#92` merged
+Last updated: 2026-08-09T15:18:44Z
+Branch: `cursor/codebase-health-and-stability-5727`
+Base: `main` @ `78013b71` (#101)
 
-Status: `REMEDIATION_COMPLETE_WITH_EXTERNAL_DATA_CONFIG_GAPS`.
+Status: `IN_PROGRESS`
 
-The audited code remediation and post-release code follow-up are merged and deployed. GitHub Actions was intentionally bypassed as a release gate by explicit repository-owner instruction because hosted jobs are account/billing blocked before step 1.
+## Skill routing
 
-Verified production application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`. Vercel production deployment `dpl_DdPGCM3epEPccQPGToBEaE15865c` is READY and passed production compilation, TypeScript, page-data and static-generation stages.
+- Activated: `using-superpowers`, `find-bugs`, `differential-review`,
+  `code-review`, `code-security`, `variant-analysis`,
+  `supabase-postgres-best-practices`, `test-driven-development`,
+  `verification-before-completion`, `scan-secrets` (ggshield unavailable in env)
+- Conditional: `systematic-debugging` / `fp-check` if new runtime defects appear
+- Skipped: full `quality-playbook` / threat-model (scoped post-push residual
+  remediation); `brainstorming` (requirements already evidenced by closed #100
+  residual); UI design skills (no UI work)
 
-Exact Supabase ledger versions applied and verified: `20260808214500`, `20260809110000`, `20260809114500`. Health SQLSTATE `42702` is resolved; Grid Owner direct-first performance fix is live; Ediel `renewal_available` certificate status handling is consistent between route guard, strict resolver and health logic.
+## Active item
 
-No further code remediation is required by this campaign based on currently verified evidence. Remaining work is external configuration or authoritative masterdata/onboarding:
+Land the O-008 PUBLIC privilege residual that remained after `#101` merged only
+the portal controlled-input half of closed PR `#100`.
 
-- enable GitHub `main` protection/ruleset using an account surface that supports it;
-- enable Supabase Leaked Password Protection using hosted Auth settings;
-- supply authoritative mappings for 35 platform grid owners affecting 60 active areas;
-- supply receiver Ediel IDs for 2 routes that have no internal source;
-- complete recipient-certificate onboarding through the official secret-protected actor-readiness/external lookup path.
+## Exact next action
 
-Do not guess any of those identifiers or certificate mappings. Do not claim the unavailable post-invoice-fix empty-database replay passed.
+Open PR for `5bc605c5`, then record PR number and continue any newly evidenced
+residuals only.

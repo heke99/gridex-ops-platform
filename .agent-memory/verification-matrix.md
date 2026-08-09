@@ -1,3 +1,19 @@
+# Verification matrix
+
+## Post-#101 residual — 2026-08-09T15:18:44Z
+
+| Check | Result | Evidence |
+|---|---|---|
+| O-008 PUBLIC privilege residual static regression | PASS | `node scripts/gridex-ops-o008-public-privilege-hardening-regression.cjs` |
+| Migration integrity | PASS | `node scripts/check-migration-versions.cjs` → 380 files / 284 groups |
+| Base O-008 static regression | PASS | `node scripts/gridex-ops-o008-actor-readiness-conflict-count-visibility-regression.cjs` |
+| BL-001 static regression | PASS | `node scripts/gridex-ops-bl-001-write-permission-hardening-regression.cjs` |
+| V3-BUG-001 portal sync variants | PASS | `node scripts/gridex-ops-v3-bug-001-portal-sync-controlled-errors-regression.cjs` |
+| Legacy portal sync error contract | PASS | `node scripts/gridex-customer-portal-sync-error-contract-regression.cjs` |
+| Vitest portal controlled-input helper tests | BLOCKED | no `node_modules` / vitest in environment |
+| Staging SQL privilege matrix | NOT_RUN | no isolated apply target in this run |
+| ggshield secret scan | UNAVAILABLE | CLI not installed in environment |
+
 # Verification matrix — PHASE-43
 
 | Area | Status | Evidence |

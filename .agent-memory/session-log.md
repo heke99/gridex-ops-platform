@@ -334,3 +334,7 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-09T15:18:44Z — post-#101 residual
+
+After main `#101` landed portal controlled-input variants, tip review found the O-008 PUBLIC privilege residual from closed `#100` still absent. Landed exact donor migration `20260809151500` (checksum `093c959...`) with static regression on `cursor/codebase-health-and-stability-5727`. Static O-008/BL-001/portal regressions and migration integrity PASS. Vitest blocked by missing node_modules; staging SQL matrix not run.
