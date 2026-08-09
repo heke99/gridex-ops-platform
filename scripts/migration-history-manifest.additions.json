@@ -10,6 +10,7 @@
     "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37d69b37adcc3",
     "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
-    "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366"
+    "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
+    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b"
   }
 }
