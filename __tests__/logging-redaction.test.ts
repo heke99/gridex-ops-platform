@@ -53,6 +53,18 @@ describe('logging redaction', () => {
     expect(value.requestId).toBe('request-safe-id')
   })
 
+  it('redacts person_number and personNumber metadata keys', () => {
+    const value = sanitizeLogMetadata({
+      person_number: '199001011234',
+      personNumber: '199001011234',
+      companyId: 'company-safe-id',
+    })
+
+    expect(value.person_number).toBe('[REDACTED]')
+    expect(value.personNumber).toBe('[REDACTED]')
+    expect(value.companyId).toBe('company-safe-id')
+  })
+
   it('keeps technical error codes but redacts personal data from messages', () => {
     const error = Object.assign(new Error('Failed for anna@example.com from 10.0.0.8'), {
       code: 'PGRST205',
