@@ -3,5 +3,5 @@
   "generated_at": "2026-08-10T21:45:00.000Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "ceb3dd1ffd69d09afc5f59aa04d4faec59a9518db1bd9ff857e00435dbcaf272",
-  "latest_migration": "20260810213851_canonical_architecture_completion_v2.sql"
+  "latest_migration": "20260810214927_canonical_architecture_completion_fk_indexes.sql"
 }
