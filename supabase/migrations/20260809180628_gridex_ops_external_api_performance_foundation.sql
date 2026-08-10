@@ -15,14 +15,11 @@ begin
       raise exception 'external_api_remediation_required_table_missing:%', v_table;
     end if;
   end loop;
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid='public.customer_portal_write_idempotency'::regclass
-      and conname='customer_portal_write_idempot_company_id_api_client_id_rout_key'
-      and contype='u'
-  ) then
-    raise exception 'portal_idempotency_legacy_unique_constraint_missing';
-  end if;
+  -- Historical schemas may have the legacy table shape without the generated
+  -- five-column UNIQUE constraint. The replacement indexes below are created
+  -- before any legacy constraint is removed and therefore remain fail-closed:
+  -- duplicate legacy rows make CREATE UNIQUE INDEX fail instead of weakening
+  -- idempotency, while clean replays and already-reconciled schemas are valid.
 end;
 $$;
 
@@ -35,7 +32,7 @@ create unique index if not exists customer_portal_write_idempotency_company_clie
     (company_id, api_client_id, customer_id, route, idempotency_key)
   where customer_id is not null;
 alter table public.customer_portal_write_idempotency
-  drop constraint customer_portal_write_idempot_company_id_api_client_id_rout_key;
+  drop constraint if exists customer_portal_write_idempot_company_id_api_client_id_rout_key;
 
 create index if not exists customer_contracts_portal_keyset_idx
   on public.customer_contracts (company_id, customer_id, created_at desc, id desc);
