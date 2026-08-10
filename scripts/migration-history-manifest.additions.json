@@ -12,7 +12,7 @@
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
     "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
     "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b",
-    "20260809180628_gridex_ops_external_api_performance_foundation.sql": "68bbf06b77a30c587f00583a5c2797bd4898082d78f74c4652c6a5c1e95f728f",
+    "20260809180628_gridex_ops_external_api_performance_foundation.sql": "c301f968957b0fc82cc5243dad7e5686b129d90e043ac3209cdd1d4587ea9f2f",
     "20260809181141_backfill_legacy_ediel_test_run_tenant.sql": "3c51db0785de7b2076f15ac57ecbab13769ea1349f29627e9262d95e392d5207",
     "20260809181153_validate_pending_public_constraints.sql": "46461e2cf41907ae66e1ccaf6e526c4e2e6f87c998d5efd50a80a8a7edcf8291",
     "20260809181803_portal_event_keyset_read_model.sql": "a920117d89f82f4164938d498b9adba3aad6eaec370d3e5cd98e8209c2c8847a",
