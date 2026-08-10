@@ -26,5 +26,6 @@ control drift, then open a PR that supersedes stale residual `#102`.
 
 ## Exact next action
 
-Commit/push verified fixes, open PR from `ee51`, update automation memory, and
-note that `#102` should be superseded after review.
+PR `#106` opened from `ee51`. After CI is green: apply `20260810230000` on
+`gridex-ops-dev`, supersede/close stale `#102`, then continue external release
+evidence gates.
