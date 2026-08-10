@@ -391,7 +391,8 @@
     "20260810190410_gridex_canonical_architecture_p0.sql": "68b259983310c0930601b8b0e2456a00137688840bbbaa44dd46347018e93685",
     "20260810190809_gridex_canonical_architecture_p0_security_hotfix.sql": "4c71d3914e9ca28c36ec5d6647bd8bd0e753655ea8f7a214203d889c1c179927",
     "20260810191822_canonical_lifecycle_offboarding_v1.sql": "b1105902f1a55ef4ea0a806746cf02a6d55c1ce2b580a2c7d736249208d6d2bf",
-    "20260810193450_canonical_access_provisioning_runtime_v1.sql": "390b0223a8fbafb633795f1ad0116d6cf8ebbddea056226be84711e7d878a4b8"
+    "20260810193450_canonical_access_provisioning_runtime_v1.sql": "390b0223a8fbafb633795f1ad0116d6cf8ebbddea056226be84711e7d878a4b8",
+    "20260810213851_canonical_architecture_completion_v2.sql": "8fe7cd836957996b0416adcb5a8c16bb530ba3a47f0f75805a2332a729a4809f"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
