@@ -703,16 +703,31 @@ select public.gridex__repair_replace_function_text(
          min(c.company_id::text)::uuid$$
 );
 
+-- Apply this historical live-only lint repair in small, exact fragments. The
+-- clean reconstruction legitimately contains the same PL/pgSQL statement with
+-- pg_get_functiondef whitespace that differs from the audited live snapshot.
+-- Each step remains fail-closed, and the transaction rolls back unless all
+-- three fragments are either repaired or already in their canonical form.
 select public.gridex__repair_replace_function_text(
   'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
-  $$select id,operation_id into v_workflow_id,v_existing_operation_id
-  from public.customer_application_workflows
-  where company_id=p_company_id and customer_application_id=p_customer_application_id$$,
+  $$select id,operation_id into v_workflow_id,v_existing_operation_id$$,
   $$select workflow.id,workflow.operation_id
-  into v_workflow_id,v_existing_operation_id
-  from public.customer_application_workflows workflow
-  where workflow.company_id=p_company_id
+  into v_workflow_id,v_existing_operation_id$$
+);
+
+select public.gridex__repair_replace_function_text(
+  'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
+  $$where company_id=p_company_id and customer_application_id=p_customer_application_id$$,
+  $$where workflow.company_id=p_company_id
     and workflow.customer_application_id=p_customer_application_id$$
+);
+
+select public.gridex__repair_replace_function_text(
+  'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
+  $$from public.customer_application_workflows
+  where workflow.company_id=p_company_id$$,
+  $$from public.customer_application_workflows workflow
+  where workflow.company_id=p_company_id$$
 );
 
 select public.gridex__repair_replace_function_text(
