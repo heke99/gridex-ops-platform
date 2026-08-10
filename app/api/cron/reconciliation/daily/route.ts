@@ -4,6 +4,7 @@ import { authorizeScheduledRequest } from '@/lib/automation/scheduledAuth'
 import { withAutomationLock } from '@/lib/automation/locks'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { runProductionConsistencyChecks } from '@/lib/ops/reconciliation'
+import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,19 @@ async function run(request: NextRequest) {
       companyId,
       ttlSeconds: 3600,
       metadata: { source: 'daily_reconciliation_cron' },
-      run: () => runProductionConsistencyChecks({ companyId }),
+      run: async () => {
+        const [applicationChecks, canonicalResult] = await Promise.all([
+          runProductionConsistencyChecks({ companyId }),
+          supabaseService.rpc('canonical_run_architecture_reconciliation', {
+            p_company_id: companyId,
+          }),
+        ])
+        if (canonicalResult.error) throw canonicalResult.error
+        return {
+          applicationChecks,
+          canonicalArchitecture: canonicalResult.data,
+        }
+      },
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
