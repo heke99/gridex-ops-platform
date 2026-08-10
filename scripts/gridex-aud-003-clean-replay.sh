@@ -192,6 +192,14 @@ PY
 
 supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 
+# Let Supabase CLI initialize and own its migration ledger before canonical
+# governance migrations inspect it. The migration directory is empty here, so
+# this creates no application migration entries and does not bypass history.
+supabase db push --local --yes
+psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc \
+  "select case when to_regclass('supabase_migrations.schema_migrations') is not null then 1 else 0 end" \
+  | grep -qx 1
+
 apply_sql(){
   local file="$1"
   test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
