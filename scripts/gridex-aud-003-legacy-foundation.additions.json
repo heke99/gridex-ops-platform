@@ -85,6 +85,21 @@
       "path": "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql",
       "afterLedgerVersion": "20260803212754",
       "beforeLedgerVersion": "20260804003000"
+    },
+    {
+      "path": "bootstrap/20260809_batch4_write_policy_tables_prerequisite.sql",
+      "afterLedgerVersion": "20260809131500",
+      "beforeLedgerVersion": "20260809143000"
+    },
+    {
+      "path": "bootstrap/20260809_batch4c_write_policy_tables_prerequisite.sql",
+      "afterLedgerVersion": "20260809131500",
+      "beforeLedgerVersion": "20260809143000"
+    },
+    {
+      "path": "bootstrap/20260809_batch4d_write_policy_tables_prerequisite.sql",
+      "afterLedgerVersion": "20260809131500",
+      "beforeLedgerVersion": "20260809143000"
     }
   ],
   "derivedBootstrap": {
@@ -275,6 +290,21 @@
       "source": "migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
       "artifactSha256": "db0fd5fd827e218bcd95f138160c25b30c24a6de08897ca86a660e540bcaff16",
       "purpose": "Restore only the source-defined customer_contracts standard-fee compatibility fields consumed by canonical 20260804003000 (discount value/unit, start/admin/break fees and VAT rate); no contract rows are seeded or rewritten."
+    },
+    "bootstrap/20260809_batch4_write_policy_tables_prerequisite.sql": {
+      "source": "migrations/20260522_batch4_multisite_duplicate_billing_hardening.sql",
+      "artifactSha256": "b879c5273a4b8d52d0645b7613f063b10bbae308b34a68fdbfe51a7c51314b92",
+      "purpose": "Restore the source-defined customer duplicate-resolution and power-of-attorney scope tables required by canonical BL-001 write-policy hardening; no rows are seeded."
+    },
+    "bootstrap/20260809_batch4c_write_policy_tables_prerequisite.sql": {
+      "source": "migrations/20260522_batch4c_billing_export_audit_quality_ai.sql",
+      "artifactSha256": "007596033de158708347bc8f292de7f4234a8255154eaa36940ec463be91d23f",
+      "purpose": "Restore the source-defined readiness snapshot, document AI extraction and Batch 4C security-check tables required by canonical BL-001 write-policy hardening; no rows are seeded."
+    },
+    "bootstrap/20260809_batch4d_write_policy_tables_prerequisite.sql": {
+      "source": "migrations/20260522_batch4d_merge_poa_lifecycle_hardening.sql",
+      "artifactSha256": "b0f062a4b5adbae654423d517ac65e94e811ae233e5cf7cbd5d44b166291b97b",
+      "purpose": "Restore the source-defined customer merge-event and lifecycle-decision tables required by canonical BL-001 write-policy hardening; no rows are seeded."
     },
     "bootstrap/20260519_companies_governance_foundation.sql": {
       "source": "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
