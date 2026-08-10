@@ -5,6 +5,7 @@ import { withAutomationLock } from '@/lib/automation/locks'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { runProductionConsistencyChecks } from '@/lib/ops/reconciliation'
 import { supabaseService } from '@/lib/supabase/service'
+import { mapWithConcurrency } from '@/lib/performance/mapWithConcurrency'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,16 +33,48 @@ async function run(request: NextRequest) {
       ttlSeconds: 3600,
       metadata: { source: 'daily_reconciliation_cron' },
       run: async () => {
-        const [applicationChecks, canonicalResult] = await Promise.all([
-          runProductionConsistencyChecks({ companyId }),
-          supabaseService.rpc('canonical_run_architecture_reconciliation', {
-            p_company_id: companyId,
-          }),
-        ])
-        if (canonicalResult.error) throw canonicalResult.error
+        const applicationChecksPromise = runProductionConsistencyChecks({ companyId })
+        let companyIds: string[]
+        if (companyId) {
+          companyIds = [companyId]
+        } else {
+          const { data: companies, error: companiesError } = await supabaseService
+            .from('companies')
+            .select('id')
+            .neq('status', 'deleted_test_only')
+            .order('id')
+          if (companiesError) throw companiesError
+          companyIds = (companies ?? []).map((company) => company.id)
+        }
+
+        const companyResults = await mapWithConcurrency(companyIds, 4, async (scopedCompanyId) => {
+          const canonicalResult = await supabaseService.rpc(
+            'canonical_run_architecture_reconciliation',
+            { p_company_id: scopedCompanyId },
+          )
+          if (canonicalResult.error) {
+            return {
+              company_id: scopedCompanyId,
+              ok: false,
+              error_code: canonicalResult.error.code ?? 'reconciliation_check_failed',
+            }
+          }
+          return {
+            company_id: scopedCompanyId,
+            ok: true,
+            checks: canonicalResult.data,
+          }
+        })
+        const failedCount = companyResults.filter((company) => !company.ok).length
+
         return {
-          applicationChecks,
-          canonicalArchitecture: canonicalResult.data,
+          applicationChecks: await applicationChecksPromise,
+          canonicalArchitecture: {
+            company_count: companyResults.length,
+            failed_count: failedCount,
+            ok: failedCount === 0,
+            companies: companyResults,
+          },
         }
       },
     })
