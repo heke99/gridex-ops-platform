@@ -677,16 +677,24 @@ select public.gridex__repair_replace_function_text(
 -- Repair every active function error reported by the 2026-07-28 live lint.
 -- ---------------------------------------------------------------------------
 
-select public.gridex__repair_replace_function_text(
-  'public.select_onboarding_start_path(uuid,text)',
-  'public.user_can_access_company_v2(p_company_id)',
-  'public.gridex_can_write_company(p_company_id)'
-);
-select public.gridex__repair_replace_function_text(
-  'public.complete_core_onboarding(uuid)',
-  'public.user_can_access_company_v2(p_company_id)',
-  'public.gridex_can_write_company(p_company_id)'
-);
+do $$
+begin
+  if to_regprocedure('public.select_onboarding_start_path(uuid,text)') is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.select_onboarding_start_path(uuid,text)',
+      'public.user_can_access_company_v2(p_company_id)',
+      'public.gridex_can_write_company(p_company_id)'
+    );
+  end if;
+  if to_regprocedure('public.complete_core_onboarding(uuid)') is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.complete_core_onboarding(uuid)',
+      'public.user_can_access_company_v2(p_company_id)',
+      'public.gridex_can_write_company(p_company_id)'
+    );
+  end if;
+end
+$$;
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_current_user_context()',
