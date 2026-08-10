@@ -2,6 +2,6 @@
   "project_id": "piidsfebjqjmnepdpnas",
   "generated_at": "2026-08-10T21:45:00.000Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "ceb3dd1ffd69d09afc5f59aa04d4faec59a9518db1bd9ff857e00435dbcaf272",
-  "latest_migration": "20260810221500_canonical_invitation_delivery_hotfix.sql"
+  "sha256": "38bbd774f47d23f8b7ce7572123e180630e6cf0f66833e0d7a468146306297e7",
+  "latest_migration": "20260810224500_canonical_review_remediation_v1.sql"
 }
