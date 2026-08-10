@@ -369,7 +369,7 @@
     "20260803131558_external_api_contract_database_hardening_v1.sql": "fdb921d0f8a60e2f1a47441253bda4d36ea47b0b054e8d291379ea30c053db79",
     "20260803131922_external_api_contract_database_hardening_v2.sql": "fcafd26765eb70f4e28aeb3ffcbbc4b2f1261eb4bdc1b0a2d64d0d3036e00756",
     "20260803144819_contract_portfolio_area_billing_consistency.sql": "1522b0e39df53460a7e98145462552f0fbe71d0f827e1b8ee87b6e54f215049b",
-    "20260803145108_portfolio_lock_transition_immutability_fix.sql": "664cf48cc9611c5e80263baf403f94d916fbc0f873ae5c18e719e76a2645e975",
+    "20260803145108_portfolio_lock_transition_immutability_fix.sql": "b712f437c7c7b13c2244df9d561ec76f3d2797ba352fa1bfb062cc9e3d3c5e96",
     "20260803145427_portfolio_superadmin_role_alignment.sql": "73b718ff8dc9a4d18ca72f3e2a8e6bf949255e28af3011fa4da98031f6701bae",
     "20260803150723_portfolio_mix_share_billing_completion.sql": "717fafdfcac85c602611cdba0ea391127ddca59065668f04a8c848250b101444",
     "20260803152014_contract_portfolio_tenant_fk_indexes.sql": "bc7de917bdf4f309059330105648217be5a82a91289037cf6e713c46cb99d4ae",
