@@ -5,33 +5,24 @@ Updated: 2026-08-10
 ## Source truth
 
 - Repository: `heke99/gridex-ops-platform`.
-- Default branch: `main`.
-- Remediation base: `e8586c1ba112213a0f11da16ee3a5ae15386dc69`.
-- Release candidate: PR #105 on `codex/gridex-canonical-57-remediation`.
-- The uploaded archive was byte-equivalent to the remediation base for tracked source content.
+- Default branch: `main` at `09edc18f` after merge of PR `#105`
+  (canonical 57-point architecture remediation).
+- Active health branch: `cursor/codebase-health-and-stability-ee51`.
 
-## Implemented and verified
+## Post-#105 health status
 
-- The 57-point canonical architecture remediation is implemented in the existing platform.
-- Canonical request-scoped authorization, tenant lifecycle, durable provisioning, worker-owned invitation delivery, verified acceptance, application repair, reconciliation, release receipts and performance budgets are in place.
-- Historical applied migrations remain immutable. Recovered database migrations and three new forward migrations are checksum-pinned.
-- Connected `gridex-ops-dev` is migrated through `20260810224500_canonical_review_remediation_v1.sql`.
-- Live invariants are green: no roleless memberships, non-ready active clients, due stranded outbox rows, overdue manual reviews, unclassified applications or reconciliation query errors.
-- One legacy application is truthfully classified as `awaiting_input` with owner, reason and SLA; missing authoritative identities were not fabricated.
-- Hosted run `31435653056` passed clean replay, verify and quality-release gates before the final review hotfixes.
-- All actionable review findings are fixed forward-only, including secret-free public auth results, lifecycle replay/no-op guards, multi-company permissions, worker lease recovery, audited offboarding, real repair jobs and bounded reconciliation. The final branch head must pass a fresh required run before merge.
+- `#105` migrations and review remediations are on main through
+  `20260810224500_canonical_review_remediation_v1.sql`.
+- Hosted Actions run `31437733202` passed verify / clean replay / quality gates
+  on the PR head, but the 57-control Node script was not part of OPS hardening
+  CI and locally failed C28 on the merged tip until corrected.
+- Tip residual work on `ee51` adds `20260810230000` O-008 PUBLIC privilege
+  hardening and wires both the 57-control and O-008 PUBLIC regressions into CI.
 
-## Release sequence
+## Still external / blocked
 
-1. Require all checks on the final PR head to pass.
-2. Merge PR #105 without bypassing branch protection.
-3. Verify Vercel production is READY for the exact merged SHA and smoke the deployed URL.
-4. Check production runtime errors and persist a `platform_release_receipts` row for the exact Git/CI/Vercel/schema identity.
-5. Re-run the database invariants.
-
-## External configuration limits
-
-- The connected Supabase account exposes only `gridex-ops-dev`; no separate staging/production database is available for parity comparison.
-- Supabase Auth leaked-password protection has no exposed management action in the connected toolset and must be changed in the hosted Auth configuration.
-
-Detailed evidence: `docs/remediation/GRIDEX_57_POINT_CANONICAL_ARCHITECTURE_CLOSURE_2026-08-10.md`.
+- Staging/production apply of the new grant migration.
+- Supabase Auth leaked-password protection dashboard change.
+- Exact Git/CI/Vercel production SHA receipt after the next release.
+- Open residual PR `#102` is stale (pre-#105 timestamp) and should be superseded
+  by the `ee51` PR.

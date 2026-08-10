@@ -65,3 +65,16 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## Post-#105 health residuals — 2026-08-10T22:30:00Z (`ee51`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| C28 control matches recorded_by FK index | PASS | `gridex:canonical-architecture-57-regression` 57/57 |
+| O-008 PUBLIC privilege residual static | PASS | `gridex:o008-public-privilege-hardening-regression` checksum `f868b36b...` |
+| Migration integrity | PASS | `check-migration-versions` 403 files / 307 groups |
+| Types tip pin (grant-only) | PASS | `check-supabase-generated-types`; sha unchanged |
+| Base O-008 / BL-001 / portal parse regressions | PASS | existing static scripts |
+| OPS hardening CI wires 57 + O-008 PUBLIC | PASS static | `.github/workflows/ops-hardening.yml` |
+| Staging SQL privilege matrix | NOT_RUN | no connected apply in this agent |
+| ggshield secret scan | BLOCKED | CLI not installed |

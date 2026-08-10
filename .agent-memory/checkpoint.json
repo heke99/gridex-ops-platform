@@ -1,38 +1,60 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-10T20:15:00Z",
-  "branch": "main (archive label; unverified)",
-  "active_phase": "GRIDEX_75_REMEDIATION_EXTERNAL_RELEASE_BLOCKED",
-  "active_task": "Verify clean replay and exact-SHA release in connected CI/production environments",
-  "status": "CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED",
-  "source_state": {
-    "archive_claimed_source_sha": "78013b71a1f7fccd166b38f0712e20d1df198e11",
-    "verified_git_sha": null,
-    "actual_repository_state": "UNVERIFIED_ARCHIVE_WITHOUT_GIT",
-    "reason": "The supplied zip has no .git directory; no current HEAD, merge SHA or origin/main can be proven from this workspace."
+  "updated_at": "2026-08-10T22:30:00Z",
+  "branch": "cursor/codebase-health-and-stability-ee51",
+  "base_sha": "09edc18f3aa88e9d17bb787fd264d497f772b3d0",
+  "active_phase": "POST_105_CODEBASE_HEALTH",
+  "active_task": "Close post-#105 C28 control drift and O-008 PUBLIC privilege residual",
+  "status": "IMPLEMENTED_NOT_VERIFIED_ON_STAGING",
+  "skill_routing": {
+    "activated": [
+      "using-superpowers",
+      "find-bugs",
+      "code-review",
+      "code-security",
+      "fp-check",
+      "supabase-postgres-best-practices",
+      "test-driven-development",
+      "scan-secrets",
+      "verification-before-completion"
+    ],
+    "conditional": [
+      "variant-analysis",
+      "requesting-code-review",
+      "finishing-a-development-branch"
+    ],
+    "skipped": [
+      "quality-playbook (scoped residual remediation, not full baseline audit)",
+      "security-threat-model / threat-model-analyst (not requested)",
+      "web-design-guidelines (no UI work)",
+      "brainstorming (requirements already evidenced by prior residual #102 and failing C28)"
+    ]
   },
-  "connected_environment": {
-    "supabase_project": "gridex-ops-dev",
-    "project_id": "piidsfebjqjmnepdpnas",
-    "region": "eu-north-1",
-    "schema_and_migration_parity": "VERIFIED_2026-08-10",
-    "latest_migration": "20260810110829_retention_category_classification.sql",
-    "api_contract_release": "2026-08-10.1"
-  },
+  "findings": [
+    {
+      "id": "C28",
+      "severity": "High",
+      "verdict": "TRUE_POSITIVE",
+      "fix": "Align control with platform_release_receipts_recorded_by_idx; wire 57-control script into OPS hardening CI"
+    },
+    {
+      "id": "O-008-PUBLIC",
+      "severity": "High",
+      "verdict": "TRUE_POSITIVE",
+      "fix": "Forward migration 20260810230000 plus static regression; supersedes stale #102 timestamp"
+    }
+  ],
   "verification": {
-    "quality_tests": "45/45 PASS",
-    "application_tests": "467/467 PASS",
-    "typecheck": "PASS",
-    "lint": "PASS_WITH_EXISTING_WARNINGS",
-    "production_build": "PASS",
-    "clean_empty_database_replay": "NOT_EXECUTED_NO_LOCAL_DOCKER_OR_SUPABASE_CLI",
-    "production_exact_sha": "UNVERIFIED_NO_PRODUCTION_OR_GIT_CONNECTOR"
+    "check-migration-versions": "PASS",
+    "check-supabase-generated-types": "PASS",
+    "canonical-architecture-57": "PASS_57_57",
+    "o008-public-privilege": "PASS",
+    "o008-base": "PASS",
+    "bl-001": "PASS",
+    "v3-bug-001-portal": "PASS",
+    "legacy-portal-sync-contract": "PASS",
+    "ggshield": "BLOCKED_CLI_NOT_INSTALLED",
+    "staging_sql_apply": "NOT_RUN"
   },
-  "safety": {
-    "geodata_cleanup": "DRY_RUN_ONLY",
-    "production_data_deleted": false,
-    "leaked_password_protection": "EXTERNAL_AUTH_DASHBOARD_ACTION_REQUIRED"
-  },
-  "release_decision": "NO_GO until clean replay, mandatory hosted CI, production parity, Auth leaked-password protection and exact Git/CI/Vercel SHA evidence are verified.",
-  "resume_from": "docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md"
+  "resume_from": "Push ee51, open PR, supersede #102 after review"
 }

@@ -334,3 +334,11 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-10T22:30:00Z — post-#105 health residuals (`ee51`)
+
+- Trigger: main push `09edc18f` (Complete canonical architecture remediation #105).
+- Confirmed C28 TRUE POSITIVE: control expected `deployed_by` index name; schema uses `recorded_by`.
+- Confirmed O-008 PUBLIC residual still open; tip-based migration `20260810230000` landed.
+- Wired 57-control and O-008 PUBLIC regressions into OPS hardening CI.
+- Static verification green; staging apply and ggshield remain blocked.

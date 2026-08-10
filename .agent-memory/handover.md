@@ -1,11 +1,34 @@
-# Remediation handover
+# Handover — post-#105 health residuals
 
 Updated: 2026-08-10
 
-Status: **CODE + CONNECTED DEV COMPLETE; RELEASE BLOCKED**
+Branch: `cursor/codebase-health-and-stability-ee51` (base `main@09edc18f`, #105).
 
-The supplied archive was remediated directly, without creating a parallel implementation. The connected `gridex-ops-dev` migration ledger and schema are synchronized with the new source migrations, generated database types and runtime expectations. All local executable quality gates pass.
+## Done in this pass
 
-The archive has no `.git`; do not reuse its historical SHA/deployment claims as evidence for this build. Before release, run the existing clean-replay CI job, mandatory checks on the actual repository, verify staging/production DB parity, enable the hosted Auth password-protection setting, deploy from the checked SHA and prove Git/CI/Vercel SHA equality. Then capture production latency percentiles.
+- Fixed C28 false index name in
+  `scripts/gridex-canonical-architecture-57-point-regression.cjs`
+  (`deployed_by` → `recorded_by`).
+- Wired `gridex:canonical-architecture-57-regression` and
+  `gridex:o008-public-privilege-hardening-regression` into
+  `.github/workflows/ops-hardening.yml` so the 57-control claim cannot skip CI.
+- Landed tip-based O-008 PUBLIC privilege hardening as
+  `20260810230000_gridex_ops_o008_public_privilege_hardening.sql` with checksum
+  in `migration-history-manifest.additions.json` and types tip pin (types hash
+  unchanged; grant-only migration).
+- Static regressions green locally. Staging SQL apply not run.
 
-No geodata cleanup was committed: the candidate set was measured with the new service-role-only dry-run function. Detailed point-by-point status and live-dev evidence are in `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+## Do not redo
+
+- Do not reuse unmerged residual timestamp `20260809151500` from `#102`.
+- Do not revoke authenticated SELECT on `actor_readiness_status` — required by
+  `gridex_verified_grid_owners_v`.
+- Do not reopen BL-006 / portal parse residuals already on main via `#95`/`#101`.
+
+## Next
+
+1. Push `ee51` and open PR (supersede open `#102`).
+2. Apply `20260810230000` on `gridex-ops-dev` and re-check
+   `has_table_privilege` for anon/authenticated on readiness views.
+3. Keep external Auth leaked-password and production SHA evidence outside this
+   residual PR.
