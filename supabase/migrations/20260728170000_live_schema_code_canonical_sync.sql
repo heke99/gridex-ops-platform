@@ -1464,16 +1464,30 @@ select public.gridex__repair_replace_function_text(
 -- SECURITY DEFINER functions touched by this migration use explicit trusted
 -- schemas. This does not expose extension or temporary objects ahead of
 -- pg_catalog during name resolution.
-alter function public.select_onboarding_start_path(uuid,text)
-  set search_path = public, auth, pg_catalog, pg_temp;
-alter function public.complete_core_onboarding(uuid)
-  set search_path = public, auth, pg_catalog, pg_temp;
-alter function public.gridex_customer_cleanup_external_ref(uuid)
-  set search_path = public, pg_catalog, pg_temp;
-alter function public.gridex_current_user_context()
-  set search_path = public, auth, pg_catalog, pg_temp;
-alter function public.gridex_ops_health_checks()
-  set search_path = public, pg_catalog, pg_temp;
+do $
+begin
+  if to_regprocedure('public.select_onboarding_start_path(uuid,text)') is not null then
+    alter function public.select_onboarding_start_path(uuid,text)
+      set search_path = public, auth, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.complete_core_onboarding(uuid)') is not null then
+    alter function public.complete_core_onboarding(uuid)
+      set search_path = public, auth, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.gridex_customer_cleanup_external_ref(uuid)') is not null then
+    alter function public.gridex_customer_cleanup_external_ref(uuid)
+      set search_path = public, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.gridex_current_user_context()') is not null then
+    alter function public.gridex_current_user_context()
+      set search_path = public, auth, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.gridex_ops_health_checks()') is not null then
+    alter function public.gridex_ops_health_checks()
+      set search_path = public, pg_catalog, pg_temp;
+  end if;
+end
+$;
 
 -- The repair helper itself must not survive the migration.
 drop function public.gridex__repair_replace_function_text(text,text,text);
@@ -1488,13 +1502,3 @@ comment on function public.gridex_retry_website_contract_signature(uuid,uuid,uui
   'Idempotently recovers signature_failed website contracts to pending_signature before a new exact-evidence finalization.';
 
 commit;
-
-
-
-
-select public.gridex__repair_replace_function_text(
-  'public.gridex_sync_internal_offer_to_canonical(uuid)',
-  'o.valid_from::timestamptz,o.valid_to::timestamptz',
-  $$o.valid_from::timestamptz,
-    case when o.valid_to is null then null else (o.valid_to + 1)::timestamptz end$$
-);
