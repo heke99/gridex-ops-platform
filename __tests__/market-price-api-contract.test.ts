@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import websiteOpenApi from '@/docs/openapi/website-integration-v1.json'
 import customerPortalOpenApiDocument from '@/docs/openapi/customer-portal-v1.json'
+import { CURRENT_API_CONTRACT } from '@/lib/integrations/apiContract'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const root = process.cwd()
@@ -24,8 +25,9 @@ describe('market-price public API contract', () => {
     const contract = readFileSync(`${root}/lib/integrations/websiteIntegrationContract.ts`, 'utf8')
     const registry = readFileSync(`${root}/lib/api/publicRouteRegistry.ts`, 'utf8')
     expect(contract).toContain(
-      `WEBSITE_INTEGRATION_CONTRACT_VERSION = '${WEBSITE_INTEGRATION_CONTRACT_VERSION}'`,
+      'WEBSITE_INTEGRATION_CONTRACT_VERSION = CURRENT_API_CONTRACT.version',
     )
+    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe(CURRENT_API_CONTRACT.version)
     expect(registry).toContain("path: '/api/v1/website/market-price/current'")
     expect(websiteSpec.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
