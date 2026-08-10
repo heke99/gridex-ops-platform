@@ -100334,7 +100334,6 @@ export type Database = {
           reset_at: string
           route_limit: number
           scopes: string[]
-          secret_hash: string
           tenant_status: string
         }[]
       }
@@ -100367,7 +100366,6 @@ export type Database = {
           reset_at: string
           route_limit: number
           scopes: string[]
-          secret_hash: string
           tenant_status: string
         }[]
       }
@@ -100401,7 +100399,6 @@ export type Database = {
           reset_at: string
           route_limit: number
           scopes: string[]
-          secret_hash: string
           tenant_status: string
         }[]
       }
@@ -100447,6 +100444,10 @@ export type Database = {
         Returns: Json
       }
       canonical_authenticated_tenant_context: {
+        Args: { p_selected_company_id?: string }
+        Returns: Json
+      }
+      canonical_authenticated_tenant_context_v1_scoped: {
         Args: { p_selected_company_id?: string }
         Returns: Json
       }
@@ -100567,6 +100568,17 @@ export type Database = {
         Returns: Json
       }
       canonical_complete_company_provisioning_job: {
+        Args: {
+          p_error_code?: string
+          p_error_details?: Json
+          p_error_message?: string
+          p_job_id: string
+          p_lease_token: string
+          p_succeeded: boolean
+        }
+        Returns: Json
+      }
+      canonical_complete_company_provisioning_job_v1_pre_history_guar: {
         Args: {
           p_error_code?: string
           p_error_details?: Json
@@ -100728,6 +100740,17 @@ export type Database = {
         Returns: Json
       }
       canonical_transition_tenant_lifecycle_v3_pre_offboarding: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_state_version: number
+          p_idempotency_key: string
+          p_reason: string
+          p_target_status: string
+        }
+        Returns: Json
+      }
+      canonical_transition_tenant_lifecycle_v4_pre_replay_guard: {
         Args: {
           p_actor_user_id: string
           p_company_id: string
