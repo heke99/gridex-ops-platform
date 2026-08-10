@@ -63,7 +63,7 @@ begin
     p_explicit_invoice_fee_sek
   );
 end;
-$function$
+$function$;
 
 revoke all on function public.gridex_republish_active_public_contract_v2(uuid,uuid,numeric) from public, anon, authenticated;
 grant execute on function public.gridex_republish_active_public_contract_v2(uuid,uuid,numeric) to service_role;
@@ -720,9 +720,8 @@ begin
     'commercial_values_changed', false
   );
 end;
-$function$
+$function$;
 
 revoke all on function public.gridex_seed_publication_price_option_template_v2(uuid,uuid) from public, anon, authenticated;
 grant execute on function public.gridex_seed_publication_price_option_template_v2(uuid,uuid) to service_role;
-
 
