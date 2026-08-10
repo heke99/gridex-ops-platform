@@ -8181,6 +8181,186 @@ export type Database = {
           },
         ]
       }
+      canonical_data_repair_audit: {
+        Row: {
+          after_state: Json
+          before_state: Json
+          classification: string
+          company_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          repair_key: string
+          verified_at: string | null
+        }
+        Insert: {
+          after_state?: Json
+          before_state?: Json
+          classification: string
+          company_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          repair_key: string
+          verified_at?: string | null
+        }
+        Update: {
+          after_state?: Json
+          before_state?: Json
+          classification?: string
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          repair_key?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_billing_volume_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_runtime_readiness"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "metering_billing_audit_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_tenant_governance_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       canonical_domain_events: {
         Row: {
           aggregate_id: string
@@ -10587,6 +10767,7 @@ export type Database = {
           lifecycle_last_transition_at: string | null
           lifecycle_last_transition_by: string | null
           lifecycle_state_version: number
+          lifecycle_status: string
           live_approved_at: string | null
           live_approved_by: string | null
           live_blocked_reason: string | null
@@ -10733,6 +10914,7 @@ export type Database = {
           lifecycle_last_transition_at?: string | null
           lifecycle_last_transition_by?: string | null
           lifecycle_state_version?: number
+          lifecycle_status?: string
           live_approved_at?: string | null
           live_approved_by?: string | null
           live_blocked_reason?: string | null
@@ -10879,6 +11061,7 @@ export type Database = {
           lifecycle_last_transition_at?: string | null
           lifecycle_last_transition_by?: string | null
           lifecycle_state_version?: number
+          lifecycle_status?: string
           live_approved_at?: string | null
           live_approved_by?: string | null
           live_blocked_reason?: string | null
@@ -12301,6 +12484,7 @@ export type Database = {
           expires_at: string | null
           full_name: string | null
           id: string
+          idempotency_key: string | null
           invited_by: string | null
           invited_email: string | null
           invited_user_id: string | null
@@ -12325,6 +12509,7 @@ export type Database = {
           expires_at?: string | null
           full_name?: string | null
           id?: string
+          idempotency_key?: string | null
           invited_by?: string | null
           invited_email?: string | null
           invited_user_id?: string | null
@@ -12349,6 +12534,7 @@ export type Database = {
           expires_at?: string | null
           full_name?: string | null
           id?: string
+          idempotency_key?: string | null
           invited_by?: string | null
           invited_email?: string | null
           invited_user_id?: string | null
@@ -13761,11 +13947,20 @@ export type Database = {
           company_id: string
           completed_at: string | null
           created_at: string
+          dead_letter_at: string | null
           id: string
           idempotency_key: string
           job_key: string
           last_error_code: string | null
           last_error_details: Json
+          last_error_message: string | null
+          lease_token: string | null
+          lifecycle_blocked_by_tenant: boolean
+          lifecycle_previous_status: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          started_at: string | null
           status: string
           updated_at: string
         }
@@ -13776,11 +13971,20 @@ export type Database = {
           company_id: string
           completed_at?: string | null
           created_at?: string
+          dead_letter_at?: string | null
           id?: string
           idempotency_key: string
           job_key: string
           last_error_code?: string | null
           last_error_details?: Json
+          last_error_message?: string | null
+          lease_token?: string | null
+          lifecycle_blocked_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -13791,11 +13995,20 @@ export type Database = {
           company_id?: string
           completed_at?: string | null
           created_at?: string
+          dead_letter_at?: string | null
           id?: string
           idempotency_key?: string
           job_key?: string
           last_error_code?: string | null
           last_error_details?: Json
+          last_error_message?: string | null
+          lease_token?: string | null
+          lifecycle_blocked_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -28121,6 +28334,8 @@ export type Database = {
           last_error: string | null
           last_error_code: string | null
           last_error_message: string | null
+          lifecycle_blocked_by_tenant: boolean
+          lifecycle_previous_status: string | null
           lock_token: string | null
           locked_at: string | null
           locked_by: string | null
@@ -28132,6 +28347,12 @@ export type Database = {
           priority: number
           request_snapshot: Json
           result: Json
+          review_environment: string
+          review_owner: string | null
+          review_owner_user_id: string | null
+          review_reason_code: string | null
+          review_resolved_at: string | null
+          review_sla_due_at: string | null
           run_after: string
           stale_reason: string | null
           status: string
@@ -28154,6 +28375,8 @@ export type Database = {
           last_error?: string | null
           last_error_code?: string | null
           last_error_message?: string | null
+          lifecycle_blocked_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
           lock_token?: string | null
           locked_at?: string | null
           locked_by?: string | null
@@ -28165,6 +28388,12 @@ export type Database = {
           priority?: number
           request_snapshot?: Json
           result?: Json
+          review_environment?: string
+          review_owner?: string | null
+          review_owner_user_id?: string | null
+          review_reason_code?: string | null
+          review_resolved_at?: string | null
+          review_sla_due_at?: string | null
           run_after?: string
           stale_reason?: string | null
           status?: string
@@ -28187,6 +28416,8 @@ export type Database = {
           last_error?: string | null
           last_error_code?: string | null
           last_error_message?: string | null
+          lifecycle_blocked_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
           lock_token?: string | null
           locked_at?: string | null
           locked_by?: string | null
@@ -28198,6 +28429,12 @@ export type Database = {
           priority?: number
           request_snapshot?: Json
           result?: Json
+          review_environment?: string
+          review_owner?: string | null
+          review_owner_user_id?: string | null
+          review_reason_code?: string | null
+          review_resolved_at?: string | null
+          review_sla_due_at?: string | null
           run_after?: string
           stale_reason?: string | null
           status?: string
@@ -70818,6 +71055,36 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_performance_budgets: {
+        Row: {
+          environment: string
+          max_db_queries: number | null
+          p50_ms: number
+          p95_ms: number
+          p99_ms: number
+          route_key: string
+          updated_at: string
+        }
+        Insert: {
+          environment: string
+          max_db_queries?: number | null
+          p50_ms: number
+          p95_ms: number
+          p99_ms: number
+          route_key: string
+          updated_at?: string
+        }
+        Update: {
+          environment?: string
+          max_db_queries?: number | null
+          p50_ms?: number
+          p95_ms?: number
+          p99_ms?: number
+          route_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_postal_code_grid_mappings: {
         Row: {
           city: string | null
@@ -70863,6 +71130,7 @@ export type Database = {
       platform_reconciliation_findings: {
         Row: {
           category: string
+          check_error: string | null
           company_id: string
           created_at: string
           details: Json
@@ -70872,14 +71140,18 @@ export type Database = {
           first_detected_at: string
           id: string
           last_detected_at: string
+          owner: string | null
+          repair_action: string | null
           resolved_at: string | null
           severity: string
+          sla_due_at: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
           category: string
+          check_error?: string | null
           company_id: string
           created_at?: string
           details?: Json
@@ -70889,14 +71161,18 @@ export type Database = {
           first_detected_at?: string
           id?: string
           last_detected_at?: string
+          owner?: string | null
+          repair_action?: string | null
           resolved_at?: string | null
           severity: string
+          sla_due_at?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
           category?: string
+          check_error?: string | null
           company_id?: string
           created_at?: string
           details?: Json
@@ -70906,8 +71182,11 @@ export type Database = {
           first_detected_at?: string
           id?: string
           last_detected_at?: string
+          owner?: string | null
+          repair_action?: string | null
           resolved_at?: string | null
           severity?: string
+          sla_due_at?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -71054,6 +71333,48 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
         ]
+      }
+      platform_release_receipts: {
+        Row: {
+          ci_run_id: string
+          deployment_id: string
+          environment: string
+          evidence: Json
+          id: string
+          recorded_at: string
+          recorded_by: string | null
+          release_sha: string
+          schema_migration_version: string
+          status: string
+          verified_at: string | null
+        }
+        Insert: {
+          ci_run_id: string
+          deployment_id: string
+          environment: string
+          evidence?: Json
+          id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          release_sha: string
+          schema_migration_version: string
+          status: string
+          verified_at?: string | null
+        }
+        Update: {
+          ci_run_id?: string
+          deployment_id?: string
+          environment?: string
+          evidence?: Json
+          id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          release_sha?: string
+          schema_migration_version?: string
+          status?: string
+          verified_at?: string | null
+        }
+        Relationships: []
       }
       platform_schema_state: {
         Row: {
@@ -80335,6 +80656,8 @@ export type Database = {
           channel: string
           created_at: string
           id: string
+          lifecycle_paused_by_tenant: boolean
+          lifecycle_previous_status: string | null
           marketing_content: Json
           status: string
           updated_at: string
@@ -80347,6 +80670,8 @@ export type Database = {
           channel: string
           created_at?: string
           id?: string
+          lifecycle_paused_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
           marketing_content?: Json
           status?: string
           updated_at?: string
@@ -80359,6 +80684,8 @@ export type Database = {
           channel?: string
           created_at?: string
           id?: string
+          lifecycle_paused_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
           marketing_content?: Json
           status?: string
           updated_at?: string
@@ -84375,6 +84702,8 @@ export type Database = {
           last_failure_at: string | null
           last_success_at: string | null
           last_tested_at: string | null
+          lifecycle_paused_by_tenant: boolean
+          lifecycle_previous_status: string | null
           max_attempts: number
           metadata: Json
           name: string
@@ -84403,6 +84732,8 @@ export type Database = {
           last_failure_at?: string | null
           last_success_at?: string | null
           last_tested_at?: string | null
+          lifecycle_paused_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
           max_attempts?: number
           metadata?: Json
           name: string
@@ -84431,6 +84762,8 @@ export type Database = {
           last_failure_at?: string | null
           last_success_at?: string | null
           last_tested_at?: string | null
+          lifecycle_paused_by_tenant?: boolean
+          lifecycle_previous_status?: string | null
           max_attempts?: number
           metadata?: Json
           name?: string
@@ -85156,6 +85489,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           intake_id: string | null
+          last_repair_at: string | null
           legal_bundle_version_id: string | null
           metadata: Json
           metering_point_id: string | null
@@ -85173,6 +85507,12 @@ export type Database = {
           public_contract_offer_id: string | null
           quote_reference: string | null
           raw_payload: Json
+          repair_attempts: number
+          repair_owner: string | null
+          repair_owner_user_id: string | null
+          repair_reason_code: string | null
+          repair_sla_due_at: string | null
+          repair_status: string | null
           request_id: string | null
           requested_start_date: string | null
           requested_start_mode: string
@@ -85225,6 +85565,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           intake_id?: string | null
+          last_repair_at?: string | null
           legal_bundle_version_id?: string | null
           metadata?: Json
           metering_point_id?: string | null
@@ -85242,6 +85583,12 @@ export type Database = {
           public_contract_offer_id?: string | null
           quote_reference?: string | null
           raw_payload?: Json
+          repair_attempts?: number
+          repair_owner?: string | null
+          repair_owner_user_id?: string | null
+          repair_reason_code?: string | null
+          repair_sla_due_at?: string | null
+          repair_status?: string | null
           request_id?: string | null
           requested_start_date?: string | null
           requested_start_mode?: string
@@ -85294,6 +85641,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           intake_id?: string | null
+          last_repair_at?: string | null
           legal_bundle_version_id?: string | null
           metadata?: Json
           metering_point_id?: string | null
@@ -85311,6 +85659,12 @@ export type Database = {
           public_contract_offer_id?: string | null
           quote_reference?: string | null
           raw_payload?: Json
+          repair_attempts?: number
+          repair_owner?: string | null
+          repair_owner_user_id?: string | null
+          repair_reason_code?: string | null
+          repair_sla_due_at?: string | null
+          repair_status?: string | null
           request_id?: string | null
           requested_start_date?: string | null
           requested_start_mode?: string
@@ -99984,6 +100338,73 @@ export type Database = {
           tenant_status: string
         }[]
       }
+      authenticate_integration_request_v1_credential_core: {
+        Args: {
+          p_client_ip?: string
+          p_key_prefix: string
+          p_origin?: string
+          p_rate_limit_cost?: number
+          p_required_all?: string[]
+          p_required_any?: string[]
+          p_route: string
+          p_secret_hash: string
+          p_window_seconds?: number
+        }
+        Returns: {
+          allowed_ips: string[]
+          allowed_origins: string[]
+          auth_outcome: string
+          client_id: string
+          client_name: string
+          client_status: string
+          company_id: string
+          error_code: string
+          expires_at: string
+          key_prefix: string
+          metadata: Json
+          rate_limit_per_minute: number
+          request_count: number
+          reset_at: string
+          route_limit: number
+          scopes: string[]
+          secret_hash: string
+          tenant_status: string
+        }[]
+      }
+      authenticate_provisioning_smoke_request_v1: {
+        Args: {
+          p_client_ip?: string
+          p_key_prefix: string
+          p_origin?: string
+          p_rate_limit_cost?: number
+          p_receipt_id: string
+          p_required_all?: string[]
+          p_required_any?: string[]
+          p_route: string
+          p_secret_hash: string
+          p_window_seconds?: number
+        }
+        Returns: {
+          allowed_ips: string[]
+          allowed_origins: string[]
+          auth_outcome: string
+          client_id: string
+          client_name: string
+          client_status: string
+          company_id: string
+          error_code: string
+          expires_at: string
+          key_prefix: string
+          metadata: Json
+          rate_limit_per_minute: number
+          request_count: number
+          reset_at: string
+          route_limit: number
+          scopes: string[]
+          secret_hash: string
+          tenant_status: string
+        }[]
+      }
       backfill_companies: { Args: never; Returns: Json }
       backfill_poa_scopes: { Args: never; Returns: Json }
       canonical_accept_tenant_invitation: {
@@ -100023,6 +100444,10 @@ export type Database = {
           p_idempotency_key: string
           p_readiness_check_id: string
         }
+        Returns: Json
+      }
+      canonical_authenticated_tenant_context: {
+        Args: { p_selected_company_id?: string }
         Returns: Json
       }
       canonical_block_claimed_ediel_outbox_item: {
@@ -100111,6 +100536,22 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      canonical_claim_company_provisioning_jobs: {
+        Args: {
+          p_lease_seconds?: number
+          p_limit?: number
+          p_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          company_id: string
+          id: string
+          idempotency_key: string
+          job_key: string
+          lease_token: string
+          max_attempts: number
+        }[]
+      }
       canonical_company_capability_enabled: {
         Args: { p_capability_code: string; p_company_id: string }
         Returns: boolean
@@ -100123,6 +100564,21 @@ export type Database = {
           p_readiness_check_id?: string
           p_target_state?: string
         }
+        Returns: Json
+      }
+      canonical_complete_company_provisioning_job: {
+        Args: {
+          p_error_code?: string
+          p_error_details?: Json
+          p_error_message?: string
+          p_job_id: string
+          p_lease_token: string
+          p_succeeded: boolean
+        }
+        Returns: Json
+      }
+      canonical_create_tenant_invitation: {
+        Args: { p_command: Json }
         Returns: Json
       }
       canonical_json_sha256: { Args: { p_payload: Json }; Returns: string }
@@ -100155,12 +100611,24 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      canonical_provision_company_v3_pre_invitation_intent: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      canonical_queue_customer_application_repair: {
+        Args: { p_actor_user_id: string; p_application_id: string }
+        Returns: Json
+      }
       canonical_record_actor_test_evidence: {
         Args: { p_command: Json }
         Returns: Json
       }
       canonical_request_actor_test_attestation: {
         Args: { p_command: Json }
+        Returns: Json
+      }
+      canonical_run_architecture_reconciliation: {
+        Args: { p_company_id?: string }
         Returns: Json
       }
       canonical_run_hardening_preflight: {
@@ -100182,6 +100650,20 @@ export type Database = {
       }
       canonical_seed_company_capabilities: {
         Args: { p_company_id: string }
+        Returns: undefined
+      }
+      canonical_set_architecture_finding: {
+        Args: {
+          p_category: string
+          p_check_error?: string
+          p_company_id: string
+          p_count: number
+          p_finding_key: string
+          p_owner: string
+          p_repair_action: string
+          p_severity: string
+          p_title: string
+        }
         Returns: undefined
       }
       canonical_tenant_operation_decision: {
@@ -100235,6 +100717,17 @@ export type Database = {
         Returns: Json
       }
       canonical_transition_tenant_lifecycle_v1_unchecked: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_state_version: number
+          p_idempotency_key: string
+          p_reason: string
+          p_target_status: string
+        }
+        Returns: Json
+      }
+      canonical_transition_tenant_lifecycle_v3_pre_offboarding: {
         Args: {
           p_actor_user_id: string
           p_company_id: string
@@ -100780,6 +101273,8 @@ export type Database = {
           last_error: string | null
           last_error_code: string | null
           last_error_message: string | null
+          lifecycle_blocked_by_tenant: boolean
+          lifecycle_previous_status: string | null
           lock_token: string | null
           locked_at: string | null
           locked_by: string | null
@@ -100791,6 +101286,12 @@ export type Database = {
           priority: number
           request_snapshot: Json
           result: Json
+          review_environment: string
+          review_owner: string | null
+          review_owner_user_id: string | null
+          review_reason_code: string | null
+          review_resolved_at: string | null
+          review_sla_due_at: string | null
           run_after: string
           stale_reason: string | null
           status: string
@@ -103301,4 +103802,3 @@ export const Constants = {
     },
   },
 } as const
-
