@@ -334,3 +334,11 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-10T14:55:00Z — post-#104 health residual
+
+After `#104` landed on main, tip review confirmed draft `#102` O-008 PUBLIC
+privilege residual was still missing and `#104` hygiene left the same PUBLIC
+inheritance gap on `platform_schema_state`. Forward migration
+`20260810121500` + static regression landed on `94a3`. Staging privilege matrix
+and full npm gates remain pending.

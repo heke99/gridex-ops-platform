@@ -26,3 +26,10 @@ Updated: 2026-08-10
 - Production latency and exact-SHA deployment proof are unavailable.
 
 Release decision: **NO-GO** until the external gates above are verified. Detailed evidence is in `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+
+## Post-#104 health residual (2026-08-10)
+
+Branch `cursor/codebase-health-and-stability-94a3` closes the O-008 PUBLIC
+privilege residual and the related `platform_schema_state` PUBLIC grant gap
+left after `#104`. Static regressions pass; staging apply matrix pending.
+Draft `#102` (`20260809151500`) is superseded by `20260810121500`.

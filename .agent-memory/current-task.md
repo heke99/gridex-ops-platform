@@ -2,17 +2,31 @@
 
 Updated: 2026-08-10
 
-Status: `CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED`.
+Status: `IN_PROGRESS`
 
-The 75-point remediation has been implemented and locally verified against the supplied source archive. The connected `gridex-ops-dev` database is migrated and schema/code expectations were checked. This archive contains no `.git`, so its claimed `main@78013b71a1f7fccd166b38f0712e20d1df198e11` provenance cannot be independently verified.
+Active work item: post-#104 codebase health residual remediation on
+`cursor/codebase-health-and-stability-94a3`.
 
-Remaining release work requires external evidence, not invented local state:
+## Skill routing
 
-- run the clean empty-database replay in the configured CI job;
-- run mandatory GitHub checks on the real repository;
-- compare staging and production Supabase with the verified dev/repo contract;
-- enable Supabase Auth leaked-password protection when password login is used;
-- prove merged Git SHA = CI SHA = Vercel production SHA;
-- capture production p50/p95/p99 after deployment.
+- Activated: using-superpowers, find-bugs, code-review, code-security,
+  variant-analysis, supabase-postgres-best-practices, test-driven-development,
+  scan-secrets (attempt), verification-before-completion
+- Conditional later: requesting-code-review / finishing-a-development-branch
+  after PR opens
+- Skipped: full quality-playbook / threat-model (scoped residual remediation);
+  brainstorming (requirements evidenced by open draft #102 + #104 hygiene gap);
+  acquire-codebase-knowledge (not a full onboarding request)
 
-Do not mark the campaign `COMPLETE` until those gates pass. See `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+## Subtask
+
+Land confirmed PUBLIC privilege residuals left after `#104` merged the 75-point
+remediation while draft `#102` remained unmerged:
+
+1. O-008 readiness views still revoke only anon/authenticated, leaving PUBLIC
+   grants able to re-expose SELECT.
+2. `#104` hygiene migration revoked `platform_schema_state` from anon/auth only
+   (same PUBLIC inheritance pattern).
+
+Exact next action after verification commit: push branch, open PR, update
+handover with PR link, note draft `#102` superseded by newer forward timestamp.

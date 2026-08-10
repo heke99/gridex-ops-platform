@@ -1,38 +1,27 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-10T20:15:00Z",
-  "branch": "main (archive label; unverified)",
-  "active_phase": "GRIDEX_75_REMEDIATION_EXTERNAL_RELEASE_BLOCKED",
-  "active_task": "Verify clean replay and exact-SHA release in connected CI/production environments",
-  "status": "CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED",
-  "source_state": {
-    "archive_claimed_source_sha": "78013b71a1f7fccd166b38f0712e20d1df198e11",
-    "verified_git_sha": null,
-    "actual_repository_state": "UNVERIFIED_ARCHIVE_WITHOUT_GIT",
-    "reason": "The supplied zip has no .git directory; no current HEAD, merge SHA or origin/main can be proven from this workspace."
-  },
-  "connected_environment": {
-    "supabase_project": "gridex-ops-dev",
-    "project_id": "piidsfebjqjmnepdpnas",
-    "region": "eu-north-1",
-    "schema_and_migration_parity": "VERIFIED_2026-08-10",
-    "latest_migration": "20260810110829_retention_category_classification.sql",
-    "api_contract_release": "2026-08-10.1"
+  "updated_at": "2026-08-10T14:55:00Z",
+  "branch": "cursor/codebase-health-and-stability-94a3",
+  "base": "main@e8586c1ba112213a0f11da16ee3a5ae15386dc69",
+  "active_phase": "POST_104_CODEBASE_HEALTH",
+  "active_task": "Close O-008 PUBLIC privilege residual and platform_schema_state PUBLIC variant",
+  "status": "IMPLEMENTED_NOT_VERIFIED_STAGING",
+  "changes": {
+    "migration": "20260810121500_gridex_ops_o008_public_privilege_hardening.sql",
+    "checksum": "8b072485a199be136573405e4c802db589fd7e2a943b6e4086a9093ea1978e57",
+    "regression": "scripts/gridex-ops-o008-public-privilege-hardening-regression.cjs",
+    "supersedes_draft": "#102 / 20260809151500 (unmerged; timestamp too early after #104 tip)"
   },
   "verification": {
-    "quality_tests": "45/45 PASS",
-    "application_tests": "467/467 PASS",
-    "typecheck": "PASS",
-    "lint": "PASS_WITH_EXISTING_WARNINGS",
-    "production_build": "PASS",
-    "clean_empty_database_replay": "NOT_EXECUTED_NO_LOCAL_DOCKER_OR_SUPABASE_CLI",
-    "production_exact_sha": "UNVERIFIED_NO_PRODUCTION_OR_GIT_CONNECTOR"
+    "o008_public_residual_regression": "PASS",
+    "migration_versions": "PASS_394_files_298_groups",
+    "o008_base_regression": "PASS",
+    "bl001_regression": "PASS",
+    "v3_bug_001_regression": "PASS",
+    "legacy_portal_sync_regression": "PASS",
+    "staging_sql_privilege_matrix": "NOT_RUN",
+    "ggshield": "UNAVAILABLE_OR_NOT_RUN",
+    "vitest": "BLOCKED_NO_NODE_MODULES"
   },
-  "safety": {
-    "geodata_cleanup": "DRY_RUN_ONLY",
-    "production_data_deleted": false,
-    "leaked_password_protection": "EXTERNAL_AUTH_DASHBOARD_ACTION_REQUIRED"
-  },
-  "release_decision": "NO_GO until clean replay, mandatory hosted CI, production parity, Auth leaked-password protection and exact Git/CI/Vercel SHA evidence are verified.",
-  "resume_from": "docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md"
+  "resume_from": "Commit/push health residual; open PR; staging privilege matrix after apply"
 }

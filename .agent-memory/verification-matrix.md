@@ -65,3 +65,14 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## POST-#104 health — 2026-08-10T14:55:00Z (`94a3`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| O-008 PUBLIC residual migration + regression | PASS | `20260810121500` + `gridex-ops-o008-public-privilege-hardening-regression.cjs` |
+| Migration integrity | PASS | `check-migration-versions.cjs` (394 files; 298 groups) |
+| O-008 base / BL-001 / portal sync regressions | PASS | existing static scripts |
+| platform_schema_state PUBLIC variant included | PASS | same migration fail-closed checks |
+| Staging privilege matrix | NOT_RUN | needs applied DB |
+| Vitest / ggshield | BLOCKED | no node_modules / ggshield CLI |
