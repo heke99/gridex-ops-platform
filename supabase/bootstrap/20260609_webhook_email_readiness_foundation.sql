@@ -36,6 +36,38 @@ create index if not exists domain_events_customer_occurred_idx
 create index if not exists domain_events_aggregate_idx
   on public.domain_events(company_id, aggregate_type, aggregate_id, occurred_at desc);
 
+create table if not exists public.event_outbox (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade,
+  domain_event_id uuid not null references public.domain_events(id) on delete cascade,
+  destination_type text not null,
+  destination_key text,
+  status text not null default 'queued',
+  attempts integer not null default 0,
+  max_attempts integer not null default 8,
+  available_at timestamptz not null default now(),
+  locked_at timestamptz,
+  locked_by text,
+  sent_at timestamptz,
+  failed_at timestamptz,
+  last_error text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint event_outbox_destination_type_check check (destination_type in ('webhook', 'email', 'api', 'internal')),
+  constraint event_outbox_status_check check (status in ('queued', 'processing', 'sent', 'failed', 'dead_letter', 'skipped')),
+  constraint event_outbox_attempts_check check (attempts >= 0 and max_attempts > 0)
+);
+
+create index if not exists event_outbox_due_idx
+  on public.event_outbox(status, available_at, created_at)
+  where status in ('queued', 'failed');
+create index if not exists event_outbox_company_status_idx
+  on public.event_outbox(company_id, status, created_at desc);
+create unique index if not exists event_outbox_unique_named_destination_idx
+  on public.event_outbox(domain_event_id, destination_type, destination_key)
+  where destination_key is not null;
+
 create table if not exists public.webhook_subscriptions (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
