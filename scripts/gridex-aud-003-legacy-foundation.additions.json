@@ -257,7 +257,7 @@
     },
     "bootstrap/20260731_publication_repair_live_functions_foundation.sql": {
       "sourceKind": "verified_live_schema",
-      "artifactSha256": "32c1797e2cf2618ad43f9f919178ca5fa8a75c8557d8a5a7a8426ef7acad848d",
+      "artifactSha256": "61487cf238edc0c6c945f972ce4e142a3be4bdeb3006e72325901dd7ce019dcc",
       "projectId": "piidsfebjqjmnepdpnas",
       "capturedAt": "2026-08-10",
       "signatures": [
