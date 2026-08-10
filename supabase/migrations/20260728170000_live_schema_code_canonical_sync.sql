@@ -1525,7 +1525,7 @@ select public.gridex__repair_replace_function_text(
 -- SECURITY DEFINER functions touched by this migration use explicit trusted
 -- schemas. This does not expose extension or temporary objects ahead of
 -- pg_catalog during name resolution.
-do $
+do $search_path_repair$
 begin
   if to_regprocedure('public.select_onboarding_start_path(uuid,text)') is not null then
     alter function public.select_onboarding_start_path(uuid,text)
@@ -1548,7 +1548,7 @@ begin
       set search_path = public, pg_catalog, pg_temp;
   end if;
 end
-$;
+$search_path_repair$;
 
 -- The repair helper itself must not survive the migration.
 drop function public.gridex__repair_replace_function_text(text,text,text);
