@@ -165,39 +165,39 @@ revoke all on function public.portal_customer_documents_page_v1(uuid,uuid,timest
 grant execute on function public.portal_customer_documents_page_v1(uuid,uuid,timestamptz,integer,uuid,integer)
   to service_role;
 
-drop index if exists public.ux_billing_automation_runs_one_running_per_company_period;
-drop index if exists public.billing_underlays_company_id_id_canonical_uidx;
-drop index if exists public.billing_underlays_company_id_id_uidx;
-drop index if exists public.communication_logs_contract_created_idx;
-drop index if exists public.contract_price_snapshots_company_id_id_uidx;
-drop index if exists public.idx_customer_application_intakes_idem;
-drop index if exists public.customer_contracts_company_id_id_uidx;
-drop index if exists public.mt_customer_contracts_company_id_id_uidx;
-drop index if exists public.customer_documents_company_customer_idx;
-drop index if exists public.customer_events_type_time_idx;
-drop index if exists public.customer_invoices_company_id_id_canonical_uidx;
-drop index if exists public.mt_customer_invoices_company_id_id_uidx;
-drop index if exists public.customer_invoices_company_customer_period_perf_idx;
-drop index if exists public.mt_customer_legal_acceptances_company_id_id_uidx;
-drop index if exists public.customer_legal_acceptances_type_idx;
-drop index if exists public.customer_notifications_customer_idx;
-drop index if exists public.customer_portal_accounts_user_customer_v1b_uidx;
-drop index if exists public.customer_sites_company_id_id_uidx;
-drop index if exists public.mt_customer_sites_company_id_id_uidx;
-drop index if exists public.idx_customer_sites_company_customer_created;
-drop index if exists public.customers_company_id_id_uidx;
-drop index if exists public.mt_customers_company_id_id_uidx;
-drop index if exists public.ediel_messages_company_id_id_uidx;
-drop index if exists public.integration_api_clients_company_id_id_canonical_uidx;
-drop index if exists public.manual_email_outbox_idempotency_uidx;
-drop index if exists public.metering_points_company_id_id_uidx;
-drop index if exists public.mt_metering_points_company_id_id_uidx;
-drop index if exists public.normalized_metering_values_company_id_id_uidx;
-drop index if exists public.normalized_metering_values_company_customer_period_perf_idx;
-drop index if exists public.mt_powers_of_attorney_company_id_id_uidx;
-drop index if exists public.mt_supplier_switch_requests_company_id_id_uidx;
-drop index if exists public.webhook_deliveries_due_idx;
-drop index if exists public.website_customer_applications_customer_idx;
+do $$
+declare
+  v_index text;
+begin
+  foreach v_index in array array[
+    'ux_billing_automation_runs_one_running_per_company_period',
+    'billing_underlays_company_id_id_canonical_uidx','billing_underlays_company_id_id_uidx',
+    'communication_logs_contract_created_idx','contract_price_snapshots_company_id_id_uidx',
+    'idx_customer_application_intakes_idem','customer_contracts_company_id_id_uidx',
+    'mt_customer_contracts_company_id_id_uidx','customer_documents_company_customer_idx',
+    'customer_events_type_time_idx','customer_invoices_company_id_id_canonical_uidx',
+    'mt_customer_invoices_company_id_id_uidx','customer_invoices_company_customer_period_perf_idx',
+    'mt_customer_legal_acceptances_company_id_id_uidx','customer_legal_acceptances_type_idx',
+    'customer_notifications_customer_idx','customer_portal_accounts_user_customer_v1b_uidx',
+    'customer_sites_company_id_id_uidx','mt_customer_sites_company_id_id_uidx',
+    'idx_customer_sites_company_customer_created','customers_company_id_id_uidx',
+    'mt_customers_company_id_id_uidx','ediel_messages_company_id_id_uidx',
+    'integration_api_clients_company_id_id_canonical_uidx','manual_email_outbox_idempotency_uidx',
+    'metering_points_company_id_id_uidx','mt_metering_points_company_id_id_uidx',
+    'normalized_metering_values_company_id_id_uidx','normalized_metering_values_company_customer_period_perf_idx',
+    'mt_powers_of_attorney_company_id_id_uidx','mt_supplier_switch_requests_company_id_id_uidx',
+    'webhook_deliveries_due_idx','website_customer_applications_customer_idx'
+  ] loop
+    begin
+      execute format('drop index if exists public.%I', v_index);
+    exception when dependent_objects_still_exist then
+      -- A nominally redundant unique index may already be the referenced key
+      -- for a composite tenant FK. Preserve the FK and its supporting index.
+      raise notice 'preserving dependency-backed index public.%', v_index;
+    end;
+  end loop;
+end;
+$$;
 
 do $$
 begin
