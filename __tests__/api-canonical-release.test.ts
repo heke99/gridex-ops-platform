@@ -6,6 +6,7 @@ import websiteOpenApi from '@/docs/openapi/website-integration-v1.json'
 import { parseCustomerEventPayload } from '@/lib/customer-portal/customerEvents'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { publicPortalContract } from '@/lib/customer-portal/publicDto'
+import { CURRENT_API_CONTRACT } from '@/lib/integrations/apiContract'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
@@ -18,7 +19,7 @@ describe('canonical public API release', () => {
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(manifest.release_version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(manifest.compatibility_classification).toBe(
-      'additive-price-area-assurance-and-readiness-correction',
+      CURRENT_API_CONTRACT.compatibilityClassification,
     )
     expect(manifest.specifications.website.compatibility).toBe(
       'additive-response-field-and-readiness-correction',
@@ -44,7 +45,10 @@ describe('canonical public API release', () => {
       'app/developers/customer-portal-api/page.tsx',
       'utf8',
     )
-    const runtime = readFileSync('lib/website/customerApplications.ts', 'utf8')
+    const runtime = [
+      readFileSync('lib/website/customerApplicationProcess.ts', 'utf8'),
+      readFileSync('lib/website/customerApplicationPersistence.ts', 'utf8'),
+    ].join('\n')
     const migration = readFileSync(
       'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',
       'utf8',
