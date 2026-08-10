@@ -133,14 +133,27 @@ async function setCompanyStatus(input: {
   actorUserId: string
   reason: string | null
 }) {
+  const { data: observed, error: observedError } = await supabaseService
+    .from('companies')
+    .select('lifecycle_state_version')
+    .eq('id', input.companyId)
+    .single()
+  if (observedError) throw observedError
+  const expectedStateVersion = Number(observed.lifecycle_state_version)
+  if (!Number.isSafeInteger(expectedStateVersion) || expectedStateVersion < 0) {
+    throw new Error('Bolagets lifecycle-version kunde inte verifieras.')
+  }
+  const idempotencyKey =
+    `tenant-lifecycle:${input.companyId}:${input.status}:v${expectedStateVersion}`
+
   const { data: transition, error: transitionError } = await supabaseService
     .rpc('canonical_transition_tenant_lifecycle', {
       p_company_id: input.companyId,
       p_target_status: input.status,
-      p_expected_state_version: null,
+      p_expected_state_version: expectedStateVersion,
       p_reason: input.reason,
       p_actor_user_id: input.actorUserId,
-      p_idempotency_key: `tenant-lifecycle:${input.companyId}:${input.status}:${randomUUID()}`,
+      p_idempotency_key: idempotencyKey,
     })
   if (transitionError) throw transitionError
   const result = transition as {
