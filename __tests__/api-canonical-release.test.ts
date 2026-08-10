@@ -9,7 +9,10 @@ import { publicPortalContract } from '@/lib/customer-portal/publicDto'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import {
+  API_COMPATIBILITY_CLASSIFICATION,
+  WEBSITE_INTEGRATION_CONTRACT_VERSION,
+} from '@/lib/integrations/websiteIntegrationContract'
 
 describe('canonical public API release', () => {
   it('publishes one version and a release-manifest operation', () => {
@@ -18,10 +21,13 @@ describe('canonical public API release', () => {
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(manifest.release_version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(manifest.compatibility_classification).toBe(
-      'additive-price-area-assurance-and-readiness-correction',
+      API_COMPATIBILITY_CLASSIFICATION.release,
     )
     expect(manifest.specifications.website.compatibility).toBe(
-      'additive-response-field-and-readiness-correction',
+      manifest.compatibility_classification,
+    )
+    expect(manifest.specifications.customer_portal.compatibility).toBe(
+      manifest.compatibility_classification,
     )
     expect(websiteOpenApi.paths['/api/v1/openapi/release-manifest.json']?.get).toBeDefined()
   })
@@ -44,7 +50,10 @@ describe('canonical public API release', () => {
       'app/developers/customer-portal-api/page.tsx',
       'utf8',
     )
-    const runtime = readFileSync('lib/website/customerApplications.ts', 'utf8')
+    const runtime = [
+      readFileSync('lib/website/customerApplicationProcess.ts', 'utf8'),
+      readFileSync('lib/website/customerApplicationPersistence.ts', 'utf8'),
+    ].join('\n')
     const migration = readFileSync(
       'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',
       'utf8',

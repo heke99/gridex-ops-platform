@@ -1,0 +1,8 @@
+diff --git a/lib/integrations/tenantContext.ts b/lib/integrations/tenantContext.ts
+--- a/lib/integrations/tenantContext.ts
++++ b/lib/integrations/tenantContext.ts
+@@ loadExternalTenantContext
+-    api_client_reference: `client_${client.id.replaceAll('-', '')}`,
++    api_client_reference: requirePublicReference(
++      publicReference('api_client', company.id, client.id),
++    ),

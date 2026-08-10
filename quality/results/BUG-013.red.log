@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-013 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ }
++
+
+ ❯ quality/test_regression_red.test.ts:116:22
+    114|   it('BUG-013: regression_bug_013_identity_uses_canonical_rpc — apply …
+    115|     const resolver = source('lib/customer-portal/customerResolver.ts')
+    116|     expect(resolver).toContain("rpc('resolve_portal_customer_identity_…
+       |                      ^
+    117|     expect(resolver).not.toMatch(/\.limit\(1\)/)
+    118|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:14
+   Duration  442ms (transform 211ms, setup 23ms, import 278ms, tests 12ms, environment 0ms)

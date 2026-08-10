@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-002 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ }
++
+
+ ❯ quality/test_regression_red.test.ts:25:19
+     23|   it('BUG-002: regression_bug_002_invoice_detail_uses_direct_lookup — …
+     24|     const route = source('app/api/v1/customer/invoices/[id]/route.ts')
+     25|     expect(route).toContain('getPortalInvoiceByReference')
+       |                   ^
+     26|     expect(route).not.toContain('listPortalInvoices')
+     27|     expect(route).not.toContain('.find(')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:00
+   Duration  403ms (transform 175ms, setup 20ms, import 236ms, tests 9ms, environment 0ms)

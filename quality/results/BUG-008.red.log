@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-008 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
+- true
++ false
+
+ ❯ quality/test_regression_red.test.ts:85:78
+     83|       '20260809191135_portal_event_keyset_read_model.sql',
+     84|     ]
+     85|     expect(files.every((file) => existsSync(`supabase/migrations/${fil…
+       |                                                                              ^
+     86|   })
+     87|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:08
+   Duration  391ms (transform 168ms, setup 20ms, import 226ms, tests 7ms, environment 0ms)

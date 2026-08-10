@@ -240,7 +240,7 @@
     "count": 1,
     "publication_revision": 42,
     "publication_updated_at": "2026-08-01T00:00:00.000Z",
-    "contract_schema_version": "2026-08-05.2",
+    "contract_schema_version": "2026-08-10.1",
     "deprecated_aliases": [
       "contracts",
       "contract_offer_id",

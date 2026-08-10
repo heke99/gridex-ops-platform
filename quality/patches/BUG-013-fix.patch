@@ -1,0 +1,10 @@
+diff --git a/lib/customer-portal/customerResolver.ts b/lib/customer-portal/customerResolver.ts
+--- a/lib/customer-portal/customerResolver.ts
++++ b/lib/customer-portal/customerResolver.ts
+@@ resolvePortalCustomer
++  const { data, error } = await supabaseService.rpc(
++    'resolve_portal_customer_identity_v1',
++    portalIdentityRpcArgs(companyId, identifiers),
++  )
++  if (error) throw portalIdentityInfrastructureError(error)
++  return parsePortalIdentityResolution(data)

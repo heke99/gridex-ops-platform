@@ -5,6 +5,7 @@ import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import type { DomainEventRow } from '@/lib/events/domainEvents'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 
 type WebhookSubscriptionRow = {
   id: string
@@ -58,7 +59,7 @@ function signingSecret(subscription: WebhookSubscriptionRow): string | null {
   const byRef = subscription.signing_secret_ref
     ? process.env[`WEBHOOK_SIGNING_SECRET_${subscription.signing_secret_ref}`]
     : null
-  return byRef ?? process.env.WEBHOOK_SIGNING_SECRET_FALLBACK ?? null
+  return byRef ?? null
 }
 
 function eventEnvironment(data: Record<string, unknown>): 'test' | 'production' | null {
@@ -89,29 +90,37 @@ function publicText(
   return null
 }
 
-function sanitizeWebhookData(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(sanitizeWebhookData)
-  }
-  if (!value || typeof value !== 'object') return value
+type WebhookEventProjection = {
+  dataKeys: readonly string[]
+}
 
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
-      .filter(([key]) => {
-        const normalized = key.toLowerCase()
-        return (
-          normalized !== 'id' &&
-          !normalized.endsWith('_id') &&
-          ![
-            'storage_path',
-            'bucket',
-            'object_path',
-            'service_role',
-          ].includes(normalized)
-        )
-      })
-      .map(([key, child]) => [key, sanitizeWebhookData(child)]),
+export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProjection>> = Object.freeze({
+  'contracts.publication.changed': { dataKeys: ['channel', 'publication_revision', 'reason', 'tenant_reference', 'timestamp'] },
+  'contract.closed': { dataKeys: ['contract_reference', 'offer_reference', 'reason'] },
+  'contract.application_received': { dataKeys: ['application_number', 'status', 'offer_reference'] },
+  'contract.created': { dataKeys: ['contract_reference', 'application_number', 'offer_reference', 'status'] },
+  'customer_application.accepted': { dataKeys: ['application_number', 'status'] },
+  'customer_application.needs_information': { dataKeys: ['application_number', 'status', 'reason'] },
+  'customer_application.status_changed': { dataKeys: ['application_number', 'status', 'previous_status'] },
+  'invoice.created': { dataKeys: ['invoice_reference', 'invoice_number', 'status', 'due_date'] },
+  'invoice.sent': { dataKeys: ['invoice_reference', 'invoice_number', 'status'] },
+  'metering_values.updated': { dataKeys: ['facility_reference', 'period_start', 'period_end', 'resolution'] },
+  'quote.created': { dataKeys: ['quote_reference', 'offer_reference', 'price_area', 'expires_at'] },
+  'quote.validated': { dataKeys: ['quote_reference', 'offer_reference', 'valid'] },
+  'supplier_switch.status_changed': { dataKeys: ['application_number', 'status', 'previous_status'] },
+  'webhook.test': { dataKeys: ['message', 'test_reference'] },
+})
+
+function projectWebhookData(eventType: string, source: Record<string, unknown>): Record<string, unknown> {
+  const projection = WEBHOOK_EVENT_REGISTRY[eventType]
+  if (!projection) throw new Error(`webhook_event_type_not_registered:${eventType}`)
+  const data = Object.fromEntries(
+    projection.dataKeys
+      .filter((key) => source[key] !== undefined)
+      .map((key) => [key, source[key]]),
   )
+  assertPublicResponsePayload(data)
+  return data
 }
 
 function aggregateReference(
@@ -145,7 +154,7 @@ export function buildPublicWebhookPayload(
   tenantReference: string,
 ) {
   const sourceData = event.payload ?? {}
-  const data = sanitizeWebhookData(sourceData) as Record<string, unknown>
+  const data = projectWebhookData(event.event_type, sourceData)
   const customerNumber = publicText(sourceData, 'customer_number')
   const externalCustomerReference = publicText(
     sourceData,

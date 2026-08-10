@@ -1,0 +1,9 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-004: regression_bug_004_api_client_reference_is_opaque — apply quality/patches/BUG-004-fix.patch', () => {
++    const context = source('lib/integrations/tenantContext.ts')
++    expect(context).not.toContain("client.id.replaceAll('-', '')")
++    expect(context).toMatch(/public_reference|publicReference\('api_client'/)
++  })

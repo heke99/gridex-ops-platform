@@ -5,6 +5,10 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
+import {
+  publicPortalCustomer,
+  publicPortalIdentity,
+} from '@/lib/customer-portal/publicDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,28 +28,20 @@ export async function GET(request: NextRequest) {
   if (!context.ok) return context.response
 
   try {
-    const customer = { ...context.identity.customer }
+    const customer = context.identity.customer
     const fullName = displayName(customer)
-    if (fullName) customer.full_name = fullName
+    const publicCustomer = publicPortalCustomer(customer, {
+      external_customer_id: context.identity.external_customer_id,
+      customer_number: context.identity.customer_number,
+      email: context.identity.email,
+    })
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1 })
     return customerPortalJson({
       data: {
-        ...customer,
-        customer_id: context.identity.customer_id,
-        external_customer_id: context.identity.external_customer_id,
-        customer_number: context.identity.customer_number ?? customer.customer_number ?? null,
-        email: context.identity.email ?? customer.email ?? null,
-        portal_identity: {
-          id: context.identity.id,
-          external_customer_id: context.identity.external_customer_id,
-          customer_number: context.identity.customer_number,
-          auth_user_id: context.identity.auth_user_id,
-          customer_portal_user_id: context.identity.customer_portal_user_id,
-          match_strength: context.identity.match_strength,
-          match_method: context.identity.match_method,
-          provider: context.identity.provider,
-        },
+        ...publicCustomer,
+        display_name: fullName ?? publicCustomer.display_name,
+        portal_identity: publicPortalIdentity(context.client.company_id, context.identity),
       },
     })
   } catch (error) {

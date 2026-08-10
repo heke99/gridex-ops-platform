@@ -1,0 +1,10 @@
+{
+  "generated": "2026-08-10",
+  "closed_sets": [
+    "master remediation points 1-75",
+    "requirements REQ-001 through REQ-012",
+    "customer portal and website OpenAPI operationIds",
+    "pattern tags whitelist, parity and compensation"
+  ],
+  "verifier": "quality/mechanical/verify.mjs"
+}

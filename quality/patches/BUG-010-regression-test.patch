@@ -1,0 +1,10 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-010: regression_bug_010_auth_uses_route_cost_rpc — apply quality/patches/BUG-010-fix.patch', () => {
++    const auth = source('lib/integrations/apiAuth.ts')
++    expect(auth).toContain("rpc('authenticate_integration_request_v1'")
++    expect(auth).toMatch(/rateLimitClass|routeCost/)
++    expect(auth).not.toContain("rpc('check_and_increment_integration_api_rate_limit'")
++  })

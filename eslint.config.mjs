@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Historical patch snapshots are delivery artifacts, not active source.
     ".patch-backups/**",
+    // Bundled agent skill implementations have their own language/tooling rules.
+    ".agents/**",
     // CommonJS regression scripts are executable Node utilities with their own checks.
     "scripts/**/*.cjs",
   ]),

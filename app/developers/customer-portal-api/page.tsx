@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-05.2.json";
+import publicContractsFixture from "@/docs/fixtures/public-contracts-response-2026-08-10.1.json";
 import { CopyCodeBlock } from "@/components/developers/CopyCodeBlock";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
 import { buildOpenApiReleaseManifest } from "@/lib/integrations/openApiReleaseManifest";
@@ -387,7 +387,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-08-05.2"
+  "contract_schema_version": "2026-08-10.1"
 }`;
 
 const marketReferenceExample = `{
@@ -435,7 +435,7 @@ const marketPriceErrorExample = `{
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-05.2"
+  "contract_schema_version": "2026-08-10.1"
 }`;
 
 const marketPriceErrors = [
@@ -663,7 +663,7 @@ const applicationResponse = `{
   },
   "request_id": "req_...",
   "correlation_id": "req_...",
-  "contract_schema_version": "2026-08-05.2"
+  "contract_schema_version": "2026-08-10.1"
 }
 
 # accepted betyder att canonical kund/site/avtal/juridiksnapshot, portalidentitet,
@@ -693,7 +693,7 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
   },
   "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
   "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
-  "contract_schema_version": "2026-08-05.2"
+  "contract_schema_version": "2026-08-10.1"
 }
 
 Vanliga 422-koder:
@@ -894,7 +894,7 @@ const webhookPayload = `{
     "workflow_state": "switch_request_queued",
     "next_step": "automatic_processing"
   },
-  "contract_schema_version": "2026-08-05.2"
+  "contract_schema_version": "2026-08-10.1"
 }`;
 
 const webhookHeaders = `X-Gridex-Event-Id: event_123
@@ -1338,7 +1338,7 @@ export default function CustomerPortalApiDocsPage() {
             Tenantens backend läser den verifierade serversessionens Supabase
             <code>session.user.id</code> och skickar samma UUID som både
             <code>customer_portal_user_id</code> och <code>auth_user_id</code>.
-            Anonyma kundansökningar stöds inte i kontraktsversion 2026-08-05.2.
+            Anonyma kundansökningar stöds inte i kontraktsversion 2026-08-10.1.
             Båda portal-ID-fälten är obligatoriska och måste vara samma verifierade UUID;
             annars returneras <code>422 portal_auth_identity_required</code> eller
             <code>portal_auth_identity_mismatch</code>. OPS skapar kund, kundnummer,

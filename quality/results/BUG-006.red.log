@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-006 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
+
+ FAIL  quality/test_regression_red.test.ts > Gridex remediation confirmed regressions > BUG-006: regression_bug_006_registry_openapi_metadata_parity — apply quality/patches/BUG-006-fix.patch
+TypeError: .toMatch() expects to receive a string, but got undefined
+ ❯ quality/test_regression_red.test.ts:53:33
+
+     51|   it('BUG-006: regression_bug_006_registry_openapi_metadata_parity — a…
+     52|     for (const route of PUBLIC_API_ROUTES as Array<Record<string, unkn…
+     53|       expect(route.operationId).toMatch(/^[A-Za-z][A-Za-z0-9]*$/)
+       |                                 ^
+     54|       expect(route.responseSchema).toBeTruthy()
+     55|       expect(route.scopeMode).toMatch(/^(all|any)$/)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:05
+   Duration  369ms (transform 153ms, setup 21ms, import 214ms, tests 11ms, environment 0ms)

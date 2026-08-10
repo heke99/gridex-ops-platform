@@ -1,0 +1,9 @@
+diff --git a/lib/customer-portal/apiData.ts b/lib/customer-portal/apiData.ts
+--- a/lib/customer-portal/apiData.ts
++++ b/lib/customer-portal/apiData.ts
+@@ listPortalInvoices
+-    .limit(100)
++    .order('period_start', { ascending: false })
++    .order('id', { ascending: false })
++    .limit(pageSize + 1)
++    // Apply the decoded (period_start,id) cursor in PostgreSQL before reading.

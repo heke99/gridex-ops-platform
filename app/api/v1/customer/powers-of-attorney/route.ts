@@ -5,9 +5,8 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalPowersOfAttorney, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import { listPortalPowersOfAttorneyPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
 import {
-  pagePublicItems,
   publicPageInput,
   publicPortalPowerOfAttorney,
 } from '@/lib/customer-portal/publicDto'
@@ -27,15 +26,12 @@ export async function GET(request: NextRequest) {
       customerNumber: context.identity.customer_number,
       provider: context.identity.provider,
     })
-    const rows = await listPortalPowersOfAttorney(portalContext)
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: rows.length })
-    const page = pagePublicItems(
-      rows.map((row) =>
-        publicPortalPowerOfAttorney(context.client.company_id, row),
-      ),
-      publicPageInput(request.nextUrl.searchParams),
-    )
-    return customerPortalJson({ data: page.items, page: page.page })
+    const page = await listPortalPowersOfAttorneyPage(portalContext, publicPageInput(request.nextUrl.searchParams))
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: page.items.length })
+    return customerPortalJson({
+      data: page.items.map((row) => publicPortalPowerOfAttorney(context.client.company_id, row)),
+      page: page.page,
+    })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

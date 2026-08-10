@@ -2322,17 +2322,53 @@ export class PublicContractFeedConsistencyError extends Error {
   }
 }
 
+const CANONICAL_DELIVERY_READINESS_SELECT = [
+  'company_id','source_contract_offer_id','name','product_code','customer_type','contract_type','channel',
+  'supported_areas_valid','invoice_fee_sek','pricing_snapshot','external_tenant_reference','company_status',
+  'assignment_id','assignment_status','website_publication_allowed','api_publication_allowed','channel_id',
+  'channel_status','publication_id','publication_status','publication_version_id','offer_reference',
+  'publication_version_status','locked_at','valid_from','valid_to','content_sha256','publication_snapshot',
+  'snapshot_source_contract_offer_id','public_offer_id','website_enabled','website_cta_enabled','is_public',
+  'website_publication_status','invoice_fee_component_count','invoice_fee_canonical_count',
+  'invoice_fee_component_amount','invoice_fee_ready','price_option_count','default_count',
+  'required_selection_count','invalid_option_count','duplicate_option_count','legal_ready','missing_area_count',
+  'channel_state','blockers','forward_publication_link_valid','reverse_legacy_link_valid','company_chain_valid',
+  'tenant_assignment_valid','channel_graph_valid','product_version_valid','source_offer_consistent',
+  'snapshot_hash_valid','energy_direction_valid','contract_type_valid','successor_chain_valid',
+  'canonical_graph_consistent','tenant_ready','assignment_ready','channel_ready','publication_ready',
+  'publication_version_ready','canonical_invoice_fee_ready','price_options_ready','canonical_legal_ready',
+  'date_window_valid','public_offer_ready','visible',
+].join(',')
+
+const CANONICAL_VISIBLE_CONTRACT_SELECT = [
+  'id','company_id','price_plan_id','price_plan_version_id','campaign_version_id','product_code','public_name',
+  'public_description','contract_type','billing_model','customer_type','monthly_fee_sek','invoice_fee_sek',
+  'markup_ore_per_kwh','spot_markup_ore_per_kwh','variable_fee_ore_per_kwh','fixed_price_ore_per_kwh',
+  'green_fee_mode','green_fee_value','terms_version','valid_from','valid_to','is_public','is_archived','sort_order',
+  'metadata','created_at','updated_at','offer_code','publication_status','website_enabled','website_cta_enabled',
+  'public_price_text','terms_url','binding_months','notice_months','spot_weight_percent',
+  'portfolio_weight_percent','fixed_weight_percent','price_area','published_at','archived_at','readiness_issues',
+  'publication_notes','legal_bundle_id','price_book_id','readiness_status','readiness_blockers',
+  'electricity_certificate_ore_per_kwh','start_fee_sek','administration_fee_sek','break_fee_sek',
+  'portfolio_management_fee_ore_per_kwh','discount_value','discount_unit','discount_months','vat_rate',
+  'price_areas','automatic_renewal','power_of_attorney_required','version_series_id','version_number',
+  'supersedes_offer_id','contract_product_id','contract_product_version_id','legal_bundle_version_id',
+  'contract_publication_version_id','canonical_offer_reference','publication_locked_at',
+  'publication_content_sha256','canonical_pricing_snapshot','canonical_metadata','source_contract_offer_id',
+  'lifecycle_status','closed_at','close_reason','energy_direction','website_publication_allowed','website_available_now',
+].join(',')
+
 async function loadCanonicalDeliveryReadiness(
   companyId: string,
   channel: "website" | "api",
 ): Promise<CanonicalPublicContractDeliveryReadiness[]> {
   const query = await supabaseService
     .from("canonical_public_contract_delivery_readiness_v")
-    .select("*")
+    .select(CANONICAL_DELIVERY_READINESS_SELECT)
     .eq("company_id", companyId)
     .eq("channel", channel);
   if (query.error) throw query.error;
-  return (query.data ?? []) as CanonicalPublicContractDeliveryReadiness[];
+  return (query.data ?? []) as unknown as CanonicalPublicContractDeliveryReadiness[];
 }
 
 export async function listPublicContractOffers(input: {
@@ -2346,14 +2382,14 @@ export async function listPublicContractOffers(input: {
   );
   const primary = await supabaseService
     .from("canonical_visible_public_contracts_v")
-    .select("*")
+    .select(CANONICAL_VISIBLE_CONTRACT_SELECT)
     .eq("company_id", input.client.company_id)
     .eq("is_archived", false)
     .order("sort_order", { ascending: true })
     .order("public_name", { ascending: true });
 
   if (primary.error) throw primary.error;
-  const offers = ((primary.data ?? []) as Array<Record<string, unknown>>)
+  const offers = ((primary.data ?? []) as unknown as Array<Record<string, unknown>>)
     .filter(isWebsitePublishedRow)
     .map(mapOfferRow);
   const readinessForRequest = deliveryReadiness.filter((row) => {
@@ -2598,13 +2634,13 @@ export async function diagnosePublicContractOffers(input: {
   const channel = input.channel ?? "website";
   const query = await supabaseService
     .from("canonical_public_contract_delivery_readiness_v")
-    .select("*")
+    .select(CANONICAL_DELIVERY_READINESS_SELECT)
     .eq("company_id", input.client.company_id)
     .eq("channel", channel)
     .order("name", { ascending: true });
   if (query.error) throw query.error;
 
-  const rows = ((query.data ?? []) as Array<Record<string, unknown>>).filter(
+  const rows = ((query.data ?? []) as unknown as Array<Record<string, unknown>>).filter(
     (row) => {
       if (!input.customerType) return true;
       const customerType = clean(row.customer_type);

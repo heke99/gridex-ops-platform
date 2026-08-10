@@ -7,21 +7,20 @@ import {
   normalizeFacility,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { isMissingSchemaError } from '@/lib/customer-portal/apiData'
+import { isMissingSchemaError, portalQueryErrorMetadata } from '@/lib/customer-portal/apiData'
 import {
-  pagePublicItems,
   publicPageInput,
   publicPortalMeteringValue,
 } from '@/lib/customer-portal/publicDto'
+import {
+  buildPortalDatabasePage,
+  decodePortalCursor,
+  portalPageLimit,
+} from '@/lib/customer-portal/keysetPagination'
+import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-function limitFromRequest(request: NextRequest): number {
-  const parsed = Number.parseInt(request.nextUrl.searchParams.get('limit') ?? '200', 10)
-  if (!Number.isFinite(parsed)) return 200
-  return Math.min(Math.max(parsed, 1), 1000)
-}
 
 function optionalParam(request: NextRequest, key: string): string | null {
   const value = request.nextUrl.searchParams.get(key)?.trim()
@@ -37,6 +36,15 @@ export async function GET(request: NextRequest) {
     const to = optionalParam(request, 'to')
     const facilityId = optionalParam(request, 'facility_id')
     const normalizedFacilityId = facilityId ? normalizeFacility(facilityId) : null
+    const pageInput = publicPageInput(request.nextUrl.searchParams)
+    const limit = portalPageLimit(pageInput.limit)
+    const resource = `metering-values:${from ?? ''}:${to ?? ''}:${normalizedFacilityId ?? ''}`
+    const cursor = decodePortalCursor({
+      cursor: pageInput.cursor,
+      companyId: context.client.company_id,
+      customerId: context.identity.customer_id,
+      resource,
+    })
 
     let query = supabaseService
       .from('normalized_metering_values')
@@ -44,17 +52,20 @@ export async function GET(request: NextRequest) {
       .eq('company_id', context.client.company_id)
       .eq('customer_id', context.identity.customer_id)
       .order('period_start', { ascending: false, nullsFirst: false })
-      .limit(limitFromRequest(request))
+      .order('id', { ascending: false })
+      .limit(limit + 1)
 
     if (from) query = query.gte('period_start', from)
     if (to) query = query.lte('period_end', to)
     if (normalizedFacilityId) query = query.eq('facility_id', normalizedFacilityId)
+    if (cursor) {
+      query = query.or(`period_start.lt.${cursor.orderValue},and(period_start.eq.${cursor.orderValue},id.lt.${cursor.id})`)
+    }
 
     const { data, error } = await query
     if (error) {
       if (isMissingSchemaError(error)) {
-        await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0 })
-        return customerPortalJson({ data: [] })
+        throw new PlatformSchemaNotReadyError('Canonical metering pagination is unavailable.', portalQueryErrorMetadata(error))
       }
       throw error
     }
@@ -74,13 +85,17 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const page = pagePublicItems(
-      (data ?? []).map((row) =>
-        publicPortalMeteringValue(context.client.company_id, row),
-      ),
-      publicPageInput(request.nextUrl.searchParams),
-    )
-    return customerPortalJson({ data: page.items, page: page.page })
+    const page = buildPortalDatabasePage((data ?? []) as unknown as Array<Record<string, unknown>>, {
+      limit,
+      companyId: context.client.company_id,
+      customerId: context.identity.customer_id,
+      resource,
+      orderColumn: 'period_start',
+    })
+    return customerPortalJson({
+      data: page.items.map((row) => publicPortalMeteringValue(context.client.company_id, row)),
+      page: page.page,
+    })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

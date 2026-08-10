@@ -183,6 +183,9 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/messages/[id]/page.tsx",
   "app/admin/messages/page.tsx",
   "app/admin/network-owners/[id]/contact-channels/actions.ts",
+  // Reviewed 2026-08-10: the platform-admin guard runs before the global
+  // actor-registry import-history read; the service client is not tenant-facing.
+  "app/admin/network-owners/page.tsx",
   "app/admin/platform/companies/[companyId]/testing/page.tsx",
   "app/admin/platform/customers/archived/page.tsx",
   "app/admin/platform/ediel/messages/page.tsx",

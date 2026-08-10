@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
@@ -186,8 +187,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(
-      {
+    const responseBody = {
         data: contracts,
         contracts,
         meta: {
@@ -202,9 +202,9 @@ export async function GET(request: NextRequest) {
           deprecated_customer_type_alias: normalized.deprecatedAlias,
         },
         request_id: requestId,
-      },
-      { status: 200, headers },
-    )
+      }
+    assertPublicResponsePayload(responseBody)
+    return NextResponse.json(responseBody, { status: 200, headers })
   } catch (error) {
     const classified = classifyPublicContractsError(error)
     console.error('[api-contracts] failed', {

@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-007 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
+- Runtime application missing commercial assertion site_count
+"
+
+ ❯ quality/test_regression_red.test.ts:67:109
+     65|
+     66|   it('BUG-007: regression_bug_007_parity_follows_split_runtime — apply…
+     67|     expect(() => execFileSync('node', ['scripts/check-openapi-runtime-…
+       |                                                                                                             ^
+     68|     const test = source('__tests__/api-canonical-release.test.ts')
+     69|     expect(test).toContain('customerApplicationProcess.ts')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:06
+   Duration  497ms (transform 195ms, setup 19ms, import 297ms, tests 62ms, environment 0ms)

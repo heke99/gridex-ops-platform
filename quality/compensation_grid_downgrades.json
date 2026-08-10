@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.5.2",
+  "downgrades": [
+    {
+      "cell_id": "REQ-009/cell-P049-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:115",
+      "site_citation": "Live dev EXPLAIN/ANALYZE and write-amplification evidence is environment data, not reconstructible from static source alone.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if a representative connected database plan and post-cleanup write-amplification measurement can be produced without environment access."
+    },
+    {
+      "cell_id": "REQ-009/cell-P071-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:137",
+      "site_citation": "No deployed production telemetry connector or Vercel observability project is exposed in this session.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if p50/p95/p99 can be tied to the deployed production artifact and split into DB, compute and dependency time from available evidence."
+    },
+    {
+      "cell_id": "REQ-011/cell-P040-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:106",
+      "site_citation": "Connected dev catalog dependency/name audit is required before forward DROP INDEX statements.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if the current dev catalog proves every duplicate and its constraint/query dependency from read-only SQL."
+    },
+    {
+      "cell_id": "REQ-011/cell-P046-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:112",
+      "site_citation": "Supabase Auth leaked-password protection is a project Auth setting, not a SQL migration in this repository.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if the connected project management API exposes and permits verification/change of the leaked-password setting."
+    },
+    {
+      "cell_id": "REQ-011/cell-P063-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:129",
+      "site_citation": "The uploaded archive has no Git metadata and GitHub required-check state is not connected.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if repository branch protection and an executed main-merge workflow can be queried for the exact source artifact."
+    },
+    {
+      "cell_id": "REQ-012/cell-P043-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:109",
+      "site_citation": "Only gridex-ops-dev is exposed; no production Supabase project is connected.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if production catalog and migration history become queryable and can be compared independently."
+    },
+    {
+      "cell_id": "REQ-012/cell-P046-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:112",
+      "site_citation": "Production Auth configuration is not exposed by the connected dev database API.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if relevant production password login is confirmed and its leaked-password setting becomes queryable."
+    },
+    {
+      "cell_id": "REQ-012/cell-P063-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:129",
+      "site_citation": "The archive has no Git remote/history and GitHub required-check evidence is unavailable.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if main branch rules and completed mandatory checks are exposed for the candidate SHA."
+    },
+    {
+      "cell_id": "REQ-012/cell-P064-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:130",
+      "site_citation": "No Git SHA or Vercel production deployment connector accompanies the uploaded archive.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if merged Git SHA, CI SHA and deployed Vercel SHA can be read and compared."
+    },
+    {
+      "cell_id": "REQ-012/cell-P065-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:131",
+      "site_citation": "Without repository Git history, campaign source/target SHA assertions cannot be validated mechanically.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if an authoritative Git history or immutable archive digest policy is supplied for the campaign."
+    },
+    {
+      "cell_id": "REQ-012/cell-P071-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:137",
+      "site_citation": "Production telemetry and deployed provenance are not connected.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if representative production latency samples are available for the exact candidate artifact."
+    },
+    {
+      "cell_id": "REQ-012/cell-P075-GLOBAL",
+      "authority_ref": "../../upload/Pasted markdown(20260810-093430).md:141",
+      "site_citation": "The master closure rule explicitly requires production exact-SHA verification, which is unavailable.",
+      "reason_class": "platform-gated",
+      "falsifiable_claim": "The cell is wrong to defer if all production parity, provenance and performance gates become evidenced and green."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+diff --git a/lib/customer-portal/apiData.ts b/lib/customer-portal/apiData.ts
+--- a/lib/customer-portal/apiData.ts
++++ b/lib/customer-portal/apiData.ts
+@@ listWithSchemaFallback
+-  return []
++  throw new PlatformSchemaNotReadyError({
++    capability: 'customer_portal_read_model',
++    blockers: ['portal_schema_variants_exhausted'],
++  })

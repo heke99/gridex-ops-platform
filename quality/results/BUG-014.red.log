@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-014 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++   )
++
+
+ ❯ quality/test_regression_red.test.ts:123:31
+    121|     const profile = source('supabase/migrations/20260724170000_single_…
+    122|     const tenantProfile = profile.slice(profile.indexOf("'tenant_websi…
+    123|     expect(tenantProfile).not.toContain("'customer_portal.read'")
+       |                               ^
+    124|     expect(tenantProfile).not.toContain("'customer_portal.write'")
+    125|     const provisioning = source('lib/integrations/tenantWebsiteProvisi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:15
+   Duration  564ms (transform 285ms, setup 36ms, import 343ms, tests 9ms, environment 0ms)

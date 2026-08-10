@@ -1,0 +1,19 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-008: regression_bug_008_live_migration_tail_is_present — apply quality/patches/BUG-008-fix.patch', () => {
++    const files = [
++      '20260809180628_gridex_ops_external_api_performance_foundation.sql',
++      '20260809181141_backfill_legacy_ediel_test_run_tenant.sql',
++      '20260809181153_validate_pending_public_constraints.sql',
++      '20260809181803_portal_event_keyset_read_model.sql',
++      '20260809182215_authenticate_integration_request_v1.sql',
++      '20260809182318_authenticate_integration_request_route_cost.sql',
++      '20260809182554_resolve_portal_customer_identity_v1.sql',
++      '20260809183210_public_contract_feed_fingerprint_v1.sql',
++      '20260809191057_authenticate_integration_request_route_cost.sql',
++      '20260809191135_portal_event_keyset_read_model.sql',
++    ]
++    expect(files.every((file) => existsSync(`supabase/migrations/${file}`))).toBe(true)
++  })

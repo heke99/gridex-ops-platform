@@ -29,7 +29,7 @@ const customerPortalOpenapi = JSON.parse(
   read('docs/openapi/customer-portal-v1.json'),
 )
 const fixture = JSON.parse(
-  read('docs/fixtures/public-contracts-response-2026-08-05.2.json'),
+  read('docs/fixtures/public-contracts-response-2026-08-10.1.json'),
 )
 
 for (const kind of ['agreement', 'power_of_attorney', 'withdrawal']) {

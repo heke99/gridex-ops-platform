@@ -11,6 +11,7 @@ import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPorta
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
 import { ApiInputError } from '@/lib/api/strictRequest'
+import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 
 export type LinkedPortalIdentity = {
   id: string | null
@@ -41,6 +42,7 @@ export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
       ? (body as Record<string, unknown>)
       : null
   const rawError = record?.error
+  if (record && rawError === undefined) assertPublicResponsePayload(record)
   const errorRecord =
     rawError && typeof rawError === 'object' && !Array.isArray(rawError)
       ? (rawError as Record<string, unknown>)

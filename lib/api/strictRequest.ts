@@ -77,7 +77,7 @@ function payloadHash(payload: unknown): string {
 export async function claimPortalWriteIdempotency(input: {
   companyId: string
   clientId: string
-  customerId: string
+  customerId: string | null
   operation: string
   idempotencyKey: string
   payload: unknown
@@ -106,15 +106,17 @@ export async function claimPortalWriteIdempotency(input: {
 
   if (String(inserted.error?.code ?? '') !== '23505') throw inserted.error
 
-  const existing = await supabaseService
+  let existingQuery = supabaseService
     .from('customer_portal_write_idempotency')
     .select('id,status,response_status,response_body,request_hash,started_at')
     .eq('company_id', input.companyId)
     .eq('api_client_id', input.clientId)
-    .eq('customer_id', input.customerId)
     .eq('route', input.operation)
     .eq('idempotency_key', input.idempotencyKey)
-    .maybeSingle()
+  existingQuery = input.customerId === null
+    ? existingQuery.is('customer_id', null)
+    : existingQuery.eq('customer_id', input.customerId)
+  const existing = await existingQuery.maybeSingle()
   if (existing.error) throw existing.error
   if (!existing.data) throw new Error('Idempotency-raden kunde inte läsas efter konflikt.')
   if (String(existing.data.request_hash) !== requestHash) {
@@ -219,7 +221,7 @@ export async function executeIdempotentPortalWrite<T>(input: {
   request: NextRequest
   companyId: string
   clientId: string
-  customerId: string
+  customerId: string | null
   operation: string
   payload: unknown
   execute: () => Promise<IdempotentWriteResult<T>>

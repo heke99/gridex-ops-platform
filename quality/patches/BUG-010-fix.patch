@@ -1,0 +1,12 @@
+diff --git a/lib/integrations/apiAuth.ts b/lib/integrations/apiAuth.ts
+--- a/lib/integrations/apiAuth.ts
++++ b/lib/integrations/apiAuth.ts
+@@ resolveIntegrationApiAccess
+-  const client = await loadClient(tokenHash)
+-  const company = await loadCompany(client.company_id)
+-  const rateLimit = await rateLimitDecision(client, route)
++  const { data, error } = await supabaseService.rpc(
++    'authenticate_integration_request_v1',
++    atomicAuthenticationArgs(input, routeContract.rateLimitClass),
++  )
++  if (error || !data?.allowed) throw failClosedAuthenticationError(error, data)

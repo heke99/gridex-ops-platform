@@ -1,0 +1,445 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.agent-memory
+.agent-memory/README.md
+.agent-memory/api-contracts.md
+.agent-memory/archive
+.agent-memory/archive/historical-status
+.agent-memory/archive/historical-status/.gitkeep
+.agent-memory/archive/sessions
+.agent-memory/archive/sessions/.gitkeep
+.agent-memory/archive/superseded-decisions
+.agent-memory/archive/superseded-decisions/.gitkeep
+.agent-memory/authentication-and-rbac.md
+.agent-memory/canonical-architecture.md
+.agent-memory/canonical-flows.md
+.agent-memory/checkpoint.json
+.agent-memory/completed-work.md
+.agent-memory/current-state.md
+.agent-memory/current-task.md
+.agent-memory/database-and-migrations.md
+.agent-memory/decisions.md
+.agent-memory/domain-model.md
+.agent-memory/glossary.md
+.agent-memory/handover.md
+.agent-memory/integrations.md
+.agent-memory/known-failures.md
+.agent-memory/next-actions.md
+.agent-memory/open-blockers.md
+.agent-memory/product-and-users.md
+.agent-memory/project-identity.md
+.agent-memory/recent-changes.md
+.agent-memory/security-model.md
+.agent-memory/session-log.md
+.agent-memory/tenancy-and-rls.md
+.agent-memory/verification-matrix.md
+.agent-memory/work-plan.md
+.agents
+.agents/skills
+.agents/skills/acquire-codebase-knowledge
+.agents/skills/acquire-codebase-knowledge/SKILL.md
+.agents/skills/acquire-codebase-knowledge/assets
+.agents/skills/acquire-codebase-knowledge/references
+.agents/skills/acquire-codebase-knowledge/scripts
+.agents/skills/brainstorming
+.agents/skills/brainstorming/SKILL.md
+.agents/skills/brainstorming/scripts
+.agents/skills/brainstorming/spec-document-reviewer-prompt.md
+.agents/skills/brainstorming/visual-companion.md
+.agents/skills/code-review
+.agents/skills/code-review/SKILL.md
+.agents/skills/code-security
+.agents/skills/code-security/AGENTS.md
+.agents/skills/code-security/README.md
+.agents/skills/code-security/SKILL.md
+.agents/skills/code-security/rules
+.agents/skills/code-simplifier
+.agents/skills/code-simplifier/SKILL.md
+.agents/skills/codeql
+.agents/skills/codeql/SKILL.md
+.agents/skills/codeql/agents
+.agents/skills/codeql/assets
+.agents/skills/codeql/references
+.agents/skills/codeql/workflows
+.agents/skills/differential-review
+.agents/skills/differential-review/SKILL.md
+.agents/skills/differential-review/adversarial.md
+.agents/skills/differential-review/agents
+.agents/skills/differential-review/assets
+.agents/skills/differential-review/methodology.md
+.agents/skills/differential-review/patterns.md
+.agents/skills/differential-review/reporting.md
+.agents/skills/dispatching-parallel-agents
+.agents/skills/dispatching-parallel-agents/SKILL.md
+.agents/skills/executing-plans
+.agents/skills/executing-plans/SKILL.md
+.agents/skills/find-bugs
+.agents/skills/find-bugs/SKILL.md
+.agents/skills/finishing-a-development-branch
+.agents/skills/finishing-a-development-branch/SKILL.md
+.agents/skills/fp-check
+.agents/skills/fp-check/SKILL.md
+.agents/skills/fp-check/agents
+.agents/skills/fp-check/assets
+.agents/skills/fp-check/references
+.agents/skills/install-hooks
+.agents/skills/install-hooks/SKILL.md
+.agents/skills/install-hooks/evals
+.agents/skills/install-hooks/references
+.agents/skills/property-based-testing
+.agents/skills/property-based-testing/README.md
+.agents/skills/property-based-testing/SKILL.md
+.agents/skills/property-based-testing/agents
+.agents/skills/property-based-testing/assets
+.agents/skills/property-based-testing/references
+.agents/skills/quality-playbook
+.agents/skills/quality-playbook/LICENSE.txt
+.agents/skills/quality-playbook/SKILL.md
+.agents/skills/quality-playbook/agents
+.agents/skills/quality-playbook/phase_prompts
+.agents/skills/quality-playbook/quality_gate.py
+.agents/skills/quality-playbook/references
+.agents/skills/receiving-code-review
+.agents/skills/receiving-code-review/SKILL.md
+.agents/skills/refactor
+.agents/skills/refactor/SKILL.md
+.agents/skills/requesting-code-review
+.agents/skills/requesting-code-review/SKILL.md
+.agents/skills/requesting-code-review/code-reviewer.md
+.agents/skills/sarif-parsing
+.agents/skills/sarif-parsing/SKILL.md
+.agents/skills/sarif-parsing/agents
+.agents/skills/sarif-parsing/assets
+.agents/skills/sarif-parsing/resources
+.agents/skills/scan-secrets
+.agents/skills/scan-secrets/SKILL.md
+.agents/skills/scan-secrets/evals
+.agents/skills/scan-secrets/references
+.agents/skills/security-threat-model
+.agents/skills/security-threat-model/LICENSE.txt
+.agents/skills/security-threat-model/SKILL.md
+.agents/skills/security-threat-model/agents
+.agents/skills/security-threat-model/references
+.agents/skills/semgrep
+.agents/skills/semgrep/README.md
+.agents/skills/semgrep/SKILL.md
+.agents/skills/semgrep/references
+.agents/skills/sharp-edges
+.agents/skills/sharp-edges/SKILL.md
+.agents/skills/sharp-edges/agents
+.agents/skills/sharp-edges/assets
+.agents/skills/sharp-edges/references
+.agents/skills/spec-to-code-compliance
+.agents/skills/spec-to-code-compliance/SKILL.md
+.agents/skills/spec-to-code-compliance/agents
+.agents/skills/spec-to-code-compliance/assets
+.agents/skills/spec-to-code-compliance/resources
+.agents/skills/subagent-driven-development
+.agents/skills/subagent-driven-development/SKILL.md
+.agents/skills/subagent-driven-development/implementer-prompt.md
+.agents/skills/subagent-driven-development/re-review-prompt.md
+.agents/skills/subagent-driven-development/scripts
+.agents/skills/subagent-driven-development/task-reviewer-prompt.md
+.agents/skills/supabase
+.agents/skills/supabase/CHANGELOG.md
+.agents/skills/supabase/SKILL.md
+.agents/skills/supabase/assets
+.agents/skills/supabase/references
+.agents/skills/supabase-postgres-best-practices
+.agents/skills/supabase-postgres-best-practices/CHANGELOG.md
+.agents/skills/supabase-postgres-best-practices/SKILL.md
+.agents/skills/supabase-postgres-best-practices/references
+.agents/skills/supply-chain-risk-auditor
+.agents/skills/supply-chain-risk-auditor/SKILL.md
+.agents/skills/supply-chain-risk-auditor/agents
+.agents/skills/supply-chain-risk-auditor/assets
+.agents/skills/supply-chain-risk-auditor/resources
+.agents/skills/systematic-debugging
+.agents/skills/systematic-debugging/CREATION-LOG.md
+.agents/skills/systematic-debugging/SKILL.md
+.agents/skills/systematic-debugging/condition-based-waiting-example.ts
+.agents/skills/systematic-debugging/condition-based-waiting.md
+.agents/skills/systematic-debugging/defense-in-depth.md
+.agents/skills/systematic-debugging/find-polluter.sh
+.agents/skills/systematic-debugging/root-cause-tracing.md
+.agents/skills/systematic-debugging/test-academic.md
+.agents/skills/systematic-debugging/test-pressure-1.md
+.agents/skills/systematic-debugging/test-pressure-2.md
+.agents/skills/systematic-debugging/test-pressure-3.md
+.agents/skills/test-driven-development
+.agents/skills/test-driven-development/SKILL.md
+.agents/skills/test-driven-development/writing-good-tests.md
+.agents/skills/threat-model-analyst
+.agents/skills/threat-model-analyst/SKILL.md
+.agents/skills/threat-model-analyst/references
+.agents/skills/using-git-worktrees
+.agents/skills/using-git-worktrees/SKILL.md
+.agents/skills/using-superpowers
+.agents/skills/using-superpowers/SKILL.md
+.agents/skills/using-superpowers/references
+.agents/skills/variant-analysis
+.agents/skills/variant-analysis/SKILL.md
+.agents/skills/variant-analysis/agents
+.agents/skills/variant-analysis/assets
+.agents/skills/variant-analysis/references
+.agents/skills/variant-analysis/resources
+.agents/skills/verification-before-completion
+.agents/skills/verification-before-completion/SKILL.md
+.agents/skills/web-design-guidelines
+.agents/skills/web-design-guidelines/SKILL.md
+.agents/skills/writing-plans
+.agents/skills/writing-plans/SKILL.md
+.agents/skills/writing-plans/plan-document-reviewer-prompt.md
+.agents/skills/writing-skills
+.agents/skills/writing-skills/SKILL.md
+.agents/skills/writing-skills/anthropic-best-practices.md
+.agents/skills/writing-skills/examples
+.agents/skills/writing-skills/graphviz-conventions.dot
+.agents/skills/writing-skills/persuasion-principles.md
+.agents/skills/writing-skills/render-graphs.js
+.agents/skills/writing-skills/testing-skills-with-subagents.md
+.cursor
+.cursor/rules
+
+=== STACK DETECTION (manifest files) ===
+
+--- package-lock.json ---
+{
+  "name": "gridex-ops-platform",
+  "version": "0.1.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "gridex-ops-platform",
+      "version": "0.1.0",
+      "dependencies": {
+        "@supabase/ssr": "^0.9.0",
+        "@supabase/supabase-js": "^2.100.0",
+        "imapflow": "^1.3.1",
+        "ldapts": "^8.1.8",
+        "next": "16.2.12",
+        "node-forge": "^1.4.0",
+        "nodemailer": "^9.0.1",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "resend": "^6.12.4",
+        "zod": "^3.24.1"
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "^4",
+        "@types/node": "^20",
+        "@types/node-forge": "^1.3.14",
+        "@types/nodemailer": "^8.0.0",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "babel-plugin-react-compiler": "1.0.0",
+        "eslint": "^9",
+        "eslint-config-next": "16.2.12",
+        "tailwindcss": "^4",
+        "typescript": "^5",
+        "vitest": "^4.1.9"
+      },
+      "engines": {
+        "node": ">=22 <23"
+      }
+    },
+    "node_modules/@alloc/quick-lru": {
+      "version": "5.2.0",
+      "resolved": "https://registry.npmjs.org/@alloc/quick-lru/-/quick-lru-5.2.0.tgz",
+      "integrity": "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=10"
+      },
+      "funding": {
+        "url": "https://github.com/sponsors/sindresorhus"
+      }
+    },
+    "node_modules/@babel/code-frame": {
+      "version": "7.29.7",
+      "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.7.tgz",
+      "integrity": "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@babel/helper-validator-identifier": "^7.29.7",
+        "js-tokens": "^4.0.0",
+        "picocolors": "^1.1.1"
+      },
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/compat-data": {
+      "version": "7.29.7",
+      "resolved": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.29.7.tgz",
+      "integrity": "sha512-locTkQyKvwIEgBzVrn8693ebc97F2U8ZHjbXwDXJ5Fn2TCpNwTlKcaKLkdHop5c/icOFE7qt7Q9JC5hnKNa6Gg==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/core": {
+      "version": "7.29.7",
+
+[TRUNCATED] Showing first 80 of 7990 lines.
+--- package.json ---
+{
+  "name": "gridex-ops-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "node --max-old-space-size=4096 node_modules/next/dist/bin/next build --webpack",
+    "typecheck": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint",
+    "security:rbac": "node scripts/security-audit-rbac.mjs",
+    "ediel:rule-regression": "node scripts/ediel-rule-regression.cjs",
+    "ediel:production-readiness-regression": "node scripts/ediel-production-readiness-regression.cjs",
+    "ediel:routing-security-regression": "node scripts/ediel-routing-security-regression.cjs",
+    "ediel:inbound-tenant-resolution-regression": "node scripts/ediel-inbound-tenant-resolution-regression.cjs",
+    "ediel:utilts-reason-regression": "node scripts/ediel-utilts-reason-regression.cjs",
+    "ediel:z13vh-regression": "node scripts/ediel-z13vh-production-regression.cjs",
+    "gridex:batch-6-api-client-regression": "node scripts/gridex-batch-6-api-client-regression.cjs",
+    "gridex:batch-7-website-foundation-regression": "node scripts/gridex-batch-7-website-foundation-regression.cjs",
+    "gridex:batch-8-1-live-schema-regression": "node scripts/gridex-batch-8-1-live-schema-regression.cjs",
+    "gridex:customer-application-review-regression": "node scripts/gridex-customer-application-review-regression.cjs",
+    "gridex:energy-resolver-regression": "node scripts/energy-resolver-grid-owner-regression.cjs",
+    "gridex:explicit-input-preservation-regression": "node scripts/gridex-explicit-input-preservation-regression.cjs",
+    "gridex:masterdata-id-mapping-regression": "node scripts/gridex-masterdata-id-mapping-regression.cjs",
+    "gridex:poa-authorization-chain-regression": "node scripts/gridex-poa-authorization-chain-regression.cjs",
+    "gridex:manual-pdf-website-shared-orchestrator-regression": "node scripts/gridex-manual-pdf-website-shared-orchestrator-regression.cjs",
+    "gridex:facility-missing-path-hardening-regression": "node scripts/gridex-facility-missing-path-hardening-regression.cjs",
+    "gridex:repair-missing-facility-z01": "node --experimental-strip-types scripts/gridex/repairMissingFacilityZ01Rows.ts",
+    "gridex:z01-missing-facility-outbound-blocker-regression": "node scripts/gridex-z01-missing-facility-outbound-blocker-regression.cjs",
+    "gridex:resume-stuck-intents-missing-facility-blocker-regression": "node scripts/gridex-z01-missing-facility-outbound-blocker-regression.cjs",
+    "gridex:z01-payload-route-context-regression": "node scripts/gridex-z01-payload-route-context-regression.cjs",
+    "gridex:ediel-intent-outbox-bridge-regression": "node scripts/gridex-ediel-intent-outbox-bridge-regression.cjs",
+    "gridex:cron-idempotency-and-locking-regression": "node scripts/gridex-cron-idempotency-and-locking-regression.cjs",
+    "gridex:communication-source-of-truth-regression": "node scripts/gridex-communication-source-of-truth-regression.cjs",
+    "gridex:customer-communication-status-regression": "node scripts/gridex-communication-source-of-truth-regression.cjs",
+    "gridex:manual-email-recipient-resolution-regression": "node scripts/gridex-manual-email-recipient-resolution-regression.cjs",
+    "gridex:price-plan-offer-mapping-regression": "node scripts/gridex-price-plan-offer-mapping-regression.cjs",
+    "gridex:tenant-ui-simplified-status-regression": "node scripts/gridex-tenant-ui-simplified-status-regression.cjs",
+    "gridex:superadmin-diagnostics-ui-regression": "node scripts/gridex-superadmin-diagnostics-ui-regression.cjs",
+    "gridex:tenant-superadmin-status-visibility-regression": "node scripts/gridex-tenant-ui-simplified-status-regression.cjs && node scripts/gridex-superadmin-diagnostics-ui-regression.cjs",
+    "gridex:inspect-customer-flow": "node --experimental-strip-types scripts/gridex/inspectCustomerFlow.ts",
+    "gridex:clean-website-flow-regression": "node --experimental-strip-types scripts/gridex/cleanWebsiteFlowRegression.ts",
+    "gridex:website-missing-facility-manual-request-regression": "node --experimental-strip-types scripts/gridex/cleanWebsiteFlowRegression.ts",
+    "gridex:schema-aware-customer-flow-diagnostics-regression": "node scripts/gridex-schema-aware-diagnostics-regression.cjs",
+    "gridex:dirty-test-data-detection-regression": "node scripts/gridex-dirty-test-data-detection-regression.cjs",
+    "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs",
+    "gridex:launch-security-regression": "node scripts/gridex-launch-regression.cjs launch-security-regression",
+    "gridex:db-ui-compatibility-regression": "node scripts/gridex-launch-regression.cjs db-ui-compatibility-regression",
+    "gridex:website-api-webhook-regression": "node scripts/gridex-launch-regression.cjs website-api-webhook-regression",
+    "gridex:external-contract-intake-regression": "node scripts/gridex-launch-regression.cjs external-contract-intake-regression",
+    "gridex:company-statistics-regression": "node scripts/gridex-launch-regression.cjs company-statistics-regression",
+    "gridex:pricing-flow-regression": "node scripts/gridex-launch-regression.cjs pricing-flow-regression",
+    "gridex:billing-readiness-regression": "node scripts/gridex-launch-regression.cjs billing-readiness-regression",
+    "gridex:route-readiness-regression": "node scripts/gridex-launch-regression.cjs route-readiness-regression",
+    "gridex:supplier-contact-regression": "node scripts/gridex-launch-regression.cjs supplier-contact-regression",
+    "gridex:customer-intake-regression": "node scripts/gridex-launch-regression.cjs customer-intake-regression",
+    "gridex:ui-db-mismatch-regression": "node scripts/gridex-launch-regression.cjs ui-db-mismatch-regression",
+    "gridex:rate-limit-regression": "node scripts/gridex-launch-regression.cjs rate-limit-regression",
+    "gridex:system-health-regression": "node scripts/gridex-launch-regression.cjs system-health-regression",
+    "gridex:launch-smoke": "node scripts/gridex-launch-regression.cjs launch-smoke",
+    "gridex:ops-points-1-8-regression": "node scripts/gridex-ops-points-1-to-8-regression.cjs",
+    "gridex:platform-tenant-contracts-api-mail-regression": "node scripts/gridex-platform-tenant-contracts-api-mail-regression.cjs",
+    "gridex:batch-m-ops-master-regression": "node scripts/gridex-batch-m-ops-master-regression.cjs",
+    "gridex:customer-operation-events-regression": "node scripts/gridex-customer-operation-events-regression.cjs",
+    "ops:hardening-regression": "node scripts/ops-hardening-regression.cjs",
+    "db:migrations:check": "npm run db:migrations:integrity && npm run db:public-contract-legal-migration:check && npm run db:contract-hardening",
+    "gridex:live-schema-code-sync-regression": "node scripts/gridex-live-schema-code-sync-regression.cjs",
+    "security:audit-production": "npm audit --omit=dev --audit-level=high",
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
+    "ops:hardening-behavior-regression": "node scripts/ops-hardening-behavior-regression.cjs",
+    "ops:final-contract-regression": "node scripts/ops-final-contract-regression.cjs",
+    "ops:integration": "node scripts/ops-final-db-integration.cjs",
+    "api:error-boundaries": "node scripts/check-api-error-boundaries.cjs",
+    "api:finalize": "node scripts/finalize-openapi-release.cjs",
+    "api:materialize": "node scripts/materialize-openapi-release.cjs",
+    "api:compatibility": "node scripts/check-api-compatibility.cjs",
+    "api:release:verify": "node scripts/verify-openapi-release.cjs",
+
+[TRUNCATED] Showing first 80 of 318 lines.
+
+=== ENTRY POINTS ===
+No common entry points found. Check 'main' or 'scripts.start' in manifest files above.
+
+=== LINTING AND FORMATTING CONFIG ===
+Found: eslint.config.mjs
+Found: tsconfig.json
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:28: TODO_LIMIT = 60
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:291: """Search for TODO/FIXME/HACK comments."""
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:291: """Search for TODO/FIXME/HACK comments."""
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:291: """Search for TODO/FIXME/HACK comments."""
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:293: patterns = ["TODO", "FIXME", "HACK"]
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:293: patterns = ["TODO", "FIXME", "HACK"]
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:293: patterns = ["TODO", "FIXME", "HACK"]
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:320: return todos[:TODO_LIMIT]
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:617: # TODOs
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:620: print_section("TODO / FIXME / HACK (production code only, test dirs excluded)", todos, output_file)
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:620: print_section("TODO / FIXME / HACK (production code only, test dirs excluded)", todos, output_file)
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:620: print_section("TODO / FIXME / HACK (production code only, test dirs excluded)", todos, output_file)
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:622: print_section("TODO / FIXME / HACK (production code only, test dirs excluded)", ["None found."], output_file)
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:622: print_section("TODO / FIXME / HACK (production code only, test dirs excluded)", ["None found."], output_file)
+.agents/skills/acquire-codebase-knowledge/scripts/scan.py:622: print_section("TODO / FIXME / HACK (production code only, test dirs excluded)", ["None found."], output_file)
+lib/ediel/intent/noPlaceholderGuard.ts:18: 'TODO',
+
+=== GIT RECENT COMMITS (last 20) ===
+No commits found.
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+None found.
+
+=== MONOREPO SIGNALS ===
+No monorepo signals detected.
+
+=== CODE METRICS ===
+Total files scanned: 2743
+Total lines of code: 601309
+
+Files by language:
+  Other: 1466
+  TypeScript: 994
+  TypeScript/React: 278
+  Python: 3
+  JavaScript: 2
+
+Top 10 largest files:
+artifacts/verification/typecheck.log: 5498.7KB
+test-runs/canonical-runtime-consistency-2026-08-02/typecheck.log: 5494.7KB
+docs/openapi/website-integration-v1.json: 386.5KB
+docs/openapi/releases/2026-08-05.2/website-integration-v1.json: 386.5KB
+docs/openapi/releases/2026-08-05.1/website-integration-v1.json: 381.1KB
+docs/openapi/releases/2026-08-04.3/website-integration-v1.json: 366.2KB
+docs/openapi/releases/2026-08-04.2/website-integration-v1.json: 355.5KB
+docs/openapi/releases/2026-08-04.1/website-integration-v1.json: 344.6KB
+.patch-backups/gridex-ops-platform-api-canonical-patch-2026-07-30-20260730T085932Z/lib/website/customerApplications.ts: 319.4KB
+artifacts/migration-inventory-2026-08-03.json: 314.0KB
+
+=== CI/CD PIPELINES ===
+CI/CD: GitHub Actions
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===

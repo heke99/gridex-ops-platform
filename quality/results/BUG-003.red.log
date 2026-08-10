@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-003 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ }
++
+
+ ❯ quality/test_regression_red.test.ts:33:22
+     31|     const data = source('lib/customer-portal/apiData.ts')
+     32|     const fallback = data.slice(data.indexOf('async function listWithS…
+     33|     expect(fallback).toContain('PlatformSchemaNotReadyError')
+       |                      ^
+     34|     expect(fallback).not.toMatch(/return\s*\[\]\s*$/m)
+     35|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:02
+   Duration  507ms (transform 283ms, setup 26ms, import 346ms, tests 9ms, environment 0ms)

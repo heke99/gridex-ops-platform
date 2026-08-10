@@ -1,0 +1,10 @@
+diff --git a/scripts/check-openapi-runtime-parity.cjs b/scripts/check-openapi-runtime-parity.cjs
+--- a/scripts/check-openapi-runtime-parity.cjs
++++ b/scripts/check-openapi-runtime-parity.cjs
+@@
+-const applicationRuntime = read('lib/website/customerApplications.ts')
++const applicationRuntime = [
++  'lib/website/customerApplications.ts',
++  'lib/website/customerApplicationProcess.ts',
++  'lib/website/customerApplicationPersistence.ts',
++].map(read).join('\n')

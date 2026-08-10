@@ -6,10 +6,20 @@ export type PublicApiRouteContract = {
   description: string
   idempotencyRequired?: boolean
   rateLimitClass: 'read' | 'write' | 'expensive'
+  operationId: string
+  responseSchema: string
+  scopeMode: 'all' | 'any'
+  cachePolicy: 'no-store' | 'private-revalidate' | 'public-immutable'
+  publicIdPolicy: 'none' | 'opaque-references'
 }
 
+type PublicApiRouteDefinition = Omit<
+  PublicApiRouteContract,
+  'operationId' | 'responseSchema' | 'scopeMode' | 'cachePolicy' | 'publicIdPolicy'
+>
+
 /** Canonical source for the public V1 endpoint catalogue and documentation. */
-export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
+const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Maskinläsbart release-manifest med versioner och SHA-256 för båda publika OpenAPI-kontrakten.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för tenantens websiteintegration.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-02.1.', rateLimitClass: 'read' },
@@ -26,6 +36,8 @@ export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-08-05.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-05.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-05.2/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-05.2.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-05.2/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-05.2.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för kundportalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verifiera opak tenantreferens för den autentiserade API-nyckeln.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Canonical feed för avtal som tenant har publicerat till API-kanalen.', rateLimitClass: 'read' },
@@ -64,6 +76,60 @@ export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'POST', path: '/api/v1/customer/profile-update', scopes: ['customer_contact.write', 'customer_facility_data.write'], description: 'Skicka profil- eller anläggningsadressändring.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/customer/move-out', scopes: ['customer_facility_data.write'], description: 'Skicka flyttanmälan.', idempotencyRequired: true, rateLimitClass: 'write' },
 ]
+
+function operationIdFor(route: PublicApiRouteDefinition): string {
+  const path = route.publicPath ?? route.path
+  const suffix = path
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => segment
+      .replace(/^\[|\]$/g, '')
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(''))
+    .join('')
+  return `${route.method.toLowerCase()}${suffix}`
+}
+
+function scopeModeFor(route: PublicApiRouteDefinition): 'all' | 'any' {
+  return [
+    '/api/v1/website/legal-bundle',
+    '/api/v1/customer/profile-update',
+  ].includes(route.path) ? 'any' : 'all'
+}
+
+function cachePolicyFor(route: PublicApiRouteDefinition): PublicApiRouteContract['cachePolicy'] {
+  if (route.path.includes('/openapi/')) return route.path.includes('/2026-') ? 'public-immutable' : 'private-revalidate'
+  return 'no-store'
+}
+
+export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = RAW_PUBLIC_API_ROUTES.map((route) => {
+  const operationId = operationIdFor(route)
+  return {
+    ...route,
+    operationId,
+    responseSchema: `${operationId}Response`,
+    scopeMode: scopeModeFor(route),
+    cachePolicy: cachePolicyFor(route),
+    publicIdPolicy: route.path.includes('/openapi/') ? 'none' : 'opaque-references',
+  }
+})
+
+export function publicRouteContract(method: string, pathname: string): PublicApiRouteContract | null {
+  const segments = pathname.split('/').filter(Boolean)
+  return PUBLIC_API_ROUTES.find((route) => {
+    if (route.method !== method.toUpperCase()) return false
+    const template = route.path.split('/').filter(Boolean)
+    return template.length === segments.length && template.every((part, index) =>
+      /^\[[^\]]+\]$/.test(part) || part === segments[index])
+  }) ?? null
+}
+
+export function publicRouteCost(method: string, pathname: string): number {
+  const rateLimitClass = publicRouteContract(method, pathname)?.rateLimitClass ?? 'expensive'
+  return { read: 1, write: 3, expensive: 10 }[rateLimitClass]
+}
 
 export const PUBLIC_API_ENDPOINT_ROWS = PUBLIC_API_ROUTES.map((route) => [
   route.method,

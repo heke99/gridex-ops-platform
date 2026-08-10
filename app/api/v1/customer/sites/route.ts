@@ -5,9 +5,8 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalMeteringPoints, listPortalSites, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import { listPortalMeteringPointsForSites, listPortalSitesPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
 import {
-  pagePublicItems,
   publicPageInput,
   publicPortalMeteringPoint,
   publicPortalSite,
@@ -28,36 +27,22 @@ export async function GET(request: NextRequest) {
       customerNumber: context.identity.customer_number,
       provider: context.identity.provider,
     })
-    const sites = await listPortalSites(portalContext)
-    const meteringPoints = await listPortalMeteringPoints(portalContext, sites)
+    const sites = await listPortalSitesPage(portalContext, publicPageInput(request.nextUrl.searchParams))
+    const meteringPoints = await listPortalMeteringPointsForSites(portalContext, sites.items)
 
     await logCustomerPortalSuccess({
       request,
       client: context.client,
       startedAt: context.startedAt,
-      resultCount: sites.length,
+      resultCount: sites.items.length,
       metadata: { metering_points: meteringPoints.length },
     })
-    const pageInput = publicPageInput(request.nextUrl.searchParams)
-    const publicSites = pagePublicItems(
-      sites.map((row) => publicPortalSite(context.client.company_id, row)),
-      pageInput,
-    )
-    const publicMeteringPoints = pagePublicItems(
-      meteringPoints.map((row) =>
-        publicPortalMeteringPoint(context.client.company_id, row),
-      ),
-      pageInput,
-    )
     return customerPortalJson({
       data: {
-        sites: publicSites.items,
-        metering_points: publicMeteringPoints.items,
+        sites: sites.items.map((row) => publicPortalSite(context.client.company_id, row)),
+        metering_points: meteringPoints.map((row) => publicPortalMeteringPoint(context.client.company_id, row)),
       },
-      page: {
-        sites: publicSites.page,
-        metering_points: publicMeteringPoints.page,
-      },
+      page: { sites: sites.page },
     })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })

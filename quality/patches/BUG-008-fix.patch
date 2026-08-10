@@ -1,0 +1,8 @@
+diff --git a/supabase/migrations/20260809182215_authenticate_integration_request_v1.sql b/supabase/migrations/20260809182215_authenticate_integration_request_v1.sql
+new file mode 100644
+--- /dev/null
++++ b/supabase/migrations/20260809182215_authenticate_integration_request_v1.sql
+@@
++-- Restore the exact statement array from the official connected-dev
++-- supabase_migrations.schema_migrations ledger. Do not reconstruct by hand.
++-- Verified ledger version: 20260809182215.

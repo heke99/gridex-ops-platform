@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-004 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ }
++
+
+ ❯ quality/test_regression_red.test.ts:39:25
+     37|   it('BUG-004: regression_bug_004_api_client_reference_is_opaque — app…
+     38|     const context = source('lib/integrations/tenantContext.ts')
+     39|     expect(context).not.toContain("client.id.replaceAll('-', '')")
+       |                         ^
+     40|     expect(context).toMatch(/public_reference|publicReference\('api_cl…
+     41|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:03
+   Duration  367ms (transform 149ms, setup 20ms, import 207ms, tests 10ms, environment 0ms)

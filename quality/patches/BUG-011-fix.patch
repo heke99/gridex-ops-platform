@@ -1,0 +1,10 @@
+diff --git a/lib/customer-portal/externalApi.ts b/lib/customer-portal/externalApi.ts
+--- a/lib/customer-portal/externalApi.ts
++++ b/lib/customer-portal/externalApi.ts
+@@ customerPortalJson
++  if (!rawError) {
++    assertSafePublicPayload(record, {
++      allowedUuidFields: ['request_id', 'correlation_id'],
++    })
++  }
+   return NextResponse.json(versionedEnvelope, { ...init, headers })

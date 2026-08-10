@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-009 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ }
++
+
+ ❯ quality/test_regression_red.test.ts:90:22
+     88|   it('BUG-009: regression_bug_009_webhooks_fail_closed_per_tenant — ap…
+     89|     const webhooks = source('lib/integrations/webhooks.ts')
+     90|     expect(webhooks).toContain('WEBHOOK_EVENT_REGISTRY')
+       |                      ^
+     91|     expect(webhooks).not.toContain('WEBHOOK_SIGNING_SECRET_FALLBACK')
+     92|     expect(webhooks).not.toContain('sanitizeWebhookData')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:09
+   Duration  532ms (transform 308ms, setup 19ms, import 382ms, tests 8ms, environment 0ms)

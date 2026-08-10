@@ -1,6 +1,6 @@
 # Gridex tenantintegration med en API-nyckel
 
-Kontraktsversion: `2026-08-05.2`.
+Kontraktsversion: `2026-08-10.1`.
 
 ## Produktion
 

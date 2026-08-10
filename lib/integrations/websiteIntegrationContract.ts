@@ -6,7 +6,7 @@
  * production API base URL and request-field placement are part of the V1
  * contract and must never be controlled by tenant environment flags.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-05.2' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-10.1' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -26,6 +26,14 @@ export const CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIG
 export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] as const
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
 
+export const API_COMPATIBILITY_CLASSIFICATION = {
+  release: 'additive-public-boundary-and-tenant-remediation',
+  website: 'additive-public-boundary-and-tenant-remediation',
+  customerPortal: 'additive-public-boundary-and-tenant-remediation',
+} as const
+export type CompatibilityClassification =
+  (typeof API_COMPATIBILITY_CLASSIFICATION)[keyof typeof API_COMPATIBILITY_CLASSIFICATION]
+
 export const WEBSITE_CHECKOUT_REQUIRED_SCOPES = [
   'integration_context.read',
   'website_contracts.read',
@@ -39,8 +47,21 @@ export const WEBSITE_CHECKOUT_REQUIRED_SCOPES = [
 ] as const
 
 export const CUSTOMER_PORTAL_REQUIRED_SCOPES = [
-  'customer_portal.read',
-  'customer_portal.write',
+  'customer_profile.read',
+  'customer_sites.read',
+  'customer_contracts.read',
+  'customer_invoices.read',
+  'customer_metering.read',
+  'customer_legal.read',
+  'customer_events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_power_of_attorney.read',
+  'customer_notifications.write',
+  'customer_contact.write',
+  'customer_facility_data.write',
+  'customer_power_of_attorney.write',
+  'customer_sync.write',
 ] as const
 
 export const TENANT_WEBSITE_RECOMMENDED_SCOPES = [

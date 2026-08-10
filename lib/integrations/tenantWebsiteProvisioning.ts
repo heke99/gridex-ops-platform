@@ -10,6 +10,7 @@ import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publ
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { reconcileTenantWebsiteCapabilities, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
+import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 
 export type TenantWebsiteEnvironment = 'development' | 'staging' | 'production'
 
@@ -56,6 +57,11 @@ type ProvisioningRpcRow = {
   tenant_reference: string
   receipt_id: string
   installation_state: string
+}
+
+export type TenantIntegrationSmokeResult = {
+  checkedRoutes: string[]
+  contractCount: number
 }
 
 export class TenantWebsiteProvisioningError extends Error {
@@ -272,6 +278,42 @@ async function loadClient(clientId: string): Promise<IntegrationApiClient> {
   return data as IntegrationApiClient
 }
 
+export async function runTenantIntegrationSmokeTest(input: {
+  client: IntegrationApiClient
+}): Promise<TenantIntegrationSmokeResult> {
+  const routes = [
+    { path: '/api/v1/integration/context', scopes: ['integration_context.read'], cost: 1 },
+    { path: '/api/v1/website/public-contracts', scopes: ['website_contracts.read'], cost: 1 },
+    { path: '/api/v1/customer/contracts', scopes: ['customer_contracts.read'], cost: 1 },
+  ]
+  const checkedRoutes: string[] = []
+  for (const route of routes) {
+    const { data, error } = await supabaseService.rpc('authenticate_integration_request_v1', {
+      p_key_prefix: input.client.key_prefix,
+      p_secret_hash: input.client.secret_hash,
+      p_route: `provisioning-smoke:${route.path}`,
+      p_required_all: route.scopes,
+      p_required_any: [],
+      p_client_ip: null,
+      p_origin: null,
+      p_rate_limit_cost: route.cost,
+      p_window_seconds: 60,
+    })
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as { auth_outcome?: string; error_code?: string | null } | null
+    if (row?.auth_outcome !== 'allowed') {
+      throw new TenantWebsiteProvisioningError(
+        'TENANT_INTEGRATION_SMOKE_FAILED',
+        `Smoke route ${route.path} failed: ${row?.error_code ?? 'unknown'}.`,
+      )
+    }
+    checkedRoutes.push(route.path)
+  }
+  await loadExternalTenantContext(input.client)
+  const offers = await listPublicContractOffers({ client: input.client })
+  return { checkedRoutes, contractCount: offers.length }
+}
+
 /**
  * Canonical, resumable provisioning entry point for one primary tenant website
  * client. The database RPC serializes company/client/receipt changes. External
@@ -281,6 +323,12 @@ export async function provisionTenantWebsiteIntegration(
   input: TenantWebsiteProvisioningInput,
 ): Promise<TenantWebsiteProvisioningResult> {
   const environment = input.environment ?? 'production'
+  if (environment === 'production' && input.webhook && !input.webhook.signingSecretRef?.trim()) {
+    throw new TenantWebsiteProvisioningError(
+      'WEBHOOK_SIGNING_SECRET_REF_REQUIRED',
+      'Production webhooks require a tenant-specific signing secret reference.',
+    )
+  }
   const origins = normalizeTenantWebsiteOrigins(input.allowedOrigins)
   const portalUrl = normalizePortalUrl(input.customerPortalUrl)
   if (origins.length === 0) {
@@ -399,6 +447,7 @@ export async function provisionTenantWebsiteIntegration(
       failure_message: null,
     })
 
+    const smoke = await runTenantIntegrationSmokeTest({ client })
     const offers = await listPublicContractOffers({ client })
     const contracts = offers.map((offer) =>
       mapContractPublicationToPublicDto({
@@ -423,6 +472,8 @@ export async function provisionTenantWebsiteIntegration(
       allowed_origins: origins,
       scopes: [...profile.defaultScopes].sort(),
       visible_contract_count: contracts.length,
+      smoke_checked_routes: smoke.checkedRoutes,
+      smoke_contract_count: smoke.contractCount,
       portal_url: portalUrl,
       webhook_subscription_id: webhookSubscriptionId,
       readiness_blockers: readiness.blockers.map((blocker) => blocker.code).sort(),

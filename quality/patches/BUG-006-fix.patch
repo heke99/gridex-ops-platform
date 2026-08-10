@@ -1,0 +1,18 @@
+diff --git a/lib/api/publicRouteRegistry.ts b/lib/api/publicRouteRegistry.ts
+--- a/lib/api/publicRouteRegistry.ts
++++ b/lib/api/publicRouteRegistry.ts
+@@ PublicApiRouteContract
++  operationId: string
++  scopeMode: 'all' | 'any'
++  requestSchema: string | null
++  responseSchema: string
++  cachePolicy: 'no-store' | 'immutable'
++  publicIdPolicy: 'forbid-internal'
+@@ invoice detail
++  operationId: 'getCustomerInvoiceByReference'
+diff --git a/docs/openapi/customer-portal-v1.json b/docs/openapi/customer-portal-v1.json
+--- a/docs/openapi/customer-portal-v1.json
++++ b/docs/openapi/customer-portal-v1.json
+@@
+-        "operationId": "getApiV1CustomerInvoicesId}"
++        "operationId": "getCustomerInvoiceByReference"

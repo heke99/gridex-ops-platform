@@ -1,0 +1,264 @@
+{
+  "schema_version": "1.5.2",
+  "generated_at": "2026-08-10T19:25:00Z",
+  "records": [
+    {
+      "id": "REQ-001",
+      "title": "Versioned allowlisted public DTOs",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "whitelist",
+      "use_cases": [
+        "UC-02",
+        "UC-07"
+      ],
+      "master_points": [
+        1,
+        2,
+        3,
+        16,
+        17,
+        18,
+        31,
+        32,
+        69
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "title": "Database keyset pagination for every portal list",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "parity",
+      "use_cases": [
+        "UC-01"
+      ],
+      "master_points": [
+        4,
+        5,
+        58
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "title": "Direct tenant-bound invoice reference lookup",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "parity",
+      "use_cases": [
+        "UC-02"
+      ],
+      "master_points": [
+        6,
+        41,
+        54,
+        55
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "title": "Fail-closed schema readiness and canonical errors",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "parity",
+      "use_cases": [
+        "UC-01",
+        "UC-03"
+      ],
+      "master_points": [
+        7,
+        51,
+        52,
+        53,
+        54,
+        73
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "title": "Durable tenant-bound idempotency lifecycle",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "parity",
+      "use_cases": [
+        "UC-03"
+      ],
+      "master_points": [
+        8,
+        9,
+        35,
+        59
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "title": "Canonical operation registry and generated contract",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "whitelist",
+      "use_cases": [
+        "UC-04",
+        "UC-07"
+      ],
+      "master_points": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        23,
+        24,
+        50,
+        52,
+        56,
+        57,
+        68,
+        70,
+        74
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "title": "Opaque bootstrap and integration pack",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "whitelist",
+      "use_cases": [
+        "UC-04"
+      ],
+      "master_points": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        55,
+        66,
+        67,
+        74
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "title": "Atomic tenant authentication and portal identity",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "compensation",
+      "use_cases": [
+        "UC-01",
+        "UC-02",
+        "UC-04",
+        "UC-05",
+        "UC-08"
+      ],
+      "master_points": [
+        22,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        34,
+        54,
+        59,
+        62,
+        72,
+        73
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "title": "Minimal public read models and early fingerprint",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "whitelist",
+      "use_cases": [
+        "UC-07"
+      ],
+      "master_points": [
+        31,
+        32,
+        33,
+        34,
+        49,
+        71,
+        72
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "title": "Registered tenant-isolated webhooks",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "whitelist",
+      "use_cases": [
+        "UC-06"
+      ],
+      "master_points": [
+        36,
+        37,
+        38,
+        39,
+        60
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "title": "Reconstructible database and mandatory verification gates",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "parity",
+      "use_cases": [
+        "UC-01",
+        "UC-03",
+        "UC-06",
+        "UC-08"
+      ],
+      "master_points": [
+        40,
+        41,
+        42,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        51,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "title": "Exact-SHA environment-specific release closure",
+      "tier": 3,
+      "functional_section": "Gridex external integration remediation",
+      "pattern": "compensation",
+      "use_cases": [
+        "UC-07",
+        "UC-08"
+      ],
+      "master_points": [
+        43,
+        46,
+        63,
+        64,
+        65,
+        71,
+        75
+      ]
+    }
+  ]
+}

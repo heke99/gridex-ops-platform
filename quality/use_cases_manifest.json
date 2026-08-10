@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.5.2",
+  "generated_at": "2026-08-10T19:25:00Z",
+  "records": [
+    {"id":"UC-01","title":"Traverse a long portal resource history","formal_doc_refs":[]},
+    {"id":"UC-02","title":"Open an old invoice","formal_doc_refs":[]},
+    {"id":"UC-03","title":"Retry an external write","formal_doc_refs":[]},
+    {"id":"UC-04","title":"Bootstrap a tenant integration","formal_doc_refs":[]},
+    {"id":"UC-05","title":"Resolve a portal customer","formal_doc_refs":[]},
+    {"id":"UC-06","title":"Receive and verify a webhook","formal_doc_refs":[]},
+    {"id":"UC-07","title":"Publish an API contract release","formal_doc_refs":[]},
+    {"id":"UC-08","title":"Reconstruct an environment","formal_doc_refs":[]}
+  ]
+}
