@@ -66,6 +66,11 @@
       "beforeLedgerVersion": "20260716010000"
     },
     {
+      "path": "bootstrap/20260728_select_onboarding_start_path_prerequisite.sql",
+      "afterLedgerVersion": "20260727167000",
+      "beforeLedgerVersion": "20260728170000"
+    },
+    {
       "path": "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql",
       "afterLedgerVersion": "20260802180000",
       "beforeLedgerVersion": "20260803093000"
@@ -190,6 +195,12 @@
       "source": "migrations/20260722133000_external_tenant_quote_api_completion.sql",
       "artifactSha256": "b55bd0991ec9d01c74df7783247e95ecd7a058b2739891a65d342d09478b23d6",
       "purpose": "Restore the early stable external tenant reference prerequisite while preserving complete checksum-pinned, forward-only/tenant-safe 20260722133000 external tenant quote/API completion for chronological replay, including website_contract_quotes and canonical external publication/API contracts.",
+      "preserveSourceReplay": true
+    },
+    "bootstrap/20260728_select_onboarding_start_path_prerequisite.sql": {
+      "source": "migrations/20260728170000_live_schema_code_canonical_sync.sql",
+      "artifactSha256": "f91386d39c672433307125542677771362936b52c937cbe8980be47c0ab169c7",
+      "purpose": "Restore the live-only select_onboarding_start_path(uuid,text) routine immediately before the checksum-pinned 20260728170000 live-schema repair, using the historical tenant guard so the repair converges to the canonical current definition; no tenant or onboarding rows are seeded.",
       "preserveSourceReplay": true
     },
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
