@@ -15,11 +15,11 @@ Updated: 2026-08-10
 - The 57-point canonical architecture remediation is implemented in the existing platform.
 - Canonical request-scoped authorization, tenant lifecycle, durable provisioning, worker-owned invitation delivery, verified acceptance, application repair, reconciliation, release receipts and performance budgets are in place.
 - Historical applied migrations remain immutable. Recovered database migrations and three new forward migrations are checksum-pinned.
-- Connected `gridex-ops-dev` is migrated through `20260810221500_canonical_invitation_delivery_hotfix.sql`.
+- Connected `gridex-ops-dev` is migrated through `20260810224500_canonical_review_remediation_v1.sql`.
 - Live invariants are green: no roleless memberships, non-ready active clients, due stranded outbox rows, overdue manual reviews, unclassified applications or reconciliation query errors.
 - One legacy application is truthfully classified as `awaiting_input` with owner, reason and SLA; missing authoritative identities were not fabricated.
 - Hosted run `31435653056` passed clean replay, verify and quality-release gates before the final review hotfixes.
-- Code review findings for duplicate invitation delivery and pgcrypto schema resolution are fixed; a fresh required run must pass before merge.
+- All actionable review findings are fixed forward-only, including secret-free public auth results, lifecycle replay/no-op guards, multi-company permissions, worker lease recovery, audited offboarding, real repair jobs and bounded reconciliation. The final branch head must pass a fresh required run before merge.
 
 ## Release sequence
 
