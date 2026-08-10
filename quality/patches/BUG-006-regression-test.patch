@@ -1,0 +1,18 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-006: regression_bug_006_registry_openapi_metadata_parity — apply quality/patches/BUG-006-fix.patch', () => {
++    for (const route of PUBLIC_API_ROUTES as Array<Record<string, unknown>>) {
++      expect(route.operationId).toMatch(/^[A-Za-z][A-Za-z0-9]*$/)
++      expect(route.responseSchema).toBeTruthy()
++      expect(route.scopeMode).toMatch(/^(all|any)$/)
++      expect(route.cachePolicy).toBeTruthy()
++      expect(route.publicIdPolicy).toBeTruthy()
++    }
++    const ids = Object.values(customerPortalOpenApi.paths).flatMap((item) =>
++      Object.values(item).map((operation) => (operation as { operationId?: string }).operationId).filter(Boolean),
++    ) as string[]
++    expect(ids.every((id) => /^[A-Za-z][A-Za-z0-9]*$/.test(id))).toBe(true)
++    expect(new Set(ids).size).toBe(ids.length)
++  })

@@ -6,12 +6,24 @@ const routeRe = /{ method: '(GET|POST)', path: '([^']+)'(?:, publicPath: '([^']+
 const registry = []
 let match
 while ((match = routeRe.exec(registrySource))) {
+  const line = registrySource.slice(match.index, registrySource.indexOf('\n', match.index))
+  const publicPath = match[3] ?? match[2]
+  const operationId = `${match[1].toLowerCase()}${publicPath
+    .split('/').filter(Boolean)
+    .map((segment) => segment.replace(/^\[|\]$/g, '').split(/[^A-Za-z0-9]+/).filter(Boolean)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join('')).join('')}`
   registry.push({
     method: match[1],
-    path: match[3] ?? match[2],
+    path: publicPath,
     runtimePath: match[2],
     normalizedPath: (match[3] ?? match[2]).replace(/\[[^\]]+\]/g, '{}'),
     scopes: [...match[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),
+    operationId,
+    scopeMode: ['/api/v1/website/legal-bundle', '/api/v1/customer/profile-update'].includes(match[2]) ? 'any' : 'all',
+    rateLimitClass: /rateLimitClass: '(read|write|expensive)'/.exec(line)?.[1],
+    idempotencyRequired: line.includes('idempotencyRequired: true'),
+    cachePolicy: match[2].includes('/openapi/') ? match[2].includes('/2026-') ? 'public-immutable' : 'private-revalidate' : 'no-store',
+    publicIdPolicy: match[2].includes('/openapi/') ? 'none' : 'opaque-references',
   })
 }
 
@@ -19,8 +31,10 @@ const specs = [
   JSON.parse(fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8')),
   JSON.parse(fs.readFileSync('docs/openapi/customer-portal-v1.json', 'utf8')),
 ]
+const failures = []
 const operations = []
 for (const spec of specs) {
+  const specOperationIds = []
   for (const [path, value] of Object.entries(spec.paths ?? {})) {
     if (!path.startsWith('/api/v1')) continue
     for (const method of ['get', 'post']) {
@@ -30,16 +44,33 @@ for (const spec of specs) {
         path,
         normalizedPath: path.replace(/\{[^}]+\}/g, '{}'),
         scopes: value[method]['x-required-scopes'] ?? [],
+        operationId: value[method].operationId,
+        scopeMode: value[method]['x-scope-mode'],
+        rateLimitClass: value[method]['x-rate-limit-class'],
+        idempotencyRequired: value[method]['x-idempotency-required'] === true,
+        cachePolicy: value[method]['x-cache-policy'],
+        publicIdPolicy: value[method]['x-public-id-policy'],
       })
+      specOperationIds.push(value[method].operationId)
     }
   }
+  const invalid = specOperationIds.filter((id) => typeof id !== 'string' || !/^[A-Za-z][A-Za-z0-9]*$/.test(id))
+  if (invalid.length) failures.push(`${spec.info?.title ?? 'OpenAPI'} has invalid operationIds.`)
+  if (new Set(specOperationIds).size !== specOperationIds.length) failures.push(`${spec.info?.title ?? 'OpenAPI'} has duplicate operationIds.`)
 }
 
-const failures = []
 for (const route of registry) {
-  const operation = operations.find((candidate) =>
+  const matches = operations.filter((candidate) =>
     candidate.method === route.method && candidate.normalizedPath === route.normalizedPath)
-  if (!operation) failures.push(`Registry route missing in OpenAPI: ${route.method} ${route.path}`)
+  if (!matches.length) failures.push(`Registry route missing in OpenAPI: ${route.method} ${route.path}`)
+  for (const operation of matches) {
+    for (const field of ['operationId', 'scopeMode', 'rateLimitClass', 'idempotencyRequired', 'cachePolicy', 'publicIdPolicy']) {
+      if (operation[field] !== route[field]) failures.push(`${route.method} ${route.path} metadata mismatch: ${field}`)
+    }
+    if (JSON.stringify(operation.scopes) !== JSON.stringify(route.scopes)) {
+      failures.push(`${route.method} ${route.path} scope metadata mismatch.`)
+    }
+  }
 }
 for (const operation of operations) {
   const route = registry.find((candidate) =>
@@ -237,7 +268,7 @@ const runtimeSources = {
     'utf8',
   ),
   application: fs.readFileSync(
-    'lib/website/customerApplications.ts',
+    'lib/website/customerApplicationProcess.ts',
     'utf8',
   ),
   publication: fs.readFileSync(

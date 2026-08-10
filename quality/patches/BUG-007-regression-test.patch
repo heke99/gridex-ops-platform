@@ -1,0 +1,9 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-007: regression_bug_007_parity_follows_split_runtime — apply quality/patches/BUG-007-fix.patch', () => {
++    expect(() => execFileSync('node', ['scripts/check-openapi-runtime-parity.cjs'], { stdio: 'pipe' })).not.toThrow()
++    const test = source('__tests__/api-canonical-release.test.ts')
++    expect(test).toContain('customerApplicationProcess.ts')
++  })

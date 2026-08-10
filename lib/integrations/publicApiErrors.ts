@@ -10,6 +10,7 @@ type ErrorRecord = {
   message?: unknown
   details?: unknown
   hint?: unknown
+  path?: unknown
 }
 
 type PublicContractFailureCode =
@@ -64,6 +65,7 @@ export function classifyPublicContractsError(
   }
 
   const record = errorRecord(error)
+  const errorPath = typeof record.path === 'string' ? record.path : null
   if (record.code === 'PUBLIC_CONTRACT_FEED_INCONSISTENT') {
     return {
       status: 503,
@@ -71,7 +73,7 @@ export function classifyPublicContractsError(
       message:
         'Det kanoniska avtalsflödet är tillfälligt inkonsekvent. Ingen partiell lista returneras.',
       databaseCode: null,
-      path: null,
+      path: errorPath,
     }
   }
   const databaseCode =
@@ -98,7 +100,7 @@ export function classifyPublicContractsError(
       code: 'PUBLIC_CONTRACT_SCHEMA_OUTDATED',
       message: 'Public contracts-schemat är inte uppdaterat.',
       databaseCode,
-      path: null,
+      path: errorPath,
     }
   }
 
@@ -113,7 +115,7 @@ export function classifyPublicContractsError(
         code,
         message: 'Publiceringssnapshoten är ofullständig eller inkonsekvent och exponeras inte.',
         databaseCode,
-        path: null,
+        path: errorPath,
       }
     }
   }
@@ -128,7 +130,7 @@ export function classifyPublicContractsError(
       code: 'PUBLICATION_GRAPH_INCOMPLETE',
       message: 'Publiceringsgrafen är ofullständig och exponeras inte.',
       databaseCode,
-      path: null,
+      path: errorPath,
     }
   }
 
@@ -147,7 +149,7 @@ export function classifyPublicContractsError(
       code: 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE',
       message: 'Publicerade avtal är tillfälligt otillgängliga.',
       databaseCode,
-      path: null,
+      path: errorPath,
     }
   }
 
@@ -156,6 +158,6 @@ export function classifyPublicContractsError(
     code: 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE',
     message: 'Publicerade avtal kunde inte hämtas.',
     databaseCode,
-    path: null,
+    path: errorPath,
   }
 }

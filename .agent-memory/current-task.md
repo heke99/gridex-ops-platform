@@ -1,24 +1,18 @@
 # Current task
 
-Last updated: 2026-08-09T10:05:00Z
-Branch: `main`
-Primary PR: `#90` merged
-Follow-up PR: `#92` merged
+Updated: 2026-08-10
 
-Status: `REMEDIATION_COMPLETE_WITH_EXTERNAL_DATA_CONFIG_GAPS`.
+Status: `CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED`.
 
-The audited code remediation and post-release code follow-up are merged and deployed. GitHub Actions was intentionally bypassed as a release gate by explicit repository-owner instruction because hosted jobs are account/billing blocked before step 1.
+The 75-point remediation has been implemented and locally verified against the supplied source archive. The connected `gridex-ops-dev` database is migrated and schema/code expectations were checked. This archive contains no `.git`, so its claimed `main@78013b71a1f7fccd166b38f0712e20d1df198e11` provenance cannot be independently verified.
 
-Verified production application SHA before this documentation-only finalization: `55ad4053c64ec78ae5fe111eecef572edbd352dd`. Vercel production deployment `dpl_DdPGCM3epEPccQPGToBEaE15865c` is READY and passed production compilation, TypeScript, page-data and static-generation stages.
+Remaining release work requires external evidence, not invented local state:
 
-Exact Supabase ledger versions applied and verified: `20260808214500`, `20260809110000`, `20260809114500`. Health SQLSTATE `42702` is resolved; Grid Owner direct-first performance fix is live; Ediel `renewal_available` certificate status handling is consistent between route guard, strict resolver and health logic.
+- run the clean empty-database replay in the configured CI job;
+- run mandatory GitHub checks on the real repository;
+- compare staging and production Supabase with the verified dev/repo contract;
+- enable Supabase Auth leaked-password protection when password login is used;
+- prove merged Git SHA = CI SHA = Vercel production SHA;
+- capture production p50/p95/p99 after deployment.
 
-No further code remediation is required by this campaign based on currently verified evidence. Remaining work is external configuration or authoritative masterdata/onboarding:
-
-- enable GitHub `main` protection/ruleset using an account surface that supports it;
-- enable Supabase Leaked Password Protection using hosted Auth settings;
-- supply authoritative mappings for 35 platform grid owners affecting 60 active areas;
-- supply receiver Ediel IDs for 2 routes that have no internal source;
-- complete recipient-certificate onboarding through the official secret-protected actor-readiness/external lookup path.
-
-Do not guess any of those identifiers or certificate mappings. Do not claim the unavailable post-invoice-fix empty-database replay passed.
+Do not mark the campaign `COMPLETE` until those gates pass. See `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.

@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-001 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
+const SITE_MINIMAL_SELECT = 'id,customer_id,status,site_name,facility_id,street,postal_code,city,country,price_area_code,created_at'
+"
+
+ ❯ quality/test_regression_red.test.ts:18:24
+     16|     for (const fn of ['listPortalContracts', 'listPortalSites', 'listP…
+     17|       const body = data.slice(data.indexOf(`export async function ${fn…
+     18|       expect(body).not.toMatch(/\.limit\((100|200|1000)\)/)
+       |                        ^
+     19|       expect(body).toMatch(/limit\s*\+\s*1|pageSize\s*\+\s*1/)
+     20|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:17:59
+   Duration  548ms (transform 331ms, setup 34ms, import 388ms, tests 7ms, environment 0ms)

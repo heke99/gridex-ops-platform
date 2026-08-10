@@ -59,6 +59,27 @@ export function publicPortalCustomer(
   }
 }
 
+export function publicPortalIdentity(
+  companyId: string,
+  identity: {
+    id?: string | null
+    external_customer_id?: string | null
+    customer_number?: string | null
+    match_strength?: string | null
+    match_method?: string | null
+    provider?: string | null
+  },
+): JsonRecord {
+  return {
+    portal_identity_reference: publicReference('portal_identity', companyId, identity.id),
+    external_customer_id: text(identity.external_customer_id),
+    customer_number: text(identity.customer_number),
+    match_strength: text(identity.match_strength),
+    match_method: text(identity.match_method),
+    provider: text(identity.provider),
+  }
+}
+
 export function publicPortalContract(
   companyId: string,
   value: unknown,
@@ -168,6 +189,7 @@ export function publicPortalInvoice(
   const row = record(value)
   return {
     invoice_reference:
+      text(row.invoice_reference) ??
       text(row.partner_invoice_reference) ??
       text(row.invoice_number) ??
       publicReference('invoice', companyId, row.id),

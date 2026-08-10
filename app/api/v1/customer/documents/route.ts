@@ -5,9 +5,8 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalDocuments, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import { listPortalDocumentsPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
 import {
-  pagePublicItems,
   publicPageInput,
   publicPortalDocument,
 } from '@/lib/customer-portal/publicDto'
@@ -27,15 +26,12 @@ export async function GET(request: NextRequest) {
       customerNumber: context.identity.customer_number,
       provider: context.identity.provider,
     })
-    const documents = await listPortalDocuments(portalContext)
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: documents.length })
-    const page = pagePublicItems(
-      documents.map((row) =>
-        publicPortalDocument(context.client.company_id, row),
-      ),
-      publicPageInput(request.nextUrl.searchParams),
-    )
-    return customerPortalJson({ data: page.items, page: page.page })
+    const page = await listPortalDocumentsPage(portalContext, publicPageInput(request.nextUrl.searchParams))
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: page.items.length })
+    return customerPortalJson({
+      data: page.items.map((row) => publicPortalDocument(context.client.company_id, row)),
+      page: page.page,
+    })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

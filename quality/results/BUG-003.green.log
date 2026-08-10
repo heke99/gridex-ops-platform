@@ -1,0 +1,1 @@
+PASS 2026-08-10 regression_bug_003_schema_failure_is_503 — exhausted schema fallback fails closed.

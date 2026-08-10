@@ -1,0 +1,12 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-014: regression_bug_014_new_tenant_uses_granular_scopes_and_smoke — apply quality/patches/BUG-014-fix.patch', () => {
++    const profile = source('supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql')
++    const tenantProfile = profile.slice(profile.indexOf("'tenant_website'"), profile.indexOf('on conflict'))
++    expect(tenantProfile).not.toContain("'customer_portal.read'")
++    expect(tenantProfile).not.toContain("'customer_portal.write'")
++    const provisioning = source('lib/integrations/tenantWebsiteProvisioning.ts')
++    expect(provisioning).toContain('runTenantIntegrationSmokeTest')
++  })

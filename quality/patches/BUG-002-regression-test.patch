@@ -1,0 +1,10 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-002: regression_bug_002_invoice_detail_uses_direct_lookup — apply quality/patches/BUG-002-fix.patch', () => {
++    const route = source('app/api/v1/customer/invoices/[id]/route.ts')
++    expect(route).toContain('getPortalInvoiceByReference')
++    expect(route).not.toContain('listPortalInvoices')
++    expect(route).not.toContain('.find(')
++  })

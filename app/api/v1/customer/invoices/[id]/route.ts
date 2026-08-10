@@ -8,7 +8,7 @@ import {
 } from '@/lib/customer-portal/externalApi'
 import {
   isMissingSchemaError,
-  listPortalInvoices,
+  getPortalInvoiceByReference,
   portalContextFromResolved,
 } from '@/lib/customer-portal/apiData'
 import {
@@ -33,14 +33,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
       customerNumber: context.identity.customer_number,
       provider: context.identity.provider,
     })
-    const invoices = await listPortalInvoices(portalContext)
-    const invoice = invoices.find((candidate) => {
-      const publicInvoice = publicPortalInvoice(
-        context.client.company_id,
-        candidate,
-      )
-      return publicInvoice.invoice_reference === id
-    })
+    const invoice = await getPortalInvoiceByReference(portalContext, id)
     if (!invoice || typeof invoice.id !== 'string') {
       await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0, metadata: { invoice_reference: id, found: false } })
       return customerPortalJson({ error: 'Fakturan hittades inte.', code: 'invoice_not_found' }, { status: 404 })

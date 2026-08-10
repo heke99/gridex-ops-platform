@@ -13,7 +13,7 @@ FOUNDATION_ADDITIONS="$ROOT/scripts/gridex-aud-003-legacy-foundation.additions.j
 FOUNDATION_ORDER="$ROOT/scripts/gridex-aud-003-foundation-order.json"
 NONCANONICAL="$ROOT/scripts/gridex-aud-003-noncanonical-artifacts.json"
 FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
-EXPECTED_FINGERPRINT="407b9aed9cc2b58a3e78e587ff0e8a656ca52365a1e1088dc55590d8bcd84209"
+EXPECTED_FINGERPRINT="81dc903dea0752bfadab12482759925e6830d0090f2a56fe6cd174e1d7b069ca"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
@@ -99,6 +99,12 @@ def validate_derived(rel):
     if not meta: raise SystemExit(f'derived bootstrap metadata missing: {rel}')
     if not meta.get('artifactSha256') or digest(actual) != meta['artifactSha256']:
         raise SystemExit(f'derived bootstrap checksum drift: {rel}')
+    if meta.get('sourceKind') == 'verified_live_schema':
+        if not meta.get('projectId') or not meta.get('capturedAt') or not meta.get('signatures'):
+            raise SystemExit(f'verified live-schema evidence is incomplete: {rel}')
+        if re.search(r'\$[A-Za-z0-9_]*\$(?!;)[ \t]*\n[ \t]*(?:revoke|grant|create)\b', actual.read_text(), re.I):
+            raise SystemExit(f'verified live-schema function is missing a statement terminator: {rel}')
+        return actual,None,meta
     source_rel=meta.get('source')
     source=resolve(source_rel) if source_rel else None
     if not source or not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
@@ -106,7 +112,7 @@ def validate_derived(rel):
     return actual,source,meta
 
 def should_skip_timestamp_source(source,meta):
-    return re.match(r'^\d{14}_.+\.sql$',source.name) and not bool(meta.get('preserveSourceReplay',False))
+    return source is not None and re.match(r'^\d{14}_.+\.sql$',source.name) and not bool(meta.get('preserveSourceReplay',False))
 
 foundation_paths=[]
 skip_timestamp_names=set()
@@ -184,17 +190,6 @@ timestamp_out.write_text(''.join(str(p)+'\n' for p in execution))
 print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(files)} canonical timestamped files')
 PY
 
-supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
-
-apply_sql(){
-  local file="$1"
-  test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
-  echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
-  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
-}
-while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
-while IFS= read -r file; do apply_sql "$file"; done < "$TIMESTAMP_EXEC"
-
 python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'
 import json,pathlib,sys
 ledger=json.loads(pathlib.Path(sys.argv[1]).read_text()); out=pathlib.Path(sys.argv[2])
@@ -209,7 +204,20 @@ for e in entries:
     (out/f'{version}_{name}.sql').write_text('-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n')
 PY
 cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
-supabase db push --local --include-all --yes
+
+# Supabase CLI owns the official ledger from the beginning so later governance
+# migrations can inspect it. Marker migrations are no-op SQL and carry exactly
+# the checksum-pinned dev-ledger versions verified below.
+supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+
+apply_sql(){
+  local file="$1"
+  test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
+  echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
+  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
+}
+while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
+while IFS= read -r file; do apply_sql "$file"; done < "$TIMESTAMP_EXEC"
 
 python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys

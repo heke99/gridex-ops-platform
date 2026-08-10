@@ -11,6 +11,20 @@
     "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
     "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
-    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b"
+    "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b",
+    "20260809180628_gridex_ops_external_api_performance_foundation.sql": "a9de604f3b34c183299198c741c28710a668f0074b9970eb46b82c947163f51b",
+    "20260809181141_backfill_legacy_ediel_test_run_tenant.sql": "478542e4506b7387353b5429ddc0b729cd3203205fe2cbe417fa8c5e8c9538d2",
+    "20260809181153_validate_pending_public_constraints.sql": "46461e2cf41907ae66e1ccaf6e526c4e2e6f87c998d5efd50a80a8a7edcf8291",
+    "20260809181803_portal_event_keyset_read_model.sql": "a920117d89f82f4164938d498b9adba3aad6eaec370d3e5cd98e8209c2c8847a",
+    "20260809182215_authenticate_integration_request_v1.sql": "dba6e6ea5cb23f86825a8e272d162e2d8cf3021bc4dab93e323a02859bb5c2f5",
+    "20260809182318_authenticate_integration_request_route_cost.sql": "ce4f04e2a9a066e4b4a5de1900d6474c70b872a3e29d6e63b661733001895911",
+    "20260809182554_resolve_portal_customer_identity_v1.sql": "eacdf7b97b65a04fea900f51f25b7633a0e8cbb434bc34e5669524b5a02b0692",
+    "20260809183210_public_contract_feed_fingerprint_v1.sql": "a5174fc5d5260d75e701a1512f7f61cbfb751cb23b45196917e8d48ce7ca5474",
+    "20260809191057_authenticate_integration_request_route_cost.sql": "a7c66b69169055de43d963e25e3e8011023e597cc712463800d055ec37114615",
+    "20260809191135_portal_event_keyset_read_model.sql": "96a2cb3ae99af0b23feda113f28cf69d2c3142ea4d8534fd6f62f5bb35bb054a",
+    "20260810110126_tenant_website_granular_scopes.sql": "d795f499ba3762078e81d9a4344c1ea9405c641b009ab5c14a05def51c9b5585",
+    "20260810110149_customer_invoice_public_reference.sql": "b108d3c0d4b7badea52eb6cd9ae81f52aff826cdd80df81e8fd0d94c32fa757a",
+    "20260810110229_database_hygiene_and_geodata_retention.sql": "f9094c45e2857a39815a7fb68f63f026d6528e39ccd4da44cdc54d03fbf27046",
+    "20260810110829_retention_category_classification.sql": "db0366af177c8df2ef6d779d03835a82db873c367c810e1798b12f2f5e0aecff"
   }
 }

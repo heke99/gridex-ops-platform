@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-010 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ }
++
+
+ ❯ quality/test_regression_red.test.ts:97:18
+     95|   it('BUG-010: regression_bug_010_auth_uses_route_cost_rpc — apply qua…
+     96|     const auth = source('lib/integrations/apiAuth.ts')
+     97|     expect(auth).toContain("rpc('authenticate_integration_request_v1'")
+       |                  ^
+     98|     expect(auth).toMatch(/rateLimitClass|routeCost/)
+     99|     expect(auth).not.toContain("rpc('check_and_increment_integration_a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:10
+   Duration  423ms (transform 214ms, setup 20ms, import 269ms, tests 12ms, environment 0ms)

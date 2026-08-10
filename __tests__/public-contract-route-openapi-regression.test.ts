@@ -12,6 +12,14 @@ const mocks = vi.hoisted(() => ({
   listPublicContractOffers: vi.fn(),
   diagnosePublicContractOffers: vi.fn(),
   publicContractResponse: vi.fn(),
+  publicContractFingerprint: vi.fn(async () => ({
+    data: [{ fingerprint: 'a'.repeat(32) }],
+    error: null,
+  })),
+}))
+
+vi.mock('@/lib/supabase/service', () => ({
+  supabaseService: { rpc: mocks.publicContractFingerprint },
 }))
 
 vi.mock('@/lib/integrations/apiAuth', () => ({
@@ -191,7 +199,7 @@ describe('real public contracts route against published OpenAPI', () => {
     expect(runtimeResponse.headers.get('x-gridex-contract-version')).toBe(
       WEBSITE_INTEGRATION_CONTRACT_VERSION,
     )
-    expect(runtimeResponse.headers.get('etag')).toMatch(/^"contracts-[A-Za-z0-9_-]{43}"$/)
+    expect(runtimeResponse.headers.get('etag')).toBe(`"pcf-${'a'.repeat(32)}"`)
     expect(runtimeResponse.headers.get('cache-control')).toBe(
       'private, no-store, max-age=0',
     )

@@ -5,6 +5,7 @@ import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { ipAllowedByRules, trustedClientIp } from '@/lib/integrations/ipPolicy'
 import { tenantContextForIntegration, type TenantContext } from '@/lib/tenant/context'
+import { publicRouteCost } from '@/lib/api/publicRouteRegistry'
 
 export type IntegrationApiClient = {
   id: string
@@ -288,62 +289,46 @@ async function recordRateLimitEvent(
     })
 }
 
-type RateLimitDecision =
-  | { outcome: 'allowed'; rateLimit: IntegrationApiRateLimit }
-  | { outcome: 'limited'; rateLimit: IntegrationApiRateLimit }
-  | { outcome: 'misconfigured'; reason: string }
-  | { outcome: 'unavailable'; reason: string; databaseCode: string | null }
+type AuthenticationRpcRow = {
+  auth_outcome: 'allowed' | 'denied' | 'rate_limited' | 'unavailable'
+  error_code: string | null
+  tenant_status: string | null
+  client_id: string | null
+  company_id: string | null
+  client_name: string | null
+  client_status: string | null
+  key_prefix: string | null
+  secret_hash: string | null
+  scopes: string[] | null
+  allowed_ips: string[] | null
+  allowed_origins: string[] | null
+  metadata: Record<string, unknown> | null
+  rate_limit_per_minute: number | null
+  expires_at: string | null
+  request_count: number | null
+  route_limit: number | null
+  reset_at: string | null
+}
 
-async function rateLimitDecision(client: IntegrationApiClient, request: NextRequest): Promise<RateLimitDecision> {
-  const limit = Number(client.rate_limit_per_minute ?? 0)
-  if (!Number.isSafeInteger(limit) || limit <= 0) {
-    return { outcome: 'misconfigured', reason: 'rate_limit_per_minute must be a positive integer' }
+function splitScopeRequirement(requirement: IntegrationScopeRequirement): {
+  requiredAll: string[]
+  requiredAny: string[]
+} {
+  if (isScopeList(requirement)) {
+    return { requiredAll: [...requirement], requiredAny: [] }
   }
-
-  const route = request.nextUrl.pathname
-  const { data, error } = await supabaseService.rpc('integration_api_rate_limit_check', {
-    p_api_client_id: client.id,
-    p_route: route,
-    p_limit: limit,
-    p_window_seconds: 60,
-  })
-
-  if (error) {
-    // Fail closed, but do not report an internal limiter/schema failure as if
-    // the caller actually exceeded its quota. A false 429 prevents clients
-    // from distinguishing deployment drift from real traffic throttling.
-    console.error('[integration-api] atomic rate limiter unavailable', {
-      route,
-      code: error.code,
-      message: error.message,
-      apiClientId: client.id,
-    })
-    return {
-      outcome: 'unavailable',
-      reason: 'atomic rate limiter RPC failed',
-      databaseCode: error.code ?? null,
-    }
+  return {
+    requiredAll: [...(requirement.allOf ?? [])],
+    requiredAny: [...(requirement.anyOf ?? [])],
   }
+}
 
-  const row = Array.isArray(data) ? data[0] : data
-  const allowed = Boolean((row as { allowed?: unknown } | null)?.allowed)
-  const count = Number((row as { request_count?: unknown } | null)?.request_count ?? 0)
-  const resetAt = String((row as { reset_at?: unknown } | null)?.reset_at ?? '') || null
-  const rateLimit: IntegrationApiRateLimit = {
-    limit,
-    count: Number.isFinite(count) ? count : 0,
-    remaining: Math.max(0, limit - (Number.isFinite(count) ? count : 0)),
-    resetAt,
-  }
-
-  if (!allowed) {
-    await recordRateLimitEvent(client, request, rateLimit.count, resetAt).catch((recordError) => {
-      console.warn('[integration-api] rate limit event logging skipped', recordError)
-    })
-    return { outcome: 'limited', rateLimit }
-  }
-
-  return { outcome: 'allowed', rateLimit }
+function authenticationStatus(code: string, tenantStatus: string | null): number {
+  if (code === 'invalid_api_token') return 401
+  if (code === 'rate_limited') return 429
+  if (code === 'tenant_status_unavailable' || code === 'api_rate_limit_invalid') return 503
+  if (code.startsWith('tenant_')) return tenantApiAccessError(tenantStatus)?.status ?? 403
+  return 403
 }
 
 async function resolveIntegrationApiAccess(
@@ -364,83 +349,69 @@ async function resolveIntegrationApiAccess(
 
   const keyPrefix = token.slice(0, 12)
   const secretHash = hashIntegrationApiSecret(token)
+  const scopes = splitScopeRequirement(requiredScopes)
+  const route = request.nextUrl.pathname
+  const routeCost = publicRouteCost(request.method, route)
+  const { data, error } = await supabaseService.rpc('authenticate_integration_request_v1', {
+    p_key_prefix: keyPrefix,
+    p_secret_hash: secretHash,
+    p_route: route,
+    p_required_all: scopes.requiredAll,
+    p_required_any: scopes.requiredAny,
+    p_client_ip: requestIp(request),
+    p_origin: requestOrigin(request),
+    p_rate_limit_cost: routeCost,
+    p_window_seconds: 60,
+  })
+  if (error) {
+    return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API-åtkomst och trafikskydd kunde inte verifieras atomiskt.' })
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as AuthenticationRpcRow | null
+  if (!row) return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API-autentiseringen returnerade inget verifierbart resultat.' })
 
-  const { data, error } = await supabaseService
-    .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,secret_hash,scopes,allowed_ips,allowed_origins,metadata,rate_limit_per_minute,expires_at')
-    .eq('key_prefix', keyPrefix)
-    .eq('secret_hash', secretHash)
-    .maybeSingle()
-
-  if (error) return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API-åtkomst kunde inte verifieras.' })
-  if (!data) return publicError({ status: 401, code: 'invalid_api_token', message: 'API-token är ogiltig.' })
-
-  const client = data as IntegrationApiClient
-  if (client.status !== 'active') return publicError({ status: 403, code: 'api_client_inactive', message: 'API-klienten är inte aktiv.', client })
-  if (client.expires_at && new Date(client.expires_at).getTime() <= Date.now()) {
-    return publicError({ status: 403, code: 'api_token_expired', message: 'API-token har gått ut.', client })
+  const client = row.client_id && row.company_id ? {
+    id: row.client_id,
+    company_id: row.company_id,
+    name: row.client_name ?? '',
+    status: row.client_status ?? '',
+    key_prefix: row.key_prefix ?? '',
+    secret_hash: row.secret_hash ?? '',
+    scopes: row.scopes ?? [],
+    allowed_ips: row.allowed_ips ?? [],
+    allowed_origins: row.allowed_origins ?? [],
+    metadata: row.metadata ?? {},
+    rate_limit_per_minute: Number(row.rate_limit_per_minute ?? 0),
+    expires_at: row.expires_at,
+  } satisfies IntegrationApiClient : null
+  const limit = Number(row.route_limit ?? 0)
+  const count = Number(row.request_count ?? 0)
+  const rateLimit: IntegrationApiRateLimit = {
+    limit: Number.isFinite(limit) ? limit : 0,
+    count: Number.isFinite(count) ? count : 0,
+    remaining: Math.max(0, limit - count),
+    resetAt: row.reset_at ?? null,
   }
 
-  // API-client state and tenant state are independent controls. Always resolve
-  // the owning tenant server-side from the key and fail closed before scopes,
-  // rate limiting or route code can perform a sale-related operation.
-  const { data: company, error: companyError } = await supabaseService
-    .from('companies')
-    .select('id,status')
-    .eq('id', client.company_id)
-    .maybeSingle()
-  if (companyError || !company) {
+  if (row.auth_outcome !== 'allowed' || !client) {
+    const code = row.error_code ?? 'api_auth_unavailable'
+    const status = authenticationStatus(code, row.tenant_status)
+    const message = code === 'rate_limited'
+      ? 'API-klientens kostnadsjusterade trafikgräns har överskridits.'
+      : code === 'invalid_api_token'
+        ? 'API-token är ogiltig.'
+        : code === 'api_scope_missing'
+          ? 'API-klienten saknar scope.'
+          : 'API-åtkomsten nekades av den atomiska autentiseringspolicyn.'
+    if (code === 'rate_limited' && client) {
+      await recordRateLimitEvent(client, request, rateLimit.count, rateLimit.resetAt).catch(() => undefined)
+    }
     return publicError({
-      status: 503,
-      code: 'tenant_status_unavailable',
-      message: 'Tenantens driftstatus kunde inte verifieras.',
+      status,
+      code,
+      message,
       client,
-    })
-  }
-  const tenantAccessError = tenantApiAccessError(String(company.status ?? ''))
-  if (tenantAccessError) {
-    return publicError({
-      status: tenantAccessError.status,
-      code: tenantAccessError.code,
-      message: tenantAccessError.message,
-      client,
-    })
-  }
-
-  if (!hasRequiredScopes(client.scopes ?? [], requiredScopes)) {
-    return publicError({ status: 403, code: 'api_scope_missing', message: 'API-klienten saknar scope.', client })
-  }
-  if (!ipAllowed(client, requestIp(request))) {
-    return publicError({ status: 403, code: 'api_ip_not_allowed', message: 'IP-adressen är inte tillåten.', client })
-  }
-  if (!originAllowed(client, requestOrigin(request))) {
-    return publicError({ status: 403, code: 'api_origin_not_allowed', message: 'Domänen är inte tillåten för API-klienten.', client })
-  }
-  const rateLimit = await rateLimitDecision(client, request)
-  if (rateLimit.outcome === 'misconfigured') {
-    return publicError({
-      status: 503,
-      code: 'api_rate_limit_invalid',
-      message: 'API-klientens trafikgräns är felkonfigurerad.',
-      client,
-    })
-  }
-  if (rateLimit.outcome === 'unavailable') {
-    return publicError({
-      status: 503,
-      code: 'api_rate_limiter_unavailable',
-      message: 'API:ts trafikskydd kunde inte verifieras. Försök igen senare.',
-      client,
-    })
-  }
-  if (rateLimit.outcome === 'limited') {
-    return publicError({
-      status: 429,
-      code: 'rate_limited',
-      message: 'API-klientens trafikgräns har överskridits. Försök igen när rate-limit-fönstret har återställts.',
-      client,
-      retryAfterSeconds: retryAfterSeconds(rateLimit.rateLimit.resetAt),
-      rateLimit: rateLimit.rateLimit,
+      retryAfterSeconds: status === 429 ? retryAfterSeconds(rateLimit.resetAt) : undefined,
+      rateLimit: status === 429 ? rateLimit : undefined,
     })
   }
 
@@ -459,7 +430,7 @@ async function resolveIntegrationApiAccess(
     correlationId: request.headers.get('x-request-id'),
   })
 
-  return { ok: true, client, context, rateLimit: rateLimit.rateLimit }
+  return { ok: true, client, context, rateLimit }
 }
 
 

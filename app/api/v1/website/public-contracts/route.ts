@@ -4,7 +4,7 @@ import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import {
   diagnosePublicContractOffers,
-  listPublicContractOffers,
+  listPublicContractOffers as loadPublicContracts,
   publicContractResponse,
   PublicContractFeedConsistencyError,
 } from '@/lib/website/publicContracts'
@@ -21,6 +21,8 @@ import {
   requestId,
 } from '@/lib/website/publicContractApi'
 import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publicationDto'
+import { supabaseService } from '@/lib/supabase/service'
+import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,6 +79,40 @@ export async function GET(request: NextRequest) {
 
   let currentTenantReference: string | null = null
   try {
+    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc(
+      'public_contract_feed_fingerprint_v1',
+      {
+        p_company_id: auth.context.companyId,
+        p_customer_type: query.customerType,
+        p_channel: 'website',
+      },
+    )
+    if (fingerprintError) throw fingerprintError
+    const fingerprintRow = (Array.isArray(fingerprintRows) ? fingerprintRows[0] : fingerprintRows) as {
+      fingerprint?: string | null
+    } | null
+    const fingerprint = String(fingerprintRow?.fingerprint ?? '').trim()
+    if (!/^[a-f0-9]{32}$/.test(fingerprint)) {
+      throw new Error('public_contract_feed_fingerprint_invalid')
+    }
+    const fingerprintEtag = `"pcf-${fingerprint}"`
+    const earlyHeaders = responseHeaders({
+      etag: fingerprintEtag,
+      limit: auth.rateLimit.limit,
+      remaining: auth.rateLimit.remaining,
+      resetAt: auth.rateLimit.resetAt,
+      requestId: currentRequestId,
+    })
+    if (!query.diagnostics && ifNoneMatchMatches(request, fingerprintEtag)) {
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: 304,
+        startedAt,
+        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint },
+      })
+      return new NextResponse(null, { status: 304, headers: earlyHeaders })
+    }
     const [revision, tenant] = await Promise.all([
       loadPublicationRevision(auth.context.companyId, 'website'),
       loadExternalTenantContext(auth.client),
@@ -89,11 +125,7 @@ export async function GET(request: NextRequest) {
       requestId: currentRequestId,
     })
 
-    // The canonical feed must be loaded and serialized before evaluating
-    // If-None-Match. Revision counters are operational metadata, not a safe
-    // representation fingerprint because time windows and dependencies can
-    // change the response without incrementing the counter.
-    const offers = await listPublicContractOffers({ client: auth.client, customerType: query.customerType })
+    const offers = await loadPublicContracts({ client: auth.client, customerType: query.customerType })
     const data: Record<string, unknown>[] = []
     const mappingIssues: Array<{
       canonical_offer_reference: string
@@ -233,9 +265,10 @@ export async function GET(request: NextRequest) {
       emptyFeedAuthorization,
       ...(diagnosticsPayload ? { diagnostics: diagnosticsPayload } : {}),
     })
-    headers.ETag = representationEtag
+    const responseEtag = query.diagnostics ? representationEtag : fingerprintEtag
+    headers.ETag = responseEtag
 
-    if (!query.diagnostics && ifNoneMatchMatches(request, representationEtag)) {
+    if (!query.diagnostics && ifNoneMatchMatches(request, responseEtag)) {
       await logIntegrationApiRequest({
         client: auth.client,
         request,
@@ -244,7 +277,7 @@ export async function GET(request: NextRequest) {
         metadata: {
           request_id: currentRequestId,
           publication_revision: revision.revision,
-          representation_etag: representationEtag,
+          representation_etag: responseEtag,
         },
       })
       return new NextResponse(null, { status: 304, headers })
@@ -262,7 +295,7 @@ export async function GET(request: NextRequest) {
         customer_type: query.customerType,
         diagnostics: query.diagnostics,
         publication_revision: revision.revision,
-        representation_etag: representationEtag,
+        representation_etag: responseEtag,
       },
     })
     await logUsageEvent({
@@ -280,10 +313,11 @@ export async function GET(request: NextRequest) {
         rejected_contracts: 0,
         customer_type: query.customerType,
         diagnostics: query.diagnostics,
-        representation_etag: representationEtag,
+        representation_etag: responseEtag,
       },
     })
 
+    assertPublicResponsePayload(responseBody)
     return NextResponse.json(responseBody, { status: 200, headers })
   } catch (error) {
     const traceId = randomUUID()

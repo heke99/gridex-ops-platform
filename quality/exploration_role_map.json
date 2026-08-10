@@ -1,0 +1,1335 @@
+{
+  "schema_version": "1.0",
+  "timestamp_start": "2026-08-10T18:40:00Z",
+  "provenance": "filesystem-walk-with-skips",
+  "scope": "External API, Customer Portal, integration/auth/idempotency, website application, current OpenAPI, verification scripts, targeted tests, and 2026-08 migrations.",
+  "files": [
+    {
+      "path": "rg: docs/api: No such file or directory (os error 2)",
+      "role": "code",
+      "size_bytes": null,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "__tests__/api-canonical-release.test.ts",
+      "role": "test",
+      "size_bytes": 11369,
+      "rationale": "Vitest regression or contract test that executes or statically verifies the scoped public API behavior."
+    },
+    {
+      "path": "__tests__/idempotency.test.ts",
+      "role": "test",
+      "size_bytes": 3845,
+      "rationale": "Vitest regression or contract test that executes or statically verifies the scoped public API behavior."
+    },
+    {
+      "path": "__tests__/invoice-public-resource.test.ts",
+      "role": "test",
+      "size_bytes": 1073,
+      "rationale": "Vitest regression or contract test that executes or statically verifies the scoped public API behavior."
+    },
+    {
+      "path": "__tests__/portal-controlled-input-errors.test.ts",
+      "role": "test",
+      "size_bytes": 2411,
+      "rationale": "Vitest regression or contract test that executes or statically verifies the scoped public API behavior."
+    },
+    {
+      "path": "__tests__/public-contract-route-openapi-regression.test.ts",
+      "role": "test",
+      "size_bytes": 9461,
+      "rationale": "Vitest regression or contract test that executes or statically verifies the scoped public API behavior."
+    },
+    {
+      "path": "__tests__/usage-event-and-integration-idempotency.test.ts",
+      "role": "test",
+      "size_bytes": 5196,
+      "rationale": "Vitest regression or contract test that executes or statically verifies the scoped public API behavior."
+    },
+    {
+      "path": "app/api/v1/contracts/route.ts",
+      "role": "code",
+      "size_bytes": 8851,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer-portal/sync/route.ts",
+      "role": "code",
+      "size_bytes": 14433,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/contracts/route.ts",
+      "role": "code",
+      "size_bytes": 1606,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/documents/route.ts",
+      "role": "code",
+      "size_bytes": 1606,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/events/route.ts",
+      "role": "code",
+      "size_bytes": 1524,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/invoices/[id]/route.ts",
+      "role": "code",
+      "size_bytes": 3915,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/invoices/route.ts",
+      "role": "code",
+      "size_bytes": 1598,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/legal-acceptances/route.ts",
+      "role": "code",
+      "size_bytes": 1579,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/me/route.ts",
+      "role": "code",
+      "size_bytes": 2367,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/metering-values/route.ts",
+      "role": "code",
+      "size_bytes": 3197,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/move-out/route.ts",
+      "role": "code",
+      "size_bytes": 4069,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/notifications/read/route.ts",
+      "role": "code",
+      "size_bytes": 3691,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/notifications/route.ts",
+      "role": "code",
+      "size_bytes": 1575,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/portal-bundle/route.ts",
+      "role": "code",
+      "size_bytes": 14838,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/powers-of-attorney/route.ts",
+      "role": "code",
+      "size_bytes": 1627,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/profile-update/route.ts",
+      "role": "code",
+      "size_bytes": 8851,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/sites/route.ts",
+      "role": "code",
+      "size_bytes": 2193,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/customer/sync/route.ts",
+      "role": "code",
+      "size_bytes": 2510,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/events/route.ts",
+      "role": "code",
+      "size_bytes": 7589,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/integration/context/route.ts",
+      "role": "code",
+      "size_bytes": 2377,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-02.1/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 530,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-02.1/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 546,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-03.1/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 530,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-03.1/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 546,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-04.1/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 530,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-04.1/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 546,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-04.2/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 531,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-04.2/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 547,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-04.3/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 531,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-04.3/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 547,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-05.1/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 531,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-05.1/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 547,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-05.2/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 531,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/2026-08-05.2/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 547,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/customer-portal-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 476,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/release-manifest.json/route.ts",
+      "role": "code",
+      "size_bytes": 569,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/openapi/website-integration-v1.json/route.ts",
+      "role": "code",
+      "size_bytes": 492,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/public-contracts/diagnostics/route.ts",
+      "role": "code",
+      "size_bytes": 2825,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/public-contracts/route.ts",
+      "role": "code",
+      "size_bytes": 392,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/customer-applications/[applicationId]/route.ts",
+      "role": "code",
+      "size_bytes": 2443,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/customer-applications/route.ts",
+      "role": "code",
+      "size_bytes": 9275,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/customer-events/route.ts",
+      "role": "code",
+      "size_bytes": 3282,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/energy-area/resolve/route.ts",
+      "role": "code",
+      "size_bytes": 8336,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/legal-bundle/route.ts",
+      "role": "code",
+      "size_bytes": 3702,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/market-price/current/route.ts",
+      "role": "code",
+      "size_bytes": 6779,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/portfolio-prices/route.ts",
+      "role": "code",
+      "size_bytes": 4803,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/public-contracts/diagnostics/route.ts",
+      "role": "code",
+      "size_bytes": 3520,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/public-contracts/route.ts",
+      "role": "code",
+      "size_bytes": 13027,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/quote/route.ts",
+      "role": "code",
+      "size_bytes": 11998,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/quote/validate/route.ts",
+      "role": "code",
+      "size_bytes": 10368,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/api/v1/website/switch-status/route.ts",
+      "role": "code",
+      "size_bytes": 3191,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "app/developers/customer-portal-api/page.tsx",
+      "role": "docs",
+      "size_bytes": 102038,
+      "rationale": "Developer-facing integration guide rendered from application source and checked against the public contract."
+    },
+    {
+      "path": "docs/openapi/customer-portal-v1.json",
+      "role": "formal-spec",
+      "size_bytes": 296051,
+      "rationale": "Published OpenAPI contract that formally defines external operations, schemas, security metadata, and response behavior."
+    },
+    {
+      "path": "docs/openapi/website-integration-v1.json",
+      "role": "formal-spec",
+      "size_bytes": 395767,
+      "rationale": "Published OpenAPI contract that formally defines external operations, schemas, security metadata, and response behavior."
+    },
+    {
+      "path": "lib/api/apiError.ts",
+      "role": "code",
+      "size_bytes": 2813,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/api/publicRouteRegistry.ts",
+      "role": "code",
+      "size_bytes": 11381,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/api/strictRequest.ts",
+      "role": "code",
+      "size_bytes": 9018,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/admin.ts",
+      "role": "code",
+      "size_bytes": 3496,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/apiData.ts",
+      "role": "code",
+      "size_bytes": 25824,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/claim.ts",
+      "role": "code",
+      "size_bytes": 18628,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/customerEvents.ts",
+      "role": "code",
+      "size_bytes": 8387,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/customerResolver.ts",
+      "role": "code",
+      "size_bytes": 30430,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/customerSyncContract.ts",
+      "role": "code",
+      "size_bytes": 5565,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/db.ts",
+      "role": "code",
+      "size_bytes": 22547,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/externalApi.ts",
+      "role": "code",
+      "size_bytes": 14069,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/format.ts",
+      "role": "code",
+      "size_bytes": 1729,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/partnerInvoices.ts",
+      "role": "code",
+      "size_bytes": 5391,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/powerOfAttorneyDocuments.ts",
+      "role": "code",
+      "size_bytes": 5821,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/profileUpdateContract.ts",
+      "role": "code",
+      "size_bytes": 2183,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/publicDto.ts",
+      "role": "code",
+      "size_bytes": 13309,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/status.ts",
+      "role": "code",
+      "size_bytes": 14041,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/tenantSync.ts",
+      "role": "code",
+      "size_bytes": 48574,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/customer-portal/types.ts",
+      "role": "code",
+      "size_bytes": 5420,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/apiAuth.ts",
+      "role": "code",
+      "size_bytes": 17561,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/apiClientProfiles.ts",
+      "role": "code",
+      "size_bytes": 3702,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/apiClientScopes.ts",
+      "role": "code",
+      "size_bytes": 8291,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/apiClientSecrets.ts",
+      "role": "code",
+      "size_bytes": 1281,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/capway/auth.ts",
+      "role": "code",
+      "size_bytes": 5891,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/capway/client.ts",
+      "role": "code",
+      "size_bytes": 5202,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/capway/payloadBuilder.ts",
+      "role": "code",
+      "size_bytes": 10145,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/capway/purchase.ts",
+      "role": "code",
+      "size_bytes": 1455,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/capway/statusMapper.ts",
+      "role": "code",
+      "size_bytes": 1579,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/capway/types.ts",
+      "role": "code",
+      "size_bytes": 3879,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/exportErrorClassification.ts",
+      "role": "code",
+      "size_bytes": 4183,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/billing/invoiceExportCore.ts",
+      "role": "code",
+      "size_bytes": 38608,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/ipPolicy.ts",
+      "role": "code",
+      "size_bytes": 3952,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/openApiReleaseManifest.ts",
+      "role": "code",
+      "size_bytes": 2524,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/openApiResponse.ts",
+      "role": "code",
+      "size_bytes": 1462,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/public-api-error-registry.json",
+      "role": "code",
+      "size_bytes": 5518,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/publicApiErrorRegistry.ts",
+      "role": "code",
+      "size_bytes": 526,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/publicApiErrors.ts",
+      "role": "code",
+      "size_bytes": 4528,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/publicContractFeedSnapshot.ts",
+      "role": "code",
+      "size_bytes": 11030,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/publicReferences.ts",
+      "role": "code",
+      "size_bytes": 1089,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/tenantContext.ts",
+      "role": "code",
+      "size_bytes": 8997,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/tenantWebsiteProvisioning.ts",
+      "role": "code",
+      "size_bytes": 17397,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/tenantWebsiteReadiness.ts",
+      "role": "code",
+      "size_bytes": 23720,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/webhooks.ts",
+      "role": "code",
+      "size_bytes": 23447,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/websiteApiContract.ts",
+      "role": "code",
+      "size_bytes": 11815,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/websiteIntegrationContract.ts",
+      "role": "code",
+      "size_bytes": 2933,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/integrations/writeIdempotency.ts",
+      "role": "code",
+      "size_bytes": 8077,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/platform/dataCleanup.ts",
+      "role": "code",
+      "size_bytes": 2864,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/platform/outboundFreeze.ts",
+      "role": "code",
+      "size_bytes": 1575,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/platform/schemaReadiness.ts",
+      "role": "code",
+      "size_bytes": 5099,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/platform/workQueue.ts",
+      "role": "code",
+      "size_bytes": 8153,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/applicationReview.ts",
+      "role": "code",
+      "size_bytes": 29511,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/applicationWorkflow.ts",
+      "role": "code",
+      "size_bytes": 8671,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationAutomationReadiness.ts",
+      "role": "code",
+      "size_bytes": 6040,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationCommunication.ts",
+      "role": "code",
+      "size_bytes": 35636,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationCore.ts",
+      "role": "code",
+      "size_bytes": 45150,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationLegal.ts",
+      "role": "code",
+      "size_bytes": 56291,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationOnboarding.ts",
+      "role": "code",
+      "size_bytes": 28597,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationPersistence.ts",
+      "role": "code",
+      "size_bytes": 37530,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationProcess.ts",
+      "role": "code",
+      "size_bytes": 70589,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationReconciliation.ts",
+      "role": "code",
+      "size_bytes": 5081,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationRepair.ts",
+      "role": "code",
+      "size_bytes": 37455,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationSchemas.ts",
+      "role": "code",
+      "size_bytes": 37626,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationShared.ts",
+      "role": "code",
+      "size_bytes": 13386,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationStatus.ts",
+      "role": "code",
+      "size_bytes": 19359,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplicationWorkflowBridge.ts",
+      "role": "code",
+      "size_bytes": 2461,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/customerApplications.ts",
+      "role": "code",
+      "size_bytes": 336,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/provisioningSaga.ts",
+      "role": "code",
+      "size_bytes": 3435,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/publicContractApi.ts",
+      "role": "code",
+      "size_bytes": 5359,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/publicContracts.ts",
+      "role": "code",
+      "size_bytes": 100884,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/publicCustomerApplication.ts",
+      "role": "code",
+      "size_bytes": 5707,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/publicOfferReadiness.ts",
+      "role": "code",
+      "size_bytes": 2042,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "lib/website/switchStatus.ts",
+      "role": "code",
+      "size_bytes": 4999,
+      "rationale": "Executable product code in the scoped external API, portal, integration, or website flow; inspected as part of the request-to-database-to-public-DTO path."
+    },
+    {
+      "path": "scripts/canonical-external-api-runtime-parity.cjs",
+      "role": "code",
+      "size_bytes": 12232,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-api-compatibility.cjs",
+      "role": "code",
+      "size_bytes": 3554,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-api-documentation-examples.cjs",
+      "role": "code",
+      "size_bytes": 7357,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-api-documentation-version.cjs",
+      "role": "code",
+      "size_bytes": 2167,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-api-error-boundaries.cjs",
+      "role": "code",
+      "size_bytes": 1127,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-api-performance-tenant-gates.cjs",
+      "role": "code",
+      "size_bytes": 1889,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-database-contract-hardening.cjs",
+      "role": "code",
+      "size_bytes": 1084,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-external-api-contract-corrections.cjs",
+      "role": "code",
+      "size_bytes": 6752,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-migration-versions.cjs",
+      "role": "code",
+      "size_bytes": 2922,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-openapi-runtime-parity.cjs",
+      "role": "code",
+      "size_bytes": 9260,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-platform-runtime-readiness-v3.cjs",
+      "role": "code",
+      "size_bytes": 6101,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-production-migration-readiness.cjs",
+      "role": "code",
+      "size_bytes": 2514,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-public-api-contract.cjs",
+      "role": "code",
+      "size_bytes": 1179,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-public-api-error-registry.cjs",
+      "role": "code",
+      "size_bytes": 1850,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-public-contract-legal-migration.cjs",
+      "role": "code",
+      "size_bytes": 3383,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-public-contract-runtime-openapi.cjs",
+      "role": "code",
+      "size_bytes": 5663,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/check-shared-openapi-components.cjs",
+      "role": "code",
+      "size_bytes": 930,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/finalize-openapi-release.cjs",
+      "role": "code",
+      "size_bytes": 84135,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/generate-canonical-migration-inventory.cjs",
+      "role": "code",
+      "size_bytes": 4623,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-api-billing-tenant-hardening-regression.cjs",
+      "role": "code",
+      "size_bytes": 3851,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-customer-portal-multi-site-api-regression.cjs",
+      "role": "code",
+      "size_bytes": 3366,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-customer-portal-sync-error-contract-regression.cjs",
+      "role": "code",
+      "size_bytes": 1657,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-hardening-static-audit.cjs",
+      "role": "code",
+      "size_bytes": 5494,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-multitenant-website-application-flow-regression.cjs",
+      "role": "code",
+      "size_bytes": 15002,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-quote-idempotency-multitenant-regression.cjs",
+      "role": "code",
+      "size_bytes": 5639,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-single-api-key-tenant-integration-regression.cjs",
+      "role": "code",
+      "size_bytes": 8303,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+      "role": "code",
+      "size_bytes": 13702,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/gridex-website-application-idempotency-hardening-regression.cjs",
+      "role": "code",
+      "size_bytes": 7585,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/materialize-openapi-release.cjs",
+      "role": "code",
+      "size_bytes": 3022,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/register-migration-checksum.cjs",
+      "role": "code",
+      "size_bytes": 1268,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/verify-api-billing-tenant-hardening-20260805.sql",
+      "role": "code",
+      "size_bytes": 4820,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/verify-clean-migration-reconstruction-2026-08-02.sh",
+      "role": "code",
+      "size_bytes": 859,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/verify-market-price-api-production.sql",
+      "role": "code",
+      "size_bytes": 2214,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/verify-openapi-release.cjs",
+      "role": "code",
+      "size_bytes": 4441,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/verify-production-release-2026-08-02.sh",
+      "role": "code",
+      "size_bytes": 2609,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "scripts/verify-production-release-2026-08-03.sh",
+      "role": "code",
+      "size_bytes": 2773,
+      "rationale": "Repository verification or generation program that enforces migration, OpenAPI, API-runtime, security, or release parity for the scoped system."
+    },
+    {
+      "path": "supabase/migrations/20260801003000_public_contract_runtime_openapi_legal_parity.sql",
+      "role": "code",
+      "size_bytes": 17824,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+      "role": "code",
+      "size_bytes": 14934,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802010000_canonical_tenant_operation_policy_lifecycle.sql",
+      "role": "code",
+      "size_bytes": 18094,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802011000_canonical_ediel_production_state.sql",
+      "role": "code",
+      "size_bytes": 19776,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802012000_ediel_configuration_snapshots.sql",
+      "role": "code",
+      "size_bytes": 25355,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802013000_ediel_test_evidence_v2.sql",
+      "role": "code",
+      "size_bytes": 60185,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802014000_canonical_provisioning_access.sql",
+      "role": "code",
+      "size_bytes": 19010,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802015000_canonical_backfill_constraints.sql",
+      "role": "code",
+      "size_bytes": 12536,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802160000_website_application_committed_canonical_event.sql",
+      "role": "code",
+      "size_bytes": 2986,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802170000_canonical_security_convergence.sql",
+      "role": "code",
+      "size_bytes": 60889,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802180000_canonical_provisioning_privilege_convergence.sql",
+      "role": "code",
+      "size_bytes": 1724,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802190000_canonical_emergency_access_lockdown.sql",
+      "role": "code",
+      "size_bytes": 12001,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802203000_canonical_runtime_consistency_hardening.sql",
+      "role": "code",
+      "size_bytes": 50065,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802230000_public_contract_delivery_consistency.sql",
+      "role": "code",
+      "size_bytes": 9402,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802231000_tenant_website_provisioning_guards.sql",
+      "role": "code",
+      "size_bytes": 16143,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802232000_migration_truth_readiness.sql",
+      "role": "code",
+      "size_bytes": 5591,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260802233000_security_definer_execution_lockdown.sql",
+      "role": "code",
+      "size_bytes": 2217,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803093000_platform_schema_runtime_columns_v3.sql",
+      "role": "code",
+      "size_bytes": 1116,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803093100_gridex_runtime_capabilities_v3.sql",
+      "role": "code",
+      "size_bytes": 12815,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803093200_gridex_migration_governance_v3.sql",
+      "role": "code",
+      "size_bytes": 3775,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803093300_duplicate_primary_client_audit_contract_v3.sql",
+      "role": "code",
+      "size_bytes": 4318,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803100040_public_contract_snapshot_shared_schema.sql",
+      "role": "code",
+      "size_bytes": 4403,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803100130_public_contract_snapshot_shared_rpc.sql",
+      "role": "code",
+      "size_bytes": 9999,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803131558_external_api_contract_database_hardening_v1.sql",
+      "role": "code",
+      "size_bytes": 1741,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803131922_external_api_contract_database_hardening_v2.sql",
+      "role": "code",
+      "size_bytes": 1169,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803144819_contract_portfolio_area_billing_consistency.sql",
+      "role": "code",
+      "size_bytes": 17170,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803145108_portfolio_lock_transition_immutability_fix.sql",
+      "role": "code",
+      "size_bytes": 974,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803145427_portfolio_superadmin_role_alignment.sql",
+      "role": "code",
+      "size_bytes": 1228,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803150723_portfolio_mix_share_billing_completion.sql",
+      "role": "code",
+      "size_bytes": 15232,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803152014_contract_portfolio_tenant_fk_indexes.sql",
+      "role": "code",
+      "size_bytes": 761,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803152236_portfolio_superadmin_helper_service_role_only.sql",
+      "role": "code",
+      "size_bytes": 427,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260803212754_canonical_migration_readiness_reconciliation_v4.sql",
+      "role": "code",
+      "size_bytes": 8916,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804003000_customer_contract_fee_consistency.sql",
+      "role": "code",
+      "size_bytes": 4936,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804093500_contract_publication_two_step_invoice_fee_repair.sql",
+      "role": "code",
+      "size_bytes": 9941,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804121000_multitenant_website_application_flow_completion.sql",
+      "role": "code",
+      "size_bytes": 9897,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql",
+      "role": "code",
+      "size_bytes": 4008,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804173000_price_area_assurance_and_pricing_readiness.sql",
+      "role": "code",
+      "size_bytes": 5754,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804190000_svk_geodata_and_billing_price_area_canonicalization.sql",
+      "role": "code",
+      "size_bytes": 14290,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804193000_contract_price_snapshot_company_guard_fix.sql",
+      "role": "code",
+      "size_bytes": 1581,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804200732_usage_event_identity_and_integration_write_idempotency.sql",
+      "role": "code",
+      "size_bytes": 4705,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804202318_ediel_system_actor_uuid_and_draft_intent_repair.sql",
+      "role": "code",
+      "size_bytes": 2509,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260804202601_integration_api_request_log_idempotency_index_fix.sql",
+      "role": "code",
+      "size_bytes": 722,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260805085617_api_contract_billing_tenant_hardening.sql",
+      "role": "code",
+      "size_bytes": 15650,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260806122255_gridex_ops_bl_002_global_read_isolation.sql",
+      "role": "code",
+      "size_bytes": 5786,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260806151106_gridex_aud_001_customer_document_storage_isolation.sql",
+      "role": "code",
+      "size_bytes": 5284,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260806152004_gridex_aud_001_storage_helper_private_schema.sql",
+      "role": "code",
+      "size_bytes": 5051,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260808214500_grid_owner_direct_actor_join_performance.sql",
+      "role": "code",
+      "size_bytes": 3772,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260809110000_ops_health_status_qualification.sql",
+      "role": "code",
+      "size_bytes": 3105,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260809114500_ediel_certificate_status_consistency.sql",
+      "role": "code",
+      "size_bytes": 1594,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql",
+      "role": "code",
+      "size_bytes": 5735,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql",
+      "role": "code",
+      "size_bytes": 6167,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    },
+    {
+      "path": "supabase/migrations/20260809143000_gridex_ops_bl_001_write_permission_hardening.sql",
+      "role": "code",
+      "size_bytes": 8109,
+      "rationale": "Forward PostgreSQL migration defining runtime schema, RLS, RPC, index, or governance behavior consumed by the scoped API."
+    }
+  ]
+}
+

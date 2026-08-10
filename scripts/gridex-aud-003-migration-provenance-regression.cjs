@@ -27,6 +27,19 @@ function sha256(filePath) {
 function readJson(filePath, fallback) {
   return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : fallback;
 }
+function verifiedLiveSchemaEvidence(meta) {
+  return meta.sourceKind === 'verified_live_schema' &&
+    Boolean(meta.projectId) &&
+    Boolean(meta.capturedAt) &&
+    Array.isArray(meta.signatures) &&
+    meta.signatures.length > 0;
+}
+function assertLiveSchemaArtifactSyntax(filePath, rel) {
+  const source = fs.readFileSync(filePath, 'utf8');
+  if (/\$[A-Za-z0-9_]*\$(?!;)[ \t]*\n[ \t]*(?:revoke|grant|create)\b/i.test(source)) {
+    fail(`verified live-schema function is missing a statement terminator: ${rel}`);
+  }
+}
 
 const manifest = readJson(manifestPath, { files: {} });
 const manifestAdditions = readJson(manifestAdditionsPath, { files: {} });
@@ -58,10 +71,14 @@ for (const rel of orderedFoundation) {
   if (meta) {
     derivedCount += 1;
     if (!meta.artifactSha256 || sha256(filePath) !== meta.artifactSha256) fail(`derived bootstrap checksum drift: ${rel}`);
-    const sourcePath = path.join(supabaseDir, meta.source || '');
-    if (!meta.source || !fs.existsSync(sourcePath)) fail(`derived bootstrap source missing: ${rel}`);
-    const expected = pinned[path.basename(sourcePath)];
-    if (!expected || sha256(sourcePath) !== expected) fail(`derived bootstrap source checksum drift: ${meta.source}`);
+    if (!verifiedLiveSchemaEvidence(meta)) {
+      const sourcePath = path.join(supabaseDir, meta.source || '');
+      if (!meta.source || !fs.existsSync(sourcePath)) fail(`derived bootstrap source missing: ${rel}`);
+      const expected = pinned[path.basename(sourcePath)];
+      if (!expected || sha256(sourcePath) !== expected) fail(`derived bootstrap source checksum drift: ${meta.source}`);
+    } else {
+      assertLiveSchemaArtifactSyntax(filePath, rel);
+    }
   } else {
     const expected = pinned[path.basename(filePath)];
     if (!expected || sha256(filePath) !== expected) fail(`foundation source checksum drift: ${rel}`);
@@ -77,9 +94,13 @@ for (const item of interleaved) {
   const meta = derived[rel];
   const filePath = path.join(supabaseDir, rel);
   if (!meta || !fs.existsSync(filePath) || sha256(filePath) !== meta.artifactSha256) fail(`interleaved bootstrap drift: ${rel}`);
-  const sourcePath = path.join(supabaseDir, meta.source || '');
-  const expected = pinned[path.basename(sourcePath)];
-  if (!meta.source || !fs.existsSync(sourcePath) || !expected || sha256(sourcePath) !== expected) fail(`interleaved source drift: ${rel}`);
+  if (!verifiedLiveSchemaEvidence(meta)) {
+    const sourcePath = path.join(supabaseDir, meta.source || '');
+    const expected = pinned[path.basename(sourcePath)];
+    if (!meta.source || !fs.existsSync(sourcePath) || !expected || sha256(sourcePath) !== expected) fail(`interleaved source drift: ${rel}`);
+  } else {
+    assertLiveSchemaArtifactSyntax(filePath, rel);
+  }
 }
 
 const timestamped = fs.readdirSync(migrationsDir).filter((name) => /^\d{14}_.+\.sql$/.test(name)).sort();
@@ -132,7 +153,10 @@ for (const requiredRef of [
 if (!replay.includes("files.sort(key=lambda p:p.name)")) fail('clean replay lost deterministic timestamped ordering');
 if (!replay.includes('excluded') || !replay.includes('noncanonical')) fail('clean replay lost explicit noncanonical exclusion handling');
 if (!replay.includes('interleaved_paths')) fail('clean replay lost interleaved bootstrap handling');
-if (!replay.includes('supabase db push --local --include-all --yes')) fail('clean replay no longer lets Supabase CLI own ledger replay');
+if (!replay.includes('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') ||
+    replay.indexOf('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') > replay.indexOf('supabase start')) {
+  fail('clean replay no longer initializes its CLI-owned official ledger before governance checks');
+}
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) fail('clean replay directly mutates the Supabase migration ledger');
 if (!fs.existsSync(fingerprintPath)) fail('schema fingerprint query is missing');
 if (!/EXPECTED_FINGERPRINT="[0-9a-f]{64}"/.test(replay) || !replay.includes('ACTUAL_FINGERPRINT')) fail('clean replay lost exact schema fingerprint gate');

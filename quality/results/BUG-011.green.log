@@ -1,0 +1,1 @@
+PASS 2026-08-10 regression_bug_011_serializer_rejects_internal_fields — recursive public-output gate rejects internal fields.

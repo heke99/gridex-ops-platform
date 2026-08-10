@@ -31,6 +31,13 @@ function sha256(filePath) {
 
 const byVersion = new Map()
 for (const name of actualNames) {
+  const source = fs.readFileSync(path.join(directory, name), 'utf8')
+  if (/^\s*do\s+\$\s*$/im.test(source) || /^\s*\$;\s*$/m.test(source)) {
+    failures.push(
+      `Migration contains an invalid single-dollar anonymous block delimiter: ${name}`,
+    )
+  }
+
   const recognized = /^(\d{2}|\d{8}|\d{14})_.+\.sql$/.exec(name)
   if (!recognized) {
     if (!allowedUnversionedFiles.has(name)) failures.push(`Unversioned migration is not allowlisted: ${name}`)

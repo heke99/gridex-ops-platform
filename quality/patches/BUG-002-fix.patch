@@ -1,0 +1,8 @@
+diff --git a/app/api/v1/customer/invoices/[id]/route.ts b/app/api/v1/customer/invoices/[id]/route.ts
+--- a/app/api/v1/customer/invoices/[id]/route.ts
++++ b/app/api/v1/customer/invoices/[id]/route.ts
+@@ GET
+-  const invoices = await listPortalInvoices(identity)
+-  const invoice = invoices.find((row) => publicPortalInvoice(client.company_id, row).invoice_reference === id)
++  const invoice = await getPortalInvoiceByReference(identity, id)
+   if (!invoice) return jsonError('Fakturan hittades inte.', 404, 'invoice_not_found')

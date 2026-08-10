@@ -1,0 +1,11 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-005: regression_bug_005_completion_failure_blocks_success — apply quality/patches/BUG-005-fix.patch', () => {
++    const idempotency = source('lib/integrations/writeIdempotency.ts')
++    const completion = idempotency.slice(idempotency.indexOf('completeIntegrationWriteIdempotency'))
++    expect(completion).not.toContain('best effort')
++    expect(completion).not.toContain('console.error')
++    expect(completion).toMatch(/throw|rpc\(/)
++  })

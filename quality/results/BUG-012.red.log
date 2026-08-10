@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-012 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
+      valid_to: clean(row.valid_to),
+      customer_type: clean(row.customer_type) ?? \"both\",
+      visible,
+      blockers: Array.from(new Set(blockers)),
+      offer_reference: clean(row.offer_reference),
+      graph,
+      pricing_readiness: {
+        invoice_fee:...
+
+ ❯ quality/test_regression_red.test.ts:108:23
+    106|   it('BUG-012: regression_bug_012_public_contracts_use_projection_and_…
+    107|     const reads = source('lib/website/publicContracts.ts')
+    108|     expect(reads).not.toMatch(/\.select\(\s*['"]\*['"]\s*\)/)
+       |                       ^
+    109|     const route = source('app/api/v1/website/public-contracts/route.ts…
+    110|     expect(route).toContain('public_contract_feed_fingerprint_v1')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

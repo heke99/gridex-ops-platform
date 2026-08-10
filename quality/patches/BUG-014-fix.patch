@@ -1,0 +1,19 @@
+diff --git a/supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql b/supabase/migrations/20260810120000_granular_tenant_integration_profile.sql
+new file mode 100644
+--- /dev/null
++++ b/supabase/migrations/20260810120000_granular_tenant_integration_profile.sql
+@@
++update public.integration_api_client_profiles
++set default_scopes = array[
++  'integration_context.read','customer_profile.read','customer_sites.read',
++  'customer_contracts.read','customer_invoices.read','customer_metering.read',
++  'customer_documents.read','customer_notifications.read','customer_sync.write',
++  'customer_contact.write','customer_facility_data.write'
++]
++where key = 'tenant_website';
+diff --git a/lib/integrations/tenantWebsiteProvisioning.ts b/lib/integrations/tenantWebsiteProvisioning.ts
+--- a/lib/integrations/tenantWebsiteProvisioning.ts
++++ b/lib/integrations/tenantWebsiteProvisioning.ts
+@@ provisionTenantWebsiteIntegration
++  const smoke = await runTenantIntegrationSmokeTest({ clientId, companyId })
++  if (!smoke.ready) throw new TenantWebsiteProvisioningError('SMOKE_TEST_FAILED', smoke.message, receiptId)

@@ -1,0 +1,10 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-003: regression_bug_003_schema_failure_is_503 — apply quality/patches/BUG-003-fix.patch', () => {
++    const data = source('lib/customer-portal/apiData.ts')
++    const fallback = data.slice(data.indexOf('async function listWithSchemaFallback'), data.indexOf('\nexport async function', data.indexOf('async function listWithSchemaFallback')))
++    expect(fallback).toContain('PlatformSchemaNotReadyError')
++    expect(fallback).not.toMatch(/return\s*\[\]\s*$/m)
++  })

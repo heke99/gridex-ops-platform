@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.1",
+  "skill_version": "1.5.6",
+  "date": "2026-08-10",
+  "project": "gridex-ops-platform",
+  "recommendation": "CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED",
+  "groups": [
+    {
+      "name": "quality-final",
+      "environment": "local-source-plus-connected-dev",
+      "checks": 45,
+      "passed": 45,
+      "expected_fail": 0,
+      "failed": 0
+    },
+    {
+      "name": "application-final",
+      "environment": "local-source",
+      "checks": 467,
+      "passed": 467,
+      "expected_fail": 0,
+      "failed": 0
+    }
+  ],
+  "summary": {
+    "groups": 2,
+    "checks": 512,
+    "passed": 512,
+    "expected_fail": 0,
+    "failed": 0,
+    "external_release_blockers": 6
+  },
+  "uc_coverage": {
+    "UC-01": "verified",
+    "UC-02": "verified",
+    "UC-03": "verified",
+    "UC-04": "verified_connected_dev",
+    "UC-05": "verified",
+    "UC-06": "verified",
+    "UC-07": "verified",
+    "UC-08": "verified"
+  }
+}

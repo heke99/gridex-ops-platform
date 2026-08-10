@@ -1,0 +1,13 @@
+diff --git a/lib/website/publicContracts.ts b/lib/website/publicContracts.ts
+--- a/lib/website/publicContracts.ts
++++ b/lib/website/publicContracts.ts
+@@
+-    .select('*')
++    .select(PUBLIC_CONTRACT_OFFER_PROJECTION)
+diff --git a/app/api/v1/website/public-contracts/route.ts b/app/api/v1/website/public-contracts/route.ts
+--- a/app/api/v1/website/public-contracts/route.ts
++++ b/app/api/v1/website/public-contracts/route.ts
+@@ GET
++  const fingerprint = await loadPublicContractFeedFingerprint(client.company_id)
++  if (request.headers.get('if-none-match') === fingerprint.etag) return notModified(fingerprint.etag)
+   const feed = await loadPublicContracts(client.company_id)

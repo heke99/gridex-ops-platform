@@ -17,6 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      - run: node scripts/check-agent-memory-git-state.cjs
       - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
       - run: node scripts/gridex-ops-health-regression.cjs
       - run: npm run gridex:api-billing-tenant-hardening-regression
@@ -46,9 +47,13 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck:scripts
       - run: npm run typecheck:tests
+      - run: bash quality/mechanical/verify.sh
+      - run: npx vitest run --config quality/vitest.config.ts
       - run: npm test
+      - run: npm run api:docs
       - run: npm run api:compatibility
       - run: npm run api:release:verify
+      - run: npm run security:rbac
       - run: npm run build
 
   clean-migration-replay:

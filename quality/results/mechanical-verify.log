@@ -1,0 +1,15 @@
+{
+  "checked_master_points": 75,
+  "checked_requirements": 12,
+  "checked_operation_ids": 65,
+  "errors": []
+}
+{
+  "pattern_requirements": 12,
+  "cells": 100,
+  "absent_cells": 67,
+  "bug_covered_cells": 55,
+  "downgraded_cells": 12,
+  "missing_cells": [],
+  "invalid_downgrades": []
+}

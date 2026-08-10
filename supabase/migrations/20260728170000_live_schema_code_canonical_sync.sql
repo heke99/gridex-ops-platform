@@ -677,16 +677,24 @@ select public.gridex__repair_replace_function_text(
 -- Repair every active function error reported by the 2026-07-28 live lint.
 -- ---------------------------------------------------------------------------
 
-select public.gridex__repair_replace_function_text(
-  'public.select_onboarding_start_path(uuid,text)',
-  'public.user_can_access_company_v2(p_company_id)',
-  'public.gridex_can_write_company(p_company_id)'
-);
-select public.gridex__repair_replace_function_text(
-  'public.complete_core_onboarding(uuid)',
-  'public.user_can_access_company_v2(p_company_id)',
-  'public.gridex_can_write_company(p_company_id)'
-);
+do $$
+begin
+  if to_regprocedure('public.select_onboarding_start_path(uuid,text)') is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.select_onboarding_start_path(uuid,text)',
+      'public.user_can_access_company_v2(p_company_id)',
+      'public.gridex_can_write_company(p_company_id)'
+    );
+  end if;
+  if to_regprocedure('public.complete_core_onboarding(uuid)') is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.complete_core_onboarding(uuid)',
+      'public.user_can_access_company_v2(p_company_id)',
+      'public.gridex_can_write_company(p_company_id)'
+    );
+  end if;
+end
+$$;
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_current_user_context()',
@@ -695,69 +703,122 @@ select public.gridex__repair_replace_function_text(
          min(c.company_id::text)::uuid$$
 );
 
-select public.gridex__repair_replace_function_text(
-  'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
-  $$select id,operation_id into v_workflow_id,v_existing_operation_id
-  from public.customer_application_workflows
-  where company_id=p_company_id and customer_application_id=p_customer_application_id$$,
-  $$select workflow.id,workflow.operation_id
-  into v_workflow_id,v_existing_operation_id
-  from public.customer_application_workflows workflow
-  where workflow.company_id=p_company_id
-    and workflow.customer_application_id=p_customer_application_id$$
-);
+-- Apply this historical live-only lint repair in small, exact fragments. The
+-- clean reconstruction legitimately contains the same PL/pgSQL statement with
+-- pg_get_functiondef whitespace that differs from the audited live snapshot.
+-- Each step remains fail-closed, and the transaction rolls back unless all
+-- three fragments are either repaired or already in their canonical form.
+do $$
+declare
+  v_signature constant text :=
+    'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)';
+  v_oid regprocedure;
+  v_definition text;
+  v_repaired text;
+begin
+  v_oid := to_regprocedure(v_signature);
+  if v_oid is null then
+    raise exception using
+      errcode = '55000',
+      message = 'gridex_repair_function_missing:' || v_signature;
+  end if;
 
-select public.gridex__repair_replace_function_text(
-  'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)',
-  $$update public.customer_application_workflows
-  set state=p_to_state,
-      next_action=coalesce(p_metadata->>'next_action',next_action),
-      snapshot=coalesce(snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
-      failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),failure_code) else null end,
-      completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
-      last_transition_at=now(),
-      workflow_version=workflow_version+1,
-      updated_at=now()
-  where id=v_row.id$$,
-  $$update public.customer_application_workflows workflow
-  set state=p_to_state,
-      next_action=coalesce(p_metadata->>'next_action',workflow.next_action),
-      snapshot=coalesce(workflow.snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
-      failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),workflow.failure_code) else null end,
-      completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
-      last_transition_at=now(),
-      workflow_version=workflow.workflow_version+1,
-      updated_at=now()
-  where workflow.id=v_row.id$$
-);
+  v_definition := pg_get_functiondef(v_oid);
+  v_repaired := regexp_replace(
+    v_definition,
+    'select[[:space:]]+id[[:space:]]*,[[:space:]]*operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id',
+    E'select workflow.id,workflow.operation_id\n  into v_workflow_id,v_existing_operation_id'
+  );
+  v_repaired := regexp_replace(
+    v_repaired,
+    'where[[:space:]]+company_id[[:space:]]*=[[:space:]]*p_company_id[[:space:]]+and[[:space:]]+customer_application_id[[:space:]]*=[[:space:]]*p_customer_application_id',
+    E'where workflow.company_id=p_company_id\n    and workflow.customer_application_id=p_customer_application_id'
+  );
+  v_repaired := regexp_replace(
+    v_repaired,
+    'from[[:space:]]+public[.]customer_application_workflows[[:space:]]+where[[:space:]]+workflow[.]company_id[[:space:]]*=[[:space:]]*p_company_id',
+    E'from public.customer_application_workflows workflow\n  where workflow.company_id=p_company_id'
+  );
 
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$  v_disabled_at timestamptz;
+  if v_repaired <> v_definition then
+    execute v_repaired;
+  elsif v_definition !~
+    'select[[:space:]]+workflow[.]id[[:space:]]*,[[:space:]]*workflow[.]operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id'
+    or v_definition !~
+    'from[[:space:]]+public[.]customer_application_workflows[[:space:]]+workflow[[:space:]]+where[[:space:]]+workflow[.]company_id[[:space:]]*=[[:space:]]*p_company_id[[:space:]]+and[[:space:]]+workflow[.]customer_application_id[[:space:]]*=[[:space:]]*p_customer_application_id' then
+    raise exception using
+      errcode = '55000',
+      message = 'gridex_repair_unexpected_function_definition:' || v_signature,
+      detail = 'unqualified customer application workflow lookup';
+  end if;
+end
+$$;
+
+do $repair$
+begin
+  if to_regprocedure(
+    'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)'
+  ) is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)',
+      $$update public.customer_application_workflows
+      set state=p_to_state,
+          next_action=coalesce(p_metadata->>'next_action',next_action),
+          snapshot=coalesce(snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
+          failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),failure_code) else null end,
+          completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
+          last_transition_at=now(),
+          workflow_version=workflow_version+1,
+          updated_at=now()
+      where id=v_row.id$$,
+      $$update public.customer_application_workflows workflow
+      set state=p_to_state,
+          next_action=coalesce(p_metadata->>'next_action',workflow.next_action),
+          snapshot=coalesce(workflow.snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
+          failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),workflow.failure_code) else null end,
+          completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
+          last_transition_at=now(),
+          workflow_version=workflow.workflow_version+1,
+          updated_at=now()
+      where workflow.id=v_row.id$$
+    );
+  end if;
+end
+$repair$;
+
+do $repair$
+begin
+  if to_regprocedure('public.gridex_is_current_session_allowed()') is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      $$  v_disabled_at timestamptz;
 begin$$,
-  $$begin$$
-);
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$select user_status, disabled_at
+      $$begin$$
+    );
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      $$select user_status, disabled_at
     into v_status, v_disabled_at$$,
-  $$select profile.user_status
+      $$select profile.user_status
     into v_status$$
-);
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  'from public.user_profiles',
-  'from public.user_profiles profile'
-);
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$  if v_disabled_at is not null then
+    );
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      'from public.user_profiles',
+      'from public.user_profiles profile'
+    );
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      $$  if v_disabled_at is not null then
     return false;
   end if;
 
 $$,
-  ''
-);
+      ''
+    );
+  end if;
+end
+$repair$;
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_customer_cleanup_external_ref(uuid)',
@@ -1464,16 +1525,30 @@ select public.gridex__repair_replace_function_text(
 -- SECURITY DEFINER functions touched by this migration use explicit trusted
 -- schemas. This does not expose extension or temporary objects ahead of
 -- pg_catalog during name resolution.
-alter function public.select_onboarding_start_path(uuid,text)
-  set search_path = public, auth, pg_catalog, pg_temp;
-alter function public.complete_core_onboarding(uuid)
-  set search_path = public, auth, pg_catalog, pg_temp;
-alter function public.gridex_customer_cleanup_external_ref(uuid)
-  set search_path = public, pg_catalog, pg_temp;
-alter function public.gridex_current_user_context()
-  set search_path = public, auth, pg_catalog, pg_temp;
-alter function public.gridex_ops_health_checks()
-  set search_path = public, pg_catalog, pg_temp;
+do $search_path_repair$
+begin
+  if to_regprocedure('public.select_onboarding_start_path(uuid,text)') is not null then
+    alter function public.select_onboarding_start_path(uuid,text)
+      set search_path = public, auth, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.complete_core_onboarding(uuid)') is not null then
+    alter function public.complete_core_onboarding(uuid)
+      set search_path = public, auth, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.gridex_customer_cleanup_external_ref(uuid)') is not null then
+    alter function public.gridex_customer_cleanup_external_ref(uuid)
+      set search_path = public, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.gridex_current_user_context()') is not null then
+    alter function public.gridex_current_user_context()
+      set search_path = public, auth, pg_catalog, pg_temp;
+  end if;
+  if to_regprocedure('public.gridex_ops_health_checks()') is not null then
+    alter function public.gridex_ops_health_checks()
+      set search_path = public, pg_catalog, pg_temp;
+  end if;
+end
+$search_path_repair$;
 
 -- The repair helper itself must not survive the migration.
 drop function public.gridex__repair_replace_function_text(text,text,text);
@@ -1488,13 +1563,3 @@ comment on function public.gridex_retry_website_contract_signature(uuid,uuid,uui
   'Idempotently recovers signature_failed website contracts to pending_signature before a new exact-evidence finalization.';
 
 commit;
-
-
-
-
-select public.gridex__repair_replace_function_text(
-  'public.gridex_sync_internal_offer_to_canonical(uuid)',
-  'o.valid_from::timestamptz,o.valid_to::timestamptz',
-  $$o.valid_from::timestamptz,
-    case when o.valid_to is null then null else (o.valid_to + 1)::timestamptz end$$
-);

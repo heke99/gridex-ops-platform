@@ -145,7 +145,6 @@ async function fetchProfile(input: {
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .eq('user_id', authUserId)
-      .limit(1)
       .maybeSingle()
     if (!byUser.error && byUser.data) return byUser.data as Record<string, unknown>
     if (byUser.error && !isMissingPortalSchemaError(byUser.error)) throw byUser.error
@@ -159,7 +158,6 @@ async function fetchProfile(input: {
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('email', email)
-    .limit(1)
     .maybeSingle()
   if (byEmail.error) {
     // Older schemas without tenant-bound profile columns must not fall back to
@@ -199,7 +197,6 @@ async function linkedByExternal(companyId: string, externalCustomerId: string): 
     .eq('company_id', companyId)
     .eq('external_customer_id', externalCustomerId)
     .eq('status', 'active')
-    .limit(1)
     .maybeSingle()
 
   if (!link.error && link.data?.customer_id) {
@@ -400,6 +397,42 @@ async function finishResolved(companyId: string, customerId: string, source: {
   }
 }
 
+type CanonicalIdentityCandidate = {
+  id: string
+  customer_number: string | null
+  email: string | null
+  matched_factor_count: number
+}
+
+async function canonicalIdentityCandidate(
+  companyId: string,
+  identifiers: CustomerPortalIdentifiers,
+): Promise<ResolvedPortalCustomer | null> {
+  if (!identifiers.email && !identifiers.customerNumber) return null
+  const { data, error } = await supabaseService.rpc('resolve_portal_customer_identity_v1', {
+    p_company_id: companyId,
+    p_email: identifiers.email,
+    p_customer_number: identifiers.customerNumber,
+    p_identifier: null,
+    p_facility_id: null,
+    p_limit: 20,
+  })
+  if (error) throw error
+  const rows = asRows(data as CanonicalIdentityCandidate[] | null)
+  if (rows.length === 0) return null
+  const highestScore = Number(rows[0].matched_factor_count ?? 0)
+  const strongest = rows.filter((row) => Number(row.matched_factor_count ?? 0) === highestScore)
+  if (strongest.length !== 1 || !strongest[0].id) return null
+  const row = strongest[0]
+  return finishResolved(companyId, row.id, {
+    customerNumber: row.customer_number,
+    email: normalizeEmail(row.email),
+    matchMethod: 'resolve_portal_customer_identity_v1',
+    matchStrength: highestScore > 1 ? 'strong' : 'medium',
+    provider: 'canonical_portal_identity_resolver',
+  })
+}
+
 function activeIdentity(row: Record<string, unknown>): boolean {
   const status = str(row, 'status')?.toLowerCase()
   return !status || status === 'active'
@@ -535,7 +568,6 @@ export async function ensureCustomerPortalUserLink(input: {
       .eq('company_id', input.client.company_id)
       .eq('provider', WEBSITE_PORTAL_PROVIDER)
       .eq('external_customer_id', externalCustomerId)
-      .limit(1)
       .maybeSingle()
     if (existingByExternal.error) throw existingByExternal.error
     if (existingByExternal.data?.id) {
@@ -559,7 +591,6 @@ export async function ensureCustomerPortalUserLink(input: {
       .eq('company_id', input.client.company_id)
       .eq('customer_id', input.customerId)
       .eq('provider', WEBSITE_PORTAL_PROVIDER)
-      .limit(1)
       .maybeSingle()
     if (!existingIdentity.error && existingIdentity.data?.id) identityId = String(existingIdentity.data.id)
     if (existingIdentity.error) throw existingIdentity.error
@@ -668,6 +699,7 @@ export async function resolvePortalCustomer(input: {
     const userId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
     const resolved =
       (userId ? await linkedByAccount(input.client.company_id, userId) : null) ??
+      await canonicalIdentityCandidate(input.client.company_id, identifiers) ??
       (identifiers.externalCustomerId ? await linkedByExternal(input.client.company_id, identifiers.externalCustomerId) : null) ??
       (identifiers.customerNumber ? await customerByField(input.client.company_id, 'customer_number', identifiers.customerNumber, 'customers.customer_number') : null) ??
       (identifiers.email ? await linkedByEmail(input.client.company_id, identifiers.email) : null)

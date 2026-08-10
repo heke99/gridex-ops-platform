@@ -4,13 +4,14 @@ import websiteIntegrationOpenApi from '@/docs/openapi/website-integration-v1.jso
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
   CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL,
+  API_COMPATIBILITY_CLASSIFICATION,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
   WEBSITE_INTEGRATION_OPENAPI_URL,
   WEBSITE_INTEGRATION_VERSIONED_OPENAPI_URL,
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-08-05T22:07:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-08-10T20:25:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -32,8 +33,18 @@ export function buildOpenApiReleaseManifest() {
       process.env.VERCEL_GIT_COMMIT_SHA ??
       process.env.GIT_COMMIT_SHA ??
       'unknown',
-    compatibility_classification: 'additive-price-area-assurance-and-readiness-correction',
+    compatibility_classification: API_COMPATIBILITY_CLASSIFICATION.release,
     deprecated_features: [
+      {
+        feature: 'public contract id and contract_offer_id compatibility aliases',
+        replacement: 'offer_reference',
+        sunset_at: '2026-10-31T23:59:59.000Z',
+      },
+      {
+        feature: 'legal evidence UUID compatibility fields',
+        replacement: 'legal_bundle_reference and document_reference',
+        sunset_at: '2026-10-31T23:59:59.000Z',
+      },
       {
         feature: 'diagnostics=true on public-contracts',
         replacement: '/api/v1/website/public-contracts/diagnostics',
@@ -53,7 +64,7 @@ export function buildOpenApiReleaseManifest() {
         url: WEBSITE_INTEGRATION_OPENAPI_URL,
         immutable_url: WEBSITE_INTEGRATION_VERSIONED_OPENAPI_URL,
         sha256: sha256(websiteIntegrationOpenApi),
-        compatibility: 'additive-response-field-and-readiness-correction',
+        compatibility: API_COMPATIBILITY_CLASSIFICATION.website,
       },
       customer_portal: {
         contract_name: 'customer-portal-v1',
@@ -61,7 +72,7 @@ export function buildOpenApiReleaseManifest() {
         url: CUSTOMER_PORTAL_OPENAPI_URL,
         immutable_url: CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL,
         sha256: sha256(customerPortalOpenApi),
-        compatibility: 'additive',
+        compatibility: API_COMPATIBILITY_CLASSIFICATION.customerPortal,
       },
     },
   } as const

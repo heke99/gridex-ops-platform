@@ -1,0 +1,926 @@
+{
+  "schema_version": "1.5.2",
+  "authority": "User-supplied master specification points 1-75",
+  "reqs": {
+    "REQ-001": {
+      "pattern": "whitelist",
+      "items": [
+        "P001",
+        "P002",
+        "P003",
+        "P016",
+        "P017",
+        "P018",
+        "P031",
+        "P032",
+        "P069"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-001/cell-P001-GLOBAL",
+          "item": "P001",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:67; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P002-GLOBAL",
+          "item": "P002",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:68; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P003-GLOBAL",
+          "item": "P003",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:69; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P016-GLOBAL",
+          "item": "P016",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:82; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P017-GLOBAL",
+          "item": "P017",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:83; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P018-GLOBAL",
+          "item": "P018",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:84; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P031-GLOBAL",
+          "item": "P031",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:97; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P032-GLOBAL",
+          "item": "P032",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:98; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-001/cell-P069-GLOBAL",
+          "item": "P069",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:135; lib/customer-portal/publicDto.ts and lib/customer-portal/externalApi.ts"
+        }
+      ]
+    },
+    "REQ-002": {
+      "pattern": "parity",
+      "items": [
+        "P004",
+        "P005",
+        "P058"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-002/cell-P004-GLOBAL",
+          "item": "P004",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:70; lib/customer-portal/apiData.ts:186-620 and lib/customer-portal/publicDto.ts:424-453"
+        },
+        {
+          "cell_id": "REQ-002/cell-P005-GLOBAL",
+          "item": "P005",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:71; lib/customer-portal/apiData.ts:186-620 and lib/customer-portal/publicDto.ts:424-453"
+        },
+        {
+          "cell_id": "REQ-002/cell-P058-GLOBAL",
+          "item": "P058",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:124; lib/customer-portal/apiData.ts:186-620 and lib/customer-portal/publicDto.ts:424-453"
+        }
+      ]
+    },
+    "REQ-003": {
+      "pattern": "parity",
+      "items": [
+        "P006",
+        "P041"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-003/cell-P006-GLOBAL",
+          "item": "P006",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:72; app/api/v1/customer/invoices/[id]/route.ts:27-48"
+        },
+        {
+          "cell_id": "REQ-003/cell-P041-GLOBAL",
+          "item": "P041",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:107; app/api/v1/customer/invoices/[id]/route.ts:27-48"
+        }
+      ]
+    },
+    "REQ-004": {
+      "pattern": "parity",
+      "items": [
+        "P007",
+        "P051",
+        "P052",
+        "P053",
+        "P054",
+        "P073"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-004/cell-P007-GLOBAL",
+          "item": "P007",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:73; lib/customer-portal/apiData.ts:186-218 and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-004/cell-P051-GLOBAL",
+          "item": "P051",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:117; lib/customer-portal/apiData.ts:186-218 and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-004/cell-P052-GLOBAL",
+          "item": "P052",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:118; lib/customer-portal/apiData.ts:186-218 and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-004/cell-P053-GLOBAL",
+          "item": "P053",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:119; lib/customer-portal/apiData.ts:186-218 and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-004/cell-P054-GLOBAL",
+          "item": "P054",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:120; lib/customer-portal/apiData.ts:186-218 and lib/customer-portal/externalApi.ts"
+        },
+        {
+          "cell_id": "REQ-004/cell-P073-GLOBAL",
+          "item": "P073",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:139; lib/customer-portal/apiData.ts:186-218 and lib/customer-portal/externalApi.ts"
+        }
+      ]
+    },
+    "REQ-005": {
+      "pattern": "parity",
+      "items": [
+        "P008",
+        "P009",
+        "P035"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-005/cell-P008-GLOBAL",
+          "item": "P008",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:74; lib/integrations/writeIdempotency.ts:76-225"
+        },
+        {
+          "cell_id": "REQ-005/cell-P009-GLOBAL",
+          "item": "P009",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:75; lib/integrations/writeIdempotency.ts:76-225"
+        },
+        {
+          "cell_id": "REQ-005/cell-P035-GLOBAL",
+          "item": "P035",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:101; lib/integrations/writeIdempotency.ts:76-225"
+        }
+      ]
+    },
+    "REQ-006": {
+      "pattern": "whitelist",
+      "items": [
+        "P010",
+        "P011",
+        "P012",
+        "P013",
+        "P014",
+        "P015",
+        "P016",
+        "P017",
+        "P018",
+        "P023",
+        "P024",
+        "P050",
+        "P052",
+        "P056",
+        "P057",
+        "P068",
+        "P070",
+        "P074"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-006/cell-P010-GLOBAL",
+          "item": "P010",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:76; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P011-GLOBAL",
+          "item": "P011",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:77; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P012-GLOBAL",
+          "item": "P012",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:78; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P013-GLOBAL",
+          "item": "P013",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:79; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P014-GLOBAL",
+          "item": "P014",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:80; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P015-GLOBAL",
+          "item": "P015",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:81; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P016-GLOBAL",
+          "item": "P016",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:82; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P017-GLOBAL",
+          "item": "P017",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:83; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P018-GLOBAL",
+          "item": "P018",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:84; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P023-GLOBAL",
+          "item": "P023",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:89; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P024-GLOBAL",
+          "item": "P024",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:90; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P050-GLOBAL",
+          "item": "P050",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:116; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P052-GLOBAL",
+          "item": "P052",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:118; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P056-GLOBAL",
+          "item": "P056",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:122; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P057-GLOBAL",
+          "item": "P057",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:123; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P068-GLOBAL",
+          "item": "P068",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:134; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P070-GLOBAL",
+          "item": "P070",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:136; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        },
+        {
+          "cell_id": "REQ-006/cell-P074-GLOBAL",
+          "item": "P074",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:140; lib/api/publicRouteRegistry.ts and docs/openapi/*.json"
+        }
+      ]
+    },
+    "REQ-007": {
+      "pattern": "whitelist",
+      "items": [
+        "P019",
+        "P020",
+        "P021",
+        "P022",
+        "P023",
+        "P055",
+        "P066",
+        "P067",
+        "P074"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-007/cell-P019-GLOBAL",
+          "item": "P019",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:85; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P020-GLOBAL",
+          "item": "P020",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:86; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P021-GLOBAL",
+          "item": "P021",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:87; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P022-GLOBAL",
+          "item": "P022",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:88; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P023-GLOBAL",
+          "item": "P023",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:89; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P055-GLOBAL",
+          "item": "P055",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:121; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P066-GLOBAL",
+          "item": "P066",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:132; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P067-GLOBAL",
+          "item": "P067",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:133; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        },
+        {
+          "cell_id": "REQ-007/cell-P074-GLOBAL",
+          "item": "P074",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:140; lib/integrations/tenantContext.ts and lib/integrations/tenantWebsiteProvisioning.ts"
+        }
+      ]
+    },
+    "REQ-008": {
+      "pattern": "compensation",
+      "items": [
+        "P022",
+        "P025",
+        "P026",
+        "P027",
+        "P028",
+        "P029",
+        "P030",
+        "P034",
+        "P054",
+        "P059",
+        "P062",
+        "P072",
+        "P073"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-008/cell-P022-GLOBAL",
+          "item": "P022",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:88; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P025-GLOBAL",
+          "item": "P025",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:91; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P026-GLOBAL",
+          "item": "P026",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:92; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P027-GLOBAL",
+          "item": "P027",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:93; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P028-GLOBAL",
+          "item": "P028",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:94; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P029-GLOBAL",
+          "item": "P029",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:95; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P030-GLOBAL",
+          "item": "P030",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:96; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P034-GLOBAL",
+          "item": "P034",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:100; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P054-GLOBAL",
+          "item": "P054",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:120; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P059-GLOBAL",
+          "item": "P059",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:125; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P062-GLOBAL",
+          "item": "P062",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:128; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P072-GLOBAL",
+          "item": "P072",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:138; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        },
+        {
+          "cell_id": "REQ-008/cell-P073-GLOBAL",
+          "item": "P073",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:139; lib/integrations/apiAuth.ts and lib/customer-portal/customerResolver.ts"
+        }
+      ]
+    },
+    "REQ-009": {
+      "pattern": "whitelist",
+      "items": [
+        "P031",
+        "P032",
+        "P033",
+        "P034",
+        "P049",
+        "P071",
+        "P072"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-009/cell-P031-GLOBAL",
+          "item": "P031",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:97; lib/website/publicContracts.ts"
+        },
+        {
+          "cell_id": "REQ-009/cell-P032-GLOBAL",
+          "item": "P032",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:98; lib/website/publicContracts.ts"
+        },
+        {
+          "cell_id": "REQ-009/cell-P033-GLOBAL",
+          "item": "P033",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:99; lib/website/publicContracts.ts"
+        },
+        {
+          "cell_id": "REQ-009/cell-P034-GLOBAL",
+          "item": "P034",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:100; lib/website/publicContracts.ts"
+        },
+        {
+          "cell_id": "REQ-009/cell-P049-GLOBAL",
+          "item": "P049",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:115; lib/website/publicContracts.ts"
+        },
+        {
+          "cell_id": "REQ-009/cell-P071-GLOBAL",
+          "item": "P071",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:137; lib/website/publicContracts.ts"
+        },
+        {
+          "cell_id": "REQ-009/cell-P072-GLOBAL",
+          "item": "P072",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:138; lib/website/publicContracts.ts"
+        }
+      ]
+    },
+    "REQ-010": {
+      "pattern": "whitelist",
+      "items": [
+        "P036",
+        "P037",
+        "P038",
+        "P039",
+        "P060"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-010/cell-P036-GLOBAL",
+          "item": "P036",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:102; lib/integrations/webhooks.ts"
+        },
+        {
+          "cell_id": "REQ-010/cell-P037-GLOBAL",
+          "item": "P037",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:103; lib/integrations/webhooks.ts"
+        },
+        {
+          "cell_id": "REQ-010/cell-P038-GLOBAL",
+          "item": "P038",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:104; lib/integrations/webhooks.ts"
+        },
+        {
+          "cell_id": "REQ-010/cell-P039-GLOBAL",
+          "item": "P039",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:105; lib/integrations/webhooks.ts"
+        },
+        {
+          "cell_id": "REQ-010/cell-P060-GLOBAL",
+          "item": "P060",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:126; lib/integrations/webhooks.ts"
+        }
+      ]
+    },
+    "REQ-011": {
+      "pattern": "parity",
+      "items": [
+        "P040",
+        "P041",
+        "P042",
+        "P044",
+        "P045",
+        "P046",
+        "P047",
+        "P048",
+        "P049",
+        "P051",
+        "P056",
+        "P057",
+        "P058",
+        "P059",
+        "P060",
+        "P061",
+        "P062",
+        "P063"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-011/cell-P040-GLOBAL",
+          "item": "P040",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:106; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P041-GLOBAL",
+          "item": "P041",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:107; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P042-GLOBAL",
+          "item": "P042",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:108; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P044-GLOBAL",
+          "item": "P044",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:110; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P045-GLOBAL",
+          "item": "P045",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:111; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P046-GLOBAL",
+          "item": "P046",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:112; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P047-GLOBAL",
+          "item": "P047",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:113; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P048-GLOBAL",
+          "item": "P048",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:114; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P049-GLOBAL",
+          "item": "P049",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:115; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P051-GLOBAL",
+          "item": "P051",
+          "site": "GLOBAL",
+          "present": true,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:117; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P056-GLOBAL",
+          "item": "P056",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:122; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P057-GLOBAL",
+          "item": "P057",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:123; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P058-GLOBAL",
+          "item": "P058",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:124; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P059-GLOBAL",
+          "item": "P059",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:125; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P060-GLOBAL",
+          "item": "P060",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:126; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P061-GLOBAL",
+          "item": "P061",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:127; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P062-GLOBAL",
+          "item": "P062",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:128; supabase/migrations, scripts and .github/workflows"
+        },
+        {
+          "cell_id": "REQ-011/cell-P063-GLOBAL",
+          "item": "P063",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:129; supabase/migrations, scripts and .github/workflows"
+        }
+      ]
+    },
+    "REQ-012": {
+      "pattern": "compensation",
+      "items": [
+        "P043",
+        "P046",
+        "P063",
+        "P064",
+        "P065",
+        "P071",
+        "P075"
+      ],
+      "sites": [
+        "GLOBAL"
+      ],
+      "cells": [
+        {
+          "cell_id": "REQ-012/cell-P043-GLOBAL",
+          "item": "P043",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:109; .agent-memory/verification-matrix.md and release manifest"
+        },
+        {
+          "cell_id": "REQ-012/cell-P046-GLOBAL",
+          "item": "P046",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:112; .agent-memory/verification-matrix.md and release manifest"
+        },
+        {
+          "cell_id": "REQ-012/cell-P063-GLOBAL",
+          "item": "P063",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:129; .agent-memory/verification-matrix.md and release manifest"
+        },
+        {
+          "cell_id": "REQ-012/cell-P064-GLOBAL",
+          "item": "P064",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:130; .agent-memory/verification-matrix.md and release manifest"
+        },
+        {
+          "cell_id": "REQ-012/cell-P065-GLOBAL",
+          "item": "P065",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:131; .agent-memory/verification-matrix.md and release manifest"
+        },
+        {
+          "cell_id": "REQ-012/cell-P071-GLOBAL",
+          "item": "P071",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:137; .agent-memory/verification-matrix.md and release manifest"
+        },
+        {
+          "cell_id": "REQ-012/cell-P075-GLOBAL",
+          "item": "P075",
+          "site": "GLOBAL",
+          "present": false,
+          "evidence": "../../upload/Pasted markdown(20260810-093430).md:141; .agent-memory/verification-matrix.md and release manifest"
+        }
+      ]
+    }
+  }
+}

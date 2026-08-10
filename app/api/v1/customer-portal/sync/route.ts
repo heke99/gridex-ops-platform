@@ -1,7 +1,14 @@
 //app/api/v1/customer-portal/sync/route.ts
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
+import {
+  ApiInputError,
+  claimPortalWriteIdempotency,
+  completePortalWriteIdempotency,
+  failPortalWriteIdempotency,
+  readJsonObject,
+  requireIdempotencyKey,
+} from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   logIntegrationApiRequest,
@@ -217,6 +224,7 @@ async function upsertIdentity(input: {
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+  let idempotencyRecordId: string | null = null
   const auth = await requireIntegrationApiAccess(request, ['customer_sync.write'])
 
   if (!auth.ok) {
@@ -225,6 +233,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const idempotencyKey = requireIdempotencyKey(request)
     const parsed = SyncPayloadSchema.safeParse(await readJsonObject(request))
     if (!parsed.success) {
       return customerPortalJson({
@@ -258,6 +267,21 @@ export async function POST(request: NextRequest) {
     const customerNumber = String(body.customer_number ?? '').trim()
     const identifier = normalizeDigits(body.personal_number ?? body.organization_number)
     const facilityId = String(body.facility_id ?? '').trim()
+    const claim = await claimPortalWriteIdempotency({
+      companyId: auth.context.companyId,
+      clientId: auth.client.id,
+      customerId: null,
+      operation: '/api/v1/customer-portal/sync',
+      idempotencyKey,
+      payload: body,
+    })
+    idempotencyRecordId = claim.recordId
+    if (claim.replay) {
+      return customerPortalJson(claim.responseBody, {
+        status: claim.statusCode ?? 200,
+        headers: { 'Idempotency-Replayed': 'true' },
+      })
+    }
 
     const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
     if (identityFactors < 2) {
@@ -279,7 +303,9 @@ export async function POST(request: NextRequest) {
         },
       })
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'rejected', identity_id: identity.id } })
-      return customerPortalJson({ data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } })
+      const responseBody = { data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } }
+      await completePortalWriteIdempotency({ recordId: claim.recordId, companyId: auth.context.companyId, statusCode: 200, responseBody })
+      return customerPortalJson(responseBody, { headers: { 'Idempotency-Replayed': 'false' } })
     }
 
     const candidates = await loadCandidates(auth.context.companyId, {
@@ -328,7 +354,7 @@ export async function POST(request: NextRequest) {
         },
       })
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
-      return customerPortalJson({ data: {
+      const responseBody = { data: {
         status: 'linked',
         customer_reference: externalCustomerId,
         customer_number: best.customer.customer_number,
@@ -338,7 +364,9 @@ export async function POST(request: NextRequest) {
         portal_role: 'owner',
         created: false,
         access_granted: true,
-      } })
+      } }
+      await completePortalWriteIdempotency({ recordId: claim.recordId, companyId: auth.context.companyId, statusCode: 200, responseBody })
+      return customerPortalJson(responseBody, { headers: { 'Idempotency-Replayed': 'false' } })
     }
 
     const identity = await upsertIdentity({
@@ -361,13 +389,22 @@ export async function POST(request: NextRequest) {
 
     const outcome = best ? 'pending_review' : 'lead_created'
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
-    return customerPortalJson({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
+    const responseBody = { data: { outcome, status: 'pending_review', access_granted: false } }
+    await completePortalWriteIdempotency({ recordId: claim.recordId, companyId: auth.context.companyId, statusCode: 200, responseBody })
+    return customerPortalJson(responseBody, { headers: { 'Idempotency-Replayed': 'false' } })
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
     const errorCode = controlled ? error.code : 'portal_sync_failed'
     const clientMessage = controlled ? error.message : 'Kundlänkning kunde inte behandlas.'
     const errorMetadata = serializePortalSyncError(error)
+    if (idempotencyRecordId) {
+      await failPortalWriteIdempotency({
+        recordId: idempotencyRecordId,
+        companyId: auth.context.companyId,
+        errorCode,
+      }).catch(() => undefined)
+    }
     await logIntegrationApiRequest({
       client: auth.client,
       request,

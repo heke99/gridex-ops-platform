@@ -1,0 +1,10 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-009: regression_bug_009_webhooks_fail_closed_per_tenant — apply quality/patches/BUG-009-fix.patch', () => {
++    const webhooks = source('lib/integrations/webhooks.ts')
++    expect(webhooks).toContain('WEBHOOK_EVENT_REGISTRY')
++    expect(webhooks).not.toContain('WEBHOOK_SIGNING_SECRET_FALLBACK')
++    expect(webhooks).not.toContain('sanitizeWebhookData')
++  })

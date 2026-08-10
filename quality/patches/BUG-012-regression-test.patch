@@ -1,0 +1,11 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-012: regression_bug_012_public_contracts_use_projection_and_early_fingerprint — apply quality/patches/BUG-012-fix.patch', () => {
++    const reads = source('lib/website/publicContracts.ts')
++    expect(reads).not.toMatch(/\.select\(\s*['"]\*['"]\s*\)/)
++    const route = source('app/api/v1/website/public-contracts/route.ts')
++    expect(route).toContain('public_contract_feed_fingerprint_v1')
++    expect(route.indexOf('public_contract_feed_fingerprint_v1')).toBeLessThan(route.indexOf('loadPublicContracts'))
++  })

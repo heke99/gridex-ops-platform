@@ -30,10 +30,13 @@ begin
   );
 
   if v_patched = v_definition then
-    raise exception 'portfolio_lock_transition_patch_not_applied';
+    if v_definition !~
+      'set[[:space:]]+status[[:space:]]*=[[:space:]]*''locked''[[:space:]]*,[[:space:]]*locked_by[[:space:]]*=[[:space:]]*p_actor_user_id[[:space:]]*,[[:space:]]*locked_at[[:space:]]*=[[:space:]]*v_now[[:space:]]+where[[:space:]]+id[[:space:]]*=[[:space:]]*v_row[.]id' then
+      raise exception 'portfolio_lock_transition_patch_not_applied';
+    end if;
+  else
+    execute v_patched;
   end if;
-
-  execute v_patched;
 end $$;
 
 commit;

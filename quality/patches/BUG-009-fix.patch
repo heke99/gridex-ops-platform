@@ -1,0 +1,11 @@
+diff --git a/lib/integrations/webhooks.ts b/lib/integrations/webhooks.ts
+--- a/lib/integrations/webhooks.ts
++++ b/lib/integrations/webhooks.ts
+@@
++export const WEBHOOK_EVENT_REGISTRY = defineWebhookEvents({
++  'contract.application_received': applicationReceivedEventV1,
++})
+@@ signingSecret
+-  return subscription.signing_secret_ref ?? process.env.WEBHOOK_SIGNING_SECRET_FALLBACK
++  if (!subscription.signing_secret_ref) throw new Error('webhook_signing_secret_missing')
++  return resolveSubscriptionSecret(subscription.signing_secret_ref)

@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-011 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++ Received:
+undefined
+
+ ❯ quality/test_regression_red.test.ts:103:95
+    101|
+    102|   it('BUG-011: regression_bug_011_serializer_rejects_internal_fields —…
+    103|     expect(() => customerPortalJson({ data: { nested: { company_id: 't…
+       |                                                                                               ^
+    104|   })
+    105|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:11
+   Duration  531ms (transform 255ms, setup 37ms, import 321ms, tests 10ms, environment 0ms)

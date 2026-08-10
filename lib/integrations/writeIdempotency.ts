@@ -184,11 +184,6 @@ export async function claimIntegrationWriteIdempotency(input: {
   })
 }
 
-/**
- * Completion happens after the business mutation. It is therefore best effort:
- * an observability/idempotency persistence outage must not rewrite a committed
- * quote or application into a false HTTP 500.
- */
 export async function completeIntegrationWriteIdempotency(input: {
   recordId: string | null
   companyId: string
@@ -197,41 +192,32 @@ export async function completeIntegrationWriteIdempotency(input: {
 }): Promise<boolean> {
   if (!input.recordId) return true
 
-  try {
-    const completedAt = new Date().toISOString()
-    const { data, error } = await supabaseService
-      .from('integration_api_write_idempotency')
-      .update({
-        status: 'completed',
-        response_status: input.statusCode,
-        response_body: input.responseBody,
-        error_code: null,
-        completed_at: completedAt,
-        updated_at: completedAt,
-      })
-      .eq('id', input.recordId)
-      .eq('company_id', input.companyId)
-      .eq('status', 'processing')
-      .select('id')
-      .maybeSingle()
-
-    if (error || !data) {
-      console.error('[integration-write-idempotency] completion_failed', {
-        recordId: input.recordId,
-        companyId: input.companyId,
-        errorCode: databaseCode(error),
-      })
-      return false
-    }
-    return true
-  } catch (error) {
-    console.error('[integration-write-idempotency] completion_unavailable', {
-      recordId: input.recordId,
-      companyId: input.companyId,
-      errorCode: databaseCode(error),
+  const completedAt = new Date().toISOString()
+  const { data, error } = await supabaseService
+    .from('integration_api_write_idempotency')
+    .update({
+      status: 'completed',
+      response_status: input.statusCode,
+      response_body: input.responseBody,
+      error_code: null,
+      completed_at: completedAt,
+      updated_at: completedAt,
     })
-    return false
+    .eq('id', input.recordId)
+    .eq('company_id', input.companyId)
+    .eq('status', 'processing')
+    .select('id')
+    .maybeSingle()
+
+  if (error || !data) {
+    throw new IntegrationWriteIdempotencyError({
+      message: 'Affärssvaret kunde inte bindas atomiskt till Idempotency-Key. Svaret hålls tillbaka och anropet får återförsökas.',
+      code: 'idempotency_completion_unavailable',
+      status: 503,
+      retryable: true,
+    })
   }
+  return true
 }
 
 export async function failIntegrationWriteIdempotency(input: {

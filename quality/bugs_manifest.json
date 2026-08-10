@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.5.3",
+  "generated_at": "2026-08-10T19:35:00Z",
+  "records": [
+    {
+      "id": "BUG-001",
+      "requirement": "REQ-002",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-002",
+      "requirement": "REQ-003",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-003",
+      "requirement": "REQ-004",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-004",
+      "requirement": "REQ-007",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-005",
+      "requirement": "REQ-005",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-006",
+      "requirement": "REQ-006",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-007",
+      "requirement": "REQ-006",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-008",
+      "requirement": "REQ-011",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-009",
+      "requirement": "REQ-010",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-010",
+      "requirement": "REQ-008",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-011",
+      "requirement": "REQ-001",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-012",
+      "requirement": "REQ-009",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-013",
+      "requirement": "REQ-008",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    },
+    {
+      "id": "BUG-014",
+      "requirement": "REQ-007",
+      "disposition": "code-fix",
+      "disposition_rationale": "Executable red-phase regression confirms a code/spec divergence in the current source.",
+      "fix_type": "code",
+      "divergence_type": "code-spec"
+    }
+  ]
+}

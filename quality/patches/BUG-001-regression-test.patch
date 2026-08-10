@@ -1,0 +1,12 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-001: regression_bug_001_reaches_row_1001 — apply quality/patches/BUG-001-fix.patch', () => {
++    const data = source('lib/customer-portal/apiData.ts')
++    for (const fn of ['listPortalContracts', 'listPortalSites', 'listPortalInvoices', 'listPortalDocuments', 'listPortalEvents']) {
++      const body = data.slice(data.indexOf(`export async function ${fn}`), data.indexOf('\nexport async function', data.indexOf(`export async function ${fn}`) + 1))
++      expect(body).not.toMatch(/\.limit\((100|200|1000)\)/)
++      expect(body).toMatch(/limit\s*\+\s*1|pageSize\s*\+\s*1/)
++    }
++  })

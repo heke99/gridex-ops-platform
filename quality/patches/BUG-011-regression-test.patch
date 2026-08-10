@@ -1,0 +1,7 @@
+diff --git a/quality/test_regression.test.ts b/quality/test_regression.test.ts
+--- a/quality/test_regression.test.ts
++++ b/quality/test_regression.test.ts
+@@ Gridex remediation regressions @@
++  it.fails('BUG-011: regression_bug_011_serializer_rejects_internal_fields — apply quality/patches/BUG-011-fix.patch', () => {
++    expect(() => customerPortalJson({ data: { nested: { company_id: 'tenant-internal' } } })).toThrow(/forbidden|public/i)
++  })

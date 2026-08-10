@@ -1,0 +1,13 @@
+diff --git a/lib/integrations/writeIdempotency.ts b/lib/integrations/writeIdempotency.ts
+--- a/lib/integrations/writeIdempotency.ts
++++ b/lib/integrations/writeIdempotency.ts
+@@ completeIntegrationWriteIdempotency
+-  // Completion is best effort after the business mutation.
+-  if (error) console.error('[idempotency] completion failed', error)
++  if (error) {
++    throw new IntegrationWriteIdempotencyError({
++      status: 503,
++      code: 'idempotency_completion_failed',
++      retryable: true,
++    })
++  }

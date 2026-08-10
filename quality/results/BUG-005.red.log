@@ -1,0 +1,23 @@
+RED
+Command: npx vitest run --config quality/vitest.config.ts quality/test_regression_red.test.ts -t BUG-005 --reporter=dot
+Exit: 1
+Expected: exit 1 because desired behavior is absent on unpatched source.
+
++   }
++ }
+
+ ❯ quality/test_regression_red.test.ts:47:28
+
+     45|     const completion = idempotency.slice(idempotency.indexOf('complete…
+     46|     expect(completion).not.toContain('best effort')
+     47|     expect(completion).not.toContain('console.error')
+       |                            ^
+     48|     expect(completion).toMatch(/throw|rpc\(/)
+     49|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  19:18:04
+   Duration  475ms (transform 240ms, setup 20ms, import 314ms, tests 10ms, environment 0ms)
