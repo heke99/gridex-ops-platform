@@ -368,8 +368,9 @@ describe('Boundaries and edge cases', () => {
     })
     expect(page.page.next_cursor).toBeTruthy()
     const cursor = page.page.next_cursor!
+    const tamperedCursor = `${cursor.slice(0, -1)}${cursor.endsWith('A') ? 'B' : 'A'}`
     expect(() => decodePortalCursor({
-      cursor: `${cursor.slice(0, -1)}A`,
+      cursor: tamperedCursor,
       companyId: tenantA,
       customerId: internalId,
       resource: 'contracts',

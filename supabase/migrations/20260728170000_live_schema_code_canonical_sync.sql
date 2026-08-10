@@ -754,29 +754,37 @@ begin
 end
 $$;
 
-select public.gridex__repair_replace_function_text(
-  'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)',
-  $$update public.customer_application_workflows
-  set state=p_to_state,
-      next_action=coalesce(p_metadata->>'next_action',next_action),
-      snapshot=coalesce(snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
-      failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),failure_code) else null end,
-      completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
-      last_transition_at=now(),
-      workflow_version=workflow_version+1,
-      updated_at=now()
-  where id=v_row.id$$,
-  $$update public.customer_application_workflows workflow
-  set state=p_to_state,
-      next_action=coalesce(p_metadata->>'next_action',workflow.next_action),
-      snapshot=coalesce(workflow.snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
-      failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),workflow.failure_code) else null end,
-      completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
-      last_transition_at=now(),
-      workflow_version=workflow.workflow_version+1,
-      updated_at=now()
-  where workflow.id=v_row.id$$
-);
+do $repair$
+begin
+  if to_regprocedure(
+    'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)'
+  ) is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)',
+      $$update public.customer_application_workflows
+      set state=p_to_state,
+          next_action=coalesce(p_metadata->>'next_action',next_action),
+          snapshot=coalesce(snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
+          failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),failure_code) else null end,
+          completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
+          last_transition_at=now(),
+          workflow_version=workflow_version+1,
+          updated_at=now()
+      where id=v_row.id$$,
+      $$update public.customer_application_workflows workflow
+      set state=p_to_state,
+          next_action=coalesce(p_metadata->>'next_action',workflow.next_action),
+          snapshot=coalesce(workflow.snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
+          failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),workflow.failure_code) else null end,
+          completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
+          last_transition_at=now(),
+          workflow_version=workflow.workflow_version+1,
+          updated_at=now()
+      where workflow.id=v_row.id$$
+    );
+  end if;
+end
+$repair$;
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_is_current_session_allowed()',

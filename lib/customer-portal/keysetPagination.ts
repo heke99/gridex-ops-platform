@@ -62,6 +62,7 @@ export function decodePortalCursor(input: {
   if (!input.cursor) return null
   try {
     const bytes = Buffer.from(input.cursor, 'base64url')
+    if (bytes.toString('base64url') !== input.cursor) throw new PortalCursorError()
     if (bytes.length < 29) throw new PortalCursorError()
     const decipher = createDecipheriv('aes-256-gcm', cursorKey(), bytes.subarray(0, 12))
     decipher.setAuthTag(bytes.subarray(12, 28))
