@@ -67,6 +67,7 @@ vi.mock('@/lib/website/publicContractApi', async (importOriginal) => {
   >()
   return {
     ...actual,
+    loadPublicContractFeedFingerprint: vi.fn(async () => null),
     loadPublicationRevision: vi.fn(async () => ({
       etag: '"contracts-test"',
       revision: publicContractsFixture.meta.publication_revision,
