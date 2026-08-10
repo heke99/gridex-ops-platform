@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { requireAdminAccess, requireCompanyScopedActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { requireAdminAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
@@ -1150,11 +1150,12 @@ export async function requeueWebsiteApplicationContinuationAction(formData: Form
   if (workflowResult.error) throw workflowResult.error
   const workflow = workflowResult.data as { id: string; state: string; last_job_id: string | null } | null
   if (!workflow) {
+    const platformAdmin = await requirePlatformAdminActionAccess()
     const { data: repair, error: repairError } = await supabaseService.rpc(
       'canonical_queue_customer_application_repair',
       {
         p_application_id: application.id,
-        p_actor_user_id: admin.userId,
+        p_actor_user_id: platformAdmin.userId,
       },
     )
     if (repairError) throw repairError
