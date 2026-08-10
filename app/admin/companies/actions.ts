@@ -342,7 +342,7 @@ export async function inviteCompanyUserAction(
       actorUserId,
       companyId,
       targetUserId: invitation.userId,
-      reason: 'Verifierad Auth-inbjudan skapades',
+      reason: 'Verifierad Auth-inbjudan köades för leased provider delivery',
       metadata: { membershipRole, roleKey, email, accountFlow: 'verified_auth_invitation_link' },
     })
 
@@ -353,7 +353,7 @@ export async function inviteCompanyUserAction(
 
     return {
       ok: true,
-      message: 'Inbjudningslänken skickades. Åtkomst skapas först när rätt Auth-användare har verifierat och accepterat länken.',
+      message: 'Inbjudan köades för säker leverans. Åtkomst skapas först när rätt Auth-användare har verifierat och accepterat länken.',
     }
   } catch (error) {
     return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }
