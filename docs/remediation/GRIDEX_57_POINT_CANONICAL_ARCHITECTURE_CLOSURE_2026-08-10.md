@@ -9,11 +9,12 @@ Decision: **release candidate; merge only after the post-review hosted gates are
 
 The 57-point canonical architecture remediation is implemented in the existing platform. The work consolidates tenant access, lifecycle, provisioning, invitation delivery, application repair, reconciliation, release evidence and performance budgets behind canonical, fail-closed boundaries. No parallel platform was introduced.
 
-The original uploaded archive was confirmed to match `main@e8586c1ba112213a0f11da16ee3a5ae15386dc69`. Seven previously deployed migrations were recovered exactly from the connected database and checksum-pinned. Three forward migrations complete the architecture and review hotfixes:
+The original uploaded archive was confirmed to match `main@e8586c1ba112213a0f11da16ee3a5ae15386dc69`. Seven previously deployed migrations were recovered exactly from the connected database and checksum-pinned. Four forward migrations complete the architecture and review hotfixes:
 
 - `20260810213851_canonical_architecture_completion_v2.sql`
 - `20260810214927_canonical_architecture_completion_fk_indexes.sql`
 - `20260810221500_canonical_invitation_delivery_hotfix.sql`
+- `20260810224500_canonical_review_remediation_v1.sql`
 
 ## Closure evidence
 
@@ -35,7 +36,7 @@ The original uploaded archive was confirmed to match `main@e8586c1ba112213a0f11d
 
 Connected project: `gridex-ops-dev` (`piidsfebjqjmnepdpnas`).
 
-Latest migration: `20260810221500_canonical_invitation_delivery_hotfix.sql`.
+Latest source migration: `20260810224500_canonical_review_remediation_v1.sql`.
 
 Post-migration invariants:
 
@@ -57,7 +58,7 @@ The pre-review-fix candidate passed all three required GitHub jobs in run `31435
 - verify: migration integrity, memory/provenance, typecheck, regressions and security
 - quality release gates: lint, mechanical checks, application/quality tests, API/OpenAPI/RBAC and production build
 
-Code review then found and caused two forward-only fixes: exclusive worker ownership of invitation delivery and the explicit pgcrypto schema. A new hosted run is required and must pass before merge.
+Code review produced a second remediation pass covering lifecycle version/idempotency guards, multi-company permission aggregation, private credential comparison with secret-free public RPC results, worker lease recovery, audited offboarding, truthful repair jobs and bounded six-check reconciliation. Hosted run `31437386052` passed verify and clean replay on that implementation; the final branch head must still pass every required job before merge.
 
 ## External configuration truth
 
