@@ -133,15 +133,15 @@ async function setCompanyStatus(input: {
   actorUserId: string
   reason: string | null
 }) {
-  const { data: transition, error: transitionError } = await supabaseService.rpc(
-    'gridex_transition_tenant_lifecycle',
-    {
+  const { data: transition, error: transitionError } = await supabaseService
+    .rpc('canonical_transition_tenant_lifecycle', {
       p_company_id: input.companyId,
-      p_next_status: input.status,
-      p_actor_user_id: input.actorUserId,
+      p_target_status: input.status,
+      p_expected_state_version: null,
       p_reason: input.reason,
-    },
-  )
+      p_actor_user_id: input.actorUserId,
+      p_idempotency_key: `tenant-lifecycle:${input.companyId}:${input.status}:${randomUUID()}`,
+    })
   if (transitionError) throw transitionError
   const result = transition as {
     ok?: boolean
