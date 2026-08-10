@@ -729,33 +729,30 @@ begin
     'select[[:space:]]+id[[:space:]]*,[[:space:]]*operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id',
     E'select workflow.id,workflow.operation_id\n  into v_workflow_id,v_existing_operation_id'
   );
+  v_repaired := regexp_replace(
+    v_repaired,
+    'where[[:space:]]+company_id[[:space:]]*=[[:space:]]*p_company_id[[:space:]]+and[[:space:]]+customer_application_id[[:space:]]*=[[:space:]]*p_customer_application_id',
+    E'where workflow.company_id=p_company_id\n    and workflow.customer_application_id=p_customer_application_id'
+  );
+  v_repaired := regexp_replace(
+    v_repaired,
+    'from[[:space:]]+public[.]customer_application_workflows[[:space:]]+where[[:space:]]+workflow[.]company_id[[:space:]]*=[[:space:]]*p_company_id',
+    E'from public.customer_application_workflows workflow\n  where workflow.company_id=p_company_id'
+  );
 
   if v_repaired <> v_definition then
     execute v_repaired;
   elsif v_definition !~
-    'select[[:space:]]+workflow[.]id[[:space:]]*,[[:space:]]*workflow[.]operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id' then
+    'select[[:space:]]+workflow[.]id[[:space:]]*,[[:space:]]*workflow[.]operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id'
+    or v_definition !~
+    'from[[:space:]]+public[.]customer_application_workflows[[:space:]]+workflow[[:space:]]+where[[:space:]]+workflow[.]company_id[[:space:]]*=[[:space:]]*p_company_id[[:space:]]+and[[:space:]]+workflow[.]customer_application_id[[:space:]]*=[[:space:]]*p_customer_application_id' then
     raise exception using
       errcode = '55000',
       message = 'gridex_repair_unexpected_function_definition:' || v_signature,
-      detail = 'unqualified workflow id projection';
+      detail = 'unqualified customer application workflow lookup';
   end if;
 end
 $$;
-
-select public.gridex__repair_replace_function_text(
-  'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
-  $$where company_id=p_company_id and customer_application_id=p_customer_application_id$$,
-  $$where workflow.company_id=p_company_id
-    and workflow.customer_application_id=p_customer_application_id$$
-);
-
-select public.gridex__repair_replace_function_text(
-  'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
-  $$from public.customer_application_workflows
-  where workflow.company_id=p_company_id$$,
-  $$from public.customer_application_workflows workflow
-  where workflow.company_id=p_company_id$$
-);
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)',
