@@ -34,6 +34,12 @@ function verifiedLiveSchemaEvidence(meta) {
     Array.isArray(meta.signatures) &&
     meta.signatures.length > 0;
 }
+function assertLiveSchemaArtifactSyntax(filePath, rel) {
+  const source = fs.readFileSync(filePath, 'utf8');
+  if (/\$[A-Za-z0-9_]*\$(?!;)[ \t]*\n[ \t]*(?:revoke|grant|create)\b/i.test(source)) {
+    fail(`verified live-schema function is missing a statement terminator: ${rel}`);
+  }
+}
 
 const manifest = readJson(manifestPath, { files: {} });
 const manifestAdditions = readJson(manifestAdditionsPath, { files: {} });
@@ -70,6 +76,8 @@ for (const rel of orderedFoundation) {
       if (!meta.source || !fs.existsSync(sourcePath)) fail(`derived bootstrap source missing: ${rel}`);
       const expected = pinned[path.basename(sourcePath)];
       if (!expected || sha256(sourcePath) !== expected) fail(`derived bootstrap source checksum drift: ${meta.source}`);
+    } else {
+      assertLiveSchemaArtifactSyntax(filePath, rel);
     }
   } else {
     const expected = pinned[path.basename(filePath)];
@@ -90,6 +98,8 @@ for (const item of interleaved) {
     const sourcePath = path.join(supabaseDir, meta.source || '');
     const expected = pinned[path.basename(sourcePath)];
     if (!meta.source || !fs.existsSync(sourcePath) || !expected || sha256(sourcePath) !== expected) fail(`interleaved source drift: ${rel}`);
+  } else {
+    assertLiveSchemaArtifactSyntax(filePath, rel);
   }
 }
 
