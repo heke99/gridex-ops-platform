@@ -56,7 +56,7 @@ control('C24', completion.includes('platform_release_receipts'), 'release receip
 control('C25', completion.includes('platform_performance_budgets'), 'performance budget contract is missing')
 control('C26', completion.includes('check_error'), 'fail-closed reconciliation evidence is missing')
 control('C27', completion.includes('canonical_queue_customer_application_repair'), 'canonical application repair RPC is missing')
-control('C28', indexes.includes('customer_operation_jobs_review_owner_user_idx') && indexes.includes('platform_release_receipts_deployed_by_idx'), 'review/release foreign-key indexes are missing')
+control('C28', indexes.includes('customer_operation_jobs_review_owner_user_idx') && indexes.includes('platform_release_receipts_recorded_by_idx'), 'review/release foreign-key indexes are missing')
 control('C29', inviteHotfix.includes('extensions, pg_temp'), 'invitation token hashing cannot resolve pgcrypto')
 control('C30', review.includes('private.authenticate_integration_request_v1_secret_internal'), 'credential comparison core is not private')
 control('C31', !review.includes('readiness.secret_hash') && !review.includes('checked.secret_hash'), 'public authentication wrappers still select secret_hash')
@@ -97,7 +97,7 @@ for (const [id, name] of pinnedMigrations) {
   control(id, migrationManifest.files[name] === hash(`supabase/migrations/${name}`), `migration checksum drifted: ${name}`)
 }
 control('C55', typesManifest.sha256 === hash(typesManifest.generated_types), 'generated database types hash drifted')
-control('C56', typesManifest.latest_migration === '20260810224500_canonical_review_remediation_v1.sql', 'generated types are not pinned to the migration tail')
+control('C56', typesManifest.latest_migration === '20260810230000_gridex_ops_o008_public_privilege_hardening.sql', 'generated types are not pinned to the migration tip')
 
 function returnBlock(name) {
   const start = databaseTypes.indexOf(`      ${name}: {`)

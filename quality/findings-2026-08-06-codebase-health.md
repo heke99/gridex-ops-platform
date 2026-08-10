@@ -31,10 +31,11 @@ Based on `main` after GRIDEX-OPS-BL-002 (`bb877506`) plus the PHASE-45 health pa
 | O-002 | PENDING | Live quote create → validate E2E after deploy |
 | O-003 | PENDING | Private/business legal-bundle → POA → supplier-switch E2E (PHASE-44) |
 | O-004 | OPEN | Prefer one health merge onto main; close overlapping siblings `#75`–`#81` / `#83` |
-| O-005 | OPEN | BL-002 variant: `platform_actor_contacts` still has broad authenticated SELECT (`auth.uid() is not null`) — dedicated RLS remediation, not this app fix PR |
-| O-006 | OPEN | BL-002 variant: `platform_address_lookup_cache` / `platform_energy_lookup_cache` broad authenticated SELECT — dedicated RLS remediation |
+| O-005 | CODE_REMEDIATED | BL-006 (`20260809123000`, #95) isolates contacts/lookup-cache reads to platform-admin/service-role. |
+| O-006 | CODE_REMEDIATED | Covered by BL-006 with O-005. |
 | O-007 | OPEN | Admin `/admin/network-owners` import history can look empty if app platform-admin gate and `gridex_user_is_platform_admin()` (email confirmed) diverge — align guard or service-role read after gate |
-| O-008 | OPEN | `actor_readiness_status` (security_invoker) can under-count conflicts for non-admin JWT; current app uses service role — revoke authenticated SELECT or keep consumers on service role |
+| O-008 | CODE_REMEDIATED_PUBLIC_PENDING_APPLY | Base conflict-count fix is on main (`20260809131500`). Post-#105 tip residual `20260810230000` revokes PUBLIC grants on readiness surfaces; keep `actor_readiness_status` authenticated SELECT for `gridex_verified_grid_owners_v`, dashboard views service-role only. Staging apply still required. |
+| C28 | FIXED_STATIC | `#105` 57-control script asserted non-existent `platform_release_receipts_deployed_by_idx`; schema/index use `recorded_by` / `platform_release_receipts_recorded_by_idx`. Control corrected and wired into OPS hardening CI. |
 
 ## Unverified / out of scope this pass
 

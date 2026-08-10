@@ -20,6 +20,8 @@ jobs:
       - run: node scripts/check-agent-memory-git-state.cjs
       - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
       - run: node scripts/gridex-ops-health-regression.cjs
+      - run: npm run gridex:canonical-architecture-57-regression
+      - run: npm run gridex:o008-public-privilege-hardening-regression
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs

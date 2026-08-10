@@ -3,5 +3,5 @@
   "generated_at": "2026-08-10T21:45:00.000Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "38bbd774f47d23f8b7ce7572123e180630e6cf0f66833e0d7a468146306297e7",
-  "latest_migration": "20260810224500_canonical_review_remediation_v1.sql"
+  "latest_migration": "20260810230000_gridex_ops_o008_public_privilege_hardening.sql"
 }
