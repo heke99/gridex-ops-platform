@@ -786,33 +786,39 @@ begin
 end
 $repair$;
 
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$  v_disabled_at timestamptz;
+do $repair$
+begin
+  if to_regprocedure('public.gridex_is_current_session_allowed()') is not null then
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      $$  v_disabled_at timestamptz;
 begin$$,
-  $$begin$$
-);
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$select user_status, disabled_at
+      $$begin$$
+    );
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      $$select user_status, disabled_at
     into v_status, v_disabled_at$$,
-  $$select profile.user_status
+      $$select profile.user_status
     into v_status$$
-);
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  'from public.user_profiles',
-  'from public.user_profiles profile'
-);
-select public.gridex__repair_replace_function_text(
-  'public.gridex_is_current_session_allowed()',
-  $$  if v_disabled_at is not null then
+    );
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      'from public.user_profiles',
+      'from public.user_profiles profile'
+    );
+    perform public.gridex__repair_replace_function_text(
+      'public.gridex_is_current_session_allowed()',
+      $$  if v_disabled_at is not null then
     return false;
   end if;
 
 $$,
-  ''
-);
+      ''
+    );
+  end if;
+end
+$repair$;
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_customer_cleanup_external_ref(uuid)',
