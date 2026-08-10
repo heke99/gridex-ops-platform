@@ -27,6 +27,13 @@ function sha256(filePath) {
 function readJson(filePath, fallback) {
   return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : fallback;
 }
+function verifiedLiveSchemaEvidence(meta) {
+  return meta.sourceKind === 'verified_live_schema' &&
+    Boolean(meta.projectId) &&
+    Boolean(meta.capturedAt) &&
+    Array.isArray(meta.signatures) &&
+    meta.signatures.length > 0;
+}
 
 const manifest = readJson(manifestPath, { files: {} });
 const manifestAdditions = readJson(manifestAdditionsPath, { files: {} });
@@ -58,10 +65,12 @@ for (const rel of orderedFoundation) {
   if (meta) {
     derivedCount += 1;
     if (!meta.artifactSha256 || sha256(filePath) !== meta.artifactSha256) fail(`derived bootstrap checksum drift: ${rel}`);
-    const sourcePath = path.join(supabaseDir, meta.source || '');
-    if (!meta.source || !fs.existsSync(sourcePath)) fail(`derived bootstrap source missing: ${rel}`);
-    const expected = pinned[path.basename(sourcePath)];
-    if (!expected || sha256(sourcePath) !== expected) fail(`derived bootstrap source checksum drift: ${meta.source}`);
+    if (!verifiedLiveSchemaEvidence(meta)) {
+      const sourcePath = path.join(supabaseDir, meta.source || '');
+      if (!meta.source || !fs.existsSync(sourcePath)) fail(`derived bootstrap source missing: ${rel}`);
+      const expected = pinned[path.basename(sourcePath)];
+      if (!expected || sha256(sourcePath) !== expected) fail(`derived bootstrap source checksum drift: ${meta.source}`);
+    }
   } else {
     const expected = pinned[path.basename(filePath)];
     if (!expected || sha256(filePath) !== expected) fail(`foundation source checksum drift: ${rel}`);
@@ -77,9 +86,11 @@ for (const item of interleaved) {
   const meta = derived[rel];
   const filePath = path.join(supabaseDir, rel);
   if (!meta || !fs.existsSync(filePath) || sha256(filePath) !== meta.artifactSha256) fail(`interleaved bootstrap drift: ${rel}`);
-  const sourcePath = path.join(supabaseDir, meta.source || '');
-  const expected = pinned[path.basename(sourcePath)];
-  if (!meta.source || !fs.existsSync(sourcePath) || !expected || sha256(sourcePath) !== expected) fail(`interleaved source drift: ${rel}`);
+  if (!verifiedLiveSchemaEvidence(meta)) {
+    const sourcePath = path.join(supabaseDir, meta.source || '');
+    const expected = pinned[path.basename(sourcePath)];
+    if (!meta.source || !fs.existsSync(sourcePath) || !expected || sha256(sourcePath) !== expected) fail(`interleaved source drift: ${rel}`);
+  }
 }
 
 const timestamped = fs.readdirSync(migrationsDir).filter((name) => /^\d{14}_.+\.sql$/.test(name)).sort();

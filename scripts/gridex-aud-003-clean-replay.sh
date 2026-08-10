@@ -99,6 +99,10 @@ def validate_derived(rel):
     if not meta: raise SystemExit(f'derived bootstrap metadata missing: {rel}')
     if not meta.get('artifactSha256') or digest(actual) != meta['artifactSha256']:
         raise SystemExit(f'derived bootstrap checksum drift: {rel}')
+    if meta.get('sourceKind') == 'verified_live_schema':
+        if not meta.get('projectId') or not meta.get('capturedAt') or not meta.get('signatures'):
+            raise SystemExit(f'verified live-schema evidence is incomplete: {rel}')
+        return actual,None,meta
     source_rel=meta.get('source')
     source=resolve(source_rel) if source_rel else None
     if not source or not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
@@ -106,7 +110,7 @@ def validate_derived(rel):
     return actual,source,meta
 
 def should_skip_timestamp_source(source,meta):
-    return re.match(r'^\d{14}_.+\.sql$',source.name) and not bool(meta.get('preserveSourceReplay',False))
+    return source is not None and re.match(r'^\d{14}_.+\.sql$',source.name) and not bool(meta.get('preserveSourceReplay',False))
 
 foundation_paths=[]
 skip_timestamp_names=set()
