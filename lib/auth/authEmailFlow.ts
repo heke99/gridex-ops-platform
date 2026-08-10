@@ -250,69 +250,6 @@ export async function sendConfirmationEmailForKnownUser(input: {
   return user
 }
 
-export async function acceptPendingCompanyInvitationsForUser(user: User) {
-  const email = normalizeEmail(user.email)
-  if (!email) return
-
-  const { data: pendingInvites, error: selectError } = await supabaseService
-    .from('company_invitations')
-    .select('id, company_id, email, membership_role, role_key')
-    .eq('email', email)
-    .eq('status', 'pending')
-
-  if (selectError) {
-    if (isIgnorableSchemaError(selectError)) return
-    throw selectError
-  }
-
-  if (!pendingInvites || pendingInvites.length === 0) return
-
-  const now = new Date().toISOString()
-
-  const { error: inviteUpdateError } = await supabaseService
-    .from('company_invitations')
-    .update({
-      status: 'accepted',
-      accepted_at: now,
-      invited_user_id: user.id,
-      metadata: {
-        accepted_via: 'auth_email_action',
-      },
-    })
-    .eq('email', email)
-    .eq('status', 'pending')
-
-  if (inviteUpdateError && !isIgnorableSchemaError(inviteUpdateError)) throw inviteUpdateError
-
-  for (const invite of pendingInvites as Array<{ company_id: string; membership_role?: string | null }>) {
-    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-      {
-        company_id: invite.company_id,
-        user_id: user.id,
-        membership_role: invite.membership_role || 'member',
-        status: 'active',
-        invited_email: email,
-        accepted_at: now,
-        metadata: {
-          accepted_via: 'auth_email_action',
-        },
-      },
-      { onConflict: 'company_id,user_id' }
-    )
-
-    if (membershipError && !isIgnorableSchemaError(membershipError)) throw membershipError
-
-    await recordAuthEmailEvent({
-      userId: user.id,
-      email,
-      eventType: 'company_invitation_accepted',
-      status: 'accepted',
-      source: 'auth_action',
-      companyId: invite.company_id,
-    })
-  }
-}
-
 export async function syncVerifiedAuthEmailAction(input: {
   user: User
   type: AuthEmailActionType
@@ -342,9 +279,6 @@ export async function syncVerifiedAuthEmailAction(input: {
     },
   })
 
-  if (input.type === 'invite') {
-    await acceptPendingCompanyInvitationsForUser(input.user)
-  }
 }
 
 export function toSupabaseEmailOtpType(type: AuthEmailActionType): EmailOtpType {

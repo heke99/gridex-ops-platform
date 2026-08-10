@@ -11,7 +11,7 @@ import {
 } from '@/lib/auth/authEmailFlow'
 
 export type CompanyInviteProvisionResult = {
-  userId: string
+  userId: string | null
   email: string
   wasCreated: boolean
   invitationToken: string
@@ -54,9 +54,6 @@ function isIgnorableSchemaError(error: { code?: string; message?: string } | nul
   return ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')
 }
 
-function createInvitationToken() {
-  return crypto.randomBytes(32).toString('base64url')
-}
 
 export function hashCompanyInvitationToken(token: string) {
   return crypto.createHash('sha256').update(token).digest('hex')
@@ -142,127 +139,148 @@ async function createOrResolveInvitedAuthUser(input: {
   return { user: data.user, wasCreated: true, emailSent: true }
 }
 
-export async function provisionCompanyInvitation(input: CompanyInviteInput): Promise<CompanyInviteProvisionResult> {
-  const email = normalizeEmail(input.email)
-  if (!email) throw new Error('E-post saknas.')
-
-  let createdAuthUserId: string | null = null
-  let userId: string | null = null
-  const token = createInvitationToken()
-  const acceptUrl = buildAcceptUrl(token)
-  const authRedirectTo = `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(token)}`)}`
-
+export async function deliverCompanyInvitationIntent(input: {
+  invitationId: string
+  companyId: string
+  email: string
+  fullName: string | null
+  token: string
+  actorUserId: string | null
+  source: string
+  membershipRole: string
+  roleKey: string
+  sendEmail?: boolean
+}) {
+  const acceptUrl = buildAcceptUrl(input.token)
+  const authRedirectTo = `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(input.token)}`)}`
   try {
     const authResult = await createOrResolveInvitedAuthUser({
-      email,
-      fullName: input.fullName ?? null,
+      email: input.email,
+      fullName: input.fullName,
       redirectTo: authRedirectTo,
       sendEmail: input.sendEmail !== false,
     })
-
-    const { user, wasCreated, emailSent } = authResult
-    userId = user.id
-    if (wasCreated) createdAuthUserId = user.id
-
     await upsertInvitedUserProfile({
-      user,
-      email,
-      fullName: input.fullName ?? null,
+      user: authResult.user,
+      email: input.email,
+      fullName: input.fullName,
       source: input.source,
     })
-
-    const tokenHash = hashCompanyInvitationToken(token)
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
-
-    const invitationPayload: Record<string, unknown> = {
-      company_id: input.companyId,
-      email,
-      full_name: input.fullName ?? null,
-      membership_role: input.membershipRole,
-      role_key: input.roleKey,
-      status: 'pending',
-      invited_by: input.actorUserId,
-      invited_user_id: user.id,
-      expires_at: expiresAt,
-      accepted_at: null,
-      revoked_at: null,
-      accept_token_hash: tokenHash,
-      metadata: {
-        invite_source: input.source,
-        access_source: 'verified_auth_invitation_link',
-        login_ready: false,
-        invitation_email_sent: emailSent,
-      },
-    }
-
-    const inviteInsert = await supabaseService
+    const { error: updateError } = await supabaseService
       .from('company_invitations')
-      .insert(invitationPayload)
-      .select('id')
-      .single()
-
-    if (inviteInsert.error && !isIgnorableSchemaError(inviteInsert.error) && inviteInsert.error.code !== '23514') {
-      throw inviteInsert.error
-    }
-
-    const emailError: string | null = null
+      .update({
+        invited_user_id: authResult.user.id,
+        metadata: {
+          invite_source: input.source,
+          access_source: 'verified_auth_invitation_link',
+          provider_delivery_status: authResult.emailSent ? 'sent' : 'created',
+          login_ready: false,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.invitationId)
+      .eq('company_id', input.companyId)
+      .eq('status', 'pending')
+    if (updateError) throw updateError
 
     await safeRecordAuthEmailEvent({
-      userId: user.id,
-      email,
+      userId: authResult.user.id,
+      email: input.email,
       eventType: 'invite_sent',
-      status: emailSent ? 'sent' : 'created',
+      status: authResult.emailSent ? 'sent' : 'created',
       source: input.source,
       actorUserId: input.actorUserId,
       companyId: input.companyId,
       metadata: {
+        invitationId: input.invitationId,
         membershipRole: input.membershipRole,
         roleKey: input.roleKey,
-        existingUser: !createdAuthUserId,
+        existingUser: !authResult.wasCreated,
         loginReady: false,
         inviteLinkRequired: true,
       },
     })
-
     return {
-      userId: user.id,
-      email,
-      wasCreated: Boolean(createdAuthUserId),
-      invitationToken: token,
+      userId: authResult.user.id,
+      wasCreated: authResult.wasCreated,
+      emailSent: authResult.emailSent,
       acceptUrl,
-      emailSent,
-      emailError,
     }
   } catch (error) {
+    await supabaseService
+      .from('company_invitations')
+      .update({
+        metadata: {
+          invite_source: input.source,
+          access_source: 'verified_auth_invitation_link',
+          provider_delivery_status: 'failed',
+          provider_error: error instanceof Error ? error.message : String(error),
+          login_ready: false,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.invitationId)
+      .eq('company_id', input.companyId)
+      .eq('status', 'pending')
+
     await safeRecordAuthEmailEvent({
-      userId,
-      email,
+      userId: null,
+      email: input.email,
       eventType: 'invite_sent',
       status: 'failed',
       source: input.source,
       actorUserId: input.actorUserId,
       companyId: input.companyId,
-      metadata: { error: error instanceof Error ? error.message : String(error), loginReady: false, inviteLinkRequired: true },
+      metadata: {
+        invitationId: input.invitationId,
+        error: error instanceof Error ? error.message : String(error),
+        durableIntentRetained: true,
+      },
     })
-
-    if (userId) {
-      await supabaseService
-        .from('company_invitations')
-        .update({
-          status: 'invitation_revoked',
-          revoked_at: new Date().toISOString(),
-          metadata: { provisioning_failed: true, error: error instanceof Error ? error.message : String(error) },
-        })
-        .eq('company_id', input.companyId)
-        .eq('invited_user_id', userId)
-        .eq('status', 'pending')
-    }
-
-    if (createdAuthUserId) {
-      await supabaseService.auth.admin.deleteUser(createdAuthUserId)
-    }
-
     throw error
+  }
+}
+
+export async function provisionCompanyInvitation(input: CompanyInviteInput): Promise<CompanyInviteProvisionResult> {
+  const email = normalizeEmail(input.email)
+  if (!email) throw new Error('E-post saknas.')
+  if (!input.actorUserId) throw new Error('Verifierad aktör krävs för tenantinbjudan.')
+
+  const idempotencyKey = `tenant-invitation:${input.companyId}:${hashCompanyInvitationToken(`${email}:${input.roleKey}`)}`
+  const { data, error } = await supabaseService.rpc('canonical_create_tenant_invitation', {
+    p_command: {
+      company_id: input.companyId,
+      actor_user_id: input.actorUserId,
+      email,
+      full_name: input.fullName ?? null,
+      membership_role: input.membershipRole,
+      role_key: input.roleKey,
+      source: input.source,
+      idempotency_key: idempotencyKey,
+    },
+  })
+  if (error) throw error
+  const intent = data as {
+    invitation_id?: string | null
+    company_id?: string | null
+    token?: string | null
+    status?: string | null
+  } | null
+  if (!intent?.invitation_id || !intent.token) {
+    throw new Error('Canonical tenantinbjudan returnerade inte ett komplett durable intent.')
+  }
+
+  // Provider delivery is owned exclusively by the leased provisioning worker.
+  // Returning after the durable intent commits removes the race where the
+  // request and cron worker could send competing, non-idempotent Auth emails.
+  return {
+    userId: null,
+    email,
+    wasCreated: false,
+    invitationToken: intent.token,
+    acceptUrl: buildAcceptUrl(intent.token),
+    emailSent: false,
+    emailError: null,
   }
 }
 

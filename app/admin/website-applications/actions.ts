@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { requireAdminAccess, requireCompanyScopedActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { requireAdminAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
@@ -1149,7 +1149,40 @@ export async function requeueWebsiteApplicationContinuationAction(formData: Form
     .maybeSingle()
   if (workflowResult.error) throw workflowResult.error
   const workflow = workflowResult.data as { id: string; state: string; last_job_id: string | null } | null
-  if (!workflow) throw new Error('Automationsworkflow saknas. Kör migration och reconciliation först.')
+  if (!workflow) {
+    const platformAdmin = await requirePlatformAdminActionAccess()
+    const { data: repair, error: repairError } = await supabaseService.rpc(
+      'canonical_queue_customer_application_repair',
+      {
+        p_application_id: application.id,
+        p_actor_user_id: platformAdmin.userId,
+      },
+    )
+    if (repairError) throw repairError
+    const repairResult = (repair ?? {}) as {
+      queued?: boolean
+      status?: string
+      missing_fields?: string[]
+    }
+    await logAdminActionAndUsage({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'website_customer_application',
+      entityId: application.id,
+      action: 'customer_application_repair.classified',
+      label: 'Klassificerade kundansökan för canonical reparation',
+      source: 'website_application_review',
+      billable: false,
+      metadata: {
+        repair_status: repairResult.status ?? null,
+        repair_queued: Boolean(repairResult.queued),
+        missing_fields: repairResult.missing_fields ?? [],
+      },
+    })
+    revalidateWebsiteApplicationPaths(application)
+    redirect(safeReturnPath(formData, websiteApplicationDetailPath(application.id)))
+  }
   if (['completed', 'cancelled'].includes(workflow.state)) {
     throw new Error('Ett avslutat workflow kan inte återköras från denna åtgärd.')
   }

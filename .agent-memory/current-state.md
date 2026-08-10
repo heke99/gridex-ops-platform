@@ -4,25 +4,34 @@ Updated: 2026-08-10
 
 ## Source truth
 
-- The working source came from a zip labelled `gridex-ops-platform-main`.
-- The user specification names `main@78013b71a1f7fccd166b38f0712e20d1df198e11`, but the archive contains no `.git` metadata.
-- Current branch, HEAD, origin/main, merge state and deployment ancestry are therefore unverified here.
-- Historical deployment statements elsewhere in the archive are retained only as historical records and are not evidence for this remediation build.
+- Repository: `heke99/gridex-ops-platform`.
+- Default branch: `main`.
+- Remediation base: `e8586c1ba112213a0f11da16ee3a5ae15386dc69`.
+- Release candidate: PR #105 on `codex/gridex-canonical-57-remediation`.
+- The uploaded archive was byte-equivalent to the remediation base for tracked source content.
 
-## Verified in this workspace
+## Implemented and verified
 
-- The public API/portal/auth/idempotency/webhook/read-model changes for the 75-point remediation are implemented.
-- Quality regressions, application tests, TypeScript, lint, API docs/parity, RBAC audit and production build pass.
-- `gridex-ops-dev` is healthy and synchronized through `20260810110829_retention_category_classification.sql`.
-- Generated Supabase database types are hash-pinned to the connected dev schema.
-- Geodata cleanup was dry-run only; no production or dev rows were deleted.
+- The 57-point canonical architecture remediation is implemented in the existing platform.
+- Canonical request-scoped authorization, tenant lifecycle, durable provisioning, worker-owned invitation delivery, verified acceptance, application repair, reconciliation, release receipts and performance budgets are in place.
+- Historical applied migrations remain immutable. Recovered database migrations and three new forward migrations are checksum-pinned.
+- Connected `gridex-ops-dev` is migrated through `20260810224500_canonical_review_remediation_v1.sql`.
+- Live invariants are green: no roleless memberships, non-ready active clients, due stranded outbox rows, overdue manual reviews, unclassified applications or reconciliation query errors.
+- One legacy application is truthfully classified as `awaiting_input` with owner, reason and SLA; missing authoritative identities were not fabricated.
+- Hosted run `31435653056` passed clean replay, verify and quality-release gates before the final review hotfixes.
+- All actionable review findings are fixed forward-only, including secret-free public auth results, lifecycle replay/no-op guards, multi-company permissions, worker lease recovery, audited offboarding, real repair jobs and bounded reconciliation. The final branch head must pass a fresh required run before merge.
 
-## Release blockers
+## Release sequence
 
-- No connected staging or production Supabase project was exposed.
-- No GitHub or Vercel connector/current repository metadata was available.
-- Clean replay is configured in CI but could not be executed locally without Docker/Supabase CLI.
-- Supabase Auth leaked-password protection requires a hosted Auth setting change.
-- Production latency and exact-SHA deployment proof are unavailable.
+1. Require all checks on the final PR head to pass.
+2. Merge PR #105 without bypassing branch protection.
+3. Verify Vercel production is READY for the exact merged SHA and smoke the deployed URL.
+4. Check production runtime errors and persist a `platform_release_receipts` row for the exact Git/CI/Vercel/schema identity.
+5. Re-run the database invariants.
 
-Release decision: **NO-GO** until the external gates above are verified. Detailed evidence is in `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+## External configuration limits
+
+- The connected Supabase account exposes only `gridex-ops-dev`; no separate staging/production database is available for parity comparison.
+- Supabase Auth leaked-password protection has no exposed management action in the connected toolset and must be changed in the hosted Auth configuration.
+
+Detailed evidence: `docs/remediation/GRIDEX_57_POINT_CANONICAL_ARCHITECTURE_CLOSURE_2026-08-10.md`.

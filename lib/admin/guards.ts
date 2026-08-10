@@ -8,7 +8,6 @@ import {
   type AdminPageKey,
   type PermissionRequirement,
 } from '@/lib/admin/accessModel'
-import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
 import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 
@@ -27,6 +26,16 @@ type UserRoleRpcRow = string | {
   key?: string | null
   code?: string | null
   name?: string | null
+}
+
+type CanonicalTenantContext = {
+  authorized?: boolean
+  reason_code?: string | null
+  user_id?: string | null
+  user_email?: string | null
+  is_platform_admin?: boolean
+  roles?: unknown[]
+  permissions?: unknown[]
 }
 
 const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set([
@@ -97,26 +106,27 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     redirect('/login')
   }
 
-  let permissions: string[] = []
-  try {
-    permissions = await getUserPermissions(user.id)
-  } catch (error) {
-    console.warn('[admin-guard] Could not load permissions', error)
-  }
-
-  const { data: rolesData, error: rolesError } = await supabase.rpc(
-    'gridex_get_user_roles',
-    {
-      p_user_id: user.id,
-    }
+  const { data: contextData, error: contextError } = await supabase.rpc(
+    'canonical_authenticated_tenant_context',
+    { p_selected_company_id: null },
   )
-
-  if (rolesError) {
-    console.warn('[admin-guard] Could not load roles', rolesError)
+  if (contextError) {
+    console.error('[admin-guard] Canonical tenant context failed', {
+      code: contextError.code,
+      message: contextError.message,
+    })
+    throw new Error('Behörighetskontrollen kunde inte verifieras.')
   }
 
-  const roles = (!rolesError && Array.isArray(rolesData) ? (rolesData as UserRoleRpcRow[]) : [])
-    .map(roleFromRpcRow)
+  const context = (contextData ?? {}) as CanonicalTenantContext
+  if (!context.authorized || context.user_id !== user.id) {
+    throw new Error(`Behörighetskontrollen nekades (${context.reason_code ?? 'access_context_invalid'}).`)
+  }
+
+  const permissions = (Array.isArray(context.permissions) ? context.permissions : [])
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+  const roles = (Array.isArray(context.roles) ? context.roles : [])
+    .map((row) => roleFromRpcRow(row as UserRoleRpcRow))
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
   const isAdmin =
@@ -125,11 +135,11 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
 
   const base = {
     userId: user.id,
-    email: user.email ?? null,
+    email: context.user_email ?? user.email ?? null,
     permissions,
     roles,
     isAdmin,
-    isPlatformAdmin: false,
+    isPlatformAdmin: Boolean(context.is_platform_admin),
   }
 
   return {

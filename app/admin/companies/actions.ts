@@ -133,15 +133,28 @@ async function setCompanyStatus(input: {
   actorUserId: string
   reason: string | null
 }) {
-  const { data: transition, error: transitionError } = await supabaseService.rpc(
-    'gridex_transition_tenant_lifecycle',
-    {
+  const { data: observed, error: observedError } = await supabaseService
+    .from('companies')
+    .select('lifecycle_state_version')
+    .eq('id', input.companyId)
+    .single()
+  if (observedError) throw observedError
+  const expectedStateVersion = Number(observed.lifecycle_state_version)
+  if (!Number.isSafeInteger(expectedStateVersion) || expectedStateVersion < 0) {
+    throw new Error('Bolagets lifecycle-version kunde inte verifieras.')
+  }
+  const idempotencyKey =
+    `tenant-lifecycle:${input.companyId}:${input.status}:v${expectedStateVersion}`
+
+  const { data: transition, error: transitionError } = await supabaseService
+    .rpc('canonical_transition_tenant_lifecycle', {
       p_company_id: input.companyId,
-      p_next_status: input.status,
-      p_actor_user_id: input.actorUserId,
+      p_target_status: input.status,
+      p_expected_state_version: expectedStateVersion,
       p_reason: input.reason,
-    },
-  )
+      p_actor_user_id: input.actorUserId,
+      p_idempotency_key: idempotencyKey,
+    })
   if (transitionError) throw transitionError
   const result = transition as {
     ok?: boolean
@@ -342,7 +355,7 @@ export async function inviteCompanyUserAction(
       actorUserId,
       companyId,
       targetUserId: invitation.userId,
-      reason: 'Verifierad Auth-inbjudan skapades',
+      reason: 'Verifierad Auth-inbjudan köades för leased provider delivery',
       metadata: { membershipRole, roleKey, email, accountFlow: 'verified_auth_invitation_link' },
     })
 
@@ -353,7 +366,7 @@ export async function inviteCompanyUserAction(
 
     return {
       ok: true,
-      message: 'Inbjudningslänken skickades. Åtkomst skapas först när rätt Auth-användare har verifierat och accepterat länken.',
+      message: 'Inbjudan köades för säker leverans. Åtkomst skapas först när rätt Auth-användare har verifierat och accepterat länken.',
     }
   } catch (error) {
     return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }
