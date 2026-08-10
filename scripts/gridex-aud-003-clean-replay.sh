@@ -102,6 +102,8 @@ def validate_derived(rel):
     if meta.get('sourceKind') == 'verified_live_schema':
         if not meta.get('projectId') or not meta.get('capturedAt') or not meta.get('signatures'):
             raise SystemExit(f'verified live-schema evidence is incomplete: {rel}')
+        if re.search(r'\$[A-Za-z0-9_]*\$(?!;)[ \t]*\n[ \t]*(?:revoke|grant|create)\b', actual.read_text(), re.I):
+            raise SystemExit(f'verified live-schema function is missing a statement terminator: {rel}')
         return actual,None,meta
     source_rel=meta.get('source')
     source=resolve(source_rel) if source_rel else None
