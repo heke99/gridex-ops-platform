@@ -34,7 +34,7 @@ Based on `main` after GRIDEX-OPS-BL-002 (`bb877506`) plus the PHASE-45 health pa
 | O-005 | OPEN | BL-002 variant: `platform_actor_contacts` still has broad authenticated SELECT (`auth.uid() is not null`) — dedicated RLS remediation, not this app fix PR |
 | O-006 | OPEN | BL-002 variant: `platform_address_lookup_cache` / `platform_energy_lookup_cache` broad authenticated SELECT — dedicated RLS remediation |
 | O-007 | OPEN | Admin `/admin/network-owners` import history can look empty if app platform-admin gate and `gridex_user_is_platform_admin()` (email confirmed) diverge — align guard or service-role read after gate |
-| O-008 | OPEN | `actor_readiness_status` (security_invoker) can under-count conflicts for non-admin JWT; current app uses service role — revoke authenticated SELECT or keep consumers on service role |
+| O-008 | CODE_REMEDIATED | Base conflict-count + anon/auth revoke on `20260809131500`; PUBLIC residual closed by forward `20260810121500` (post-#104). Dashboard readiness views remain service-role only; authenticated SELECT retained on `actor_readiness_status` for company RLS. Staging privilege matrix still pending. |
 
 ## Unverified / out of scope this pass
 
