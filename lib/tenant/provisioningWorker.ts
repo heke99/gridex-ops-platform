@@ -59,7 +59,15 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
     .eq('company_id', job.company_id)
     .eq('idempotency_key', job.idempotency_key)
     .maybeSingle()
-  if (error) throw error
+  if (error) {
+    await complete({
+      job,
+      succeeded: false,
+      errorCode: 'invitation_intent_lookup_failed',
+      errorMessage: error.message,
+    })
+    return 'failed' as const
+  }
   const invitation = data as InvitationRow | null
   if (!invitation) {
     await complete({
