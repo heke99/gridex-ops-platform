@@ -80,6 +80,11 @@
       "path": "bootstrap/20260716_contract_platform_readiness_foundation.sql",
       "afterLedgerVersion": "20260803100130",
       "beforeLedgerVersion": "20260803131558"
+    },
+    {
+      "path": "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql",
+      "afterLedgerVersion": "20260803212754",
+      "beforeLedgerVersion": "20260804003000"
     }
   ],
   "derivedBootstrap": {
@@ -265,6 +270,11 @@
         "gridex_seed_publication_price_option_template_v2(uuid,uuid)"
       ],
       "purpose": "Restore the two pg_get_functiondef-verified live functions required by the canonical 20260731210000 public-contract repair; no data is seeded."
+    },
+    "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql": {
+      "source": "migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+      "artifactSha256": "db0fd5fd827e218bcd95f138160c25b30c24a6de08897ca86a660e540bcaff16",
+      "purpose": "Restore only the source-defined customer_contracts standard-fee compatibility fields consumed by canonical 20260804003000 (discount value/unit, start/admin/break fees and VAT rate); no contract rows are seeded or rewritten."
     },
     "bootstrap/20260519_companies_governance_foundation.sql": {
       "source": "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
