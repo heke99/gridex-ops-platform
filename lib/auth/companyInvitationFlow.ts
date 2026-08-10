@@ -11,7 +11,7 @@ import {
 } from '@/lib/auth/authEmailFlow'
 
 export type CompanyInviteProvisionResult = {
-  userId: string
+  userId: string | null
   email: string
   wasCreated: boolean
   invitationToken: string
@@ -270,26 +270,16 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     throw new Error('Canonical tenantinbjudan returnerade inte ett komplett durable intent.')
   }
 
-  const delivered = await deliverCompanyInvitationIntent({
-    invitationId: intent.invitation_id,
-    companyId: input.companyId,
-    email,
-    fullName: input.fullName ?? null,
-    token: intent.token,
-    actorUserId: input.actorUserId,
-    source: input.source,
-    membershipRole: input.membershipRole,
-    roleKey: input.roleKey,
-    sendEmail: input.sendEmail,
-  })
-
+  // Provider delivery is owned exclusively by the leased provisioning worker.
+  // Returning after the durable intent commits removes the race where the
+  // request and cron worker could send competing, non-idempotent Auth emails.
   return {
-    userId: delivered.userId,
+    userId: null,
     email,
-    wasCreated: delivered.wasCreated,
+    wasCreated: false,
     invitationToken: intent.token,
-    acceptUrl: delivered.acceptUrl,
-    emailSent: delivered.emailSent,
+    acceptUrl: buildAcceptUrl(intent.token),
+    emailSent: false,
     emailError: null,
   }
 }
