@@ -386,7 +386,12 @@
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
+    "20260810185155_gridex_canonical_architecture_p0.sql": "89781a052bda69e78a41ddf143b5c02f8f45a3ea0ae3bdf36f2c51a170ac0e97",
+    "20260810190410_gridex_canonical_architecture_p0.sql": "68b259983310c0933b7f13ad4ca3205cc1f32c7e3c03dbe44a3b773c1ee60218",
+    "20260810190809_gridex_canonical_architecture_p0_security_hotfix.sql": "1991e4da3a06f60f5e4a615585c62761a86d6f932c2252610f7d61bf1c60169f",
+    "20260810191822_canonical_lifecycle_offboarding_v1.sql": "b1105902f1a55ef4228b9946275c51e7a9484242523bc1379156d52d7a6dc2c8",
+    "20260810193450_canonical_access_provisioning_runtime_v1.sql": "390b0223a8fbafb61023075a56c593b51b4eca5a37a7bebd313b21a41015f5a1"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
