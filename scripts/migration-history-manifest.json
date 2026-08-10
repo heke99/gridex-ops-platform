@@ -334,7 +334,7 @@
     "20260727165000_quote_and_customer_contract_event_integrity.sql": "4dfef093b0227530c3313c35333106c3b8b6fa766a5d748493dd8a0972b3cc59",
     "20260727166000_atomic_quote_application_onboarding_commit.sql": "2a55d8f9015c7dc74a2c53b560b4987fea1d25de3ebb7d1235d71ad78c0c7e81",
     "20260727167000_customer_contract_state_machine_and_active_invariant.sql": "485b4628640770ec8f371bb2c61f2ad311c2d0795c6fdf2c0fbd715f6d29ab3b",
-    "20260728170000_live_schema_code_canonical_sync.sql": "ff54dc59a87c2c63b07fb8238097189886f57bbb14fa5160ee733e29f26e609d",
+    "20260728170000_live_schema_code_canonical_sync.sql": "c2fc64a9bf63bfbdff01b44f5f8d46629e089dd7bdb132da10116118b833b7de",
     "20260728190000_contract_channel_permission_publication_completion.sql": "dd0583262a7b0cc74a35ed79397fdd060776b9949f2cc826018c2e9b3f0e7f3e",
     "20260729200000_contract_commercial_selection_completion.sql": "59c19820866d186567914b12fcf831cc94c769ba200038034fbc4e172603d80c",
     "20260730120000_atomic_website_portal_identity.sql": "d56a6dd9ec660c3721aea2ba014fdf1abb3dbf9fe79d0ba193354e1980cee08a",

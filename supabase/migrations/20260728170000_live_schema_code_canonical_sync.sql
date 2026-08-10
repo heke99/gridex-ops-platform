@@ -708,12 +708,39 @@ select public.gridex__repair_replace_function_text(
 -- pg_get_functiondef whitespace that differs from the audited live snapshot.
 -- Each step remains fail-closed, and the transaction rolls back unless all
 -- three fragments are either repaired or already in their canonical form.
-select public.gridex__repair_replace_function_text(
-  'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
-  $$select id,operation_id into v_workflow_id,v_existing_operation_id$$,
-  $$select workflow.id,workflow.operation_id
-  into v_workflow_id,v_existing_operation_id$$
-);
+do $$
+declare
+  v_signature constant text :=
+    'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)';
+  v_oid regprocedure;
+  v_definition text;
+  v_repaired text;
+begin
+  v_oid := to_regprocedure(v_signature);
+  if v_oid is null then
+    raise exception using
+      errcode = '55000',
+      message = 'gridex_repair_function_missing:' || v_signature;
+  end if;
+
+  v_definition := pg_get_functiondef(v_oid);
+  v_repaired := regexp_replace(
+    v_definition,
+    'select[[:space:]]+id[[:space:]]*,[[:space:]]*operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id',
+    E'select workflow.id,workflow.operation_id\n  into v_workflow_id,v_existing_operation_id'
+  );
+
+  if v_repaired <> v_definition then
+    execute v_repaired;
+  elsif v_definition !~
+    'select[[:space:]]+workflow[.]id[[:space:]]*,[[:space:]]*workflow[.]operation_id[[:space:]]+into[[:space:]]+v_workflow_id[[:space:]]*,[[:space:]]*v_existing_operation_id' then
+    raise exception using
+      errcode = '55000',
+      message = 'gridex_repair_unexpected_function_definition:' || v_signature,
+      detail = 'unqualified workflow id projection';
+  end if;
+end
+$$;
 
 select public.gridex__repair_replace_function_text(
   'public.gridex_commit_customer_application_provisioning(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb)',
