@@ -153,10 +153,9 @@ for (const requiredRef of [
 if (!replay.includes("files.sort(key=lambda p:p.name)")) fail('clean replay lost deterministic timestamped ordering');
 if (!replay.includes('excluded') || !replay.includes('noncanonical')) fail('clean replay lost explicit noncanonical exclusion handling');
 if (!replay.includes('interleaved_paths')) fail('clean replay lost interleaved bootstrap handling');
-if (!replay.includes('supabase db push --local --include-all --yes')) fail('clean replay no longer lets Supabase CLI own ledger replay');
-if (!replay.includes('supabase db push --local --yes') ||
-    !replay.includes("to_regclass('supabase_migrations.schema_migrations')")) {
-  fail('clean replay no longer initializes its CLI-owned empty ledger before governance checks');
+if (!replay.includes('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') ||
+    replay.indexOf('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') > replay.indexOf('supabase start')) {
+  fail('clean replay no longer initializes its CLI-owned official ledger before governance checks');
 }
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) fail('clean replay directly mutates the Supabase migration ledger');
 if (!fs.existsSync(fingerprintPath)) fail('schema fingerprint query is missing');
