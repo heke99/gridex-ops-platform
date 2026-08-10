@@ -9,6 +9,7 @@
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
+    "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
@@ -96,6 +97,11 @@
       "source": "migrations/20260521_batch_2c_end_to_end_operations.sql",
       "artifactSha256": "446ea8443bd4fa9f71f42016f11323feb67bab5f53d7b1bd6d890d0f16258b16",
       "purpose": "Restore only the source-defined external_contract_intakes relation, base index and source RLS policies required by later launch-readiness extensions/views; no intake rows or tenant/customer data are seeded."
+    },
+    "bootstrap/20260521_customer_portal_completions_foundation.sql": {
+      "source": "migrations/20260521_batch_2c_end_to_end_operations.sql",
+      "artifactSha256": "b71e0547fd800a31bb5debc169fa01d7d714cee23d4fb43440d526c2ed09b378",
+      "purpose": "Restore only the source-defined customer_portal_completions relation, base indexes and source RLS policies required by the canonical portal API; no completion rows or tenant/customer data are seeded."
     },
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql": {
       "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
