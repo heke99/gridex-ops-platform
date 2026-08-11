@@ -65,3 +65,15 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## Post-#108 health residuals — 2026-08-11 (`1848`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Post-#108 residual static regression | PASS | `gridex:post-108-health-residuals-regression` |
+| Canonical 57-point controls | PASS | `57/57` |
+| Migration integrity | PASS | `check-migration-versions.cjs` (404 files) |
+| Generated types tip pin | PASS | tip `20260811114500_...`; hash unchanged |
+| Remaining masterpoints golden path | PASS | includes residual script |
+| ggshield | BLOCKED | CLI not installed |
+| Staging SQL apply | NOT_RUN | external environment |

@@ -1,11 +1,36 @@
-# Remediation handover
+# Handover — post-#108 health residuals
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
-Status: **CODE + CONNECTED DEV COMPLETE; RELEASE BLOCKED**
+Branch: `cursor/codebase-health-and-stability-1848` (from `main@38d55dc7` / `#108`).
 
-The supplied archive was remediated directly, without creating a parallel implementation. The connected `gridex-ops-dev` migration ledger and schema are synchronized with the new source migrations, generated database types and runtime expectations. All local executable quality gates pass.
+## What changed
 
-The archive has no `.git`; do not reuse its historical SHA/deployment claims as evidence for this build. Before release, run the existing clean-replay CI job, mandatory checks on the actual repository, verify staging/production DB parity, enable the hosted Auth password-protection setting, deploy from the checked SHA and prove Git/CI/Vercel SHA equality. Then capture production latency percentiles.
+Forward migration `20260811114500_post_108_health_security_residuals.sql`:
 
-No geodata cleanup was committed: the candidate set was measured with the new service-role-only dry-run function. Detailed point-by-point status and live-dev evidence are in `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+- Revokes `authenticated` EXECUTE on
+  `canonical_run_architecture_reconciliation` and restores service-role-only
+  grants (cron path already uses `supabaseService`).
+- Replaces the reconciliation function with success-path `check-error:*`
+  clears (count=`0`) for every current check, and drains the renamed legacy
+  finding key `due-stranded-canonical-outbox`.
+- Revokes PUBLIC (and anon) on readiness surfaces; keeps authenticated SELECT
+  on `actor_readiness_status` for `gridex_verified_grid_owners_v`.
+
+Static regression:
+`scripts/gridex-ops-post-108-health-residuals-regression.cjs`, wired into OPS
+hardening CI and the remaining-masterpoints golden path.
+
+## Do not
+
+- Reuse migration timestamp `20260810230000` from open PR `#106` — tip advanced
+  past it via `#108`.
+- Re-grant reconciliation EXECUTE to `authenticated` without a tenant authz
+  gate inside the SECURITY DEFINER body.
+- Fabricate identities for manual-review ownership; operational owner text is
+  intentional.
+
+## Next
+
+Open/merge the tip residual PR; close/supersede `#106`; apply the forward
+migration on connected environments after CI green.

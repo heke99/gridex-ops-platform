@@ -1,38 +1,30 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-10T20:15:00Z",
-  "branch": "main (archive label; unverified)",
-  "active_phase": "GRIDEX_75_REMEDIATION_EXTERNAL_RELEASE_BLOCKED",
-  "active_task": "Verify clean replay and exact-SHA release in connected CI/production environments",
-  "status": "CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED",
+  "updated_at": "2026-08-11T10:55:00Z",
+  "branch": "cursor/codebase-health-and-stability-1848",
+  "active_phase": "POST_108_HEALTH_RESIDUALS",
+  "active_task": "Close post-#108 reconciliation privilege, check-error clear, and O-008 PUBLIC residuals",
+  "status": "IN_PROGRESS",
   "source_state": {
-    "archive_claimed_source_sha": "78013b71a1f7fccd166b38f0712e20d1df198e11",
-    "verified_git_sha": null,
-    "actual_repository_state": "UNVERIFIED_ARCHIVE_WITHOUT_GIT",
-    "reason": "The supplied zip has no .git directory; no current HEAD, merge SHA or origin/main can be proven from this workspace."
+    "verified_git_sha": "38d55dc73b3f6c3a8339d819b90cf96fa0b647e1",
+    "base_main_merge": "#108 remaining masterpoint convergence",
+    "actual_repository_state": "GIT_AVAILABLE"
   },
-  "connected_environment": {
-    "supabase_project": "gridex-ops-dev",
-    "project_id": "piidsfebjqjmnepdpnas",
-    "region": "eu-north-1",
-    "schema_and_migration_parity": "VERIFIED_2026-08-10",
-    "latest_migration": "20260810110829_retention_category_classification.sql",
-    "api_contract_release": "2026-08-10.1"
+  "residuals": {
+    "reconciliation_authenticated_execute": "FIXED_FORWARD_20260811114500",
+    "check_error_success_clears": "FIXED_FORWARD_20260811114500",
+    "o008_public_privilege": "FIXED_FORWARD_20260811114500",
+    "c28_recorded_by_idx": "ALREADY_ON_MAIN_VIA_108",
+    "stale_pr_106": "SUPERSEDE_AFTER_TIP_PR"
   },
   "verification": {
-    "quality_tests": "45/45 PASS",
-    "application_tests": "467/467 PASS",
-    "typecheck": "PASS",
-    "lint": "PASS_WITH_EXISTING_WARNINGS",
-    "production_build": "PASS",
-    "clean_empty_database_replay": "NOT_EXECUTED_NO_LOCAL_DOCKER_OR_SUPABASE_CLI",
-    "production_exact_sha": "UNVERIFIED_NO_PRODUCTION_OR_GIT_CONNECTOR"
+    "gridex_ops_post_108_health_residuals_regression": "PASS",
+    "gridex_canonical_architecture_57_point_regression": "PASS_57_57",
+    "check_migration_versions": "PASS",
+    "check_supabase_generated_types": "PASS",
+    "remaining_masterpoints_golden_path": "PASS",
+    "ggshield": "BLOCKED_CLI_NOT_INSTALLED",
+    "staging_sql_matrix": "NOT_RUN"
   },
-  "safety": {
-    "geodata_cleanup": "DRY_RUN_ONLY",
-    "production_data_deleted": false,
-    "leaked_password_protection": "EXTERNAL_AUTH_DASHBOARD_ACTION_REQUIRED"
-  },
-  "release_decision": "NO_GO until clean replay, mandatory hosted CI, production parity, Auth leaked-password protection and exact Git/CI/Vercel SHA evidence are verified.",
-  "resume_from": "docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md"
+  "resume_from": "Commit/push 1848 residual and open PR superseding #106"
 }

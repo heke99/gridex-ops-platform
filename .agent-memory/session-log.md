@@ -1,3 +1,15 @@
+## 2026-08-11 — post-#108 health residuals (`1848`)
+
+- Trigger: main push `38d55dc7` (`#108` remaining masterpoint convergence).
+- Confirmed CRITICAL: reconciliation EXECUTE granted to `authenticated` on
+  SECURITY DEFINER without tenant authz; cron uses service role only.
+- Confirmed MEDIUM: success-path `check-error:*` clears dropped; legacy
+  `due-stranded-canonical-outbox` key left open after rename.
+- Confirmed HIGH: O-008 PUBLIC privilege residual still open; `#106` stale.
+- Landed tip migration `20260811114500_post_108_health_security_residuals.sql`
+  plus static residual regression and OPS hardening wiring.
+- Verified residual, 57-point, migration versions, types tip, golden path.
+
 ## 2026-08-03 23:37 CEST — PHASE-41 runtime schema readiness v4
 
 - Inspected the supplied OPS archive, official Customer Portal API documentation

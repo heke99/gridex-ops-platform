@@ -1,18 +1,30 @@
 # Current task
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
-Status: `CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED`.
+Status: `IN_PROGRESS`
 
-The 75-point remediation has been implemented and locally verified against the supplied source archive. The connected `gridex-ops-dev` database is migrated and schema/code expectations were checked. This archive contains no `.git`, so its claimed `main@78013b71a1f7fccd166b38f0712e20d1df198e11` provenance cannot be independently verified.
+Active work item: post-`#108` codebase health residuals on
+`cursor/codebase-health-and-stability-1848`.
 
-Remaining release work requires external evidence, not invented local state:
+## Active subtask
 
-- run the clean empty-database replay in the configured CI job;
-- run mandatory GitHub checks on the real repository;
-- compare staging and production Supabase with the verified dev/repo contract;
-- enable Supabase Auth leaked-password protection when password login is used;
-- prove merged Git SHA = CI SHA = Vercel production SHA;
-- capture production p50/p95/p99 after deployment.
+Land and verify the tip-based forward residual migration
+`20260811114500_post_108_health_security_residuals.sql`, then open the PR.
 
-Do not mark the campaign `COMPLETE` until those gates pass. See `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+## Confirmed residuals addressed in this tip branch
+
+1. **CRITICAL** — `#108` widened `canonical_run_architecture_reconciliation`
+   EXECUTE to `authenticated` on a SECURITY DEFINER function with no tenant
+   authz gate. Restored service-role-only EXECUTE.
+2. **MEDIUM** — success-path `check-error:*` clears removed by `#108`. Restored
+   for every current check key and drain legacy
+   `due-stranded-canonical-outbox`.
+3. **HIGH** — O-008 PUBLIC privilege residual still open after `#105`/`#108`.
+   Re-landed after tip `20260811080000` (do not reuse stale `#106`
+   `20260810230000`).
+
+## Exact next action
+
+Commit/push the residual branch, open PR, and supersede overlapping `#106`
+once this tip residual is reviewed.
