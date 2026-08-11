@@ -51,6 +51,7 @@ jobs:
       - run: bash quality/mechanical/verify.sh
       - run: npx vitest run --config quality/vitest.config.ts
       - run: npm test
+      - run: node scripts/gridex-composed-golden-path-regression.cjs
       - run: npm run api:docs
       - run: npm run api:compatibility
       - run: npm run api:release:verify
