@@ -32,15 +32,28 @@ const ok = (condition, message) => {
   console.log(`OK: ${message}`)
 }
 
-const apps = read('lib/website/customerApplications.ts')
+// customerApplications.ts is a public facade after the bounded-file split.
+// Regress against all concrete website-intake owners so the assertions follow
+// the canonical runtime instead of stale strings in the facade.
+const apps = [
+  'lib/website/customerApplicationShared.ts',
+  'lib/website/customerApplicationSchemas.ts',
+  'lib/website/customerApplicationCore.ts',
+  'lib/website/customerApplicationLegal.ts',
+  'lib/website/customerApplicationOnboarding.ts',
+  'lib/website/customerApplicationPersistence.ts',
+  'lib/website/customerApplicationRepair.ts',
+  'lib/website/customerApplicationProcess.ts',
+  'lib/website/customerApplicationCommunication.ts',
+].map(read).join('\n')
 const route = read('app/api/v1/website/customer-applications/route.ts')
 const publicContracts = read('lib/website/publicContracts.ts')
 const gridOwnerRequests = read('lib/energy/gridOwnerRequests.ts')
 const manualOutbox = read('lib/email/manualEmailOutbox.ts')
 
-// 1) Dedicated power_of_attorney error stage + new codes.
+// 1) Dedicated power_of_attorney/facility/email error stages + new codes.
 ok(/\|\s*'power_of_attorney'/.test(apps), 'ErrorStage includes power_of_attorney')
-ok(/\|\s*'facility_lookup'/.test(apps), 'ErrorStage includes facility_lookup')
+ok(/\|\s*'facility_information_lookup'/.test(apps), 'ErrorStage includes facility_information_lookup')
 ok(/\|\s*'email_dispatch'/.test(apps), 'ErrorStage includes email_dispatch')
 for (const code of ['power_of_attorney_missing']) {
   ok(apps.includes(`code: '${code}'`), `intake defines ${code}`)
