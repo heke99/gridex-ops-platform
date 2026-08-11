@@ -6,7 +6,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
@@ -26,6 +26,8 @@ jobs:
       - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
+      - name: Integrated remaining-masterpoints golden path
+        run: node scripts/gridex-remaining-masterpoints-golden-path-regression.cjs
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
@@ -68,15 +70,30 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
-      - name: Clean empty-database replay
+      - name: Clean empty-database replay and verify generated types
         shell: bash
         run: |
           set -o pipefail
-          bash scripts/gridex-aud-003-clean-replay.sh 2>&1 | tee rem002-clean-replay.log
+          exec > >(tee rem002-clean-replay.log) 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase gen types typescript --local > rem002-database.types.ts
+          GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
+          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
+          echo "generated_types_sha256=$GENERATED_HASH"
+          if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
+            echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
+            exit 1
+          fi
+          if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
+            echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
+            exit 1
+          fi
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gridex-rem-002-clean-replay
-          path: rem002-clean-replay.log
+          path: |
+            rem002-clean-replay.log
+            rem002-database.types.ts
           if-no-files-found: error

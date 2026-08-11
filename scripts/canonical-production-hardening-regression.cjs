@@ -194,9 +194,16 @@ assert(companyActions.includes('provisionCompanyInvitation'), 'Company access mu
 assert(!companyActions.includes('temporary_password'), 'Company actions still accept temporary passwords')
 assert(!companyActions.includes('provisionCompanyUserWithTemporaryPassword'), 'Retired temporary-password provisioning is still reachable')
 const invitationFlow = read('lib/auth/companyInvitationFlow.ts')
+const invitationMigration = read('supabase/migrations/20260810193450_canonical_access_provisioning_runtime_v1.sql')
+const invitationFunctionStart = invitationMigration.indexOf('create or replace function public.canonical_create_tenant_invitation')
+const invitationFunctionEnd = invitationMigration.indexOf('revoke all on function public.canonical_create_tenant_invitation', invitationFunctionStart)
+const invitationFunction = invitationFunctionStart >= 0 && invitationFunctionEnd > invitationFunctionStart
+  ? invitationMigration.slice(invitationFunctionStart, invitationFunctionEnd)
+  : ''
 assert(invitationFlow.includes('inviteUserByEmail'), 'New tenant users must receive an Auth invitation link')
 assert(invitationFlow.includes('supabase.auth.getUser()'), 'Invitation acceptance must verify the current Auth user')
-assert(invitationFlow.includes("status: 'pending'"), 'Invitation access must remain pending until acceptance')
+assert(invitationFlow.includes("rpc('canonical_create_tenant_invitation'"), 'Invitation intent must be owned by canonical_create_tenant_invitation')
+assert(invitationFunction.includes('insert into public.company_invitations') && invitationFunction.includes("'pending',v_token") && invitationFunction.includes("'status','pending'"), 'Invitation access must remain pending until acceptance')
 assert(!invitationFlow.includes('password:'), 'Invitation flow must never assign a password')
 
 for (const relative of [

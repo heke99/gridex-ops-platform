@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-10T21:45:00.000Z",
+  "generated_at": "2026-08-11T09:19:16.469Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "38bbd774f47d23f8b7ce7572123e180630e6cf0f66833e0d7a468146306297e7",
-  "latest_migration": "20260810224500_canonical_review_remediation_v1.sql"
+  "sha256": "991996d7eadb85b02df4b646ba11b7c8b753f4f08e023435b76c2e6f45178fd0",
+  "latest_migration": "20260811080000_remaining_masterpoint_convergence.sql"
 }

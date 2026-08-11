@@ -20,7 +20,20 @@ const ok = (condition, message) => {
   console.log(`OK: ${message}`)
 }
 
-const src = read('lib/website/customerApplications.ts')
+// customerApplications.ts is intentionally a bounded public facade. The POA
+// contract is implemented across schema/legal/process/repair/onboarding modules,
+// so regress against those concrete canonical owners instead of stale facade text.
+const src = [
+  'lib/website/customerApplicationSchemas.ts',
+  'lib/website/customerApplicationShared.ts',
+  'lib/website/customerApplicationCore.ts',
+  'lib/website/customerApplicationLegal.ts',
+  'lib/website/customerApplicationOnboarding.ts',
+  'lib/website/customerApplicationPersistence.ts',
+  'lib/website/customerApplicationRepair.ts',
+  'lib/website/customerApplicationProcess.ts',
+  'lib/website/customerApplicationCommunication.ts',
+].map(read).join('\n')
 
 // Runtime behavioral policy checks. These are intentionally scenario-based so the
 // regression fails when the policy is weakened even if source-string checks stay green.
@@ -93,7 +106,6 @@ const incompleteStructured = simulateWebsitePoaOutcome({
 })
 ok(incompleteStructured.validation?.status === 422 && incompleteStructured.validation.missing.includes('signerIdentityNumber') && incompleteStructured.validation.missing.includes('method'), 'structured accepted POA missing signer identity/method is rejected with validation behavior')
 
-
 // 1) Structured schema accepted (not just a boolean).
 ok(src.includes('const PowerOfAttorneySchema'), 'website API defines a structured PowerOfAttorneySchema')
 ok(src.includes('powerOfAttorney: PowerOfAttorneySchema') && src.includes('power_of_attorney: PowerOfAttorneySchema'), 'application schema accepts powerOfAttorney (camel + snake)')
@@ -117,8 +129,8 @@ ok(src.includes('power_of_attorney_events') && (src.includes("event_type: 'creat
 ok(src.includes('createPowerOfAttorneyDocumentSnapshot') && src.includes('document_id: documentId'), 'POA generates + links an immutable document snapshot')
 
 // 5) Operational response blocks (no technical Ediel leakage).
-ok(src.includes('next_step: \'automatic_processing\'') || src.includes('next_step: "automatic_processing"'), 'accepted response exposes automatic_processing while OPS owns downstream work')
-ok(src.includes('next_step: \'complete_power_of_attorney\'') || src.includes('next_step: "complete_power_of_attorney"'), 'continuation status exposes the missing-POA completion action')
+ok(src.includes("next_step: 'automatic_processing'") || src.includes('next_step: "automatic_processing"'), 'accepted response exposes automatic_processing while OPS owns downstream work')
+ok(src.includes("next_step: 'complete_power_of_attorney'") || src.includes('next_step: "complete_power_of_attorney"'), 'continuation status exposes the missing-POA completion action')
 const poaOrchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
 ok(poaOrchestrator.includes('grid_owner_contact_required') && poaOrchestrator.includes('facility_identifier_requested'), 'orchestrator nextAction covers contact-required + facility-requested states')
 ok(src.includes('processWebsiteApplicationIntake({') && src.includes('references: intakeDecision.references'), 'continuation status includes canonical facility-request references from the orchestrator')
@@ -160,7 +172,7 @@ ok(src.includes('processWebsiteApplicationIntake({') && src.indexOf('processWebs
 
 // 9b) Website intake schema hardening: optional DB columns must fall back to
 // controlled pending_review/repair status, not uncontrolled crashes.
-ok(src.includes('schemaRepairStatus') && (src.includes("'PGRST204'") || src.includes('\"PGRST204\"')), 'website intake treats PostgREST schema-cache mismatches as repairable')
+ok(src.includes('schemaRepairStatus') && (src.includes("'PGRST204'") || src.includes('"PGRST204"')), 'website intake treats PostgREST schema-cache mismatches as repairable')
 const canonicalOnboarding = read('lib/customers/canonicalOnboarding.ts')
 ok(src.includes('onboardCustomerGraph') && src.includes('canonicalIdempotencyKey'), 'website site/metering creation is delegated to the canonical onboarding transaction')
 ok(canonicalOnboarding.includes('canonical_onboarding_rpc_missing') && canonicalOnboarding.includes('PGRST202') && canonicalOnboarding.includes('42883'), 'canonical onboarding returns an explicit migration/RPC mismatch code')
@@ -179,7 +191,6 @@ ok(extDoc.includes('externally_sendable') && extDoc.includes('personal_identity_
 // 12) Package script entry.
 ok(read('package.json').includes('gridex:website-api-power-of-attorney-regression'), 'package script exposes regression command')
 
-
 // Tenant-safe facility policy lives inside the canonical transaction: same-tenant
 // conflicts block atomically, while cross-tenant presence is retained only as a
 // platform signal and never leaks candidate identifiers into the website flow.
@@ -193,6 +204,5 @@ ok(facilityErrors.includes("status: 'manual_review'") && facilityErrors.includes
 const reviewActions = read('app/admin/website-applications/actions.ts')
 ok(reviewActions.includes('cross_tenant_facility_seen') && reviewActions.includes('Anläggnings-ID behöver verifieras innan automation.'), 'website application review stores neutral cross-tenant facility signal')
 ok(!reviewActions.includes("? 'cross_tenant_facility_conflict'"), 'website application review does not classify cross-tenant facility as a hard customer-intake blocker')
-
 
 console.log('Website API power of attorney regression passed')

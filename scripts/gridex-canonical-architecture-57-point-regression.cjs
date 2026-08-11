@@ -28,6 +28,10 @@ const review = read('supabase/migrations/20260810224500_canonical_review_remedia
 const migrationManifest = JSON.parse(read('scripts/migration-history-manifest.json'))
 const typesManifest = JSON.parse(read('scripts/supabase-types-manifest.json'))
 const databaseTypes = read('supabase/database.types.ts')
+const latestTimestampedMigration = fs.readdirSync(path.join(root, 'supabase', 'migrations'))
+  .filter((name) => /^\d{14}_.+\.sql$/.test(name))
+  .sort()
+  .at(-1)
 
 control('C01', provisionBody.includes("rpc('canonical_create_tenant_invitation'"), 'durable invitation intent does not use the canonical RPC')
 control('C02', !provisionBody.includes('deliverCompanyInvitationIntent({'), 'request path still performs provider delivery')
@@ -56,7 +60,7 @@ control('C24', completion.includes('platform_release_receipts'), 'release receip
 control('C25', completion.includes('platform_performance_budgets'), 'performance budget contract is missing')
 control('C26', completion.includes('check_error'), 'fail-closed reconciliation evidence is missing')
 control('C27', completion.includes('canonical_queue_customer_application_repair'), 'canonical application repair RPC is missing')
-control('C28', indexes.includes('customer_operation_jobs_review_owner_user_idx') && indexes.includes('platform_release_receipts_deployed_by_idx'), 'review/release foreign-key indexes are missing')
+control('C28', indexes.includes('customer_operation_jobs_review_owner_user_idx') && indexes.includes('platform_release_receipts_recorded_by_idx'), 'review/release foreign-key indexes are missing')
 control('C29', inviteHotfix.includes('extensions, pg_temp'), 'invitation token hashing cannot resolve pgcrypto')
 control('C30', review.includes('private.authenticate_integration_request_v1_secret_internal'), 'credential comparison core is not private')
 control('C31', !review.includes('readiness.secret_hash') && !review.includes('checked.secret_hash'), 'public authentication wrappers still select secret_hash')
@@ -97,7 +101,7 @@ for (const [id, name] of pinnedMigrations) {
   control(id, migrationManifest.files[name] === hash(`supabase/migrations/${name}`), `migration checksum drifted: ${name}`)
 }
 control('C55', typesManifest.sha256 === hash(typesManifest.generated_types), 'generated database types hash drifted')
-control('C56', typesManifest.latest_migration === '20260810224500_canonical_review_remediation_v1.sql', 'generated types are not pinned to the migration tail')
+control('C56', Boolean(latestTimestampedMigration) && typesManifest.latest_migration === latestTimestampedMigration, 'generated types are not pinned to the current migration tail')
 
 function returnBlock(name) {
   const start = databaseTypes.indexOf(`      ${name}: {`)

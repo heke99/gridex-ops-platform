@@ -60,13 +60,25 @@ assertIncludes('lib/website/publicContracts.ts', [
   'legal_bundle_version_documents',
   'content_sha256',
 ])
-assertIncludes('lib/website/customerApplications.ts', [
+// The website runtime was split into bounded modules. Legal binding is owned by
+// customerApplicationLegal; atomic customer/site/metering/contract creation is
+// owned by customerApplicationOnboarding.
+assertIncludes('lib/website/customerApplicationLegal.ts', [
   'legal_bundle_version_documents',
-  'gridex_create_website_customer_contract',
   'offer_legal_bundle_unavailable',
-  // Acceptances are now strictly offer-bound (loadOfferBoundLegalVersions)
-  // instead of selecting from tenant-latest versions.
   'loadOfferBoundLegalVersions',
+  'content_sha256',
+])
+assertIncludes('lib/website/customerApplicationOnboarding.ts', [
+  'onboardCustomerGraph',
+  'canonicalIdempotencyKey',
+  'WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE',
+  'WEBSITE_APPLICATION_READY_CONTRACT_STATUS',
+  'legal_versions_snapshot',
+])
+assertIncludes('lib/website/customerApplicationProcess.ts', [
+  'assertWebsiteLegalAcceptances',
+  'onboardCanonicalWebsiteCustomerGraph',
 ])
 assertIncludes('lib/customer-contracts/documents.ts', [
   'signed-contract-',
