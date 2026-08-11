@@ -60,13 +60,13 @@ for (const [version, files] of byVersion.entries()) {
 }
 
 for (const name of actualNames) {
+  const actual = sha256(path.join(directory, name))
   const expected = expectedFiles[name]
   if (!expected) {
-    failures.push(`Migration is missing from checksum manifest: ${name}`)
+    failures.push(`Migration is missing from checksum manifest: ${name} (sha256=${actual})`)
     continue
   }
-  const actual = sha256(path.join(directory, name))
-  if (actual !== expected) failures.push(`Migration checksum changed: ${name}`)
+  if (actual !== expected) failures.push(`Migration checksum changed: ${name} (expected=${expected}, actual=${actual})`)
 }
 
 for (const name of Object.keys(expectedFiles)) {
