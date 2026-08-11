@@ -14,7 +14,10 @@ function expect(condition, message) {
   } else console.log(`OK: ${message}`)
 }
 
-const intake = read('lib/website/customerApplications.ts')
+const intakeFacade = read('lib/website/customerApplications.ts')
+const intakeProcess = read('lib/website/customerApplicationProcess.ts')
+const continuationHandler = read('lib/website/customerApplicationRepair.ts')
+const communication = read('lib/website/customerApplicationCommunication.ts')
 const workflow = read('lib/website/applicationWorkflow.ts')
 const worker = read('lib/customer-operations/automation.ts')
 const migration = read('supabase/migrations/20260724210000_customer_application_continuation_orchestrator.sql')
@@ -35,16 +38,25 @@ expect(migration.includes('if exists (') && migration.includes('idempotency_key=
 expect(migration.includes("'waiting_for_customer_data_response'"), 'Z01/Z02 wait has a non-replayable workflow state')
 expect(migration.includes('valid_to is null or valid_to>=current_date') && !migration.includes('valid_until'), 'continuation commit validates the canonical POA validity columns')
 
-const commitIndex = intake.indexOf("commitApplicationProvisioning({")
-const continuationReturnIndex = intake.indexOf('if (workflow.continuationJobId)')
-const emailDispatchIndex = intake.indexOf('dispatchInitialWebsiteApplicationEmails({', continuationReturnIndex)
+const commitIndex = intakeProcess.indexOf("commitApplicationProvisioning({")
+const continuationReturnIndex = intakeProcess.indexOf('if (workflow.continuationJobId)')
 expect(commitIndex > -1 && continuationReturnIndex > commitIndex, 'API commits before handing off to continuation')
-expect(emailDispatchIndex > continuationReturnIndex, 'initial e-mail dispatch lives in the durable continuation worker')
-expect(intake.includes('customer_application_continuation_not_ready'), 'API fails closed when the continuation migration is missing')
-expect(!intake.includes('const gridOwnerRequestMayBeCreated ='), 'old inline grid-owner continuation path is removed')
-expect(!intake.includes('ensureSupplierSwitchForReadyCustomer'), 'old inline supplier-switch continuation path is removed')
-expect(/for \(const eventKey of events\)/.test(intake), 'initial legal e-mails are queued sequentially')
-expect(!/Promise\.all\(\s*events\.map/.test(intake), 'initial legal e-mails are not queued in parallel')
+expect(
+  worker.includes("case 'customer_application_continuation':") &&
+    worker.includes('continueWebsiteCustomerApplication') &&
+    continuationHandler.includes('dispatchInitialWebsiteApplicationEmails({'),
+  'initial e-mail dispatch lives behind the durable continuation worker',
+)
+expect(intakeProcess.includes('customer_application_continuation_not_ready'), 'API fails closed when the continuation migration is missing')
+expect(!intakeProcess.includes('const gridOwnerRequestMayBeCreated ='), 'old inline grid-owner continuation path is removed')
+expect(!intakeProcess.includes('ensureSupplierSwitchForReadyCustomer'), 'old inline supplier-switch continuation path is removed')
+expect(/for \(const eventKey of events\)/.test(communication), 'initial legal e-mails are queued sequentially')
+expect(!/Promise\.all\(\s*events\.map/.test(communication), 'initial legal e-mails are not queued in parallel')
+expect(
+  intakeFacade.includes("export { processWebsiteCustomerApplication } from './customerApplicationProcess'") &&
+    intakeFacade.includes("export { continueWebsiteCustomerApplication } from './customerApplicationRepair'"),
+  'bounded customerApplications facade delegates to the current split intake and continuation modules',
+)
 
 expect(worker.includes("case 'customer_application_continuation':"), 'customer-operation worker executes continuation jobs')
 expect(worker.includes("['customer_application_continuation', 'dispatch_lifecycle_notification'].includes(job.job_type)"), 'continuation and notification jobs bypass stale site-snapshot rejection until the selected downstream step')
@@ -64,7 +76,7 @@ expect(lifecycle.includes('enqueueCustomerLifecycleNotification') && lifecycle.i
 expect(worker.includes("case 'dispatch_lifecycle_notification':") && worker.includes('notifyCustomerForLifecycleEvent'), 'customer-operation worker dispatches lifecycle notifications durably')
 expect(read('lib/customers/customerOperationEvents.ts').includes('enqueueCustomerLifecycleNotification'), 'customer operation events enqueue lifecycle notifications')
 expect(read('lib/ediel/flows/inboundBusinessStateMachine.ts').includes('enqueueCustomerLifecycleNotification'), 'Ediel business outcomes enqueue lifecycle notifications')
-expect(intake.includes('power_of_attorney_required_notification_not_queued'), 'missing POA notification creation fails the continuation job for retry')
+expect(continuationHandler.includes('power_of_attorney_required_notification_not_queued'), 'missing POA notification creation fails the continuation job for retry')
 expect(exists('app/admin/website-applications/[id]/page.tsx') && read('app/admin/website-applications/[id]/page.tsx').includes('Workflowhändelser'), 'admin application view exposes workflow transitions and jobs')
 expect(read('app/admin/website-applications/actions.ts').includes('requeueWebsiteApplicationContinuationAction'), 'admin can safely requeue the canonical continuation row')
 
