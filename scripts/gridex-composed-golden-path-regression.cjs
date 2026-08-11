@@ -5,7 +5,7 @@ const path = require('node:path')
 const root = path.resolve(__dirname, '..')
 const suites = [
   'scripts/gridex-contract-tenant-lifecycle-regression.cjs',
-  'scripts/gridex-multitenant-website-application-flow-regression.cjs',
+  'scripts/gridex-current-website-application-golden-path-regression.cjs',
   'scripts/gridex-website-application-ops-chain-regression.cjs',
   'scripts/gridex-customer-application-continuation-regression.cjs',
   'scripts/gridex-customer-application-review-regression.cjs',
