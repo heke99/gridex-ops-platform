@@ -19,6 +19,7 @@ jobs:
       - run: npm run db:migrations:check
       - run: node scripts/check-agent-memory-git-state.cjs
       - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - run: node scripts/gridex-remaining-production-gaps-regression.cjs
       - run: node scripts/gridex-ops-health-regression.cjs
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
