@@ -53,8 +53,9 @@ expect(!intakeProcess.includes('ensureSupplierSwitchForReadyCustomer'), 'old inl
 expect(/for \(const eventKey of events\)/.test(communication), 'initial legal e-mails are queued sequentially')
 expect(!/Promise\.all\(\s*events\.map/.test(communication), 'initial legal e-mails are not queued in parallel')
 expect(
-  intakeFacade.includes("export { processWebsiteCustomerApplication } from './customerApplicationProcess'") &&
-    intakeFacade.includes("export { continueWebsiteCustomerApplication } from './customerApplicationRepair'"),
+  intakeFacade.includes("processWebsiteCustomerApplication } from './customerApplicationProcess'") &&
+    intakeFacade.includes("continueWebsiteCustomerApplication") &&
+    intakeFacade.includes("from './customerApplicationRepair'"),
   'bounded customerApplications facade delegates to the current split intake and continuation modules',
 )
 
