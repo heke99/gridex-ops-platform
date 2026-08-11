@@ -70,6 +70,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
+      - name: Capture generated types before replay cleanup
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/gridex-aud-003-clean-replay.sh')
+          text = path.read_text()
+          marker = "echo '[GRIDEX-REM-002 replay] PASS:"
+          idx = text.rfind(marker)
+          if idx < 0:
+              raise SystemExit('clean replay PASS marker not found')
+          capture = "supabase gen types typescript --local > \"$ROOT/replay-database.types.ts\"\n"
+          path.write_text(text[:idx] + capture + text[idx:])
+          PY
       - name: Clean empty-database replay
         shell: bash
         run: |
@@ -80,5 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gridex-rem-002-clean-replay
-          path: rem002-clean-replay.log
+          path: |
+            rem002-clean-replay.log
+            replay-database.types.ts
           if-no-files-found: error
