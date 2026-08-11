@@ -1,6 +1,10 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import {
+  LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
+  loginErrorMessage,
+} from '@/lib/auth/loginError'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 function normalizeEmail(value: string) {
@@ -28,17 +32,29 @@ export async function loginAction(formData: FormData) {
     )
   }
 
-  const supabase = await createSupabaseServerClient()
+  const authResult = await (async () => {
+    try {
+      const supabase = await createSupabaseServerClient()
+      return await supabase.auth.signInWithPassword({ email, password })
+    } catch {
+      return null
+    }
+  })()
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  if (!authResult) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE
+      )}&next=${encodeURIComponent(next)}`
+    )
+  }
+
+  const { data, error } = authResult
 
   if (error) {
     redirect(
       `/login?error=${encodeURIComponent(
-        'Fel e-post eller lösenord'
+        loginErrorMessage(error)
       )}&next=${encodeURIComponent(next)}`
     )
   }
