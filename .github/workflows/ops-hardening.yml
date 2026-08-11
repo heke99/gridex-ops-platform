@@ -61,6 +61,8 @@ jobs:
   clean-migration-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -89,6 +91,35 @@ jobs:
         run: |
           set -o pipefail
           bash scripts/gridex-aud-003-clean-replay.sh 2>&1 | tee rem002-clean-replay.log
+      - name: Commit replay-generated types to remediation branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'agent/gridex-remaining-production-gaps-2026-08-11'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp replay-database.types.ts /tmp/gridex-replay-database.types.ts
+          git fetch origin "$GITHUB_HEAD_REF"
+          git checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
+          cp /tmp/gridex-replay-database.types.ts supabase/database.types.ts
+          TYPES_SHA="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          GENERATED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          python3 - "$TYPES_SHA" "$GENERATED_AT" <<'PY'
+          import json, pathlib, sys
+          path = pathlib.Path('scripts/supabase-types-manifest.json')
+          data = json.loads(path.read_text())
+          data['project_id'] = 'piidsfebjqjmnepdpnas'
+          data['generated_at'] = sys.argv[2]
+          data['generated_types'] = 'supabase/database.types.ts'
+          data['sha256'] = sys.argv[1]
+          data['latest_migration'] = '20260811073500_gridex_release_identity_completion.sql'
+          path.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+          git config user.name "gridex-ci"
+          git config user.email "gridex-ci@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: regenerate Supabase types from clean replay"
+            git push origin "HEAD:$GITHUB_HEAD_REF"
+          fi
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
