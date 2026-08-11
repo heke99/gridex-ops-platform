@@ -65,8 +65,9 @@ assert.ok(
   "admin contract close must use the canonical RPC and permission",
 );
 assert.ok(
-  companyActions.includes("'gridex_transition_tenant_lifecycle'"),
-  "tenant governance must use the canonical transition RPC",
+  companyActions.includes("rpc('canonical_transition_tenant_lifecycle'") &&
+    !companyActions.includes("rpc('gridex_transition_tenant_lifecycle'"),
+  "tenant governance must use only the current canonical transition RPC",
 );
 assert.ok(
   !companyProfileActions.includes("status_reason:") &&
