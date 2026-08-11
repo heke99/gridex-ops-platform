@@ -22,12 +22,16 @@ for (const marker of required) {
   if (!migration.includes(marker)) failures.push(`missing health hotfix marker: ${marker}`)
 }
 
+// The forward-only migration intentionally matches the installed function with
+// PostgreSQL E-string newline escapes ("\\n"). Verify that immutable source
+// representation exactly; interpreting \n as a JavaScript newline would assert
+// a byte sequence that does not exist in the migration file.
 for (const raw of [
-  "from public.tenant_email_outbox\n  where status =",
-  "from public.webhook_deliveries\n  where status =",
-  "from public.ediel_outbox\n  where status =",
-  "from public.customer_site_address_conflicts\n    where status =",
-  "from public.customer_sites\n  where status =",
+  String.raw`from public.tenant_email_outbox\n  where status =`,
+  String.raw`from public.webhook_deliveries\n  where status =`,
+  String.raw`from public.ediel_outbox\n  where status =`,
+  String.raw`from public.customer_site_address_conflicts\n    where status =`,
+  String.raw`from public.customer_sites\n  where status =`,
 ]) {
   if (!migration.includes(raw)) failures.push(`missing fail-closed source signature: ${raw}`)
 }
