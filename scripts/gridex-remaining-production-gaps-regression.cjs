@@ -9,6 +9,7 @@ const hash = (file) =>
 
 const migration = read('supabase/migrations/20260811073000_gridex_remaining_production_gaps_v1.sql')
 const releaseMigration = read('supabase/migrations/20260811073500_gridex_release_identity_completion.sql')
+const reviewFixMigration = read('supabase/migrations/20260811074000_gridex_remaining_gaps_review_fixes.sql')
 const inboundActions = read('app/admin/inbound-mail/actions.ts')
 const inboundDetail = read('app/admin/inbound-mail/[id]/page.tsx')
 const eventRuntime = read('lib/events/domainEvents.ts')
@@ -20,7 +21,9 @@ const control = (id, condition, message) =>
 
 control(
   'R01',
-  !/\bcreate\s+table\b/i.test(migration) && !/\bcreate\s+table\b/i.test(releaseMigration),
+  !/\bcreate\s+table\b/i.test(migration) &&
+    !/\bcreate\s+table\b/i.test(releaseMigration) &&
+    !/\bcreate\s+table\b/i.test(reviewFixMigration),
   'remaining-gap remediation creates a parallel table instead of strengthening existing schema',
 )
 control(
@@ -56,7 +59,7 @@ control(
 control(
   'R07',
   inboundDetail.includes("from('inbound_processing_jobs')") &&
-    inboundDetail.includes('resolveInboundManualReviewAction') &&
+    inboundDetail.includes('InboundManualReviewForm') &&
     !inboundDetail.includes('manual_review_jobs'),
   'inbound UI uses a parallel review model',
 )
@@ -103,8 +106,7 @@ control(
 )
 control(
   'R15',
-  !migration.includes('drop column organization_number') &&
-    !migration.includes('drop column org_number'),
+  !/\bdrop\s+column\s+(?:if\s+exists\s+)?(?:"?(?:organization_number|org_number)"?)/i.test(migration),
   'organisation-number remediation breaks legacy readers instead of converging safely',
 )
 control(
@@ -187,7 +189,9 @@ control(
 control(
   'R24',
   migration.includes('from public.event_outbox outbox') &&
-    migration.includes('from public.canonical_event_outbox outbox'),
+    migration.includes('from public.canonical_event_outbox outbox') &&
+    reviewFixMigration.includes('from public.event_outbox outbox') &&
+    reviewFixMigration.includes('from public.canonical_event_outbox outbox'),
   'reconciliation ignores either the active outbox or compatibility outbox during convergence',
 )
 control(
@@ -202,15 +206,14 @@ control(
 )
 control(
   'R27',
-  !migration.includes('canonical_domain_events_v2') &&
-    !migration.includes('canonical_event_outbox_v2') &&
-    !migration.includes('domain_events_v2') &&
-    !migration.includes('event_outbox_v2'),
+  !/\b(?:canonical_)?(?:domain_events|event_outbox)_v2\b/i.test(migration) &&
+    !/\b(?:canonical_)?(?:domain_events|event_outbox)_v2\b/i.test(reviewFixMigration),
   'event remediation introduces a parallel v2 event system',
 )
 
 const migrationName = '20260811073000_gridex_remaining_production_gaps_v1.sql'
 const releaseMigrationName = '20260811073500_gridex_release_identity_completion.sql'
+const reviewFixMigrationName = '20260811074000_gridex_remaining_gaps_review_fixes.sql'
 control(
   'R28',
   additions.files[migrationName] === hash(`supabase/migrations/${migrationName}`),
@@ -237,20 +240,45 @@ control(
   migration.includes('set local lock_timeout') &&
     migration.includes('set local statement_timeout') &&
     releaseMigration.includes('set local lock_timeout') &&
-    releaseMigration.includes('set local statement_timeout'),
+    releaseMigration.includes('set local statement_timeout') &&
+    reviewFixMigration.includes('set local lock_timeout') &&
+    reviewFixMigration.includes('set local statement_timeout'),
   'forward migrations lack bounded lock/statement timeouts',
 )
+control(
+  'R33',
+  reviewFixMigration.includes("outbox.status in ('queued','failed')") &&
+    reviewFixMigration.includes("outbox.status='processing'"),
+  'active event_outbox health check does not match queued/processing/failed status semantics',
+)
+control(
+  'R34',
+  reviewFixMigration.includes("outbox.status in ('pending','failed')") &&
+    reviewFixMigration.includes("outbox.status='processing'"),
+  'compatibility outbox health check does not match pending/processing/failed status semantics',
+)
+control(
+  'R35',
+  reviewFixMigration.includes("where public.platform_release_receipts.status in ('candidate','verified')") &&
+    reviewFixMigration.includes("message='release_receipt_not_reverifiable'"),
+  'release receipt writer can overwrite a failed or superseded release verdict',
+)
+control(
+  'R36',
+  additions.files[reviewFixMigrationName] === hash(`supabase/migrations/${reviewFixMigrationName}`),
+  'review-fix migration checksum is not pinned correctly',
+)
 
-if (controls.length !== 32) {
-  console.error(`Remaining production gaps regression definition error: expected 32 controls, got ${controls.length}`)
+if (controls.length !== 36) {
+  console.error(`Remaining production gaps regression definition error: expected 36 controls, got ${controls.length}`)
   process.exit(1)
 }
 
 const failures = controls.filter((item) => !item.passed)
 if (failures.length) {
-  console.error(`Gridex remaining production gaps regression failed (${failures.length}/32)`)
+  console.error(`Gridex remaining production gaps regression failed (${failures.length}/36)`)
   for (const failure of failures) console.error(`- ${failure.id}: ${failure.message}`)
   process.exit(1)
 }
 
-console.log('Gridex remaining production gaps regression passed (32/32 controls)')
+console.log('Gridex remaining production gaps regression passed (36/36 controls)')
