@@ -1,7 +1,11 @@
 'use client'
 
+import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { resolveInboundManualReviewAction } from '@/app/admin/inbound-mail/actions'
+import {
+  resolveInboundManualReviewUiAction,
+  type ManualReviewActionState,
+} from './reviewActions'
 
 type Props = {
   jobId: string
@@ -11,6 +15,8 @@ type Props = {
   reviewSla: string
   reviewReason: string
 }
+
+const initialState: ManualReviewActionState = { error: null }
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -32,9 +38,11 @@ export default function InboundManualReviewForm({
   reviewSla,
   reviewReason,
 }: Props) {
+  const [state, formAction] = useActionState(resolveInboundManualReviewUiAction, initialState)
+
   return (
     <form
-      action={resolveInboundManualReviewAction}
+      action={formAction}
       className="grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 lg:grid-cols-[1fr_180px_auto]"
     >
       <input type="hidden" name="job_id" value={jobId} />
@@ -71,6 +79,9 @@ export default function InboundManualReviewForm({
       <div className="flex items-end">
         <SubmitButton />
       </div>
+      {state.error ? (
+        <p className="text-sm font-medium text-red-700 lg:col-span-3" role="alert">{state.error}</p>
+      ) : null}
     </form>
   )
 }
