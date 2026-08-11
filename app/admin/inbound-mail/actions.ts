@@ -68,6 +68,14 @@ function requireMailboxId(formData: FormData): string {
   return id;
 }
 
+function requireUuid(formData: FormData, key: string, label: string): string {
+  const id = requiredText(formData, key, label);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    throw new Error(`${label} är ogiltigt.`);
+  }
+  return id;
+}
+
 export async function runInboundMailEngineAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess();
   await runInboundEdielMailEngine({
@@ -276,4 +284,30 @@ export async function reprocessInboundEmailAction(formData: FormData) {
   });
   revalidatePath("/admin/inbound-mail");
   revalidatePath(`/admin/inbound-mail/${id}`);
+}
+
+export async function resolveInboundManualReviewAction(formData: FormData) {
+  const admin = await requirePlatformAdminActionAccess();
+  const jobId = requireUuid(formData, "job_id", "Jobb-id");
+  const inboundEmailMessageId = requireUuid(
+    formData,
+    "inbound_email_message_id",
+    "Inbound mail-id",
+  );
+  const resolution = requiredText(formData, "resolution", "Lösning");
+  const nextStatus = requiredText(formData, "next_status", "Nästa status");
+  if (!['queued', 'completed', 'failed'].includes(nextStatus)) {
+    throw new Error("Nästa status är ogiltig.");
+  }
+
+  const { error } = await supabaseService.rpc("canonical_resolve_inbound_manual_review", {
+    p_job_id: jobId,
+    p_resolution: resolution,
+    p_next_status: nextStatus,
+    p_actor_user_id: admin.userId,
+  });
+  if (error) throw error;
+
+  revalidatePath("/admin/inbound-mail");
+  revalidatePath(`/admin/inbound-mail/${inboundEmailMessageId}`);
 }
