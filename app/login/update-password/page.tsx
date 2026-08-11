@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { sanitizeUpdatePasswordErrorFlash } from '@/lib/auth/loginError'
+import { getSafeNextPath } from '@/lib/auth/urls'
 import { updatePasswordAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -14,8 +16,8 @@ export default async function UpdatePasswordPage({
   searchParams,
 }: UpdatePasswordPageProps) {
   const params = await searchParams
-  const error = params.error
-  const next = params.next || '/dashboard'
+  const error = sanitizeUpdatePasswordErrorFlash(params.error)
+  const next = getSafeNextPath(params.next)
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6">

@@ -1,26 +1,25 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { clearTemporaryPasswordFlags } from '@/lib/auth/directAccountProvisioning'
-
-function normalizeNext(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return '/dashboard'
-  if (!trimmed.startsWith('/')) return '/dashboard'
-  if (trimmed.startsWith('//')) return '/dashboard'
-  return trimmed
-}
+import {
+  UPDATE_PASSWORD_FAILED_MESSAGE,
+  UPDATE_PASSWORD_MISMATCH_MESSAGE,
+  UPDATE_PASSWORD_SESSION_MISSING_MESSAGE,
+  UPDATE_PASSWORD_TOO_SHORT_MESSAGE,
+} from '@/lib/auth/loginError'
+import { getSafeNextPath } from '@/lib/auth/urls'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function updatePasswordAction(formData: FormData) {
   const password = String(formData.get('password') ?? '')
   const confirmPassword = String(formData.get('confirmPassword') ?? '')
-  const next = normalizeNext(String(formData.get('next') ?? '/dashboard'))
+  const next = getSafeNextPath(String(formData.get('next') ?? '/dashboard'))
 
   if (password.length < 8) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
-        'Lösenordet behöver vara minst 8 tecken.'
+        UPDATE_PASSWORD_TOO_SHORT_MESSAGE
       )}&next=${encodeURIComponent(next)}`
     )
   }
@@ -28,23 +27,33 @@ export async function updatePasswordAction(formData: FormData) {
   if (password !== confirmPassword) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
-        'Lösenorden matchar inte.'
+        UPDATE_PASSWORD_MISMATCH_MESSAGE
       )}&next=${encodeURIComponent(next)}`
     )
   }
 
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const authResult = await (async () => {
+    try {
+      const supabase = await createSupabaseServerClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      return { supabase, user }
+    } catch {
+      return null
+    }
+  })()
 
-  if (!user?.id) {
+  const user = authResult?.user
+  if (!authResult || !user?.id) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
-        'Sessionen saknas. Logga in igen med det temporära lösenordet.'
+        UPDATE_PASSWORD_SESSION_MISSING_MESSAGE
       )}`
     )
   }
+
+  const { supabase } = authResult
 
   const currentMetadata = (user.user_metadata ?? {}) as Record<string, unknown>
   const nextMetadata: Record<string, unknown> = {
@@ -58,15 +67,21 @@ export async function updatePasswordAction(formData: FormData) {
   delete nextMetadata.temporary_password_company_id
   delete nextMetadata.temporary_password_company_name
 
-  const { error } = await supabase.auth.updateUser({
-    password,
-    data: nextMetadata,
-  })
+  let updateError: unknown = null
+  try {
+    const result = await supabase.auth.updateUser({
+      password,
+      data: nextMetadata,
+    })
+    updateError = result.error
+  } catch {
+    updateError = new Error('auth_update_unavailable')
+  }
 
-  if (error) {
+  if (updateError) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
-        'Det gick inte att uppdatera lösenordet. Begär en ny återställningslänk och försök igen.'
+        UPDATE_PASSWORD_FAILED_MESSAGE
       )}&next=${encodeURIComponent(next)}`
     )
   }

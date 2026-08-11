@@ -2,32 +2,26 @@
 
 import { redirect } from 'next/navigation'
 import {
+  LOGIN_MISSING_FIELDS_MESSAGE,
   LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
   loginErrorMessage,
 } from '@/lib/auth/loginError'
+import { getSafeNextPath } from '@/lib/auth/urls'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
 }
 
-function normalizeNext(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return '/dashboard'
-  if (!trimmed.startsWith('/')) return '/dashboard'
-  if (trimmed.startsWith('//')) return '/dashboard'
-  return trimmed
-}
-
 export async function loginAction(formData: FormData) {
   const email = normalizeEmail(String(formData.get('email') ?? ''))
   const password = String(formData.get('password') ?? '')
-  const next = normalizeNext(String(formData.get('next') ?? '/dashboard'))
+  const next = getSafeNextPath(String(formData.get('next') ?? '/dashboard'))
 
   if (!email || !password) {
     redirect(
       `/login?error=${encodeURIComponent(
-        'Fyll i e-post och lösenord'
+        LOGIN_MISSING_FIELDS_MESSAGE
       )}&next=${encodeURIComponent(next)}`
     )
   }

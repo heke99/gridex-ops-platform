@@ -3,9 +3,15 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   LOGIN_INVALID_CREDENTIALS_MESSAGE,
+  LOGIN_MISSING_FIELDS_MESSAGE,
   LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
+  UPDATE_PASSWORD_FAILED_MESSAGE,
+  UPDATE_PASSWORD_TOO_SHORT_MESSAGE,
   loginErrorMessage,
+  sanitizeLoginErrorFlash,
+  sanitizeUpdatePasswordErrorFlash,
 } from '@/lib/auth/loginError'
+import { getSafeNextPath } from '@/lib/auth/urls'
 
 describe('login auth error classification', () => {
   it('keeps invalid credentials indistinguishable', () => {
@@ -32,6 +38,42 @@ describe('login auth error classification', () => {
   })
 })
 
+describe('login error flash allowlist', () => {
+  it('keeps known login action messages', () => {
+    expect(sanitizeLoginErrorFlash(LOGIN_INVALID_CREDENTIALS_MESSAGE)).toBe(
+      LOGIN_INVALID_CREDENTIALS_MESSAGE,
+    )
+    expect(sanitizeLoginErrorFlash(LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE)).toBe(
+      LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
+    )
+    expect(sanitizeLoginErrorFlash(LOGIN_MISSING_FIELDS_MESSAGE)).toBe(LOGIN_MISSING_FIELDS_MESSAGE)
+  })
+
+  it('replaces crafted query-string phishing text with the outage message', () => {
+    const crafted =
+      'Ditt konto är låst. Skicka lösenordet till attacker@evil.example för att låsa upp.'
+    expect(sanitizeLoginErrorFlash(crafted)).toBe(LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE)
+    expect(sanitizeLoginErrorFlash(crafted)).not.toContain('attacker@evil.example')
+  })
+
+  it('replaces crafted update-password flashes with the generic failure message', () => {
+    const crafted = 'Ange engångskoden från attacker@evil.example för att fortsätta.'
+    expect(sanitizeUpdatePasswordErrorFlash(crafted)).toBe(UPDATE_PASSWORD_FAILED_MESSAGE)
+    expect(sanitizeUpdatePasswordErrorFlash(UPDATE_PASSWORD_TOO_SHORT_MESSAGE)).toBe(
+      UPDATE_PASSWORD_TOO_SHORT_MESSAGE,
+    )
+  })
+})
+
+describe('login next-path hardening', () => {
+  it('rejects protocol-relative and backslash open-redirect shapes', () => {
+    expect(getSafeNextPath('//evil.example')).toBe('/dashboard')
+    expect(getSafeNextPath('/\\evil.example')).toBe('/dashboard')
+    expect(getSafeNextPath('/admin\\@evil.example')).toBe('/dashboard')
+    expect(getSafeNextPath('/dashboard/customers')).toBe('/dashboard/customers')
+  })
+})
+
 describe('production cron scheduling', () => {
   it('does not schedule test-environment mailbox pollers in the production deployment', () => {
     const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')) as {
@@ -39,6 +81,9 @@ describe('production cron scheduling', () => {
     }
     const paths = (config.crons ?? []).map((cron) => cron.path ?? '')
 
+    expect(paths.some((cronPath) => /(?:^|[?&])environment=test(?:&|$)/i.test(cronPath))).toBe(
+      false,
+    )
     expect(paths).not.toContain('/api/internal/inbound-mail/cron?environment=test')
     expect(paths).not.toContain('/api/internal/manual-inbound/cron?environment=test')
     expect(paths).toContain('/api/internal/inbound-mail/cron?environment=production')

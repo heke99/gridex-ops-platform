@@ -63,6 +63,7 @@ function normalizeNextPath(value: string | null) {
   if (!value) return '/dashboard'
   if (!value.startsWith('/')) return '/dashboard'
   if (value.startsWith('//')) return '/dashboard'
+  if (value.includes('\\') || value.includes('\0')) return '/dashboard'
   return value
 }
 
