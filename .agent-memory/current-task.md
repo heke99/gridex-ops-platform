@@ -26,5 +26,5 @@ Land and verify the tip-based forward residual migration
 
 ## Exact next action
 
-Commit/push the residual branch, open PR, and supersede overlapping `#106`
-once this tip residual is reviewed.
+Wait for PR `#109` CI; after merge, close/supersede stale `#106` and apply
+`20260811114500` on connected environments.
