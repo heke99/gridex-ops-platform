@@ -97,7 +97,7 @@ for (const [id, name] of pinnedMigrations) {
   control(id, migrationManifest.files[name] === hash(`supabase/migrations/${name}`), `migration checksum drifted: ${name}`)
 }
 control('C55', typesManifest.sha256 === hash(typesManifest.generated_types), 'generated database types hash drifted')
-control('C56', typesManifest.latest_migration === '20260811073500_gridex_release_identity_completion.sql', 'generated types are not pinned to the current migration tail')
+control('C56', typesManifest.latest_migration === '20260811074000_gridex_remaining_gaps_review_fixes.sql', 'generated types are not pinned to the current migration tail')
 
 function returnBlock(name) {
   const start = databaseTypes.indexOf(`      ${name}: {`)
