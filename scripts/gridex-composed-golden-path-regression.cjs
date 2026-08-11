@@ -9,7 +9,7 @@ const suites = [
   'scripts/gridex-website-application-ops-chain-regression.cjs',
   'scripts/gridex-customer-application-continuation-regression.cjs',
   'scripts/gridex-customer-application-review-regression.cjs',
-  'scripts/gridex-website-api-power-of-attorney-regression.cjs',
+  'scripts/gridex-current-website-api-power-of-attorney-regression.cjs',
   'scripts/gridex-quote-idempotency-multitenant-regression.cjs',
   'scripts/canonical-production-hardening-regression.cjs',
 ]
