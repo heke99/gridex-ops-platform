@@ -19,7 +19,17 @@ function assert(condition, message) {
   }
 }
 
-const applicationEngine = read('lib/website/customerApplications.ts')
+// customerApplications.ts is intentionally a bounded facade. Review invariants
+// span the current split modules, so the regression reads the whole current
+// website-application engine rather than forcing logic back into one monolith.
+const applicationEngine = [
+  'lib/website/customerApplications.ts',
+  'lib/website/customerApplicationProcess.ts',
+  'lib/website/customerApplicationPersistence.ts',
+  'lib/website/customerApplicationCommunication.ts',
+  'lib/website/customerApplicationOnboarding.ts',
+  'lib/website/customerApplicationShared.ts',
+].map(read).join('\n')
 const reviewEngine = read('lib/website/applicationReview.ts')
 const applicationPage = read('app/admin/website-applications/page.tsx')
 const applicationActions = read('app/admin/website-applications/actions.ts')
