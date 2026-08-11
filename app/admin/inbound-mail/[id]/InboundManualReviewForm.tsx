@@ -6,6 +6,10 @@ import { resolveInboundManualReviewAction } from '@/app/admin/inbound-mail/actio
 type Props = {
   jobId: string
   inboundEmailMessageId: string
+  reviewOwner: string
+  reviewPriority: string
+  reviewSla: string
+  reviewReason: string
 }
 
 function SubmitButton() {
@@ -20,13 +24,29 @@ function SubmitButton() {
   )
 }
 
-export default function InboundManualReviewForm({ jobId, inboundEmailMessageId }: Props) {
+export default function InboundManualReviewForm({
+  jobId,
+  inboundEmailMessageId,
+  reviewOwner,
+  reviewPriority,
+  reviewSla,
+  reviewReason,
+}: Props) {
   return (
-    <form action={resolveInboundManualReviewAction} className="contents">
+    <form
+      action={resolveInboundManualReviewAction}
+      className="grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 lg:grid-cols-[1fr_180px_auto]"
+    >
       <input type="hidden" name="job_id" value={jobId} />
       <input type="hidden" name="inbound_email_message_id" value={inboundEmailMessageId} />
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600" htmlFor={`resolution-${jobId}`}>Lösning</label>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+          <span>Owner: <strong className="text-slate-900">{reviewOwner}</strong></span>
+          <span>Prioritet: <strong className="text-slate-900">{reviewPriority}</strong></span>
+          <span>SLA: <strong className="text-slate-900">{reviewSla}</strong></span>
+        </div>
+        <p className="mt-2 text-sm text-slate-700">Orsak: {reviewReason}</p>
+        <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600" htmlFor={`resolution-${jobId}`}>Lösning</label>
         <input
           id={`resolution-${jobId}`}
           name="resolution"
