@@ -74,6 +74,26 @@ describe('login next-path hardening', () => {
   })
 })
 
+describe('middleware auth outage safety', () => {
+  it('fails protected routes closed when auth or authorization infrastructure errors', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'proxy.ts'), 'utf8')
+
+    expect(source).toContain("return authServiceUnavailable(request, 'get_user', error)")
+    expect(source).toContain('if (sessionCheckError)')
+    expect(source).toContain("return authServiceUnavailable(request, 'session_allowed', sessionCheckError)")
+    expect(source).toContain("return authServiceUnavailable(request, 'platform_admin_roles', error)")
+    expect(source).toContain("'Retry-After': '15'")
+  })
+
+  it('does not log the raw provider response body from middleware', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'proxy.ts'), 'utf8')
+
+    expect(source).toContain('safeAuthInfrastructureError')
+    expect(source).not.toContain("console.error('[auth-proxy] provider unavailable', error)")
+    expect(source).not.toContain('error.message')
+  })
+})
+
 describe('production cron scheduling', () => {
   it('does not schedule test-environment mailbox pollers in the production deployment', () => {
     const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')) as {
