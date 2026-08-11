@@ -28,6 +28,8 @@ jobs:
       - run: npm run ops:hardening-behavior-regression
       - name: Integrated remaining-masterpoints golden path
         run: node scripts/gridex-remaining-masterpoints-golden-path-regression.cjs
+      - run: npm run gridex:canonical-architecture-57-regression
+      - run: npm run gridex:post-108-health-residuals-regression
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production

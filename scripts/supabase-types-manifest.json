@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-11T09:19:16.469Z",
+  "generated_at": "2026-08-11T10:47:07.423Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "991996d7eadb85b02df4b646ba11b7c8b753f4f08e023435b76c2e6f45178fd0",
-  "latest_migration": "20260811080000_remaining_masterpoint_convergence.sql"
+  "latest_migration": "20260811114500_post_108_health_security_residuals.sql"
 }
