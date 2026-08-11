@@ -7,6 +7,9 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read(
   "supabase/migrations/20260726010000_contract_tenant_lifecycle_completion.sql",
 );
+const integrationAuthMigration = read(
+  "supabase/migrations/20260809191057_authenticate_integration_request_route_cost.sql",
+);
 const apiAuth = read("lib/integrations/apiAuth.ts");
 const contractActions = read("app/admin/contracts/actions.ts");
 const companyActions = read("app/admin/companies/actions.ts");
@@ -47,11 +50,14 @@ assert.ok(
   "tenant close must detect active customer contracts",
 );
 assert.ok(
-  apiAuth.includes(".from('companies')") &&
+  apiAuth.includes("authenticate_integration_request_v1") &&
     apiAuth.includes("tenantApiAccessError") &&
     apiAuth.includes("tenant_paused") &&
-    apiAuth.includes("tenant_closed"),
-  "integration auth must centrally verify tenant lifecycle",
+    apiAuth.includes("tenant_closed") &&
+    integrationAuthMigration.includes("from public.companies c") &&
+    integrationAuthMigration.includes("if v_tenant_status <> 'active' then") &&
+    integrationAuthMigration.includes("'tenant_' || v_tenant_status"),
+  "integration auth must centrally verify tenant lifecycle through the canonical authentication RPC",
 );
 assert.ok(
   contractActions.includes('"gridex_close_contract_product"') &&
