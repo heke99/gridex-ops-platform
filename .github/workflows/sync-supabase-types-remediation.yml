@@ -1,0 +1,56 @@
+name: Temporary remediation Supabase types sync
+
+on:
+  push:
+    branches:
+      - remediation/gridex-production-convergence-2026-08-11
+
+permissions:
+  contents: write
+
+jobs:
+  sync-types:
+    if: "!contains(github.event.head_commit.message, '[types-synced]')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: remediation/gridex-production-convergence-2026-08-11
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Generate types from the verified clean replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase gen types typescript --local > supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          node - "$GENERATED_HASH" <<'NODE'
+          const fs = require('node:fs')
+          const hash = process.argv[2]
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.sha256 = hash
+          fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
+          NODE
+          echo "generated_types_sha256=$GENERATED_HASH"
+          test "$GENERATED_HASH" = "6a6ff86d78f24a66ed3d83c25dc34a49702aba7dcfa321ba30201b2f1470e71e"
+      - name: Commit generated source-of-truth types
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "gridex-remediation-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if git diff --cached --quiet; then
+            echo "Types already synchronized."
+            exit 0
+          fi
+          git commit -m "chore(db): sync clean-replay generated types [types-synced]"
+          git push origin HEAD:remediation/gridex-production-convergence-2026-08-11
