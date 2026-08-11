@@ -334,3 +334,8 @@ integrity, fail-closed immutable release verify, market-price example required
 fields, developer-guide version sync, and case-insensitive application /
 metering-point area compares. Local regressions pass. Full npm gates and live
 quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-11 — post-#110 health residuals on 0f25
+- Cherry-picked post-#108 security residual onto post-#110 tip.
+- Hardened login/update-password error flash allowlists and next-path backslash rejection.
+- Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.

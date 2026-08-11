@@ -1,18 +1,25 @@
 # Current task
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
-Status: `CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED`.
+Status: `IN_PROGRESS`
 
-The 75-point remediation has been implemented and locally verified against the supplied source archive. The connected `gridex-ops-dev` database is migrated and schema/code expectations were checked. This archive contains no `.git`, so its claimed `main@78013b71a1f7fccd166b38f0712e20d1df198e11` provenance cannot be independently verified.
+Active work item: post-#110 codebase health residual remediation on
+`cursor/codebase-health-and-stability-0f25`.
 
-Remaining release work requires external evidence, not invented local state:
+## Skill routing
 
-- run the clean empty-database replay in the configured CI job;
-- run mandatory GitHub checks on the real repository;
-- compare staging and production Supabase with the verified dev/repo contract;
-- enable Supabase Auth leaked-password protection when password login is used;
-- prove merged Git SHA = CI SHA = Vercel production SHA;
-- capture production p50/p95/p99 after deployment.
+- Activated: using-superpowers, find-bugs, differential-review, code-review,
+  code-security, fp-check, supabase-postgres-best-practices,
+  test-driven-development, scan-secrets (ggshield missing → BLOCKED),
+  verification-before-completion
+- Conditional later: systematic-debugging if CI fails; requesting-code-review
+  after verification
+- Skipped: full quality-playbook / threat-model (scoped tip residual);
+  brainstorming (requirements evidenced by #110 tip + open #109)
 
-Do not mark the campaign `COMPLETE` until those gates pass. See `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+## Exact next action
+
+Open PR for `0f25`, record verification evidence, and note that this branch
+supersedes unmerged #109 by rebasing the post-#108 security residual onto the
+post-#110 tip plus auth flash/next-path hardenings.
