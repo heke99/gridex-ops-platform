@@ -6,7 +6,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = process.cwd()
-const migrationName = '20260811114500_post_108_health_security_residuals.sql'
+const migrationName = '20260811155851_post_108_health_security_residuals.sql'
 const migrationPath = path.join(root, 'supabase', 'migrations', migrationName)
 const additionsPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
 const typesManifestPath = path.join(root, 'scripts', 'supabase-types-manifest.json')
@@ -31,7 +31,6 @@ const additions = JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
 const typesManifest = JSON.parse(fs.readFileSync(typesManifestPath, 'utf8'))
 const tipSql = fs.readFileSync(brokenTip, 'utf8')
 
-// Prove the #108 tip still carries the grant regression so this residual remains justified.
 check(
   tipSql.includes(
     'grant execute on function public.canonical_run_architecture_reconciliation(uuid) to authenticated, service_role',
@@ -85,7 +84,6 @@ const checkErrorKeys = [
   'check-error:invalid-tenant-lifecycle-projection',
 ]
 for (const key of checkErrorKeys) {
-  // Success-path clears write count=0; exception paths write count=1. Require both.
   check(migrationSql.split(key).length >= 3, `check-error clears incomplete for ${key}`)
   check(
     migrationSql.includes(`'${key}', 'reconciliation', 'critical',\n      `) ||

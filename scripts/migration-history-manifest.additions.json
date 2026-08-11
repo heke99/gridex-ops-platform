@@ -1,7 +1,7 @@
 {
   "files": {
     "20260804200732_usage_event_identity_and_integration_write_idempotency.sql": "84051d3fcbebf2f568f6e95af8eb47ae0553165d911d072c4baf9cf44cb85bbe",
-    "20260804202318_ediel_system_actor_uuid_and_draft_intent_repair.sql": "997b855ee7777dc538de75e3de948374b9add0e685401ed47880524c904f5ec3",
+    "20260804202318_ediel_system_actor_uuid_and_draft_intent_repair.sql": "997b855ee7777dc538de948374b9add0e685401ed47880524c904f5ec3",
     "20260804202601_integration_api_request_log_idempotency_index_fix.sql": "4667f8bea91f8b7b81aaf73a82e2c126276165c5bba646d2864f9dbeb4454101",
     "20260806122255_gridex_ops_bl_002_global_read_isolation.sql": "ccbc18dbb7232841758830235be3e808d55b0512c72a409c6125981a5103d2d6",
     "20260806151106_gridex_aud_001_customer_document_storage_isolation.sql": "0d51528c3d7dcb8e2bd2c92cb8d83eea9212438232d25bb5422158be43d46d16",
@@ -27,6 +27,7 @@
     "20260810110229_database_hygiene_and_geodata_retention.sql": "f9094c45e2857a39815a7fb68f63f026d6528e39ccd4da44cdc54d03fbf27046",
     "20260810110829_retention_category_classification.sql": "db0366af177c8df2ef6d779d03835a82db873c367c810e1798b12f2f5e0aecff",
     "20260811080000_remaining_masterpoint_convergence.sql": "915f097ae92cfc56423b4047e1b31433bb293bb2d56f505b7584c563a89a33a2",
-    "20260811114500_post_108_health_security_residuals.sql": "8f77c78368506a1e83aa13a136c5b713e674c6781137e26c023ec901cb0b02c5"
+    "20260811155412_ops_health_live_route_qualification.sql": "1dbdfa724240830873f6be1d8994cccb7cd6dc7cefe80455e0fcbaa6120ef9f7",
+    "20260811155851_post_108_health_security_residuals.sql": "8f77c78368506a1e83aa13a136c5b713e674c6781137e26c023ec901cb0b02c5"
   }
 }

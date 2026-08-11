@@ -1,7 +1,7 @@
 const fs = require('node:fs')
 
 const migrationPath = 'supabase/migrations/20260809110000_ops_health_status_qualification.sql'
-const liveRouteMigrationPath = 'supabase/migrations/20260811153500_ops_health_live_route_qualification.sql'
+const liveRouteMigrationPath = 'supabase/migrations/20260811155412_ops_health_live_route_qualification.sql'
 const healthPath = 'lib/ops/health.ts'
 const migration = fs.readFileSync(migrationPath, 'utf8')
 const liveRouteMigration = fs.readFileSync(liveRouteMigrationPath, 'utf8')
@@ -23,11 +23,11 @@ for (const marker of required) {
 }
 
 for (const raw of [
-  "from public.tenant_email_outbox\\n  where status =",
-  "from public.webhook_deliveries\\n  where status =",
-  "from public.ediel_outbox\\n  where status =",
-  "from public.customer_site_address_conflicts\\n    where status =",
-  "from public.customer_sites\\n  where status =",
+  "from public.tenant_email_outbox\n  where status =",
+  "from public.webhook_deliveries\n  where status =",
+  "from public.ediel_outbox\n  where status =",
+  "from public.customer_site_address_conflicts\n    where status =",
+  "from public.customer_sites\n  where status =",
 ]) {
   if (!migration.includes(raw)) failures.push(`missing fail-closed source signature: ${raw}`)
 }
