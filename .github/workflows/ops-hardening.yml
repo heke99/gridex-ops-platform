@@ -6,7 +6,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
@@ -26,6 +26,8 @@ jobs:
       - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
+      - name: Integrated remaining-masterpoints golden path
+        run: node scripts/gridex-remaining-masterpoints-golden-path-regression.cjs
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
