@@ -1,11 +1,15 @@
-# Remediation handover
+# Handover
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
-Status: **CODE + CONNECTED DEV COMPLETE; RELEASE BLOCKED**
+Branch `cursor/codebase-health-and-stability-0f25` closes the post-#108
+reconciliation/O-008 security residual on the post-#110 tip and hardens
+auth flash allowlisting plus next-path backslash rejection introduced as
+second-order residuals from #110.
 
-The supplied archive was remediated directly, without creating a parallel implementation. The connected `gridex-ops-dev` migration ledger and schema are synchronized with the new source migrations, generated database types and runtime expectations. All local executable quality gates pass.
+Do not reopen #109 as the merge vehicle once `0f25` is reviewed; #109 predates
+#110 and would need a rebase. Prefer merging `0f25` then closing #109 as
+superseded.
 
-The archive has no `.git`; do not reuse its historical SHA/deployment claims as evidence for this build. Before release, run the existing clean-replay CI job, mandatory checks on the actual repository, verify staging/production DB parity, enable the hosted Auth password-protection setting, deploy from the checked SHA and prove Git/CI/Vercel SHA equality. Then capture production latency percentiles.
-
-No geodata cleanup was committed: the candidate set was measured with the new service-role-only dry-run function. Detailed point-by-point status and live-dev evidence are in `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+ggshield was unavailable in this environment; run secret scan in CI/host before
+production apply of `20260811114500`.
