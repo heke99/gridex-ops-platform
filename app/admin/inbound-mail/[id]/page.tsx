@@ -3,10 +3,8 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import {
-  reprocessInboundEmailAction,
-  resolveInboundManualReviewAction,
-} from '@/app/admin/inbound-mail/actions'
+import { reprocessInboundEmailAction } from '@/app/admin/inbound-mail/actions'
+import InboundManualReviewForm from './InboundManualReviewForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,9 +15,28 @@ function codeBlock(value: unknown) {
   return JSON.stringify(value ?? {}, null, 2)
 }
 
-function reviewLabel(value: unknown) {
-  if (typeof value !== 'string' || value.trim().length === 0) return '—'
-  return value
+function reviewText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function reviewLabel(...values: unknown[]) {
+  for (const value of values) {
+    const text = reviewText(value)
+    if (text) return text
+  }
+  return '—'
+}
+
+function reviewDate(value: unknown) {
+  const text = reviewText(value)
+  if (!text) return '—'
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return reviewLabel(value)
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Europe/Stockholm',
+  }).format(date)
 }
 
 export default async function InboundMailDetailPage({ params }: Props) {
@@ -94,46 +111,15 @@ export default async function InboundMailDetailPage({ params }: Props) {
 
             <div className="mt-5 space-y-4">
               {openReviews.map((job) => (
-                <form
-                  action={resolveInboundManualReviewAction}
-                  className="grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 lg:grid-cols-[1fr_180px_auto]"
+                <InboundManualReviewForm
                   key={String(job.id)}
-                >
-                  <input type="hidden" name="job_id" value={String(job.id)} />
-                  <input type="hidden" name="inbound_email_message_id" value={id} />
-                  <div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-                      <span>Owner: <strong className="text-slate-900">{reviewLabel(job.review_owner)}</strong></span>
-                      <span>Prioritet: <strong className="text-slate-900">{reviewLabel(job.review_priority)}</strong></span>
-                      <span>SLA: <strong className="text-slate-900">{reviewLabel(job.review_sla_due_at)}</strong></span>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-700">Orsak: {reviewLabel(job.review_reason_code ?? job.error_message)}</p>
-                    <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600" htmlFor={`resolution-${String(job.id)}`}>Lösning</label>
-                    <input
-                      id={`resolution-${String(job.id)}`}
-                      name="resolution"
-                      required
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-950 outline-none focus:border-emerald-500"
-                      placeholder="Beskriv vad som verifierades eller korrigerades"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600" htmlFor={`next-status-${String(job.id)}`}>Nästa status</label>
-                    <select
-                      id={`next-status-${String(job.id)}`}
-                      name="next_status"
-                      defaultValue="queued"
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950"
-                    >
-                      <option value="queued">Köa om</option>
-                      <option value="completed">Markera klar</option>
-                      <option value="failed">Markera misslyckad</option>
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <button className="w-full rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 lg:w-auto">Spara beslut</button>
-                  </div>
-                </form>
+                  jobId={String(job.id)}
+                  inboundEmailMessageId={id}
+                  reviewOwner={reviewLabel(job.review_owner)}
+                  reviewPriority={reviewLabel(job.review_priority)}
+                  reviewSla={reviewDate(job.review_sla_due_at)}
+                  reviewReason={reviewLabel(job.review_reason_code, job.error_message)}
+                />
               ))}
             </div>
           </section>
