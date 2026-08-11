@@ -61,12 +61,8 @@ jobs:
   clean-migration-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -74,48 +70,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
-      - name: Clean empty-database replay and generate types
+      - name: Clean empty-database replay and verify generated types
         shell: bash
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           supabase gen types typescript --local > rem002-database.types.ts
-          sha256sum rem002-database.types.ts
-      - name: Persist exact generated Supabase types on remediation branch
-        if: github.event_name == 'pull_request' && github.head_ref == 'remediation/gridex-remaining-masterpoints-2026-08-11'
-        shell: bash
-        run: |
-          set -euo pipefail
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
-          NEEDS_UPDATE=0
+          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
+          echo "generated_types_sha256=$GENERATED_HASH"
+          if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
+            echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
+            exit 1
+          fi
           if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
-            NEEDS_UPDATE=1
+            echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
+            exit 1
           fi
-          CURRENT_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
-          CURRENT_TAIL="$(node -p "require('./scripts/supabase-types-manifest.json').latest_migration")"
-          if [[ "$CURRENT_HASH" != "$GENERATED_HASH" || "$CURRENT_TAIL" != "20260811080000_remaining_masterpoint_convergence.sql" ]]; then
-            NEEDS_UPDATE=1
-          fi
-          if [[ "$NEEDS_UPDATE" == "0" ]]; then
-            echo "Supabase generated types already synchronized."
-            exit 0
-          fi
-          cp rem002-database.types.ts supabase/database.types.ts
-          GENERATED_HASH="$GENERATED_HASH" node <<'NODE'
-          const fs = require('node:fs')
-          const path = 'scripts/supabase-types-manifest.json'
-          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
-          manifest.generated_at = new Date().toISOString()
-          manifest.sha256 = process.env.GENERATED_HASH
-          manifest.latest_migration = '20260811080000_remaining_masterpoint_convergence.sql'
-          fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
-          NODE
-          git config user.name "gridex-ci"
-          git config user.email "gridex-ci@users.noreply.github.com"
-          git add supabase/database.types.ts scripts/supabase-types-manifest.json
-          git commit -m "Regenerate Supabase types for remaining masterpoints"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
