@@ -32,10 +32,14 @@ export async function loginAction(formData: FormData) {
     )
   }
 
-  const supabase = await createSupabaseServerClient()
-  const authResult = await supabase.auth
-    .signInWithPassword({ email, password })
-    .catch(() => null)
+  const authResult = await (async () => {
+    try {
+      const supabase = await createSupabaseServerClient()
+      return await supabase.auth.signInWithPassword({ email, password })
+    } catch {
+      return null
+    }
+  })()
 
   if (!authResult) {
     redirect(
