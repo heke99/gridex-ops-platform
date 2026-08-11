@@ -1,8 +1,10 @@
 const fs = require('node:fs')
 
 const migrationPath = 'supabase/migrations/20260809110000_ops_health_status_qualification.sql'
+const liveRouteMigrationPath = 'supabase/migrations/20260811153500_ops_health_live_route_qualification.sql'
 const healthPath = 'lib/ops/health.ts'
 const migration = fs.readFileSync(migrationPath, 'utf8')
+const liveRouteMigration = fs.readFileSync(liveRouteMigrationPath, 'utf8')
 const health = fs.readFileSync(healthPath, 'utf8')
 
 const required = [
@@ -30,8 +32,22 @@ for (const raw of [
   if (!migration.includes(raw)) failures.push(`missing fail-closed source signature: ${raw}`)
 }
 
+for (const marker of [
+  'gridex_ops_health_checks_v4',
+  "production_mode, 'disabled') = 'live'",
+  'is_production_ready',
+  'route:candidate_receiver_or_mailbox_missing',
+  'route:candidate_receiver_certificate_invalid_or_missing',
+  'reference_masterdata_not_live_customer_state',
+]) {
+  if (!liveRouteMigration.includes(marker)) failures.push(`missing live-route health marker: ${marker}`)
+}
+
+if (!health.includes("supabaseService.rpc('gridex_ops_health_checks_v4')")) {
+  failures.push('OPS health runtime no longer calls gridex_ops_health_checks_v4')
+}
 if (!health.includes("supabaseService.rpc('gridex_ops_health_checks_v3')")) {
-  failures.push('OPS health runtime no longer calls gridex_ops_health_checks_v3')
+  failures.push('OPS health expand/deploy fallback to v3 is missing')
 }
 
 if (failures.length) {
@@ -40,4 +56,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('OPS health regression passed (status qualification hotfix and v3 runtime call verified).')
+console.log('OPS health regression passed (status qualification and live-route readiness qualification verified).')
