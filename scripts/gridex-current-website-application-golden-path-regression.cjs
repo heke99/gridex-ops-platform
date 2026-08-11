@@ -16,7 +16,7 @@ function check(condition, message) {
 const route = read('app/api/v1/website/customer-applications/route.ts')
 const readiness = read('lib/integrations/tenantWebsiteReadiness.ts')
 const provisioning = read('lib/integrations/tenantWebsiteProvisioning.ts')
-const process = read('lib/website/customerApplicationProcess.ts')
+const applicationProcess = read('lib/website/customerApplicationProcess.ts')
 const persistence = read('lib/website/customerApplicationPersistence.ts')
 const communication = read('lib/website/customerApplicationCommunication.ts')
 const resolver = read('lib/customer-portal/customerResolver.ts')
@@ -44,8 +44,8 @@ check(
   'portal schema is verified before a one-time API credential is created',
 )
 check(
-  process.includes('portal_auth_identity_required') && process.includes('portal_auth_identity_mismatch') &&
-    process.includes('authUserId !== customerPortalUserId'),
+  applicationProcess.includes('portal_auth_identity_required') && applicationProcess.includes('portal_auth_identity_mismatch') &&
+    applicationProcess.includes('authUserId !== customerPortalUserId'),
   'website application requires the same verified portal/auth UUID',
 )
 check(
@@ -100,7 +100,7 @@ check(
   'published OpenAPI requires both portal identity fields',
 )
 check(
-  ![readiness, provisioning, process, persistence, communication, status, resolver]
+  ![readiness, provisioning, applicationProcess, persistence, communication, status, resolver]
     .some((source) => /tenant_60de87|b3ad1bf6-fa45|gridex\.se\/mina-sidor/i.test(source)),
   'canonical website application flow contains no Gridex tenant/domain special case',
 )
