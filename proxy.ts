@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { getSafeNextPath } from '@/lib/auth/urls'
 import { getSupabasePublicEnv } from '@/lib/env/supabasePublic'
 
 function isProtectedPath(pathname: string) {
@@ -96,14 +97,6 @@ async function isPlatformAdminSession(supabase: ReturnType<typeof createServerCl
   }
 }
 
-function normalizeNextPath(value: string | null) {
-  if (!value) return '/dashboard'
-  if (!value.startsWith('/')) return '/dashboard'
-  if (value.startsWith('//')) return '/dashboard'
-  if (value.includes('\\') || value.includes('\0')) return '/dashboard'
-  return value
-}
-
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request,
@@ -181,7 +174,14 @@ export async function proxy(request: NextRequest) {
     }
 
     if (sessionAllowed === false) {
-      await supabase.auth.signOut()
+      try {
+        await supabase.auth.signOut()
+      } catch (error) {
+        console.error('[auth-proxy] provider unavailable', {
+          operation: 'sign_out_disabled_session',
+          ...safeAuthInfrastructureError(error),
+        })
+      }
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('next', `${pathname}${search}`)
       loginUrl.searchParams.set('reason', 'account_disabled')
@@ -190,7 +190,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
-    const next = normalizeNextPath(request.nextUrl.searchParams.get('next'))
+    const next = getSafeNextPath(request.nextUrl.searchParams.get('next'))
     return NextResponse.redirect(new URL(next, request.url))
   }
 
