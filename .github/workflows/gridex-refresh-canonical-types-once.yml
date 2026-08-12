@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf /tmp/gridex-rem002 /tmp/gridex-rem002.zip
           mkdir -p /tmp/gridex-rem002
           curl --fail --silent --show-error --location \
             -H "Authorization: Bearer ${GH_TOKEN}" \
@@ -49,11 +50,12 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const crypto = require('crypto');
-          const path = 'scripts/supabase-generated-types-manifest.json';
+          const path = 'scripts/supabase-types-manifest.json';
           const typesPath = 'supabase/database.types.ts';
           const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
           const types = fs.readFileSync(typesPath);
-          manifest.generatedAtMigration = '20260812143000';
+          manifest.generated_at = new Date().toISOString();
+          manifest.latest_migration = '20260812143000_gridex_ops_grid_owner_invariants_v2.sql';
           manifest.sha256 = crypto.createHash('sha256').update(types).digest('hex');
           if (manifest.sha256 !== '590d065257082f37062d1d6a2e0fcaf5a2ccfc1aa8117aa23b937d6ce4d23af7') {
             throw new Error(`Unexpected canonical types hash: ${manifest.sha256}`);
@@ -66,12 +68,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- supabase/database.types.ts scripts/supabase-generated-types-manifest.json; then
+          if git diff --quiet -- supabase/database.types.ts scripts/supabase-types-manifest.json; then
             echo "Canonical generated types are already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add supabase/database.types.ts scripts/supabase-generated-types-manifest.json
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
           git commit -m "chore: refresh canonical Supabase generated types"
           git push origin HEAD:agent/gridex-ops-production-remediation-v5-20260812
