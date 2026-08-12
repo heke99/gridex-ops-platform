@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   DEFAULT_SVK_GRID_AREA_LAYER_ID,
   DEFAULT_SVK_GRID_AREA_SERVICE_URL,
+  retrySvkGridOwnerReconciliation,
   runSvkGeometryImport,
   updateSvkImportRun,
 } from '@/lib/energy/svkGeometryImport'
@@ -29,9 +30,33 @@ function authorized(request: NextRequest) {
   return expected.some((secret) => sameSecret(token, secret))
 }
 
+function importMetadata(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
   try {
+    const retryCandidates = await supabaseService
+      .from('platform_data_import_runs')
+      .select('id,metadata')
+      .eq('source', 'svk_arcgis')
+      .eq('import_type', 'grid_area_geometries')
+      .eq('status', 'failed')
+      .order('started_at', { ascending: false })
+      .limit(10)
+    if (retryCandidates.error) throw retryCandidates.error
+    const retryable = retryCandidates.data?.find((run) => importMetadata(run.metadata).reconciliation_status === 'failed_retryable')
+    if (retryable?.id) {
+      const retryResult = await retrySvkGridOwnerReconciliation(String(retryable.id))
+      return NextResponse.json(
+        { ok: retryResult.ok, resumed: false, started: false, reconciliation_retry: true, result: retryResult },
+        { status: retryResult.ok ? 200 : 502 },
+      )
+    }
+
     const { data, error } = await supabaseService
       .from('platform_data_import_runs')
       .select('id,metadata')
@@ -43,9 +68,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
     if (error) throw error
     if (data?.id) {
-      const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
-        ? data.metadata as Record<string, unknown>
-        : {}
+      const metadata = importMetadata(data.metadata)
       const currentSource = String(metadata.service_url ?? '').replace(/\/$/, '') === DEFAULT_SVK_GRID_AREA_SERVICE_URL
         && Number(metadata.layer_id) === DEFAULT_SVK_GRID_AREA_LAYER_ID
       if (currentSource) {
@@ -57,7 +80,10 @@ export async function GET(request: NextRequest) {
           offset: metadata.next_offset,
           actorUserId: process.env.GRIDEX_AUTOMATION_USER_ID ?? null,
         })
-        return NextResponse.json({ ok: true, resumed: true, started: false, result })
+        return NextResponse.json(
+          { ok: result.ok, resumed: true, started: false, result },
+          { status: result.ok ? 200 : 502 },
+        )
       }
 
       const now = new Date().toISOString()
@@ -92,9 +118,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
     if (latest.error) throw latest.error
     const verifiedAt = latest.data?.verified_at ?? latest.data?.completed_at ?? null
-    const latestMetadata = latest.data?.metadata && typeof latest.data.metadata === 'object' && !Array.isArray(latest.data.metadata)
-      ? latest.data.metadata as Record<string, unknown>
-      : {}
+    const latestMetadata = importMetadata(latest.data?.metadata)
     const sourceCurrent = String(latest.data?.source_url ?? '').replace(/\/$/, '') === DEFAULT_SVK_GRID_AREA_SERVICE_URL
       && Number(latestMetadata.layer_id) === DEFAULT_SVK_GRID_AREA_LAYER_ID
     const stale = !sourceCurrent || !verifiedAt || Date.now() - Date.parse(String(verifiedAt)) > maxAgeDays * 24 * 60 * 60 * 1000
@@ -105,7 +129,10 @@ export async function GET(request: NextRequest) {
     const result = await runSvkGeometryImport({
       actorUserId: process.env.GRIDEX_AUTOMATION_USER_ID ?? null,
     })
-    return NextResponse.json({ ok: true, resumed: false, started: true, reason: 'geodata_missing_or_stale', result })
+    return NextResponse.json(
+      { ok: result.ok, resumed: false, started: true, reason: 'geodata_missing_or_stale', result },
+      { status: result.ok ? 200 : 502 },
+    )
   } catch (error) {
     const traceId = randomUUID()
     console.error('[svk-geometry-import-cron] failed', { traceId, error })

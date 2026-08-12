@@ -17,6 +17,12 @@ export type SvkImportResult = {
   geodataVersion: string
 }
 
+export type SvkReconciliationRetryResult = {
+  ok: boolean
+  runId: string
+  error: string | null
+}
+
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
@@ -180,6 +186,59 @@ export async function updateSvkImportRun(runId: string | null, patch: Record<str
   if (error) console.warn('[svk-geometry-import] could not update import run', error.message)
 }
 
+export async function retrySvkGridOwnerReconciliation(runIdInput: string): Promise<SvkReconciliationRetryResult> {
+  const runId = clean(runIdInput)
+  if (!runId) return { ok: false, runId: runIdInput, error: 'invalid_run_id' }
+
+  const { data, error } = await supabaseService
+    .from('platform_data_import_runs')
+    .select('id,source,import_type,status,metadata')
+    .eq('id', runId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data || data.source !== 'svk_arcgis' || data.import_type !== 'grid_area_geometries') {
+    return { ok: false, runId, error: 'svk_import_run_not_found' }
+  }
+
+  const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+    ? data.metadata as Record<string, unknown>
+    : {}
+  if (metadata.reconciliation_status !== 'failed_retryable') {
+    return { ok: false, runId, error: 'reconciliation_not_retryable' }
+  }
+
+  const attemptedAt = new Date().toISOString()
+  const { error: reconciliationError } = await supabaseService.rpc('gridex_reconcile_grid_owner_mappings_v1', {
+    p_apply: true,
+  })
+  if (reconciliationError) {
+    const failure = serializeSvkImportError(reconciliationError)
+    await updateSvkImportRun(runId, {
+      status: 'failed',
+      completed_at: attemptedAt,
+      error_log: [failure],
+      metadata: {
+        ...metadata,
+        reconciliation_status: 'failed_retryable',
+        reconciliation_last_attempt_at: attemptedAt,
+      },
+    })
+    return { ok: false, runId, error: reconciliationError.message }
+  }
+
+  await updateSvkImportRun(runId, {
+    status: 'completed',
+    completed_at: attemptedAt,
+    error_log: [],
+    metadata: {
+      ...metadata,
+      reconciliation_status: 'completed',
+      reconciliation_completed_at: attemptedAt,
+    },
+  })
+  return { ok: true, runId, error: null }
+}
+
 export async function runSvkGeometryImport(input: {
   serviceUrl?: unknown
   layerId?: unknown
@@ -282,6 +341,39 @@ export async function runSvkGeometryImport(input: {
         p_geodata_version_id: geodata.id,
       })
       if (promoteError) throw promoteError
+
+      const { error: reconciliationError } = await supabaseService.rpc('gridex_reconcile_grid_owner_mappings_v1', {
+        p_apply: true,
+      })
+      if (reconciliationError) {
+        const reconciliationFailure = serializeSvkImportError(reconciliationError)
+        const failedAt = new Date().toISOString()
+        await updateSvkImportRun(runId, {
+          status: 'failed',
+          completed_at: failedAt,
+          error_log: [reconciliationFailure],
+          metadata: {
+            service_url: serviceUrl,
+            layer_id: layerId,
+            page_size: limit,
+            next_offset: nextOffset,
+            has_more: false,
+            geodata_version: geodata.versionKey,
+            reconciliation_status: 'failed_retryable',
+            reconciliation_last_attempt_at: failedAt,
+          },
+        })
+        return {
+          ok: false,
+          runId,
+          seen: features.length,
+          upserted,
+          errors: [`grid-owner reconciliation failed: ${reconciliationError.message}`],
+          nextOffset: null,
+          hasMore: false,
+          geodataVersion: geodata.versionKey,
+        }
+      }
     }
     return { ok: true, runId, seen: features.length, upserted, errors: [], nextOffset: hasMore ? nextOffset : null, hasMore, geodataVersion: geodata.versionKey }
   } catch (error) {
@@ -296,6 +388,7 @@ export async function runSvkGeometryImport(input: {
       .from('energy_geodata_versions')
       .update({ status: 'failed', coverage_status: 'failed', completed_at: now, updated_at: now })
       .eq('id', geodata.id)
+      .eq('status', 'importing')
     throw error
   }
 }

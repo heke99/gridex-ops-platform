@@ -72465,6 +72465,15 @@ export type Database = {
           status: string
         }[]
       }
+      gridex_ops_health_checks_v5: {
+        Args: never
+        Returns: {
+          check_key: string
+          details: Json
+          issue_count: number
+          status: string
+        }[]
+      }
       gridex_optimize_rls_auth_initplans: {
         Args: never
         Returns: {
@@ -72752,6 +72761,17 @@ export type Database = {
       gridex_recalculate_actor_readiness: {
         Args: { p_platform_market_actor_id?: string }
         Returns: Json
+      }
+      gridex_reconcile_grid_owner_mappings_v1: {
+        Args: { p_apply?: boolean }
+        Returns: {
+          candidate_count: number
+          candidate_ops_grid_owner_id: string
+          details: Json
+          match_method: string
+          platform_grid_owner_id: string
+          status: string
+        }[]
       }
       gridex_record_application_provisioning_step: {
         Args: {
