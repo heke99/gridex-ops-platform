@@ -50,14 +50,24 @@ jobs:
           const sorted = Object.fromEntries(Object.entries(additions.files).sort(([a], [b]) => a.localeCompare(b)))
           fs.writeFileSync(additionsPath, `${JSON.stringify({ ...additions, files: sorted }, null, 2)}\n`)
           console.log(`registered_missing_migrations=${added.length}`)
-          for (const name of added) console.log(`registered=${name}:${sorted[name]}`)
           NODE
           node scripts/check-migration-versions.cjs
       - name: Reconstruct clean schema and regenerate committed types
         shell: bash
         run: |
-          set -euo pipefail
-          source scripts/gridex-aud-003-clean-replay.sh
+          set -uo pipefail
+          set +e
+          source scripts/gridex-aud-003-clean-replay.sh > remediation-v5-replay-failure.log 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            tail -n 400 remediation-v5-replay-failure.log || true
+            git add remediation-v5-replay-failure.log scripts/migration-history-manifest.additions.json
+            git -c user.name='gridex-remediation-bot' -c user.email='gridex-remediation-bot@users.noreply.github.com' commit -m 'chore(db): sync remediation generated artifacts failure log'
+            git push origin HEAD:agent/gridex-ops-production-remediation-v5-20260812
+            exit "$rc"
+          fi
+          rm -f remediation-v5-replay-failure.log
           supabase gen types typescript --local > supabase/database.types.ts
           node <<'NODE'
           const crypto = require('node:crypto')
@@ -68,14 +78,9 @@ jobs:
           const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
           manifest.generated_at = new Date().toISOString()
           manifest.sha256 = crypto.createHash('sha256').update(bytes).digest('hex')
-          const latest = fs.readdirSync('supabase/migrations')
-            .filter((name) => /^\d+.*\.sql$/.test(name))
-            .sort()
-            .at(-1)
+          const latest = fs.readdirSync('supabase/migrations').filter((name) => /^\d+.*\.sql$/.test(name)).sort().at(-1)
           if (latest) manifest.latest_migration = latest
           fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-          console.log(`generated_types_sha256=${manifest.sha256}`)
-          console.log(`latest_migration=${manifest.latest_migration}`)
           NODE
           node scripts/check-supabase-generated-types.cjs
       - name: Commit generated artifacts when stale
@@ -87,6 +92,5 @@ jobs:
             exit 0
           fi
           git add supabase/database.types.ts scripts/supabase-types-manifest.json scripts/migration-history-manifest.additions.json
-          git -c user.name='gridex-remediation-bot' -c user.email='gridex-remediation-bot@users.noreply.github.com' \
-            commit -m 'chore(db): sync remediation generated artifacts'
+          git -c user.name='gridex-remediation-bot' -c user.email='gridex-remediation-bot@users.noreply.github.com' commit -m 'chore(db): sync remediation generated artifacts'
           git push origin HEAD:agent/gridex-ops-production-remediation-v5-20260812
