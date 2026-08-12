@@ -4,21 +4,29 @@ const baseHealthPath = 'supabase/migrations/20260809110000_ops_health_status_qua
 const liveRoutePath = 'supabase/migrations/20260811155412_ops_health_live_route_qualification.sql'
 const v5Path = 'supabase/migrations/20260812113000_gridex_ops_masterdata_health_v5.sql'
 const dynamicPath = 'supabase/migrations/20260812114500_gridex_ops_health_v5_dynamic_receiver_semantics.sql'
-const serviceRolePath = 'supabase/migrations/20260812120800_gridex_ops_health_v5_service_role_only.sql'
-const prodatCountsPath = 'supabase/migrations/20260812123000_gridex_ops_health_v5_prodat_detail_counts.sql'
+const serviceRolePath = 'supabase/migrations/20260812121100_gridex_ops_health_v5_service_role_only.sql'
+const roleAwareCountsPath = 'supabase/migrations/20260812130500_gridex_ops_health_v5_role_aware_counts.sql'
 const healthPath = 'lib/ops/health.ts'
 const svkPath = 'lib/energy/svkGeometryImport.ts'
 
-const baseHealth = fs.readFileSync(baseHealthPath, 'utf8')
-const liveRoute = fs.readFileSync(liveRoutePath, 'utf8')
-const v5 = fs.readFileSync(v5Path, 'utf8')
-const dynamic = fs.readFileSync(dynamicPath, 'utf8')
-const serviceRole = fs.readFileSync(serviceRolePath, 'utf8')
-const prodatCounts = fs.readFileSync(prodatCountsPath, 'utf8')
-const health = fs.readFileSync(healthPath, 'utf8')
-const svk = fs.readFileSync(svkPath, 'utf8')
-
 const failures = []
+const readRequired = (path, label) => {
+  if (!fs.existsSync(path)) {
+    failures.push(`missing ${label} input: ${path}`)
+    return ''
+  }
+  return fs.readFileSync(path, 'utf8')
+}
+
+const baseHealth = readRequired(baseHealthPath, 'health hotfix')
+const liveRoute = readRequired(liveRoutePath, 'v4 live-route health')
+const v5 = readRequired(v5Path, 'v5 canonical remediation')
+const dynamic = readRequired(dynamicPath, 'dynamic receiver semantics')
+const serviceRole = readRequired(serviceRolePath, 'v5 service-role boundary')
+const roleAwareCounts = readRequired(roleAwareCountsPath, 'role-aware PRODAT accounting')
+const health = readRequired(healthPath, 'health runtime')
+const svk = readRequired(svkPath, 'SVK importer')
+
 const requireMarkers = (source, label, markers) => {
   for (const marker of markers) {
     if (!source.includes(marker)) failures.push(`missing ${label} marker: ${marker}`)
@@ -89,10 +97,9 @@ requireMarkers(serviceRole, 'v5 service-role boundary', [
   'grant execute on function public.gridex_ops_health_checks_v5() to service_role',
 ])
 
-requireMarkers(prodatCounts, 'PRODAT detail accounting', [
-  'certificate_blocker_count',
-  'route_blocker_count',
-  'manual_review_count',
+requireMarkers(roleAwareCounts, 'role-aware PRODAT accounting', [
+  'role_aware_blocking_reasons',
+  'missing_or_invalid_certificate',
 ])
 
 requireMarkers(health, 'health runtime', [
