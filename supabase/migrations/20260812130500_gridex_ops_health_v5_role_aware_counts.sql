@@ -8,7 +8,9 @@
 do $do$
 declare
   v_definition text;
-  v_old text := $old$count(*) filter (where coalesce(certificate_status,'') not in ('valid','active','renewal_available'))$old$;
+  v_old text := $old$count(*) filter (
+      where coalesce(certificate_status, '') not in ('valid', 'active', 'renewal_available')
+    )$old$;
   v_new text := $new$count(*) filter (where 'missing_or_invalid_certificate'=any(coalesce(role_aware_blocking_reasons,'{}'::text[])))$new$;
 begin
   select pg_get_functiondef('public.gridex_ops_health_checks_v5()'::regprocedure)
