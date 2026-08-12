@@ -34,7 +34,7 @@
     "20260812121100_gridex_ops_health_v5_service_role_only.sql": "713064122edde098bbd89ad4df6e898f3f1fc55f28d2c34a5fa654ed828ec234",
     "20260812123500_gridex_ops_performance_hotpaths_v1.sql": "a3783df0daf80241e4774186ef35338bdab01575db4fe2dd2a67dd66198033d2",
     "20260812125000_gridex_runtime_schema_catalog_v3_targeted_catalog.sql": "659c37680d5a65465ed7bddde10ed788916ea949524b26c750ff24ecc12e5bad",
-    "20260812130500_gridex_ops_health_v5_role_aware_counts.sql": "1f64bba19fab34c0da050a27d4480c888bae43ff0fd3e33d32c65007a5505400",
+    "20260812130500_gridex_ops_health_v5_role_aware_counts.sql": "428c3df19f22cc1638279699fc12b6056950999e8f172a470f07bdbb8bc4664b",
     "20260812132000_gridex_portfolio_rls_auth_initplan.sql": "a0307d19b8ecf240e3c0f3b7e54bf95a7dcb26a5c5815eeba2c45f3f49748c8d"
   }
 }
