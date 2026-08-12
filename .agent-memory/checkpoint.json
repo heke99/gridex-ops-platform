@@ -6,7 +6,7 @@
   "active_task": "Close post-#112 auth flash allowlist and next-path residuals on main tip",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "929f4650288b5f529c49859f83687bda0679cb83",
-  "head_sha": "9a83a7e2",
+  "head_sha": "c6367dda",
   "verification": {
     "auth_outage_vitest": "18/18 PASS",
     "post_108_residuals_regression": "PASS",
@@ -16,5 +16,5 @@
     "ggshield": "BLOCKED_CLI_MISSING",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Open/monitor PR for 60b7; supersede stale #109 after tip merge"
+  "resume_from": "Monitor PR #113 CI; supersede stale #109/#106/#102 after merge"
 }
