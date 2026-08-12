@@ -5,11 +5,11 @@
 -- Keep this forward-only and fail closed if the previous function definition
 -- is not the expected version.
 
-do $$
+do $do$
 declare
   v_definition text;
-  v_old text := $$count(*) filter (where coalesce(certificate_status,'') not in ('valid','active','renewal_available'))$$;
-  v_new text := $$count(*) filter (where 'missing_or_invalid_certificate'=any(coalesce(role_aware_blocking_reasons,'{}'::text[])))$$;
+  v_old text := $old$count(*) filter (where coalesce(certificate_status,'') not in ('valid','active','renewal_available'))$old$;
+  v_new text := $new$count(*) filter (where 'missing_or_invalid_certificate'=any(coalesce(role_aware_blocking_reasons,'{}'::text[])))$new$;
 begin
   select pg_get_functiondef('public.gridex_ops_health_checks_v5()'::regprocedure)
     into v_definition;
@@ -23,7 +23,7 @@ begin
     raise exception 'gridex_ops_health_checks_v5 definition is not the expected pre-remediation version';
   end if;
 end
-$$;
+$do$;
 
 -- CREATE OR REPLACE normally preserves the ACL, but make the intended boundary
 -- explicit so future replay cannot accidentally expose this SECURITY DEFINER
