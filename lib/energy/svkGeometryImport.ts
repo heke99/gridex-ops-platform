@@ -286,7 +286,31 @@ export async function runSvkGeometryImport(input: {
       const { error: reconciliationError } = await supabaseService.rpc('gridex_reconcile_grid_owner_mappings_v1', {
         p_apply: true,
       })
-      if (reconciliationError) throw reconciliationError
+      if (reconciliationError) {
+        const reconciliationFailure = serializeSvkImportError(reconciliationError)
+        await updateSvkImportRun(runId, {
+          error_log: [reconciliationFailure],
+          metadata: {
+            service_url: serviceUrl,
+            layer_id: layerId,
+            page_size: limit,
+            next_offset: nextOffset,
+            has_more: false,
+            geodata_version: geodata.versionKey,
+            reconciliation_status: 'failed_retryable',
+          },
+        })
+        return {
+          ok: true,
+          runId,
+          seen: features.length,
+          upserted,
+          errors: [`grid-owner reconciliation failed: ${reconciliationError.message}`],
+          nextOffset: null,
+          hasMore: false,
+          geodataVersion: geodata.versionKey,
+        }
+      }
     }
     return { ok: true, runId, seen: features.length, upserted, errors: [], nextOffset: hasMore ? nextOffset : null, hasMore, geodataVersion: geodata.versionKey }
   } catch (error) {
@@ -301,6 +325,7 @@ export async function runSvkGeometryImport(input: {
       .from('energy_geodata_versions')
       .update({ status: 'failed', coverage_status: 'failed', completed_at: now, updated_at: now })
       .eq('id', geodata.id)
+      .eq('status', 'importing')
     throw error
   }
 }
