@@ -1,13 +1,13 @@
 # Current task
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
 Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-Active work item: post-#110 codebase health residual remediation on
-`cursor/codebase-health-and-stability-0f25` / PR `#111`.
+Active work item: post-#114 codebase health residual remediation on
+`cursor/codebase-health-and-stability-5dfb`.
 
 ## Exact next action
 
-Monitor hosted CI on PR `#111`. After merge, close `#109` as superseded and
-apply `20260811114500` to connected environments.
+Open/monitor PR for `5dfb`. After merge, close `#113` as superseded (pre-#114
+tip vehicle) and keep tip-based auth/SVK residual locks.

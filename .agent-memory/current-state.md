@@ -1,31 +1,40 @@
 # Current state
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
 ## Source truth
 
 - Repository: `heke99/gridex-ops-platform`.
-- Default branch: `main` at `b443bfea` (#110 auth outage + cron safety).
-- Active health branch: `cursor/codebase-health-and-stability-0f25`.
+- Default branch: `main` at `b8742591` (#114 production remediation v5).
+- Active health branch: `cursor/codebase-health-and-stability-5dfb`.
 
-## Tip review after #110
+## Tip review after #114
 
-Confirmed residuals addressed on `0f25`:
+Confirmed residuals addressed on `5dfb`:
 
-1. CRITICAL — #108 still granted reconciliation EXECUTE to `authenticated`.
-   Forward migration `20260811114500` (from #109) cherry-picked onto post-#110 tip.
-2. MEDIUM — login/update-password `?error=` flash phishing surface allowlisted.
-3. MEDIUM — next-path helpers now reject backslash/NUL open-redirect shapes.
-4. LOW — cron regression asserts no `environment=test` query anywhere in vercel crons.
-5. LOW — update-password auth client init wrapped in outage boundary.
+1. HIGH — post-#112 auth-callback verification messages were still rejected by
+   the login error allowlist on tip (open #113 / `60b7` not merged). Replayed
+   allowlist + callback constants onto post-#114 tip.
+2. MEDIUM — login `?message=` success flash still unsanitized on tip.
+   Added `sanitizeLoginSuccessFlash` and fixed invite/password success copy.
+3. MEDIUM — proxy still used weaker local `normalizeNextPath` vs shared
+   `getSafeNextPath` (including encoded backslash rejection via urls +
+   authEmailFlow decode alignment).
+4. LOW — disabled-session `signOut` outage could block account_disabled redirect.
+5. LOW — #114 SVK reconciliation retry/API/cron ordering lacked regression lock;
+   extended `gridex-ops-health-regression.cjs`.
 
-Open #109 remains the pre-#110 vehicle for the same security residual; `0f25`
-is the tip-based superseding branch after #110 merged.
+Already correct on main via #114:
 
-## Verification executed on `0f25`
+- Health v5 service-role boundary and role-aware counts.
+- Grid-owner identifier normalization v3.
+- SVK promote-then-reconcile with `failed_retryable` retry path.
 
-- `vitest` auth-outage-cron-production-safety: 12/12 PASS
-- `gridex:post-108-health-residuals-regression`: PASS
+## Verification executed on `5dfb`
+
+- `vitest` auth-outage-cron-production-safety: 18/18 PASS
+- `gridex-ops-health-regression.cjs`: PASS
+- `gridex-ops-post-108-health-residuals-regression.cjs`: PASS
 - `check-migration-versions`: PASS
 - `check-supabase-generated-types`: PASS
 - `tsc -p tsconfig.app.json`: PASS
