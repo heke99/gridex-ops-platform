@@ -3,5 +3,5 @@
   "generated_at": "2026-08-12T07:07:29.198Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "6a6ff82e16b7435e0aa80b556d3b16c01fb38b8cb77e2dc2f359da0fc5708271",
-  "latest_migration": "20260806152004_gridex_aud_001_storage_helper_private_schema"
+  "latest_migration": "20260811155851_post_108_health_security_residuals.sql"
 }
