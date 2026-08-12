@@ -133,7 +133,7 @@ async function createGeodataVersion(input: { serviceUrl: string; layerId: number
     .select('id,version_key')
     .single()
   if (error) {
-    const existing = await activeGeodataVersion({ serviceUrl: input.serviceUrl, layerId: input.layerId })
+    const existing = await activeGeodataVersion({ serviceUrl, layerId: input.layerId })
     if (existing) return existing
     throw error
   }
@@ -282,6 +282,11 @@ export async function runSvkGeometryImport(input: {
         p_geodata_version_id: geodata.id,
       })
       if (promoteError) throw promoteError
+
+      const { error: reconciliationError } = await supabaseService.rpc('gridex_reconcile_grid_owner_mappings_v1', {
+        p_apply: true,
+      })
+      if (reconciliationError) throw reconciliationError
     }
     return { ok: true, runId, seen: features.length, upserted, errors: [], nextOffset: hasMore ? nextOffset : null, hasMore, geodataVersion: geodata.versionKey }
   } catch (error) {
