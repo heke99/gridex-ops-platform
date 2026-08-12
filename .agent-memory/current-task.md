@@ -9,5 +9,4 @@ Active work item: post-#114 codebase health residual remediation on
 
 ## Exact next action
 
-Open/monitor PR for `5dfb`. After merge, close `#113` as superseded (pre-#114
-tip vehicle) and keep tip-based auth/SVK residual locks.
+Monitor hosted CI on PR `#115`. After merge, close `#113` as superseded.
