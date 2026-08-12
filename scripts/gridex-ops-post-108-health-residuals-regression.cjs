@@ -120,11 +120,22 @@ check(
   additions.files?.[migrationName] === checksum,
   'migration checksum missing or mismatched in additions manifest',
 )
+
+const latestMigration = typesManifest.latest_migration
 check(
-  typesManifest.latest_migration === migrationName,
-  'generated-types migration tip is not pinned to the post-#108 residual',
+  typeof latestMigration === 'string' && /^\d{14}_.+\.sql$/.test(latestMigration),
+  'generated-types manifest latest_migration is missing or malformed',
+)
+check(
+  latestMigration.localeCompare(migrationName) >= 0,
+  `generated-types migration tip predates the post-#108 residual: ${latestMigration}`,
+)
+check(
+  fs.existsSync(path.join(root, 'supabase', 'migrations', latestMigration)),
+  `generated-types migration tip does not exist in canonical migrations: ${latestMigration}`,
 )
 
 console.log('GRIDEX post-#108 health residuals static regression passed.')
 console.log(`Migration: ${migrationName}`)
+console.log(`Generated-types tip: ${latestMigration}`)
 console.log(`Checksum: ${checksum}`)
