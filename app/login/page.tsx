@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { sanitizeLoginErrorFlash } from '@/lib/auth/loginError'
+import { getSafeNextPath } from '@/lib/auth/urls'
 import { loginAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -15,9 +17,9 @@ export default async function LoginPage({
   searchParams: SearchParams
 }) {
   const params = await searchParams
-  const error = params.error
+  const error = sanitizeLoginErrorFlash(params.error)
   const message = params.message
-  const next = params.next || '/dashboard'
+  const next = getSafeNextPath(params.next)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100">

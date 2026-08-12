@@ -16,14 +16,23 @@ export function getBaseAppUrl(): string {
   return value.replace(/\/$/, '')
 }
 
+function isSafeRelativeNextPath(value: string): boolean {
+  const trimmed = value.trim()
+  if (!trimmed.startsWith('/')) return false
+  if (trimmed.startsWith('//')) return false
+  // Block backslash and NUL forms that some clients treat as authority separators.
+  if (trimmed.includes('\\') || trimmed.includes('\0')) return false
+  return true
+}
+
 export function getSafeNextPath(value: string | null | undefined, fallback = '/dashboard'): string {
   if (!value) return fallback
 
   try {
     const decoded = decodeURIComponent(value)
-    if (decoded.startsWith('/') && !decoded.startsWith('//')) return decoded
+    if (isSafeRelativeNextPath(decoded)) return decoded
   } catch {
-    if (value.startsWith('/') && !value.startsWith('//')) return value
+    if (isSafeRelativeNextPath(value)) return value
   }
 
   return fallback

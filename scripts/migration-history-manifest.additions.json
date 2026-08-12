@@ -26,6 +26,8 @@
     "20260810110149_customer_invoice_public_reference.sql": "b108d3c0d4b7badea52eb6cd9ae81f52aff826cdd80df81e8fd0d94c32fa757a",
     "20260810110229_database_hygiene_and_geodata_retention.sql": "f9094c45e2857a39815a7fb68f63f026d6528e39ccd4da44cdc54d03fbf27046",
     "20260810110829_retention_category_classification.sql": "db0366af177c8df2ef6d779d03835a82db873c367c810e1798b12f2f5e0aecff",
-    "20260811080000_remaining_masterpoint_convergence.sql": "915f097ae92cfc56423b4047e1b31433bb293bb2d56f505b7584c563a89a33a2"
+    "20260811080000_remaining_masterpoint_convergence.sql": "915f097ae92cfc56423b4047e1b31433bb293bb2d56f505b7584c563a89a33a2",
+    "20260811155412_ops_health_live_route_qualification.sql": "1dbdfa724240830873f6be1d8994cccb7cd6dc7cefe80455e0fcbaa6120ef9f7",
+    "20260811155851_post_108_health_security_residuals.sql": "8f77c78368506a1e83aa13a136c5b713e674c6781137e26c023ec901cb0b02c5"
   }
 }

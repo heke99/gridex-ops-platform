@@ -72456,6 +72456,15 @@ export type Database = {
           status: string
         }[]
       }
+      gridex_ops_health_checks_v4: {
+        Args: never
+        Returns: {
+          check_key: string
+          details: Json
+          issue_count: number
+          status: string
+        }[]
+      }
       gridex_optimize_rls_auth_initplans: {
         Args: never
         Returns: {

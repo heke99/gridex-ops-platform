@@ -30,6 +30,12 @@ type RpcRoleRow = string | {
   name?: string | null
 }
 
+type AuthInfrastructureError = {
+  name?: unknown
+  code?: unknown
+  status?: unknown
+}
+
 function normalizeRoleKey(value: string | null | undefined): string | null {
   if (!value) return null
   const normalized = value.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
@@ -45,24 +51,56 @@ function roleFromRpcValue(row: RpcRoleRow): string | null {
   return normalizeRoleKey(row.role_key ?? row.key ?? row.code ?? row.name ?? null)
 }
 
+function safeAuthInfrastructureError(error: unknown) {
+  const record = error && typeof error === 'object'
+    ? error as AuthInfrastructureError
+    : {}
+  return {
+    name: typeof record.name === 'string' ? record.name.slice(0, 80) : 'AuthInfrastructureError',
+    code: typeof record.code === 'string' ? record.code.slice(0, 80) : null,
+    status: typeof record.status === 'number' ? record.status : null,
+  }
+}
+
+function authServiceUnavailable(request: NextRequest, operation: string, error: unknown) {
+  console.error('[auth-proxy] provider unavailable', {
+    operation,
+    ...safeAuthInfrastructureError(error),
+  })
+
+  return new NextResponse('Authentication service temporarily unavailable', {
+    status: 503,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Retry-After': '15',
+    },
+  })
+}
+
 async function isPlatformAdminSession(supabase: ReturnType<typeof createServerClient>, userId: string) {
   const { data: roleRows, error: rolesError } = await supabase.rpc('gridex_get_user_roles', {
     p_user_id: userId,
   })
 
-  if (rolesError) return false
+  if (rolesError) {
+    return { allowed: false, error: rolesError }
+  }
 
   const roles = (Array.isArray(roleRows) ? (roleRows as RpcRoleRow[]) : [])
     .map(roleFromRpcValue)
     .filter((role): role is string => typeof role === 'string' && role.length > 0)
 
-  return roles.includes('super_admin') || roles.includes('platform_admin')
+  return {
+    allowed: roles.includes('super_admin') || roles.includes('platform_admin'),
+    error: null,
+  }
 }
 
 function normalizeNextPath(value: string | null) {
   if (!value) return '/dashboard'
   if (!value.startsWith('/')) return '/dashboard'
   if (value.startsWith('//')) return '/dashboard'
+  if (value.includes('\\') || value.includes('\0')) return '/dashboard'
   return value
 }
 
@@ -70,6 +108,7 @@ export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request,
   })
+  const { pathname, search } = request.nextUrl
   const { url, anonKey } = getSupabasePublicEnv()
 
   const supabase = createServerClient(url, anonKey, {
@@ -86,11 +125,23 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const { pathname, search } = request.nextUrl
+  let user = null
+  try {
+    const authResult = await supabase.auth.getUser()
+    user = authResult.data.user
+  } catch (error) {
+    // Public login must remain renderable during an upstream outage. Protected
+    // routes fail closed so stale/disabled sessions cannot bypass authorization
+    // just because Supabase returned an HTML 5xx/timeout instead of JSON.
+    if (isProtectedPath(pathname)) {
+      return authServiceUnavailable(request, 'get_user', error)
+    }
+    console.error('[auth-proxy] provider unavailable', {
+      operation: 'get_user_public_route',
+      ...safeAuthInfrastructureError(error),
+    })
+    return response
+  }
 
   if (pathname.startsWith('/admin/admin/')) {
     const redirectUrl = new URL(pathname.replace(/^\/admin\/admin/, '/admin') + search, request.url)
@@ -125,7 +176,11 @@ export async function proxy(request: NextRequest) {
       'gridex_is_current_session_allowed'
     )
 
-    if (!sessionCheckError && sessionAllowed === false) {
+    if (sessionCheckError) {
+      return authServiceUnavailable(request, 'session_allowed', sessionCheckError)
+    }
+
+    if (sessionAllowed === false) {
       await supabase.auth.signOut()
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('next', `${pathname}${search}`)
@@ -140,7 +195,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && isPlatformAdminPath(pathname)) {
-    const allowed = await isPlatformAdminSession(supabase, user.id)
+    const { allowed, error } = await isPlatformAdminSession(supabase, user.id)
+    if (error) {
+      return authServiceUnavailable(request, 'platform_admin_roles', error)
+    }
     if (!allowed) {
       return NextResponse.redirect(new URL('/admin/company-settings', request.url))
     }

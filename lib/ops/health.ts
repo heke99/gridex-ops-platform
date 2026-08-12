@@ -22,17 +22,24 @@ function asRows(value: unknown): OpsHealthRow[] {
 }
 
 export async function getOpsHealth(): Promise<{ rows: OpsHealthRow[]; schemaReady: boolean }> {
-  const { data, error } = await supabaseService.rpc('gridex_ops_health_checks_v3')
-  if (error) {
-    if (isSchemaError(error)) {
+  // v4 qualifies route/reference health by actual live production readiness.
+  // Fall back to v3 during expand/deploy so code and migration can roll out safely.
+  const v4 = await supabaseService.rpc('gridex_ops_health_checks_v4')
+  if (!v4.error) return { schemaReady: true, rows: asRows(v4.data) }
+
+  if (!isSchemaError(v4.error)) throw v4.error
+
+  const v3 = await supabaseService.rpc('gridex_ops_health_checks_v3')
+  if (v3.error) {
+    if (isSchemaError(v3.error)) {
       return {
         schemaReady: false,
-        rows: [{ check_key: 'ops_health_schema', status: 'blocking', issue_count: 1, details: { code: error.code ?? null } }],
+        rows: [{ check_key: 'ops_health_schema', status: 'blocking', issue_count: 1, details: { code: v3.error.code ?? null } }],
       }
     }
-    throw error
+    throw v3.error
   }
-  return { schemaReady: true, rows: asRows(data) }
+  return { schemaReady: true, rows: asRows(v3.data) }
 }
 
 export type GeodataHealthStatus =

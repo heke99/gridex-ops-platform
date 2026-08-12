@@ -63,6 +63,7 @@ for (const fragment of forbiddenFragments) {
 
 const regressions = [
   'gridex-canonical-architecture-57-point-regression.cjs',
+  'gridex-ops-post-108-health-residuals-regression.cjs',
   'canonical-production-hardening-regression.cjs',
   'gridex-website-application-ops-chain-regression.cjs',
   'gridex-customer-application-continuation-regression.cjs',

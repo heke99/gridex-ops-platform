@@ -47,17 +47,25 @@ export function getBaseAppUrl(): string {
   ).replace(/\/$/, '')
 }
 
+function isSafeRelativeNextPath(value: string): boolean {
+  if (!value.startsWith('/')) return false
+  if (value.startsWith('//')) return false
+  if (value.includes('\\') || value.includes('\0')) return false
+  return true
+}
+
 export function getSafeNextPath(value: string | null | undefined, fallback = '/login'): string {
   const raw = String(value ?? '').trim()
   if (!raw) return fallback
 
-  if (raw.startsWith('/') && !raw.startsWith('//')) return raw
+  if (isSafeRelativeNextPath(raw)) return raw
 
   try {
     const url = new URL(raw)
     const appUrl = new URL(getBaseAppUrl())
     if (url.origin === appUrl.origin) {
-      return `${url.pathname}${url.search}${url.hash}` || fallback
+      const candidate = `${url.pathname}${url.search}${url.hash}` || fallback
+      return isSafeRelativeNextPath(candidate) ? candidate : fallback
     }
   } catch {
     return fallback

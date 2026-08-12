@@ -1,17 +1,10 @@
 # Open blockers
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
-The implementation and connected-dev checks are complete. Release remains blocked by evidence that cannot be produced from the supplied archive:
-
-1. No `.git`: current HEAD, origin/main and merge SHA are unverified.
-2. Clean empty-database replay is configured in CI but not executed locally because Docker/Supabase CLI are unavailable.
-3. No staging or production Supabase project is connected for parity verification.
-4. Supabase Auth leaked-password protection requires a hosted dashboard change.
-5. No current hosted GitHub Actions run is available.
-6. No Vercel deployment connector/evidence is available to prove exact-SHA production release.
-7. Production p50/p95/p99 and timing breakdown require deployed traffic/observability.
-
-Geodata cleanup is not a blocker hidden as completed work: the new lifecycle function was dry-run only and no rows were deleted.
-
-See `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md` for the exact release sequence.
+1. Hosted CI for `0f25` not yet observed in this session.
+2. ggshield CLI missing locally — secret scan BLOCKED in agent environment.
+3. Staging/production apply of `20260811114500` still required after merge.
+4. Unmerged #109 overlaps this tip residual; close as superseded after `0f25` merges.
+5. External release evidence gates from the 75-point campaign remain outside this
+   health residual scope.

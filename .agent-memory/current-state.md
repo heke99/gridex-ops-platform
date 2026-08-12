@@ -1,37 +1,32 @@
 # Current state
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
 ## Source truth
 
 - Repository: `heke99/gridex-ops-platform`.
-- Default branch: `main`.
-- Remediation base: `e8586c1ba112213a0f11da16ee3a5ae15386dc69`.
-- Release candidate: PR #105 on `codex/gridex-canonical-57-remediation`.
-- The uploaded archive was byte-equivalent to the remediation base for tracked source content.
+- Default branch: `main` at `b443bfea` (#110 auth outage + cron safety).
+- Active health branch: `cursor/codebase-health-and-stability-0f25`.
 
-## Implemented and verified
+## Tip review after #110
 
-- The 57-point canonical architecture remediation is implemented in the existing platform.
-- Canonical request-scoped authorization, tenant lifecycle, durable provisioning, worker-owned invitation delivery, verified acceptance, application repair, reconciliation, release receipts and performance budgets are in place.
-- Historical applied migrations remain immutable. Recovered database migrations and three new forward migrations are checksum-pinned.
-- Connected `gridex-ops-dev` is migrated through `20260810224500_canonical_review_remediation_v1.sql`.
-- Live invariants are green: no roleless memberships, non-ready active clients, due stranded outbox rows, overdue manual reviews, unclassified applications or reconciliation query errors.
-- One legacy application is truthfully classified as `awaiting_input` with owner, reason and SLA; missing authoritative identities were not fabricated.
-- Hosted run `31435653056` passed clean replay, verify and quality-release gates before the final review hotfixes.
-- All actionable review findings are fixed forward-only, including secret-free public auth results, lifecycle replay/no-op guards, multi-company permissions, worker lease recovery, audited offboarding, real repair jobs and bounded reconciliation. The final branch head must pass a fresh required run before merge.
+Confirmed residuals addressed on `0f25`:
 
-## Release sequence
+1. CRITICAL — #108 still granted reconciliation EXECUTE to `authenticated`.
+   Forward migration `20260811114500` (from #109) cherry-picked onto post-#110 tip.
+2. MEDIUM — login/update-password `?error=` flash phishing surface allowlisted.
+3. MEDIUM — next-path helpers now reject backslash/NUL open-redirect shapes.
+4. LOW — cron regression asserts no `environment=test` query anywhere in vercel crons.
+5. LOW — update-password auth client init wrapped in outage boundary.
 
-1. Require all checks on the final PR head to pass.
-2. Merge PR #105 without bypassing branch protection.
-3. Verify Vercel production is READY for the exact merged SHA and smoke the deployed URL.
-4. Check production runtime errors and persist a `platform_release_receipts` row for the exact Git/CI/Vercel/schema identity.
-5. Re-run the database invariants.
+Open #109 remains the pre-#110 vehicle for the same security residual; `0f25`
+is the tip-based superseding branch after #110 merged.
 
-## External configuration limits
+## Verification executed on `0f25`
 
-- The connected Supabase account exposes only `gridex-ops-dev`; no separate staging/production database is available for parity comparison.
-- Supabase Auth leaked-password protection has no exposed management action in the connected toolset and must be changed in the hosted Auth configuration.
-
-Detailed evidence: `docs/remediation/GRIDEX_57_POINT_CANONICAL_ARCHITECTURE_CLOSURE_2026-08-10.md`.
+- `vitest` auth-outage-cron-production-safety: 12/12 PASS
+- `gridex:post-108-health-residuals-regression`: PASS
+- `check-migration-versions`: PASS
+- `check-supabase-generated-types`: PASS
+- `tsc -p tsconfig.app.json`: PASS
+- ggshield: BLOCKED (CLI not installed)

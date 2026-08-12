@@ -65,3 +65,14 @@
 | Residual BL-002 RLS variants | OPEN | documented as O-005..O-008; no second overlapping migration |
 | Full dependency gates | BLOCKED | `node_modules` absent |
 | Live quote create/validate | PENDING | deployment required |
+
+## POST-#110 health residuals — 2026-08-11
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth-outage vitest | PASS 12/12 | `__tests__/auth-outage-cron-production-safety.test.ts` |
+| post-108 residuals regression | PASS | `gridex-ops-post-108-health-residuals-regression.cjs` |
+| migration versions | PASS | `check-migration-versions.cjs` |
+| generated types tip | PASS | pinned to `20260811114500` |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |

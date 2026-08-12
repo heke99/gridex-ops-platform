@@ -1,18 +1,13 @@
 # Current task
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
-Status: `CODE_AND_CONNECTED_DEV_COMPLETE_RELEASE_BLOCKED`.
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-The 75-point remediation has been implemented and locally verified against the supplied source archive. The connected `gridex-ops-dev` database is migrated and schema/code expectations were checked. This archive contains no `.git`, so its claimed `main@78013b71a1f7fccd166b38f0712e20d1df198e11` provenance cannot be independently verified.
+Active work item: post-#110 codebase health residual remediation on
+`cursor/codebase-health-and-stability-0f25` / PR `#111`.
 
-Remaining release work requires external evidence, not invented local state:
+## Exact next action
 
-- run the clean empty-database replay in the configured CI job;
-- run mandatory GitHub checks on the real repository;
-- compare staging and production Supabase with the verified dev/repo contract;
-- enable Supabase Auth leaked-password protection when password login is used;
-- prove merged Git SHA = CI SHA = Vercel production SHA;
-- capture production p50/p95/p99 after deployment.
-
-Do not mark the campaign `COMPLETE` until those gates pass. See `docs/remediation/GRIDEX_75_POINT_EXECUTION_REPORT_2026-08-10.md`.
+Monitor hosted CI on PR `#111`. After merge, close `#109` as superseded and
+apply `20260811114500` to connected environments.
