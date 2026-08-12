@@ -133,7 +133,7 @@ async function createGeodataVersion(input: { serviceUrl: string; layerId: number
     .select('id,version_key')
     .single()
   if (error) {
-    const existing = await activeGeodataVersion({ serviceUrl, layerId: input.layerId })
+    const existing = await activeGeodataVersion({ serviceUrl: input.serviceUrl, layerId: input.layerId })
     if (existing) return existing
     throw error
   }
