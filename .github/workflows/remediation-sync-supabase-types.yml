@@ -1,0 +1,63 @@
+name: Remediation sync Supabase types
+
+on:
+  push:
+    branches:
+      - remediation/gridex-production-convergence-2026-08-11
+
+permissions:
+  contents: write
+
+jobs:
+  sync-generated-types:
+    if: ${{ !contains(github.event.head_commit.message, 'chore(db): sync generated Supabase types') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: remediation/gridex-production-convergence-2026-08-11
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Reconstruct clean schema and regenerate committed types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase gen types typescript --local > supabase/database.types.ts
+          node <<'NODE'
+          const crypto = require('node:crypto')
+          const fs = require('node:fs')
+          const typesPath = 'supabase/database.types.ts'
+          const manifestPath = 'scripts/supabase-types-manifest.json'
+          const bytes = fs.readFileSync(typesPath)
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+          manifest.generated_at = new Date().toISOString()
+          manifest.sha256 = crypto.createHash('sha256').update(bytes).digest('hex')
+          const latest = fs.readdirSync('supabase/migrations')
+            .filter((name) => /^\d+.*\.sql$/.test(name))
+            .sort()
+            .at(-1)
+          if (latest) manifest.latest_migration = latest.replace(/\.sql$/, '')
+          fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+          console.log(`generated_types_sha256=${manifest.sha256}`)
+          console.log(`latest_migration=${manifest.latest_migration}`)
+          NODE
+      - name: Commit generated artifacts when stale
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- supabase/database.types.ts scripts/supabase-types-manifest.json; then
+            echo 'Generated Supabase types are already current.'
+            exit 0
+          fi
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          git -c user.name='gridex-remediation-bot' -c user.email='gridex-remediation-bot@users.noreply.github.com' \
+            commit -m 'chore(db): sync generated Supabase types'
+          git push origin HEAD:remediation/gridex-production-convergence-2026-08-11
