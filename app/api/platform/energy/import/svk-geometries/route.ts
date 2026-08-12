@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
-import { runSvkGeometryImport } from '@/lib/energy/svkGeometryImport'
+import { retrySvkGridOwnerReconciliation, runSvkGeometryImport } from '@/lib/energy/svkGeometryImport'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,6 +10,13 @@ export async function POST(request: Request) {
   try {
     const admin = await requirePlatformAdminActionAccess()
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
+
+    if (body.action === 'retry_reconciliation') {
+      const runId = typeof (body.run_id ?? body.runId) === 'string' ? String(body.run_id ?? body.runId) : ''
+      const result = await retrySvkGridOwnerReconciliation(runId)
+      return NextResponse.json(result, { status: result.ok ? 200 : 409 })
+    }
+
     const result = await runSvkGeometryImport({
       serviceUrl: body.service_url ?? body.serviceUrl,
       layerId: body.layer_id ?? body.layerId,
@@ -18,7 +25,7 @@ export async function POST(request: Request) {
       runId: typeof (body.run_id ?? body.runId) === 'string' ? String(body.run_id ?? body.runId) : null,
       actorUserId: admin.userId,
     })
-    return NextResponse.json(result)
+    return NextResponse.json(result, { status: result.ok ? 200 : 502 })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[svk-geometry-import] failed', { traceId, error })
