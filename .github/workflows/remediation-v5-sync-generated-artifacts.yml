@@ -57,7 +57,7 @@ jobs:
         run: |
           set -uo pipefail
           set +e
-          source scripts/gridex-aud-003-clean-replay.sh > remediation-v5-replay-failure.log 2>&1
+          bash scripts/gridex-aud-003-clean-replay.sh > remediation-v5-replay-failure.log 2>&1
           rc=$?
           set -e
           if [ "$rc" -ne 0 ]; then
