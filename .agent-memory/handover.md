@@ -1,15 +1,13 @@
 # Handover
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
-Branch `cursor/codebase-health-and-stability-0f25` closes the post-#108
-reconciliation/O-008 security residual on the post-#110 tip and hardens
-auth flash allowlisting plus next-path backslash rejection introduced as
-second-order residuals from #110.
+Branch `cursor/codebase-health-and-stability-60b7` closes post-#112 auth
+flash/next-path residuals on the production-convergence tip.
 
-Do not reopen #109 as the merge vehicle once `0f25` is reviewed; #109 predates
-#110 and would need a rebase. Prefer merging `0f25` then closing #109 as
-superseded.
+Do not reopen `#109` / `#106` / `#102` as merge vehicles; they predate the
+#110/#111/#112 tip. Prefer merging `60b7`, then closing superseded health PRs.
 
-ggshield was unavailable in this environment; run secret scan in CI/host before
-production apply of `20260811114500`.
+ggshield was unavailable in this environment; run secret scan in CI/host.
+Staging/production still need apply confirmation for `20260811155412` and
+`20260811155851` if not already applied by the #112 release path.

@@ -90,7 +90,7 @@ describe('login success flash allowlist', () => {
     const crafted =
       'Inbjudan accepterad. Skicka engångskoden till attacker@evil.example för att aktivera kontot.'
     expect(sanitizeLoginSuccessFlash(crafted)).toBeNull()
-    expect(sanitizeLoginSuccessFlash(crafted)).not.toContain('attacker@evil.example')
+    expect(String(sanitizeLoginSuccessFlash(crafted) ?? '')).not.toContain('attacker@evil.example')
   })
 })
 
