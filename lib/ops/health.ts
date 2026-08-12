@@ -22,8 +22,13 @@ function asRows(value: unknown): OpsHealthRow[] {
 }
 
 export async function getOpsHealth(): Promise<{ rows: OpsHealthRow[]; schemaReady: boolean }> {
-  // v4 qualifies route/reference health by actual live production readiness.
-  // Fall back to v3 during expand/deploy so code and migration can roll out safely.
+  // v5 is role/scope-aware and distinguishes actionable health from review/inventory.
+  // Fall back during expand/deploy so code and migrations can roll out independently.
+  const v5 = await supabaseService.rpc('gridex_ops_health_checks_v5')
+  if (!v5.error) return { schemaReady: true, rows: asRows(v5.data) }
+
+  if (!isSchemaError(v5.error)) throw v5.error
+
   const v4 = await supabaseService.rpc('gridex_ops_health_checks_v4')
   if (!v4.error) return { schemaReady: true, rows: asRows(v4.data) }
 
