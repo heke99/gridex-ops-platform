@@ -6,6 +6,7 @@ const v5Path = 'supabase/migrations/20260812113000_gridex_ops_masterdata_health_
 const dynamicPath = 'supabase/migrations/20260812114500_gridex_ops_health_v5_dynamic_receiver_semantics.sql'
 const serviceRolePath = 'supabase/migrations/20260812121100_gridex_ops_health_v5_service_role_only.sql'
 const roleAwareCountsPath = 'supabase/migrations/20260812130500_gridex_ops_health_v5_role_aware_counts.sql'
+const identifierNormalizationPath = 'supabase/migrations/20260812151500_gridex_ops_grid_owner_identifier_normalization_v3.sql'
 const healthPath = 'lib/ops/health.ts'
 const svkPath = 'lib/energy/svkGeometryImport.ts'
 
@@ -24,6 +25,7 @@ const v5 = readRequired(v5Path, 'v5 canonical remediation')
 const dynamic = readRequired(dynamicPath, 'dynamic receiver semantics')
 const serviceRole = readRequired(serviceRolePath, 'v5 service-role boundary')
 const roleAwareCounts = readRequired(roleAwareCountsPath, 'role-aware PRODAT accounting')
+const identifierNormalization = readRequired(identifierNormalizationPath, 'grid-owner identifier normalization')
 const health = readRequired(healthPath, 'health runtime')
 const svk = readRequired(svkPath, 'SVK importer')
 
@@ -102,6 +104,24 @@ requireMarkers(roleAwareCounts, 'role-aware PRODAT accounting', [
   'missing_or_invalid_certificate',
 ])
 
+requireMarkers(identifierNormalization, 'grid-owner identifier normalization', [
+  'identifier_type_normalized',
+  "= 'edielid'",
+  "'orgno'",
+  "'orgnumber'",
+  "'orgnr'",
+  "'organizationnumber'",
+  "'engine_version', 3",
+  "'fuzzy_write_allowed', false",
+  'to service_role',
+])
+if (/i\.identifier_type\s*=\s*'ediel_id'/i.test(identifierNormalization)) {
+  failures.push('identifier normalization regressed to an exact ediel_id-only comparison')
+}
+if (/i\.identifier_type\s*=\s*'organization_number'/i.test(identifierNormalization)) {
+  failures.push('identifier normalization regressed to an exact organization_number-only comparison')
+}
+
 requireMarkers(health, 'health runtime', [
   "supabaseService.rpc('gridex_ops_health_checks_v5')",
   "supabaseService.rpc('gridex_ops_health_checks_v4')",
@@ -132,4 +152,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('OPS health/remediation regression passed (v5 scope, dynamic routing, service boundary and final-promotion reconciliation verified).')
+console.log('OPS health/remediation regression passed (v5 scope, dynamic routing, service boundary, identifier normalization and final-promotion reconciliation verified).')
