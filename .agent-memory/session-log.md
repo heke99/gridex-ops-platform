@@ -339,3 +339,10 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Cherry-picked post-#108 security residual onto post-#110 tip.
 - Hardened login/update-password error flash allowlists and next-path backslash rejection.
 - Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
+
+## 2026-08-12 — post-#114 health residuals on 5dfb
+- Tip review after #114 (`b8742591`). Open #113/`60b7` auth residuals still absent on tip.
+- Replayed login flash allowlists, auth-callback constants, proxy/authEmailFlow next-path hardening.
+- Locked SVK failed_retryable retry-before-reimport ordering in OPS health regression.
+- Verification: vitest 18/18, health + post-108 regressions, migration/types, app tsc PASS.
+- ggshield BLOCKED (CLI missing). Next: PR for 5dfb; supersede #113 after merge.

@@ -76,3 +76,16 @@
 | generated types tip | PASS | pinned to `20260811114500` |
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
+
+## POST-#114 health residuals — 2026-08-12 (`5dfb` / `ffe2b387`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth-outage vitest | PASS 18/18 | `__tests__/auth-outage-cron-production-safety.test.ts` |
+| OPS health regression (+ SVK retry lock) | PASS | `gridex-ops-health-regression.cjs` |
+| post-108 residuals regression | PASS | `gridex-ops-post-108-health-residuals-regression.cjs` |
+| migration versions | PASS | `check-migration-versions.cjs` |
+| generated types tip | PASS | pinned to `20260812151500` |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
+| hosted CI | NOT_YET | pending PR |
