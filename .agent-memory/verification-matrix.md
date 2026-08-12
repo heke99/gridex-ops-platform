@@ -76,3 +76,15 @@
 | generated types tip | PASS | pinned to `20260811114500` |
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
+
+## POST-#112 health residuals — 2026-08-12
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth-outage vitest | PASS 18/18 | allowlist + proxy next-path + signOut outage cases |
+| post-108 residuals regression | PASS | tip migration still `20260811155851` |
+| migration versions | PASS | `check-migration-versions.cjs` |
+| generated types tip | PASS | pinned to `20260811155851` |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
+| hosted CI | NOT_YET | PR pending |
