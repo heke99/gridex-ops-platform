@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-12T11:27:00.000Z",
+  "generated_at": "2026-08-12T14:46:27.176Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "6a6ff82e16b7435e0aa80b556d3b16c01fb38b8cb77e2dc2f359da0fc5708271",
-  "latest_migration": "20260812132000_gridex_portfolio_rls_auth_initplan.sql"
+  "sha256": "590d065257082f37062d1d6a2e0fcaf5a2ccfc1aa8117aa23b937d6ce4d23af7",
+  "latest_migration": "20260812143000_gridex_ops_grid_owner_invariants_v2.sql"
 }
