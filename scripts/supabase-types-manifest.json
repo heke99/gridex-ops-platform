@@ -3,5 +3,5 @@
   "generated_at": "2026-08-12T14:46:27.176Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "590d065257082f37062d1d6a2e0fcaf5a2ccfc1aa8117aa23b937d6ce4d23af7",
-  "latest_migration": "20260812143000_gridex_ops_grid_owner_invariants_v2.sql"
+  "latest_migration": "20260812151500_gridex_ops_grid_owner_identifier_normalization_v3.sql"
 }
