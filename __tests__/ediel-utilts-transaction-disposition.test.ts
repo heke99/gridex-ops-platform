@@ -2,6 +2,48 @@ import { describe, expect, it } from 'vitest'
 import { resolveUtiltsTransactionDispositions } from '@/lib/ediel/utiltsEngine'
 
 describe('UTILTS transaction-level disposition', () => {
+  it('proves the canonical 95 accepted / 3 guide / 2 processability partial-success split', () => {
+    const accepted = Array.from({ length: 95 }, (_, index) => ({ transactionId: `TX-OK-${index + 1}` }))
+    const guideRejected = Array.from({ length: 3 }, (_, index) => ({ transactionId: `TX-GUIDE-${index + 1}` }))
+    const processabilityRejected = Array.from({ length: 2 }, (_, index) => ({ transactionId: `TX-PROCESS-${index + 1}` }))
+    const transactions = [...accepted, ...guideRejected, ...processabilityRejected]
+
+    const result = resolveUtiltsTransactionDispositions({
+      syntaxOk: true,
+      transactions,
+      issues: [
+        ...guideRejected.map(({ transactionId }) => ({
+          severity: 'error' as const,
+          kind: 'application' as const,
+          code: 'FIELD_REQUIRED',
+          title: 'Required field missing',
+          description: 'A required guide field is missing.',
+          referenceNumber: transactionId,
+          lineItemReference: transactionId,
+          aperakFieldCode: '245',
+        })),
+        ...processabilityRejected.map(({ transactionId }) => ({
+          severity: 'error' as const,
+          kind: 'functional' as const,
+          code: 'UNKNOWN_OBJECT',
+          title: 'Unknown object',
+          description: 'The transaction object cannot be processed.',
+          referenceNumber: transactionId,
+          lineItemReference: transactionId,
+          utiltsErrCode: 'E10',
+        })),
+      ],
+    })
+
+    expect(result).toHaveLength(100)
+    expect(result.filter((row) => row.disposition === 'accepted')).toHaveLength(95)
+    expect(result.filter((row) => row.disposition === 'guide_rejected')).toHaveLength(3)
+    expect(result.filter((row) => row.disposition === 'processability_rejected')).toHaveLength(2)
+    expect(result.filter((row) => row.responseType === 'positive_aperak')).toHaveLength(95)
+    expect(result.filter((row) => row.responseType === 'negative_aperak')).toHaveLength(3)
+    expect(result.filter((row) => row.responseType === 'utilts_err')).toHaveLength(2)
+  })
+
   it('keeps valid transactions accepted when sibling transactions fail at different layers', () => {
     const result = resolveUtiltsTransactionDispositions({
       syntaxOk: true,
