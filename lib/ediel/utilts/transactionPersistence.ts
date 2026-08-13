@@ -1,9 +1,12 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import type {
   UtiltsRuntimeTransaction,
   UtiltsTransactionDisposition,
 } from '@/lib/ediel/utiltsEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
+
+export { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 type UtiltsPersistenceMatch = {
   transactionReference: string | null
@@ -51,19 +54,6 @@ export function utiltsSeriesKind(messageCode: string | null | undefined): Utilts
   if (['E72', 'E73', 'E74', 'S06'].includes(code)) return 'request'
   if (['S01', 'S03', 'S04', 'S05', 'S08', 'E31'].includes(code)) return 'aggregate'
   return 'actual'
-}
-
-/**
- * Keep TypeScript transaction identity aligned with
- * `gridex_persist_utilts_transactions_v1`, which falls back to
- * `transaction-<1-based-index>` when IDE+24 is absent.
- */
-export function resolveUtiltsTransactionId(
-  transactionId: string | null | undefined,
-  index: number,
-): string {
-  const trimmed = typeof transactionId === 'string' ? transactionId.trim() : ''
-  return trimmed.length > 0 ? trimmed : `transaction-${index + 1}`
 }
 
 function byTransactionReference<T extends { transactionReference: string | null }>(

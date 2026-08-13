@@ -22,6 +22,7 @@ import {
   type EdielCanonicalAckState,
 } from '@/lib/ediel/core/ackPolicy'
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
+import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 export type {
   AckFamily,
@@ -550,9 +551,10 @@ export function getUtiltsAckTransactionTargets(sourceMessage: EdielMessageRow): 
 
   const seen = new Set<string>()
   return parseUtiltsSourceGroups(sourceMessage)
-    .map((group) => {
-      const reference = sanitizeEdifactToken(group.transactionId) ?? null
-      if (!reference || seen.has(reference)) return null
+    .map((group, index) => {
+      const reference =
+        resolveUtiltsTransactionId(sanitizeEdifactToken(group.transactionId), index)
+      if (seen.has(reference)) return null
       seen.add(reference)
       return {
         reference,
