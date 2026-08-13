@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-13T13:05:00Z",
+  "generated_at": "2026-08-13T22:15:00Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "8199fc015208d1c107c3c24f7639baac6f86a7d03c4d0391a24bb193bab8fa2e",
-  "latest_migration": "20260813130500_ediel_utilts_canonical_field_matrix.sql"
+  "sha256": "796ea061618af9d84539eecffac4dfeba6e6287525b6c2b55433802b992c2ad8",
+  "latest_migration": "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql"
 }
