@@ -364,3 +364,13 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
   flash, fail-closed base URL, auth-action retry context, and override pin gaps.
 - Verification: vitest 43/43, residual regressions, migration/types, audit 0,
   app tsc PASS; ggshield BLOCKED.
+
+## 2026-08-13 — post-3cad481b health residuals on 13b2
+
+- Reviewed main tip `3cad481b` after `#123` merge.
+- Restored durable field-511 Returns nullability against typegen regen, gated
+  post-332 residuals in ops-hardening, allowlisted public/portal flashes,
+  mapped disabled-session login reason, unified getSafeNextPath, and
+  synthesized null UTILTS match transaction ids.
+- Verification: vitest 50/50, residual regressions, types, audit 0, app tsc
+  PASS; ggshield BLOCKED.
