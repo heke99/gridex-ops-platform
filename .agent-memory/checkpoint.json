@@ -1,13 +1,13 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-13T22:17:00Z",
+  "updated_at": "2026-08-13T22:20:00Z",
   "branch": "cursor/codebase-health-and-stability-9807",
   "active_phase": "CODEBASE_HEALTH_TIP_RESIDUALS",
   "active_task": "Close post-ca28cb0a tip residuals after #124 merge",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "ca28cb0a",
-  "head_sha": "42253b25",
-  "pr": null,
+  "head_sha": "28491a11",
+  "pr": 125,
   "verification": {
     "auth_utilts_vitest": "PASS_52",
     "ops_health_regression": "PASS",
@@ -19,5 +19,5 @@
     "ggshield": "BLOCKED",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Monitor 9807 PR CI; supersede open #122/#121/#120/#119/#117/#115/#113 after merge"
+  "resume_from": "Monitor PR #125 CI; supersede open #122/#121/#120/#119/#117/#115/#113 after merge"
 }
