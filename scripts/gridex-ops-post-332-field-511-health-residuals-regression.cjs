@@ -139,6 +139,63 @@ check(
   'login flash allowlists must remain on tip',
 )
 
+// Post-f596dc55 tip packaging: keep the authoritative JSON package coherent and
+// reject the orphaned root-level checksum snippet that duplicate-check scripts
+// never consume (canonical path is supabase/migrations/...snippet.json +
+// scripts/migration-history-manifest.additions.json).
+const rootOrphanSnippet = path.join(root, 'migration-history-manifest.additions.snippet.json')
+check(
+  !fs.existsSync(rootOrphanSnippet),
+  'root migration-history-manifest.additions.snippet.json must not exist (orphaned duplicate)',
+)
+
+const field511JsonPath = 'field-511-products-25-a-3.json'
+const field511JsonAbsolute = path.join(root, field511JsonPath)
+check(fs.existsSync(field511JsonAbsolute), `missing required file: ${field511JsonPath}`)
+if (fs.existsSync(field511JsonAbsolute)) {
+  const packageJson = JSON.parse(fs.readFileSync(field511JsonAbsolute, 'utf8'))
+  const products = Array.isArray(packageJson.products) ? packageJson.products : []
+  const current = products.filter((product) => product?.current_for_25_A_3 === true)
+  const retired = new Set(packageJson.retired_source_rows_excluded_from_resolution || [])
+  const tuples = new Set()
+  for (const product of products) {
+    const field = product?.field_511 || {}
+    tuples.add(['PC', 'PT', 'OT', 'LOD', 'BAP'].map((key) => field[key]).join('|'))
+  }
+  const l653q = products.find((product) => product?.code === 'L653Q')
+
+  check(products.length === 91, `field-511 JSON must list 91 products, got ${products.length}`)
+  check(current.length === 88, `field-511 JSON must mark 88 current products, got ${current.length}`)
+  check(tuples.size === products.length, 'field-511 JSON must keep unique PC/PT/OT/LOD/BAP tuples')
+  check(
+    packageJson.source_tuple_count === 91 && packageJson.current_tuple_count === 88,
+    'field-511 JSON header counts must match 91/88',
+  )
+  check(
+    ['L336Q', 'S195', 'S196'].every((code) => retired.has(code)),
+    'field-511 JSON must exclude L336Q/S195/S196 from current resolution',
+  )
+  check(
+    Boolean(l653q) && String(l653q.description || '').startsWith('\t'),
+    'field-511 JSON must preserve L653Q workbook leading-tab provenance',
+  )
+  check(
+    packageJson.source_sha256 ===
+      '2317450436391e1422e176cf503352c96fc9c38040962e8668f036563784fa98',
+    'field-511 JSON source hash must match the authoritative workbook',
+  )
+}
+
+const verification = read('VERIFICATION.md')
+check(
+  verification.includes('# Verifiering och produktionsgrind'),
+  'VERIFICATION.md must remain the production-gate document',
+)
+check(
+  fs.existsSync(path.join(root, 'quality/ediel-field-511-25-a-3-verification.md')),
+  'field-511 verification notes must live under quality/, not overwrite VERIFICATION.md',
+)
+
 if (failures.length) {
   console.error('Post-#332 field-511 health residuals regression failed:')
   for (const failure of failures) console.error(`- ${failure}`)
