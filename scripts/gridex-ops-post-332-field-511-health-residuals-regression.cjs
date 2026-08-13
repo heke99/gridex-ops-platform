@@ -148,6 +148,7 @@ check(
 // Keep #119 tip residuals present on this branch.
 const utiltsEngine = read('lib/ediel/utiltsEngine.ts')
 const persistence = read('lib/ediel/utilts/transactionPersistence.ts')
+const transactionIdentity = read('lib/ediel/utilts/transactionIdentity.ts')
 const loginError = read('lib/auth/loginError.ts')
 check(
   utiltsEngine.includes("classification === 'functional_rejected'") &&
@@ -155,8 +156,9 @@ check(
   'mixed-disposition APERAK detail retention must remain on tip',
 )
 check(
-  persistence.includes('transaction-${index + 1}') ||
-    persistence.includes('`transaction-${index + 1}`'),
+  (transactionIdentity.includes('transaction-${index + 1}') ||
+    transactionIdentity.includes('`transaction-${index + 1}`')) &&
+    persistence.includes('resolveUtiltsTransactionId'),
   'null UTILTS transaction id synthesis must remain on tip',
 )
 check(
