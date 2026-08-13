@@ -9,6 +9,6 @@ Active work item: post-#116 codebase health residual remediation on
 
 ## Exact next action
 
-Open/monitor PR for `a855`. After merge, close `#115`, `#113`, and older
+Monitor hosted CI on PR `#117`. After merge, close `#115`, `#113`, and older
 superseded health drafts as superseded. No new migration apply required for
 this residual (auth/SVK locks only).
