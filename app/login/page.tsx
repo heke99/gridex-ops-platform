@@ -1,5 +1,9 @@
 import Link from 'next/link'
-import { sanitizeLoginErrorFlash, sanitizeLoginSuccessFlash } from '@/lib/auth/loginError'
+import {
+  loginReasonErrorFlash,
+  sanitizeLoginErrorFlash,
+  sanitizeLoginSuccessFlash,
+} from '@/lib/auth/loginError'
 import { getSafeNextPath } from '@/lib/auth/urls'
 import { loginAction } from './actions'
 
@@ -9,6 +13,7 @@ type SearchParams = Promise<{
   error?: string
   message?: string
   next?: string
+  reason?: string
 }>
 
 export default async function LoginPage({
@@ -17,7 +22,8 @@ export default async function LoginPage({
   searchParams: SearchParams
 }) {
   const params = await searchParams
-  const error = sanitizeLoginErrorFlash(params.error)
+  const error =
+    sanitizeLoginErrorFlash(params.error) ?? loginReasonErrorFlash(params.reason)
   const message = sanitizeLoginSuccessFlash(params.message)
   const next = getSafeNextPath(params.next)
 

@@ -28,13 +28,32 @@ function isSafeRelativeNextPath(value: string): boolean {
 }
 
 export function getSafeNextPath(value: string | null | undefined, fallback = '/dashboard'): string {
-  if (!value) return fallback
+  const raw = String(value ?? '').trim()
+  if (!raw) return fallback
 
   try {
-    const decoded = decodeURIComponent(value)
+    const decoded = decodeURIComponent(raw)
     if (isSafeRelativeNextPath(decoded)) return decoded
   } catch {
-    if (isSafeRelativeNextPath(value)) return value
+    if (isSafeRelativeNextPath(raw)) return raw
+  }
+
+  // Auth email / callback flows may pass absolute same-origin next URLs.
+  try {
+    const url = new URL(raw)
+    const appUrl = new URL(getBaseAppUrl())
+    if (url.origin === appUrl.origin) {
+      const candidate = `${url.pathname}${url.search}${url.hash}` || fallback
+      if (isSafeRelativeNextPath(candidate)) return candidate
+      try {
+        const decodedCandidate = decodeURIComponent(candidate)
+        return isSafeRelativeNextPath(decodedCandidate) ? decodedCandidate : fallback
+      } catch {
+        return fallback
+      }
+    }
+  } catch {
+    return fallback
   }
 
   return fallback
