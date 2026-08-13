@@ -1,3 +1,5 @@
+import { LOGIN_EMAIL_CONFIRMED_MESSAGE } from '@/lib/auth/loginError'
+
 export function getBaseAppUrl(): string {
   const value =
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -44,7 +46,9 @@ export function buildAuthCallbackUrl(nextPath: string): string {
   return url.toString()
 }
 
-export function buildAuthConfirmUrl(nextPath = '/login?message=E-postadressen är bekräftad. Du kan logga in.'): string {
+export function buildAuthConfirmUrl(
+  nextPath = `/login?message=${LOGIN_EMAIL_CONFIRMED_MESSAGE}`,
+): string {
   const url = new URL('/auth/confirm', getBaseAppUrl())
   url.searchParams.set('next', nextPath)
   return url.toString()
