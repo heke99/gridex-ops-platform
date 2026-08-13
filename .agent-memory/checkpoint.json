@@ -6,7 +6,7 @@
   "active_task": "Close post-3cad481b tip residuals after #123 merge",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "3cad481b",
-  "head_sha": "ae3046de",
+  "head_sha": "bbabf395",
   "pr": null,
   "verification": {
     "auth_utilts_vitest": "PASS_50",
