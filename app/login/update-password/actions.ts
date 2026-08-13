@@ -6,6 +6,7 @@ import {
   UPDATE_PASSWORD_FAILED_MESSAGE,
   UPDATE_PASSWORD_MISMATCH_MESSAGE,
   UPDATE_PASSWORD_SESSION_MISSING_MESSAGE,
+  UPDATE_PASSWORD_SUCCESS_MESSAGE,
   UPDATE_PASSWORD_TOO_SHORT_MESSAGE,
 } from '@/lib/auth/loginError'
 import { getSafeNextPath } from '@/lib/auth/urls'
@@ -92,5 +93,7 @@ export async function updatePasswordAction(formData: FormData) {
     // Auth-password is already changed. DB sync can be repaired by admin if optional profile columns are missing.
   }
 
-  redirect(`${next}?message=${encodeURIComponent('Lösenordet är uppdaterat.')}`)
+  const destination = new URL(next, 'http://localhost')
+  destination.searchParams.set('message', UPDATE_PASSWORD_SUCCESS_MESSAGE)
+  redirect(`${destination.pathname}${destination.search}`)
 }
