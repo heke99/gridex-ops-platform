@@ -1,6 +1,14 @@
 # Current state
 
-Updated: 2026-08-11
+Updated: 2026-08-13
+
+## Ediel production-engine audit
+
+- Baseline: `main@e44b13f9`; active branch `agent/ediel-production-engine-20260813`.
+- Live dev UTILTS rule packs now separate guide `25-A-3` / future `25-A-4` from association `E5SE5A`; current window starts 2025-06-01 and future remains inactive until 2026-10-01.
+- Canonical UTILTS object/aggregate/request semantics are aligned in TypeScript and DB profile metadata. Aggregate inbound request evaluation no longer forces a metering-point match.
+- Production verdict remains **NOT READY**: live canonical field rules contain only one UTILTS row for E66 and one for E31, and aggregate/forecast domain persistence plus transaction-level partial-success evidence are incomplete.
+- Do not merge this branch to `main` until the blockers in `quality/ediel-production-engine-2026-08-13/initial-audit.md` are closed.
 
 ## Source truth
 
