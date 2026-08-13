@@ -7,6 +7,10 @@ import {
   normalizeAuthEmailType,
   syncVerifiedAuthEmailAction,
 } from '@/lib/auth/authEmailFlow'
+import {
+  LOGIN_VERIFY_LINK_EXPIRED_MESSAGE,
+  LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE,
+} from '@/lib/auth/loginError'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +34,7 @@ export async function GET(request: Request) {
 
   if (!code) {
     const loginUrl = new URL('/login', getBaseAppUrl())
-    loginUrl.searchParams.set('error', 'Verifieringslänken saknar kod. Begär en ny länk och försök igen.')
+    loginUrl.searchParams.set('error', LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE)
     return NextResponse.redirect(loginUrl)
   }
 
@@ -39,7 +43,7 @@ export async function GET(request: Request) {
 
   if (error || !data.user) {
     const loginUrl = new URL('/login', getBaseAppUrl())
-    loginUrl.searchParams.set('error', 'Länken har gått ut eller är redan använd. Begär en ny länk och försök igen.')
+    loginUrl.searchParams.set('error', LOGIN_VERIFY_LINK_EXPIRED_MESSAGE)
     return NextResponse.redirect(loginUrl)
   }
 
