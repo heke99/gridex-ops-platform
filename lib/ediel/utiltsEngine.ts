@@ -4,6 +4,7 @@ import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
 import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
+import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
 
@@ -187,10 +188,14 @@ export function resolveUtiltsTransactionDispositions(input: {
     (issue) => issue.severity === 'error' && issue.kind === 'syntax',
   )
 
-  return input.transactions.map((transaction) => {
+  return input.transactions.map((transaction, index) => {
+    // Align with profile/persist/ACK identity: missing IDE+24 becomes
+    // transaction-<n> so synthesized issue refs still attribute correctly.
+    const transactionId = resolveUtiltsTransactionId(transaction.transactionId, index)
+
     if (!input.syntaxOk || syntaxIssues.length > 0) {
       return {
-        transactionId: transaction.transactionId,
+        transactionId,
         disposition: 'syntax_rejected',
         responseType: 'negative_contrl',
         issueCodes: syntaxIssues.map((issue) => issue.code),
@@ -200,12 +205,12 @@ export function resolveUtiltsTransactionDispositions(input: {
     const transactionIssues = input.issues.filter((issue) => {
       if (issue.severity !== 'error' || issue.kind === 'syntax') return false
       const reference = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
-      return reference === null || reference === transaction.transactionId
+      return reference === null || reference === transactionId
     })
     const guideIssues = transactionIssues.filter((issue) => issue.kind === 'application')
     if (guideIssues.length > 0) {
       return {
-        transactionId: transaction.transactionId,
+        transactionId,
         disposition: 'guide_rejected',
         responseType: 'negative_aperak',
         issueCodes: guideIssues.map((issue) => issue.code),
@@ -215,7 +220,7 @@ export function resolveUtiltsTransactionDispositions(input: {
     const processabilityIssues = transactionIssues.filter((issue) => issue.kind === 'functional')
     if (processabilityIssues.length > 0) {
       return {
-        transactionId: transaction.transactionId,
+        transactionId,
         disposition: 'processability_rejected',
         responseType: 'utilts_err',
         issueCodes: processabilityIssues.map((issue) => issue.code),
@@ -223,7 +228,7 @@ export function resolveUtiltsTransactionDispositions(input: {
     }
 
     return {
-      transactionId: transaction.transactionId,
+      transactionId,
       disposition: 'accepted',
       responseType: 'positive_aperak',
       issueCodes: [],
@@ -332,8 +337,12 @@ function addObjectProcessabilityIssues(params: {
   const resolvedObject = messageHasResolvedObjectContext(params.message)
   const transactionMatches = transactionMatchesFromMessage(params.message)
 
-  for (const group of groups) {
-    const transactionReference = transactionIssueReference(group, params.facts.transactionId)
+  for (const [index, group] of groups.entries()) {
+    const transactionReference = synthesizedTransactionIssueReference(
+      group,
+      params.facts.transactionId,
+      index,
+    )
     const externalMeteringPointId = parseLocValueFromGroup(group, 'LOC+172')
     const externalGridAreaId = parseLocValueFromGroup(group, 'LOC+239')
     const transactionMatch = matchSnapshotForUtiltsGroup({
@@ -666,6 +675,14 @@ function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | n
 
 function transactionIssueReference(group: UtiltsTransactionGroup, fallback: string | null): string | null {
   return sanitizeRuntimeToken(group.transactionId ?? fallback, 35)
+}
+
+function synthesizedTransactionIssueReference(
+  group: UtiltsTransactionGroup,
+  fallback: string | null,
+  index: number,
+): string {
+  return resolveUtiltsTransactionId(transactionIssueReference(group, fallback), index)
 }
 
 function aperakErrorsFromIssues(issues: readonly UtiltsValidationIssue[]): UtiltsAperakApplicationError[] {
@@ -1085,8 +1102,8 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 
   if (code === 'S02') {
-    for (const group of splitTransactionGroups(facts.rawSegments)) {
-      const transactionReference = transactionIssueReference(group, facts.transactionId)
+    for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
+      const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupUnit = parseUnitFromGroup(group)
       const deliveryPeriod = parseDtmComposite(groupSegmentValue(group, 'DTM+324'))
       const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
@@ -1167,8 +1184,8 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 
   if (code === 'S03' || code === 'E31') {
-    for (const group of splitTransactionGroups(facts.rawSegments)) {
-      const transactionReference = transactionIssueReference(group, facts.transactionId)
+    for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
+      const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
       const label = code === 'E31' ? 'E31' : 'S03'
@@ -1236,8 +1253,8 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 
   if (code === 'E66') {
-    for (const group of splitTransactionGroups(facts.rawSegments)) {
-      const transactionReference = transactionIssueReference(group, facts.transactionId)
+    for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
+      const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const hasMissingValueStatus = groupHasStatusCode(group, '46')
       const expectedCount = expectedQuantityCountForGroup(group)

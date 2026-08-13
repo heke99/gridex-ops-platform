@@ -162,4 +162,36 @@ describe('UTILTS transaction-level disposition', () => {
       }),
     ])
   })
+
+  it('attributes synthesized transaction-N profile refs when IDE+24 is absent', () => {
+    // Profiles emit referenceNumber=transaction-1 for missing IDE+24. Disposition
+    // matching must use the same identity so guide rejection is not orphaned into
+    // an incorrect accepted/positive-APERAK outcome.
+    const result = resolveUtiltsTransactionDispositions({
+      syntaxOk: true,
+      transactions: [{ transactionId: null }],
+      issues: [
+        {
+          severity: 'error',
+          kind: 'application',
+          code: 'UTILTS_TRANSACTION_ID_MISSING',
+          title: 'Transaktions-id saknas',
+          description: 'E31 kräver IDE+24 eller TN-referens per transaktion.',
+          referenceNumber: 'transaction-1',
+          lineItemReference: 'transaction-1',
+          aperakErcCode: '41',
+          aperakFieldCode: '512',
+        },
+      ],
+    })
+
+    expect(result).toEqual([
+      {
+        transactionId: 'transaction-1',
+        disposition: 'guide_rejected',
+        responseType: 'negative_aperak',
+        issueCodes: ['UTILTS_TRANSACTION_ID_MISSING'],
+      },
+    ])
+  })
 })
