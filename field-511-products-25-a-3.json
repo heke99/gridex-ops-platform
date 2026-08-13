@@ -1,0 +1,1978 @@
+{
+  "source_document": "Tidsserieprodukter_20250528 (3).xls",
+  "source_sha256": "2317450436391e1422e176cf503352c96fc9c38040962e8668f036563784fa98",
+  "guide_version": "25-A-3",
+  "guide_revision": "3",
+  "association_assigned_code": "E5SE5A",
+  "valid_from": "2025-06-01",
+  "valid_to": "2026-09-30",
+  "tuple_order": [
+    "PC",
+    "PT",
+    "OT",
+    "LOD",
+    "BAP"
+  ],
+  "source_tuple_count": 91,
+  "current_tuple_count": 88,
+  "retired_source_rows_excluded_from_resolution": [
+    "L336Q",
+    "S195",
+    "S196"
+  ],
+  "products": [
+    {
+      "code": "5031",
+      "description": "Balansgrundpris",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z58",
+        "PT": "Z51",
+        "OT": "Z88",
+        "LOD": "Z55",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        2
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "5032",
+      "description": "Uppregleringspris",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z58",
+        "PT": "Z01",
+        "OT": "Z88",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        3,
+        4
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "5033",
+      "description": "Nedregleringspris",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z58",
+        "PT": "Z02",
+        "OT": "Z88",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        5,
+        6
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "K120Q",
+      "description": "Uppmätt utbyte mellan NA och utländskt nätområde, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z02",
+        "PT": "U70",
+        "OT": "X07",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        7,
+        8
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L120Q",
+      "description": "Uppmätt utbyte mellan NA, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z02",
+        "PT": "U70",
+        "OT": "Z07",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        9,
+        10
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L131",
+      "description": "Prel. andelstal för förbr. per BR och NA, (Total), återrapportering",
+      "primary_message_code": "S04",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U82",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        11
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L132",
+      "description": "Prel. andelstal för förluster per BR och NA, (total), återrapportering",
+      "primary_message_code": "S04",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z83",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        12
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L208",
+      "description": "Kvarkraft förluster per BR och NA",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z61",
+        "PT": "Z87",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        13
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L209",
+      "description": "Köpt kvarkraft per BR och NA",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z61",
+        "PT": "Z90",
+        "OT": "Z64",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        14,
+        15
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L210",
+      "description": "Såld kvarkraft per BR och NA",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z61",
+        "PT": "Z91",
+        "OT": "Z64",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        16,
+        17
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L336Q",
+      "description": "Total uppmätt förbr. per CO och BR, exkl. nätförluster, 15 min",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U05",
+        "OT": "Z59",
+        "LOD": "Z54",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        18
+      ],
+      "current_for_25_A_3": false
+    },
+    {
+      "code": "L349",
+      "description": "Summa prel. andelstal per NA",
+      "primary_message_code": "S04",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z84",
+        "OT": "Z02",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        19
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L354",
+      "description": "Slutliga andelstal förbr. per BR och NA, totalt, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U85",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        20
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L355",
+      "description": "Slutliga andelstal för förluster per BR och NA, totalt, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z86",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        21
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L359",
+      "description": "Andelstalsbalans per NA",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U46",
+        "OT": "Z02",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        22
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L363",
+      "description": "Kvarkraft förbr. per BR och NA",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z61",
+        "PT": "Z89",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        23
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L420Q",
+      "description": "Prel. schablonleverans per kvart per CA och BR",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "X90",
+        "OT": "Z14",
+        "LOD": "Z54",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        24
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L427",
+      "description": "Schablonavräkningspris per CA och månad",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z58",
+        "PT": "Z75",
+        "OT": "Z77",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        25
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L479",
+      "description": "Prel. schablonleverans per månad per NA och BR, förbr.del",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U90",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        26
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L480",
+      "description": "Prel. schablonleverans per månad per NA och BR, förlustdel",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z91",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        27
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L517",
+      "description": "Köpt kvarkraft (UTILTS)",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z61",
+        "PT": "Z90",
+        "OT": "Z09",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        28,
+        29
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L518",
+      "description": "Såld kvarkraft (UTILTS)",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z61",
+        "PT": "Z91",
+        "OT": "Z09",
+        "LOD": "Z58",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        30,
+        31
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L562Q",
+      "description": "Prel. schablonleverans per kvart per NA och BR, förbr.del",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U90",
+        "OT": "Z04",
+        "LOD": "Z54",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        32
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L563Q",
+      "description": "Prel. schablonleverans per kvart per NA och BR, förlustdel",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U91",
+        "OT": "Z04",
+        "LOD": "Z54",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        33
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L633Q",
+      "description": "Uppmätt ospec. prod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U65",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        34
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L634Q",
+      "description": "Vattenkraft prod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U04",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        35
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L635Q",
+      "description": "Vindkraftprod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U02",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        36
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L636Q",
+      "description": "Kärnkraft prod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U03",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        37
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L637Q",
+      "description": "Övr. värmekraft prod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U72",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        38
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L638Q",
+      "description": "Gasturbin/diesel prod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U73",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        39
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L639Q",
+      "description": "Uppmätt förbr. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U65",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        40
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L640Q",
+      "description": "Uppmätt avkopplingsbar last per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U78",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        41
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L641Q",
+      "description": "Solkraft produktion per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U84",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        42
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L642Q",
+      "description": "Vågkraft produktion per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U05",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        43
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L651Q",
+      "description": "Havsbaserad vindkraftprod. per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "Z87",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        44
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L652Q",
+      "description": "Energilager produktion per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "X91",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        45
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L653Q",
+      "description": "\tEnergilager förbrukning per NA, BR och SU, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "X91",
+        "OT": "Z06",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        46
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L768",
+      "description": "Summa Köpt Bilateral Handel per CA, BR och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z03",
+        "PT": "Z92",
+        "OT": "Z14",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        47
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L915",
+      "description": "Preliminära andelstal per BR, SU och NA",
+      "primary_message_code": "S03",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U82",
+        "OT": "Z06",
+        "LOD": "Z58",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        48,
+        49,
+        50
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L916",
+      "description": "Preliminära andelstal förluster per SU och NA",
+      "primary_message_code": "S03",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z83",
+        "OT": "Z05",
+        "LOD": "Z58",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        51
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L917",
+      "description": "Slutliga andelstal per BR, SU och NA",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U85",
+        "OT": "Z06",
+        "LOD": "Z58",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        52,
+        53,
+        54
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L918",
+      "description": "Slutliga andelstal förluster per SU och NA",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z86",
+        "OT": "Z05",
+        "LOD": "Z58",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        55
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L919Q",
+      "description": "Uppmätta förluster per SU och NA, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z76",
+        "OT": "Z05",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        56
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "L920Q",
+      "description": "Schablonleverans förluster per SU och NA, 15 min",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z91",
+        "OT": "Z05",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        57
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "M346Q",
+      "description": "Förbr.profil per kvart, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z51",
+        "OT": "Z02",
+        "LOD": "Z54",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        58
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "M350",
+      "description": "Summa preliminära andelstal per NA",
+      "primary_message_code": "S03",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z84",
+        "OT": "Z02",
+        "LOD": "Z58",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        59
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "M904Q",
+      "description": "Förbr.profil per kvart, rapportering",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z51",
+        "OT": "Z02",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        60
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "M908",
+      "description": "Uppmätt ospec. förbr. per BR och NA, rapportering",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z79",
+        "OT": "Z04",
+        "LOD": "Z55",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        61
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S1027_5",
+      "description": "Återrapportering day ahead handel per BR (spot)",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z03",
+        "PT": "Z45",
+        "OT": "Z15",
+        "LOD": "Z55",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        62
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S1027_6",
+      "description": "Återrapportering intra day handel per BR (elbas)",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z03",
+        "PT": "Z46",
+        "OT": "Z15",
+        "LOD": "Z55",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        63
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S195",
+      "description": "Bindande planerad FCR-N, produktion, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z24",
+        "OT": "Z14",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        64
+      ],
+      "current_for_25_A_3": false
+    },
+    {
+      "code": "S196",
+      "description": "FNR uppmätt, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z25",
+        "OT": "Z14",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        65
+      ],
+      "current_for_25_A_3": false
+    },
+    {
+      "code": "S197",
+      "description": "Bindande planerad FCR-D, produktion, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z31",
+        "OT": "Z14",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        66
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S307",
+      "description": "Medelfrekvens per kvart",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z57",
+        "PT": "Z59",
+        "OT": "Z60",
+        "LOD": "Z54",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        67
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S337_1",
+      "description": "Bil. handel BR,UB per elområde, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z03",
+        "PT": "Z55",
+        "OT": "Z17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        68
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S338_1",
+      "description": "Diff. handel BR, UB per elområde",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z03",
+        "PT": "Z76",
+        "OT": "Z17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        69
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S342_2",
+      "description": "Handelssaldo per BR och elområde",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z03",
+        "PT": "Z51",
+        "OT": "X17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        70
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S398",
+      "description": "aFRR, aktiverad uppreglerad energi per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z54",
+        "PT": "Z69",
+        "OT": "X17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        71,
+        72
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S399",
+      "description": "aFRR, aktiverad nedreglerad energi per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z54",
+        "PT": "Z70",
+        "OT": "X17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        73,
+        74
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S402",
+      "description": "FCR-N aktiverad energi, produktion, per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z88",
+        "OT": "X17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        75,
+        76
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S403",
+      "description": "FCR-D aktiverad energi, produktion, per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z89",
+        "OT": "X17",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        77,
+        78
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S419",
+      "description": "FCR-N accepterat bud i D-2, produktion, per elområde, aktör och timme",
+      "primary_message_code": "S08",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z40",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        79,
+        80
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S420",
+      "description": "FCR-N accepterat bud i D-1, produktion, per elområde, aktör och timme",
+      "primary_message_code": "S08",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z42",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        81,
+        82
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S423",
+      "description": "FCR-D accepterat bud i D-2, produktion, per elområde, aktör och timme",
+      "primary_message_code": "S08",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z41",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        83,
+        84
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S424",
+      "description": "FCR-D accepterat bud i D-1, produktion, per elområde, aktör och timme",
+      "primary_message_code": "S08",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z43",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        85,
+        86
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S427",
+      "description": "Efterregistrering aFRR köpt uppreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z54",
+        "PT": "Z57",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        87,
+        88
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S428",
+      "description": "Efterregistrering aFRR såld uppreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z54",
+        "PT": "Z58",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        89,
+        90
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S429",
+      "description": "Efterregistrering aFRR köpt nedreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z54",
+        "PT": "Z59",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        91,
+        92
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S430",
+      "description": "Efterregistrering aFRR såld nedreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z54",
+        "PT": "Z60",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        93,
+        94
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S431",
+      "description": "FCR-D Ned accepterat bud, D-2 produktion per elområde och aktör",
+      "primary_message_code": "S08",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z01",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        95,
+        96
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S432",
+      "description": "FCR-D Ned accepterat bud, D-1 produktion per elområde och aktör",
+      "primary_message_code": "S08",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z02",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z03"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        97,
+        98
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S437",
+      "description": "Bindande planerad FCR-D ned, produktion, återrapportering",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z51",
+        "PT": "Z07",
+        "OT": "Z14",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        99
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S444",
+      "description": "mFRR kapacitet köpt uppreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z63",
+        "PT": "Z94",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        100,
+        101
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S445",
+      "description": "mFRR kapacitet såld uppreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z63",
+        "PT": "Z95",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        102,
+        103
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S446",
+      "description": "mFRR kapacitet köpt nedreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z63",
+        "PT": "Z96",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        104,
+        105
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "S447",
+      "description": "mFRR kapacitet såld nedreglering per elområde, aktör och timme",
+      "primary_message_code": "S01",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z63",
+        "PT": "Z97",
+        "OT": "X05",
+        "LOD": "Z55",
+        "BAP": "Z05"
+      },
+      "resolution": {
+        "number": "60",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        106,
+        107
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U1009Q",
+      "description": "Mätvärden per produktionsanläggning och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U01",
+        "OT": "X55",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        108,
+        109
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U1010Q",
+      "description": "Mätvärden per förbrukningsanläggning och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U01",
+        "OT": "X55",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        110,
+        111
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U1011Q",
+      "description": "Rapporterat utbyte mellan NA och NS/NE (UTILTS), 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z02",
+        "PT": "V70",
+        "OT": "X03",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        112,
+        113
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U108Q",
+      "description": "Bindande plan produktion per CA o BR, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "Z60",
+        "OT": "Z14",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        114
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U915",
+      "description": "Prel. andelstal för förbr. per BR och NA",
+      "primary_message_code": "S03",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U82",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        115,
+        116,
+        117
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U916",
+      "description": "Prel. andelstal för förluster per BR och NA",
+      "primary_message_code": "S03",
+      "phase": "planning",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z83",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z01"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        118
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U917",
+      "description": "Slutliga andelstal för förbr. per BR och NA",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U85",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        119,
+        120,
+        121
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "U918",
+      "description": "Slutliga andelstal för förluster per BR och NA",
+      "primary_message_code": "E31",
+      "phase": "settlement",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "Z86",
+        "OT": "Z04",
+        "LOD": "Z58",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "1",
+        "unit_code": "802"
+      },
+      "source_rows": [
+        122
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "UT304Q",
+      "description": "Uppmätt inmatning per mätpunkt och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U65",
+        "OT": "X28",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        123,
+        124
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "UT305Q",
+      "description": "Uppmätt utmatning per mätpunkt och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U65",
+        "OT": "X28",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        125,
+        126
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "UT306Q",
+      "description": "Uppmätt utbyte mellan NA och område, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z02",
+        "PT": "Z65",
+        "OT": "Z12",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        127,
+        128
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "UT307Q",
+      "description": "Uppmätt inmatning per mätpunkt (kontrollmätare) och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z02",
+        "PT": "Z80",
+        "OT": "Z12",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        129
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "UT308Q",
+      "description": "Uppmätt utmatning per mätpunkt (kontrollmätare) och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z02",
+        "PT": "Z83",
+        "OT": "Z12",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        130
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "V1009Q",
+      "description": "Mätvärden (effektreserv) per produktionsanläggning och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z01",
+        "PT": "U08",
+        "OT": "X55",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        131,
+        132
+      ],
+      "current_for_25_A_3": true
+    },
+    {
+      "code": "V1010Q",
+      "description": "Mätvärden (effektreserv) per förbrukningsanläggning och NA, UTILTS, 15 min",
+      "primary_message_code": "E66",
+      "phase": "metering",
+      "field_511": {
+        "PC": "Z04",
+        "PT": "U08",
+        "OT": "X55",
+        "LOD": "Z54",
+        "BAP": "Z04"
+      },
+      "resolution": {
+        "number": "15",
+        "unit_code": "806"
+      },
+      "source_rows": [
+        133,
+        134
+      ],
+      "current_for_25_A_3": true
+    }
+  ]
+}
