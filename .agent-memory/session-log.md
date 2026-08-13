@@ -349,3 +349,10 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Cherry-picked post-#108 security residual onto post-#110 tip.
 - Hardened login/update-password error flash allowlists and next-path backslash rejection.
 - Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
+
+## 2026-08-13 — Post-#118 health residuals (`312d`)
+
+- Trigger: main push `fd84b15a` (Merge PR #118 UTILTS transactional persistence).
+- Cherry-picked `#117` auth allowlist/next-path + SVK retry regression onto tip.
+- Fixed mixed UTILTS disposition ACK detail loss and null transaction-id ACK/persist mismatch.
+- Verification: utilts disposition/persistence/field-matrix + auth-outage vitest PASS; ops health + post-108 residuals PASS; utilts reason regression PASS; migration integrity PASS; generated types PASS; `tsc -p tsconfig.app.json` PASS; ggshield BLOCKED.

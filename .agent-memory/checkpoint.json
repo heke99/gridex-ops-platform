@@ -1,20 +1,26 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-13T13:05:00Z",
-  "branch": "agent/ediel-production-engine-20260813",
-  "active_phase": "EDIEL_PRODUCTION_ENGINE_DELTA",
-  "active_task": "Publish and verify canonical UTILTS field matrix, transactional persistence and 95/3/2 runtime",
-  "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "e44b13f9",
-  "head_sha": "LOCAL_UNPUBLISHED",
+  "updated_at": "2026-08-13T13:28:00Z",
+  "branch": "cursor/codebase-health-and-stability-312d",
+  "active_phase": "POST_118_HEALTH_RESIDUALS",
+  "active_task": "Replay #117 auth/SVK residuals and harden UTILTS partial-success ACK/persist identity",
+  "status": "IMPLEMENTED_AWAITING_CI",
+  "base_main_sha": "fd84b15a",
+  "head_sha": "1b082430",
   "verification": {
-    "utilts_targeted_vitest": "PASS",
-    "full_vitest": "PASS",
-    "migration_versions_and_types": "PASS",
-    "supabase_rollback_e2e": "PASS",
-    "typecheck_lint_build": "PASS",
-    "api_rbac_regressions": "PASS",
-    "hosted_ci": "NOT_YET"
+    "utilts_disposition_vitest": "PASS",
+    "utilts_persistence_vitest": "PASS",
+    "utilts_field_matrix_vitest": "PASS",
+    "auth_outage_vitest": "PASS",
+    "ediel_completion_and_envelope_vitest": "PASS",
+    "ediel_utilts_reason_regression": "PASS",
+    "ops_health_regression": "PASS",
+    "post_108_health_residuals_regression": "PASS",
+    "check_migration_versions": "PASS",
+    "check_supabase_generated_types": "PASS",
+    "tsc_app": "PASS",
+    "hosted_ci": "NOT_YET",
+    "ggshield": "BLOCKED_CLI_MISSING"
   },
-  "resume_from": "Publish PR #118 delta; monitor hosted CI clean replay and matching Vercel deployment"
+  "resume_from": "Monitor PR CI for 312d; close #117 as superseded after merge"
 }

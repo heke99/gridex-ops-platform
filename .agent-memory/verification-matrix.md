@@ -92,3 +92,19 @@
 | API/RBAC gates | PASS | Docs, compatibility, release and 24-check RBAC audit |
 | Hosted CI/Vercel | PENDING | Publish/CI/deploy step remains |
 | Official operation/request matrices, 511 tuples, TGT/AGT | BLOCKED EXTERNAL | Source/evidence absent; no invented values |
+
+## Post-#118 health residuals — 2026-08-13 (`312d`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| UTILTS disposition/persistence/field-matrix vitest | PASS | 43 tests across 4 files |
+| Auth outage / flash allowlist vitest | PASS | auth-outage-cron-production-safety |
+| Ediel completion + canonical envelope vitest | PASS | 31 tests |
+| UTILTS reason regression | PASS | `ediel:utilts-reason-regression` |
+| OPS health regression | PASS | `gridex-ops-health-regression.cjs` |
+| Post-#108 residuals regression | PASS | `gridex-ops-post-108-health-residuals-regression.cjs` |
+| Migration integrity | PASS | `check-migration-versions.cjs` |
+| Generated types tip | PASS | tip `20260813130500` |
+| `tsc -p tsconfig.app.json` | PASS | zero errors |
+| ggshield | BLOCKED | CLI not installed |
+| Hosted CI | NOT_YET | await PR for `312d` |

@@ -2,15 +2,15 @@
 
 Updated: 2026-08-13
 
-## Ediel production-engine audit
+## Post-#118 health tip
 
-- Baseline: `main@e44b13f9`; active branch `agent/ediel-production-engine-20260813`.
-- Live dev UTILTS rule packs now separate guide `25-A-3` / future `25-A-4` from association `E5SE5A`; current window starts 2025-06-01 and future remains inactive until 2026-10-01.
-- Canonical UTILTS object/aggregate/request semantics are aligned in TypeScript and DB profile metadata. Aggregate inbound request evaluation no longer forces a metering-point match.
-- Supplied S02/S03/S04 planning scope is now live in the active canonical registry: each profile resolves 13 exact header and 20 exact transaction rules.
-- Transaction-level 95/3/2 disposition and service-only persistence now preserve valid siblings, immutable series, correction lineage and idempotent replay; a rolled-back live database test passed.
-- Production verdict remains **NOT READY for full official completion** because exact operation/request R/D/O/X matrices, official field-511 tuple data and TGT/AGT evidence were not supplied and were not invented.
-- Repository-controlled work is ready for hosted CI; see `quality/ediel-production-engine-2026-08-13/final-audit.md`.
+- Main tip reviewed: `fd84b15a` (#118 fail-closed UTILTS transactional persistence).
+- Active health branch: `cursor/codebase-health-and-stability-312d`.
+- Replayed open `#117` auth flash / next-path / SVK retry residuals onto the tip.
+- Confirmed UTILTS residuals fixed on `312d`:
+  1. HIGH — mixed guide+processability ACK plans dropped `aperakApplicationErrors`.
+  2. HIGH — null transaction ids synthesized only in SQL, causing ACK finalization throw / remap miss.
+- Intentionally deferred: observation `readingAt` still null in persist payload (series period retained); external UTILTS matrices/tuples/TGT-AGT evidence remain source-blocked.
 
 ## Source truth
 
