@@ -349,3 +349,14 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Cherry-picked post-#108 security residual onto post-#110 tip.
 - Hardened login/update-password error flash allowlists and next-path backslash rejection.
 - Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
+
+## 2026-08-13 — Post-f596dc55 tip health residuals (`c107`)
+
+- Trigger: main push `f596dc55` (second `332` field-511 JSON/VERIFICATION package).
+- Skill routing: using-superpowers, find-bugs, code-review, differential-review,
+  code-security, fp-check, TDD, verification-before-completion, supabase;
+  skipped full quality-playbook/threat-model (scoped tip residual).
+- Cherry-picked verified `2ef0` residual commits onto tip and added packaging locks:
+  restore production-gate VERIFICATION.md, relocate field-511 evidence under
+  quality/, delete orphaned root checksum snippet, extend post-332 regression.
+- Local verification PASS except ggshield CLI missing and hosted CI not yet run.

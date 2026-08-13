@@ -2,41 +2,42 @@
 
 Updated: 2026-08-13
 
-## Ediel production-engine audit
-
-- Baseline: `main@e44b13f9`; active branch `agent/ediel-production-engine-20260813`.
-- Live dev UTILTS rule packs now separate guide `25-A-3` / future `25-A-4` from association `E5SE5A`; current window starts 2025-06-01 and future remains inactive until 2026-10-01.
-- Canonical UTILTS object/aggregate/request semantics are aligned in TypeScript and DB profile metadata. Aggregate inbound request evaluation no longer forces a metering-point match.
-- Supplied S02/S03/S04 planning scope is now live in the active canonical registry: each profile resolves 13 exact header and 20 exact transaction rules.
-- Transaction-level 95/3/2 disposition and service-only persistence now preserve valid siblings, immutable series, correction lineage and idempotent replay; a rolled-back live database test passed.
-- Production verdict remains **NOT READY for full official completion** because exact operation/request R/D/O/X matrices, official field-511 tuple data and TGT/AGT evidence were not supplied and were not invented.
-- Repository-controlled work is ready for hosted CI; see `quality/ediel-production-engine-2026-08-13/final-audit.md`.
-
 ## Source truth
 
 - Repository: `heke99/gridex-ops-platform`.
-- Default branch: `main` at `b443bfea` (#110 auth outage + cron safety).
-- Active health branch: `cursor/codebase-health-and-stability-0f25`.
+- Default branch tip: `main@f596dc55` (second `332` field-511 package: JSON +
+  VERIFICATION overwrite on top of `64806855` import migration).
+- Active health branch: `cursor/codebase-health-and-stability-c107`.
+- Superseded tip vehicle: `cursor/codebase-health-and-stability-2ef0` / `#120`
+  (based on pre-`f596dc55` tip).
 
-## Tip review after #110
+## Tip review after `f596dc55`
 
-Confirmed residuals addressed on `0f25`:
+Confirmed residuals addressed on `c107`:
 
-1. CRITICAL — #108 still granted reconciliation EXECUTE to `authenticated`.
-   Forward migration `20260811114500` (from #109) cherry-picked onto post-#110 tip.
-2. MEDIUM — login/update-password `?error=` flash phishing surface allowlisted.
-3. MEDIUM — next-path helpers now reject backslash/NUL open-redirect shapes.
-4. LOW — cron regression asserts no `environment=test` query anywhere in vercel crons.
-5. LOW — update-password auth client init wrapped in outage boundary.
+1. HIGH — auth flash allowlists + proxy `getSafeNextPath` (from open `#119`/`#120`)
+2. HIGH — mixed UTILTS disposition APERAK detail retention
+3. HIGH — null IDE+24 `transaction-<n>` persist/ACK identity alignment
+4. HIGH — generated types lag for field-511 columns + `resolve_ediel_timeseries_product_511`
+5. MEDIUM — L653Q leading-tab description cleaned via forward `20260813221500`
+6. MEDIUM — `VERIFICATION.md` production gate restored; field-511 evidence moved to
+   `quality/ediel-field-511-25-a-3-verification.md`
+7. LOW — orphaned root checksum snippet removed; JSON package coherence locked
 
-Open #109 remains the pre-#110 vehicle for the same security residual; `0f25`
-is the tip-based superseding branch after #110 merged.
+## Verification executed on `c107`
 
-## Verification executed on `0f25`
-
-- `vitest` auth-outage-cron-production-safety: 12/12 PASS
+- vitest auth-outage + UTILTS disposition/persistence: 35/35 PASS
+- `gridex:post-332-field-511-health-residuals-regression`: PASS
+- `gridex-ops-health-regression`: PASS
 - `gridex:post-108-health-residuals-regression`: PASS
-- `check-migration-versions`: PASS
-- `check-supabase-generated-types`: PASS
+- `ediel:utilts-reason-regression`: PASS
+- `db:migrations:check` / generated types: PASS (tip `20260813221500`)
 - `tsc -p tsconfig.app.json`: PASS
 - ggshield: BLOCKED (CLI not installed)
+
+## Ediel / field-511 note
+
+- Authoritative 25-A-3 field-511 import is on main via `20260813210500`
+  (91 tuples / 88 current; retired L336Q/S195/S196 fail-closed).
+- Official operation/request R/D/O/X matrices and TGT/AGT evidence remain
+  external/source-blocked.

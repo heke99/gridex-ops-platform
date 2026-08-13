@@ -1,20 +1,22 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-13T13:05:00Z",
-  "branch": "agent/ediel-production-engine-20260813",
-  "active_phase": "EDIEL_PRODUCTION_ENGINE_DELTA",
-  "active_task": "Publish and verify canonical UTILTS field matrix, transactional persistence and 95/3/2 runtime",
+  "updated_at": "2026-08-13T20:05:00Z",
+  "branch": "cursor/codebase-health-and-stability-c107",
+  "active_phase": "POST_F596DC55_HEALTH_RESIDUALS",
+  "active_task": "Close tip residuals after second 332 field-511 package push",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "e44b13f9",
-  "head_sha": "LOCAL_UNPUBLISHED",
+  "base_main_sha": "f596dc55",
+  "head_sha": "c23b0ff2",
   "verification": {
-    "utilts_targeted_vitest": "PASS",
-    "full_vitest": "PASS",
+    "vitest_auth_utilts_targeted": "PASS_35_35",
+    "post_332_field_511_residuals_regression": "PASS",
+    "ops_health_regression": "PASS",
+    "post_108_residuals_regression": "PASS",
+    "utilts_reason_regression": "PASS",
     "migration_versions_and_types": "PASS",
-    "supabase_rollback_e2e": "PASS",
-    "typecheck_lint_build": "PASS",
-    "api_rbac_regressions": "PASS",
+    "tsc_app": "PASS",
+    "ggshield": "BLOCKED_CLI_MISSING",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Publish PR #118 delta; monitor hosted CI clean replay and matching Vercel deployment"
+  "resume_from": "Open/monitor PR for c107; close superseded 2ef0/#120 after merge"
 }
