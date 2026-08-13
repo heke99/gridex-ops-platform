@@ -6,7 +6,8 @@
   "active_task": "Close post-2eb61986 auth URL/flash and dependency pin residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "2eb61986",
-  "head_sha": "234e842a",
+  "head_sha": "9be20e36",
+  "pr": 123,
   "verification": {
     "auth_utilts_vitest": "PASS_43",
     "ops_health_regression": "PASS",
