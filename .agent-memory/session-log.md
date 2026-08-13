@@ -374,3 +374,12 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
   synthesized null UTILTS match transaction ids.
 - Verification: vitest 50/50, residual regressions, types, audit 0, app tsc
   PASS; ggshield BLOCKED.
+
+## 2026-08-13 — post-ca28cb0a health residuals on 9807
+
+- Reviewed main tip `ca28cb0a` after `#124` merge.
+- Closed remaining UTILTS null IDE+24 disposition/issue/ACK attribution gap
+  via shared transaction identity, locked disposition vitest in verify, and
+  added durable `db:types:gen` with nullability overrides.
+- Verification: vitest 52/52, residual regressions, types, audit 0, app tsc
+  PASS; ggshield BLOCKED.
