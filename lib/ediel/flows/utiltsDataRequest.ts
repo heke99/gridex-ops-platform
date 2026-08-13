@@ -59,6 +59,7 @@ import {
   buildUtiltsTransactionPersistencePayload,
   finalizeUtiltsTransactionAck,
   persistUtiltsTransactionResults,
+  resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
 import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -876,13 +877,20 @@ async function createUtiltsRuntimeAcks(params: {
     const companyId = stringOrNull(params.sourceMessage.company_id)
     if (!companyId) throw new Error('UTILTS transaktionskvittens saknar tenantkoppling')
 
-    for (const disposition of transactionDispositions) {
-      const transactionReference = stringOrNull(disposition.transactionId)
-      if (!transactionReference) throw new Error('UTILTS transaktionskvittens saknar transaktionsreferens')
+    for (const [dispositionIndex, disposition] of transactionDispositions.entries()) {
+      const transactionReference = resolveUtiltsTransactionId(
+        disposition.transactionId,
+        dispositionIndex,
+      )
 
       if (disposition.disposition === 'processability_rejected') {
+        // Match disposition attribution: unreferenced functional issues apply to
+        // every transaction, so keep those codes on each transaction-scoped ERR.
         const codes = params.ackPlan.utiltsErrDetails
-          .filter((detail) => stringOrNull(detail.referenceNumber ?? detail.lineItemReference) === transactionReference)
+          .filter((detail) => {
+            const reference = stringOrNull(detail.referenceNumber ?? detail.lineItemReference)
+            return reference === null || reference === transactionReference
+          })
           .map((detail) => detail.code)
         const utiltsErr = await createAckIfMissing({
           actorUserId: params.actorUserId,
@@ -906,9 +914,10 @@ async function createUtiltsRuntimeAcks(params: {
       }
 
       if (disposition.disposition === 'guide_rejected') {
-        const applicationErrors = params.ackPlan.aperakApplicationErrors.filter((item) =>
-          stringOrNull(item.referenceNumber ?? item.lineItemReference) === transactionReference
-        )
+        const applicationErrors = params.ackPlan.aperakApplicationErrors.filter((item) => {
+          const reference = stringOrNull(item.referenceNumber ?? item.lineItemReference)
+          return reference === null || reference === transactionReference
+        })
         const aperak = await createAckIfMissing({
           actorUserId: params.actorUserId,
           sourceMessage: params.sourceMessage,
@@ -1493,11 +1502,17 @@ export async function processInboundUtiltsMessage(params: {
         matches: transactionMatches,
       }),
     })
-    transactionDispositions = transactionDispositions.map((disposition) => {
-      const persisted = transactionPersistenceResults.find((item) => item.transactionId === disposition.transactionId)
-      if (!persisted || persisted.persistenceStatus !== 'failed') return disposition
+    transactionDispositions = transactionDispositions.map((disposition, index) => {
+      const transactionId = resolveUtiltsTransactionId(disposition.transactionId, index)
+      const persisted = transactionPersistenceResults.find((item) => item.transactionId === transactionId)
+      if (!persisted || persisted.persistenceStatus !== 'failed') {
+        return transactionId === disposition.transactionId
+          ? disposition
+          : { ...disposition, transactionId }
+      }
       return {
         ...disposition,
+        transactionId,
         disposition: 'processability_rejected' as const,
         responseType: 'utilts_err' as const,
         issueCodes: [...new Set([...disposition.issueCodes, ...(persisted.issueCodes ?? ['UTILTS_PERSISTENCE_FAILED'])])],
