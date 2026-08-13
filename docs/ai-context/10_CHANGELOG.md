@@ -829,3 +829,12 @@ Template:
 - Normalized `spot` to variable-monthly legal rules, made customer type `both` include consumer and business requirements, and prevented mandatory legal modules from being removed by partial payloads.
 - Replaced hidden empty-list UI fallbacks with visible database error diagnostics on the tenant contract controls.
 - Added migration `20260714223000_contract_publication_reference_integrity_hardening.sql` and expanded the canonical contract regression.
+# 2026-08-13 — UTILTS canonical identity and taxonomy remediation
+
+- Corrected current UTILTS guide identity to 25-A-3 effective 2025-06-01 while retaining E5SE5A as the independent UNH association; future 25-A-4 remains future-only from 2026-10-01.
+- Corrected object, aggregate and request semantics for S01–S07 and E30/E31/E66/E72/E73/E74.
+- Made inbound identity matching profile-driven so aggregate UTILTS does not require a metering point.
+- Made admin instruction and UTILTS support views derive from canonical profiles instead of stale partial lists.
+- Added forward migrations `20260813120500_ediel_utilts_25a3_semantics_alignment.sql`, `20260813122500_ediel_utilts_profile_semantics.sql` and `20260813123500_ediel_utilts_readiness_truth.sql`, applied to connected dev and checksum-pinned.
+- Added focused contract tests and the Ediel production audit/documentation set.
+- Production remains blocked by incomplete UTILTS field matrices and aggregate/forecast disposition; see the task audit. No `main` merge is allowed until those gates are closed.

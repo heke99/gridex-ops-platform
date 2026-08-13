@@ -1,6 +1,16 @@
 # Current state
 
-Updated: 2026-08-11
+Updated: 2026-08-13
+
+## Ediel production-engine audit
+
+- Baseline: `main@e44b13f9`; active branch `agent/ediel-production-engine-20260813`.
+- Live dev UTILTS rule packs now separate guide `25-A-3` / future `25-A-4` from association `E5SE5A`; current window starts 2025-06-01 and future remains inactive until 2026-10-01.
+- Canonical UTILTS object/aggregate/request semantics are aligned in TypeScript and DB profile metadata. Aggregate inbound request evaluation no longer forces a metering-point match.
+- Supplied S02/S03/S04 planning scope is now live in the active canonical registry: each profile resolves 13 exact header and 20 exact transaction rules.
+- Transaction-level 95/3/2 disposition and service-only persistence now preserve valid siblings, immutable series, correction lineage and idempotent replay; a rolled-back live database test passed.
+- Production verdict remains **NOT READY for full official completion** because exact operation/request R/D/O/X matrices, official field-511 tuple data and TGT/AGT evidence were not supplied and were not invented.
+- Repository-controlled work is ready for hosted CI; see `quality/ediel-production-engine-2026-08-13/final-audit.md`.
 
 ## Source truth
 

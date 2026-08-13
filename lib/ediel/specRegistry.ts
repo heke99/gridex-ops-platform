@@ -5,6 +5,8 @@ import type {
   EdielMessageFamily,
   EdielMessageStandard,
 } from '@/lib/ediel/types'
+import { PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
+import { UTILTS_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/utiltsRulebook'
 
 export type EdielInstructionStatus =
   | 'runtime_ready'
@@ -45,7 +47,7 @@ export type EdielInstructionCoverage = {
 
 export const EDIEL_ACK_DEADLINE_MINUTES = 30
 
-export const EDIEL_INSTRUCTION_SPECS = [
+const LEGACY_EDIEL_INSTRUCTION_SPECS = [
   {
     family: 'PRODAT',
     code: 'Z03',
@@ -364,6 +366,62 @@ export const EDIEL_INSTRUCTION_SPECS = [
     operationalNote: 'eSett XML är separat XML-spår. Ska byggas senare med XML-schema, UTF-8 och separat acknowledgement document.',
   },
 ] as const satisfies readonly EdielInstructionSpec[]
+
+const CANONICAL_PRODAT_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...PRODAT_CANONICAL_PROFILES]
+  .sort((left, right) => left.messageCode.localeCompare(right.messageCode))
+  .map((profile) => ({
+    family: 'PRODAT',
+    code: profile.messageCode,
+    standard: 'edifact',
+    currentVersion: '26.A',
+    validFrom: '2026-04-01',
+    previousVersion: '16.B',
+    direction:
+      profile.direction === 'actor_to_portal'
+        ? 'outbound'
+        : profile.direction === 'portal_to_actor'
+          ? 'inbound'
+          : 'both',
+    requiresContrl: profile.requiresContrl,
+    requiresAperak: !profile.z01AperakException,
+    supportsNegativeResponse: true,
+    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
+    status: 'runtime_ready',
+    sourceTitle: 'PRODAT 26.A',
+    sourceVersion: '26.A',
+    sourceDate: '2026-04-01',
+    operationalNote: `${profile.processGroup}; varianter ${profile.allowedVariants.join(', ')}. Status härleds från kanoniskt PRODAT-register.`,
+  }))
+
+const CANONICAL_UTILTS_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...UTILTS_CANONICAL_PROFILES]
+  .filter((profile) => profile.messageCode !== 'ERR')
+  .sort((left, right) => left.messageCode.localeCompare(right.messageCode))
+  .map((profile) => ({
+    family: 'UTILTS',
+    code: profile.messageCode,
+    standard: 'edifact',
+    currentVersion: profile.associationAssignedCode,
+    validFrom: profile.effectiveFrom,
+    previousVersion: null,
+    direction: 'both',
+    requiresContrl: profile.requiresContrl,
+    requiresAperak: true,
+    supportsNegativeResponse: true,
+    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
+    status: profile.productionReadiness === 'partial' ? 'runtime_partial' : 'runtime_ready',
+    sourceTitle: 'UTILTS 25-A-3',
+    sourceVersion: profile.guideVersion,
+    sourceDate: profile.effectiveFrom,
+    operationalNote: `${profile.phase}; ${profile.scope}. Status härleds från kanoniskt UTILTS-register.`,
+  }))
+
+export const EDIEL_INSTRUCTION_SPECS: readonly EdielInstructionSpec[] = [
+  ...CANONICAL_PRODAT_INSTRUCTION_SPECS,
+  ...CANONICAL_UTILTS_INSTRUCTION_SPECS,
+  ...LEGACY_EDIEL_INSTRUCTION_SPECS.filter(
+    (spec) => spec.family !== 'PRODAT' && spec.family !== 'UTILTS',
+  ),
+]
 
 export function getEdielInstructionSpec(params: {
   family?: string | null

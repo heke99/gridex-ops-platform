@@ -105,6 +105,11 @@
       "path": "bootstrap/20260809_company_ediel_environment_identity_prerequisite.sql",
       "afterLedgerVersion": "20260809180628",
       "beforeLedgerVersion": "20260809181141"
+    },
+    {
+      "path": "migrations/20260519_ediel_operations_engine_batch.sql",
+      "afterLedgerVersion": "20260813123500",
+      "beforeLedgerVersion": "20260813124500"
     }
   ],
   "derivedBootstrap": {
@@ -330,6 +335,12 @@
       "source": "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
       "artifactSha256": "d4d1a4393ca71d8d70896fa9a21e1e4f897053e4a3c55724c833a4e4b378614d",
       "purpose": "Restore only the source-defined contract_offers lifecycle metadata required by later canonical contract/invoice completion: version_number, published_at, archived_at, last_price_change_at and the company/status index; no offer rows are seeded or rewritten."
+    },
+    "migrations/20260519_ediel_operations_engine_batch.sql": {
+      "source": "migrations/20260519_ediel_operations_engine_batch.sql",
+      "artifactSha256": "74d82d3a269770d99ae82052946faadde22892b69f61eec96178fc397752af69",
+      "preserveSourceReplay": true,
+      "purpose": "Replay the checksum-pinned legacy Ediel operations schema at the exact late boundary where canonical UTILTS persistence first extends meter_reading_series and meter_reading_values; no tenant or metering rows are seeded."
     }
   }
 }

@@ -1,8 +1,25 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 
 export type InboundRequestDecisionStatus = 'ready_to_answer' | 'pending_review' | 'not_applicable'
+
+export function resolveInboundIdentityRequirements(input: {
+  family: string | null | undefined
+  code: string | null | undefined
+}): { requiresMeteringPoint: boolean; requiresGridArea: boolean } {
+  if (String(input.family ?? '').trim().toUpperCase() !== 'UTILTS') {
+    return { requiresMeteringPoint: true, requiresGridArea: false }
+  }
+  const profile = getCanonicalUtiltsProfile(input.code)
+  return profile
+    ? {
+        requiresMeteringPoint: profile.requiresMeteringPoint,
+        requiresGridArea: profile.requiresGridArea,
+      }
+    : { requiresMeteringPoint: true, requiresGridArea: false }
+}
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -151,6 +168,8 @@ export async function evaluateInboundEdielRequest(input: {
   const receiverSubaddress = text(message.receiver_sub_address) ?? canonical.receiverSubAddress
   const facilityId = text(canonical.facilityId) ?? text(object(message.parsed_payload).facilityId)
   const meteringPointId = text(canonical.meteringPointId) ?? text(message.metering_point_id) ?? text(object(message.parsed_payload).meteringPointId)
+  const gridAreaId = text(canonical.gridArea) ?? text(object(message.parsed_payload).gridAreaId)
+  const identityRequirements = resolveInboundIdentityRequirements({ family: messageFamily, code: messageCode })
   const warnings: string[] = []
   const errors: string[] = []
 
@@ -164,24 +183,27 @@ export async function evaluateInboundEdielRequest(input: {
   let authorization: Awaited<ReturnType<typeof findActiveAuthorization>> | null = null
 
   if (companyId) {
-    meteringMatch = await matchMeteringPointWithinTenant({ companyId, facilityId, meteringPointId })
-    if (meteringMatch.status !== 'matched') {
-      errors.push(
-        meteringMatch.status === 'missing_identifiers'
-          ? 'Anläggnings-id/mätpunkts-id saknas i meddelandet.'
-          : meteringMatch.status === 'ambiguous'
-            ? 'Flera mätpunkter matchar inom tenant.'
-            : 'Ingen säker mätpunktsmatchning inom tenant.'
-      )
-    } else {
-      authorization = await findActiveAuthorization({
-        companyId,
-        customerId: text(meteringMatch.row?.customer_id),
-        customerSiteId: text(meteringMatch.row?.customer_site_id) ?? text(meteringMatch.row?.site_id),
-        meteringPointId: text(meteringMatch.row?.id),
-      })
-      if (authorization.status === 'missing_authorization') errors.push('Aktivt avtal/fullmakt saknas för matchad kund och mätpunkt.')
+    if (identityRequirements.requiresMeteringPoint) {
+      meteringMatch = await matchMeteringPointWithinTenant({ companyId, facilityId, meteringPointId })
+      if (meteringMatch.status !== 'matched') {
+        errors.push(
+          meteringMatch.status === 'missing_identifiers'
+            ? 'Anläggnings-id/mätpunkts-id saknas i meddelandet.'
+            : meteringMatch.status === 'ambiguous'
+              ? 'Flera mätpunkter matchar inom tenant.'
+              : 'Ingen säker mätpunktsmatchning inom tenant.'
+        )
+      } else {
+        authorization = await findActiveAuthorization({
+          companyId,
+          customerId: text(meteringMatch.row?.customer_id),
+          customerSiteId: text(meteringMatch.row?.customer_site_id) ?? text(meteringMatch.row?.site_id),
+          meteringPointId: text(meteringMatch.row?.id),
+        })
+        if (authorization.status === 'missing_authorization') errors.push('Aktivt avtal/fullmakt saknas för matchad kund och mätpunkt.')
+      }
     }
+    if (identityRequirements.requiresGridArea && !gridAreaId) errors.push('Nätområde saknas för UTILTS-profilen.')
   }
 
   const status: InboundRequestDecisionStatus = errors.length > 0 || input.forceManualReview ? 'pending_review' : 'ready_to_answer'
@@ -214,6 +236,7 @@ export async function evaluateInboundEdielRequest(input: {
     identifiers: {
       facility_id: facilityId,
       metering_point_id: meteringPointId,
+      grid_area_id: gridAreaId,
       transaction_reference: text(message.transaction_reference) ?? canonical.transactionReference,
       business_reference: text(message.external_reference) ?? canonical.businessReference,
     },

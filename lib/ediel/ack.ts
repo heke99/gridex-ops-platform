@@ -760,6 +760,7 @@ function buildUtiltsErrSegments(params: {
   externalReference: string
   transactionReference: string
   messageText?: string | null
+  relatedTransactionReference?: string | null
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
@@ -773,7 +774,14 @@ function buildUtiltsErrSegments(params: {
     .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
 
   const uniqueCodes = codes.length > 0 ? codes : ['E14']
-  const sourceGroups = parseUtiltsSourceGroups(params.sourceMessage)
+  const allSourceGroups = parseUtiltsSourceGroups(params.sourceMessage)
+  const requestedTransaction = sanitizeEdifactToken(params.relatedTransactionReference)
+  const sourceGroups = requestedTransaction
+    ? allSourceGroups.filter((group) => sanitizeEdifactToken(group.transactionId) === requestedTransaction)
+    : allSourceGroups
+  if (requestedTransaction && sourceGroups.length === 0) {
+    throw new Error(`Kan inte skapa UTILTS_ERR: transaktion ${requestedTransaction} saknas i källmeddelandet.`)
+  }
   const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
 
   const segments: Array<string | null> = [
@@ -954,6 +962,7 @@ function buildAckDraft(params: {
             externalReference: ackExternalReference ?? params.sourceMessage.id,
             transactionReference: ackTransactionReference ?? params.sourceMessage.id,
             messageText: params.messageText ?? null,
+            relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
 
   if (!parties.senderEdielId || !parties.receiverEdielId) {
@@ -1143,12 +1152,15 @@ export function buildUtiltsErrDraft(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
   messageText?: string | null
+  relatedTransactionReference?: string | null
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: 'UTILTS_ERR',
     messageText: params.messageText ?? null,
+    ackScope: params.relatedTransactionReference ? 'transaction' : 'message',
+    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 }
 
@@ -1187,5 +1199,6 @@ export function buildAckDraftForSource(params: {
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     messageText: params.messageText,
+    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 }

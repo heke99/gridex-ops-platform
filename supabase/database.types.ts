@@ -24002,11 +24002,17 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          disposition: string | null
           environment: string
           final_response_type: string | null
           finalized_at: string | null
           guide_validation_result: string
           id: string
+          issue_codes: string[]
+          persisted_series_id: string | null
+          persistence_error: string | null
+          persistence_status: string
+          planned_response_type: string | null
           processability_result: string
           response_message_id: string | null
           source_message_id: string
@@ -24017,11 +24023,17 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          disposition?: string | null
           environment: string
           final_response_type?: string | null
           finalized_at?: string | null
           guide_validation_result: string
           id?: string
+          issue_codes?: string[]
+          persisted_series_id?: string | null
+          persistence_error?: string | null
+          persistence_status?: string
+          planned_response_type?: string | null
           processability_result: string
           response_message_id?: string | null
           source_message_id: string
@@ -24032,11 +24044,17 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          disposition?: string | null
           environment?: string
           final_response_type?: string | null
           finalized_at?: string | null
           guide_validation_result?: string
           id?: string
+          issue_codes?: string[]
+          persisted_series_id?: string | null
+          persistence_error?: string | null
+          persistence_status?: string
+          planned_response_type?: string | null
           processability_result?: string
           response_message_id?: string | null
           source_message_id?: string
@@ -24128,6 +24146,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_ack_transaction_results_persisted_series_id_fkey"
+            columns: ["persisted_series_id"]
+            isOneToOne: false
+            referencedRelation: "meter_reading_series"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ediel_ack_transaction_results_response_message_id_fkey"
@@ -27756,6 +27781,157 @@ export type Database = {
           unh_message_reference?: string | null
         }
         Relationships: []
+      }
+      ediel_engine_runs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          decision: Json
+          ediel_message_id: string | null
+          engine_name: string
+          engine_version: string
+          id: string
+          issues: Json
+          mode: string
+          status: string
+          suite: string | null
+          test_case_code: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          decision?: Json
+          ediel_message_id?: string | null
+          engine_name: string
+          engine_version: string
+          id?: string
+          issues?: Json
+          mode?: string
+          status?: string
+          suite?: string | null
+          test_case_code?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          decision?: Json
+          ediel_message_id?: string | null
+          engine_name?: string
+          engine_version?: string
+          id?: string
+          issues?: Json
+          mode?: string
+          status?: string
+          suite?: string | null
+          test_case_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_ediel_message_id_fkey"
+            columns: ["ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_message_ack_state_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_ediel_message_id_fkey"
+            columns: ["ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_ediel_message_id_fkey"
+            columns: ["ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_overdue_message_acks_v"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ediel_error_code_mappings: {
         Row: {
@@ -45135,6 +45311,363 @@ export type Database = {
           },
         ]
       }
+      meter_reading_series: {
+        Row: {
+          actor_context: Json
+          company_id: string
+          correction_reason: string | null
+          created_at: string
+          dedupe_key: string
+          external_metering_point_id: string | null
+          grid_area_id: string | null
+          id: string
+          immutable_hash: string | null
+          is_current: boolean
+          latest_update_date: string | null
+          message_code: string | null
+          metering_point_id: string | null
+          period_end: string | null
+          period_start: string | null
+          product_id: string | null
+          quality_status: string
+          raw_transaction: Json
+          registration_date: string | null
+          resolution: string
+          series_kind: string
+          source_ediel_message_id: string | null
+          source_transaction_reference: string | null
+          supersedes_series_id: string | null
+          time_series_product: Json | null
+          unit: string
+          version_no: number
+        }
+        Insert: {
+          actor_context?: Json
+          company_id: string
+          correction_reason?: string | null
+          created_at?: string
+          dedupe_key: string
+          external_metering_point_id?: string | null
+          grid_area_id?: string | null
+          id?: string
+          immutable_hash?: string | null
+          is_current?: boolean
+          latest_update_date?: string | null
+          message_code?: string | null
+          metering_point_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          product_id?: string | null
+          quality_status?: string
+          raw_transaction?: Json
+          registration_date?: string | null
+          resolution?: string
+          series_kind?: string
+          source_ediel_message_id?: string | null
+          source_transaction_reference?: string | null
+          supersedes_series_id?: string | null
+          time_series_product?: Json | null
+          unit?: string
+          version_no?: number
+        }
+        Update: {
+          actor_context?: Json
+          company_id?: string
+          correction_reason?: string | null
+          created_at?: string
+          dedupe_key?: string
+          external_metering_point_id?: string | null
+          grid_area_id?: string | null
+          id?: string
+          immutable_hash?: string | null
+          is_current?: boolean
+          latest_update_date?: string | null
+          message_code?: string | null
+          metering_point_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          product_id?: string | null
+          quality_status?: string
+          raw_transaction?: Json
+          registration_date?: string | null
+          resolution?: string
+          series_kind?: string
+          source_ediel_message_id?: string | null
+          source_transaction_reference?: string | null
+          supersedes_series_id?: string | null
+          time_series_product?: Json | null
+          unit?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_message_ack_state_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_overdue_message_acks_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_series_supersedes_series_id_fkey"
+            columns: ["supersedes_series_id"]
+            isOneToOne: false
+            referencedRelation: "meter_reading_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meter_reading_values: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          observation_id: string | null
+          qualifier: string | null
+          quality: string
+          quantity: number | null
+          raw_value: string | null
+          reading_at: string | null
+          series_id: string
+          source_order: number
+          unit: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          observation_id?: string | null
+          qualifier?: string | null
+          quality?: string
+          quantity?: number | null
+          raw_value?: string | null
+          reading_at?: string | null
+          series_id: string
+          source_order?: number
+          unit?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          observation_id?: string | null
+          qualifier?: string | null
+          quality?: string
+          quantity?: number | null
+          raw_value?: string | null
+          reading_at?: string | null
+          series_id?: string
+          source_order?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "meter_reading_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metering_permission_sites: {
         Row: {
           company_id: string
@@ -45992,6 +46525,229 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["site_id"]
+          },
+        ]
+      }
+      metering_requirements: {
+        Row: {
+          company_id: string
+          created_at: string
+          customer_id: string | null
+          customer_site_id: string | null
+          effective_from: string | null
+          effective_to: string | null
+          grid_owner_decision_state: string
+          id: string
+          metering_point_id: string | null
+          required_resolution: string
+          requirement_status: string
+          source_ediel_message_id: string | null
+          source_type: string
+          supplier_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          customer_id?: string | null
+          customer_site_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          grid_owner_decision_state?: string
+          id?: string
+          metering_point_id?: string | null
+          required_resolution?: string
+          requirement_status?: string
+          source_ediel_message_id?: string | null
+          source_type?: string
+          supplier_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          customer_id?: string | null
+          customer_site_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          grid_owner_decision_state?: string
+          id?: string
+          metering_point_id?: string | null
+          required_resolution?: string
+          requirement_status?: string
+          source_ediel_message_id?: string | null
+          source_type?: string
+          supplier_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["site_id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_message_ack_state_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_requirements_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_overdue_message_acks_v"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -72502,6 +73258,16 @@ export type Database = {
           p_result: Json
         }
         Returns: string
+      }
+      gridex_persist_utilts_transactions_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_message_code: string
+          p_source_message_id: string
+          p_transactions: Json
+        }
+        Returns: Json
       }
       gridex_point_to_grid_area: {
         Args: { p_x: number; p_y: number }

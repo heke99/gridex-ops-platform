@@ -5,7 +5,10 @@
 // manual_review or unsupported. Unknown codes resolve to manual_review/unsupported
 // rather than a permissive default.
 
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import {
+  getCanonicalUtiltsProfile,
+  UTILTS_CANONICAL_PROFILES,
+} from '@/lib/ediel/rulebook/utiltsRulebook'
 
 export type UtiltsSupportStatus =
   | 'full'
@@ -23,13 +26,21 @@ export type UtiltsMessageSupport = {
   note: string
 }
 
-// Codes explicitly in scope per the hardening brief.
-export const UTILTS_MESSAGE_SUPPORT: UtiltsMessageSupport[] = [
-  { messageCode: 'E66', supportStatus: 'full', businessProcesses: ['metering_values', 'timeseries_request'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Canonical profile, outbound request and transaction-aware inbound processing.' },
-  { messageCode: 'E73', supportStatus: 'outbound_only', businessProcesses: ['timeseries_request'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Canonical data-request profile and outbound builder.' },
-  ...['S01','S02','S03','S04','S05','S06','S07','E30','E31','E72','E74'].map((messageCode) => ({ messageCode, supportStatus: 'inbound_only' as const, businessProcesses: ['metering_values'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Canonical profile with transaction-level inbound validation, correction and DST rules.' })),
-  { messageCode: 'ERR', supportStatus: 'full', businessProcesses: ['acknowledgement'], applicationReferencePolicyKey: null, note: 'Canonical UTILTS functional-error profile.' },
-]
+function supportStatus(messageCode: string): UtiltsSupportStatus {
+  if (messageCode === 'E66' || messageCode === 'ERR') return 'full'
+  if (messageCode === 'E73') return 'outbound_only'
+  return 'inbound_only'
+}
+
+// Presentation and intent validation derive their semantics from the same
+// canonical profiles used by parser, validator and renderer.
+export const UTILTS_MESSAGE_SUPPORT: UtiltsMessageSupport[] = UTILTS_CANONICAL_PROFILES.map((profile) => ({
+  messageCode: profile.messageCode,
+  supportStatus: supportStatus(profile.messageCode),
+  businessProcesses: [profile.businessProcess],
+  applicationReferencePolicyKey: profile.messageCode === 'ERR' ? null : '23-DDQ-UTILTS',
+  note: `Canonical ${profile.phase}/${profile.scope} profile; guide ${profile.guideVersion}, association ${profile.associationAssignedCode}.`,
+}))
 
 export function getUtiltsMessageSupport(code: string | null | undefined): UtiltsMessageSupport | null {
   const normalized = String(code ?? '').toUpperCase()

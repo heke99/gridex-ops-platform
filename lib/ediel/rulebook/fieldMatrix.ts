@@ -3,6 +3,8 @@ import type { EdielRulebookIssue, EdielRulebookRequirement } from '@/lib/ediel/r
 export type RulebookFieldRule = {
   family: string
   code: string
+  fieldNumber?: string
+  scope?: 'header' | 'transaction' | 'observation'
   fieldKey: string
   label: string
   segmentPath: string | null
@@ -176,6 +178,16 @@ function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluatio
         return input.applicationReference ?? null
       case 'message_code':
         return bgmCode(rawSegments)
+      case 'association_assigned_code':
+        return components(element(first(rawSegments, 'UNH+'), 2))[4] ?? null
+      case 'document_identifier':
+        return element(first(rawSegments, 'BGM+'), 2)
+      case 'message_function':
+        return element(first(rawSegments, 'BGM+'), 3)
+      case 'request_acknowledgement':
+        return element(first(rawSegments, 'BGM+'), 4)
+      case 'phase_domain':
+        return components(element(first(rawSegments, 'MKS+'), 2))[0] ?? null
       case 'reason_for_transaction':
         return valueAfterCci(rawSegments, 'Z13')
       case 'reporting_frequency':
@@ -211,7 +223,7 @@ function dependencyApplies(rule: RulebookFieldRule, input: FieldMatrixEvaluation
 }
 
 const PRODAT_CODES = ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'] as const
-const UTILTS_CODES = ['E66', 'E73', 'E31', 'S01', 'S02', 'S03', 'S04'] as const
+const UTILTS_CODES = ['E30', 'E31', 'E66', 'E72', 'E73', 'E74', 'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'ERR'] as const
 
 const PRODAT_COMMON: RulebookFieldRule[] = [
   { family: 'PRODAT', code: '*', fieldKey: 'application_reference', label: 'Application Reference', segmentPath: 'UNB/S005/0026', requirement: 'required', errorCodeIfMissing: 'APPLICATION_REFERENCE_MISSING' },
@@ -248,13 +260,79 @@ const PRODAT_CODE_SPECIFIC: RulebookFieldRule[] = [
 ]
 
 const UTILTS_COMMON: RulebookFieldRule[] = [
-  { family: 'UTILTS', code: '*', fieldKey: 'message_code', label: 'UTILTS-funktion', segmentPath: 'BGM/C002/1001', requirement: 'required', errorCodeIfMissing: 'BGM_MISSING' },
-  { family: 'UTILTS', code: '*', fieldKey: 'document_date', label: 'Dokumentdatum', segmentPath: 'DTM+137', requirement: 'required', errorCodeIfMissing: 'DOCUMENT_DATE_MISSING' },
-  { family: 'UTILTS', code: '*', fieldKey: 'timezone', label: 'Tidszon', segmentPath: 'DTM+735', requirement: 'required', errorCodeIfMissing: 'TIMEZONE_MISSING' },
-  { family: 'UTILTS', code: '*', fieldKey: 'market', label: 'Marknad/roll', segmentPath: 'MKS', requirement: 'required', errorCodeIfMissing: 'MKS_MISSING' },
-  { family: 'UTILTS', code: '*', fieldKey: 'sender_party', label: 'Avsändande part', segmentPath: 'NAD+MS', requirement: 'required', errorCodeIfMissing: 'NAD_MS_MISSING' },
-  { family: 'UTILTS', code: '*', fieldKey: 'receiver_party', label: 'Mottagande part', segmentPath: 'NAD+MR', requirement: 'required', errorCodeIfMissing: 'NAD_MR_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '311', scope: 'header', fieldKey: 'application_reference', label: 'Application Reference', segmentPath: 'UNB/0026', requirement: 'required', errorCodeIfMissing: 'APPLICATION_REFERENCE_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '312', scope: 'header', fieldKey: 'association_assigned_code', label: 'Association assigned code', segmentPath: 'UNH/S009/0057', requirement: 'required', allowedValues: ['E5SE5A'], errorCodeIfMissing: 'UTILTS_ASSOCIATION_MISSING', errorCodeIfInvalid: 'UTILTS_ASSOCIATION_INVALID' },
+  { family: 'UTILTS', code: '*', fieldNumber: '202', scope: 'header', fieldKey: 'message_code', label: 'Document name code', segmentPath: 'BGM/C002/1001', requirement: 'required', allowedValues: [...UTILTS_CODES], errorCodeIfMissing: 'BGM_MISSING', errorCodeIfInvalid: 'UTILTS_CODE_NOT_ALLOWED' },
+  { family: 'UTILTS', code: '*', fieldNumber: '203', scope: 'header', fieldKey: 'document_identifier', label: 'Document identifier', segmentPath: 'BGM/C106/1004', requirement: 'required', errorCodeIfMissing: 'UTILTS_DOCUMENT_IDENTIFIER_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '204', scope: 'header', fieldKey: 'message_function', label: 'Message function', segmentPath: 'BGM/1225', requirement: 'required', allowedValues: ['5', '9'], errorCodeIfMissing: 'UTILTS_MESSAGE_FUNCTION_MISSING', errorCodeIfInvalid: 'UTILTS_MESSAGE_FUNCTION_INVALID' },
+  { family: 'UTILTS', code: '*', fieldNumber: '313', scope: 'header', fieldKey: 'request_acknowledgement', label: 'Request for acknowledgement', segmentPath: 'BGM/4343', requirement: 'required', allowedValues: ['AB', 'NA'], errorCodeIfMissing: 'UTILTS_ACK_REQUEST_MISSING', errorCodeIfInvalid: 'UTILTS_ACK_REQUEST_INVALID' },
+  { family: 'UTILTS', code: '*', fieldNumber: '205', scope: 'header', fieldKey: 'document_date', label: 'Message date', segmentPath: 'DTM+137', requirement: 'required', errorCodeIfMissing: 'DOCUMENT_DATE_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '206', scope: 'header', fieldKey: 'timezone', label: 'Time zone', segmentPath: 'DTM+735', requirement: 'required', errorCodeIfMissing: 'TIMEZONE_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '501', scope: 'header', fieldKey: 'market', label: 'Market/Sector Area', segmentPath: 'MKS/7293', requirement: 'required', allowedValues: ['23', '27'], errorCodeIfMissing: 'MKS_MISSING', errorCodeIfInvalid: 'UTILTS_MARKET_INVALID' },
+  { family: 'UTILTS', code: '*', fieldNumber: '502', scope: 'header', fieldKey: 'phase_domain', label: 'Phase/Domain', segmentPath: 'MKS/C332/3496', requirement: 'required', allowedValues: ['E02', 'E03', 'E04', 'E05'], errorCodeIfMissing: 'UTILTS_PHASE_MISSING', errorCodeIfInvalid: 'UTILTS_PHASE_INVALID' },
+  { family: 'UTILTS', code: '*', fieldNumber: '207', scope: 'header', fieldKey: 'sender_party', label: 'Sender', segmentPath: 'NAD+MS/C082/3039', requirement: 'required', errorCodeIfMissing: 'NAD_MS_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '208', scope: 'header', fieldKey: 'receiver_party', label: 'Recipient', segmentPath: 'NAD+MR/C082/3039', requirement: 'required', errorCodeIfMissing: 'NAD_MR_MISSING' },
+  { family: 'UTILTS', code: '*', fieldNumber: '509', scope: 'header', fieldKey: 'ancillary_role', label: 'Ancillary Role', segmentPath: 'NAD+DDQ|NAD+DGI|NAD+PQ', requirement: 'required', errorCodeIfMissing: 'UTILTS_ANCILLARY_ROLE_MISSING' },
 ]
+
+type PlanningFieldDefinition = {
+  fieldNumber: string
+  fieldKey: string
+  label: string
+  segmentPath: string
+}
+
+const UTILTS_PLANNING_FIELDS: PlanningFieldDefinition[] = [
+  { fieldNumber: '505', fieldKey: 'transaction_identity', label: 'Transaction id', segmentPath: 'IDE+24' },
+  { fieldNumber: '209', fieldKey: 'metering_point', label: 'Metering point', segmentPath: 'LOC+172' },
+  { fieldNumber: '260a', fieldKey: 'net_area', label: 'Metering grid area', segmentPath: 'LOC+239' },
+  { fieldNumber: '262', fieldKey: 'balance_responsible', label: 'Balance responsible', segmentPath: 'NAD+DDK' },
+  { fieldNumber: '510', fieldKey: 'balance_supplier', label: 'Balance supplier', segmentPath: 'NAD+DDQ' },
+  { fieldNumber: '506', fieldKey: 'product_id', label: 'Product id', segmentPath: 'LIN/C212/7140' },
+  { fieldNumber: '511', fieldKey: 'time_series_product', label: 'Time-series product', segmentPath: 'PIA+1' },
+  { fieldNumber: '245', fieldKey: 'delivery_period', label: 'Delivery period', segmentPath: 'DTM+324' },
+  { fieldNumber: '532', fieldKey: 'latest_update_date', label: 'Latest update date', segmentPath: 'DTM+368' },
+  { fieldNumber: '508', fieldKey: 'resolution', label: 'Resolution', segmentPath: 'DTM+354' },
+  { fieldNumber: '223', fieldKey: 'reason_for_transaction', label: 'Reason for transaction', segmentPath: 'STS+7' },
+  { fieldNumber: '264', fieldKey: 'unit', label: 'Unit', segmentPath: 'MEA+AAZ' },
+  { fieldNumber: '226', fieldKey: 'prodat_transaction_reference', label: 'PRODAT transaction reference', segmentPath: 'RFF+LI' },
+  { fieldNumber: '254', fieldKey: 'settlement_method', label: 'Settlement method', segmentPath: 'CCI++E02/CAV' },
+  { fieldNumber: '513', fieldKey: 'metering_point_type', label: 'Metering point type', segmentPath: 'CCI++E12/CAV' },
+  { fieldNumber: '507a', fieldKey: 'default_metering_point_count', label: 'Default metering point count', segmentPath: 'CCI++Z01/CAV' },
+  { fieldNumber: '514', fieldKey: 'observation_id', label: 'Observation id', segmentPath: 'SEQ/C286/1050' },
+  { fieldNumber: '515', fieldKey: 'planned_periodic_quantity', label: 'Planned periodic quantity', segmentPath: 'QTY+135' },
+  { fieldNumber: '520', fieldKey: 'quantity_quality', label: 'Quantity quality', segmentPath: 'STS+8' },
+  { fieldNumber: '507b', fieldKey: 'diverging_metering_point_count', label: 'Diverging metering point count', segmentPath: 'CCI++Z01/CAV' },
+]
+
+const UTILTS_PLANNING_REQUIREMENTS = {
+  S02: ['R', 'R', 'R', 'X', 'X', 'R', 'X', 'R', 'R', 'R', 'R', 'R', 'O', 'X', 'X', 'X', 'R', 'R', 'D', 'X'],
+  S03: ['R', 'X', 'R', 'D', 'D', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'X', 'R', 'R', 'D', 'R', 'R', 'X', 'D'],
+  S04: ['R', 'X', 'R', 'D', 'X', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'X', 'X', 'X', 'X', 'R', 'R', 'X', 'X'],
+} as const
+
+function planningRequirement(value: 'R' | 'D' | 'O' | 'X'): EdielRulebookRequirement {
+  if (value === 'R') return 'required'
+  if (value === 'D') return 'dependent'
+  if (value === 'X') return 'forbidden'
+  return 'optional'
+}
+
+const UTILTS_PLANNING_RULES: RulebookFieldRule[] = Object.entries(UTILTS_PLANNING_REQUIREMENTS).flatMap(([code, requirements]) =>
+  UTILTS_PLANNING_FIELDS.map((field, index) => ({
+    family: 'UTILTS',
+    code,
+    fieldNumber: field.fieldNumber,
+    scope: 'transaction' as const,
+    fieldKey: field.fieldKey,
+    label: field.label,
+    segmentPath: field.segmentPath,
+    requirement: planningRequirement(requirements[index]!),
+    condition: requirements[index] === 'D' ? '25-A-3 product-, actor- och transaktionsberoende regel' : null,
+    errorCodeIfMissing: `UTILTS_FIELD_${field.fieldNumber.toUpperCase()}_MISSING`,
+    errorCodeIfInvalid: requirements[index] === 'X' ? `UTILTS_FIELD_${field.fieldNumber.toUpperCase()}_FORBIDDEN` : null,
+  })),
+)
 
 const UTILTS_CODE_SPECIFIC: RulebookFieldRule[] = [
   { family: 'UTILTS', code: 'E66', fieldKey: 'transaction_identity', label: 'Transaktionsidentitet', segmentPath: 'IDE+24', requirement: 'required', errorCodeIfMissing: 'IDE_24_MISSING' },
@@ -286,6 +364,7 @@ export const STATIC_FIELD_RULES: RulebookFieldRule[] = [
   ...PRODAT_COMMON,
   ...PRODAT_CODE_SPECIFIC,
   ...UTILTS_COMMON,
+  ...UTILTS_PLANNING_RULES,
   ...UTILTS_CODE_SPECIFIC,
   ...ACK_RULES,
 ]
@@ -304,6 +383,16 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
       return Boolean(applicationReference)
     case 'message_code':
       return Boolean(bgmCode(rawSegments))
+    case 'association_assigned_code':
+      return Boolean(components(element(first(rawSegments, 'UNH+'), 2))[4])
+    case 'document_identifier':
+      return Boolean(element(first(rawSegments, 'BGM+'), 2))
+    case 'message_function':
+      return Boolean(element(first(rawSegments, 'BGM+'), 3))
+    case 'request_acknowledgement':
+      return Boolean(element(first(rawSegments, 'BGM+'), 4))
+    case 'phase_domain':
+      return Boolean(components(element(first(rawSegments, 'MKS+'), 2))[0])
     case 'sender_ediel_id':
       return Boolean(element(first(rawSegments, 'UNB+'), 2))
     case 'receiver_ediel_id':

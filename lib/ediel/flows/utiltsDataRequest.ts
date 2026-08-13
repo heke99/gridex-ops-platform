@@ -55,6 +55,13 @@ import {
 } from '@/lib/ediel/ack'
 import { updateMeterValueBillingReadiness } from '@/lib/billing/meterValueBillingMatcher'
 import { normalizeAndStoreMeteringValue } from '@/lib/metering/normalizeMeteringValues'
+import {
+  buildUtiltsTransactionPersistencePayload,
+  finalizeUtiltsTransactionAck,
+  persistUtiltsTransactionResults,
+} from '@/lib/ediel/utilts/transactionPersistence'
+import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 
 type UtiltsProcessResult = {
   message: EdielMessageRow
@@ -718,6 +725,7 @@ async function createAckIfMissing(params: {
             actorUserId: params.actorUserId,
             sourceMessage: params.sourceMessage,
             messageText: params.messageText ?? null,
+            relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
 
   const ackMessage = await createCanonicalAckMessage({
@@ -837,10 +845,16 @@ function shouldCreatePositiveAperakPerTransaction(params: {
   })
 }
 
+function sourceRequestsApplicationAcknowledgement(sourceMessage: EdielMessageRow): boolean {
+  const bgm = tokenizeEdifact(sourceMessage.raw_payload).segments.find((segment) => segment.tag === 'BGM')
+  return String(bgm?.elements[4] ?? '').trim().toUpperCase() === 'AB'
+}
+
 async function createUtiltsRuntimeAcks(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
   ackPlan: ReturnType<typeof runUtiltsRuntimeForMessage>['ackPlan']
+  transactionDispositions?: readonly UtiltsTransactionDisposition[]
   testCaseCode?: string | null
 }) {
   const createdIds: string[] = []
@@ -854,6 +868,91 @@ async function createUtiltsRuntimeAcks(params: {
       messageText: params.ackPlan.reason,
     })
     createdIds.push(contrl.id)
+  }
+
+  const transactionDispositions = params.transactionDispositions ?? []
+  const hasSyntaxRejection = transactionDispositions.some((item) => item.disposition === 'syntax_rejected')
+  if (transactionDispositions.length > 0 && !hasSyntaxRejection) {
+    const companyId = stringOrNull(params.sourceMessage.company_id)
+    if (!companyId) throw new Error('UTILTS transaktionskvittens saknar tenantkoppling')
+
+    for (const disposition of transactionDispositions) {
+      const transactionReference = stringOrNull(disposition.transactionId)
+      if (!transactionReference) throw new Error('UTILTS transaktionskvittens saknar transaktionsreferens')
+
+      if (disposition.disposition === 'processability_rejected') {
+        const codes = params.ackPlan.utiltsErrDetails
+          .filter((detail) => stringOrNull(detail.referenceNumber ?? detail.lineItemReference) === transactionReference)
+          .map((detail) => detail.code)
+        const utiltsErr = await createAckIfMissing({
+          actorUserId: params.actorUserId,
+          sourceMessage: params.sourceMessage,
+          ackFamily: 'UTILTS_ERR',
+          outcome: 'negative',
+          messageText: (codes.length > 0 ? codes : ['E14']).join('|'),
+          ackScope: 'transaction',
+          relatedTransactionReference: transactionReference,
+        })
+        createdIds.push(utiltsErr.id)
+        await finalizeUtiltsTransactionAck({
+          companyId,
+          environment: params.sourceMessage.environment,
+          sourceMessageId: params.sourceMessage.id,
+          transactionId: transactionReference,
+          responseType: 'utilts_err',
+          responseMessageId: utiltsErr.id,
+        })
+        continue
+      }
+
+      if (disposition.disposition === 'guide_rejected') {
+        const applicationErrors = params.ackPlan.aperakApplicationErrors.filter((item) =>
+          stringOrNull(item.referenceNumber ?? item.lineItemReference) === transactionReference
+        )
+        const aperak = await createAckIfMissing({
+          actorUserId: params.actorUserId,
+          sourceMessage: params.sourceMessage,
+          ackFamily: 'APERAK',
+          outcome: 'negative',
+          messageText: params.ackPlan.reason,
+          applicationErrors,
+          ackScope: 'transaction',
+          relatedTransactionReference: transactionReference,
+        })
+        createdIds.push(aperak.id)
+        await finalizeUtiltsTransactionAck({
+          companyId,
+          environment: params.sourceMessage.environment,
+          sourceMessageId: params.sourceMessage.id,
+          transactionId: transactionReference,
+          responseType: 'negative_aperak',
+          responseMessageId: aperak.id,
+        })
+        continue
+      }
+
+      if (params.ackPlan.shouldSendAperak || sourceRequestsApplicationAcknowledgement(params.sourceMessage)) {
+        const aperak = await createAckIfMissing({
+          actorUserId: params.actorUserId,
+          sourceMessage: params.sourceMessage,
+          ackFamily: 'APERAK',
+          outcome: 'positive',
+          messageText: 'OK',
+          ackScope: 'transaction',
+          relatedTransactionReference: transactionReference,
+        })
+        createdIds.push(aperak.id)
+        await finalizeUtiltsTransactionAck({
+          companyId,
+          environment: params.sourceMessage.environment,
+          sourceMessageId: params.sourceMessage.id,
+          transactionId: transactionReference,
+          responseType: 'positive_aperak',
+          responseMessageId: aperak.id,
+        })
+      }
+    }
+    return createdIds
   }
 
   if (params.ackPlan.shouldSendUtiltsErr) {
@@ -1377,9 +1476,39 @@ export async function processInboundUtiltsMessage(params: {
     runtime,
     testCaseCode: runtimeTestCaseCode,
   })
+  let transactionDispositions = runtime.transactionDispositions
+  let transactionPersistenceResults: Awaited<ReturnType<typeof persistUtiltsTransactionResults>> = []
+  const companyId = stringOrNull(runtimeSourceMessage.company_id)
+  const messageCode = stringOrNull(runtime.facts.messageCode)
+  if (companyId && messageCode && transactionDispositions.length > 0) {
+    transactionPersistenceResults = await persistUtiltsTransactionResults({
+      companyId,
+      environment: runtimeSourceMessage.environment,
+      sourceMessageId: runtimeSourceMessage.id,
+      messageCode,
+      transactions: buildUtiltsTransactionPersistencePayload({
+        messageCode,
+        transactions: runtime.facts.transactions,
+        dispositions: transactionDispositions,
+        matches: transactionMatches,
+      }),
+    })
+    transactionDispositions = transactionDispositions.map((disposition) => {
+      const persisted = transactionPersistenceResults.find((item) => item.transactionId === disposition.transactionId)
+      if (!persisted || persisted.persistenceStatus !== 'failed') return disposition
+      return {
+        ...disposition,
+        disposition: 'processability_rejected' as const,
+        responseType: 'utilts_err' as const,
+        issueCodes: [...new Set([...disposition.issueCodes, ...(persisted.issueCodes ?? ['UTILTS_PERSISTENCE_FAILED'])])],
+      }
+    })
+  }
   const normalizedPayload = {
     ...runtime.normalizedPayload,
     utiltsTransactionMatches: transactionMatches,
+    utiltsTransactionDispositions: transactionDispositions,
+    utiltsTransactionPersistenceResults: transactionPersistenceResults,
   }
   const forcedPositiveTgtAckPlan =
     runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
@@ -1413,6 +1542,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       sourceMessage: runtimeSourceMessage,
       ackPlan: ackPlan,
+      transactionDispositions,
       testCaseCode: runtimeTestCaseCode,
     })
 
@@ -1495,6 +1625,7 @@ export async function processInboundUtiltsMessage(params: {
         actorUserId,
         sourceMessage: runtimeSourceMessage,
         ackPlan: ackPlan,
+        transactionDispositions,
         testCaseCode: runtimeTestCaseCode,
       })
 
@@ -1564,6 +1695,7 @@ export async function processInboundUtiltsMessage(params: {
         actorUserId,
         sourceMessage: runtimeSourceMessage,
         ackPlan: ackPlan,
+        transactionDispositions,
         testCaseCode: runtimeTestCaseCode,
       })
 
@@ -1620,6 +1752,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       sourceMessage: runtimeSourceMessage,
       ackPlan: ackPlan,
+      transactionDispositions,
       testCaseCode: runtimeTestCaseCode,
     })
 
@@ -1723,6 +1856,7 @@ export async function processInboundUtiltsMessage(params: {
     actorUserId,
     sourceMessage: runtimeSourceMessage,
     ackPlan: ackPlan,
+    transactionDispositions,
     testCaseCode: runtimeTestCaseCode,
   })
 

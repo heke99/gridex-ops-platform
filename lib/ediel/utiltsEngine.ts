@@ -130,7 +130,15 @@ export type UtiltsRuntimeResult = {
   facts: UtiltsRuntimeFacts
   normalizedPayload: Record<string, unknown>
   validation: UtiltsRuntimeValidation
+  transactionDispositions: UtiltsTransactionDisposition[]
   ackPlan: UtiltsRuntimeAckPlan
+}
+
+export type UtiltsTransactionDisposition = {
+  transactionId: string | null
+  disposition: 'accepted' | 'syntax_rejected' | 'guide_rejected' | 'processability_rejected'
+  responseType: 'positive_aperak' | 'negative_contrl' | 'negative_aperak' | 'utilts_err'
+  issueCodes: string[]
 }
 
 const KNOWN_UTILTS_CODES = new Set<UtiltsRuntimeMessageCode>([
@@ -168,6 +176,59 @@ function numberOrNull(value: unknown): number | null {
 
 function normalizedOptionalId(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+export function resolveUtiltsTransactionDispositions(input: {
+  syntaxOk: boolean
+  transactions: ReadonlyArray<{ transactionId: string | null }>
+  issues: readonly UtiltsValidationIssue[]
+}): UtiltsTransactionDisposition[] {
+  const syntaxIssues = input.issues.filter(
+    (issue) => issue.severity === 'error' && issue.kind === 'syntax',
+  )
+
+  return input.transactions.map((transaction) => {
+    if (!input.syntaxOk || syntaxIssues.length > 0) {
+      return {
+        transactionId: transaction.transactionId,
+        disposition: 'syntax_rejected',
+        responseType: 'negative_contrl',
+        issueCodes: syntaxIssues.map((issue) => issue.code),
+      }
+    }
+
+    const transactionIssues = input.issues.filter((issue) => {
+      if (issue.severity !== 'error' || issue.kind === 'syntax') return false
+      const reference = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+      return reference === null || reference === transaction.transactionId
+    })
+    const guideIssues = transactionIssues.filter((issue) => issue.kind === 'application')
+    if (guideIssues.length > 0) {
+      return {
+        transactionId: transaction.transactionId,
+        disposition: 'guide_rejected',
+        responseType: 'negative_aperak',
+        issueCodes: guideIssues.map((issue) => issue.code),
+      }
+    }
+
+    const processabilityIssues = transactionIssues.filter((issue) => issue.kind === 'functional')
+    if (processabilityIssues.length > 0) {
+      return {
+        transactionId: transaction.transactionId,
+        disposition: 'processability_rejected',
+        responseType: 'utilts_err',
+        issueCodes: processabilityIssues.map((issue) => issue.code),
+      }
+    }
+
+    return {
+      transactionId: transaction.transactionId,
+      disposition: 'accepted',
+      responseType: 'positive_aperak',
+      issueCodes: [],
+    }
+  })
 }
 
 function messageHasResolvedObjectContext(message?: EdielMessageRow | null): boolean {
@@ -1533,12 +1594,18 @@ export function runUtiltsRuntimeForMessage(message: EdielMessageRow): UtiltsRunt
   const normalizedPayload = normalizeUtiltsRuntimePayload(facts, message)
   const baseValidation = validateUtiltsFacts(facts, message)
   const validation = applyUtiltsProcessabilityClassification({ message, validation: baseValidation })
+  const transactionDispositions = resolveUtiltsTransactionDispositions({
+    syntaxOk: validation.syntaxOk,
+    transactions: facts.transactions,
+    issues: validation.issues,
+  })
   const ackPlan = decideUtiltsRuntimeAckPlan({ message, facts, validation })
 
   return {
     facts,
     normalizedPayload,
     validation,
+    transactionDispositions,
     ackPlan,
   }
 }
