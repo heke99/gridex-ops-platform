@@ -1473,12 +1473,16 @@ export function decideUtiltsRuntimeAckPlan(params: {
     return {
       shouldSendContrl: true,
       contrlOutcome: 'positive',
+      // Message-level classification still prefers UTILTS_ERR when any functional
+      // fault exists. Preserve guide/application error details so transaction-
+      // scoped ACK creation can emit negative APERAK for sibling guide_rejected
+      // transactions in a mixed 95/3/2 partial-success message.
       shouldSendAperak: false,
       aperakOutcome: null,
       shouldSendUtiltsErr: true,
       utiltsErrDetails,
       utiltsErrCodes: utiltsErrCodes.length > 0 ? utiltsErrCodes : ['E14'],
-      aperakApplicationErrors: [],
+      aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
       reason: 'Meddelandet är syntaktiskt/anvisningsmässigt läsbart men innehållet kunde inte behandlas.',
     }
   }
