@@ -1,7 +1,14 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
+<<<<<<< HEAD
   "generated_at": "2026-08-13T19:59:00Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "796ea061618af9d84539eecffac4dfeba6e6287525b6c2b55433802b992c2ad8",
   "latest_migration": "20260813210500_ediel_utilts_field_511_products_25_a_3.sql"
+=======
+  "generated_at": "2026-08-13T22:15:00Z",
+  "generated_types": "supabase/database.types.ts",
+  "sha256": "796ea061618af9d84539eecffac4dfeba6e6287525b6c2b55433802b992c2ad8",
+  "latest_migration": "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql"
+>>>>>>> ccbd0c8d (fix(db): trim L653Q field-511 tab and sync generated types)
 }
