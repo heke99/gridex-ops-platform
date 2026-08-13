@@ -9,6 +9,6 @@ Active work item: Post-`3cad481b` tip health residuals on
 
 ## Exact next action
 
-Open/monitor tip residual PR for `13b2`. Close superseded open health PRs
-`#122`/`#121`/`#120`/`#119`/`#117`/`#115`/`#113` once `13b2` merges. Do not
+Monitor hosted CI for PR `#124` (`13b2`). Close superseded open health PRs
+`#122`/`#121`/`#120`/`#119`/`#117`/`#115`/`#113` once `#124` merges. Do not
 claim live DB apply of L653Q trim until observed.
