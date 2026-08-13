@@ -58,14 +58,25 @@ export function getSafeNextPath(value: string | null | undefined, fallback = '/l
   const raw = String(value ?? '').trim()
   if (!raw) return fallback
 
-  if (isSafeRelativeNextPath(raw)) return raw
+  try {
+    const decoded = decodeURIComponent(raw)
+    if (isSafeRelativeNextPath(decoded)) return decoded
+  } catch {
+    if (isSafeRelativeNextPath(raw)) return raw
+  }
 
   try {
     const url = new URL(raw)
     const appUrl = new URL(getBaseAppUrl())
     if (url.origin === appUrl.origin) {
       const candidate = `${url.pathname}${url.search}${url.hash}` || fallback
-      return isSafeRelativeNextPath(candidate) ? candidate : fallback
+      if (isSafeRelativeNextPath(candidate)) return candidate
+      try {
+        const decodedCandidate = decodeURIComponent(candidate)
+        return isSafeRelativeNextPath(decodedCandidate) ? decodedCandidate : fallback
+      } catch {
+        return fallback
+      }
     }
   } catch {
     return fallback
