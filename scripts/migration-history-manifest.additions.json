@@ -37,6 +37,9 @@
     "20260812130500_gridex_ops_health_v5_role_aware_counts.sql": "428c3df19f22cc1638279699fc12b6056950999e8f172a470f07bdbb8bc4664b",
     "20260812132000_gridex_portfolio_rls_auth_initplan.sql": "a0307d19b8ecf240e3c0f3b7e54bf95a7dcb26a5c5815eeba2c45f3f49748c8d",
     "20260812143000_gridex_ops_grid_owner_invariants_v2.sql": "c01a94b778c0fb21f3c24150a694efa2ba438e6811156611e60663e299c2c2fa",
-    "20260812151500_gridex_ops_grid_owner_identifier_normalization_v3.sql": "c5d3be7cc2e3dd162d75e511bad84bbfd5670b16d86d92c91d33a4c60087690f"
+    "20260812151500_gridex_ops_grid_owner_identifier_normalization_v3.sql": "c5d3be7cc2e3dd162d75e511bad84bbfd5670b16d86d92c91d33a4c60087690f",
+    "20260812210800_gridex_rls_policy_normalization_v1.sql": "2d9609109928967f571401864893a47bee1598bce8b115b5f26f3fadc236643a",
+    "20260813041314_gridex_missing_fk_indexes_v1.sql": "1e5abc5db8164988866383a38bcabf02c4dc34b89914c3f32c8333c7ddcb93bf",
+    "20260813041521_gridex_explicit_service_only_rls_deny_v1.sql": "3a4f393b7c6672f88b1ca4cfbe9acb3558282d867b01313c1f7d4a4c09a9f862"
   }
 }
