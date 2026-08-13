@@ -24002,11 +24002,17 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          disposition: string | null
           environment: string
           final_response_type: string | null
           finalized_at: string | null
           guide_validation_result: string
           id: string
+          issue_codes: string[]
+          persistence_error: string | null
+          persistence_status: string
+          persisted_series_id: string | null
+          planned_response_type: string | null
           processability_result: string
           response_message_id: string | null
           source_message_id: string
@@ -24017,11 +24023,17 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          disposition?: string | null
           environment: string
           final_response_type?: string | null
           finalized_at?: string | null
           guide_validation_result: string
           id?: string
+          issue_codes?: string[]
+          persistence_error?: string | null
+          persistence_status?: string
+          persisted_series_id?: string | null
+          planned_response_type?: string | null
           processability_result: string
           response_message_id?: string | null
           source_message_id: string
@@ -24032,11 +24044,17 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          disposition?: string | null
           environment?: string
           final_response_type?: string | null
           finalized_at?: string | null
           guide_validation_result?: string
           id?: string
+          issue_codes?: string[]
+          persistence_error?: string | null
+          persistence_status?: string
+          persisted_series_id?: string | null
+          planned_response_type?: string | null
           processability_result?: string
           response_message_id?: string | null
           source_message_id?: string
@@ -71222,6 +71240,16 @@ export type Database = {
       gridex_assert_utilts_transaction_coverage: {
         Args: { p_source_message_id: string }
         Returns: undefined
+      }
+      gridex_persist_utilts_transactions_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_message_code: string
+          p_source_message_id: string
+          p_transactions: Json
+        }
+        Returns: Json
       }
       gridex_attach_portfolio_settlement_to_invoice: {
         Args: {

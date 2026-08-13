@@ -12,13 +12,19 @@ export type EdifactTokenizeResult = {
   segments: EdifactTokenizedSegment[]
 }
 
-function splitReleased(value: string, separator: string, releaseCharacter: string): string[] {
+function splitReleased(
+  value: string,
+  separator: string,
+  releaseCharacter: string,
+  options: { preserveReleaseSequence?: boolean } = {},
+): string[] {
   const result: string[] = []
   let current = ''
   let released = false
 
   for (const char of value) {
     if (released) {
+      if (options.preserveReleaseSequence) current += releaseCharacter
       current += char
       released = false
       continue
@@ -38,6 +44,8 @@ function splitReleased(value: string, separator: string, releaseCharacter: strin
     current += char
   }
 
+  if (released) throw new Error('edifact_dangling_release_character')
+
   result.push(current)
   return result
 }
@@ -45,7 +53,9 @@ function splitReleased(value: string, separator: string, releaseCharacter: strin
 export function tokenizeEdifact(rawPayload: string | null | undefined): EdifactTokenizeResult {
   const una = parseUna(rawPayload)
   const body = stripUna(rawPayload).replace(/\r?\n/g, '')
-  const rawSegments = splitReleased(body, una.segmentTerminator, una.releaseCharacter)
+  const rawSegments = splitReleased(body, una.segmentTerminator, una.releaseCharacter, {
+    preserveReleaseSequence: true,
+  })
     .map((segment) => segment.trim())
     .filter(Boolean)
 

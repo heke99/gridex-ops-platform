@@ -1,10 +1,9 @@
 # Open blockers
 
-Updated: 2026-08-11
+Updated: 2026-08-13
 
-1. Hosted CI for `0f25` not yet observed in this session.
-2. ggshield CLI missing locally — secret scan BLOCKED in agent environment.
-3. Staging/production apply of `20260811114500` still required after merge.
-4. Unmerged #109 overlaps this tip residual; close as superseded after `0f25` merges.
-5. External release evidence gates from the 75-point campaign remain outside this
-   health residual scope.
+1. Hosted CI/clean-replay for the new PR #118 delta is not yet observed.
+2. Exact official 25-A-3 operation matrix R/D/O/X values for E30/E31/E66/S01/S05/S07 are absent.
+3. Exact official request matrix R/D/O/X values for E72/E73/E74/S06 are absent.
+4. Official field-511 Swedish tuple masterdata is absent; live authoritative rows are zero.
+5. Official TGT/AGT certificates and counterparty evidence are external and absent.

@@ -15,6 +15,16 @@
 - Full dependency install/build remains an operator/CI step because the sandbox
   package mirror lacks one indirect package.
 
+## 2026-08-13 — Ediel production-engine delta
+
+- Continued PR #118 from the verified audit baseline and preserved no-rework boundaries.
+- Added canonical release-character-safe UTILTS parsing and dangling-release rejection.
+- Added exact supplied 25-A-3 common header and S02/S03/S04 R/D/O/X rules to active runtime profiles with checksums.
+- Added per-transaction guide/processability disposition, scoped APERAK/UTILTS-ERR, immutable/idempotent persistence and correction lineage.
+- Applied five forward migrations to gridex-ops-dev; fixed two rollback-discovered database defects with separate forward migrations.
+- Passed rolled-back live E2E, RLS/ACL/advisor checks, local tests, typecheck, lint, migrations, regressions, API/RBAC gates and production build.
+- Kept exact operation/request matrices, field-511 tuples and official TGT/AGT evidence as explicit external blockers rather than inventing protocol data.
+
 ## 2026-08-06 — PHASE-45 after BL-002 (`fb8e`)
 
 - Trigger: main push `bb877506` (GRIDEX-OPS-BL-002 platform-global read isolation).

@@ -76,3 +76,19 @@
 | generated types tip | PASS | pinned to `20260811114500` |
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
+
+## EDIEL production-engine delta — 2026-08-13
+
+| Check | Result | Evidence |
+|---|---|---|
+| Canonical S02/S03/S04 registry | PASS LIVE | 33 resolved rules/profile: 13 header + 20 transaction |
+| R/D/O/X runtime mapping | PASS | Targeted Vitest; X maps to forbidden |
+| Partial-success persistence | PASS LIVE | Rolled-back RPC E2E, idempotency, correction lineage, immutability |
+| Tenant/RLS/RPC ACL | PASS LIVE | RLS on 3 tables; anon/authenticated false, service_role true |
+| Supabase advisors | PASS DELTA | No new security warning or unindexed FK |
+| Migration integrity/types | PASS | 426 files / 330 groups before publication |
+| Typecheck/lint/build | PASS | 0 lint errors; Next.js production build complete |
+| Full and quality Vitest | PASS | Full suite + quality suite |
+| API/RBAC gates | PASS | Docs, compatibility, release and 24-check RBAC audit |
+| Hosted CI/Vercel | PENDING | Publish/CI/deploy step remains |
+| Official operation/request matrices, 511 tuples, TGT/AGT | BLOCKED EXTERNAL | Source/evidence absent; no invented values |

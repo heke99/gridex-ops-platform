@@ -11,6 +11,9 @@ type RegistryRulePayload = {
   required_when?: unknown
   anySegmentPresent?: unknown
   allSegmentPresent?: unknown
+  fieldNumber?: unknown
+  field_number?: unknown
+  scope?: unknown
 }
 
 type RegistryFieldRuleRow = Record<string, unknown> & {
@@ -93,11 +96,11 @@ function stringArray(value: unknown): string[] {
   return []
 }
 
-function normalizeRequirement(value: unknown): EdielRulebookRequirement {
+export function normalizeRegistryRequirement(value: unknown): EdielRulebookRequirement {
   const normalized = normalize(value)
   if (normalized === 'R' || normalized === 'M' || normalized === 'MANDATORY' || normalized === 'REQUIRED') return 'required'
   if (normalized === 'D' || normalized === 'DEPENDENT' || normalized === 'CONDITIONAL') return 'dependent'
-  if (normalized === '-' || normalized === 'N' || normalized === 'NOT_USED' || normalized === 'NOT USED' || normalized === 'FORBIDDEN') return 'forbidden'
+  if (normalized === 'X' || normalized === '-' || normalized === 'N' || normalized === 'NOT_USED' || normalized === 'NOT USED' || normalized === 'FORBIDDEN') return 'forbidden'
   return 'optional'
 }
 
@@ -236,7 +239,7 @@ function rowMatchesScope(row: RegistryFieldRuleRow, scope: RegistryFieldRuleScop
 
 function ruleFromRow(row: RegistryFieldRuleRow, scope: RegistryFieldRuleScope): RulebookFieldRule {
   const payload = payloadObject(row.rule_payload)
-  const requirement = normalizeRequirement(row.requirement)
+  const requirement = normalizeRegistryRequirement(row.requirement)
   const metadata = PRODAT_FIELD_METADATA[normalize(row.field_code)]
   const fieldKey = metadata?.fieldKey ?? optionalString(row.field_key) ?? optionalString(row.field_code) ?? optionalString(row.segment_path) ?? 'unknown_field'
   const label = optionalString(row.field_label) ?? optionalString(row.field_name) ?? optionalString(row.field_code) ?? fieldKey
@@ -244,6 +247,10 @@ function ruleFromRow(row: RegistryFieldRuleRow, scope: RegistryFieldRuleScope): 
   return {
     family: normalize(row.message_family) || normalize(scope.family),
     code: normalize(row.message_code) || normalize(scope.code),
+    fieldNumber: optionalString(payload.fieldNumber ?? payload.field_number) ?? optionalString(row.field_code) ?? undefined,
+    scope: ['header', 'transaction', 'observation'].includes(normalizeLower(payload.scope))
+      ? normalizeLower(payload.scope) as RulebookFieldRule['scope']
+      : undefined,
     fieldKey,
     label,
     segmentPath: optionalString(row.segment_path) ?? metadata?.segmentPath ?? optionalString(row.field_code),

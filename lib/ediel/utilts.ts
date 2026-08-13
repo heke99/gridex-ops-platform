@@ -14,6 +14,12 @@ import {
 } from '@/lib/ediel/classify'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import {
+  firstCompositeComponent,
+  splitComposite,
+  tokenizeEdifact,
+  type EdifactTokenizedSegment,
+} from '@/lib/ediel/core/edifactTokenizer'
 
 export type UtiltsMessageCode =
   | 'S01'
@@ -114,19 +120,10 @@ function requireOutboundEdielId(value: string | null | undefined, label: 'sender
   return normalized
 }
 
-function splitEdifactSegments(rawPayload: string): string[] {
-  return rawPayload
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-}
-
-function firstSegmentValue(segments: string[], prefix: string): string | null {
-  const hit = segments.find((segment) => segment.startsWith(prefix))
-  return hit ?? null
-}
-
-function extractUnbEdielIds(unb: string | null): {
+function extractUnbEdielIds(
+  unb: EdifactTokenizedSegment | null,
+  una: ReturnType<typeof tokenizeEdifact>['una'],
+): {
   senderEdielId: string | null
   receiverEdielId: string | null
 } {
@@ -134,31 +131,29 @@ function extractUnbEdielIds(unb: string | null): {
     return { senderEdielId: null, receiverEdielId: null }
   }
 
-  const parts = unb.split('+')
-  const senderRaw = parts[2] ?? ''
-  const receiverRaw = parts[3] ?? ''
+  const senderRaw = unb.elements[2] ?? ''
+  const receiverRaw = unb.elements[3] ?? ''
 
   return {
-    senderEdielId: senderRaw.split(':')[0]?.trim() || null,
-    receiverEdielId: receiverRaw.split(':')[0]?.trim() || null,
+    senderEdielId: firstCompositeComponent(senderRaw, una),
+    receiverEdielId: firstCompositeComponent(receiverRaw, una),
   }
 }
 
-function extractApplicationReference(rawPayload: string): string | null {
-  const unb = rawPayload
-    .split("'")
-    .map((segment) => segment.trim())
-    .find((segment) => segment.startsWith('UNB+'))
-
-  if (!unb) return null
-
-  const parts = unb.split('+')
-  return parts[7]?.trim() || null
-}
-
-function extractReference(rawPayload: string, qualifier: string): string | null {
-  const regex = new RegExp(`RFF\\+${qualifier}:([A-Za-z0-9\\-_/.:]+)`, 'i')
-  return rawPayload.match(regex)?.[1] ?? null
+function extractReference(
+  segments: readonly EdifactTokenizedSegment[],
+  qualifier: string,
+  una: ReturnType<typeof tokenizeEdifact>['una'],
+): string | null {
+  const normalized = qualifier.toUpperCase()
+  for (const segment of segments) {
+    if (segment.tag !== 'RFF') continue
+    const components = splitComposite(segment.elements[1], una)
+    if (String(components[0] ?? '').toUpperCase() !== normalized) continue
+    const value = components.slice(1).join(una.componentDataElementSeparator).trim()
+    if (value) return value
+  }
+  return null
 }
 
 function extractDateFromDtm(segment: string | null): string | null {
@@ -254,43 +249,55 @@ function inferUtiltsReadingType(payload: Record<string, unknown>): string {
 }
 
 export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
-  const rawSegments = splitEdifactSegments(rawPayload)
+  const tokenized = tokenizeEdifact(rawPayload)
+  const rawSegments = tokenized.segments.map((segment) => segment.raw)
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
-  const unb = firstSegmentValue(rawSegments, 'UNB+')
-  const unh = firstSegmentValue(rawSegments, 'UNH+')
-  const bgm = firstSegmentValue(rawSegments, 'BGM+')
-  const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
-  const loc239 = firstSegmentValue(rawSegments, 'LOC+239')
-  const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
-  const dtm324 = firstSegmentValue(rawSegments, 'DTM+324')
-  const dtm597 = firstSegmentValue(rawSegments, 'DTM+597')
-  const qty = firstSegmentValue(rawSegments, 'QTY+')
-  const cci = firstSegmentValue(rawSegments, 'CCI+')
-  const ids = extractUnbEdielIds(unb)
+  const byTag = (tag: string) => tokenized.segments.find((segment) => segment.tag === tag) ?? null
+  const unbSegment = byTag('UNB')
+  const unhSegment = byTag('UNH')
+  const bgmSegment = byTag('BGM')
+  const loc172Segment = tokenized.segments.find(
+    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '172',
+  ) ?? null
+  const loc239Segment = tokenized.segments.find(
+    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '239',
+  ) ?? null
+  const dtmSegment = (qualifier: string) => tokenized.segments.find(
+    (segment) => segment.tag === 'DTM' && firstCompositeComponent(segment.elements[1], tokenized.una) === qualifier,
+  ) ?? null
+  const qtySegment = byTag('QTY')
+  const cciSegment = byTag('CCI')
+  const ids = extractUnbEdielIds(unbSegment, tokenized.una)
 
-  const bgmParts = bgm?.split('+') ?? []
-  const bgmCode = (bgmParts[1]?.split(':')[0]?.trim() || inferred.messageCode || null) as
+  const bgmCode = (firstCompositeComponent(bgmSegment?.elements[1], tokenized.una) || inferred.messageCode || null) as
     | UtiltsMessageCode
     | EdielKnownMessageCode
     | null
 
-  const meterPointId = loc172?.split('+')[2]?.split(':')[0]?.trim() || null
-  const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
-  const quantity = extractQty(qty)
+  const meterPointId = firstCompositeComponent(loc172Segment?.elements[2], tokenized.una)
+  const gridAreaId = firstCompositeComponent(loc239Segment?.elements[2], tokenized.una)
+  const quantity = extractQty(qtySegment?.raw ?? null)
+  const unb = unbSegment?.raw ?? null
+  const unh = unhSegment?.raw ?? null
+  const bgm = bgmSegment?.raw ?? null
+  const dtm137 = dtmSegment('137')?.raw ?? null
+  const dtm324 = dtmSegment('324')?.raw ?? null
+  const dtm597 = dtmSegment('597')?.raw ?? null
+  const cci = cciSegment?.raw ?? null
 
   return {
     messageFamily: 'UTILTS',
     messageCode: bgmCode,
     transactionReference:
-      extractReference(rawPayload, 'TN') ||
-      extractReference(rawPayload, 'CR') ||
-      extractReference(rawPayload, 'E66'),
+      extractReference(tokenized.segments, 'TN', tokenized.una) ||
+      extractReference(tokenized.segments, 'CR', tokenized.una) ||
+      extractReference(tokenized.segments, 'E66', tokenized.una),
     externalReference:
-      bgmParts[2]?.trim() ||
-      extractReference(rawPayload, 'ON') ||
-      extractReference(rawPayload, 'AAS') ||
-      extractReference(rawPayload, 'ACE'),
-    applicationReference: extractApplicationReference(rawPayload),
+      String(bgmSegment?.elements[2] ?? '').trim() ||
+      extractReference(tokenized.segments, 'ON', tokenized.una) ||
+      extractReference(tokenized.segments, 'AAS', tokenized.una) ||
+      extractReference(tokenized.segments, 'ACE', tokenized.una),
+    applicationReference: String(unbSegment?.elements[7] ?? '').trim() || null,
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,
     rawSegments,
