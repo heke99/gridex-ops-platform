@@ -1,13 +1,14 @@
 # Current task
 
-Updated: 2026-08-11
+Updated: 2026-08-13
 
 Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-Active work item: post-#110 codebase health residual remediation on
-`cursor/codebase-health-and-stability-0f25` / PR `#111`.
+Active work item: post-#116 codebase health residual remediation on
+`cursor/codebase-health-and-stability-a855`.
 
 ## Exact next action
 
-Monitor hosted CI on PR `#111`. After merge, close `#109` as superseded and
-apply `20260811114500` to connected environments.
+Open/monitor PR for `a855`. After merge, close `#115`, `#113`, and older
+superseded health drafts as superseded. No new migration apply required for
+this residual (auth/SVK locks only).

@@ -1,15 +1,14 @@
 # Handover
 
-Updated: 2026-08-11
+Updated: 2026-08-13
 
-Branch `cursor/codebase-health-and-stability-0f25` closes the post-#108
-reconciliation/O-008 security residual on the post-#110 tip and hardens
-auth flash allowlisting plus next-path backslash rejection introduced as
-second-order residuals from #110.
+Branch `cursor/codebase-health-and-stability-a855` closes the post-#114/#115
+auth flash and next-path residuals on the post-#116 tip and locks the SVK
+retry-before-reimport health regression.
 
-Do not reopen #109 as the merge vehicle once `0f25` is reviewed; #109 predates
-#110 and would need a rebase. Prefer merging `0f25` then closing #109 as
-superseded.
+Do not reopen `#115` or `#113` as merge vehicles once `a855` is reviewed;
+those predates #116 and would need another rebase. Prefer merging `a855` then
+closing the older drafts as superseded.
 
-ggshield was unavailable in this environment; run secret scan in CI/host before
-production apply of `20260811114500`.
+ggshield was unavailable in this environment; run secret scan in CI/host.
+No new forward migration was introduced by this residual.

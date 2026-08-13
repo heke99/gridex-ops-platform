@@ -339,3 +339,10 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Cherry-picked post-#108 security residual onto post-#110 tip.
 - Hardened login/update-password error flash allowlists and next-path backslash rejection.
 - Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
+
+## 2026-08-13 — post-#116 health residuals on a855
+- Tip review after #116; #115 auth/SVK residuals still absent on main.
+- Replayed allowlisted login error/success flashes, proxy getSafeNextPath,
+  signOut outage guard, and SVK retry-before-reimport regression lock.
+- #116 TO public RLS roles FP'd against original PUBLIC defaults.
+- Verification: vitest 18/18, health + post-108 regressions, migration/types, app tsc PASS.

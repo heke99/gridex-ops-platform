@@ -1,14 +1,15 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-11T13:20:00Z",
-  "branch": "cursor/codebase-health-and-stability-0f25",
-  "active_phase": "POST_110_HEALTH_RESIDUALS",
-  "active_task": "Close post-#108 security residual on post-#110 tip and harden auth flash/next-path residuals",
+  "updated_at": "2026-08-13T07:45:00Z",
+  "branch": "cursor/codebase-health-and-stability-a855",
+  "active_phase": "POST_116_HEALTH_RESIDUALS",
+  "active_task": "Replay post-#114/#115 auth flash and SVK residual hardenings onto post-#116 tip",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "b443bfea6aea7cc6aca94cb3ed22d867db5b1e72",
-  "head_sha": "603f453c",
+  "base_main_sha": "e44b13f97b3921ed535179f33becc1753051aae8",
+  "head_sha": "408fc201",
   "verification": {
-    "auth_outage_vitest": "12/12 PASS",
+    "auth_outage_vitest": "18/18 PASS",
+    "ops_health_regression": "PASS",
     "post_108_residuals_regression": "PASS",
     "migration_versions": "PASS",
     "supabase_generated_types": "PASS",
@@ -16,5 +17,5 @@
     "ggshield": "BLOCKED_CLI_MISSING",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Open/monitor PR for 0f25; supersede stale #109 after merge"
+  "resume_from": "Open/monitor PR for a855; supersede stale #115/#113 after merge"
 }
