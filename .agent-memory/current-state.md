@@ -2,30 +2,28 @@
 
 Updated: 2026-08-13
 
-## Tip health after #123 merge
+## Tip health after #124 merge
 
-- Main tip: `3cad481b` (`fix(health): close post-2eb61986 tip residuals (#123)`).
-- Active health branch: `cursor/codebase-health-and-stability-13b2`.
-- Hosted CI for `#123` completed successfully on main, but tip review found
-  residuals that either regressed during the squash/types regen or were never
-  covered by the auth-only hardening package.
+- Main tip: `ca28cb0a` (`fix(health): close post-#123 tip residuals on 13b2 (#124)`).
+- Active health branch: `cursor/codebase-health-and-stability-9807`.
+- Hosted CI for `#124` succeeded on the PR and main verify job; tip review found
+  a remaining UTILTS null IDE+24 disposition/ACK attribution gap that #124 did
+  not finish.
 
-## Residuals closed on `13b2`
+## Residuals closed on `9807`
 
-1. HIGH — Field-511 resolver Returns nullability overwritten by types regen;
-   durable post-gen override + clean-replay/CI gate restored
-2. HIGH — Public `/teckna-avtal` rendered raw `?message=` and redirected
-   `error.message` (phishing + provider leak)
-3. MEDIUM — Portal `/portal/komplettera` rendered raw blocked `?message=`
-4. MEDIUM — Proxy set `reason=account_disabled` but login ignored it
-5. MEDIUM — Dual `getSafeNextPath` implementations (urls vs authEmailFlow)
-6. MEDIUM — UTILTS tenant match builder kept null IDE+24 refs, so synthesized
-   persistence ids could not join metering-point matches
-7. MEDIUM — post-332 residual regression was not gated in ops-hardening
+1. HIGH — Null IDE+24 profile/runtime issues used synthesized `transaction-N`
+   refs while dispositions matched only raw null ids, producing false
+   accepted/positive-APERAK outcomes; shared identity module + disposition/
+   issue/ACK synthesis closes the join
+2. MEDIUM — Fallback per-txn APERAK targets dropped null IDE+24 groups
+3. MEDIUM — Typegen docs/process still taught a path without nullability
+   overrides; `db:types:gen` now applies overrides after typegen
+4. LOW — Disposition/persistence vitest now gated in ops-hardening verify
 
-## Verification executed on `13b2`
+## Verification executed on `9807`
 
-- vitest auth-outage + UTILTS disposition/persistence: 50/50 PASS
+- vitest auth-outage + UTILTS disposition/persistence: 52/52 PASS
 - `gridex:post-332-field-511-health-residuals-regression`: PASS
 - ops health: PASS
 - `ediel:utilts-reason-regression`: PASS
@@ -38,5 +36,7 @@ Updated: 2026-08-13
 
 - Applied field-511 import migration `20260813210500` (immutable).
 - Official UTILTS matrices / TGT-AGT evidence remain external blockers.
-- Open `#122` and older health PRs remain pre-`3cad481b` vehicles; close as
-  superseded after `13b2` merges.
+- Admin-only flash banners and navigation-mode same-origin escape remain
+  deferred as previously classified likely FP / authenticated-only.
+- Open `#122` and older health PRs remain pre-`ca28cb0a` vehicles; close as
+  superseded after `9807` merges.
