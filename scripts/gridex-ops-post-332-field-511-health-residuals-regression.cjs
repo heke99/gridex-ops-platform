@@ -94,6 +94,23 @@ for (const marker of requiredTypeMarkers) {
   check(types.includes(marker), `generated types missing field-511 marker: ${marker}`)
 }
 
+const resolverReturnsMatch = types.match(
+  /resolve_ediel_timeseries_product_511:\s*\{[\s\S]*?Returns:\s*\{([\s\S]*?)\}\[\]/,
+)
+const resolverReturns = resolverReturnsMatch?.[1] ?? ''
+check(
+  Boolean(resolverReturnsMatch),
+  'generated types must include resolve_ediel_timeseries_product_511 Returns block',
+)
+check(
+  /valid_to:\s*string\s*\|\s*null/.test(resolverReturns),
+  'resolver Returns.valid_to must remain nullable (SQL valid_to date can be null)',
+)
+check(
+  /description:\s*string\s*\|\s*null/.test(resolverReturns),
+  'resolver Returns.description must remain nullable (SQL description text can be null)',
+)
+
 check(
   typesManifest.latest_migration ===
     '20260813221500_ediel_utilts_field_511_l653q_description_trim.sql',

@@ -74336,12 +74336,12 @@ export type Database = {
         }
         Returns: {
           code: string
-          description: string
+          description: string | null
           message_codes: string[]
           phase: string
           source_hash: string
           valid_from: string
-          valid_to: string
+          valid_to: string | null
           version: string
         }[]
       }
