@@ -1,5 +1,3 @@
--- Make the existing implicit default-deny state explicit for service-only/internal tables.
--- This does not grant anon/authenticated access; it documents and preserves denial via RLS.
 set lock_timeout = '5s';
 set statement_timeout = '120s';
 
@@ -7,98 +5,42 @@ do $do$
 declare
   v_table text;
   v_tables constant text[] := array[
-    'automation_locks',
-    'billing_adjustment_cases',
-    'billing_automation_jobs',
-    'company_number_sequences',
-    'contract_lifecycle_backfill_issues',
-    'contract_lifecycle_operation_errors',
-    'customer_application_intakes',
-    'customer_external_auth_links',
-    'customer_portal_write_idempotency',
-    'customer_site_address_conflicts',
-    'customer_site_address_history',
-    'document_parse_jobs',
-    'ediel_ack_matrix_rules',
-    'ediel_ack_transaction_results',
-    'ediel_business_correlations',
-    'ediel_business_expectations',
-    'ediel_business_transactions',
-    'ediel_business_transition_rules',
-    'ediel_compliance_decision_events',
-    'ediel_compliance_decisions',
-    'ediel_compliance_evidence',
-    'ediel_compliance_rules',
-    'ediel_control_tower_events',
-    'ediel_inbound_processing_records',
-    'ediel_route_resolution_cache',
-    'ediel_route_resolution_test_cases',
-    'ediel_route_shadow_findings',
-    'ediel_sla_deadlines',
-    'ediel_sla_definitions',
-    'energy_area_resolution_log',
-    'energy_area_resolver_quality',
-    'event_dispatch_leases',
-    'external_contract_intakes',
-    'external_contract_source_mappings',
-    'grid_area_resolution_test_cases',
-    'gridex_actor_certification_prerequisites',
-    'gridex_api_deprecation_consumer_cutovers',
-    'gridex_api_deprecation_consumer_inventory',
-    'gridex_api_deprecation_gates',
-    'gridex_api_deprecation_run_evidence',
-    'gridex_api_endpoint_capability_matrix',
-    'gridex_api_route_disposition',
-    'gridex_asset_integrity_check_runs',
-    'gridex_asset_integrity_quarantine',
-    'gridex_asset_registry',
-    'gridex_contract_state_transition_rules',
-    'gridex_document_metadata',
-    'gridex_ediel_certification_assertion_catalog',
-    'gridex_ediel_execution_adapters',
-    'gridex_lifecycle_code_definition',
-    'gridex_lifecycle_readiness_requirement',
-    'gridex_replay_checkpoints',
-    'gridex_signing_contexts',
-    'gridex_state_machine_runtime_rules',
-    'identity_invariant_violations',
-    'integration_api_idempotency',
-    'integration_api_requests',
-    'integration_health_events',
-    'product_plan_versions',
-    'site_ownership_conflicts',
-    'webhook_dispatch_leases'
+    'automation_locks','billing_adjustment_cases','billing_automation_jobs','company_number_sequences',
+    'contract_lifecycle_backfill_issues','contract_lifecycle_operation_errors','customer_application_intakes',
+    'customer_external_auth_links','customer_portal_write_idempotency','customer_site_address_conflicts',
+    'customer_site_address_history','document_parse_jobs','ediel_ack_matrix_rules','ediel_ack_transaction_results',
+    'ediel_business_correlations','ediel_business_expectations','ediel_certification_evidence','ediel_inbound_quarantine',
+    'ediel_production_send_approvals','ediel_repair_issues','ediel_repair_runs','ediel_rule_pack_backfill_issues',
+    'ediel_rule_pack_snapshots','gridex_performance_hardening_events','integration_api_client_profiles',
+    'integration_api_permission_groups','integration_api_rate_limit_buckets','integration_api_write_idempotency',
+    'legal_bundle_items','legal_bundles','market_process_policies','onboarding_choices','onboarding_sessions',
+    'onboarding_steps','ops_publication_state','platform_go_live_route_simulations','platform_outbound_state',
+    'platform_performance_budgets','platform_reconciliation_findings','platform_release_receipts','platform_schema_state',
+    'platform_usage_event_failures','platform_usage_events','portfolio_settlement_invoice_bindings','price_book_lines',
+    'price_books','tenant_actor_identifiers','tenant_actor_roles','tenant_application_reference_profiles',
+    'tenant_bilateral_agreements','tenant_certificate_profiles','tenant_communication_profiles',
+    'tenant_counterparty_relations','tenant_counterparty_routes','tenant_ediel_profiles','tenant_email_outbox_runs',
+    'tenant_launch_states','tenant_mailboxes','tenant_message_capabilities','tenant_website_installation_receipts',
+    'website_public_contract_snapshots'
   ];
 begin
   foreach v_table in array v_tables loop
-    if exists (
-      select 1
-      from pg_class c
-      join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public'
-        and c.relname = v_table
-        and c.relkind in ('r','p')
-        and c.relrowsecurity
-    )
-    and not exists (
+    if to_regclass(format('public.%I', v_table)) is null then
+      continue;
+    end if;
+
+    -- These tables are deliberately service-role only. Keep the existing
+    -- deny-by-default semantics explicit for PostgREST API roles without
+    -- granting any table privileges or widening access.
+    if not exists (
       select 1
       from pg_policy p
-      join pg_class c on c.oid = p.polrelid
-      join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public'
-        and c.relname = v_table
-    )
-    and not exists (
-      select 1
-      from information_schema.role_table_grants g
-      where g.table_schema = 'public'
-        and g.table_name = v_table
-        and g.grantee in ('anon','authenticated')
+      where p.polrelid = to_regclass(format('public.%I', v_table))
+        and p.polname = 'gridex_explicit_service_only_deny'
     ) then
       execute format(
-        'create policy %I on public.%I as permissive for all to anon, authenticated using (false) with check (false)',
-        'gridex_service_only_explicit_deny',
-        v_table
+        'create policy %I on public.%I for all to anon, authenticated using (false) with check (false)',
+        'gridex_explicit_service_only_deny', v_table
       );
     end if;
   end loop;
