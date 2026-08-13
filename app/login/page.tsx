@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { sanitizeLoginErrorFlash } from '@/lib/auth/loginError'
+import { sanitizeLoginErrorFlash, sanitizeLoginSuccessFlash } from '@/lib/auth/loginError'
 import { getSafeNextPath } from '@/lib/auth/urls'
 import { loginAction } from './actions'
 
@@ -18,7 +18,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams
   const error = sanitizeLoginErrorFlash(params.error)
-  const message = params.message
+  const message = sanitizeLoginSuccessFlash(params.message)
   const next = getSafeNextPath(params.next)
 
   return (
