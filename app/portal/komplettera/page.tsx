@@ -3,6 +3,7 @@ import {
   listPortalCompletions,
   listPortalInfoRequests,
 } from "@/lib/customer-portal/db";
+import { sanitizePortalCompletionBlockedFlash } from "@/lib/customer-portal/completionFlash";
 import { formatDate } from "@/lib/customer-portal/format";
 import { submitPortalCompletionAction } from "./actions";
 
@@ -31,7 +32,7 @@ export default async function PortalCompletionPage({
       ) : null}
       {params?.status === "blocked" ? (
         <section className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">
-          {params.message ?? "Kompletteringen kunde inte skickas."}
+          {sanitizePortalCompletionBlockedFlash(params.message)}
         </section>
       ) : null}
 

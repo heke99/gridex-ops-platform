@@ -1,3 +1,4 @@
+import { sanitizeExternalContractFlash } from '@/lib/external-contracts/publicIntakeFlash'
 import { submitExternalContractAction } from './actions'
 
 
@@ -5,6 +6,7 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
   const params = searchParams ? await searchParams : {}
   const companySlug = params?.bolag?.trim() ?? ''
   const offerReference = params?.offer_reference?.trim() ?? ''
+  const flash = sanitizeExternalContractFlash(params?.status, params?.message)
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-10 text-slate-950">
@@ -17,9 +19,9 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
           </p>
         </section>
 
-        {params?.message ? (
-          <section className={`rounded-3xl border p-5 text-sm font-semibold ${params.status === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
-            {params.message}
+        {flash ? (
+          <section className={`rounded-3xl border p-5 text-sm font-semibold ${flash.status === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
+            {flash.message}
           </section>
         ) : null}
 

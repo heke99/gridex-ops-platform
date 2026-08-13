@@ -17,6 +17,12 @@ import {
   matchCustomerIdentity,
   type CustomerMatchDecision,
 } from "@/lib/customers/matchingService";
+import {
+  EXTERNAL_CONTRACT_COMPANY_CLOSED_MESSAGE,
+  EXTERNAL_CONTRACT_COMPANY_NOT_FOUND_MESSAGE,
+  EXTERNAL_CONTRACT_OFFER_INCOMPLETE_MESSAGE,
+  EXTERNAL_CONTRACT_OFFER_UNAVAILABLE_MESSAGE,
+} from "@/lib/external-contracts/publicIntakeFlash";
 
 type ExternalContractInput = {
   companySlug: string;
@@ -218,9 +224,7 @@ async function resolveCanonicalPublicOffer(input: {
       (field) => typeof row[field] !== "string" || !String(row[field]).trim(),
     )
   ) {
-    throw new Error(
-      "Det valda avtalet är inte komplett publicerat eller saknar canonical versionskopplingar.",
-    );
+    throw new Error(EXTERNAL_CONTRACT_OFFER_INCOMPLETE_MESSAGE);
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -231,7 +235,7 @@ async function resolveCanonicalPublicOffer(input: {
     (validFrom && validFrom > today) ||
     (validTo && validTo < today)
   ) {
-    throw new Error("Det valda avtalet är inte tillgängligt idag.");
+    throw new Error(EXTERNAL_CONTRACT_OFFER_UNAVAILABLE_MESSAGE);
   }
 
   return row as unknown as CanonicalPublicOfferBinding;
@@ -248,14 +252,14 @@ export async function createExternalContractIntake(
 
   if (companyError) throw companyError;
   if (!company?.id) {
-    throw new Error("Bolaget hittades inte. Kontrollera länken till avtalsformuläret.");
+    throw new Error(EXTERNAL_CONTRACT_COMPANY_NOT_FOUND_MESSAGE);
   }
   if (
     String(company.status ?? "") !== "active" ||
     String(company.production_status ?? "") !== "live" ||
     !company.live_approved_at
   ) {
-    throw new Error("Bolaget tar inte emot nya avtal just nu.");
+    throw new Error(EXTERNAL_CONTRACT_COMPANY_CLOSED_MESSAGE);
   }
 
   const companyId = String(company.id);
