@@ -6,7 +6,8 @@
   "active_task": "Close tip residuals after second 332 field-511 package push",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "f596dc55",
-  "head_sha": "c23b0ff2",
+  "head_sha": "fc82fba6",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/121",
   "verification": {
     "vitest_auth_utilts_targeted": "PASS_35_35",
     "post_332_field_511_residuals_regression": "PASS",
