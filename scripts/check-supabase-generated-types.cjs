@@ -30,6 +30,22 @@ if (!generated.toString('utf8').includes('export type Database')) {
   failures.push('generated types do not export Database')
 }
 
+const generatedText = generated.toString('utf8')
+const resolverReturnsMatch = generatedText.match(
+  /resolve_ediel_timeseries_product_511:\s*\{[\s\S]*?Returns:\s*\{([\s\S]*?)\}\[\]/,
+)
+const resolverReturns = resolverReturnsMatch?.[1] ?? ''
+if (!/description:\s*string\s*\|\s*null/.test(resolverReturns)) {
+  failures.push(
+    'resolve_ediel_timeseries_product_511 Returns.description must be string | null (run scripts/apply-supabase-types-nullability-overrides.cjs after typegen)',
+  )
+}
+if (!/valid_to:\s*string\s*\|\s*null/.test(resolverReturns)) {
+  failures.push(
+    'resolve_ediel_timeseries_product_511 Returns.valid_to must be string | null (run scripts/apply-supabase-types-nullability-overrides.cjs after typegen)',
+  )
+}
+
 if (failures.length) {
   console.error('Supabase generated-types check failed:')
   failures.forEach((failure) => console.error(`- ${failure}`))

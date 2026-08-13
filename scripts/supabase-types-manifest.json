@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-13T21:03:25.525Z",
+  "generated_at": "2026-08-13T21:19:18.770Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "796ea061618af9d84539eecffac4dfeba6e6287525b6c2b55433802b992c2ad8",
+  "sha256": "2111c2c687ef4bb3d0bcf68b63d50133bfef6a212d38442bd213c53d2cd7f3b0",
   "latest_migration": "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql"
 }
