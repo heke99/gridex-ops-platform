@@ -55,8 +55,10 @@ npm run ops:canonical-production-preflight
 supabase link --project-ref "$SUPABASE_STAGING_PROJECT_REF"
 supabase db push --linked --include-all
 
-# Regenerate database types after successful staging apply
-supabase gen types typescript --linked --schema public > lib/supabase/database.types.ts
+# Regenerate database types after successful staging apply.
+# Always apply nullability overrides after typegen so field-511 Returns
+# description/valid_to stay string | null (see scripts/apply-supabase-types-nullability-overrides.cjs).
+npm run db:types:gen
 npm run typecheck
 
 # Service-role database invariants. Fixture IDs must represent:
