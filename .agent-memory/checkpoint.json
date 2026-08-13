@@ -1,20 +1,23 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-13T13:05:00Z",
-  "branch": "agent/ediel-production-engine-20260813",
-  "active_phase": "EDIEL_PRODUCTION_ENGINE_DELTA",
-  "active_task": "Publish and verify canonical UTILTS field matrix, transactional persistence and 95/3/2 runtime",
+  "updated_at": "2026-08-13T19:50:00Z",
+  "branch": "cursor/codebase-health-and-stability-2ef0",
+  "active_phase": "POST_332_FIELD_511_HEALTH_RESIDUALS",
+  "active_task": "Replay #119 auth/UTILTS residuals onto post-332 tip; trim L653Q; sync generated types",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "e44b13f9",
-  "head_sha": "LOCAL_UNPUBLISHED",
+  "base_main_sha": "64806855",
+  "head_sha": "08c7312a",
   "verification": {
-    "utilts_targeted_vitest": "PASS",
-    "full_vitest": "PASS",
-    "migration_versions_and_types": "PASS",
-    "supabase_rollback_e2e": "PASS",
-    "typecheck_lint_build": "PASS",
-    "api_rbac_regressions": "PASS",
-    "hosted_ci": "NOT_YET"
+    "vitest_auth_utilts_targeted": "PASS_35",
+    "post_332_field_511_residuals": "PASS",
+    "ops_health_regression": "PASS",
+    "post_108_residuals": "PASS",
+    "migration_versions": "PASS",
+    "generated_types": "PASS",
+    "utilts_reason_regression": "PASS",
+    "tsc_app": "PASS",
+    "hosted_ci": "NOT_YET",
+    "ggshield": "BLOCKED_CLI_MISSING"
   },
-  "resume_from": "Publish PR #118 delta; monitor hosted CI clean replay and matching Vercel deployment"
+  "resume_from": "Monitor hosted CI for 2ef0; close superseded open health PRs after merge"
 }

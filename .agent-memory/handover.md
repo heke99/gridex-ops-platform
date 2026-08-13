@@ -1,15 +1,14 @@
 # Handover
 
-Updated: 2026-08-11
+Updated: 2026-08-13
 
-Branch `cursor/codebase-health-and-stability-0f25` closes the post-#108
-reconciliation/O-008 security residual on the post-#110 tip and hardens
-auth flash allowlisting plus next-path backslash rejection introduced as
-second-order residuals from #110.
+Branch `cursor/codebase-health-and-stability-2ef0` closes post-#332 tip
+residuals: replays open `#119` auth/SVK/UTILTS ACK fixes onto main after the
+field-511 product import, forward-trims the L653Q workbook tab, and advances
+generated types/manifests to `20260813221500`.
 
-Do not reopen #109 as the merge vehicle once `0f25` is reviewed; #109 predates
-#110 and would need a rebase. Prefer merging `0f25` then closing #109 as
-superseded.
+Prefer merging `2ef0`, then closing `#119` / `#117` / `#115` as superseded.
+Do not rewrite applied migration `20260813210500`.
 
 ggshield was unavailable in this environment; run secret scan in CI/host before
-production apply of `20260811114500`.
+production apply of the new forward trim migration.

@@ -4,11 +4,11 @@ Updated: 2026-08-13
 
 Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-Active work item: Ediel production-engine repository delta on
-`agent/ediel-production-engine-20260813` / PR `#118`.
+Active work item: Post-#332 field-511 tip health residuals on
+`cursor/codebase-health-and-stability-2ef0`.
 
 ## Exact next action
 
-Publish the verified delta to PR `#118`, run hosted CI/clean replay, and verify
-the matching Vercel SHA. Do not claim full official production readiness while
-the exact operation/request matrices, field-511 tuples and TGT/AGT evidence are absent.
+Publish/monitor hosted CI for `2ef0` (and close superseded `#119`/`#117`/`#115`
+once merged). Do not claim live DB apply of field-511 import/trim until hosted
+migration replay is observed.

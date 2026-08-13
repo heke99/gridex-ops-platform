@@ -92,3 +92,18 @@
 | API/RBAC gates | PASS | Docs, compatibility, release and 24-check RBAC audit |
 | Hosted CI/Vercel | PENDING | Publish/CI/deploy step remains |
 | Official operation/request matrices, 511 tuples, TGT/AGT | BLOCKED EXTERNAL | Source/evidence absent; no invented values |
+
+## POST-#332 field-511 health residuals — 2026-08-13 (`2ef0`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth + UTILTS disposition/persistence vitest | PASS 35/35 | targeted vitest trio |
+| post-332 field-511 residuals regression | PASS | `gridex-ops-post-332-field-511-health-residuals-regression.cjs` |
+| ops health regression | PASS | SVK retry-before-reimport lock retained |
+| post-108 residuals regression | PASS | tip >= security residual migration |
+| migration versions | PASS | 428 files / 332 groups |
+| generated types tip | PASS | pinned to `20260813221500` |
+| utilts reason regression | PASS | `ediel-utilts-reason-regression.cjs` |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
+| Hosted CI / live apply | PENDING | publish/CI/deploy step remains |

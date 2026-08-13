@@ -349,3 +349,8 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Cherry-picked post-#108 security residual onto post-#110 tip.
 - Hardened login/update-password error flash allowlists and next-path backslash rejection.
 - Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
+
+## 2026-08-13 — post-#332 field-511 health residuals on 2ef0
+- Replayed open #119 auth/SVK/UTILTS ACK residuals onto main tip after field-511 import.
+- Forward-trimmed L653Q workbook leading tab; synced generated types for 511 columns + resolver.
+- Verification: vitest 35/35, post-332/post-108/ops-health regressions, migration/types, utilts reason, app tsc PASS.
