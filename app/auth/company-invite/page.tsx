@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getCompanyInvitationByToken } from '@/lib/auth/companyInvitationFlow'
+import { sanitizeCompanyInviteErrorFlash } from '@/lib/auth/loginError'
 import { acceptCompanyInvitationAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,7 @@ function companyName(invitation: Awaited<ReturnType<typeof getCompanyInvitationB
 export default async function CompanyInvitePage({ searchParams }: CompanyInvitePageProps) {
   const params = await searchParams
   const token = String(params.token ?? '').trim()
-  const error = params.error
+  const error = sanitizeCompanyInviteErrorFlash(params.error)
   const invitation = token ? await getCompanyInvitationByToken(token) : null
   const isPending = invitation?.status === 'pending'
 

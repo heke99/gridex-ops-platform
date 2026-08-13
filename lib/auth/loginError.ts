@@ -20,6 +20,20 @@ export const UPDATE_PASSWORD_FAILED_MESSAGE =
   'Det gick inte att uppdatera lösenordet. Begär en ny återställningslänk och försök igen.'
 export const UPDATE_PASSWORD_SUCCESS_MESSAGE = 'Lösenordet är uppdaterat.'
 
+export const FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE =
+  'Ange e-postadressen som är kopplad till kontot.'
+export const FORGOT_PASSWORD_SEND_FAILED_MESSAGE =
+  'Det gick inte att skicka återställningslänken. Kontrollera e-postadressen och försök igen.'
+
+export const AUTH_ACTION_LINK_MISSING_INFO_MESSAGE =
+  'Länken saknar giltig verifieringsinformation. Begär en ny länk och försök igen.'
+export const AUTH_ACTION_LINK_EXPIRED_MESSAGE = LOGIN_VERIFY_LINK_EXPIRED_MESSAGE
+
+export const COMPANY_INVITE_MISSING_TOKEN_MESSAGE =
+  'Inbjudningslänken saknar token. Be administratören skicka en ny inbjudan.'
+export const COMPANY_INVITE_ACCEPT_FAILED_MESSAGE =
+  'Inbjudan kunde inte accepteras. Kontrollera att du är inloggad med rätt e-post eller be administratören skicka en ny länk.'
+
 const ALLOWED_LOGIN_ERROR_FLASHES = new Set([
   LOGIN_INVALID_CREDENTIALS_MESSAGE,
   LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
@@ -39,6 +53,22 @@ const ALLOWED_UPDATE_PASSWORD_ERROR_FLASHES = new Set([
   UPDATE_PASSWORD_MISMATCH_MESSAGE,
   UPDATE_PASSWORD_SESSION_MISSING_MESSAGE,
   UPDATE_PASSWORD_FAILED_MESSAGE,
+])
+
+const ALLOWED_FORGOT_PASSWORD_ERROR_FLASHES = new Set([
+  FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE,
+  FORGOT_PASSWORD_SEND_FAILED_MESSAGE,
+])
+
+const ALLOWED_AUTH_ACTION_ERROR_FLASHES = new Set([
+  AUTH_ACTION_LINK_MISSING_INFO_MESSAGE,
+  AUTH_ACTION_LINK_EXPIRED_MESSAGE,
+  LOGIN_VERIFY_LINK_EXPIRED_MESSAGE,
+])
+
+const ALLOWED_COMPANY_INVITE_ERROR_FLASHES = new Set([
+  COMPANY_INVITE_MISSING_TOKEN_MESSAGE,
+  COMPANY_INVITE_ACCEPT_FAILED_MESSAGE,
 ])
 
 type AuthErrorLike = {
@@ -100,5 +130,35 @@ export function sanitizeUpdatePasswordErrorFlash(
     value,
     ALLOWED_UPDATE_PASSWORD_ERROR_FLASHES,
     UPDATE_PASSWORD_FAILED_MESSAGE,
+  )
+}
+
+export function sanitizeForgotPasswordErrorFlash(
+  value: string | null | undefined,
+): string | null {
+  return sanitizeAllowedFlash(
+    value,
+    ALLOWED_FORGOT_PASSWORD_ERROR_FLASHES,
+    FORGOT_PASSWORD_SEND_FAILED_MESSAGE,
+  )
+}
+
+export function sanitizeAuthActionErrorFlash(
+  value: string | null | undefined,
+): string | null {
+  return sanitizeAllowedFlash(
+    value,
+    ALLOWED_AUTH_ACTION_ERROR_FLASHES,
+    AUTH_ACTION_LINK_EXPIRED_MESSAGE,
+  )
+}
+
+export function sanitizeCompanyInviteErrorFlash(
+  value: string | null | undefined,
+): string | null {
+  return sanitizeAllowedFlash(
+    value,
+    ALLOWED_COMPANY_INVITE_ERROR_FLASHES,
+    COMPANY_INVITE_ACCEPT_FAILED_MESSAGE,
   )
 }

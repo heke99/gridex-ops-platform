@@ -1,6 +1,9 @@
 import type { EmailOtpType, User } from '@supabase/supabase-js'
+import { getBaseAppUrl } from '@/lib/auth/urls'
 import { supabaseService } from '@/lib/supabase/service'
 import { sendTenantBrandedPasswordResetEmail } from '@/lib/tenant/passwordResetEmail'
+
+export { getBaseAppUrl }
 
 export type AuthEmailActionType =
   | 'email'
@@ -35,16 +38,6 @@ function normalizeEmail(value: string | null | undefined) {
 function isIgnorableSchemaError(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false
   return ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')
-}
-
-export function getBaseAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    process.env.SITE_URL ??
-    'http://localhost:3000'
-  ).replace(/\/$/, '')
 }
 
 function isSafeRelativeNextPath(value: string): boolean {

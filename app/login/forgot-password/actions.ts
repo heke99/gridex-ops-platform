@@ -1,6 +1,10 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import {
+  FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE,
+  FORGOT_PASSWORD_SEND_FAILED_MESSAGE,
+} from '@/lib/auth/loginError'
 import { sendTenantBrandedPasswordResetEmail } from '@/lib/tenant/passwordResetEmail'
 
 function normalizeEmail(value: string) {
@@ -12,9 +16,7 @@ export async function requestPasswordResetAction(formData: FormData) {
 
   if (!email) {
     redirect(
-      `/login/forgot-password?error=${encodeURIComponent(
-        'Ange e-postadressen som är kopplad till kontot.'
-      )}`
+      `/login/forgot-password?error=${encodeURIComponent(FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE)}`,
     )
   }
 
@@ -25,9 +27,7 @@ export async function requestPasswordResetAction(formData: FormData) {
     })
   } catch {
     redirect(
-      `/login/forgot-password?error=${encodeURIComponent(
-        'Det gick inte att skicka återställningslänken. Kontrollera e-postadressen och försök igen.'
-      )}`
+      `/login/forgot-password?error=${encodeURIComponent(FORGOT_PASSWORD_SEND_FAILED_MESSAGE)}`,
     )
   }
 

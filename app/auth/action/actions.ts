@@ -9,9 +9,24 @@ import {
   syncVerifiedAuthEmailAction,
   toSupabaseEmailOtpType,
 } from '@/lib/auth/authEmailFlow'
+import {
+  AUTH_ACTION_LINK_EXPIRED_MESSAGE,
+  AUTH_ACTION_LINK_MISSING_INFO_MESSAGE,
+} from '@/lib/auth/loginError'
 
-function redirectBackWithError(message: string): never {
-  redirect(`/auth/action?error=${encodeURIComponent(message)}`)
+function redirectBackWithError(
+  message: string,
+  context: {
+    tokenHash?: string
+    type?: string | null
+    nextPath?: string
+  } = {},
+): never {
+  const params = new URLSearchParams({ error: message })
+  if (context.tokenHash) params.set('token_hash', context.tokenHash)
+  if (context.type) params.set('type', context.type)
+  if (context.nextPath) params.set('next', context.nextPath)
+  redirect(`/auth/action?${params.toString()}`)
 }
 
 export async function verifyAuthEmailAction(formData: FormData) {
@@ -19,11 +34,15 @@ export async function verifyAuthEmailAction(formData: FormData) {
   const type = normalizeAuthEmailType(String(formData.get('type') ?? ''))
   const nextPath = getSafeNextPath(
     String(formData.get('next') ?? ''),
-    getDefaultNextPathForAuthType(type)
+    getDefaultNextPathForAuthType(type),
   )
 
   if (!tokenHash || !type) {
-    redirectBackWithError('Länken saknar giltig verifieringsinformation. Begär en ny länk och försök igen.')
+    redirectBackWithError(AUTH_ACTION_LINK_MISSING_INFO_MESSAGE, {
+      tokenHash,
+      type,
+      nextPath,
+    })
   }
 
   const verifiedType = type
@@ -34,7 +53,11 @@ export async function verifyAuthEmailAction(formData: FormData) {
   })
 
   if (error || !data.user) {
-    redirectBackWithError('Länken har gått ut eller är redan använd. Begär en ny länk och försök igen.')
+    redirectBackWithError(AUTH_ACTION_LINK_EXPIRED_MESSAGE, {
+      tokenHash,
+      type: verifiedType,
+      nextPath,
+    })
   }
 
   const verifiedUser = data.user

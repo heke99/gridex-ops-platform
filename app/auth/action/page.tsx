@@ -4,6 +4,7 @@ import {
   getSafeNextPath,
   normalizeAuthEmailType,
 } from '@/lib/auth/authEmailFlow'
+import { sanitizeAuthActionErrorFlash } from '@/lib/auth/loginError'
 import { verifyAuthEmailAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -69,7 +70,7 @@ export default async function AuthActionPage({ searchParams }: AuthActionPagePro
   const nextPath = getSafeNextPath(params.next, getDefaultNextPathForAuthType(type))
   const copy = getCopy(type)
 
-  const error = params.error
+  const error = sanitizeAuthActionErrorFlash(params.error)
   const hasLinkData = Boolean(tokenHash && type)
 
   return (

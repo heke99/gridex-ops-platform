@@ -1,19 +1,10 @@
+import { getBaseAppUrl } from '@/lib/auth/urls'
 import { supabaseService } from '@/lib/supabase/service'
 import { getTenantEmailBranding, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
 import { sendTransactionalEmail, getAuthSmtpReadiness } from '@/lib/auth/smtpTransactionalEmail'
 
 function normalizeEmail(value: string | null | undefined) {
   return String(value ?? '').trim().toLowerCase()
-}
-
-function getBaseAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    process.env.SITE_URL ??
-    'http://localhost:3000'
-  ).replace(/\/$/, '')
 }
 
 function authCallbackRedirect() {

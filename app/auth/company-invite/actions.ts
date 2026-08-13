@@ -2,7 +2,11 @@
 
 import { redirect } from 'next/navigation'
 import { acceptCompanyInvitationByToken } from '@/lib/auth/companyInvitationFlow'
-import { LOGIN_INVITE_ACCEPTED_MESSAGE } from '@/lib/auth/loginError'
+import {
+  COMPANY_INVITE_ACCEPT_FAILED_MESSAGE,
+  COMPANY_INVITE_MISSING_TOKEN_MESSAGE,
+  LOGIN_INVITE_ACCEPTED_MESSAGE,
+} from '@/lib/auth/loginError'
 
 function redirectWithError(message: string, token?: string): never {
   const params = new URLSearchParams({ error: message })
@@ -12,13 +16,13 @@ function redirectWithError(message: string, token?: string): never {
 
 export async function acceptCompanyInvitationAction(formData: FormData) {
   const token = String(formData.get('token') ?? '').trim()
-  if (!token) redirectWithError('Inbjudningslänken saknar token. Be administratören skicka en ny inbjudan.')
+  if (!token) redirectWithError(COMPANY_INVITE_MISSING_TOKEN_MESSAGE)
 
   try {
     await acceptCompanyInvitationByToken(token)
   } catch (error) {
     console.warn('[company-invite] invitation acceptance failed', error)
-    redirectWithError('Inbjudan kunde inte accepteras. Kontrollera att du är inloggad med rätt e-post eller be administratören skicka en ny länk.', token)
+    redirectWithError(COMPANY_INVITE_ACCEPT_FAILED_MESSAGE, token)
   }
 
   redirect(`/login?message=${encodeURIComponent(LOGIN_INVITE_ACCEPTED_MESSAGE)}`)
