@@ -1,0 +1,55 @@
+name: Repair generated Supabase types
+
+on:
+  push:
+    branches:
+      - cursor/codebase-health-and-stability-0a00
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Reconstruct clean schema and regenerate committed types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase gen types typescript --local > supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          node - "$GENERATED_HASH" <<'NODE'
+          const fs = require('node:fs');
+          const hash = process.argv[2];
+          const path = 'scripts/supabase-types-manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          manifest.sha256 = hash;
+          manifest.generated_at = new Date().toISOString();
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+          test "$GENERATED_HASH" = "$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
+      - name: Commit regenerated artifacts if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if git diff --cached --quiet; then
+            echo "Generated artifacts already canonical."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(db): regenerate canonical Supabase types"
+          git push origin HEAD:cursor/codebase-health-and-stability-0a00
