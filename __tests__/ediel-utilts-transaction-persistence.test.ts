@@ -1,8 +1,35 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildUtiltsTransactionPersistencePayload } from '@/lib/ediel/utilts/transactionPersistence'
+import {
+  buildUtiltsTransactionPersistencePayload,
+  resolveUtiltsTransactionId,
+} from '@/lib/ediel/utilts/transactionPersistence'
 
 describe('UTILTS transaction persistence payload', () => {
+  it('synthesizes stable transaction ids that match the SQL persistence fallback', () => {
+    expect(resolveUtiltsTransactionId(null, 0)).toBe('transaction-1')
+    expect(resolveUtiltsTransactionId('  ', 1)).toBe('transaction-2')
+    expect(resolveUtiltsTransactionId('TX-KEEP', 4)).toBe('TX-KEEP')
+
+    const payload = buildUtiltsTransactionPersistencePayload({
+      messageCode: 'E66',
+      transactions: [
+        {
+          transactionId: null, meterPointId: '735999000000000001', gridAreaId: 'ABC',
+          deliveryPeriodStart: null, deliveryPeriodEnd: null, registrationTime: null,
+          resolution: null, unit: 'KWH', transactionReason: null, quantities: [],
+          sourceOrder: 0, deliveryPeriodRaw: null, deliveryPeriodFormat: null, resolutionFormat: null,
+        },
+      ],
+      dispositions: [
+        { transactionId: null, disposition: 'accepted', responseType: 'positive_aperak', issueCodes: [] },
+      ],
+      matches: [],
+    })
+
+    expect(payload[0]?.transactionId).toBe('transaction-1')
+  })
+
   it('keeps accepted siblings and rejected transaction dispositions independent', () => {
     const payload = buildUtiltsTransactionPersistencePayload({
       messageCode: 'S02',

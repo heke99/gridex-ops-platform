@@ -53,6 +53,19 @@ export function utiltsSeriesKind(messageCode: string | null | undefined): Utilts
   return 'actual'
 }
 
+/**
+ * Keep TypeScript transaction identity aligned with
+ * `gridex_persist_utilts_transactions_v1`, which falls back to
+ * `transaction-<1-based-index>` when IDE+24 is absent.
+ */
+export function resolveUtiltsTransactionId(
+  transactionId: string | null | undefined,
+  index: number,
+): string {
+  const trimmed = typeof transactionId === 'string' ? transactionId.trim() : ''
+  return trimmed.length > 0 ? trimmed : `transaction-${index + 1}`
+}
+
 function byTransactionReference<T extends { transactionReference: string | null }>(
   values: readonly T[],
   transactionId: string | null,
@@ -77,12 +90,18 @@ export function buildUtiltsTransactionPersistencePayload(input: {
 }): UtiltsTransactionPersistenceItem[] {
   const seriesKind = utiltsSeriesKind(input.messageCode)
 
-  return input.dispositions.map((disposition) => {
-    const transaction = transactionById(input.transactions, disposition.transactionId)
-    const match = byTransactionReference(input.matches, disposition.transactionId)
+  return input.dispositions.map((disposition, dispositionIndex) => {
+    const transactionId = resolveUtiltsTransactionId(disposition.transactionId, dispositionIndex)
+    const transaction =
+      transactionById(input.transactions, disposition.transactionId) ??
+      transactionById(input.transactions, transactionId) ??
+      (input.transactions.length === 1 ? input.transactions[0] ?? null : null)
+    const match =
+      byTransactionReference(input.matches, disposition.transactionId) ??
+      byTransactionReference(input.matches, transactionId)
 
     return {
-      transactionId: disposition.transactionId,
+      transactionId,
       disposition: disposition.disposition,
       responseType: disposition.responseType,
       issueCodes: [...disposition.issueCodes],
