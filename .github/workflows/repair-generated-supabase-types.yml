@@ -1,0 +1,13 @@
+name: Repair generated Supabase types (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Historical one-shot repair workflow retained as inert evidence; canonical generated types are enforced by ops-hardening.yml."

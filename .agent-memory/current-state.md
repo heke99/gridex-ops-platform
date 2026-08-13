@@ -2,41 +2,38 @@
 
 Updated: 2026-08-13
 
-## Ediel production-engine audit
+## Tip health after dependency remediation
 
-- Baseline: `main@e44b13f9`; active branch `agent/ediel-production-engine-20260813`.
-- Live dev UTILTS rule packs now separate guide `25-A-3` / future `25-A-4` from association `E5SE5A`; current window starts 2025-06-01 and future remains inactive until 2026-10-01.
-- Canonical UTILTS object/aggregate/request semantics are aligned in TypeScript and DB profile metadata. Aggregate inbound request evaluation no longer forces a metering-point match.
-- Supplied S02/S03/S04 planning scope is now live in the active canonical registry: each profile resolves 13 exact header and 20 exact transaction rules.
-- Transaction-level 95/3/2 disposition and service-only persistence now preserve valid siblings, immutable series, correction lineage and idempotent replay; a rolled-back live database test passed.
-- Production verdict remains **NOT READY for full official completion** because exact operation/request R/D/O/X matrices, official field-511 tuple data and TGT/AGT evidence were not supplied and were not invented.
-- Repository-controlled work is ready for hosted CI; see `quality/ediel-production-engine-2026-08-13/final-audit.md`.
+- Main tip: `2eb61986` (`fix(security): remediate production dependency vulnerabilities`).
+- Active health branch: `cursor/codebase-health-and-stability-0a00`.
+- Tip change was lockfile-only (`brace-expansion`, `js-yaml`, `nanoid`).
+- Open `#122`/`a029` residuals were replayed onto this tip, then tip-specific
+  auth flash / base-URL / override pin gaps were closed.
 
-## Source truth
+## Residuals closed on `0a00`
 
-- Repository: `heke99/gridex-ops-platform`.
-- Default branch: `main` at `b443bfea` (#110 auth outage + cron safety).
-- Active health branch: `cursor/codebase-health-and-stability-0f25`.
+1. HIGH — `#122` auth/SVK/UTILTS/L653Q/packaging residuals absent from tip
+2. HIGH — sibling auth pages still rendered raw `?error=` query text
+3. HIGH — dual fail-open `getBaseAppUrl` copies (auth email flow, password reset)
+4. HIGH — logout ignored shared URL chain (`SITE_URL` only)
+5. MEDIUM — auth-action error redirect dropped retry context
+6. MEDIUM — audit remediations not pinned in `package.json` overrides
 
-## Tip review after #110
+## Verification executed on `0a00`
 
-Confirmed residuals addressed on `0f25`:
-
-1. CRITICAL — #108 still granted reconciliation EXECUTE to `authenticated`.
-   Forward migration `20260811114500` (from #109) cherry-picked onto post-#110 tip.
-2. MEDIUM — login/update-password `?error=` flash phishing surface allowlisted.
-3. MEDIUM — next-path helpers now reject backslash/NUL open-redirect shapes.
-4. LOW — cron regression asserts no `environment=test` query anywhere in vercel crons.
-5. LOW — update-password auth client init wrapped in outage boundary.
-
-Open #109 remains the pre-#110 vehicle for the same security residual; `0f25`
-is the tip-based superseding branch after #110 merged.
-
-## Verification executed on `0f25`
-
-- `vitest` auth-outage-cron-production-safety: 12/12 PASS
-- `gridex:post-108-health-residuals-regression`: PASS
-- `check-migration-versions`: PASS
-- `check-supabase-generated-types`: PASS
+- vitest auth-outage + UTILTS disposition/persistence: 43/43 PASS
+- `gridex:post-332-field-511-health-residuals-regression`: PASS
+- ops health: PASS
+- `ediel:utilts-reason-regression`: PASS
+- `db:migrations:integrity`: PASS
+- `db:types:check`: PASS
+- `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
 - ggshield: BLOCKED (CLI not installed)
+
+## Intentionally not changed
+
+- Applied field-511 import migration `20260813210500` (immutable).
+- Official UTILTS matrices / TGT-AGT evidence remain external blockers.
+- Open `#122` and older health PRs remain pre-`2eb61986` vehicles; close as
+  superseded after `0a00` merges.

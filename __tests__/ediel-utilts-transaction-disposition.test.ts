@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { resolveUtiltsTransactionDispositions } from '@/lib/ediel/utiltsEngine'
+import {
+  decideUtiltsRuntimeAckPlan,
+  resolveUtiltsTransactionDispositions,
+  type UtiltsRuntimeFacts,
+  type UtiltsRuntimeValidation,
+} from '@/lib/ediel/utiltsEngine'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 
 describe('UTILTS transaction-level disposition', () => {
   it('proves the canonical 95 accepted / 3 guide / 2 processability partial-success split', () => {
@@ -99,5 +105,61 @@ describe('UTILTS transaction-level disposition', () => {
     })
 
     expect(result.map((row) => row.responseType)).toEqual(['negative_contrl', 'negative_contrl'])
+  })
+
+  it('keeps guide APERAK error details when the message also has processability faults', () => {
+    // Message-level classification prefers functional_rejected whenever any
+    // functional issue exists. Transaction-scoped ACK creation still needs the
+    // guide/application error payload for sibling guide_rejected transactions.
+    const validation: UtiltsRuntimeValidation = {
+      ok: false,
+      syntaxOk: true,
+      functionalOk: false,
+      classification: 'functional_rejected',
+      issues: [
+        {
+          severity: 'error',
+          kind: 'application',
+          code: 'FIELD_REQUIRED',
+          title: 'Required field missing',
+          description: 'Field 245 is required.',
+          aperakErcCode: '41',
+          aperakFieldCode: '245',
+          aperakText: 'MANDATORY FIELD MISSING',
+          referenceQualifier: 'ACW',
+          referenceNumber: 'TX-GUIDE',
+          lineItemReference: 'TX-GUIDE',
+        },
+        {
+          severity: 'error',
+          kind: 'functional',
+          code: 'UNKNOWN_OBJECT',
+          title: 'Unknown object',
+          description: 'Metering point is not processable.',
+          utiltsErrCode: 'E10',
+          referenceQualifier: 'TN',
+          referenceNumber: 'TX-PROCESS',
+          lineItemReference: 'TX-PROCESS',
+        },
+      ],
+    }
+
+    const plan = decideUtiltsRuntimeAckPlan({
+      message: { message_family: 'UTILTS', environment: 'production' } as EdielMessageRow,
+      facts: { isUtiltsErr: false, messageCode: 'E66' } as UtiltsRuntimeFacts,
+      validation,
+    })
+
+    expect(plan.shouldSendUtiltsErr).toBe(true)
+    expect(plan.utiltsErrDetails).toEqual([
+      expect.objectContaining({ code: 'E10', referenceNumber: 'TX-PROCESS' }),
+    ])
+    expect(plan.aperakApplicationErrors).toEqual([
+      expect.objectContaining({
+        ercCode: '41',
+        fieldCode: '245',
+        lineItemReference: 'TX-GUIDE',
+      }),
+    ])
   })
 })

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { sanitizeForgotPasswordErrorFlash } from '@/lib/auth/loginError'
 import { requestPasswordResetAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +16,7 @@ export default async function ForgotPasswordPage({
 }: ForgotPasswordPageProps) {
   const params = await searchParams
   const sent = params.sent === '1'
-  const error = params.error
+  const error = sanitizeForgotPasswordErrorFlash(params.error)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6">

@@ -1,17 +1,32 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
+  AUTH_ACTION_LINK_EXPIRED_MESSAGE,
+  AUTH_ACTION_LINK_MISSING_INFO_MESSAGE,
+  COMPANY_INVITE_ACCEPT_FAILED_MESSAGE,
+  COMPANY_INVITE_MISSING_TOKEN_MESSAGE,
+  FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE,
+  FORGOT_PASSWORD_SEND_FAILED_MESSAGE,
+  LOGIN_EMAIL_CONFIRMED_MESSAGE,
   LOGIN_INVALID_CREDENTIALS_MESSAGE,
+  LOGIN_INVITE_ACCEPTED_MESSAGE,
   LOGIN_MISSING_FIELDS_MESSAGE,
   LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
+  LOGIN_VERIFY_LINK_EXPIRED_MESSAGE,
+  LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE,
   UPDATE_PASSWORD_FAILED_MESSAGE,
   UPDATE_PASSWORD_TOO_SHORT_MESSAGE,
   loginErrorMessage,
+  sanitizeAuthActionErrorFlash,
+  sanitizeCompanyInviteErrorFlash,
+  sanitizeForgotPasswordErrorFlash,
   sanitizeLoginErrorFlash,
+  sanitizeLoginSuccessFlash,
   sanitizeUpdatePasswordErrorFlash,
 } from '@/lib/auth/loginError'
-import { getSafeNextPath } from '@/lib/auth/urls'
+import { getBaseAppUrl as getAuthEmailFlowBaseAppUrl } from '@/lib/auth/authEmailFlow'
+import { getBaseAppUrl, getSafeNextPath } from '@/lib/auth/urls'
 
 describe('login auth error classification', () => {
   it('keeps invalid credentials indistinguishable', () => {
@@ -49,6 +64,15 @@ describe('login error flash allowlist', () => {
     expect(sanitizeLoginErrorFlash(LOGIN_MISSING_FIELDS_MESSAGE)).toBe(LOGIN_MISSING_FIELDS_MESSAGE)
   })
 
+  it('keeps auth-callback verification failure messages', () => {
+    expect(sanitizeLoginErrorFlash(LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE)).toBe(
+      LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE,
+    )
+    expect(sanitizeLoginErrorFlash(LOGIN_VERIFY_LINK_EXPIRED_MESSAGE)).toBe(
+      LOGIN_VERIFY_LINK_EXPIRED_MESSAGE,
+    )
+  })
+
   it('replaces crafted query-string phishing text with the outage message', () => {
     const crafted =
       'Ditt konto är låst. Skicka lösenordet till attacker@evil.example för att låsa upp.'
@@ -65,12 +89,165 @@ describe('login error flash allowlist', () => {
   })
 })
 
+describe('login success flash allowlist', () => {
+  it('keeps known success flashes and drops phishing copy', () => {
+    expect(sanitizeLoginSuccessFlash(LOGIN_EMAIL_CONFIRMED_MESSAGE)).toBe(
+      LOGIN_EMAIL_CONFIRMED_MESSAGE,
+    )
+    expect(sanitizeLoginSuccessFlash(LOGIN_INVITE_ACCEPTED_MESSAGE)).toBe(
+      LOGIN_INVITE_ACCEPTED_MESSAGE,
+    )
+    const crafted =
+      'Inbjudan accepterad. Skicka engångskoden till attacker@evil.example för att aktivera kontot.'
+    expect(sanitizeLoginSuccessFlash(crafted)).toBeNull()
+    expect(String(sanitizeLoginSuccessFlash(crafted) ?? '')).not.toContain('attacker@evil.example')
+  })
+})
+
 describe('login next-path hardening', () => {
   it('rejects protocol-relative and backslash open-redirect shapes', () => {
     expect(getSafeNextPath('//evil.example')).toBe('/dashboard')
     expect(getSafeNextPath('/\\evil.example')).toBe('/dashboard')
     expect(getSafeNextPath('/admin\\@evil.example')).toBe('/dashboard')
+    expect(getSafeNextPath('/%5Cevil.example')).toBe('/dashboard')
+    expect(getSafeNextPath('%2F%5Cevil.example')).toBe('/dashboard')
     expect(getSafeNextPath('/dashboard/customers')).toBe('/dashboard/customers')
+  })
+})
+
+describe('sibling auth flash allowlists', () => {
+  it('keeps known forgot-password / auth-action / company-invite flashes', () => {
+    expect(sanitizeForgotPasswordErrorFlash(FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE)).toBe(
+      FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE,
+    )
+    expect(sanitizeForgotPasswordErrorFlash(FORGOT_PASSWORD_SEND_FAILED_MESSAGE)).toBe(
+      FORGOT_PASSWORD_SEND_FAILED_MESSAGE,
+    )
+    expect(sanitizeAuthActionErrorFlash(AUTH_ACTION_LINK_MISSING_INFO_MESSAGE)).toBe(
+      AUTH_ACTION_LINK_MISSING_INFO_MESSAGE,
+    )
+    expect(sanitizeAuthActionErrorFlash(AUTH_ACTION_LINK_EXPIRED_MESSAGE)).toBe(
+      AUTH_ACTION_LINK_EXPIRED_MESSAGE,
+    )
+    expect(sanitizeAuthActionErrorFlash(LOGIN_VERIFY_LINK_EXPIRED_MESSAGE)).toBe(
+      LOGIN_VERIFY_LINK_EXPIRED_MESSAGE,
+    )
+    expect(sanitizeCompanyInviteErrorFlash(COMPANY_INVITE_MISSING_TOKEN_MESSAGE)).toBe(
+      COMPANY_INVITE_MISSING_TOKEN_MESSAGE,
+    )
+    expect(sanitizeCompanyInviteErrorFlash(COMPANY_INVITE_ACCEPT_FAILED_MESSAGE)).toBe(
+      COMPANY_INVITE_ACCEPT_FAILED_MESSAGE,
+    )
+  })
+
+  it('replaces crafted sibling auth flashes instead of rendering phishing copy', () => {
+    const crafted =
+      'Ditt konto är låst. Skicka lösenordet till attacker@evil.example för att låsa upp.'
+    expect(sanitizeForgotPasswordErrorFlash(crafted)).toBe(FORGOT_PASSWORD_SEND_FAILED_MESSAGE)
+    expect(sanitizeAuthActionErrorFlash(crafted)).toBe(AUTH_ACTION_LINK_EXPIRED_MESSAGE)
+    expect(sanitizeCompanyInviteErrorFlash(crafted)).toBe(COMPANY_INVITE_ACCEPT_FAILED_MESSAGE)
+    expect(sanitizeForgotPasswordErrorFlash(crafted)).not.toContain('attacker@evil.example')
+  })
+
+  it('wires sanitizers into sibling auth pages', () => {
+    const forgot = fs.readFileSync(
+      path.join(process.cwd(), 'app/login/forgot-password/page.tsx'),
+      'utf8',
+    )
+    const action = fs.readFileSync(path.join(process.cwd(), 'app/auth/action/page.tsx'), 'utf8')
+    const invite = fs.readFileSync(
+      path.join(process.cwd(), 'app/auth/company-invite/page.tsx'),
+      'utf8',
+    )
+
+    expect(forgot).toContain('sanitizeForgotPasswordErrorFlash')
+    expect(action).toContain('sanitizeAuthActionErrorFlash')
+    expect(invite).toContain('sanitizeCompanyInviteErrorFlash')
+    expect(forgot).not.toMatch(/const error = params\.error\b/)
+    expect(action).not.toMatch(/const error = params\.error\b/)
+    expect(invite).not.toMatch(/const error = params\.error\b/)
+  })
+})
+
+describe('canonical base app URL', () => {
+  const originalEnv = { ...process.env }
+
+  afterEach(() => {
+    process.env = { ...originalEnv }
+  })
+
+  it('fails closed in production when no public app URL is configured', () => {
+    process.env.NODE_ENV = 'production'
+    delete process.env.NEXT_PUBLIC_APP_URL
+    delete process.env.NEXT_PUBLIC_SITE_URL
+    delete process.env.NEXT_PUBLIC_BASE_URL
+    delete process.env.SITE_URL
+    delete process.env.VERCEL_URL
+
+    expect(() => getBaseAppUrl()).toThrow(/Missing required production app URL/)
+    expect(() => getAuthEmailFlowBaseAppUrl()).toThrow(/Missing required production app URL/)
+  })
+
+  it('prefers NEXT_PUBLIC_APP_URL and is shared by auth email flow', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://ops.example'
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://site.example'
+    expect(getBaseAppUrl()).toBe('https://ops.example')
+    expect(getAuthEmailFlowBaseAppUrl()).toBe('https://ops.example')
+  })
+
+  it('logout and password-reset email use the shared fail-closed base URL helper', () => {
+    const logout = fs.readFileSync(path.join(process.cwd(), 'app/logout/route.ts'), 'utf8')
+    const passwordReset = fs.readFileSync(
+      path.join(process.cwd(), 'lib/tenant/passwordResetEmail.ts'),
+      'utf8',
+    )
+    const authEmailFlow = fs.readFileSync(
+      path.join(process.cwd(), 'lib/auth/authEmailFlow.ts'),
+      'utf8',
+    )
+
+    expect(logout).toContain("from '@/lib/auth/urls'")
+    expect(logout).toContain('getBaseAppUrl()')
+    expect(logout).not.toContain("process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'")
+    expect(passwordReset).toContain("from '@/lib/auth/urls'")
+    expect(passwordReset).toContain('getBaseAppUrl()')
+    expect(passwordReset).not.toMatch(/function getBaseAppUrl\s*\(/)
+    expect(authEmailFlow).toContain("from '@/lib/auth/urls'")
+    expect(authEmailFlow).not.toMatch(/export function getBaseAppUrl\s*\(/)
+  })
+})
+
+describe('auth action error redirect preserves retry context', () => {
+  it('keeps token_hash, type and next on verify failure redirects', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'app/auth/action/actions.ts'),
+      'utf8',
+    )
+    expect(source).toMatch(/function redirectBackWithError\([\s\S]*token_hash/)
+    expect(source).toContain('params.set(')
+    expect(source).toContain("params.set('token_hash'")
+    expect(source).toContain("params.set('type'")
+    expect(source).toContain("params.set('next'")
+    expect(source).not.toMatch(
+      /redirect\(`\/auth\/action\?error=\$\{encodeURIComponent\(message\)\}`\)/,
+    )
+  })
+})
+
+describe('dependency remediation pin', () => {
+  it('keeps production-relevant audit remediations pinned via package.json overrides', () => {
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'),
+    ) as {
+      overrides?: Record<string, unknown>
+    }
+    const overrides = pkg.overrides ?? {}
+    expect(overrides.nanoid).toBe('3.3.18')
+    expect(overrides['js-yaml']).toBe('4.3.1')
+    expect(overrides['brace-expansion']).toBe('1.1.18')
+    expect(overrides['@typescript-eslint/typescript-estree']).toEqual({
+      'brace-expansion': '5.0.9',
+    })
   })
 })
 
@@ -85,12 +262,27 @@ describe('middleware auth outage safety', () => {
     expect(source).toContain("'Retry-After': '15'")
   })
 
+  it('reuses shared next-path hardening instead of a weaker local normalizer', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'proxy.ts'), 'utf8')
+
+    expect(source).toContain("from '@/lib/auth/urls'")
+    expect(source).toContain('getSafeNextPath(')
+    expect(source).not.toContain('function normalizeNextPath')
+  })
+
   it('does not log the raw provider response body from middleware', () => {
     const source = fs.readFileSync(path.join(process.cwd(), 'proxy.ts'), 'utf8')
 
     expect(source).toContain('safeAuthInfrastructureError')
     expect(source).not.toContain("console.error('[auth-proxy] provider unavailable', error)")
     expect(source).not.toContain('error.message')
+  })
+
+  it('still redirects disabled sessions when signOut itself fails during an outage', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'proxy.ts'), 'utf8')
+
+    expect(source).toMatch(/try\s*\{\s*await supabase\.auth\.signOut\(\)/)
+    expect(source).toContain("loginUrl.searchParams.set('reason', 'account_disabled')")
   })
 })
 
