@@ -135,4 +135,18 @@
 | production npm audit | PASS | 0 vulnerabilities |
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
+| hosted CI | PASS | `#124` merged as `ca28cb0a` |
+
+## POST-ca28cb0a health residuals — 2026-08-13 (`9807`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth-outage + UTILTS disposition/persistence vitest | PASS 52/52 | null-id disposition attribution + ACK target synthesis |
+| post-332 field-511 residuals regression | PASS | identity module + disposition/ACK/typegen locks |
+| ops health regression | PASS | `gridex-ops-health-regression.cjs` |
+| UTILTS reason regression | PASS | `ediel:utilts-reason-regression` |
+| generated types tip | PASS | pin `20260813221500` + sha `2111c2c6...` |
+| production npm audit | PASS | 0 vulnerabilities |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
 | hosted CI | PENDING | PR publish required |
