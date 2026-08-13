@@ -41,6 +41,7 @@
     "20260812210800_gridex_rls_policy_normalization_v1.sql": "2d9609109928967f571401864893a47bee1598bce8b115b5f26f3fadc236643a",
     "20260812211405_gridex_missing_fk_indexes_v1.sql": "1e5abc5db8164988866383a38bcabf02c4dc34b89914c3f32c8333c7ddcb93bf",
     "20260812222645_gridex_explicit_service_only_rls_deny_v1.sql": "ac5a420d7605bc9f3a56a9396f61cbe46ce83b8eee1de0ef0da76804904cd4cb",
-    "20260813070046_gridex_review_hardening_v2.sql": "3e174ee285c0f32dfd223ccdc5c826abc3bd3fe26a362d31c2435ba5f403cfd3"
+    "20260813070046_gridex_review_hardening_v2.sql": "3e174ee285c0f32dfd223ccdc5c826abc3bd3fe26a362d31c2435ba5f403cfd3",
+    "20260813210500_ediel_utilts_field_511_products_25_a_3.sql": "188b18da215227f35463ebcb432ef5f8b0064681a2d87b764b3653656a82e6b9"
   }
 }
