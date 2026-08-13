@@ -37466,15 +37466,27 @@ export type Database = {
         Row: {
           allowed_receiver_roles: string[]
           allowed_sender_roles: string[]
+          business_activity_phase: string | null
           code: string
+          description: string | null
           family: string
           id: string
+          identity_type: string | null
+          is_current: boolean
+          level_of_details: string | null
           message_codes: string[]
           phase: string
+          product_characteristic: string | null
+          product_type: string | null
           required_dimensions: Json
           resolution: string
+          resolution_number: string | null
+          resolution_unit_code: string | null
           sign_rule: string
+          source_document: string | null
           source_hash: string
+          source_metadata: Json
+          source_row_numbers: number[]
           unit: string
           valid_from: string
           valid_to: string | null
@@ -37483,15 +37495,27 @@ export type Database = {
         Insert: {
           allowed_receiver_roles: string[]
           allowed_sender_roles: string[]
+          business_activity_phase?: string | null
           code: string
+          description?: string | null
           family?: string
           id?: string
+          identity_type?: string | null
+          is_current?: boolean
+          level_of_details?: string | null
           message_codes: string[]
           phase: string
+          product_characteristic?: string | null
+          product_type?: string | null
           required_dimensions?: Json
           resolution: string
+          resolution_number?: string | null
+          resolution_unit_code?: string | null
           sign_rule: string
+          source_document?: string | null
           source_hash: string
+          source_metadata?: Json
+          source_row_numbers?: number[]
           unit: string
           valid_from: string
           valid_to?: string | null
@@ -37500,15 +37524,27 @@ export type Database = {
         Update: {
           allowed_receiver_roles?: string[]
           allowed_sender_roles?: string[]
+          business_activity_phase?: string | null
           code?: string
+          description?: string | null
           family?: string
           id?: string
+          identity_type?: string | null
+          is_current?: boolean
+          level_of_details?: string | null
           message_codes?: string[]
           phase?: string
+          product_characteristic?: string | null
+          product_type?: string | null
           required_dimensions?: Json
           resolution?: string
+          resolution_number?: string | null
+          resolution_unit_code?: string | null
           sign_rule?: string
+          source_document?: string | null
           source_hash?: string
+          source_metadata?: Json
+          source_row_numbers?: number[]
           unit?: string
           valid_from?: string
           valid_to?: string | null
@@ -74287,6 +74323,26 @@ export type Database = {
           severity: string
           version: string
           version_code: string
+        }[]
+      }
+      resolve_ediel_timeseries_product_511: {
+        Args: {
+          p_business_activity_phase: string
+          p_business_date?: string
+          p_identity_type: string
+          p_level_of_details: string
+          p_product_characteristic: string
+          p_product_type: string
+        }
+        Returns: {
+          code: string
+          description: string
+          message_codes: string[]
+          phase: string
+          source_hash: string
+          valid_from: string
+          valid_to: string
+          version: string
         }[]
       }
       resolve_portal_customer_identity_v1: {
