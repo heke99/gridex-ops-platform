@@ -3,5 +3,5 @@
   "generated_at": "2026-08-13T06:48:12Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "590d065257082f37062d1d6a2e0fcaf5a2ccfc1aa8117aa23b937d6ce4d23af7",
-  "latest_migration": "20260813041521_gridex_explicit_service_only_rls_deny_v1.sql"
+  "latest_migration": "20260812222645_gridex_explicit_service_only_rls_deny_v1.sql"
 }
