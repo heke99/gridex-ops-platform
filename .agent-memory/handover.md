@@ -1,15 +1,19 @@
 # Handover
 
-Updated: 2026-08-11
+Updated: 2026-08-13
 
-Branch `cursor/codebase-health-and-stability-0f25` closes the post-#108
-reconciliation/O-008 security residual on the post-#110 tip and hardens
-auth flash allowlisting plus next-path backslash rejection introduced as
-second-order residuals from #110.
+Branch `cursor/codebase-health-and-stability-a029` closes post-`f2c6a729`
+health residuals after the Field 511 generated-types sync landed on main.
 
-Do not reopen #109 as the merge vehicle once `0f25` is reviewed; #109 predates
-#110 and would need a rebase. Prefer merging `0f25` then closing #109 as
-superseded.
+Main already synced `database.types.ts` + types manifest to
+`20260813210500`. This branch adds the remaining auth/SVK/UTILTS residuals,
+forward L653Q trim `20260813221500`, production-gate packaging locks, and
+nullable resolver Returns alignment.
 
-ggshield was unavailable in this environment; run secret scan in CI/host before
-production apply of `20260811114500`.
+Prefer merging `a029`, then closing superseded open health PRs
+`#121`/`#120`/`#119`/`#117`/`#115` (and older tip vehicles) rather than
+rebasing those older branches.
+
+ggshield was unavailable in this environment; run secret scan in CI/host
+before production apply of `20260813221500`.
+Live DB apply of field-511 import + L653Q trim was not observed in this run.
