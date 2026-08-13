@@ -107,3 +107,18 @@
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
 | hosted CI | PENDING | PR publish required |
+
+## POST-2eb61986 health residuals — 2026-08-13 (`0a00`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth-outage + UTILTS disposition/persistence vitest | PASS 43/43 | includes sibling flash + base URL + override pins |
+| post-332 field-511 residuals regression | PASS | includes nullable Returns lock |
+| ops health regression | PASS | `gridex-ops-health-regression.cjs` |
+| UTILTS reason regression | PASS | `ediel:utilts-reason-regression` |
+| migration integrity | PASS | 428 files / 332 groups |
+| generated types tip | PASS | pin `20260813221500` + sha `2111c2c6...` |
+| production npm audit | PASS | 0 vulnerabilities (`--omit=dev --audit-level=high`) |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
+| hosted CI | PENDING | PR publish required |

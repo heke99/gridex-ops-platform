@@ -2,16 +2,22 @@
 
 Updated: 2026-08-13
 
-Branch `cursor/codebase-health-and-stability-a029` closes post-`f2c6a729`
-health residuals after the Field 511 generated-types sync landed on main.
+Branch `cursor/codebase-health-and-stability-0a00` closes post-`2eb61986`
+health residuals after the production dependency remediation landed on main.
 
-Main already synced `database.types.ts` + types manifest to
-`20260813210500`. This branch adds the remaining auth/SVK/UTILTS residuals,
-forward L653Q trim `20260813221500`, production-gate packaging locks, and
-nullable resolver Returns alignment.
+Main tip `2eb61986` only bumped `package-lock.json` (brace-expansion, js-yaml,
+nanoid). This branch replays open `#122`/`a029` residuals onto that tip and
+adds tip-specific hardening:
 
-Prefer merging `a029`, then closing superseded open health PRs
-`#121`/`#120`/`#119`/`#117`/`#115` (and older tip vehicles) rather than
+1. Sibling auth `?error=` flash allowlists (forgot-password, auth/action,
+   company-invite).
+2. Canonical fail-closed `getBaseAppUrl` shared by auth email flow, password
+   reset email, and logout.
+3. Auth-action verify failures preserve `token_hash` / `type` / `next`.
+4. `package.json` overrides pin nanoid / js-yaml / brace-expansion dual trees.
+
+Prefer merging `0a00`, then closing superseded open health PRs
+`#122`/`#121`/`#120`/`#119`/`#117`/`#115` (and older tip vehicles) rather than
 rebasing those older branches.
 
 ggshield was unavailable in this environment; run secret scan in CI/host

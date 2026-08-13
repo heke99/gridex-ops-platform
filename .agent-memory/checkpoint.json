@@ -1,23 +1,23 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-13T20:40:00Z",
-  "branch": "cursor/codebase-health-and-stability-a029",
-  "active_phase": "POST_F2C6A729_HEALTH_RESIDUALS",
-  "active_task": "Close auth/SVK/UTILTS/field-511 tip residuals after generated-types sync",
+  "updated_at": "2026-08-13T20:48:00Z",
+  "branch": "cursor/codebase-health-and-stability-0a00",
+  "active_phase": "CODEBASE_HEALTH_TIP_RESIDUALS",
+  "active_task": "Close post-2eb61986 auth URL/flash and dependency pin residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "f2c6a729",
-  "head_sha": "79348295",
+  "base_main_sha": "2eb61986",
+  "head_sha": "234e842a",
   "verification": {
-    "vitest_auth_utilts": "PASS_35_35",
-    "post_332_field511_residuals": "PASS",
-    "ops_health": "PASS",
-    "post_108_residuals": "PASS",
-    "utilts_reason": "PASS",
-    "migration_integrity": "PASS",
+    "auth_utilts_vitest": "PASS_43",
+    "ops_health_regression": "PASS",
+    "post_332_field_511_residuals": "PASS",
+    "utilts_reason_regression": "PASS",
+    "migration_versions": "PASS",
     "generated_types": "PASS",
-    "tsc_app": "PASS",
-    "ggshield": "BLOCKED_CLI_MISSING",
+    "security_audit_production": "PASS_0",
+    "typecheck_app": "PASS",
+    "ggshield": "BLOCKED",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Open/monitor PR for a029; close superseded health PRs after merge"
+  "resume_from": "Open/monitor tip residual PR for 0a00; supersede open #122 after merge"
 }

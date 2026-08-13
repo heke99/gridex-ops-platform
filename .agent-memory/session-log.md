@@ -356,3 +356,11 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Replayed open `#121`/`c107` auth/SVK/UTILTS/L653Q/packaging residuals onto tip.
 - Fixed tip-specific resolver Returns nullability for `description`/`valid_to`.
 - Verification: vitest 35/35, residual regressions, migration/types, app tsc PASS.
+
+## 2026-08-13 — post-2eb61986 health residuals on 0a00
+
+- Reviewed main tip `2eb61986` production dependency remediation (lockfile only).
+- Replayed open `#122`/`a029` residuals onto tip, then closed tip-specific auth
+  flash, fail-closed base URL, auth-action retry context, and override pin gaps.
+- Verification: vitest 43/43, residual regressions, migration/types, audit 0,
+  app tsc PASS; ggshield BLOCKED.
