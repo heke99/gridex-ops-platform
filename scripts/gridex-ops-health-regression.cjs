@@ -9,6 +9,8 @@ const roleAwareCountsPath = 'supabase/migrations/20260812130500_gridex_ops_healt
 const identifierNormalizationPath = 'supabase/migrations/20260812151500_gridex_ops_grid_owner_identifier_normalization_v3.sql'
 const healthPath = 'lib/ops/health.ts'
 const svkPath = 'lib/energy/svkGeometryImport.ts'
+const svkCronPath = 'app/api/internal/platform/grid-areas/import/cron/route.ts'
+const svkApiPath = 'app/api/platform/energy/import/svk-geometries/route.ts'
 
 const failures = []
 const readRequired = (path, label) => {
@@ -28,6 +30,8 @@ const roleAwareCounts = readRequired(roleAwareCountsPath, 'role-aware PRODAT acc
 const identifierNormalization = readRequired(identifierNormalizationPath, 'grid-owner identifier normalization')
 const health = readRequired(healthPath, 'health runtime')
 const svk = readRequired(svkPath, 'SVK importer')
+const svkCron = readRequired(svkCronPath, 'SVK import cron')
+const svkApi = readRequired(svkApiPath, 'SVK import API')
 
 const requireMarkers = (source, label, markers) => {
   for (const marker of markers) {
@@ -138,6 +142,8 @@ requireMarkers(svk, 'SVK final-promotion reconciliation', [
   "supabaseService.rpc('gridex_promote_energy_geodata_version'",
   "supabaseService.rpc('gridex_reconcile_grid_owner_mappings_v1'",
   'p_apply: true',
+  "reconciliation_status: 'failed_retryable'",
+  'retrySvkGridOwnerReconciliation',
 ])
 const finalOnly = svk.indexOf('if (!hasMore)')
 const promote = svk.indexOf("supabaseService.rpc('gridex_promote_energy_geodata_version'", finalOnly)
@@ -146,10 +152,28 @@ if (!(finalOnly >= 0 && promote > finalOnly && reconcile > promote)) {
   failures.push('SVK reconciliation must run only after final successful geodata promotion')
 }
 
+requireMarkers(svkApi, 'SVK reconciliation retry API', [
+  "body.action === 'retry_reconciliation'",
+  'retrySvkGridOwnerReconciliation',
+  'status: result.ok ? 200 : 409',
+])
+
+requireMarkers(svkCron, 'SVK cron reconciliation-before-reimport', [
+  'retrySvkGridOwnerReconciliation',
+  "reconciliation_status === 'failed_retryable'",
+  'reconciliation_retry: true',
+])
+const cronRetryGate = svkCron.indexOf("reconciliation_status === 'failed_retryable'")
+const cronResume = svkCron.indexOf(".eq('status', 'running')")
+const cronFreshStart = svkCron.indexOf("reason: 'geodata_missing_or_stale'")
+if (!(cronRetryGate >= 0 && cronResume > cronRetryGate && cronFreshStart > cronResume)) {
+  failures.push('SVK cron must retry failed_retryable reconciliation before resuming or starting imports')
+}
+
 if (failures.length) {
   console.error(`OPS health/remediation regression failed (${failures.length} issue(s)):`)
   failures.forEach((failure) => console.error(`- ${failure}`))
   process.exit(1)
 }
 
-console.log('OPS health/remediation regression passed (v5 scope, dynamic routing, service boundary, identifier normalization and final-promotion reconciliation verified).')
+console.log('OPS health/remediation regression passed (v5 scope, dynamic routing, service boundary, identifier normalization, reconciliation retry and final-promotion reconciliation verified).')
