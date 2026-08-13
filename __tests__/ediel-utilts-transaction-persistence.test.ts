@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -28,6 +30,57 @@ describe('UTILTS transaction persistence payload', () => {
     })
 
     expect(payload[0]?.transactionId).toBe('transaction-1')
+  })
+
+  it('tenant match builder synthesizes the same null-id fallback used by persistence/ACK', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'lib/ediel/flows/utiltsDataRequest.ts'),
+      'utf8',
+    )
+    const matchBuilder = source.match(
+      /async function matchUtiltsTransactionsForTenant[\s\S]*?^async function /m,
+    )?.[0]
+    expect(matchBuilder).toBeTruthy()
+    expect(matchBuilder).toMatch(
+      /for \(const \[transactionIndex, transaction\] of transactions\.entries\(\)\)/,
+    )
+    expect(matchBuilder).toMatch(
+      /resolveUtiltsTransactionId\(\s*transaction\.transactionId,\s*transactionIndex,\s*\)/,
+    )
+    expect(matchBuilder).not.toContain(
+      'const transactionReference = stringOrNull(transaction.transactionId)',
+    )
+  })
+
+  it('joins synthesized null-id matches so meteringPointId is retained', () => {
+    const payload = buildUtiltsTransactionPersistencePayload({
+      messageCode: 'E66',
+      transactions: [
+        {
+          transactionId: null, meterPointId: '735999000000000001', gridAreaId: 'ABC',
+          deliveryPeriodStart: null, deliveryPeriodEnd: null, registrationTime: null,
+          resolution: null, unit: 'KWH', transactionReason: null, quantities: [],
+          sourceOrder: 0, deliveryPeriodRaw: null, deliveryPeriodFormat: null, resolutionFormat: null,
+        },
+      ],
+      dispositions: [
+        { transactionId: null, disposition: 'accepted', responseType: 'positive_aperak', issueCodes: [] },
+      ],
+      matches: [
+        {
+          transactionReference: 'transaction-1',
+          externalMeteringPointId: '735999000000000001',
+          externalGridAreaId: 'ABC',
+          meteringPointId: '11111111-1111-4111-8111-111111111111',
+        },
+      ],
+    })
+
+    expect(payload[0]).toMatchObject({
+      transactionId: 'transaction-1',
+      meteringPointId: '11111111-1111-4111-8111-111111111111',
+      externalMeteringPointId: '735999000000000001',
+    })
   })
 
   it('keeps accepted siblings and rejected transaction dispositions independent', () => {

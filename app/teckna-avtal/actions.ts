@@ -2,6 +2,11 @@
 
 import { redirect } from 'next/navigation'
 import { createExternalContractIntake, parseExternalContractFormData } from '@/lib/external-contracts/intake'
+import {
+  EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE,
+  EXTERNAL_CONTRACT_SUCCESS_NEEDS_REVIEW_MESSAGE,
+  externalContractErrorFlash,
+} from '@/lib/external-contracts/publicIntakeFlash'
 
 function done(
   status: 'success' | 'error',
@@ -22,13 +27,13 @@ export async function submitExternalContractAction(formData: FormData): Promise<
   try {
     const result = await createExternalContractIntake(input)
     status = 'success'
-    message = result.status === 'needs_review'
-      ? 'Tack. Vi har tagit emot avtalet och behöver granska några uppgifter innan flödet går vidare.'
-      : 'Tack. Avtalet är mottaget och ett kundflöde har skapats för granskning.'
+    message =
+      result.status === 'needs_review'
+        ? EXTERNAL_CONTRACT_SUCCESS_NEEDS_REVIEW_MESSAGE
+        : EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE
   } catch (error) {
     status = 'error'
-    message =
-      error instanceof Error ? error.message : 'Avtalet kunde inte tas emot.'
+    message = externalContractErrorFlash(error)
   }
   done(status, message, input.companySlug, input.offerReference)
 }

@@ -213,6 +213,54 @@ check(
   'field-511 verification notes must live under quality/, not overwrite VERIFICATION.md',
 )
 
+// Post-#123 tip residuals: keep nullability overrides durable against typegen
+// regen, keep public/portal flash allowlists, and keep disabled-session reason
+// mapping on the login page.
+const nullabilityOverride = read(
+  'scripts/apply-supabase-types-nullability-overrides.cjs',
+)
+const opsHardening = read('.github/workflows/ops-hardening.yml')
+const loginPage = read('app/login/page.tsx')
+const tecknaPage = read('app/teckna-avtal/page.tsx')
+const tecknaActions = read('app/teckna-avtal/actions.ts')
+const portalPage = read('app/portal/komplettera/page.tsx')
+const utiltsDataRequest = read('lib/ediel/flows/utiltsDataRequest.ts')
+check(
+  nullabilityOverride.includes('resolve_ediel_timeseries_product_511') &&
+    nullabilityOverride.includes('string | null'),
+  'durable supabase types nullability override script must exist',
+)
+check(
+  opsHardening.includes('gridex:post-332-field-511-health-residuals-regression'),
+  'ops-hardening must gate the post-332 field-511 residuals regression',
+)
+check(
+  opsHardening.includes(
+    'apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts',
+  ),
+  'clean-migration-replay must apply nullability overrides after typegen',
+)
+check(
+  loginPage.includes('loginReasonErrorFlash') && loginPage.includes('reason?:'),
+  'login page must consume allowlisted disabled-session reason flashes',
+)
+check(
+  tecknaPage.includes('sanitizeExternalContractFlash') &&
+    tecknaActions.includes('externalContractErrorFlash') &&
+    !/error instanceof Error \? error\.message/.test(tecknaActions),
+  'public teckna-avtal flashes must stay allowlisted without raw Error.message',
+)
+check(
+  portalPage.includes('sanitizePortalCompletionBlockedFlash'),
+  'portal completion blocked flashes must stay allowlisted',
+)
+check(
+  /async function matchUtiltsTransactionsForTenant[\s\S]*resolveUtiltsTransactionId\(\s*transaction\.transactionId,\s*transactionIndex,\s*\)/.test(
+    utiltsDataRequest,
+  ),
+  'UTILTS tenant match builder must synthesize null IDE+24 ids before persistence join',
+)
+
 if (failures.length) {
   console.error('Post-#332 field-511 health residuals regression failed:')
   for (const failure of failures) console.error(`- ${failure}`)

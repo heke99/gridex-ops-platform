@@ -1034,8 +1034,11 @@ async function matchUtiltsTransactionsForTenant(params: {
       }]
 
   const matches: UtiltsTransactionMatch[] = []
-  for (const transaction of transactions) {
-    const transactionReference = stringOrNull(transaction.transactionId)
+  for (const [transactionIndex, transaction] of transactions.entries()) {
+    const transactionReference = resolveUtiltsTransactionId(
+      transaction.transactionId,
+      transactionIndex,
+    )
     const externalMeteringPointId = stringOrNull(transaction.meterPointId)
     const externalGridAreaId = stringOrNull(transaction.gridAreaId)
     const meteringPointId = externalMeteringPointId

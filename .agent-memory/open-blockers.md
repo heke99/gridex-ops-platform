@@ -2,7 +2,7 @@
 
 Updated: 2026-08-13
 
-1. Hosted CI/clean-replay for `a029` tip residual PR is not yet observed.
+1. Hosted CI/clean-replay for `13b2` tip residual PR is not yet observed.
 2. Live DB apply of field-511 import `20260813210500` + L653Q trim
    `20260813221500` is not observed in this environment.
 3. Exact official 25-A-3 operation matrix R/D/O/X values for E30/E31/E66/S01/S05/S07 are absent.

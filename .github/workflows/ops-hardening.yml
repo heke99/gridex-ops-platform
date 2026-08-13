@@ -30,6 +30,7 @@ jobs:
         run: node scripts/gridex-remaining-masterpoints-golden-path-regression.cjs
       - run: npm run gridex:canonical-architecture-57-regression
       - run: npm run gridex:post-108-health-residuals-regression
+      - run: npm run gridex:post-332-field-511-health-residuals-regression
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
@@ -79,6 +80,9 @@ jobs:
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           supabase gen types typescript --local > rem002-database.types.ts
+          # Typegen emits non-null Returns for nullable SQL columns on the
+          # field-511 resolver; apply the same durable override used on tip.
+          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
           MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
           echo "generated_types_sha256=$GENERATED_HASH"

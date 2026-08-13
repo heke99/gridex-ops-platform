@@ -21,12 +21,24 @@ import {
   sanitizeAuthActionErrorFlash,
   sanitizeCompanyInviteErrorFlash,
   sanitizeForgotPasswordErrorFlash,
+  LOGIN_ACCOUNT_DISABLED_MESSAGE,
+  loginReasonErrorFlash,
   sanitizeLoginErrorFlash,
   sanitizeLoginSuccessFlash,
   sanitizeUpdatePasswordErrorFlash,
 } from '@/lib/auth/loginError'
 import { getBaseAppUrl as getAuthEmailFlowBaseAppUrl } from '@/lib/auth/authEmailFlow'
 import { getBaseAppUrl, getSafeNextPath } from '@/lib/auth/urls'
+import {
+  EXTERNAL_CONTRACT_GENERIC_ERROR_MESSAGE,
+  EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE,
+  sanitizeExternalContractFlash,
+} from '@/lib/external-contracts/publicIntakeFlash'
+import {
+  PORTAL_COMPLETION_CUSTOMER_MISSING_MESSAGE,
+  PORTAL_COMPLETION_EMPTY_MESSAGE,
+  sanitizePortalCompletionBlockedFlash,
+} from '@/lib/customer-portal/completionFlash'
 
 describe('login auth error classification', () => {
   it('keeps invalid credentials indistinguishable', () => {
@@ -195,6 +207,21 @@ describe('canonical base app URL', () => {
     expect(getAuthEmailFlowBaseAppUrl()).toBe('https://ops.example')
   })
 
+  it('canonical getSafeNextPath accepts same-origin absolute URLs used by auth email flow', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://ops.example'
+    expect(getSafeNextPath('https://ops.example/admin/customers', '/login')).toBe(
+      '/admin/customers',
+    )
+    expect(getSafeNextPath('https://evil.example/admin', '/login')).toBe('/login')
+
+    const authEmailFlow = fs.readFileSync(
+      path.join(process.cwd(), 'lib/auth/authEmailFlow.ts'),
+      'utf8',
+    )
+    expect(authEmailFlow).toContain("from '@/lib/auth/urls'")
+    expect(authEmailFlow).not.toMatch(/export function getSafeNextPath\s*\(/)
+  })
+
   it('logout and password-reset email use the shared fail-closed base URL helper', () => {
     const logout = fs.readFileSync(path.join(process.cwd(), 'app/logout/route.ts'), 'utf8')
     const passwordReset = fs.readFileSync(
@@ -214,6 +241,70 @@ describe('canonical base app URL', () => {
     expect(passwordReset).not.toMatch(/function getBaseAppUrl\s*\(/)
     expect(authEmailFlow).toContain("from '@/lib/auth/urls'")
     expect(authEmailFlow).not.toMatch(/export function getBaseAppUrl\s*\(/)
+  })
+})
+
+describe('disabled-session login reason flash', () => {
+  it('maps allowlisted account_disabled reason to a fixed Swedish error flash', () => {
+    expect(loginReasonErrorFlash('account_disabled')).toBe(LOGIN_ACCOUNT_DISABLED_MESSAGE)
+    expect(loginReasonErrorFlash('temporary_password')).toBeNull()
+    expect(loginReasonErrorFlash('Please wire money to attacker@evil.example')).toBeNull()
+  })
+
+  it('login page consumes reason through the allowlisted mapper', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'app/login/page.tsx'), 'utf8')
+    expect(source).toContain('loginReasonErrorFlash')
+    expect(source).toMatch(/reason\?:/)
+    expect(source).not.toMatch(/const error = params\.error\b/)
+  })
+})
+
+describe('public and portal query flash allowlists', () => {
+  it('rejects crafted teckna-avtal success/error flashes and never trusts raw Error text', () => {
+    expect(
+      sanitizeExternalContractFlash('success', EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE),
+    ).toEqual({
+      status: 'success',
+      message: EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE,
+    })
+    expect(
+      sanitizeExternalContractFlash('success', 'Wire money to attacker@evil.example'),
+    ).toBeNull()
+    expect(
+      sanitizeExternalContractFlash('error', 'PostgREST connection secret=abc'),
+    ).toEqual({
+      status: 'error',
+      message: EXTERNAL_CONTRACT_GENERIC_ERROR_MESSAGE,
+    })
+
+    const actions = fs.readFileSync(
+      path.join(process.cwd(), 'app/teckna-avtal/actions.ts'),
+      'utf8',
+    )
+    const page = fs.readFileSync(path.join(process.cwd(), 'app/teckna-avtal/page.tsx'), 'utf8')
+    expect(actions).toContain('externalContractErrorFlash')
+    expect(actions).not.toMatch(/error instanceof Error \? error\.message/)
+    expect(page).toContain('sanitizeExternalContractFlash')
+    expect(page).not.toMatch(/\{params\.message\}/)
+  })
+
+  it('allowlists portal completion blocked flashes', () => {
+    expect(sanitizePortalCompletionBlockedFlash(PORTAL_COMPLETION_CUSTOMER_MISSING_MESSAGE)).toBe(
+      PORTAL_COMPLETION_CUSTOMER_MISSING_MESSAGE,
+    )
+    expect(sanitizePortalCompletionBlockedFlash(PORTAL_COMPLETION_EMPTY_MESSAGE)).toBe(
+      PORTAL_COMPLETION_EMPTY_MESSAGE,
+    )
+    expect(sanitizePortalCompletionBlockedFlash('attacker@evil.example')).toBe(
+      PORTAL_COMPLETION_EMPTY_MESSAGE,
+    )
+
+    const page = fs.readFileSync(
+      path.join(process.cwd(), 'app/portal/komplettera/page.tsx'),
+      'utf8',
+    )
+    expect(page).toContain('sanitizePortalCompletionBlockedFlash')
+    expect(page).not.toMatch(/params\.message \?\?/)
   })
 })
 

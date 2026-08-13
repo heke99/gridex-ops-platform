@@ -6,6 +6,8 @@ export const LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE =
   'Verifieringslänken saknar kod. Begär en ny länk och försök igen.'
 export const LOGIN_VERIFY_LINK_EXPIRED_MESSAGE =
   'Länken har gått ut eller är redan använd. Begär en ny länk och försök igen.'
+export const LOGIN_ACCOUNT_DISABLED_MESSAGE =
+  'Kontot är inaktiverat. Kontakta en administratör om du behöver åtkomst igen.'
 
 export const LOGIN_EMAIL_CONFIRMED_MESSAGE =
   'E-postadressen är bekräftad. Du kan logga in.'
@@ -40,6 +42,11 @@ const ALLOWED_LOGIN_ERROR_FLASHES = new Set([
   LOGIN_MISSING_FIELDS_MESSAGE,
   LOGIN_VERIFY_LINK_MISSING_CODE_MESSAGE,
   LOGIN_VERIFY_LINK_EXPIRED_MESSAGE,
+  LOGIN_ACCOUNT_DISABLED_MESSAGE,
+])
+
+const ALLOWED_LOGIN_REASON_FLASHES = new Map<string, string>([
+  ['account_disabled', LOGIN_ACCOUNT_DISABLED_MESSAGE],
 ])
 
 const ALLOWED_LOGIN_SUCCESS_FLASHES = new Set([
@@ -112,6 +119,16 @@ export function sanitizeLoginErrorFlash(value: string | null | undefined): strin
     ALLOWED_LOGIN_ERROR_FLASHES,
     LOGIN_TEMPORARILY_UNAVAILABLE_MESSAGE,
   )
+}
+
+/**
+ * Proxy and auth redirects may pass a machine `reason=` code. Map only known
+ * codes onto fixed Swedish flashes so raw query text never renders.
+ */
+export function loginReasonErrorFlash(value: string | null | undefined): string | null {
+  const reason = String(value ?? '').trim().toLowerCase()
+  if (!reason) return null
+  return ALLOWED_LOGIN_REASON_FLASHES.get(reason) ?? null
 }
 
 /**

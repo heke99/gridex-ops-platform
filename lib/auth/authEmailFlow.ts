@@ -1,9 +1,9 @@
 import type { EmailOtpType, User } from '@supabase/supabase-js'
-import { getBaseAppUrl } from '@/lib/auth/urls'
+import { getBaseAppUrl, getSafeNextPath } from '@/lib/auth/urls'
 import { supabaseService } from '@/lib/supabase/service'
 import { sendTenantBrandedPasswordResetEmail } from '@/lib/tenant/passwordResetEmail'
 
-export { getBaseAppUrl }
+export { getBaseAppUrl, getSafeNextPath }
 
 export type AuthEmailActionType =
   | 'email'
@@ -38,44 +38,6 @@ function normalizeEmail(value: string | null | undefined) {
 function isIgnorableSchemaError(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false
   return ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')
-}
-
-function isSafeRelativeNextPath(value: string): boolean {
-  if (!value.startsWith('/')) return false
-  if (value.startsWith('//')) return false
-  if (value.includes('\\') || value.includes('\0')) return false
-  return true
-}
-
-export function getSafeNextPath(value: string | null | undefined, fallback = '/login'): string {
-  const raw = String(value ?? '').trim()
-  if (!raw) return fallback
-
-  try {
-    const decoded = decodeURIComponent(raw)
-    if (isSafeRelativeNextPath(decoded)) return decoded
-  } catch {
-    if (isSafeRelativeNextPath(raw)) return raw
-  }
-
-  try {
-    const url = new URL(raw)
-    const appUrl = new URL(getBaseAppUrl())
-    if (url.origin === appUrl.origin) {
-      const candidate = `${url.pathname}${url.search}${url.hash}` || fallback
-      if (isSafeRelativeNextPath(candidate)) return candidate
-      try {
-        const decodedCandidate = decodeURIComponent(candidate)
-        return isSafeRelativeNextPath(decodedCandidate) ? decodedCandidate : fallback
-      } catch {
-        return fallback
-      }
-    }
-  } catch {
-    return fallback
-  }
-
-  return fallback
 }
 
 export function normalizeAuthEmailType(value: string | null | undefined): AuthEmailActionType | null {

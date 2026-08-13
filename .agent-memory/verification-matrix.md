@@ -121,4 +121,18 @@
 | production npm audit | PASS | 0 vulnerabilities (`--omit=dev --audit-level=high`) |
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
+| hosted CI | PASS | `#123` merged as `3cad481b` |
+
+## POST-3cad481b health residuals — 2026-08-13 (`13b2`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| auth-outage + UTILTS disposition/persistence vitest | PASS 50/50 | public/portal flash, account_disabled reason, unified next-path, UTILTS match synthesize |
+| post-332 field-511 residuals regression | PASS | nullable Returns + durable override/CI/flash/UTILTS tip locks |
+| ops health regression | PASS | `gridex-ops-health-regression.cjs` |
+| UTILTS reason regression | PASS | `ediel:utilts-reason-regression` |
+| generated types tip | PASS | pin `20260813221500` + sha `2111c2c6...` + nullability override |
+| production npm audit | PASS | 0 vulnerabilities |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
 | hosted CI | PENDING | PR publish required |

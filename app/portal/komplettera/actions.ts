@@ -6,6 +6,10 @@ import {
   getCustomerPortalContext,
   submitPortalCompletion,
 } from "@/lib/customer-portal/db";
+import {
+  PORTAL_COMPLETION_CUSTOMER_MISSING_MESSAGE,
+  PORTAL_COMPLETION_EMPTY_MESSAGE,
+} from "@/lib/customer-portal/completionFlash";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -29,11 +33,14 @@ export async function submitPortalCompletionAction(formData: FormData) {
   const phone = text(formData, "phone");
   const email = text(formData, "email");
 
-  if (!customerId)
-    redirect("/portal/komplettera?status=blocked&message=Kundkoppling saknas");
+  if (!customerId) {
+    redirect(
+      `/portal/komplettera?status=blocked&message=${encodeURIComponent(PORTAL_COMPLETION_CUSTOMER_MISSING_MESSAGE)}`,
+    );
+  }
   if (!message && !facilityId && !meterPointId && !phone && !email) {
     redirect(
-      "/portal/komplettera?status=blocked&message=Fyll i minst en uppgift",
+      `/portal/komplettera?status=blocked&message=${encodeURIComponent(PORTAL_COMPLETION_EMPTY_MESSAGE)}`,
     );
   }
 
