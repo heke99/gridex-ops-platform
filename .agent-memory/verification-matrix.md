@@ -136,3 +136,15 @@
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
 | hosted CI | PENDING | PR publish required |
+
+## 2026-08-14 — post-#134 tip residuals on b4c7
+
+| Check | Result |
+|---|---|
+| vitest (circuit/UTILTS/lifecycle/go-live/RLS UI) | PASS 51/51 |
+| gridex:post-332-field-511-health-residuals-regression | PASS |
+| db:migrations:check | PASS 433 |
+| security:audit-production | PASS 0 |
+| tsc -p tsconfig.app.json | PASS |
+| hosted CI | NOT YET |
+| ggshield | BLOCKED |

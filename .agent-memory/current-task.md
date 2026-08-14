@@ -1,14 +1,14 @@
 # Current task
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
 Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-Active work item: Recovered runtime-contract/performance hardening on
-`codex/runtime-contract-performance-hardening-recovery-20260814`.
+Active work item: Post-#134 tip health residuals on
+`cursor/codebase-health-and-stability-b4c7`.
 
 ## Exact next action
 
-Commit and push the recovered branch, open a PR, resolve hosted clean-replay
-differences if any, squash merge only after every required check is green,
-then verify Vercel production and refresh the persisted readiness deployment id.
+Open PR for `b4c7`, wait for hosted CI/clean-replay, squash merge only after
+required checks are green, then close superseded health PRs
+(`#132`/`#131`/`#127`/`#125`/`#122`/…).
