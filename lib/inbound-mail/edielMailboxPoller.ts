@@ -1581,11 +1581,18 @@ async function markInboundProcessingJobFinished(input: {
   status: "done" | "manual_review" | "retry" | "failed";
   step?: string | null;
   errorMessage?: string | null;
+  /** When closing via Processa om (status=done), stamp review resolution for audit. */
+  resolution?: string | null;
 }): Promise<void> {
   // Resolving a review (including "Köa om" → queued) stamps review_resolved_at.
   // When the same job later returns to manual_review, clear the sticky resolution
   // and refresh operational review metadata so the open-review UI /
   // canonical_resolve_inbound_manual_review / architecture checks stay actionable.
+  // Never invent review_reason from the literal status token "manual_review".
+  const actionableReason =
+    input.errorMessage ??
+    (input.step && input.step !== "manual_review" ? input.step : null) ??
+    "manual_review_unclassified";
   const reopenManualReview =
     input.status === "manual_review"
       ? {
@@ -1593,13 +1600,17 @@ async function markInboundProcessingJobFinished(input: {
           review_resolution: null,
           review_owner: "tenant_operations",
           review_priority: "normal",
-          review_reason:
-            input.errorMessage ??
-            input.step ??
-            "manual_review_unclassified",
+          review_reason: actionableReason,
           review_sla_due_at: new Date(
             Date.now() + 24 * 60 * 60 * 1000,
           ).toISOString(),
+        }
+      : {};
+  const closeReview =
+    input.status === "done" && input.resolution
+      ? {
+          review_resolved_at: nowIso(),
+          review_resolution: input.resolution,
         }
       : {};
 
@@ -1614,6 +1625,7 @@ async function markInboundProcessingJobFinished(input: {
       error_message: input.errorMessage ?? null,
       updated_at: nowIso(),
       ...reopenManualReview,
+      ...closeReview,
     })
     .eq("id", input.jobId);
 
@@ -1621,8 +1633,9 @@ async function markInboundProcessingJobFinished(input: {
 }
 
 /**
- * Sync the newest non-terminal inbound_processing_jobs row after a direct
- * message reprocess (admin "Processa om"), which bypasses the queue worker.
+ * Sync the newest inbound_processing_jobs row after a direct message reprocess
+ * (admin "Processa om"), which bypasses the queue worker.
+ * Includes terminal done/failed rows so Processa om can reopen or close them.
  */
 export async function syncActiveInboundProcessingJobForMessage(input: {
   inboundEmailMessageId: string;
@@ -1636,13 +1649,6 @@ export async function syncActiveInboundProcessingJobForMessage(input: {
     .from("inbound_processing_jobs")
     .select("id")
     .eq("inbound_email_message_id", input.inboundEmailMessageId)
-    .in("status", [
-      "queued",
-      "retry",
-      "received",
-      "processing",
-      "manual_review",
-    ])
     .order("created_at", { ascending: false })
     .limit(1);
 
@@ -1655,6 +1661,7 @@ export async function syncActiveInboundProcessingJobForMessage(input: {
     status: nextStatus,
     step: input.outcomeStatus,
     errorMessage: input.errorMessage ?? null,
+    resolution: nextStatus === "done" ? "reprocessed" : null,
   });
   return true;
 }
@@ -1693,6 +1700,7 @@ export async function processQueuedInboundProcessingJobs(
         jobId: job.id,
         status: outcome.status === "processed" ? "done" : "manual_review",
         step: outcome.status,
+        errorMessage: outcome.reason ?? null,
       });
       processed += 1;
     } catch (error) {
