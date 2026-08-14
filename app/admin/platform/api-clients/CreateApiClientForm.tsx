@@ -67,6 +67,21 @@ export default function CreateApiClientForm({
 }) {
   const [state, formAction, pending] = useActionState(createIntegrationApiClientAction, INITIAL_STATE)
   const [companyId, setCompanyId] = useState(defaultCompanyId)
+  const [customerPortalUrl, setCustomerPortalUrl] = useState(defaultCustomerPortalUrl)
+  const [allowedOrigins, setAllowedOrigins] = useState(defaultAllowedOrigins)
+
+  function changeCompany(nextCompanyId: string) {
+    setCompanyId(nextCompanyId)
+    if (nextCompanyId === defaultCompanyId) {
+      setCustomerPortalUrl(defaultCustomerPortalUrl)
+      setAllowedOrigins(defaultAllowedOrigins)
+      return
+    }
+
+    // Never carry one tenant's canonical URL/origins into another tenant by accident.
+    setCustomerPortalUrl('')
+    setAllowedOrigins('')
+  }
 
   return (
     <div id="tenant-go-live" className="scroll-mt-6 rounded-[32px] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
@@ -127,7 +142,7 @@ export default function CreateApiClientForm({
             name="companyId"
             required
             value={companyId}
-            onChange={(event) => setCompanyId(event.target.value)}
+            onChange={(event) => changeCompany(event.target.value)}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
           >
             <option value="">Välj bolag</option>
@@ -143,7 +158,8 @@ export default function CreateApiClientForm({
             name="customerPortalUrl"
             type="url"
             required
-            defaultValue={defaultCustomerPortalUrl}
+            value={customerPortalUrl}
+            onChange={(event) => setCustomerPortalUrl(event.target.value)}
             placeholder="https://tenant.example/mina-sidor"
             className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
           />
@@ -156,7 +172,8 @@ export default function CreateApiClientForm({
             name="allowedOrigins"
             rows={3}
             required
-            defaultValue={defaultAllowedOrigins}
+            value={allowedOrigins}
+            onChange={(event) => setAllowedOrigins(event.target.value)}
             placeholder={'https://tenant.example\nhttps://www.tenant.example'}
             className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
           />
