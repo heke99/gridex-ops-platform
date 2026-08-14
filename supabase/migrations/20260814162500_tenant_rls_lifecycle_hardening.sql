@@ -61,7 +61,12 @@ security definer
 set search_path = public, auth, pg_temp
 as $function$
   select public.gridex_is_current_session_allowed()
-    and public.gridex_company_status_is_writable(p_company_id)
+    and exists (
+      select 1
+      from public.companies company
+      where company.id = p_company_id
+        and company.status in ('active', 'onboarding')
+    )
     and (
       public.gridex_user_is_platform_admin()
       or exists (
@@ -88,7 +93,12 @@ as $function$
     and (
       public.gridex_user_is_platform_admin()
       or (
-        public.gridex_company_status_is_writable(p_company_id)
+        exists (
+          select 1
+          from public.companies company
+          where company.id = p_company_id
+            and company.status in ('active', 'onboarding')
+        )
         and exists (
           select 1
           from public.company_memberships membership
