@@ -264,12 +264,18 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,status')
+    .select('id,company_id,status,profile_key')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
+
+  if (status === 'active' && current.profile_key === 'tenant_website') {
+    throw new Error(
+      'TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE: använd det canonicala go-live-flödet (Provisionera / revalidera) i stället för generell statusaktivering.',
+    )
+  }
 
   const payload: Record<string, unknown> = {
     status,

@@ -10,6 +10,12 @@ const activationGuard = readFileSync(activationGuardPath, 'utf8')
 const receiptBinding = readFileSync(receiptBindingPath, 'utf8')
 const docs = readFileSync('docs/gridex-customer-portal-api.md', 'utf8')
 const docsLayout = readFileSync('app/developers/customer-portal-api/layout.tsx', 'utf8')
+const apiClientsPage = readFileSync('app/admin/platform/api-clients/page.tsx', 'utf8')
+const apiClientsActions = readFileSync('app/admin/platform/api-clients/actions.ts', 'utf8')
+const createApiClientForm = readFileSync(
+  'app/admin/platform/api-clients/CreateApiClientForm.tsx',
+  'utf8',
+)
 
 describe('tenant website canonical go-live hardening', () => {
   it('keeps normal API traffic fail-closed while allowing bounded provisioning smoke', () => {
@@ -75,6 +81,23 @@ describe('tenant website canonical go-live hardening', () => {
     expect(activationGuard).toContain("receipt.id::text = v_receipt_id_text")
     expect(activationGuard).toContain("'provisioning_preflight_pending','provisioning_retry_in_progress'")
     expect(activationGuard).toContain('new.revoked_at is not null')
+  })
+
+  it('keeps admin UX aligned with canonical go-live instead of a generic Aktivera path', () => {
+    // Copy tells operators to revalidate via the create form; the list must not
+    // offer a misleading tenant_website "Aktivera" status toggle, and the
+    // server action must fail closed with an explicit operator message.
+    expect(createApiClientForm).toContain('Provisionera / revalidera och sätt live')
+    expect(createApiClientForm).toContain('i stället för en generell statusaktivering')
+    expect(apiClientsPage).toContain('profile_key')
+    expect(apiClientsPage).toContain("profile_key === 'tenant_website'")
+    expect(apiClientsPage).toContain('Använd canonical go-live')
+    expect(apiClientsPage).not.toMatch(
+      /profile_key === 'tenant_website'[\s\S]{0,400}status" value="active"/,
+    )
+    expect(apiClientsActions).toContain("profile_key === 'tenant_website'")
+    expect(apiClientsActions).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
+    expect(apiClientsActions).toContain('canonicala go-live-flödet')
   })
 
   it('keeps tenant setup generic and free from the previously leaked concrete examples', () => {
