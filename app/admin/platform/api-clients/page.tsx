@@ -134,16 +134,21 @@ function valueList(value: unknown): string[] {
 
 function normalizeLaunchBlockers(value: unknown): LaunchBlocker[] {
   if (!Array.isArray(value)) return []
-  return value.flatMap((entry) => {
-    if (typeof entry === 'string') return [{ code: entry }]
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
+  const blockers: LaunchBlocker[] = []
+  for (const entry of value) {
+    if (typeof entry === 'string') {
+      blockers.push({ code: entry })
+      continue
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue
     const row = entry as Record<string, unknown>
-    return [{
+    blockers.push({
       code: typeof row.code === 'string' ? row.code : undefined,
       component: typeof row.component === 'string' ? row.component : undefined,
       message: typeof row.message === 'string' ? row.message : undefined,
-    }]
-  })
+    })
+  }
+  return blockers
 }
 
 function blockerMessage(blocker: LaunchBlocker) {
