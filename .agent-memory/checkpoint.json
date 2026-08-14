@@ -1,18 +1,19 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T18:20:00Z",
-  "branch": "cursor/codebase-health-and-stability-9740",
+  "updated_at": "2026-08-14T19:10:00Z",
+  "branch": "cursor/codebase-health-and-stability-ea1a",
   "active_phase": "TIP_HEALTH_RESIDUALS",
-  "active_task": "Close post-#135 tip health residuals",
+  "active_task": "Close post-#139 tip health residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "fbb8e617",
-  "head_sha": "39446817",
-  "pr": 136,
+  "base_main_sha": "09752455",
+  "head_sha": "pending_commit",
+  "pr": null,
   "verification": {
-    "vitest_targeted": "PASS_34",
-    "migration_integrity": "PASS_434",
+    "vitest_targeted": "PASS_22",
+    "migration_integrity": "PASS_436",
     "security_audit_production": "PASS_0",
     "typecheck_app": "PASS",
+    "supabase_types_check": "PASS",
     "hosted_ci": "NOT_YET"
   },
   "resume_from": "Open PR, wait for hosted CI/clean-replay, squash merge when green"

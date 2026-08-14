@@ -2,33 +2,37 @@
 
 Updated: 2026-08-14
 
-## Tip health after #135 merge
+## Tip health after #139 merge
 
-- Main tip: `fbb8e617` (`Merge PR #135: close post-#134 health residuals`).
-- Active health branch: `cursor/codebase-health-and-stability-9740`.
-- Hosted CI for `#135` was still in progress at branch start; tip residual hunt
-  found second-order activation-guard gaps introduced by the go-live series.
+- Main tip: `09752455` (`Merge PR #139: forward-port remaining production capabilities`).
+- Active health branch: `cursor/codebase-health-and-stability-ea1a`.
+- Tip residual hunt after #139 found OpenAPI docs drift still open from unmerged
+  `#138`, plus inbound manual-review correctness gaps in the #139 forward-port.
 
-## Residuals closed on `9740`
+## Residuals closed on `ea1a`
 
-1. HIGH — Lifecycle resume vs tenant_website activation guard
-   Forward migration `20260814180000_tenant_website_activation_lifecycle_resume.sql`
-2. HIGH — Permissions promote of active non-canonical clients to tenant_website
-3. LOW — Shared `isTenantWebsiteIntegrationClient` helper (UI/server drift class)
+1. LOW — Developer scope join follows `scopeMode` (`och`/`eller`) and
+   `OPENAPI_RELEASED_AT` tracks `2026-08-14.1`
+2. MEDIUM — Inbound manual review terminal status uses canonical `done`
+   (legacy `completed` accepted then normalized)
+3. MEDIUM — Job ↔ inbound email message binding in app action + SECURITY DEFINER RPC
 
-## Verification executed on `9740`
+## Verification executed on `ea1a`
 
-- vitest go-live + lifecycle + circuit + RLS UI: 34/34 PASS
-- `db:migrations:integrity`: PASS (434 files)
+- vitest tip residuals + related: 22/22 PASS
+- `db:migrations:integrity`: PASS (436 files)
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
+- `check-supabase-generated-types`: PASS (tip `20260814190000`)
 - ggshield: BLOCKED (CLI not installed)
 - hosted CI: NOT YET
+- live DB apply of `20260814190000`: NOT observed in this run
 
 ## Intentionally not changed
 
-- Applied activation guard / receipt-binding migrations (immutable; forward only).
-- Official UTILTS matrices / TGT-AGT remain external.
+- Applied `#139` migration `20260814183500` (immutable; forward-only residual).
 - Platform-admin operate bypass remains intentional.
-- DB scope-heuristic DiD beyond profile_key left for a later pass (app layer
-  already fail-closed after #135).
+- Release-receipt `auth.uid()` attribution under pure service-role callers remains
+  nullable by schema design.
+- Draft `#137`/`515d` and `#138`/`8637` are superseded as merge vehicles once
+  this tip branch lands.

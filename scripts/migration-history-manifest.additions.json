@@ -50,6 +50,7 @@
     "20260814162500_tenant_rls_lifecycle_hardening.sql": "e2eee5be4e4c795380782248683bfd32b682a66b2e2882a1fd241c9acc7498b2",
     "20260814170000_tenant_website_receipt_ready_binding.sql": "da7fb4f73c2ebb1a9492888621b8754c296e2c4bf399582d9a33c7c2158793c5",
     "20260814180000_tenant_website_activation_lifecycle_resume.sql": "78226972df8ecb181c840e05c1d35eba62657efb68829c47ad35070b4b3e5ee4",
-    "20260814183500_remaining_production_gaps_forward_port.sql": "349359875c2dbcdfcf2c819c720c26e275aaa5cfa262fa05d65d0087a02eebbf"
+    "20260814183500_remaining_production_gaps_forward_port.sql": "349359875c2dbcdfcf2c819c720c26e275aaa5cfa262fa05d65d0087a02eebbf",
+    "20260814190000_inbound_manual_review_status_and_binding.sql": "433339563c48e24e3f9fd102b10705616b69431712c97a9dfa834515f5af66b1"
   }
 }
