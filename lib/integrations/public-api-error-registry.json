@@ -35,33 +35,6 @@
       "tenant_authenticated"
     ]
   },
-  "api_client_not_launch_ready": {
-    "http_status": 403,
-    "public_message": "API-klienten har inte slutfört produktionsverifieringen.",
-    "retryable": false,
-    "security_sensitive": false,
-    "routes": [
-      "tenant_authenticated"
-    ]
-  },
-  "integration_receipt_not_verified": {
-    "http_status": 403,
-    "public_message": "Integrationens installationsverifiering är inte slutförd.",
-    "retryable": false,
-    "security_sensitive": false,
-    "routes": [
-      "tenant_authenticated"
-    ]
-  },
-  "integration_capability_not_ready": {
-    "http_status": 403,
-    "public_message": "Tenantens API-kapacitet är inte produktionsklar.",
-    "retryable": false,
-    "security_sensitive": false,
-    "routes": [
-      "tenant_authenticated"
-    ]
-  },
   "api_scope_missing": {
     "http_status": 403,
     "public_message": "Begäran saknar nödvändigt scope.",
