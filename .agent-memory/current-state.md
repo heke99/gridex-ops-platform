@@ -2,33 +2,36 @@
 
 Updated: 2026-08-14
 
-## Tip health after #135 merge
+## Tip health after #141 merge
 
-- Main tip: `fbb8e617` (`Merge PR #135: close post-#134 health residuals`).
-- Active health branch: `cursor/codebase-health-and-stability-9740`.
-- Hosted CI for `#135` was still in progress at branch start; tip residual hunt
-  found second-order activation-guard gaps introduced by the go-live series.
+- Main tip: `f4ff19d2` (`Merge PR #141: fix final OpenAPI developer-docs residuals`).
+- Active health branch: `cursor/codebase-health-and-stability-d15d`.
+- `#141` landed scopeMode-aware developer docs (`och`/`eller`) and
+  `OPENAPI_RELEASED_AT=2026-08-14T18:26:00.000Z`.
+- Open PR `#140`/`ea1a` is CONFLICTING with tip (overlapping OpenAPI slice) and
+  still held the inbound manual-review residuals.
 
-## Residuals closed on `9740`
+## Residuals closed on `d15d`
 
-1. HIGH — Lifecycle resume vs tenant_website activation guard
-   Forward migration `20260814180000_tenant_website_activation_lifecycle_resume.sql`
-2. HIGH — Permissions promote of active non-canonical clients to tenant_website
-3. LOW — Shared `isTenantWebsiteIntegrationClient` helper (UI/server drift class)
+1. MEDIUM — Inbound manual review terminal status `completed` vs worker `done`
+   Forward migration `20260814190000` + UI/action normalization
+2. MEDIUM — Unbound `job_id` / `inbound_email_message_id` on resolve
+   App membership check + 5-arg SECURITY DEFINER RPC
+3. LOW — Admin UI error mapping for mismatch / invalid next_status
 
-## Verification executed on `9740`
+## Verification executed on `d15d`
 
-- vitest go-live + lifecycle + circuit + RLS UI: 34/34 PASS
-- `db:migrations:integrity`: PASS (434 files)
-- `security:audit-production`: PASS (0 vulnerabilities)
+- vitest tip residuals: 4/4 PASS
+- `db:migrations:integrity`: PASS (436 files)
+- `db:types:check`: PASS
+- `security:audit-production`: PASS (0)
 - `tsc -p tsconfig.app.json`: PASS
 - ggshield: BLOCKED (CLI not installed)
 - hosted CI: NOT YET
 
 ## Intentionally not changed
 
-- Applied activation guard / receipt-binding migrations (immutable; forward only).
-- Official UTILTS matrices / TGT-AGT remain external.
-- Platform-admin operate bypass remains intentional.
-- DB scope-heuristic DiD beyond profile_key left for a later pass (app layer
-  already fail-closed after #135).
+- Applied `#139` migration `20260814183500` (immutable; forward-only).
+- OpenAPI docs already correct on tip after `#141` (not re-touched).
+- Platform-admin-only IDOR without binding remains defense-in-depth (privilege
+  already platform admin); binding still required for consistency.

@@ -2,33 +2,26 @@
 
 Updated: 2026-08-14
 
-Branch `cursor/codebase-health-and-stability-9740` closes post-`fbb8e617`
-(#135 tip health) second-order residuals around the tenant website activation
-guard.
+Branch `cursor/codebase-health-and-stability-d15d` closes post-`f4ff19d2`
+(#141 tip health) residuals for inbound manual review.
 
-Main tip `fbb8e617` bound receipt_ready, blocked generic Aktivera for
-tenant-website clients, fixed UTILTS null-id identity, circuit telemetry,
-lifecycle operate/status guards, and rotation metadata merge. Tip hunt after
-merge found:
+Main tip `f4ff19d2` fixed OpenAPI developer-docs scope wording and
+`OPENAPI_RELEASED_AT`. Tip hunt after merge found that conflicting open PR
+`#140` still held the inbound review fixes that never landed:
 
-1. Company lifecycle resume (`paused → active`) re-activates launch-ready
-   `tenant_website` clients paused with `lifecycle_paused_by_tenant`, but the
-   activation guard still demanded provisioning preflight blockers — deadlocking
-   resume.
-2. `updateIntegrationApiClientPermissionsAction` always wrote
-   `profile_key=tenant_website` while leaving `status=active`, skipping the
-   guard (`old.status=active`) for non-canonical clients.
-3. UI/server tenant-website classifiers were duplicated and could drift again.
+1. Admin review UI/action wrote terminal status `completed` while the inbound
+   worker finishes successful jobs as `done`.
+2. `canonical_resolve_inbound_manual_review` accepted unbound `job_id` without
+   requiring membership with `inbound_email_message_id` from the detail page.
+3. UI error mapping lacked mismatch / invalid-status operator messages.
 
 This branch:
 
-1. Adds forward `20260814180000` lifecycle-resume exemption when old metadata
-   has `lifecycle_paused_by_tenant`, `launch_ready` stays true, canonical
-   go-live metadata remains, and a completed binding receipt exists.
-2. Forces `paused` +
-   `TENANT_WEBSITE_PERMISSIONS_REQUIRE_CANONICAL_GO_LIVE` when promoting an
-   already-active non-canonical client via permissions.
-3. Shares `lib/integrations/tenantWebsiteClient.ts` between page and actions.
+1. Adds forward `20260814190000` 5-arg SECURITY DEFINER command with binding +
+   `completed`→`done` normalization (does not rewrite `20260814183500`).
+2. Updates admin form/action to persist `done` and pre-check job↔message.
+3. Syncs generated types Args + migration/types manifests.
 
 ggshield was unavailable in this environment; run secret scan in CI/host.
-Live DB apply of `20260814180000` was not observed in this run.
+Live DB apply of `20260814190000` was not observed in this run.
+Prefer `d15d` over conflicting `#140`/`ea1a` after CI is green.
