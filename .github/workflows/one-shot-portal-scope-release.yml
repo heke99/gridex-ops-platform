@@ -1,0 +1,126 @@
+name: One-shot portal scope parity release
+
+on:
+  push:
+    branches:
+      - remediation/openapi-portal-scope-parity-2026-08-14
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-portal-scope-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Align portal-bundle contract with runtime and bump immutable release
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+
+          const granularScopes = [
+            'customer_profile.read',
+            'customer_sites.read',
+            'customer_contracts.read',
+            'customer_invoices.read',
+            'customer_metering.read',
+            'customer_legal.read',
+            'customer_events.read',
+            'customer_documents.read',
+            'customer_notifications.read',
+            'customer_power_of_attorney.read',
+          ]
+
+          const registryPath = 'lib/api/publicRouteRegistry.ts'
+          let registry = fs.readFileSync(registryPath, 'utf8')
+          if (!registry.includes("const RAW_PUBLIC_API_ROUTES")) throw new Error('route registry anchor missing')
+          if (!registry.includes("scopes: ['customer_portal.read']")) throw new Error('legacy portal bundle scopes not found')
+          const scopeConstant = `const CUSTOMER_PORTAL_READ_SCOPES = [\n${granularScopes.map((scope) => `  '${scope}',`).join('\n')}\n] as const\n\n`
+          registry = registry.replace('/** Canonical source for the public V1 endpoint catalogue and documentation. */\n', `/** Canonical granular scope set used by both portal-bundle documentation entries. */\n${scopeConstant}/** Canonical source for the public V1 endpoint catalogue and documentation. */\n`)
+          registry = registry.replaceAll("scopes: ['customer_portal.read']", 'scopes: [...CUSTOMER_PORTAL_READ_SCOPES]')
+          const versionAnchor = "  { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },\n  { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },\n"
+          if (!registry.includes(versionAnchor)) throw new Error('2026-08-10.1 registry anchor missing')
+          registry = registry.replace(versionAnchor, `${versionAnchor}  { method: 'GET', path: '/api/v1/openapi/2026-08-14.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-14.1.', rateLimitClass: 'read' },\n  { method: 'GET', path: '/api/v1/openapi/2026-08-14.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-14.1.', rateLimitClass: 'read' },\n`)
+          fs.writeFileSync(registryPath, registry)
+
+          const portalPath = 'docs/openapi/customer-portal-v1.json'
+          const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
+          const bundle = portal.paths?.['/api/v1/customer/portal-bundle']
+          if (!bundle?.get || !bundle?.post) throw new Error('portal-bundle OpenAPI operations missing')
+          for (const method of ['get', 'post']) {
+            bundle[method]['x-required-scopes'] = [...granularScopes]
+            bundle[method].security = [{ bearerAuth: [...granularScopes] }, { legacyApiKeyAuth: [] }]
+          }
+          fs.writeFileSync(portalPath, `${JSON.stringify(portal, null, 2)}\n`)
+
+          const finalizerPath = 'scripts/finalize-openapi-release.cjs'
+          let finalizer = fs.readFileSync(finalizerPath, 'utf8')
+          const required = [
+            "const version = '2026-08-10.1'",
+            "const priorVersion = '2026-08-05.2'",
+            "const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', priorVersion, version]",
+          ]
+          for (const anchor of required) if (!finalizer.includes(anchor)) throw new Error(`finalizer anchor missing: ${anchor}`)
+          finalizer = finalizer.replace("const version = '2026-08-10.1'", "const version = '2026-08-14.1'")
+          finalizer = finalizer.replace("const priorVersion = '2026-08-05.2'", "const priorVersion = '2026-08-10.1'")
+          finalizer = finalizer.replace(
+            "const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', priorVersion, version]",
+            "const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', priorVersion, version]",
+          )
+          fs.writeFileSync(finalizerPath, finalizer)
+          NODE
+      - name: Finalize and materialize immutable OpenAPI release
+        run: |
+          npm run api:finalize
+          npm run api:materialize
+      - name: Verify API release and runtime parity
+        run: |
+          npm run api:compatibility
+          npm run api:release:verify
+          npm run api:runtime:parity
+          npm run api:error-boundaries
+          node scripts/check-api-documentation-examples.cjs
+      - name: Assert portal-bundle granular scopes
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const portal = JSON.parse(fs.readFileSync('docs/openapi/customer-portal-v1.json', 'utf8'))
+          const expected = [
+            'customer_profile.read','customer_sites.read','customer_contracts.read','customer_invoices.read','customer_metering.read',
+            'customer_legal.read','customer_events.read','customer_documents.read','customer_notifications.read','customer_power_of_attorney.read',
+          ]
+          for (const method of ['get', 'post']) {
+            const op = portal.paths['/api/v1/customer/portal-bundle'][method]
+            if (JSON.stringify(op['x-required-scopes']) !== JSON.stringify(expected)) throw new Error(`${method} portal-bundle scope mismatch`)
+            if ((op['x-required-scopes'] ?? []).includes('customer_portal.read')) throw new Error(`${method} still publishes legacy scope alias`)
+          }
+          if (portal.info.version !== '2026-08-14.1') throw new Error(`unexpected portal version ${portal.info.version}`)
+          NODE
+      - name: Commit verified release artifacts
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/api/publicRouteRegistry.ts scripts/finalize-openapi-release.cjs docs/openapi app/api/v1/openapi/2026-08-14.1
+          if git diff --cached --quiet; then
+            echo "No release changes generated."
+            exit 0
+          fi
+          git commit -m "fix(api): align portal bundle scopes with runtime"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
