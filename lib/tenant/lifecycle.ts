@@ -27,6 +27,12 @@ export function isCompanyVisibleInTenantWorkspace(
   return status === 'active' || status === 'onboarding' || status === 'paused'
 }
 
+export function isCompanyWritableInTenantWorkspace(
+  status: string | null | undefined,
+): boolean {
+  return status === 'active' || status === 'onboarding'
+}
+
 export function companyLifecycleEffectSummary(status: CompanyOperationalStatus): string {
   switch (status) {
     case 'paused':
