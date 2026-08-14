@@ -22,8 +22,8 @@ import {
   type TenantWebsiteGoLiveSummary,
 } from "@/lib/integrations/tenantWebsiteGoLive";
 import {
-  listEdielCertificationEvidence,
-  type EdielCertificationEvidenceRecord,
+  getEdielCertificationEvidenceSnapshot,
+  type EdielCertificationEvidenceSnapshot,
 } from "@/lib/ediel/certificationEvidence";
 import { TenantWebsiteGoLivePanel } from "@/components/admin/go-live/TenantWebsiteGoLivePanel";
 import { CertificationEvidencePanel } from "@/components/admin/go-live/CertificationEvidencePanel";
@@ -104,8 +104,8 @@ export default async function PlatformGoLiveCompanyPage({
     safeLoad<TenantWebsiteGoLiveSummary | null>("website readiness", () =>
       getTenantWebsiteGoLiveSummary(companyId),
     ),
-    safeLoad<EdielCertificationEvidenceRecord[]>("certification evidence", () =>
-      listEdielCertificationEvidence(companyId),
+    safeLoad<EdielCertificationEvidenceSnapshot>("certification evidence", () =>
+      getEdielCertificationEvidenceSnapshot(companyId),
     ),
   ]);
 
@@ -191,7 +191,11 @@ export default async function PlatformGoLiveCompanyPage({
         ) : null}
 
         {certificationEvidence ? (
-          <CertificationEvidencePanel companyId={companyId} records={certificationEvidence} />
+          <CertificationEvidencePanel
+            companyId={companyId}
+            records={certificationEvidence.records}
+            verifiedAt={certificationEvidence.verifiedAt}
+          />
         ) : null}
         {!evidenceLoad.ok ? (
           <LoadFailure title="Production-evidens kunde inte laddas" companyId={companyId} />
