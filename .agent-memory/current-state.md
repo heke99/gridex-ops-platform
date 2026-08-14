@@ -2,25 +2,24 @@
 
 Updated: 2026-08-14
 
-## Tip health after #144 merge
+## Tip health after #145 merge
 
-- Main tip: `1dfc3559` (`Merge PR #144: reopen manual review after requeue cycles`).
-- Active health branch: `cursor/codebase-health-and-stability-e76c`.
-- Tip residual hunt found missing review metadata on worker entry and
-  Processa om job desync.
+- Main tip: `73936c7c` (`Merge PR #145: review metadata and reprocess job sync`).
+- Active health branch: `cursor/codebase-health-and-stability-4764`.
+- Tip residual hunt found Processa om ignoring terminal jobs and opaque
+  `review_reason` invented from the status token.
 
-## Residuals closed on `e76c`
+## Residuals closed on `4764`
 
-1. HIGH — Worker `manual_review` entry invents owner/priority/reason/SLA and
-   refreshes them on reopen (`markInboundProcessingJobFinished`)
-2. HIGH — Processa om syncs newest active `inbound_processing_jobs` row via
-   `syncActiveInboundProcessingJobForMessage`
-3. MEDIUM — Forward `20260814200000` backfills open rows still missing metadata
+1. HIGH — Processa om syncs newest job of any status (reopen done/failed)
+2. HIGH — Processor returns actionable `reason`; worker/Processa om persist it
+3. MEDIUM — Successful Processa om stamps `review_resolution=reprocessed`
+4. MEDIUM — Forward `20260814210000` repairs opaque open-row reasons
 
-## Verification executed on `e76c`
+## Verification executed on `4764`
 
-- vitest post-139/143/144: 6/6 PASS
-- `db:migrations:integrity`: PASS (438 files)
+- vitest post-139/143/144/145: 8/8 PASS
+- `db:migrations:integrity`: PASS (439 files)
 - `db:types:check`: PASS
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
@@ -29,7 +28,7 @@ Updated: 2026-08-14
 
 ## Intentionally not changed / deferred
 
-- Applied `20260814190000` / `20260814193000` remain immutable; forward only.
-- Review owner remains operational role `tenant_operations`, not a user id.
-- Official UTILTS matrices / TGT-AGT remain external.
-- Live DB apply of `20260814200000` not observed in this run.
+- Applied inbound review migrations remain immutable; forward only.
+- Review owner remains operational role `tenant_operations`.
+- Worker `done` after Köa om keeps prior resolve stamp (no double-write).
+- Live DB apply of `20260814210000` not observed in this run.

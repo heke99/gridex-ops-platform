@@ -264,3 +264,12 @@ Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
   (`20260814180000_tenant_website_activation_lifecycle_resume.sql`).
 - Force pause when permissions promote active non-canonical clients to
   tenant_website; share `isTenantWebsiteIntegrationClient`.
+
+## 2026-08-14 — Post-#145 tip health residuals (4764)
+
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+
+- Processa om syncs newest inbound job of any status (reopen done/failed).
+- Processor returns actionable `reason`; worker + Processa om persist it.
+- Successful Processa om stamps `review_resolution=reprocessed`.
+- Forward `20260814210000_inbound_manual_review_actionable_reason_repair.sql`.

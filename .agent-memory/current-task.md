@@ -4,10 +4,10 @@ Updated: 2026-08-14
 
 Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-Active work item: Post-#144 inbound manual-review metadata + Processa om sync
-on `cursor/codebase-health-and-stability-e76c`.
+Active work item: Post-#145 Processa om terminal sync + actionable review
+reason on `cursor/codebase-health-and-stability-4764`.
 
 ## Exact next action
 
-PR `#145` is open. Wait for hosted CI/clean-replay, squash merge only after
-required checks are green.
+Open PR for tip residuals; wait for hosted CI/clean-replay, squash merge only
+after required checks are green.
