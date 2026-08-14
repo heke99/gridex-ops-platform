@@ -1584,12 +1584,22 @@ async function markInboundProcessingJobFinished(input: {
 }): Promise<void> {
   // Resolving a review (including "Köa om" → queued) stamps review_resolved_at.
   // When the same job later returns to manual_review, clear the sticky resolution
-  // so the open-review UI and canonical_resolve_inbound_manual_review can reopen it.
+  // and refresh operational review metadata so the open-review UI /
+  // canonical_resolve_inbound_manual_review / architecture checks stay actionable.
   const reopenManualReview =
     input.status === "manual_review"
       ? {
           review_resolved_at: null,
           review_resolution: null,
+          review_owner: "tenant_operations",
+          review_priority: "normal",
+          review_reason:
+            input.errorMessage ??
+            input.step ??
+            "manual_review_unclassified",
+          review_sla_due_at: new Date(
+            Date.now() + 24 * 60 * 60 * 1000,
+          ).toISOString(),
         }
       : {};
 
@@ -1608,6 +1618,45 @@ async function markInboundProcessingJobFinished(input: {
     .eq("id", input.jobId);
 
   if (error) throw error;
+}
+
+/**
+ * Sync the newest non-terminal inbound_processing_jobs row after a direct
+ * message reprocess (admin "Processa om"), which bypasses the queue worker.
+ */
+export async function syncActiveInboundProcessingJobForMessage(input: {
+  inboundEmailMessageId: string;
+  outcomeStatus: string;
+  errorMessage?: string | null;
+}): Promise<boolean> {
+  const nextStatus =
+    input.outcomeStatus === "processed" ? "done" : "manual_review";
+
+  const { data, error } = await supabaseService
+    .from("inbound_processing_jobs")
+    .select("id")
+    .eq("inbound_email_message_id", input.inboundEmailMessageId)
+    .in("status", [
+      "queued",
+      "retry",
+      "received",
+      "processing",
+      "manual_review",
+    ])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+  const jobId = (data?.[0] as { id?: string } | undefined)?.id;
+  if (!jobId) return false;
+
+  await markInboundProcessingJobFinished({
+    jobId,
+    status: nextStatus,
+    step: input.outcomeStatus,
+    errorMessage: input.errorMessage ?? null,
+  });
+  return true;
 }
 
 export async function processQueuedInboundProcessingJobs(

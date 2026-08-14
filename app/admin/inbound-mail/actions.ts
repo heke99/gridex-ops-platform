@@ -6,6 +6,7 @@ import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProce
 import {
   processQueuedInboundProcessingJobs,
   runInboundEdielMailEngine,
+  syncActiveInboundProcessingJobForMessage,
 } from "@/lib/inbound-mail/edielMailboxPoller";
 import { supabaseService } from "@/lib/supabase/service";
 
@@ -274,9 +275,15 @@ export async function reprocessInboundEmailAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess();
   const id = text(formData, "id");
   if (!id) throw new Error("Inbound mail-id saknas.");
-  await processInboundEmailMessage({
+  const outcome = await processInboundEmailMessage({
     inboundEmailMessageId: id,
     actorUserId: admin.userId,
+  });
+  // Direct reprocess bypasses the queue worker; keep the related job in sync
+  // so open-review UI/RPC cannot stay sticky after a successful Processa om.
+  await syncActiveInboundProcessingJobForMessage({
+    inboundEmailMessageId: id,
+    outcomeStatus: outcome.status,
   });
   revalidatePath("/admin/inbound-mail");
   revalidatePath(`/admin/inbound-mail/${id}`);
