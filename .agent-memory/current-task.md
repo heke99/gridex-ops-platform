@@ -4,11 +4,11 @@ Updated: 2026-08-14
 
 Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 
-Active work item: Post-#134 tip health residuals on
-`cursor/codebase-health-and-stability-b4c7`.
+Active work item: Post-#135 tip health residuals on
+`cursor/codebase-health-and-stability-9740`.
 
 ## Exact next action
 
-PR `#135` is open. Wait for hosted CI/clean-replay, squash merge only after
-required checks are green, then close superseded health PRs
-(`#132`/`#131`/`#127`/`#125`/`#122`/…).
+Open PR for `9740`, wait for hosted CI/clean-replay, squash merge only after
+required checks are green, then close any superseded open health PRs still
+tracking pre-`fbb8e617` tips.

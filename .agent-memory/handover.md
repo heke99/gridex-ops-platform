@@ -2,30 +2,33 @@
 
 Updated: 2026-08-14
 
-Branch `cursor/codebase-health-and-stability-b4c7` closes post-`2afe1db8`
-(#134 tenant RLS + go-live) tip residuals, including the unmerged `31d1`
-package and one new tip gap.
+Branch `cursor/codebase-health-and-stability-9740` closes post-`fbb8e617`
+(#135 tip health) second-order residuals around the tenant website activation
+guard.
 
-Main tip `2afe1db8` hardened Data API lifecycle RLS and simplified go-live UX,
-but left receipt binding, UTILTS null-id identity, circuit telemetry,
-lifecycle operate/status guards, rotation metadata merge, and durable typegen
-gates open. #134 also introduced an UI/server mismatch where
-`isTenantWebsiteClient` includes scope heuristics while status activation only
-checked `profile_key`.
+Main tip `fbb8e617` bound receipt_ready, blocked generic Aktivera for
+tenant-website clients, fixed UTILTS null-id identity, circuit telemetry,
+lifecycle operate/status guards, and rotation metadata merge. Tip hunt after
+merge found:
+
+1. Company lifecycle resume (`paused → active`) re-activates launch-ready
+   `tenant_website` clients paused with `lifecycle_paused_by_tenant`, but the
+   activation guard still demanded provisioning preflight blockers — deadlocking
+   resume.
+2. `updateIntegrationApiClientPermissionsAction` always wrote
+   `profile_key=tenant_website` while leaving `status=active`, skipping the
+   guard (`old.status=active`) for non-canonical clients.
+3. UI/server tenant-website classifiers were duplicated and could drift again.
 
 This branch:
 
-1. Shares UTILTS `transaction-<n>` identity across disposition/persistence/ACK/profiles.
-2. Isolates circuit success telemetry from dependency results.
-3. Adds forward `20260814170000` receipt_ready metadata binding (legacy null fallback).
-4. Blocks crafted tenant website activation in the status action (profile + scopes).
-5. Merges rotation metadata instead of replacing it.
-6. Refuses `deleted_test_only` on the generic status action.
-7. Requires writable company status in `assertUserCanOperateCompany`.
-8. Restores `db:types:gen` nullability overrides and ops-hardening vitest gates.
-
-Prefer merging `b4c7`, then closing superseded open health PRs rather than
-rebasing those older branches.
+1. Adds forward `20260814180000` lifecycle-resume exemption when old metadata
+   has `lifecycle_paused_by_tenant`, `launch_ready` stays true, canonical
+   go-live metadata remains, and a completed binding receipt exists.
+2. Forces `paused` +
+   `TENANT_WEBSITE_PERMISSIONS_REQUIRE_CANONICAL_GO_LIVE` when promoting an
+   already-active non-canonical client via permissions.
+3. Shares `lib/integrations/tenantWebsiteClient.ts` between page and actions.
 
 ggshield was unavailable in this environment; run secret scan in CI/host.
-Live DB apply of `20260814170000` was not observed in this run.
+Live DB apply of `20260814180000` was not observed in this run.
