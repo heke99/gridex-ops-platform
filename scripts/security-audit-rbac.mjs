@@ -190,6 +190,12 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/platform/customers/archived/page.tsx",
   "app/admin/platform/ediel/messages/page.tsx",
   "app/admin/platform/legal-templates/actions.ts",
+  // Reviewed 2026-08-14: both go-live mutations call
+  // requirePlatformAdminActionAccess before any service-client access. Tenant
+  // website provisioning is company-id scoped and canonical/runtime gated;
+  // certification writes are current-engine scoped, evidence-validated and
+  // audit logged. No ordinary tenant-admin path can invoke these mutations.
+  "app/admin/platform/go-live/actions.ts",
   // Reviewed 2026-07-27: contracts/page obtains contracts.read and resolves an
   // operational company scope before its tenant-scoped readiness RPC.
   "app/admin/contracts/page.tsx",
