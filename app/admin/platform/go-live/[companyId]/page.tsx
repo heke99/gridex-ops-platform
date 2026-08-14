@@ -118,7 +118,7 @@ export default async function PlatformGoLiveCompanyPage({
     <div className="min-h-screen">
       <AdminHeader
         title={`Produktionssättning · ${summary.company.name}`}
-        subtitle="Ett repeterbart superadmin-flöde: bolagssäkerhet, webb & Mina sidor, production-evidens, readiness, dry run och slutlig aktivering."
+        subtitle="Ett repeterbart superadmin-flöde: bolagssäkerhet och lifecycle, production-evidens, dry run, aktivering, därefter webb/Mina sidor och kundflöde."
         userEmail={admin.email}
         workspaceMode="platform"
       />
@@ -131,25 +131,25 @@ export default async function PlatformGoLiveCompanyPage({
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
               <div className="text-sm font-black text-slate-950">1. Bolaget är säkert</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Aktivt bolag, rätt roller, bolagsseparerad åtkomst och inga lifecycle-blockerare.
+                Aktivt bolag, rätt roller, bolagsseparerad åtkomst och verifierade lifecycle-regler för pause, suspend och archive.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">2. Webb & Mina sidor</div>
+              <div className="text-sm font-black text-slate-950">2. Bevis + dry run</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                API-klient, origins, kundportal, juridik, mail och automation verifieras med installationskvitto.
+                Verklig certifiering/pilot, Ediel-routes, transport och dry run måste passera utan genvägar.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">3. Bevis + dry run</div>
+              <div className="text-sm font-black text-slate-950">3. Sätt bolaget live</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Verklig certifiering/pilot, Ediel-routes och dry run måste passera utan genvägar.
+                Production aktiveras först när backend-gaten är grön. Ingen UI-status får kringgå readiness.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">4. Sätt bolaget live</div>
+              <div className="text-sm font-black text-slate-950">4. Webb & kundflöde</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Production aktiveras först när backend-gaten är grön. Nya elavtal kräver därefter live-status även vid runtime.
+                API-klient, origins, kundportal, mail och automation verifieras efter live. Nya elavtal kräver live-status även vid runtime.
               </p>
             </div>
           </div>
@@ -190,11 +190,6 @@ export default async function PlatformGoLiveCompanyPage({
           <LoadFailure title="Grundkontrollen kunde inte laddas" companyId={companyId} />
         ) : null}
 
-        {websiteSummary ? <TenantWebsiteGoLivePanel summary={websiteSummary} /> : null}
-        {!websiteLoad.ok || (websiteLoad.ok && !websiteSummary) ? (
-          <LoadFailure title="Webb & Mina sidor kunde inte verifieras" companyId={companyId} />
-        ) : null}
-
         {certificationEvidence ? (
           <CertificationEvidencePanel companyId={companyId} records={certificationEvidence} />
         ) : null}
@@ -211,6 +206,11 @@ export default async function PlatformGoLiveCompanyPage({
         ) : (
           <LoadFailure title="Production readiness kunde inte laddas" companyId={companyId} />
         )}
+
+        {websiteSummary ? <TenantWebsiteGoLivePanel summary={websiteSummary} /> : null}
+        {!websiteLoad.ok || (websiteLoad.ok && !websiteSummary) ? (
+          <LoadFailure title="Webb & Mina sidor kunde inte verifieras" companyId={companyId} />
+        ) : null}
 
         <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <summary className="cursor-pointer text-sm font-black text-slate-950">
