@@ -9,5 +9,5 @@ Active work item: Post-#136 tip health residuals on
 
 ## Exact next action
 
-Open PR from `8637`, wait for hosted CI/clean-replay, squash merge only after
+PR `#138` is open. Wait for hosted CI/clean-replay, squash merge only after
 required checks are green. Close superseded draft `#137`/`515d` after merge.
