@@ -9,6 +9,5 @@ on `cursor/codebase-health-and-stability-e446`.
 
 ## Exact next action
 
-Open/wait for hosted CI on this branch PR; squash merge only after required
-checks are green. Draft #146 becomes superseded by this tip vehicle for the
-inbound Processa om residuals.
+PR `#148` is open. Wait for hosted CI/clean-replay, squash merge only after
+required checks are green. Draft `#146` is superseded as a merge vehicle.
