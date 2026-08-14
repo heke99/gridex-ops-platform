@@ -7,12 +7,66 @@ import {
   ActorProfileGuide,
   EvidencePackage,
 } from "@/components/admin/ediel/ActorTestingViews";
-import { getCompanyProductionReadiness } from "@/lib/ediel/productionReadiness";
+import {
+  getCompanyProductionReadiness,
+  type ProductionReadinessResult,
+} from "@/lib/ediel/productionReadiness";
 import { ProductionReadinessPanel } from "@/components/admin/ediel/ProductionReadinessViews";
-import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
+import {
+  getCompanyGoLiveSetupSummary,
+  type GoLiveSetupSummary,
+} from "@/lib/ediel/platformGoLive";
 import { CompanyGoLiveSetupPanel } from "@/components/admin/ediel/GoLiveSetupViews";
 
 export const dynamic = "force-dynamic";
+
+type SafeLoad<T> =
+  | { ok: true; data: T }
+  | { ok: false; code: string };
+
+function loadErrorCode(error: unknown): string {
+  const value = error as { code?: unknown; message?: unknown } | null;
+  if (typeof value?.code === "string" && value.code.trim()) return value.code;
+  if (typeof value?.message === "string" && value.message.trim()) return value.message;
+  return "go_live_load_failed";
+}
+
+async function safeLoad<T>(
+  label: string,
+  loader: () => Promise<T>,
+): Promise<SafeLoad<T>> {
+  try {
+    return { ok: true, data: await loader() };
+  } catch (error) {
+    const code = loadErrorCode(error);
+    console.error(`[platform-go-live] ${label} failed`, { code });
+    return { ok: false, code };
+  }
+}
+
+function LoadFailure({
+  title,
+  companyId,
+}: {
+  title: string;
+  companyId: string;
+}) {
+  return (
+    <section className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-950 shadow-sm">
+      <h2 className="text-lg font-black">{title}</h2>
+      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6">
+        Ingen produktionsändring har gjorts. Ladda om kontrollen. Om felet kvarstår
+        ska det felsökas innan bolaget sätts live.
+      </p>
+      <Link
+        href={`/admin/platform/go-live/${companyId}`}
+        className="mt-4 inline-flex rounded-xl bg-red-800 px-4 py-2 text-sm font-black text-white hover:bg-red-900"
+      >
+        Kör om kontrollen
+      </Link>
+    </section>
+  );
+}
 
 export default async function PlatformGoLiveCompanyPage({
   params,
@@ -24,43 +78,77 @@ export default async function PlatformGoLiveCompanyPage({
   const admin = await requirePlatformAdminAccess();
   const { companyId } = await params;
   const notice = searchParams ? await searchParams : {};
-  const [summary, readiness, setupSummary] = await Promise.all([
-    getActorTestingSummary(companyId),
-    getCompanyProductionReadiness(companyId),
-    getCompanyGoLiveSetupSummary(companyId),
-  ]);
+  const summary = await getActorTestingSummary(companyId);
 
   if (!summary) {
     return <div className="p-8">Bolaget hittades inte.</div>;
   }
 
+  const [readinessLoad, setupLoad] = await Promise.all([
+    safeLoad<ProductionReadinessResult>("production readiness", () =>
+      getCompanyProductionReadiness(companyId, { checkedBy: admin.userId }),
+    ),
+    safeLoad<GoLiveSetupSummary | null>("setup summary", () =>
+      getCompanyGoLiveSetupSummary(companyId),
+    ),
+  ]);
+
+  const readiness = readinessLoad.ok ? readinessLoad.data : null;
+  const setupSummary = setupLoad.ok ? setupLoad.data : null;
+
   return (
     <div className="min-h-screen">
       <AdminHeader
         title={`Produktionssättning · ${summary.company.name}`}
-        subtitle="Kontrollerad växling från testläge till live Ediel. Systemet blockerar live om route, BRP, eSett, mailbox eller tester saknas."
+        subtitle="Ett guidat go-live-flöde: komplettera blockerare, kör kontroll och dry run, aktivera först när allt är grönt."
         userEmail={admin.email}
         workspaceMode="platform"
       />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">
+            Enkelt go-live-flöde
+          </p>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+              <div className="text-sm font-black text-slate-950">1. Fixa blockerare</div>
+              <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+                Bolagsdata, Ediel-ID, BRP, routes och transport ska vara klara.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+              <div className="text-sm font-black text-slate-950">2. Kontroll + dry run</div>
+              <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+                Systemet verifierar tenant, route, mailbox, tester och send locks utan live-send.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+              <div className="text-sm font-black text-slate-950">3. Aktivera production</div>
+              <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+                Aktivering blir möjlig först när backend-readiness och dry run passerar.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/platform/go-live"
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
-            Alla go-live
+            Alla bolag
           </Link>
           <Link
             href={`/admin/platform/actor-testing/${summary.company.id}`}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
           >
-            Aktörstester
+            Tester & certifiering
           </Link>
           <Link
             href={`/admin/platform/go-live/${summary.company.id}/route-wizard`}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
-            Ediel production routes
+            Ediel routes
           </Link>
         </div>
         {notice?.message ? (
@@ -71,14 +159,19 @@ export default async function PlatformGoLiveCompanyPage({
           </div>
         ) : null}
         <ActorCompanyIdentityCard summary={summary} />
-        {setupSummary ? (
-          <CompanyGoLiveSetupPanel summary={setupSummary} />
+        {setupSummary ? <CompanyGoLiveSetupPanel summary={setupSummary} /> : null}
+        {!setupLoad.ok ? (
+          <LoadFailure title="Grundkontrollen kunde inte laddas" companyId={companyId} />
         ) : null}
-        <ProductionReadinessPanel
-          readiness={readiness}
-          returnPath={`/admin/platform/go-live/${summary.company.id}`}
-          canManageProduction
-        />
+        {readiness ? (
+          <ProductionReadinessPanel
+            readiness={readiness}
+            returnPath={`/admin/platform/go-live/${summary.company.id}`}
+            canManageProduction
+          />
+        ) : (
+          <LoadFailure title="Production readiness kunde inte laddas" companyId={companyId} />
+        )}
         <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <summary className="cursor-pointer text-sm font-black text-slate-950">
             Avancerat: testprofil, äldre actor-data och evidence package

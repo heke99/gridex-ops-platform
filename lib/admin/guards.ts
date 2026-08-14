@@ -9,6 +9,7 @@ import {
   type PermissionRequirement,
 } from '@/lib/admin/accessModel'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 
 export type GuardResult = {
@@ -67,7 +68,6 @@ const COMPANY_READ_MEMBERSHIP_ROLES = new Set([
   'member',
 ])
 
-
 function roleFromRpcRow(row: UserRoleRpcRow): string | null {
   if (typeof row === 'string') return normalizeRoleKey(row)
   if (!row || typeof row !== 'object') return null
@@ -85,9 +85,6 @@ function normalizeRequirement(
 }
 
 export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permissions'>): boolean {
-  // Platform access must be based on explicit platform roles, not broad permissions.
-  // Some company-level roles may carry tenant/user permissions for their own company,
-  // but that must never unlock /admin/companies, /admin/users, /admin/roles or /admin/platform/*.
   return input.roles.some((role) => {
     const normalized = normalizeRoleKey(role)
     return isPlatformAdminRole(normalized)
@@ -155,6 +152,13 @@ export async function requireAdminAccess(): Promise<GuardResult> {
     redirect('/login')
   }
 
+  if (!isPlatformAdminContext(base)) {
+    const memberships = await listOperationalCompaniesForUser(base.userId)
+    if (memberships.length === 0) {
+      redirect('/login')
+    }
+  }
+
   return base
 }
 
@@ -181,15 +185,8 @@ export async function requirePlatformAdminActionAccess(): Promise<GuardResult> {
 export async function requireAdminPageAccess(
   requiredPermissions: string[] | PermissionRequirement = []
 ): Promise<GuardResult> {
-  const base = await loadBaseAdminContext()
+  const base = await requireAdminAccess()
 
-  if (!base.isAdmin) {
-    redirect('/login')
-  }
-
-  // Platform admins must be able to open tenant-operational pages for support and troubleshooting,
-  // even when old role_permissions rows are incomplete in the database. Platform-only pages are still
-  // guarded separately by requirePlatformAdminAccess via requireAdminPageKeyAccess().
   if (isPlatformAdminContext(base)) {
     return base
   }
@@ -206,7 +203,6 @@ export async function requireAdminPageAccess(
 export async function requireAdminPageKeyAccess(
   pageKey: AdminPageKey
 ): Promise<GuardResult> {
-  // Platform pages are gated by explicit platform roles, never by broad tenant/report permissions.
   if (String(pageKey).startsWith('platform.')) {
     return requirePlatformAdminAccess()
   }
@@ -223,10 +219,13 @@ export async function requireAdminActionAccess(
     throw new Error('Unauthorized')
   }
 
-  // Platform administrators are explicitly trusted for tenant-operational actions.
-  // Platform-only actions remain protected by requirePlatformAdminActionAccess.
   if (isPlatformAdminContext(base)) {
     return base
+  }
+
+  const memberships = await listOperationalCompaniesForUser(base.userId)
+  if (!memberships.some((membership) => isCompanyWritableInTenantWorkspace(membership.companyStatus))) {
+    throw new Error('Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.')
   }
 
   const requirement = normalizeRequirement(requiredPermissions)
@@ -276,11 +275,12 @@ export async function requireCompanyScopedActionAccess(
   const allowed = memberships.some(
     (membership) =>
       membership.companyId === companyId &&
+      isCompanyWritableInTenantWorkspace(membership.companyStatus) &&
       Boolean(normalizeRoleKey(membership.membershipRole) && COMPANY_ADMIN_MEMBERSHIP_ROLES.has(normalizeRoleKey(membership.membershipRole) as string))
   )
 
   if (!allowed) {
-    throw new Error('Du saknar behörighet för valt bolag.')
+    throw new Error('Du saknar aktiv ändringsbehörighet för valt bolag.')
   }
 
   return base
