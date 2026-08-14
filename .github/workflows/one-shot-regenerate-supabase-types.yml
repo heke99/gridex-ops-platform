@@ -1,0 +1,73 @@
+name: One-shot regenerate Supabase types
+
+on:
+  push:
+    branches:
+      - remediation/remaining-production-gaps-forward-port-2026-08-14
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-types-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - run: npm ci
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Rebuild canonical schema and generate types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase gen types typescript --local > supabase/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          GENERATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')"
+          node - "$GENERATED_HASH" "$GENERATED_AT" <<'NODE'
+          const fs = require('node:fs')
+          const [hash, generatedAt] = process.argv.slice(2)
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.sha256 = hash
+          manifest.generated_at = generatedAt
+          manifest.latest_migration = '20260814183500_remaining_production_gaps_forward_port.sql'
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
+          NODE
+          npm run db:types:check
+          ACTUAL_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          test "$ACTUAL_HASH" = "$GENERATED_HASH"
+          echo "generated_types_sha256=$GENERATED_HASH"
+      - name: Commit generated types only
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          git diff --cached --quiet && { echo "No generated changes."; exit 0; }
+          git commit -m "chore(db): regenerate Supabase types for production forward-port"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
