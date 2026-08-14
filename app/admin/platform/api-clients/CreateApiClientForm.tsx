@@ -27,10 +27,13 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
   return (
     <div className="rounded-[32px] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Ny API-klient</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Koppla hemsida och Mina sidor</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Canonical go-live</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Sätt hemsida och Mina sidor live</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Skapa en enda server-side API-nyckel för hemsida, teckning och Mina sidor. Tenantens produktion behöver bara miljövariabeln GRIDEX_API_KEY; tenant, company_id, base-URL och payloadläge ska inte konfigureras separat.
+          Välj bolag och fyll i dess produktionskonfiguration. OPS provisionerar eller revaliderar samma tenant-webbklient, kör smoke/readiness och släpper normal API-trafik först när launch-bevisen är kompletta. Om en befintlig credential kan återanvändas säkert behålls den; en ny token visas endast när en ny credential faktiskt skapas.
+        </p>
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          Tenantens produktion behöver därefter bara miljövariabeln GRIDEX_API_KEY; tenant, company_id, base-URL och payloadläge ska inte konfigureras separat. Använd detta flöde även för revalidation av en readiness-pausad tenant-webbklient i stället för en generell statusaktivering.
         </p>
       </div>
 
@@ -147,7 +150,6 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
           </label>
         </div>
 
-
         <fieldset className="rounded-3xl border border-slate-200 p-4">
           <legend className="px-2 text-sm font-semibold text-slate-800">Webhook till extern hemsida</legend>
           <div className="mt-2 grid gap-5">
@@ -198,7 +200,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
         </div>
 
         <button disabled={pending} className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-700/20 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
-          {pending ? 'Skapar API-klient…' : 'Skapa API-klient och visa token'}
+          {pending ? 'Verifierar readiness och provisionerar…' : 'Provisionera / revalidera och sätt live'}
         </button>
       </form>
     </div>
