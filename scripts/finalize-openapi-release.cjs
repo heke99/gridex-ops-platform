@@ -2493,6 +2493,14 @@ function normalizePublicOpenApiDocumentOperations(document) {
     }
     operation.security = []
     operation['x-required-scopes'] = []
+    operation['x-scope-mode'] = 'all'
+    operation['x-rate-limit-class'] = 'read'
+    operation['x-idempotency-required'] = false
+    operation['x-cache-policy'] = immutableMatch ? 'public-immutable' : 'private-revalidate'
+    operation['x-public-id-policy'] = 'none'
+    if (path === '/api/v1/openapi/release-manifest.json') {
+      operation.operationId = 'getApiV1OpenapiReleaseManifestJson'
+    }
     const response200 = operation.responses?.['200']
     if (response200 && !response200.$ref) response200.headers = staticDocumentHeaders()
     operation.responses = operation.responses ?? {}

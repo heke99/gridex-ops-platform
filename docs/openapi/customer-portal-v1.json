@@ -6820,7 +6820,7 @@
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
-        "x-cache-policy": "private-revalidate",
+        "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
     },
@@ -6896,7 +6896,7 @@
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
-        "x-cache-policy": "private-revalidate",
+        "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
     }

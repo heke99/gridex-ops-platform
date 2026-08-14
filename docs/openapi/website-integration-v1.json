@@ -4092,7 +4092,7 @@
     },
     "/api/v1/openapi/release-manifest.json": {
       "get": {
-        "operationId": "getOpenApiReleaseManifest",
+        "operationId": "getApiV1OpenapiReleaseManifestJson",
         "summary": "Hämta atomiskt OpenAPI release-manifest",
         "x-required-scopes": [],
         "responses": {
@@ -4156,7 +4156,12 @@
             }
           }
         },
-        "security": []
+        "security": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "private-revalidate",
+        "x-public-id-policy": "none"
       }
     },
     "/api/v1/public-contracts": {
@@ -6184,7 +6189,7 @@
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
-        "x-cache-policy": "private-revalidate",
+        "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
     },
@@ -6260,7 +6265,7 @@
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
-        "x-cache-policy": "private-revalidate",
+        "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
     },
@@ -6336,7 +6341,7 @@
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
-        "x-cache-policy": "private-revalidate",
+        "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
     },
@@ -6412,7 +6417,7 @@
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
-        "x-cache-policy": "private-revalidate",
+        "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
     }
