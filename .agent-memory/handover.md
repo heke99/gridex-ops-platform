@@ -2,25 +2,28 @@
 
 Updated: 2026-08-14
 
-Branch `cursor/codebase-health-and-stability-580a` closes tip residuals after
-main merged canonical tenant website go-live hardening (`2c5a8c0f`).
+Branch `cursor/codebase-health-and-stability-3943` closes post-`8deb9435`
+health residuals after the canonical go-live admin UX landed on main.
 
-Unmerged `#127` (`8738`, based on `c2adf6a0`) still held UTILTS null-id
-identity, circuit success telemetry isolation, durable `db:types:gen`, and
-ops-hardening gates. Those commits were cherry-picked onto the go-live tip.
+Main tip `8deb9435` clarified the superadmin API-client form as the
+canonical provision/revalidate path, but left unmerged `#131`/`580a`
+residuals open and still exposed a misleading generic Aktivera control
+for paused `tenant_website` clients. Credential rotation also replaced
+metadata wholesale.
 
-NEW go-live residual: `authenticate_integration_request_v1.receipt_ready`
-accepted any completed `tenant_website_installation_receipts` row for the
-api_client_id. After revalidation with a new idempotency key, an old completed
-receipt could keep authorizing normal API traffic once launch_ready returned.
-Forward migration `20260814140000_tenant_website_receipt_ready_binding.sql`
-requires the metadata `provisioning_receipt_id` match when present, and keeps
-legacy any-completed-receipt behavior only while that metadata key is null.
+This branch:
 
-Prefer merging `580a`, then closing superseded open health PRs
-`#127`/`#125`/`#122`/`#121`/`#120`/`#119`/`#117`/`#115`/`#113` rather than
-rebasing those older branches.
+1. Ports `#131` UTILTS `transaction-<n>` identity, circuit success-telemetry
+   isolation, durable `db:types:gen`, ops-hardening gates, and
+   `20260814140000` receipt_ready metadata binding.
+2. Hides tenant_website Aktivera in the admin list and fail-closes the
+   status action with an explicit canonical go-live message.
+3. Merges rotation markers into existing client metadata so
+   `provisioning_receipt_id` / `go_live_flow` survive key rotation.
+
+Prefer merging `3943`, then closing superseded open health PRs
+`#131`/`#127`/`#125`/`#122`/`#121`/`#120`/`#119`/`#117`/`#115`/`#113`
+rather than rebasing those older branches.
 
 ggshield was unavailable in this environment; run secret scan in CI/host.
-Live DB apply of go-live + receipt-binding migrations was not observed in this
-run.
+Live DB apply of `20260814140000` was not observed in this run.

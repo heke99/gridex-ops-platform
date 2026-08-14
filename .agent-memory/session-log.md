@@ -383,3 +383,10 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Added forward migration `20260814140000` (bind when metadata present; legacy fallback).
 - Verified vitest 30/30, migration integrity, types check, tsc app, production audit.
 - ggshield unavailable; hosted CI not yet observed.
+
+## 2026-08-14 — Post-8deb9435 tip health on 3943
+
+- Reviewed main tip after canonical go-live admin UX merge.
+- Ported unmerged #131/580a residuals onto cursor/codebase-health-and-stability-3943.
+- Closed NEW residuals: tenant_website Aktivera UX/action fail-closed; rotation metadata merge.
+- Local verification 32 vitest + post-332 + migration integrity + types + audit + tsc PASS; ggshield blocked.

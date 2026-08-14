@@ -254,3 +254,11 @@ Status: IMPLEMENTED_NOT_VERIFIED_IN_CI
 
 - Ported `#127` UTILTS null-id / circuit / typegen residuals onto `2c5a8c0f`.
 - Forward-fixed go-live `receipt_ready` binding via `20260814140000`.
+
+## 2026-08-14 — Post-8deb9435 tip health residuals on 3943
+
+Status: IMPLEMENTED_NOT_VERIFIED_IN_CI.
+
+- Ported #131 receipt_ready binding, UTILTS null-id identity, circuit telemetry isolation, durable typegen gates.
+- Blocked generic tenant_website Aktivera in admin UI/action.
+- Preserved go-live metadata across API key rotation.

@@ -149,3 +149,16 @@
 | security:audit-production | PASS | 0 vulnerabilities |
 | ggshield | BLOCKED | CLI missing |
 | hosted CI | NOT_YET | pending PR |
+
+## Tip health 3943 — 2026-08-14T13:41:00Z
+
+| Check | Result | Evidence |
+|---|---|---|
+| Targeted vitest (go-live/UTILTS/circuit) | PASS | 32/32 |
+| post-332 field-511 residuals regression | PASS | tip 20260814140000; sha 7df58d04... |
+| Migration integrity | PASS | 432 files |
+| db:types:check | PASS | tip 20260814140000 |
+| security:audit-production | PASS | 0 vulnerabilities |
+| tsc -p tsconfig.app.json | PASS | exit 0 |
+| ggshield | BLOCKED | CLI missing |
+| Hosted CI | NOT_YET | PR pending |
