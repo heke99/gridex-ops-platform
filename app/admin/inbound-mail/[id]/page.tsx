@@ -4,6 +4,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { reprocessInboundEmailAction } from '@/app/admin/inbound-mail/actions'
+import InboundManualReviewForm from './InboundManualReviewForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,30 @@ type Props = { params: Promise<{ id: string }> }
 function codeBlock(value: unknown) {
   if (typeof value === 'string') return value || '—'
   return JSON.stringify(value ?? {}, null, 2)
+}
+
+function reviewText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function reviewLabel(...values: unknown[]) {
+  for (const value of values) {
+    const text = reviewText(value)
+    if (text) return text
+  }
+  return '—'
+}
+
+function reviewDate(value: unknown) {
+  const text = reviewText(value)
+  if (!text) return '—'
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return text
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Europe/Stockholm',
+  }).format(date)
 }
 
 export default async function InboundMailDetailPage({ params }: Props) {
@@ -37,6 +62,9 @@ export default async function InboundMailDetailPage({ params }: Props) {
   const matchRows = (matchResult.data ?? []) as Array<Record<string, unknown>>
   const attachments = (attachmentResult.data ?? []) as Array<Record<string, unknown>>
   const jobs = (jobResult.data ?? []) as Array<Record<string, unknown>>
+  const openReviews = jobs.filter(
+    (job) => job.status === 'manual_review' && job.review_resolved_at == null,
+  )
 
   if (!message) {
     return (
@@ -69,6 +97,33 @@ export default async function InboundMailDetailPage({ params }: Props) {
             <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">Processa om</button>
           </form>
         </div>
+
+        {openReviews.length > 0 ? (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm shadow-amber-950/5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">Manuell granskning</p>
+                <h2 className="mt-1 text-lg font-semibold text-slate-950">Åtgärd krävs innan jobbet kan fortsätta</h2>
+                <p className="mt-1 text-sm text-slate-700">Beslutet sparas i samma inbound-jobb och loggas i audit trail.</p>
+              </div>
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">{openReviews.length} öppna</span>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              {openReviews.map((job) => (
+                <InboundManualReviewForm
+                  key={String(job.id)}
+                  jobId={String(job.id)}
+                  inboundEmailMessageId={id}
+                  reviewOwner={reviewLabel(job.review_owner)}
+                  reviewPriority={reviewLabel(job.review_priority)}
+                  reviewSla={reviewDate(job.review_sla_due_at)}
+                  reviewReason={reviewLabel(job.review_reason, job.error_message)}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5 md:col-span-2">

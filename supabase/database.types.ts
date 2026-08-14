@@ -71873,8 +71873,35 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      canonical_record_platform_release_receipt: {
+        Args: {
+          p_ci_run_id: string
+          p_database_schema_fingerprint: string
+          p_deployment_id: string
+          p_environment: string
+          p_evidence?: Json
+          p_generated_types_hash: string
+          p_migration_manifest_hash: string
+          p_openapi_contract_version: string
+          p_openapi_hash: string
+          p_performance_evidence: Json
+          p_reconciliation_result: Json
+          p_release_sha: string
+          p_schema_migration_version: string
+        }
+        Returns: string
+      }
       canonical_request_actor_test_attestation: {
         Args: { p_command: Json }
+        Returns: Json
+      }
+      canonical_resolve_inbound_manual_review: {
+        Args: {
+          p_actor_user_id: string
+          p_job_id: string
+          p_next_status: string
+          p_resolution: string
+        }
         Returns: Json
       }
       canonical_run_architecture_reconciliation: {
