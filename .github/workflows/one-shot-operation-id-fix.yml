@@ -1,0 +1,59 @@
+name: One-shot OpenAPI operationId repair
+
+on:
+  push:
+    branches:
+      - remediation/openapi-portal-scope-parity-2026-08-14
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-operation-id-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Make immutable OpenAPI operationIds version-unique
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = 'scripts/finalize-openapi-release.cjs'
+          let source = fs.readFileSync(path, 'utf8')
+          const anchor = `    const operation = document.paths?.[path]?.get\n    if (!operation) continue\n    operation.security = []`
+          if (!source.includes(anchor)) throw new Error('normalizePublicOpenApiDocumentOperations anchor missing')
+          const replacement = `    const operation = document.paths?.[path]?.get\n    if (!operation) continue\n    const immutableMatch = path.match(/^\\/api\\/v1\\/openapi\\/(\\d{4}-\\d{2}-\\d{2}\\.\\d+)\\/(website-integration-v1|customer-portal-v1)\\.json$/)\n    if (immutableMatch) {\n      const versionToken = immutableMatch[1].replace(/[^0-9A-Za-z]/g, '')\n      const documentToken = immutableMatch[2] === 'website-integration-v1'\n        ? 'WebsiteIntegrationV1Json'\n        : 'CustomerPortalV1Json'\n      operation.operationId = \`getApiV1Openapi\${versionToken}\${documentToken}\`\n    }\n    operation.security = []`
+          source = source.replace(anchor, replacement)
+          fs.writeFileSync(path, source)
+          NODE
+      - name: Regenerate and verify canonical release
+        run: |
+          npm run api:finalize
+          npm run api:materialize
+          bash quality/mechanical/verify.sh
+          npm run api:compatibility
+          npm run api:release:verify
+          npm run api:runtime:parity
+      - name: Commit verified generator and artifacts
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/finalize-openapi-release.cjs docs/openapi app/api/v1/openapi/2026-08-14.1
+          git diff --cached --quiet && { echo "No changes."; exit 0; }
+          git commit -m "fix(api): make versioned OpenAPI operation IDs unique"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
