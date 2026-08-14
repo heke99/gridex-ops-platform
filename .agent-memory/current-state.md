@@ -2,23 +2,25 @@
 
 Updated: 2026-08-14
 
-## Tip health after #143 merge
+## Tip health after #144 merge
 
-- Main tip: `15ef6bf6` (`Merge PR #143: fix inbound manual review status and message binding`).
-- Active health branch: `cursor/codebase-health-and-stability-996c`.
-- Tip residual hunt found sticky `review_resolved_at` after requeue cycles.
+- Main tip: `1dfc3559` (`Merge PR #144: reopen manual review after requeue cycles`).
+- Active health branch: `cursor/codebase-health-and-stability-e76c`.
+- Tip residual hunt found missing review metadata on worker entry and
+  Processa om job desync.
 
-## Residuals closed on `996c`
+## Residuals closed on `e76c`
 
-1. HIGH — Requeue → reprocess → `manual_review` left review stamp sticky
-   (`markInboundProcessingJobFinished` + forward `20260814193000`)
-2. MEDIUM — Legacy terminal status `completed` rows normalized to `done`
-3. LOW — UI pass-through for known Swedish action errors
+1. HIGH — Worker `manual_review` entry invents owner/priority/reason/SLA and
+   refreshes them on reopen (`markInboundProcessingJobFinished`)
+2. HIGH — Processa om syncs newest active `inbound_processing_jobs` row via
+   `syncActiveInboundProcessingJobForMessage`
+3. MEDIUM — Forward `20260814200000` backfills open rows still missing metadata
 
-## Verification executed on `996c`
+## Verification executed on `e76c`
 
-- vitest post-139 + post-143 residuals: 4/4 PASS
-- `db:migrations:integrity`: PASS (437 files)
+- vitest post-139/143/144: 6/6 PASS
+- `db:migrations:integrity`: PASS (438 files)
 - `db:types:check`: PASS
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
@@ -27,8 +29,7 @@ Updated: 2026-08-14
 
 ## Intentionally not changed / deferred
 
-- Applied `20260814190000` (immutable; forward only).
-- Worker still does not invent review_owner/priority on first entry beyond
-  migration backfill for open rows with missing metadata.
+- Applied `20260814190000` / `20260814193000` remain immutable; forward only.
+- Review owner remains operational role `tenant_operations`, not a user id.
 - Official UTILTS matrices / TGT-AGT remain external.
-- Live DB apply of `20260814193000` not observed in this run.
+- Live DB apply of `20260814200000` not observed in this run.

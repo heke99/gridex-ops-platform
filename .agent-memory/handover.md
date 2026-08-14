@@ -2,28 +2,30 @@
 
 Updated: 2026-08-14
 
-Branch `cursor/codebase-health-and-stability-996c` closes post-`15ef6bf6`
-(#143 inbound manual review status/binding) second-order residual.
+Branch `cursor/codebase-health-and-stability-e76c` closes post-`1dfc3559`
+(#144 reopen after requeue) second-order residuals.
 
-Main tip `15ef6bf6` made resolve persist canonical `done`, accept legacy
-`completed`, and bind job ↔ inbound_email_message_id. Default UI action is
-still **Köa om** (`queued`). The resolve RPC always stamps
-`review_resolved_at`. When the worker later returns the same job to
-`manual_review`, it did not clear that stamp, so:
+Main tip `#144` cleared sticky `review_resolved_at` when returning to
+`manual_review`, but:
 
-1. Detail page open-review filter (`status=manual_review && review_resolved_at
-   is null`) hid the form.
-2. `canonical_resolve_inbound_manual_review` rejected with
-   `inbound_processing_job_not_open_for_manual_review`.
+1. Worker still did not invent `review_owner` / `review_priority` /
+   `review_reason` / `review_sla_due_at` on entry. Architecture finding
+   `manual-review-without-owner-or-sla` treats missing fields as critical.
+   Reopen also left a sticky previous `review_reason` while the UI prefers
+   that field over `error_message`.
+2. Detail-page **Processa om** processed the inbound email without updating
+   the related `inbound_processing_jobs` row, so an open-review form could
+   remain after a successful direct reprocess.
 
 This branch:
 
-1. Clears `review_resolved_at` / `review_resolution` in
-   `markInboundProcessingJobFinished` when status becomes `manual_review`.
-2. Adds forward `20260814193000` to normalize legacy `completed` → `done`,
-   unstick sticky manual_review rows, and backfill missing review metadata.
-3. Surfaces known Swedish action-layer errors in the UI action wrapper.
+1. Extends `markInboundProcessingJobFinished` to set operational review
+   metadata when status becomes `manual_review`.
+2. Adds `syncActiveInboundProcessingJobForMessage` and calls it from
+   `reprocessInboundEmailAction`.
+3. Adds forward `20260814200000` to backfill any open rows still missing
+   metadata.
 4. Advances types manifest tip (data-only migration; hash unchanged).
 
 ggshield was unavailable in this environment; run secret scan in CI/host.
-Live DB apply of `20260814193000` was not observed in this run.
+Live DB apply of `20260814200000` was not observed in this run.
