@@ -22,6 +22,11 @@ export type EdielCertificationEvidenceRecord = {
   updated_at: string
 }
 
+export type EdielCertificationEvidenceSnapshot = {
+  records: EdielCertificationEvidenceRecord[]
+  verifiedAt: number
+}
+
 type EvidenceRow = {
   evidence_type?: unknown
   status?: unknown
@@ -75,6 +80,13 @@ export async function listEdielCertificationEvidence(companyId: string): Promise
     .order('evidence_type', { ascending: true })
   if (error) throw error
   return (data ?? []) as EdielCertificationEvidenceRecord[]
+}
+
+export async function getEdielCertificationEvidenceSnapshot(
+  companyId: string,
+): Promise<EdielCertificationEvidenceSnapshot> {
+  const records = await listEdielCertificationEvidence(companyId)
+  return { records, verifiedAt: Date.now() }
 }
 
 export async function getEdielCertificationEvidenceReadiness(companyId: string) {
