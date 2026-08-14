@@ -2,25 +2,25 @@
 
 Updated: 2026-08-14
 
-## Tip health after #144 merge
+## Tip health after #147 merge
 
-- Main tip: `1dfc3559` (`Merge PR #144: reopen manual review after requeue cycles`).
-- Active health branch: `cursor/codebase-health-and-stability-e76c`.
-- Tip residual hunt found missing review metadata on worker entry and
-  Processa om job desync.
+- Main tip: `c5756245` (`Production verification: lifecycle, tenant go-live and website sales gate (#147)`).
+- Active health branch: `cursor/codebase-health-and-stability-e446`.
+- Tip residual hunt found production command hash variants, go-live primary
+  client drift, and still-open post-#145 Processa om residuals from draft #146.
 
-## Residuals closed on `e76c`
+## Residuals closed on `e446`
 
-1. HIGH — Worker `manual_review` entry invents owner/priority/reason/SLA and
-   refreshes them on reopen (`markInboundProcessingJobFinished`)
-2. HIGH — Processa om syncs newest active `inbound_processing_jobs` row via
-   `syncActiveInboundProcessingJobForMessage`
-3. MEDIUM — Forward `20260814200000` backfills open rows still missing metadata
+1. HIGH — Processa om terminal job sync + actionable review reasons (relanded
+   from draft #146 / `4764`)
+2. HIGH — Atomic `request_payload` + `request_hash` bind for production
+   transition, first-live-send approve, provision, actor profile, user-access
+3. HIGH — Shared `selectPrimaryTenantWebsiteClient` for summary + verify
 
-## Verification executed on `e76c`
+## Verification executed on `e446`
 
-- vitest post-139/143/144: 6/6 PASS
-- `db:migrations:integrity`: PASS (438 files)
+- vitest post-145/147 + go-live flow: 9/9 PASS
+- `db:migrations:integrity`: PASS (443 files)
 - `db:types:check`: PASS
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
@@ -29,7 +29,7 @@ Updated: 2026-08-14
 
 ## Intentionally not changed / deferred
 
-- Applied `20260814190000` / `20260814193000` remain immutable; forward only.
-- Review owner remains operational role `tenant_operations`, not a user id.
+- Certification evidence panel remains attest-passed-only.
+- `api_client.execute` remains independent of the sell/live gate.
 - Official UTILTS matrices / TGT-AGT remain external.
-- Live DB apply of `20260814200000` not observed in this run.
+- Live DB apply of new forward migrations not observed in this run.
