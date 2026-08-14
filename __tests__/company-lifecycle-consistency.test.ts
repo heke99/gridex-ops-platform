@@ -96,4 +96,20 @@ describe('company lifecycle consistency', () => {
     expect(offboardingMigration).toContain("p_target_status in ('paused','suspended','archived','pending_deletion','closed')")
     expect(offboardingMigration).toContain("client.launch_ready is true")
   })
+
+  it('keeps tenant website activation guard compatible with lifecycle resume of launch-ready clients', () => {
+    // Offboarding pauses active clients with lifecycle_paused_by_tenant and
+    // resumes only launch_ready ones. The post-go-live activation guard must
+    // not require provisioning_preflight_pending for that resume path.
+    const activationLifecycleResume = readFileSync(
+      'supabase/migrations/20260814180000_tenant_website_activation_lifecycle_resume.sql',
+      'utf8',
+    )
+    expect(offboardingMigration).toContain("'lifecycle_paused_by_tenant', true")
+    expect(offboardingMigration).toContain("client.launch_ready is true")
+    expect(offboardingMigration).toContain("p_target_status = 'active'")
+    expect(activationLifecycleResume).toContain('lifecycle_paused_by_tenant')
+    expect(activationLifecycleResume).toContain("old.status = 'paused'")
+    expect(activationLifecycleResume).toContain('new.launch_ready is true')
+  })
 })

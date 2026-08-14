@@ -24,7 +24,8 @@ describe('tenant go-live operator UX', () => {
 
   it('loads canonical launch readiness on existing tenant clients', () => {
     expect(page).toContain('profile_key,launch_ready,launch_blockers')
-    expect(page).toContain("client.profile_key === 'tenant_website'")
+    expect(page).toContain('isTenantWebsiteIntegrationClient')
+    expect(page).toContain("from '@/lib/integrations/tenantWebsiteClient'")
     expect(page).toContain("client.status === 'active' && client.launch_ready === true")
     expect(page).toContain('Status & blockerare')
   })

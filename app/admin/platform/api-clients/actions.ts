@@ -12,6 +12,7 @@ import { recommendedPermissionGroups, scopesForPermissionGroups } from '@/lib/in
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
 import { reconcileTenantWebsiteCapabilities } from '@/lib/integrations/tenantWebsiteReadiness'
+import { isTenantWebsiteIntegrationClient } from '@/lib/integrations/tenantWebsiteClient'
 import {
   WEBSITE_APPLICATION_REFERENCE_LOCATION,
   WEBSITE_INTEGRATION_BASE_URL,
@@ -46,16 +47,6 @@ function nullableDate(formData: FormData, key: string): string | null {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString()
-}
-
-function isTenantWebsiteIntegrationClient(input: {
-  profile_key?: string | null
-  scopes?: string[] | null
-}): boolean {
-  if (input.profile_key === 'tenant_website') return true
-  return (input.scopes ?? []).some(
-    (scope) => scope.startsWith('customer_portal.') || scope === 'website_applications.write',
-  )
 }
 
 function normalizedWebhookRef(value: string): string | null {
@@ -355,7 +346,7 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,scopes,permission_groups,allowed_origins,metadata')
+    .select('id,company_id,status,profile_key,scopes,permission_groups,allowed_origins,metadata')
     .eq('id', clientId)
     .maybeSingle()
 
@@ -365,6 +356,18 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
   const metadata = current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
     ? current.metadata as Record<string, unknown>
     : {}
+  const hasCanonicalGoLive =
+    metadata.go_live_flow === 'canonical_tenant_website_v2'
+    && typeof metadata.provisioning_receipt_id === 'string'
+    && metadata.provisioning_receipt_id.trim().length > 0
+  const alreadyCanonicalTenantWebsite =
+    current.profile_key === 'tenant_website' && hasCanonicalGoLive
+
+  // Promoting an already-active non-canonical client to tenant_website would
+  // skip the activation guard (old.status=active) and let reconcile mark
+  // launch_ready without a go-live receipt. Force pause so go-live is required.
+  const mustPauseForCanonicalGoLive =
+    current.status === 'active' && !alreadyCanonicalTenantWebsite
 
   const { error } = await supabaseService
     .from('integration_api_clients')
@@ -372,8 +375,13 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
       scopes,
       permission_groups: permissionGroups,
       profile_key: 'tenant_website',
+      ...(mustPauseForCanonicalGoLive ? { status: 'paused' as const } : {}),
       launch_ready: false,
-      launch_blockers: [{ code: 'canonical_readiness_revalidation_pending' }],
+      launch_blockers: [{
+        code: mustPauseForCanonicalGoLive
+          ? 'TENANT_WEBSITE_PERMISSIONS_REQUIRE_CANONICAL_GO_LIVE'
+          : 'canonical_readiness_revalidation_pending',
+      }],
       allowed_origins: allowedOrigins,
       metadata: {
         ...metadata,

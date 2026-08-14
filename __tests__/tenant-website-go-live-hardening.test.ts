@@ -88,8 +88,7 @@ describe('tenant website canonical go-live hardening', () => {
     // Sätt live / revalidera, and the server action must fail closed.
     expect(createApiClientForm).toContain('Sätt bolaget live')
     expect(createApiClientForm).toContain('Ingen separat aktivering behövs')
-    expect(apiClientsPage).toContain('isTenantWebsiteClient')
-    expect(apiClientsPage).toContain("profile_key === 'tenant_website'")
+    expect(apiClientsPage).toContain('isTenantWebsiteIntegrationClient')
     expect(apiClientsPage).toContain('Sätt live / revalidera')
     expect(apiClientsPage).toContain('goLiveHref(client.company_id)')
 
@@ -108,12 +107,16 @@ describe('tenant website canonical go-live hardening', () => {
     expect(aroundAktivera).toContain('setIntegrationApiClientStatusAction')
 
     expect(apiClientsActions).toContain('isTenantWebsiteIntegrationClient')
-    expect(apiClientsActions).toContain("profile_key === 'tenant_website'")
     expect(apiClientsActions).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
     expect(apiClientsActions).toContain('canonicala go-live-flödet')
     expect(apiClientsActions).toMatch(
       /select\('id,company_id,status,profile_key,scopes'\)/,
     )
+
+    const sharedClassifier = readFileSync('lib/integrations/tenantWebsiteClient.ts', 'utf8')
+    expect(sharedClassifier).toContain("profile_key === 'tenant_website'")
+    expect(sharedClassifier).toContain("scope.startsWith('customer_portal.')")
+    expect(sharedClassifier).toContain("scope === 'website_applications.write'")
   })
 
   it('preserves tenant website go-live metadata when rotating credentials', () => {
@@ -130,6 +133,52 @@ describe('tenant website canonical go-live hardening', () => {
     expect(apiClientsActions).not.toMatch(
       /rotateIntegrationApiClientTokenAction[\s\S]*metadata:\s*\{\s*rotated_from_prefix/,
     )
+  })
+
+  it('does not promote an already-active non-canonical client into tenant_website without pausing', () => {
+    // "Spara avancerat" always writes profile_key=tenant_website. If the row is
+    // already active and lacks canonical go-live metadata, the guard skips
+    // (old.status=active) and reconcile can flip launch_ready without a receipt.
+    expect(apiClientsActions).toContain('updateIntegrationApiClientPermissionsAction')
+    expect(apiClientsActions).toMatch(
+      /updateIntegrationApiClientPermissionsAction[\s\S]*select\([\s\S]*status[\s\S]*profile_key[\s\S]*metadata/,
+    )
+    expect(apiClientsActions).toContain('canonical_tenant_website_v2')
+    expect(apiClientsActions).toContain('provisioning_receipt_id')
+    expect(apiClientsActions).toMatch(
+      /updateIntegrationApiClientPermissionsAction[\s\S]*status:\s*'paused'/,
+    )
+    expect(apiClientsActions).toContain(
+      'TENANT_WEBSITE_PERMISSIONS_REQUIRE_CANONICAL_GO_LIVE',
+    )
+  })
+
+  it('shares one tenant-website client classifier between UI and server actions', () => {
+    expect(apiClientsPage).toContain(
+      "from '@/lib/integrations/tenantWebsiteClient'",
+    )
+    expect(apiClientsActions).toContain(
+      "from '@/lib/integrations/tenantWebsiteClient'",
+    )
+    expect(apiClientsPage).toContain('isTenantWebsiteIntegrationClient')
+    expect(apiClientsActions).toContain('isTenantWebsiteIntegrationClient')
+    expect(apiClientsPage).not.toMatch(/function isTenantWebsiteClient\(/)
+    expect(apiClientsActions).not.toMatch(/function isTenantWebsiteIntegrationClient\(/)
+  })
+
+  it('lets lifecycle resume re-activate launch-ready tenant website clients paused by offboarding', () => {
+    const lifecycleResumeGuard = readFileSync(
+      'supabase/migrations/20260814180000_tenant_website_activation_lifecycle_resume.sql',
+      'utf8',
+    )
+    expect(lifecycleResumeGuard).toContain('gridex_guard_tenant_website_activation_v2')
+    expect(lifecycleResumeGuard).toContain('lifecycle_paused_by_tenant')
+    expect(lifecycleResumeGuard).toContain("old.status = 'paused'")
+    expect(lifecycleResumeGuard).toContain('new.launch_ready is true')
+    expect(lifecycleResumeGuard).toContain('canonical_tenant_website_v2')
+    // Generic Aktivera must still require preflight / receipt proof.
+    expect(lifecycleResumeGuard).toContain('provisioning_preflight_pending')
+    expect(lifecycleResumeGuard).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
   })
 
   it('keeps tenant setup generic and free from the previously leaked concrete examples', () => {
