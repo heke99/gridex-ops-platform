@@ -148,3 +148,15 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-08-14 — post-#128 tip residuals on 515d
+
+| Check | Result | Evidence |
+|---|---|---|
+| vitest go-live + lifecycle + post-128 OpenAPI | PASS 29/29 | tenant-website-go-live-hardening, company-lifecycle-consistency, tenant-go-live-single-path-ui, post-128-openapi-tip-residuals |
+| db:migrations:check | PASS 434 | includes `20260814180000` |
+| security:audit-production | PASS 0 | npm audit --omit=dev --audit-level=high |
+| tsc -p tsconfig.app.json | PASS | noEmit |
+| variant analysis (4 known classes) | NONE_FOUND | permissions/activation/eller/timestamp/classifier |
+| ggshield | BLOCKED | CLI not installed |
+| hosted CI | NOT YET | PR publish required |

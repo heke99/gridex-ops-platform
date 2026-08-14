@@ -255,3 +255,11 @@ Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
 - Ported unmerged 31d1 residuals onto tip `2afe1db8` and closed the new
   scope-heuristic Aktivera server gap introduced by #134.
 - Forward migration `20260814170000_tenant_website_receipt_ready_binding.sql`.
+
+## 2026-08-14 — Post-#128 tip health residuals (515d)
+
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+
+- Rebased post-#135 auth residuals onto tip `6f9b5d66` and closed #128
+  developer-docs AND/OR + release timestamp gaps.
+- Forward migration `20260814180000_tenant_website_activation_lifecycle_resume.sql`.

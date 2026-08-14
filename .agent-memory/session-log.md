@@ -376,3 +376,13 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
   PASS; ggshield BLOCKED.
 ## 2026-08-14
 - Closed post-#134 tip residuals on `cursor/codebase-health-and-stability-b4c7` (receipt binding, UTILTS identity, circuit telemetry, lifecycle/go-live guards).
+
+## 2026-08-14 — post-6f9b5d66 (#128) tip residuals on 515d
+
+- Reviewed tip `6f9b5d66` after portal-bundle OpenAPI scope alignment.
+- Ported unmerged `9740` auth residuals onto tip (lifecycle resume guard,
+  permissions promote pause, shared classifier) and closed #128 docs
+  residuals (scopeMode AND wording + OPENAPI_RELEASED_AT).
+- Prefer `515d` over merging pre-#128 `#136`.
+- Verification: vitest 29/29, migrations 434, audit 0, app tsc PASS;
+  variants none; ggshield BLOCKED.

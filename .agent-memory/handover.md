@@ -2,30 +2,28 @@
 
 Updated: 2026-08-14
 
-Branch `cursor/codebase-health-and-stability-b4c7` closes post-`2afe1db8`
-(#134 tenant RLS + go-live) tip residuals, including the unmerged `31d1`
-package and one new tip gap.
+Branch `cursor/codebase-health-and-stability-515d` closes tip residuals after
+`6f9b5d66` (Merge PR #128 portal-bundle OpenAPI scopes).
 
-Main tip `2afe1db8` hardened Data API lifecycle RLS and simplified go-live UX,
-but left receipt binding, UTILTS null-id identity, circuit telemetry,
-lifecycle operate/status guards, rotation metadata merge, and durable typegen
-gates open. #134 also introduced an UI/server mismatch where
-`isTenantWebsiteClient` includes scope heuristics while status activation only
-checked `profile_key`.
+Main tip after `#135` still left lifecycle resume vs activation guard and
+permissions-promote go-live bypass open on `9740`/`#136`. `#128` then landed
+on tip and made `#136` unsafe to merge as-is (would regress `2026-08-14.1`
+OpenAPI artifacts/scopes). `#128` also left developer docs joining portal-bundle
+scopes with "eller" despite `scopeMode=all`, and a stale `OPENAPI_RELEASED_AT`.
 
-This branch:
+This branch (rebased on tip):
 
-1. Shares UTILTS `transaction-<n>` identity across disposition/persistence/ACK/profiles.
-2. Isolates circuit success telemetry from dependency results.
-3. Adds forward `20260814170000` receipt_ready metadata binding (legacy null fallback).
-4. Blocks crafted tenant website activation in the status action (profile + scopes).
-5. Merges rotation metadata instead of replacing it.
-6. Refuses `deleted_test_only` on the generic status action.
-7. Requires writable company status in `assertUserCanOperateCompany`.
-8. Restores `db:types:gen` nullability overrides and ops-hardening vitest gates.
+1. Adds forward `20260814180000` lifecycle-resume exemption for launch-ready
+   tenant website clients paused with `lifecycle_paused_by_tenant`.
+2. Forces `paused` + `TENANT_WEBSITE_PERMISSIONS_REQUIRE_CANONICAL_GO_LIVE`
+   when permissions UI promotes an already-active non-canonical client.
+3. Shares `isTenantWebsiteIntegrationClient` from
+   `lib/integrations/tenantWebsiteClient.ts`.
+4. Joins developer endpoint scopes with `och` when `scopeMode=all`.
+5. Bumps `OPENAPI_RELEASED_AT` to `2026-08-14T12:00:00.000Z`.
 
-Prefer merging `b4c7`, then closing superseded open health PRs rather than
-rebasing those older branches.
+Prefer merging `515d`, then closing `#136` as superseded rather than rebasing
+`9740`.
 
 ggshield was unavailable in this environment; run secret scan in CI/host.
-Live DB apply of `20260814170000` was not observed in this run.
+Live DB apply of `20260814180000` was not observed in this run.
