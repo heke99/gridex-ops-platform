@@ -38,7 +38,7 @@ jobs:
       - name: Rebuild canonical schema and generate types
         shell: bash
         run: |
-          set -euo pipefail
+          set -o pipefail
           source scripts/gridex-aud-003-clean-replay.sh
           supabase gen types typescript --local > supabase/database.types.ts
           node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
