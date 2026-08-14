@@ -1,4 +1,4 @@
-name: One-shot regenerate Supabase types
+name: One-shot sync verified Supabase types
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - remediation/remaining-production-gaps-forward-port-2026-08-14
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -13,10 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  regenerate:
+  sync:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,25 +27,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.101.0
-      - run: npm ci
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-      - name: Rebuild canonical schema and generate types
+      - name: Import verified clean-replay types
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          set -o pipefail
-          source scripts/gridex-aud-003-clean-replay.sh
-          supabase gen types typescript --local > supabase/database.types.ts
-          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
-          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          set -euo pipefail
+          ARTIFACT_ID=9230384037
+          EXPECTED_HASH=04c47c5e76e4d8264ae05d6f9be52d23496c20586c451dcb2218ca4b112cf73d
+          curl --fail --silent --show-error --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            -o /tmp/gridex-clean-replay.zip
+          rm -rf /tmp/gridex-clean-replay
+          mkdir -p /tmp/gridex-clean-replay
+          unzip -q /tmp/gridex-clean-replay.zip -d /tmp/gridex-clean-replay
+          test -f /tmp/gridex-clean-replay/rem002-database.types.ts
+          ACTUAL_HASH="$(sha256sum /tmp/gridex-clean-replay/rem002-database.types.ts | awk '{print $1}')"
+          test "$ACTUAL_HASH" = "$EXPECTED_HASH"
+          cp /tmp/gridex-clean-replay/rem002-database.types.ts supabase/database.types.ts
           GENERATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')"
-          node - "$GENERATED_HASH" "$GENERATED_AT" <<'NODE'
+          node - "$EXPECTED_HASH" "$GENERATED_AT" <<'NODE'
           const fs = require('node:fs')
           const [hash, generatedAt] = process.argv.slice(2)
           const path = 'scripts/supabase-types-manifest.json'
@@ -54,11 +59,9 @@ jobs:
           manifest.latest_migration = '20260814183500_remaining_production_gaps_forward_port.sql'
           fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
           NODE
-          npm run db:types:check
-          ACTUAL_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
-          test "$ACTUAL_HASH" = "$GENERATED_HASH"
-          echo "generated_types_sha256=$GENERATED_HASH"
-      - name: Commit generated types only
+          node scripts/check-supabase-generated-types.cjs
+          echo "verified_types_sha256=$ACTUAL_HASH"
+      - name: Commit verified generated types only
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -68,6 +71,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add supabase/database.types.ts scripts/supabase-types-manifest.json
           git diff --cached --quiet && { echo "No generated changes."; exit 0; }
-          git commit -m "chore(db): regenerate Supabase types for production forward-port"
+          git commit -m "chore(db): sync verified Supabase types for production forward-port"
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin "HEAD:${GITHUB_REF_NAME}"
