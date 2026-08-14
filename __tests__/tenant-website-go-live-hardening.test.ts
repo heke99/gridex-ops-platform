@@ -92,9 +92,14 @@ describe('tenant website canonical go-live hardening', () => {
     expect(apiClientsPage).toContain('profile_key')
     expect(apiClientsPage).toContain("profile_key === 'tenant_website'")
     expect(apiClientsPage).toContain('Använd canonical go-live')
-    expect(apiClientsPage).not.toMatch(
-      /profile_key === 'tenant_website'[\s\S]{0,400}status" value="active"/,
+    const tenantPausedGuidanceStart = apiClientsPage.indexOf("profile_key === 'tenant_website'")
+    const tenantPausedGuidance = apiClientsPage.slice(
+      tenantPausedGuidanceStart,
+      tenantPausedGuidanceStart + 500,
     )
+    expect(tenantPausedGuidance).toContain('Använd canonical go-live')
+    expect(tenantPausedGuidance).not.toContain('value="active"')
+    expect(tenantPausedGuidance).not.toContain('>Aktivera<')
     expect(apiClientsActions).toContain("profile_key === 'tenant_website'")
     expect(apiClientsActions).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
     expect(apiClientsActions).toContain('canonicala go-live-flödet')
