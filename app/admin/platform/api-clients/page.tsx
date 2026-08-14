@@ -15,6 +15,7 @@ import {
   WEBSITE_INTEGRATION_BASE_URL,
   WEBSITE_INTEGRATION_OPENAPI_URL,
 } from '@/lib/integrations/websiteIntegrationContract'
+import { isTenantWebsiteIntegrationClient } from '@/lib/integrations/tenantWebsiteClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -183,11 +184,6 @@ function blockerDestination(companyId: string, blocker: LaunchBlocker) {
   return { href: `/admin/companies/${companyId}`, label: 'Öppna bolaget' }
 }
 
-function isTenantWebsiteClient(client: ApiClientRow) {
-  if (client.profile_key === 'tenant_website') return true
-  return valueList(client.scopes).some((scope) => scope.startsWith('customer_portal.') || scope === 'website_applications.write')
-}
-
 function goLiveHref(companyId: string) {
   return `/admin/platform/api-clients?companyId=${encodeURIComponent(companyId)}#tenant-go-live`
 }
@@ -249,7 +245,7 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
   const selectedCompany = companies.find((company) => company.id === params.companyId)
   const defaultCompanyId = selectedCompany?.id
   const selectedTenantClient = defaultCompanyId
-    ? clients.find((client) => client.company_id === defaultCompanyId && isTenantWebsiteClient(client) && client.status !== 'revoked')
+    ? clients.find((client) => client.company_id === defaultCompanyId && isTenantWebsiteIntegrationClient(client) && client.status !== 'revoked')
     : undefined
   const selectedOrigins = selectedTenantClient
     ? (valueList(selectedTenantClient.allowed_origins).length
@@ -268,7 +264,7 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
     ])
   }
 
-  const tenantClients = clients.filter(isTenantWebsiteClient)
+  const tenantClients = clients.filter(isTenantWebsiteIntegrationClient)
   const liveTenantClients = tenantClients.filter((client) => client.status === 'active' && client.launch_ready === true).length
   const blockedTenantClients = tenantClients.filter((client) => !(client.status === 'active' && client.launch_ready === true)).length
   const activeWebhooks = webhooks.filter((webhook) => webhook.status === 'active').length
@@ -367,7 +363,7 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
                 const metadata = client.metadata ?? {}
                 const origins = valueList(client.allowed_origins).length ? valueList(client.allowed_origins) : valueList(metadata.allowed_origins)
                 const clientWebhooks = webhooksByClient.get(client.id) ?? []
-                const tenantWebsite = isTenantWebsiteClient(client)
+                const tenantWebsite = isTenantWebsiteIntegrationClient(client)
                 const live = tenantWebsite && client.status === 'active' && client.launch_ready === true
                 const launchBlockers = normalizeLaunchBlockers(client.launch_blockers)
 
