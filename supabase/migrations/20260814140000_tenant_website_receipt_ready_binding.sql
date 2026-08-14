@@ -1,6 +1,11 @@
 -- Bind normal-traffic receipt_ready to the client's current
--- metadata.provisioning_receipt_id. A historical completed receipt left behind
--- after revalidation with a new idempotency key must not authorize API traffic.
+-- metadata.provisioning_receipt_id when present. A historical completed receipt
+-- left behind after revalidation with a new idempotency key must not authorize
+-- API traffic once the client points at a newer receipt.
+--
+-- Legacy clients that became launch-ready before provisioning_receipt_id was
+-- written keep the previous any-completed-receipt behavior only while that
+-- metadata key is absent.
 
 begin;
 
@@ -63,13 +68,18 @@ as $function$
       exists (
         select 1
         from public.tenant_website_installation_receipts receipt
-        where receipt.id::text = nullif(auth.metadata->>'provisioning_receipt_id','')
-          and receipt.api_client_id=auth.client_id
+        where receipt.api_client_id=auth.client_id
           and receipt.company_id=auth.company_id
           and receipt.profile_key='tenant_website'
           and receipt.state='completed'
           and receipt.completed_at is not null
           and nullif(receipt.receipt_sha256,'') is not null
+          and (
+            receipt.id::text = nullif(auth.metadata->>'provisioning_receipt_id','')
+            or (
+              nullif(auth.metadata->>'provisioning_receipt_id','') is null
+            )
+          )
       ) as receipt_ready,
       exists (
         select 1
@@ -137,6 +147,6 @@ grant execute on function public.authenticate_integration_request_v1(
 
 comment on function public.authenticate_integration_request_v1(
   text,text,text,text[],text[],text,text,integer,integer
-) is 'Atomic integration auth. Normal traffic requires launch readiness, the exact metadata-linked completed receipt and api_sales; bounded provisioning-smoke routes require that same in-progress receipt.';
+) is 'Atomic integration auth. Normal traffic requires launch readiness, the metadata-linked completed receipt when present (else a legacy completed receipt) and api_sales; bounded provisioning-smoke routes require the exact in-progress receipt.';
 
 commit;

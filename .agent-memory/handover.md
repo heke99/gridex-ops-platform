@@ -1,34 +1,26 @@
 # Handover
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-Branch `cursor/codebase-health-and-stability-13b2` closes post-`3cad481b`
-health residuals after `#123` landed on main.
+Branch `cursor/codebase-health-and-stability-580a` closes tip residuals after
+main merged canonical tenant website go-live hardening (`2c5a8c0f`).
 
-Main tip `3cad481b` closed the post-`2eb61986` auth/SVK/UTILTS package, but
-the squash/types-regen path reintroduced non-nullable field-511 resolver
-Returns and left public/portal flash, disabled-session reason, dual
-next-path, and UTILTS match-join gaps open.
+Unmerged `#127` (`8738`, based on `c2adf6a0`) still held UTILTS null-id
+identity, circuit success telemetry isolation, durable `db:types:gen`, and
+ops-hardening gates. Those commits were cherry-picked onto the go-live tip.
 
-This branch:
+NEW go-live residual: `authenticate_integration_request_v1.receipt_ready`
+accepted any completed `tenant_website_installation_receipts` row for the
+api_client_id. After revalidation with a new idempotency key, an old completed
+receipt could keep authorizing normal API traffic once launch_ready returned.
+Forward migration `20260814140000_tenant_website_receipt_ready_binding.sql`
+requires the metadata `provisioning_receipt_id` match when present, and keeps
+legacy any-completed-receipt behavior only while that metadata key is null.
 
-1. Re-applies nullable `description` / `valid_to` on
-   `resolve_ediel_timeseries_product_511` Returns.
-2. Adds durable `scripts/apply-supabase-types-nullability-overrides.cjs` and
-   wires it into clean-migration-replay so future typegen cannot silently
-   regress SQL nullability.
-3. Gates `gridex:post-332-field-511-health-residuals-regression` in
-   ops-hardening.
-4. Allowlists public teckna-avtal and portal completion query flashes.
-5. Maps `reason=account_disabled` on login to a fixed Swedish flash.
-6. Unifies `getSafeNextPath` into `lib/auth/urls.ts` (including same-origin
-   absolute URLs).
-7. Synthesizes null IDE+24 ids in UTILTS tenant match building before
-   persistence join.
-
-Prefer merging `13b2`, then closing superseded open health PRs
-`#122`/`#121`/`#120`/`#119`/`#117`/`#115`/`#113` rather than rebasing those
-older branches.
+Prefer merging `580a`, then closing superseded open health PRs
+`#127`/`#125`/`#122`/`#121`/`#120`/`#119`/`#117`/`#115`/`#113` rather than
+rebasing those older branches.
 
 ggshield was unavailable in this environment; run secret scan in CI/host.
-Live DB apply of field-511 import + L653Q trim was not observed in this run.
+Live DB apply of go-live + receipt-binding migrations was not observed in this
+run.

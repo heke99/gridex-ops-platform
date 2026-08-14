@@ -136,3 +136,16 @@
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
 | hosted CI | PENDING | PR publish required |
+
+## TIP_HEALTH_POST_GO_LIVE — 2026-08-14 (`580a`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| vitest go-live + UTILTS + circuit | PASS | 30/30 |
+| post-332 field-511 residuals | PASS | static regression |
+| migration integrity | PASS | 432 files / checksums |
+| db:types:check | PASS | sha 7df58d04... tip 20260814140000 |
+| tsc app | PASS | tsconfig.app.json |
+| security:audit-production | PASS | 0 vulnerabilities |
+| ggshield | BLOCKED | CLI missing |
+| hosted CI | NOT_YET | pending PR |
