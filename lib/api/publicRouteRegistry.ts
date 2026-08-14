@@ -150,6 +150,8 @@ export function publicRouteCost(method: string, pathname: string): number {
 export const PUBLIC_API_ENDPOINT_ROWS = PUBLIC_API_ROUTES.map((route) => [
   route.method,
   route.publicPath ?? route.path,
-  route.scopes.join(' eller '),
+  // scopeMode=all means every listed scope is required (AND). scopeMode=any
+  // means one of the listed scopes is enough (OR). Developer docs must match.
+  route.scopes.join(route.scopeMode === 'any' ? ' eller ' : ' och '),
   `${route.description}${route.idempotencyRequired ? ' Idempotency-Key krävs.' : ''}`,
 ] as const)
