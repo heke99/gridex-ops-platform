@@ -26,8 +26,8 @@ jobs:
 
       - name: Register exact migration checksums
         run: |
-          node scripts/register-migration-checksum.cjs supabase/migrations/20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql
-          node scripts/register-migration-checksum.cjs supabase/migrations/20260814232000_bind_website_sales_to_live_production.sql
+          node scripts/register-migration-checksum.cjs 20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql
+          node scripts/register-migration-checksum.cjs 20260814232000_bind_website_sales_to_live_production.sql
           git diff -- scripts/migration-history-manifest.json
 
       - name: Commit generated manifest update
