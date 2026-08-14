@@ -3,5 +3,5 @@
   "generated_at": "2026-08-14T07:26:46.854Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "7df58d04afae520332bd9205be0e59bd6c9b3fe1fa0c8626ea66807e61d5c6e0",
-  "latest_migration": "20260814180000_tenant_website_activation_lifecycle_resume.sql"
+  "latest_migration": "20260814183500_remaining_production_gaps_forward_port.sql"
 }
