@@ -127,7 +127,7 @@ for (const field of schema?.required ?? []) {
 }
 const publicContractsExample = JSON.parse(
   fs.readFileSync(
-    'docs/fixtures/public-contracts-response-2026-08-10.1.json',
+    'docs/fixtures/public-contracts-response-2026-08-14.1.json',
     'utf8',
   ),
 )

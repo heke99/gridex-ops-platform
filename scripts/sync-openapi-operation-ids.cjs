@@ -8,6 +8,22 @@ const files = [
 ]
 
 const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
+const scopeConstants = new Map(
+  [...registrySource.matchAll(/const\s+([A-Z0-9_]+)\s*=\s*\[([\s\S]*?)\]\s*as const/g)].map((constant) => [
+    constant[1],
+    [...constant[2].matchAll(/'([^']+)'/g)].map((item) => item[1]),
+  ]),
+)
+
+function parseScopeExpression(expression) {
+  const scopes = [...expression.matchAll(/'([^']+)'/g)].map((item) => item[1])
+  for (const spread of expression.matchAll(/\.\.\.([A-Z0-9_]+)/g)) {
+    const expanded = scopeConstants.get(spread[1])
+    if (!expanded) throw new Error('Unknown scope constant ' + spread[1] + ' in publicRouteRegistry.ts')
+    scopes.push(...expanded)
+  }
+  return scopes
+}
 const routePattern = /{ method: '(GET|POST)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\], description: '([^']*)'(?:, idempotencyRequired: true)?, rateLimitClass: '(read|write|expensive)' }/g
 const registry = []
 let registryMatch
@@ -17,7 +33,7 @@ while ((registryMatch = routePattern.exec(registrySource))) {
     method: registryMatch[1],
     path: registryMatch[3] ?? registryMatch[2],
     description: registryMatch[5],
-    scopes: [...registryMatch[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),
+    scopes: parseScopeExpression(registryMatch[4]),
     idempotencyRequired: source.includes('idempotencyRequired: true'),
     rateLimitClass: registryMatch[6],
   })
@@ -59,10 +75,11 @@ for (const file of files) {
       operation.summary = contract.description.split('.')[0]
       operation.description = contract.description
       operation['x-required-scopes'] = contract.scopes
-      operation['x-scope-mode'] = [
-        '/api/v1/website/legal-bundle',
-        '/api/v1/customer/profile-update',
-      ].includes(contract.path) ? 'any' : 'all'
+      operation['x-scope-mode'] = contract.path === '/api/v1/customer/profile-update'
+        ? 'any-per-request; both required when both operations are present'
+        : contract.path === '/api/v1/website/legal-bundle'
+          ? 'any'
+          : 'all'
       operation['x-rate-limit-class'] = contract.rateLimitClass
       operation['x-idempotency-required'] = contract.idempotencyRequired
       operation['x-cache-policy'] = contract.path.includes('/openapi/')

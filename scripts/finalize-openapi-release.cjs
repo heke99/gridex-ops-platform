@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-10.1'
+const version = '2026-08-14.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-10.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-14.1.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -18,8 +18,8 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-05.2'
-const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', priorVersion, version]
+const priorVersion = '2026-08-10.1'
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -2483,8 +2483,24 @@ function normalizePublicOpenApiDocumentOperations(document) {
   for (const path of paths) {
     const operation = document.paths?.[path]?.get
     if (!operation) continue
+    const immutableMatch = path.match(/^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1)\.json$/)
+    if (immutableMatch) {
+      const versionToken = immutableMatch[1].replace(/[^0-9A-Za-z]/g, '')
+      const documentToken = immutableMatch[2] === 'website-integration-v1'
+        ? 'WebsiteIntegrationV1Json'
+        : 'CustomerPortalV1Json'
+      operation.operationId = `getApiV1Openapi${versionToken}${documentToken}`
+    }
     operation.security = []
     operation['x-required-scopes'] = []
+    operation['x-scope-mode'] = 'all'
+    operation['x-rate-limit-class'] = 'read'
+    operation['x-idempotency-required'] = false
+    operation['x-cache-policy'] = immutableMatch ? 'public-immutable' : 'private-revalidate'
+    operation['x-public-id-policy'] = 'none'
+    if (path === '/api/v1/openapi/release-manifest.json') {
+      operation.operationId = 'getApiV1OpenapiReleaseManifestJson'
+    }
     const response200 = operation.responses?.['200']
     if (response200 && !response200.$ref) response200.headers = staticDocumentHeaders()
     operation.responses = operation.responses ?? {}

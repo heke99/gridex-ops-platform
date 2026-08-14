@@ -2,6 +2,22 @@
 const fs = require('node:fs')
 
 const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
+const scopeConstants = new Map(
+  [...registrySource.matchAll(/const\s+([A-Z0-9_]+)\s*=\s*\[([\s\S]*?)\]\s*as const/g)].map((constant) => [
+    constant[1],
+    [...constant[2].matchAll(/'([^']+)'/g)].map((item) => item[1]),
+  ]),
+)
+
+function parseScopeExpression(expression) {
+  const scopes = [...expression.matchAll(/'([^']+)'/g)].map((item) => item[1])
+  for (const spread of expression.matchAll(/\.\.\.([A-Z0-9_]+)/g)) {
+    const expanded = scopeConstants.get(spread[1])
+    if (!expanded) throw new Error('Unknown scope constant ' + spread[1] + ' in publicRouteRegistry.ts')
+    scopes.push(...expanded)
+  }
+  return scopes
+}
 const routeRe = /{ method: '(GET|POST)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\]/g
 const registry = []
 let match
@@ -17,7 +33,7 @@ while ((match = routeRe.exec(registrySource))) {
     path: publicPath,
     runtimePath: match[2],
     normalizedPath: (match[3] ?? match[2]).replace(/\[[^\]]+\]/g, '{}'),
-    scopes: [...match[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),
+    scopes: parseScopeExpression(match[4]),
     operationId,
     scopeMode: ['/api/v1/website/legal-bundle', '/api/v1/customer/profile-update'].includes(match[2]) ? 'any' : 'all',
     rateLimitClass: /rateLimitClass: '(read|write|expensive)'/.exec(line)?.[1],
@@ -59,13 +75,19 @@ for (const spec of specs) {
   if (new Set(specOperationIds).size !== specOperationIds.length) failures.push(`${spec.info?.title ?? 'OpenAPI'} has duplicate operationIds.`)
 }
 
+function normalizeScopeMode(value) {
+  return String(value ?? 'all').startsWith('any') ? 'any' : 'all'
+}
+
 for (const route of registry) {
   const matches = operations.filter((candidate) =>
     candidate.method === route.method && candidate.normalizedPath === route.normalizedPath)
   if (!matches.length) failures.push(`Registry route missing in OpenAPI: ${route.method} ${route.path}`)
   for (const operation of matches) {
     for (const field of ['operationId', 'scopeMode', 'rateLimitClass', 'idempotencyRequired', 'cachePolicy', 'publicIdPolicy']) {
-      if (operation[field] !== route[field]) failures.push(`${route.method} ${route.path} metadata mismatch: ${field}`)
+      const operationValue = field === 'scopeMode' ? normalizeScopeMode(operation[field]) : operation[field]
+      const routeValue = field === 'scopeMode' ? normalizeScopeMode(route[field]) : route[field]
+      if (operationValue !== routeValue) failures.push(`${route.method} ${route.path} metadata mismatch: ${field}`)
     }
     if (JSON.stringify(operation.scopes) !== JSON.stringify(route.scopes)) {
       failures.push(`${route.method} ${route.path} scope metadata mismatch.`)

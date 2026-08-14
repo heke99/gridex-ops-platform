@@ -18,6 +18,20 @@ type PublicApiRouteDefinition = Omit<
   'operationId' | 'responseSchema' | 'scopeMode' | 'cachePolicy' | 'publicIdPolicy'
 >
 
+/** Canonical granular scope set used by both portal-bundle documentation entries. */
+const CUSTOMER_PORTAL_READ_SCOPES = [
+  'customer_profile.read',
+  'customer_sites.read',
+  'customer_contracts.read',
+  'customer_invoices.read',
+  'customer_metering.read',
+  'customer_legal.read',
+  'customer_events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_power_of_attorney.read',
+] as const
+
 /** Canonical source for the public V1 endpoint catalogue and documentation. */
 const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Maskinläsbart release-manifest med versioner och SHA-256 för båda publika OpenAPI-kontrakten.', rateLimitClass: 'read' },
@@ -38,6 +52,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-08-05.2/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-05.2.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-14.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-14.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-14.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-14.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för kundportalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verifiera opak tenantreferens för den autentiserade API-nyckeln.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Canonical feed för avtal som tenant har publicerat till API-kanalen.', rateLimitClass: 'read' },
@@ -57,8 +73,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'POST', path: '/api/v1/website/customer-events', scopes: ['website_events.write'], description: 'Skicka kundhändelse från hemsida eller kundportal.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/events', scopes: ['website_events.write'], description: 'Skicka kundhändelse.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/events', scopes: ['events.read'], description: 'Läs bolagets domänhändelser.', rateLimitClass: 'read' },
-  { method: 'GET', path: '/api/v1/customer/portal-bundle', scopes: ['customer_portal.read'], description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
-  { method: 'POST', path: '/api/v1/customer/portal-bundle', scopes: ['customer_portal.read'], description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/portal-bundle', scopes: [...CUSTOMER_PORTAL_READ_SCOPES], description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/customer/portal-bundle', scopes: [...CUSTOMER_PORTAL_READ_SCOPES], description: 'Hämta kundportalens samlade läsmodell med verifierad portalidentitet.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/customer-portal/sync', scopes: ['customer_sync.write'], description: 'Länka eller granska extern portalidentitet.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/customer/sync', scopes: ['customer_sync.write'], description: 'Synka kundkompletteringar till OPS.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/customer/me', scopes: ['customer_profile.read'], description: 'Hämta länkad kundprofil.', rateLimitClass: 'read' },
