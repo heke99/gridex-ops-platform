@@ -4,6 +4,24 @@ export const REQUIRED_PRODUCTION_EVIDENCE = ['TGT', 'AGT', 'SHADOW_PRODUCTION', 
 export type EdielCertificationEvidenceType = typeof REQUIRED_PRODUCTION_EVIDENCE[number]
 export const CANONICAL_ENGINE_SCHEMA_VERSION = '20260713100000-ediel-completion-and-platform-contract'
 
+export type EdielCertificationEvidenceRecord = {
+  id: string
+  company_id: string
+  environment: string
+  evidence_type: string
+  status: string
+  engine_schema_version: string
+  external_reference: string | null
+  evidence_document_reference: string | null
+  tested_at: string | null
+  approved_at: string | null
+  approved_by: string | null
+  valid_until: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
 type EvidenceRow = {
   evidence_type?: unknown
   status?: unknown
@@ -14,6 +32,20 @@ type EvidenceRow = {
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+export async function listEdielCertificationEvidence(companyId: string): Promise<EdielCertificationEvidenceRecord[]> {
+  const normalizedCompanyId = text(companyId)
+  if (!normalizedCompanyId) throw new Error('certification_evidence_company_required')
+  const { data, error } = await supabaseService
+    .from('ediel_certification_evidence')
+    .select('id,company_id,environment,evidence_type,status,engine_schema_version,external_reference,evidence_document_reference,tested_at,approved_at,approved_by,valid_until,metadata,created_at,updated_at')
+    .eq('company_id', normalizedCompanyId)
+    .eq('environment', 'production')
+    .eq('engine_schema_version', CANONICAL_ENGINE_SCHEMA_VERSION)
+    .order('evidence_type', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as EdielCertificationEvidenceRecord[]
 }
 
 export async function getEdielCertificationEvidenceReadiness(companyId: string) {
