@@ -1,0 +1,43 @@
+name: Pin production verification migration checksums
+
+on:
+  push:
+    branches:
+      - fix/production-lifecycle-request-hash-20260814
+
+permissions:
+  contents: write
+
+jobs:
+  pin:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: fix/production-lifecycle-request-hash-20260814
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Register exact migration checksums
+        run: |
+          node scripts/register-migration-checksum.cjs supabase/migrations/20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql
+          node scripts/register-migration-checksum.cjs supabase/migrations/20260814232000_bind_website_sales_to_live_production.sql
+          git diff -- scripts/migration-history-manifest.json
+
+      - name: Commit generated manifest update
+        run: |
+          if git diff --quiet -- scripts/migration-history-manifest.json; then
+            echo 'Manifest already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/migration-history-manifest.json
+          git commit -m 'chore: register production verification migration checksums'
+          git push origin HEAD:fix/production-lifecycle-request-hash-20260814
