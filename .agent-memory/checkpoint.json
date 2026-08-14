@@ -1,13 +1,14 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T14:20:00Z",
+  "updated_at": "2026-08-14T14:25:00Z",
   "branch": "cursor/codebase-health-and-stability-31d1",
   "active_phase": "TIP_HEALTH_RESIDUALS",
   "active_task": "Close post-6f171011 go-live and lifecycle tip residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "6f171011",
-  "head_sha": "89c53828",
-  "pr": null,
+  "head_sha": "199a7576",
+  "pr": "OPEN_GIT_PR_TOOL_FAILED",
+  "compare_url": "https://github.com/heke99/gridex-ops-platform/compare/main...cursor/codebase-health-and-stability-31d1",
   "verification": {
     "vitest_targeted": "PASS_44",
     "post_332_field_511_residuals": "PASS",
@@ -17,5 +18,5 @@
     "ggshield": "BLOCKED_CLI_MISSING",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Open PR for 31d1, wait for hosted CI, close superseded health PRs after merge"
+  "resume_from": "Retry open_git_pr / create PR from compare URL, wait for hosted CI, close superseded health PRs after merge"
 }
