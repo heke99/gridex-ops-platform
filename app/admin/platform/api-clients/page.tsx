@@ -20,6 +20,7 @@ type ApiClientRow = {
   name: string
   status: string
   key_prefix: string
+  profile_key: string | null
   scopes: string[] | null
   permission_groups?: string[] | null
   allowed_origins: string[] | null
@@ -90,7 +91,7 @@ async function loadCompanies(): Promise<CompanyOption[]> {
 async function loadClients(): Promise<ApiClientRow[]> {
   const { data, error } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,scopes,permission_groups,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,companies(name)')
+    .select('id,company_id,name,status,key_prefix,profile_key,scopes,permission_groups,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,companies(name)')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -308,6 +309,10 @@ export default async function PlatformApiClientsPage() {
                             <input type="hidden" name="status" value="paused" />
                             <button className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Pausa</button>
                           </form>
+                        ) : client.status === 'paused' && client.profile_key === 'tenant_website' ? (
+                          <p className="max-w-[14rem] text-xs leading-5 text-amber-900">
+                            Använd canonical go-live ovan för att revalidera och sätta live. Generell statusaktivering är blockerad.
+                          </p>
                         ) : client.status === 'paused' ? (
                           <form action={setIntegrationApiClientStatusAction}>
                             <input type="hidden" name="clientId" value={client.id} />
