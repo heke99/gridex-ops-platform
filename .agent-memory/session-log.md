@@ -374,3 +374,12 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
   synthesized null UTILTS match transaction ids.
 - Verification: vitest 50/50, residual regressions, types, audit 0, app tsc
   PASS; ggshield BLOCKED.
+
+## 2026-08-14 — post-c2adf6a0 (#126) health residuals on 8738
+
+- Reviewed main tip `c2adf6a0` after `#126` runtime-contract merge.
+- Replayed open `#125` UTILTS null IDE+24 shared identity onto tip, added
+  durable `db:types:gen`, isolated circuit success telemetry from dependency
+  results, and gated UTILTS + circuit vitest in ops-hardening.
+- Verification: vitest 45/45, post-332 residuals, types, audit 0, app tsc PASS;
+  ggshield BLOCKED.

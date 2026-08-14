@@ -1,24 +1,20 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T09:11:00Z",
-  "branch": "codex/runtime-contract-performance-hardening-recovery-20260814",
-  "active_phase": "RUNTIME_CONTRACT_RECOVERY",
-  "active_task": "Recover, verify and deliver runtime contract hardening",
+  "updated_at": "2026-08-14T07:40:00Z",
+  "branch": "cursor/codebase-health-and-stability-8738",
+  "active_phase": "TIP_HEALTH_RESIDUALS",
+  "active_task": "Close post-#126 UTILTS null-id + circuit telemetry residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "ca28cb0a",
-  "head_sha": null,
+  "base_main_sha": "c2adf6a0",
+  "head_sha": "bb957fa8",
   "pr": null,
   "verification": {
-    "vitest": "PASS_567",
-    "quality_vitest": "PASS_45",
-    "api_docs_contract": "PASS",
-    "migration_integrity": "PASS_429",
-    "generated_types": "PASS_LOCAL_MANIFEST",
+    "vitest_utilts_auth_runtime": "PASS_45",
+    "post_332_field_511_residuals": "PASS",
+    "generated_types": "PASS_7df58d04",
     "security_audit_production": "PASS_0",
     "typecheck_app": "PASS",
-    "build": "PASS",
-    "lint": "PASS_0_ERRORS_141_WARNINGS",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Commit, push, create PR and use hosted clean replay as the authoritative generated-types gate"
+  "resume_from": "Open PR for 8738 and use hosted CI as authoritative gate; close superseded #125 after merge"
 }

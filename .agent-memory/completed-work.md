@@ -247,3 +247,12 @@ Status: VERIFIED LOCALLY
 - Normalized application and metering-point grid/price area compares case-insensitively.
 - Synchronized developer-guide contract examples to `2026-08-05.2`.
 - Recorded findings in `quality/findings-2026-08-06-codebase-health.md`.
+
+## 2026-08-14 — post-#126 tip health residuals on 8738
+
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+
+- Shared UTILTS `transactionIdentity` for disposition/issue/ACK/persist.
+- Durable `db:types:gen` with nullability overrides.
+- Circuit success telemetry best-effort isolation.
+- Ops-hardening gates for UTILTS + dependency-circuit vitest.

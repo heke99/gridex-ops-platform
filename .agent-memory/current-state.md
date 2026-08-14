@@ -1,35 +1,32 @@
 # Current state
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-## Tip health after #123 merge
+## Tip health after #126 merge
 
-- Main tip: `3cad481b` (`fix(health): close post-2eb61986 tip residuals (#123)`).
-- Active health branch: `cursor/codebase-health-and-stability-13b2`.
-- Hosted CI for `#123` completed successfully on main, but tip review found
-  residuals that either regressed during the squash/types regen or were never
-  covered by the auth-only hardening package.
+- Main tip: `c2adf6a0` (`Harden runtime contracts, tenant-neutral API docs, and production readiness (#126)`).
+- Active health branch: `cursor/codebase-health-and-stability-8738`.
+- Open `#125` on `9807` remains pre-`c2adf6a0` and is superseded as the merge
+  vehicle by `8738`.
 
-## Residuals closed on `13b2`
+## Residuals closed on `8738`
 
-1. HIGH — Field-511 resolver Returns nullability overwritten by types regen;
-   durable post-gen override + clean-replay/CI gate restored
-2. HIGH — Public `/teckna-avtal` rendered raw `?message=` and redirected
-   `error.message` (phishing + provider leak)
-3. MEDIUM — Portal `/portal/komplettera` rendered raw blocked `?message=`
-4. MEDIUM — Proxy set `reason=account_disabled` but login ignored it
-5. MEDIUM — Dual `getSafeNextPath` implementations (urls vs authEmailFlow)
-6. MEDIUM — UTILTS tenant match builder kept null IDE+24 refs, so synthesized
-   persistence ids could not join metering-point matches
-7. MEDIUM — post-332 residual regression was not gated in ops-hardening
+1. HIGH — UTILTS disposition orphaned synthesized `transaction-N` issue refs;
+   shared `transactionIdentity.ts` + disposition/issue/ACK synthesis
+2. MEDIUM — Fallback ACK targets dropped null IDE+24 groups
+3. MEDIUM — Typegen docs/process omitted nullability overrides (`db:types:gen`)
+4. MEDIUM — `#126` circuit success telemetry could fail-closed over a completed
+   dependency call (`withDependencyCircuit`)
+5. LOW — Integration write idempotency invalid-key message drifted from grammar
+6. LOW — Disposition/persistence + dependency-circuit vitest gated in
+   ops-hardening verify
 
-## Verification executed on `13b2`
+## Verification executed on `8738`
 
-- vitest auth-outage + UTILTS disposition/persistence: 50/50 PASS
+- vitest UTILTS disposition/persistence + runtime contract + schema readiness +
+  dependency-circuit: 45/45 PASS
 - `gridex:post-332-field-511-health-residuals-regression`: PASS
-- ops health: PASS
-- `ediel:utilts-reason-regression`: PASS
-- `db:types:check`: PASS (nullable Returns + sha `2111c2c6...`)
+- `db:types:check`: PASS (nullable Returns + sha `7df58d04...`)
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
 - ggshield: BLOCKED (CLI not installed)
@@ -38,5 +35,5 @@ Updated: 2026-08-13
 
 - Applied field-511 import migration `20260813210500` (immutable).
 - Official UTILTS matrices / TGT-AGT evidence remain external blockers.
-- Open `#122` and older health PRs remain pre-`3cad481b` vehicles; close as
-  superseded after `13b2` merges.
+- Admin-only flash / navigation-mode same-origin escape remain deferred FPs.
+- Live DB apply of `#126` runtime readiness migration not observed in this run.
