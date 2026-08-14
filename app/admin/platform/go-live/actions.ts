@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import {
   REQUIRED_PRODUCTION_EVIDENCE,
   recordEdielCertificationEvidence,
@@ -52,27 +53,6 @@ function finish(companyId: string, status: 'prepared' | 'blocked' | 'error', mes
   throw new Error('redirect_failed')
 }
 
-async function audit(input: {
-  companyId: string
-  actorUserId: string
-  action: string
-  entityType: string
-  entityId?: string | null
-  metadata?: Record<string, unknown>
-}) {
-  const { error } = await supabaseService.from('audit_logs').insert({
-    company_id: input.companyId,
-    actor_user_id: input.actorUserId,
-    action: input.action,
-    entity_type: input.entityType,
-    entity_id: input.entityId ?? null,
-    old_values: null,
-    new_values: null,
-    metadata: input.metadata ?? {},
-  })
-  if (error) throw error
-}
-
 export async function saveCertificationEvidenceAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
   const companyId = text(formData, 'company_id')
@@ -115,12 +95,17 @@ export async function saveCertificationEvidenceAction(formData: FormData) {
     },
   })
 
-  await audit({
+  const entityId = String((row as { id?: unknown }).id ?? '').trim()
+  if (!entityId) throw new Error('certification_evidence_id_missing')
+
+  await logAdminActionAndUsage({
     companyId,
     actorUserId: admin.userId,
     action: `certification_evidence.${status}`,
+    label: `Production-evidens ${evidenceType}: ${status}`,
     entityType: 'ediel_certification_evidence',
-    entityId: String((row as { id?: unknown }).id ?? '') || null,
+    entityId,
+    source: 'platform_go_live_superadmin',
     metadata: {
       evidence_type: evidenceType,
       external_reference: externalReference || null,
@@ -156,26 +141,38 @@ export async function verifyTenantWebsiteGoLiveAction(formData: FormData) {
     .maybeSingle()
   if (clientError) throw clientError
 
+  if (!currentClient) {
+    finish(
+      companyId,
+      'blocked',
+      'Ingen hemside-API-klient finns ännu. Skapa först tenant_website-klienten från API-klientsidan så att den nya nyckeln kan visas exakt en gång, och kör därefter verifieringen här.',
+    )
+  }
+
   const provisioned = await provisionTenantWebsiteIntegration({
     companyId,
     actorUserId: admin.userId,
     idempotencyKey: `tenant-website:${companyId}:production`,
     environment: 'production',
-    clientName: currentClient?.name || 'Hemsida · Mina sidor',
+    clientName: currentClient.name,
     allowedOrigins,
-    rateLimitPerMinute: currentClient?.rate_limit_per_minute ?? 120,
+    rateLimitPerMinute: currentClient.rate_limit_per_minute ?? 120,
     customerPortalUrl,
     webhook: null,
   })
 
-  await audit({
+  await logAdminActionAndUsage({
     companyId,
     actorUserId: admin.userId,
     action: provisioned.launchReady
       ? 'tenant_website.go_live_verified'
       : 'tenant_website.go_live_blocked',
+    label: provisioned.launchReady
+      ? 'Webb & Mina sidor verifierad'
+      : 'Webb & Mina sidor blockerad',
     entityType: 'integration_api_client',
     entityId: provisioned.apiClientId,
+    source: 'platform_go_live_superadmin',
     metadata: {
       receipt_id: provisioned.receiptId,
       reused_existing_client: provisioned.reusedExistingClient,
@@ -199,8 +196,6 @@ export async function verifyTenantWebsiteGoLiveAction(formData: FormData) {
   finish(
     companyId,
     'prepared',
-    provisioned.reusedExistingClient
-      ? 'Webb & Mina sidor verifierades med befintlig API-nyckel. Ingen credential roterades.'
-      : 'Webb & Mina sidor verifierades, men en ny credential skapades och måste hanteras från API-klientsidan.',
+    'Webb & Mina sidor verifierades med befintlig API-nyckel. Ingen credential roterades.',
   )
 }
