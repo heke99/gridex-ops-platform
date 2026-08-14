@@ -28,6 +28,7 @@ type CompanyOption = {
   id: string
   name: string
   status: string | null
+  customer_portal_url: string | null
 }
 
 type LaunchBlocker = {
@@ -194,7 +195,7 @@ function goLiveHref(companyId: string) {
 async function loadCompanies(): Promise<CompanyOption[]> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id,name,status')
+    .select('id,name,status,customer_portal_url')
     .order('name', { ascending: true })
     .limit(500)
 
@@ -245,9 +246,18 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
     loadRecentRequests(),
   ])
 
-  const defaultCompanyId = companies.some((company) => company.id === params.companyId)
-    ? params.companyId
+  const selectedCompany = companies.find((company) => company.id === params.companyId)
+  const defaultCompanyId = selectedCompany?.id
+  const selectedTenantClient = defaultCompanyId
+    ? clients.find((client) => client.company_id === defaultCompanyId && isTenantWebsiteClient(client) && client.status !== 'revoked')
     : undefined
+  const selectedOrigins = selectedTenantClient
+    ? (valueList(selectedTenantClient.allowed_origins).length
+        ? valueList(selectedTenantClient.allowed_origins)
+        : valueList(selectedTenantClient.metadata?.allowed_origins))
+    : []
+  const defaultCustomerPortalUrl = selectedCompany?.customer_portal_url ?? ''
+  const defaultAllowedOrigins = selectedOrigins.join('\n')
 
   const webhooksByClient = new Map<string, WebhookSubscriptionRow[]>()
   for (const webhook of webhooks) {
@@ -305,7 +315,13 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
       </div>
 
       <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <CreateApiClientForm companies={companies} defaultCompanyId={defaultCompanyId} />
+        <CreateApiClientForm
+          key={defaultCompanyId ?? 'new-tenant'}
+          companies={companies}
+          defaultCompanyId={defaultCompanyId}
+          defaultCustomerPortalUrl={defaultCustomerPortalUrl}
+          defaultAllowedOrigins={defaultAllowedOrigins}
+        />
 
         <aside className="space-y-5">
           <div className="rounded-[32px] border border-emerald-200 bg-emerald-50 p-6 text-sm leading-6 text-emerald-950">
