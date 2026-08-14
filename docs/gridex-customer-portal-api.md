@@ -23,6 +23,18 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 OpenAPI används för utveckling/typgenerering och är inte ett runtimeberoende.
 
+### Production readiness
+
+En giltig API-nyckel är inte ensam ett bevis på att tenantintegrationen är klar för live-trafik. OPS använder ett fail-closed go-live-flöde där normal trafik släpps först när API-klienten är aktiv, canonical installation receipt är verifierad, `launch_ready=true`, `launch_blockers=[]` och tenantens `api_sales` capability är redo.
+
+Under provisionering eller revalidation kan API:t därför returnera följande 403-koder:
+
+- `api_client_not_launch_ready` – klientens canonical launch-verifiering är inte klar;
+- `integration_receipt_not_verified` – installationsbeviset är inte färdigställt;
+- `integration_capability_not_ready` – tenantens API-capability är inte produktionsklar.
+
+De här koderna är operatörsåtgärder och ska inte lösas genom att klienten skickar ett fritt `company_id`, kringgår scopes eller retry:ar obegränsat. En manuellt pausad, revoked, deleted eller tvetydig credential återaktiveras aldrig automatiskt. En befintlig primary credential som endast pausades av canonical readiness får återanvändas först efter ny smoke, receipt och readiness-reconciliation.
+
 ## Grundmodell
 
 Tenantens hemsida/Mina sidor äger inloggningssessionen. OPS är master för kund, kundnummer, avtal, anläggningar, fullmakter, juridiska godkännanden, dokument, status och processflöden.
@@ -50,13 +62,13 @@ Authorization: Bearer ${GRIDEX_API_KEY}
 Content-Type: application/json
 ```
 
-Payload ska innehålla så många stabila kundnycklar som möjligt:
+Payload ska innehålla så många stabila kundnycklar som möjligt. Exemplen i dokumentationen är avsiktligt tenant-neutrala och får inte innehålla verkliga kunduppgifter:
 
 ```json
 {
-  "email": "heke99@live.se",
-  "customer_number": "DX-100023",
-  "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f"
+  "email": "customer@example.com",
+  "customer_number": "CUST-001234",
+  "external_customer_id": "tenant-customer-001234"
 }
 ```
 
@@ -85,9 +97,9 @@ Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` o
 {
   "data": {
     "profile": {
-      "customer_number": "DX-100023",
-      "display_name": "Hekmat Hourani",
-      "email": "heke99@live.se"
+      "customer_number": "CUST-001234",
+      "display_name": "Example Customer",
+      "email": "customer@example.com"
     },
     "customer_status": {
       "code": "needs_facility_data",
@@ -165,21 +177,21 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "heke99@live.se",
-  "customer_number": "DX-100023",
-  "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f",
+  "email": "customer@example.com",
+  "customer_number": "CUST-001234",
+  "external_customer_id": "tenant-customer-001234",
   "power_of_attorney": {
-    "power_of_attorney_reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
+    "power_of_attorney_reference": "POA-example-reference",
     "document_reference": "legal_customer_document_...",
     "scope": ["supplier_switch", "facility_information_lookup"],
     "accepted": true,
-    "accepted_at": "2026-06-16T15:10:12.647Z",
-    "signer_name": "Kundens namn",
-    "signer_identity_number": "verifierad-identitetsreferens",
+    "accepted_at": "2026-08-14T10:00:00Z",
+    "signer_name": "Example Customer",
+    "signer_identity_number": "verified-identity-reference",
     "method": "bankid",
     "ip_address": "203.0.113.10",
-    "user_agent": "Mozilla/5.0",
-    "valid_from": "2026-06-16"
+    "user_agent": "Example client",
+    "valid_from": "2026-08-14"
   },
   "legal_acceptances": [
     {
@@ -188,7 +200,7 @@ Content-Type: application/json
       "document_version": "legal_customer_version_...",
       "document_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "accepted": true,
-      "accepted_at": "2026-06-16T15:10:12.647Z"
+      "accepted_at": "2026-08-14T10:00:00Z"
     }
   ],
   "documents": [
@@ -196,7 +208,7 @@ Content-Type: application/json
       "document_reference": "tenant-contract-123",
       "document_type": "contract_confirmation",
       "title": "Avtalsbekräftelse",
-      "secure_url": "https://tenant.se/documents/tenant-contract-123.pdf"
+      "secure_url": "https://tenant.example/documents/tenant-contract-123.pdf"
     }
   ]
 }
@@ -309,6 +321,7 @@ Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
 
 - `401 missing_api_token` / `401 invalid_api_token` / `401 api_token_expired`
 - `403 api_scope_missing` / `403 api_ip_not_allowed` / `403 api_origin_not_allowed`
+- `403 api_client_not_launch_ready` / `403 integration_receipt_not_verified` / `403 integration_capability_not_ready`
 - `403 customer_portal_link_requires_sync` (första länkningen kräver två matchande nycklar eller en tidigare länk)
 - `404 customer_not_found` / `404 invoice_not_found`
 - `409 ambiguous_customer_match`
@@ -394,3 +407,23 @@ Efter en accepterad website-kundansökan returnerar API:t `next_step: automatic_
 ## Extern kontraktsändring 2026-08-03.1
 
 Website Integration API modellerar nu `energy_direction` explicit som `consumption` eller `production`. Produktionsavtal returnerar en immutable `production_pricing` och kan använda `settlement_mode=self_billing`; de får inte behandlas som konsumtionsleverans eller vanlig kundfaktura. Canonical juridikroute är `GET /api/v1/website/legal-bundle`; tenant hämtas från API-nyckelns integrationskontext och inget externt `company_id` används. Felmodellen innehåller top-level `ok=false`, `code`, `message`, `request_id`, `correlation_id` och strukturerade `blockers`.
+
+## Operatörens canonical go-live-flöde
+
+Det här är ett OPS-operatörsflöde. Externa developers ska inte emulera det med direkt SQL eller egna statusuppdateringar.
+
+```text
+1. Välj bolag
+2. Ange tillåtna HTTPS-origin(s)
+3. Ange bolagets HTTPS-URL till Mina sidor
+4. Valfritt: konfigurera webhook + signing-secret reference
+5. Kör canonical tenant website provision/revalidation
+6. OPS återanvänder säkert en credential som endast readiness-pausats, annars skapas en ny
+7. Provisioning smoke verifierar credential, scopes och centrala routes
+8. OPS reconcilar capabilities och övrig readiness
+9. Installation receipt färdigställs med SHA-256-evidens
+10. launch_ready blir true endast när blockers är tomma
+11. Ny token visas endast om en ny credential skapades eller en tidigare osynlig engångscredential måste roteras efter ett misslyckat försök
+```
+
+Manuellt pausade, revoked, deleted eller tvetydiga credentials ska stoppa flödet och kräva operatörsgranskning. Go-live får aldrig reduceras till `UPDATE integration_api_clients SET status='active'`.
