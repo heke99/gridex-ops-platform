@@ -185,6 +185,27 @@ if (!documentationPage.includes('JSON.stringify(publicContractsFixture')) {
 if (documentationPage.includes('"requirements": []')) {
   failures.push('Developer guide still contains the obsolete simplified legal response.')
 }
+for (const [label, pattern] of [
+  ['personal email address', /heke99@live\.se/i],
+  ['production-looking DX customer number', /DX-[0-9]{4,}/],
+  ['tenant-specific GRIDEX-WEB external id', /GRIDEX-WEB-[A-Z0-9-]+/],
+  ['personal customer name', /Hekmat Hourani/i],
+  ['tenant-specific auth placeholder', /gridex-web-supabase-session-user-id/i],
+]) {
+  if (pattern.test(documentationPage)) {
+    failures.push(`Developer guide contains ${label}; examples must remain tenant-neutral.`)
+  }
+}
+for (const requiredNeutralTerm of [
+  '<customer_number-returned-by-ops>',
+  'tenant-customer-12345',
+  '<authenticated-user-uuid>',
+  'Kundnummerprefix kan skilja mellan tenants',
+]) {
+  if (!documentationPage.includes(requiredNeutralTerm)) {
+    failures.push(`Developer guide is missing tenant-neutral guidance: ${requiredNeutralTerm}.`)
+  }
+}
 const canonicalOption = website.components?.schemas?.ContractPriceOption
 if (canonicalOption?.properties?.default?.deprecated !== true) {
   failures.push('Developer guide/OpenAPI check requires default to remain deprecated.')

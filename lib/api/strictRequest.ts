@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { isValidIdempotencyKey } from '@/lib/api/idempotencyKey'
 
 export class ApiInputError extends Error {
   readonly status: number
@@ -51,10 +52,9 @@ export function requireIsoDate(value: unknown, field: string): string {
 }
 
 export function requireIdempotencyKey(request: NextRequest): string {
-  const key = request.headers.get('idempotency-key')?.trim() ?? ''
-  if (key.length < 8 || key.length > 200) {
-    throw new ApiInputError('Idempotency-Key krävs och måste vara 8–200 tecken.', 'idempotency_key_required', 400)
-  }
+  const key = request.headers.get('idempotency-key') ?? ''
+  if (!key) throw new ApiInputError('Idempotency-Key krävs.', 'idempotency_key_required', 400)
+  if (!isValidIdempotencyKey(key)) throw new ApiInputError('Idempotency-Key har ogiltigt format.', 'idempotency_key_invalid', 400)
   return key
 }
 

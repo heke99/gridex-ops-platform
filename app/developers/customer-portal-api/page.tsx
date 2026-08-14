@@ -524,7 +524,7 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: website-order-12345" \
   -d '{
-    "external_customer_id": "CUSTOMER-12345",
+    "external_customer_id": "tenant-customer-12345",
     "offer_reference": "offer_...",
     "quote_reference": "quote_...",
     "price_option_reference": "fixed-12-months",
@@ -557,8 +557,8 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
       "requested_start_mode": "specific_date",
       "requested_start_date": "2026-09-01"
     },
-    "customer_portal_user_id": "<gridex-web-supabase-session-user-id>",
-    "auth_user_id": "<gridex-web-supabase-session-user-id>",
+    "customer_portal_user_id": "<authenticated-user-uuid>",
+    "auth_user_id": "<authenticated-user-uuid>",
     "legal_bundle_version": "<bundle-uuid-from-legal-bundle>",
     "legal_acceptances": [
       {
@@ -632,7 +632,7 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
 // manuell granskning. API-requestens livstid styr aldrig fortsättningen.
 const applicationResponse = `{
   "data": {
-    "customer_number": "DX-100025",
+    "customer_number": "<customer_number-assigned-by-ops>",
     "application_number": "APP-20260801-0001",
     "customer_reference": "customer_...",
     "application_reference": "application_...",
@@ -735,9 +735,9 @@ contract.cooling_off_sent = ångerrättsmail har skapats enligt tenantens regel
 Webhook/domain event med samma *_sent-namn publiceras däremot först när communication_logs har markerats sent/delivered av leverantören. Ett köat mail är aldrig samma sak som levererat.`;
 
 const portalBundlePayload = `{
-  "email": "heke99@live.se",
-  "customer_number": "DX-100023",
-  "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f"
+  "email": "customer@example.com",
+  "customer_number": "<customer_number-returned-by-ops>",
+  "external_customer_id": "tenant-customer-12345"
 }`;
 
 const customerFetchExample = `fetch("${apiBaseUrl}/customer/portal-bundle", {
@@ -757,20 +757,20 @@ const customerFetchExample = `fetch("${apiBaseUrl}/customer/portal-bundle", {
 const customerFetchHeaderExample = `fetch("${apiBaseUrl}/customer/portal-bundle", {
   headers: {
     Authorization: "Bearer $GRIDEX_API_KEY",
-    "x-gridex-customer-portal-user-id": "<gridex-web-supabase-session-user-id>",
-    "x-gridex-auth-user-id": "<gridex-web-supabase-session-user-id>",
-    "x-gridex-external-customer-id": "CUSTOMER-12345",
-    "x-gridex-customer-number": "DX-100025"
+    "x-gridex-customer-portal-user-id": "<authenticated-user-uuid>",
+    "x-gridex-auth-user-id": "<authenticated-user-uuid>",
+    "x-gridex-external-customer-id": "tenant-customer-12345",
+    "x-gridex-customer-number": "<customer_number-returned-by-ops>"
   },
   cache: "no-store"
 })`;
 
 const authLinkingRequiredHeaders = `Authorization: Bearer $GRIDEX_API_KEY
-x-gridex-customer-portal-user-id: <gridex-web-supabase-session-user-id>
-x-gridex-auth-user-id: <gridex-web-supabase-session-user-id>
+x-gridex-customer-portal-user-id: <authenticated-user-uuid>
+x-gridex-auth-user-id: <authenticated-user-uuid>
 x-gridex-external-customer-id: <external_customer_id>
 # eller, om external_customer_id saknas:
-x-gridex-customer-number: DX-100025
+x-gridex-customer-number: <customer_number-returned-by-ops>
 # optional fallback:
 x-gridex-customer-email: kund@example.se`;
 
@@ -796,9 +796,9 @@ const customerSyncExample = `curl -X POST "${apiBaseUrl}/customer/sync" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: tenant-sync-12345" \
   -d '{
-    "email": "heke99@live.se",
-    "customer_number": "DX-100023",
-    "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f",
+    "email": "customer@example.com",
+    "customer_number": "<customer_number-returned-by-ops>",
+    "external_customer_id": "tenant-customer-12345",
     "power_of_attorney": {
       "power_of_attorney_reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
       "document_reference": "legal_customer_document_...",
@@ -851,9 +851,9 @@ const customerSyncExample = `curl -X POST "${apiBaseUrl}/customer/sync" \
 const customerStatusResponseExample = `{
   "data": {
     "profile": {
-      "customer_number": "DX-100023",
-      "display_name": "Hekmat Hourani",
-      "email": "heke99@live.se"
+      "customer_number": "<customer_number-returned-by-ops>",
+      "display_name": "Example Customer",
+      "email": "customer@example.com"
     },
     "customer_status": {
       "code": "needs_facility_data",
@@ -886,7 +886,7 @@ const webhookPayload = `{
   },
   "customer": {
     "customer_reference": "customer_...",
-    "customer_number": "DX-100025"
+    "customer_number": "<customer_number-returned-by-ops>"
   },
   "data": {
     "application_number": "APP-20260804-0001",
@@ -1458,6 +1458,14 @@ export default function CustomerPortalApiDocsPage() {
             kundidentifiering från den inloggade kunden. Rekommenderad
             JSON-payload är <code>email</code>, <code>customer_number</code> och{" "}
             <code>external_customer_id</code>.
+          </p>
+          <p>
+            Alla värden i exemplen är neutrala placeholders. Kopiera aldrig
+            exempelvärden som fasta identiteter: <code>customer_number</code>
+            ska vara värdet OPS returnerat för den aktuella tenantens kund,
+            <code>external_customer_id</code> ska vara tenantens egen stabila
+            externa referens och e-post ska komma från den verifierade
+            inloggade användaren. Kundnummerprefix kan skilja mellan tenants.
           </p>
           <CodeBlock>{portalBundlePayload}</CodeBlock>
           <CodeBlock>{customerFetchExample}</CodeBlock>
