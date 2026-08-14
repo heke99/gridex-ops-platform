@@ -1,5 +1,6 @@
 import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 import type { UtiltsRuntimeFacts, UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine'
+import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 function issue(code: string, title: string, description: string, reference?: string | null): UtiltsValidationIssue {
   return {
@@ -46,7 +47,10 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
   if (profile.requiresTransaction && transactions.length === 0) issues.push(issue('UTILTS_TRANSACTION_REQUIRED', 'Transaktion saknas', `${profile.profileKey} kräver minst en transaktion.`))
 
   transactions.forEach((transaction, index) => {
-    const reference = transaction.transactionId ?? facts.transactionId ?? `transaction-${index + 1}`
+    const reference = resolveUtiltsTransactionId(
+      transaction.transactionId ?? facts.transactionId,
+      index,
+    )
     if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 eller TN-referens per transaktion.`, reference))
     if (profile.requiresMeteringPoint && !transaction.meterPointId && !facts.meterPointId) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver LOC+172 per transaktion.`, reference))
     if (profile.requiresGridArea && !transaction.gridAreaId && !facts.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference))

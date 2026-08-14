@@ -423,6 +423,13 @@ export async function setCompanyOperationalStatusAction(
     const company = await getCompanyById(companyId)
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
     const currentStatus = normalizeCompanyStatus(company.status)
+    if (nextStatus === 'deleted_test_only') {
+      return {
+        ok: false,
+        message:
+          'Terminal test-radering måste gå via Radera test-/felregistrering så att historikblockerare kontrolleras.',
+      }
+    }
     if (!canTransitionCompanyStatus(currentStatus, nextStatus)) {
       return {
         ok: false,
