@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const migrationPath = 'supabase/migrations/20260814125600_tenant_website_go_live_hardening.sql'
+const activationGuardPath = 'supabase/migrations/20260814133500_tenant_website_activation_guard.sql'
 const migration = readFileSync(migrationPath, 'utf8')
+const activationGuard = readFileSync(activationGuardPath, 'utf8')
 const docs = readFileSync('docs/gridex-customer-portal-api.md', 'utf8')
 const docsLayout = readFileSync('app/developers/customer-portal-api/layout.tsx', 'utf8')
 
@@ -34,6 +36,15 @@ describe('tenant website canonical go-live hardening', () => {
     expect(migration).toContain('completed_at = null')
     expect(migration).toContain("launch_ready = false")
     expect(migration).toContain("'provisioning_preflight_pending'")
+  })
+
+  it('prevents generic status activation from bypassing canonical go-live', () => {
+    expect(activationGuard).toContain('gridex_guard_tenant_website_activation_v2')
+    expect(activationGuard).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
+    expect(activationGuard).toContain("coalesce(new.metadata->>'go_live_flow','') <> 'canonical_tenant_website_v2'")
+    expect(activationGuard).toContain("receipt.id::text = v_receipt_id_text")
+    expect(activationGuard).toContain("'provisioning_preflight_pending','provisioning_retry_in_progress'")
+    expect(activationGuard).toContain('new.revoked_at is not null')
   })
 
   it('keeps tenant setup generic and free from the previously leaked concrete examples', () => {
