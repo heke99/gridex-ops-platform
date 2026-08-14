@@ -9,6 +9,10 @@ import {
   type CompanyOperationalStatus,
 } from '@/lib/tenant/governance'
 import {
+  canTransitionCompanyStatus,
+  companyLifecycleEffectSummary,
+} from '@/lib/tenant/lifecycle'
+import {
   createCompanyAction,
   deleteTestCompanyAction,
   requestCompanyDeletionAction,
@@ -94,17 +98,21 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
 
 function GovernanceActionForm({
   companyId,
+  currentStatus,
   status,
   label,
   reasonPlaceholder,
   danger = false,
 }: {
   companyId: string
+  currentStatus: CompanyOperationalStatus
   status: CompanyOperationalStatus
   label: string
   reasonPlaceholder: string
   danger?: boolean
 }) {
+  if (currentStatus === status || !canTransitionCompanyStatus(currentStatus, status)) return null
+
   return (
     <form action={setCompanyStatusFormAction} className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-3">
       <input type="hidden" name="company_id" value={companyId} />
@@ -152,7 +160,7 @@ export default async function CompaniesPage({
     <div className="min-h-screen">
       <AdminHeader
         title="Bolag på plattformen"
-        subtitle="Endast superadmin. Här skapas, pausas och granskas tenants. Vanliga elbolag ska aldrig kunna se eller onboarda andra bolag."
+        subtitle="Endast superadmin. En bolagsstatus är plattformens gemensamma source of truth för tenantåtkomst, API, försäljning, automation och outbound."
         userEmail={auth.user?.email ?? admin.email ?? null}
       />
 
@@ -233,7 +241,7 @@ export default async function CompaniesPage({
           <div className="min-w-0 space-y-4">
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-950">Registrerade bolag</h2>
-              <p className="mt-1 text-sm text-slate-700">Korten är byggda för att inte spräcka layouten även med långa namn, orgnummer eller id:n.</p>
+              <p className="mt-1 text-sm text-slate-700">Lifecycle-knappar visas bara när övergången faktiskt är tillåten. Terminalt stängda bolag kan inte återaktiveras av misstag.</p>
             </div>
 
             {companies.length === 0 ? (
@@ -243,6 +251,12 @@ export default async function CompaniesPage({
                 {companies.map((company) => {
                   const copy = getCompanyStatusCopy(company.status)
                   const hasOperationalBlockers = company.missingEdielProfile || company.blockedBillingUnderlays > 0
+                  const terminal = company.status === 'closed' || company.status === 'deleted_test_only'
+                  const canRequestDeletion = canTransitionCompanyStatus(company.status, 'pending_deletion') && company.status !== 'pending_deletion'
+                  const canDeleteTestOnly = company.canHardDelete && (
+                    company.status === 'pending_deletion'
+                    || canTransitionCompanyStatus(company.status, 'pending_deletion')
+                  )
 
                   return (
                     <article key={company.id} className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -260,6 +274,9 @@ export default async function CompaniesPage({
                         </p>
                         <p className="break-all rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ID: {company.id}</p>
                         <p className="text-sm leading-6 text-slate-700">{copy.description}</p>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold leading-6 text-slate-700">
+                          {companyLifecycleEffectSummary(company.status)}
+                        </div>
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -310,24 +327,38 @@ export default async function CompaniesPage({
                       </div>
 
                       <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <summary className="cursor-pointer text-sm font-semibold text-slate-900">Governance-åtgärder</summary>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                          <GovernanceActionForm companyId={company.id} status="paused" label="Pausa" reasonPlaceholder="Anledning till paus" />
-                          <GovernanceActionForm companyId={company.id} status="active" label="Återaktivera" reasonPlaceholder="Anledning, valfritt" />
-                          <GovernanceActionForm companyId={company.id} status="suspended" label="Stäng av" reasonPlaceholder="Anledning till avstängning" danger />
-                          <GovernanceActionForm companyId={company.id} status="closed" label="Stäng tenant terminalt" reasonPlaceholder="Obligatorisk stängningsorsak" danger />
-                          <GovernanceActionForm companyId={company.id} status="archived" label="Arkivera" reasonPlaceholder="Anledning till arkivering" />
-                          <form action={requestCompanyDeletionFormAction} className="grid gap-2 rounded-2xl border border-orange-200 bg-orange-50 p-3">
-                            <input type="hidden" name="company_id" value={company.id} />
-                            <input name="reason" required placeholder="Anledning" className="min-w-0 rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-orange-500" />
-                            <button className="rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs font-semibold text-orange-800 hover:bg-orange-100">Begär radering</button>
-                          </form>
-                          <form action={deleteTestCompanyFormAction} className="grid gap-2 rounded-2xl border border-red-200 bg-red-50 p-3">
-                            <input type="hidden" name="company_id" value={company.id} />
-                            <input name="reason" placeholder="Endast test/felregistrering" className="min-w-0 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-red-500" />
-                            <button className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-100">Radera testbolag</button>
-                          </form>
-                        </div>
+                        <summary className="cursor-pointer text-sm font-semibold text-slate-900">Lifecycle-åtgärder</summary>
+                        {terminal ? (
+                          <p className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
+                            Bolaget är terminalt stängt. Inga fler lifecycle-åtgärder är tillåtna.
+                          </p>
+                        ) : (
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            <GovernanceActionForm companyId={company.id} currentStatus={company.status} status="paused" label="Pausa tillfälligt" reasonPlaceholder="Anledning till paus" />
+                            <GovernanceActionForm companyId={company.id} currentStatus={company.status} status="active" label="Återaktivera" reasonPlaceholder="Anledning, valfritt" />
+                            <GovernanceActionForm companyId={company.id} currentStatus={company.status} status="suspended" label="Stäng av" reasonPlaceholder="Anledning till avstängning" danger />
+                            <GovernanceActionForm companyId={company.id} currentStatus={company.status} status="closed" label="Stäng permanent" reasonPlaceholder="Obligatorisk stängningsorsak" danger />
+                            <GovernanceActionForm companyId={company.id} currentStatus={company.status} status="archived" label="Arkivera" reasonPlaceholder="Anledning till arkivering" />
+                            {canRequestDeletion ? (
+                              <form action={requestCompanyDeletionFormAction} className="grid gap-2 rounded-2xl border border-orange-200 bg-orange-50 p-3">
+                                <input type="hidden" name="company_id" value={company.id} />
+                                <input name="reason" required placeholder="Anledning" className="min-w-0 rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-orange-500" />
+                                <button className="rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs font-semibold text-orange-800 hover:bg-orange-100">Begär radering</button>
+                              </form>
+                            ) : null}
+                            {canDeleteTestOnly ? (
+                              <form action={deleteTestCompanyFormAction} className="grid gap-2 rounded-2xl border border-red-200 bg-red-50 p-3">
+                                <input type="hidden" name="company_id" value={company.id} />
+                                <input name="reason" required placeholder="Bekräfta test/felregistrering" className="min-w-0 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-red-500" />
+                                <button className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-100">Radera test-/felregistrering</button>
+                              </form>
+                            ) : company.deleteBlockers.length > 0 ? (
+                              <div className="rounded-2xl border border-slate-200 bg-white p-3 text-xs font-semibold leading-5 text-slate-700">
+                                Test-radering är spärrad eftersom historik finns. Använd arkivering eller ordinarie raderingsflöde så att historiken behålls.
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
                       </details>
                     </article>
                   )
