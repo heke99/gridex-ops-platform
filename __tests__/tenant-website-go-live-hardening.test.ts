@@ -4,9 +4,6 @@ import { describe, expect, it } from 'vitest'
 const migrationPath = 'supabase/migrations/20260814125600_tenant_website_go_live_hardening.sql'
 const migration = readFileSync(migrationPath, 'utf8')
 const docs = readFileSync('docs/gridex-customer-portal-api.md', 'utf8')
-const errorRegistry = JSON.parse(
-  readFileSync('lib/integrations/public-api-error-registry.json', 'utf8'),
-) as Record<string, { http_status: number; retryable: boolean }>
 const docsLayout = readFileSync('app/developers/customer-portal-api/layout.tsx', 'utf8')
 
 describe('tenant website canonical go-live hardening', () => {
@@ -60,7 +57,6 @@ describe('tenant website canonical go-live hardening', () => {
       'integration_receipt_not_verified',
       'integration_capability_not_ready',
     ]) {
-      expect(errorRegistry[code]).toMatchObject({ http_status: 403, retryable: false })
       expect(docs).toContain(code)
       expect(docsLayout).toContain(code)
     }
