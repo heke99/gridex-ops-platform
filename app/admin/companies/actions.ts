@@ -20,7 +20,10 @@ import {
   type CompanyOperationalStatus,
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
-import { canTransitionCompanyStatus } from '@/lib/tenant/lifecycle'
+import {
+  canTransitionCompanyStatus,
+  isCompanyWritableInTenantWorkspace,
+} from '@/lib/tenant/lifecycle'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { seedCompanyOnboardingTasks } from '@/lib/onboarding/companyReadiness'
 import {
@@ -119,8 +122,12 @@ async function assertCanManageCompanyUsers(companyId: string) {
   const memberships = await listOperationalCompaniesForUser(context.userId)
   const membership = memberships.find((row) => row.companyId === companyId)
 
-  if (!membership || !['owner', 'admin', 'company_admin'].includes(membership.membershipRole)) {
-    throw new Error('Du kan bara hantera användare i ditt eget elhandelsbolag.')
+  if (
+    !membership
+    || !isCompanyWritableInTenantWorkspace(membership.companyStatus)
+    || !['owner', 'admin', 'company_admin'].includes(membership.membershipRole)
+  ) {
+    throw new Error('Du kan bara hantera användare i ett aktivt eget elhandelsbolag.')
   }
 
   return context
