@@ -66,7 +66,7 @@ function normalizeIdempotencyKey(
   }
   if (!isValidIdempotencyKey(key)) {
     throw new IntegrationWriteIdempotencyError({
-      message: 'Idempotency-Key måste vara 8–200 tecken.',
+      message: 'Idempotency-Key har ogiltigt format.',
       code: 'idempotency_key_invalid',
       status: 400,
     })

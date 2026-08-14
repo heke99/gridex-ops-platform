@@ -234,6 +234,8 @@ const tecknaPage = read('app/teckna-avtal/page.tsx')
 const tecknaActions = read('app/teckna-avtal/actions.ts')
 const portalPage = read('app/portal/komplettera/page.tsx')
 const utiltsDataRequest = read('lib/ediel/flows/utiltsDataRequest.ts')
+const utiltsAck = read('lib/ediel/ack.ts')
+const npmPackageJson = read('package.json')
 check(
   nullabilityOverride.includes('resolve_ediel_timeseries_product_511') &&
     nullabilityOverride.includes('string | null'),
@@ -248,6 +250,11 @@ check(
     'apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts',
   ),
   'clean-migration-replay must apply nullability overrides after typegen',
+)
+check(
+  npmPackageJson.includes('db:types:gen') &&
+    npmPackageJson.includes('apply-supabase-types-nullability-overrides.cjs'),
+  'db:types:gen must always apply nullability overrides after typegen',
 )
 check(
   loginPage.includes('loginReasonErrorFlash') && loginPage.includes('reason?:'),
@@ -268,6 +275,35 @@ check(
     utiltsDataRequest,
   ),
   'UTILTS tenant match builder must synthesize null IDE+24 ids before persistence join',
+)
+check(
+  /resolveUtiltsTransactionId\(transaction\.transactionId,\s*index\)/.test(utiltsEngine) &&
+    utiltsEngine.includes('synthesizedTransactionIssueReference'),
+  'UTILTS disposition/issue attribution must synthesize null IDE+24 ids',
+)
+check(
+  /resolveUtiltsTransactionId\(sanitizeEdifactToken\(group\.transactionId\),\s*index\)/.test(
+    utiltsAck,
+  ),
+  'UTILTS fallback ACK targets must synthesize null IDE+24 ids',
+)
+check(
+  opsHardening.includes('ediel-utilts-transaction-disposition.test.ts'),
+  'ops-hardening verify must gate UTILTS disposition null-id synthesis vitest',
+)
+const dependencyCircuit = read('lib/runtime/dependencyCircuit.ts')
+check(
+  /p_outcome:\s*'success'[\s\S]*catch\s*\{[\s\S]*success telemetry[\s\S]*\}/.test(
+    dependencyCircuit,
+  ) ||
+    /try\s*\{[\s\S]*p_outcome:\s*'success'[\s\S]*\}\s*catch\s*\{[\s\S]*must never fail-closed/.test(
+      dependencyCircuit,
+    ),
+  'dependency circuit success telemetry must be best-effort and not fail-closed',
+)
+check(
+  opsHardening.includes('dependency-circuit.test.ts'),
+  'ops-hardening verify must gate dependency-circuit success telemetry vitest',
 )
 
 if (failures.length) {
