@@ -9,8 +9,9 @@ const migration = readFileSync(
 describe('tenant lifecycle RLS hardening', () => {
   it('keeps paused tenants read-only and hides stopped tenants from normal members', () => {
     expect(migration).toContain("company.status in ('active', 'onboarding', 'paused')")
-    expect(migration).toContain('public.gridex_company_status_is_writable(p_company_id)')
+    expect(migration).toContain("company.status in ('active', 'onboarding')")
     expect(migration).toContain('public.gridex_is_current_session_allowed()')
+    expect(migration).not.toContain('public.gridex_company_status_is_writable(p_company_id)')
   })
 
   it('adds restrictive lifecycle guards instead of widening existing permissive policies', () => {
