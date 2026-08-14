@@ -105,6 +105,22 @@ describe('tenant website canonical go-live hardening', () => {
     expect(apiClientsActions).toContain('canonicala go-live-flödet')
   })
 
+  it('preserves tenant website go-live metadata when rotating credentials', () => {
+    // Rotation must merge into existing metadata. Replacing the object would
+    // drop provisioning_receipt_id / go_live_flow and reopen readiness gaps.
+    expect(apiClientsActions).toContain('rotateIntegrationApiClientTokenAction')
+    expect(apiClientsActions).toContain('rotated_from_prefix')
+    expect(apiClientsActions).toMatch(
+      /rotateIntegrationApiClientTokenAction[\s\S]*select\([\s\S]*metadata/,
+    )
+    expect(apiClientsActions).toMatch(
+      /rotateIntegrationApiClientTokenAction[\s\S]*metadata:\s*\{[\s\S]*\.\.\.metadata[\s\S]*rotated_from_prefix/,
+    )
+    expect(apiClientsActions).not.toMatch(
+      /rotateIntegrationApiClientTokenAction[\s\S]*metadata:\s*\{\s*rotated_from_prefix/,
+    )
+  })
+
   it('keeps tenant setup generic and free from the previously leaked concrete examples', () => {
     for (const forbidden of [
       'heke99@live.se',

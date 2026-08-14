@@ -414,13 +414,17 @@ export async function rotateIntegrationApiClientTokenAction(formData: FormData) 
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix')
+    .select('id,company_id,name,status,key_prefix,metadata')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
   if (current.status !== 'active' && current.status !== 'paused') throw new Error('Endast aktiva eller pausade API-klienter kan roteras.')
+
+  const metadata = current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+    ? current.metadata as Record<string, unknown>
+    : {}
 
   const tokenData = generateIntegrationApiToken()
   const { error } = await supabaseService
@@ -429,7 +433,11 @@ export async function rotateIntegrationApiClientTokenAction(formData: FormData) 
       key_prefix: tokenData.keyPrefix,
       secret_hash: tokenData.secretHash,
       updated_at: new Date().toISOString(),
-      metadata: { rotated_from_prefix: current.key_prefix, token_display: 'shown_once_on_rotate' },
+      metadata: {
+        ...metadata,
+        rotated_from_prefix: current.key_prefix,
+        token_display: 'shown_once_on_rotate',
+      },
     })
     .eq('id', clientId)
 
