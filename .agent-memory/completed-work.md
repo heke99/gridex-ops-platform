@@ -264,3 +264,11 @@ Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
   (`20260814180000_tenant_website_activation_lifecycle_resume.sql`).
 - Force pause when permissions promote active non-canonical clients to
   tenant_website; share `isTenantWebsiteIntegrationClient`.
+
+## 2026-08-14 — Post-#136 tip health residuals (8637)
+
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+
+- `PUBLIC_API_ENDPOINT_ROWS` joins scopes with `och`/`eller` from `scopeMode`.
+- `OPENAPI_RELEASED_AT` aligned to `2026-08-14T12:00:00.000Z` for `2026-08-14.1`.
+- Regression: `__tests__/post-128-openapi-tip-residuals.test.ts`.

@@ -2,23 +2,21 @@
 
 Updated: 2026-08-14
 
-## Tip health after #135 merge
+## Tip health after #136 merge
 
-- Main tip: `fbb8e617` (`Merge PR #135: close post-#134 health residuals`).
-- Active health branch: `cursor/codebase-health-and-stability-9740`.
-- Hosted CI for `#135` was still in progress at branch start; tip residual hunt
-  found second-order activation-guard gaps introduced by the go-live series.
+- Main tip: `fe3b9425` (`Merge PR #136: close post-#135 tenant website lifecycle residuals`).
+- Active health branch: `cursor/codebase-health-and-stability-8637`.
+- #136 closed lifecycle resume + permissions promote residuals on tip.
+- Unmerged `#137`/`515d` OpenAPI docs residuals remain on tip and are closed here.
 
-## Residuals closed on `9740`
+## Residuals closed on `8637`
 
-1. HIGH — Lifecycle resume vs tenant_website activation guard
-   Forward migration `20260814180000_tenant_website_activation_lifecycle_resume.sql`
-2. HIGH — Permissions promote of active non-canonical clients to tenant_website
-3. LOW — Shared `isTenantWebsiteIntegrationClient` helper (UI/server drift class)
+1. LOW — `PUBLIC_API_ENDPOINT_ROWS` scope join follows `scopeMode` (`och`/`eller`)
+2. LOW — `OPENAPI_RELEASED_AT` aligned to `2026-08-14T12:00:00.000Z` for contract day `2026-08-14.1`
 
-## Verification executed on `9740`
+## Verification executed on `8637`
 
-- vitest go-live + lifecycle + circuit + RLS UI: 34/34 PASS
+- vitest OpenAPI residuals + go-live/lifecycle: 29/29 PASS
 - `db:migrations:integrity`: PASS (434 files)
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
@@ -27,8 +25,8 @@ Updated: 2026-08-14
 
 ## Intentionally not changed
 
-- Applied activation guard / receipt-binding migrations (immutable; forward only).
+- Auth/lifecycle migrations from #136 (already on tip; immutable).
 - Official UTILTS matrices / TGT-AGT remain external.
 - Platform-admin operate bypass remains intentional.
-- DB scope-heuristic DiD beyond profile_key left for a later pass (app layer
-  already fail-closed after #135).
+- DB scope-heuristic DiD beyond profile_key left for a later pass.
+- Historical `.patch-backups/` and Ediel UNH `eller` wording left alone.

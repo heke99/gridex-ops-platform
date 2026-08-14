@@ -159,3 +159,14 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-08-14 — post-#136 tip residuals on 8637
+
+| Check | Result |
+|---|---|
+| vitest (OpenAPI residuals + go-live/lifecycle) | PASS 29/29 |
+| db:migrations:integrity | PASS 434 |
+| security:audit-production | PASS 0 |
+| tsc -p tsconfig.app.json | PASS |
+| hosted CI | NOT YET |
+| ggshield | BLOCKED |
