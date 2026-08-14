@@ -5,7 +5,7 @@ import {
 } from '@/lib/admin/navigationPreferences'
 import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 import { supabaseService } from '@/lib/supabase/service'
-import { isCompanyVisibleInTenantWorkspace } from '@/lib/tenant/lifecycle'
+import { isCompanyVisibleInTenantWorkspace, isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 
 export type CompanySummary = {
   id: string
@@ -191,7 +191,10 @@ export async function assertUserCanOperateCompany(
   companyId: string | null | undefined
 ): Promise<string> {
   const normalized = companyId?.trim()
-  if (!normalized) return requireOperationalCompanyId(userId)
+  if (!normalized) {
+    const fallbackCompanyId = await requireOperationalCompanyId(userId)
+    return assertUserCanOperateCompany(userId, fallbackCompanyId)
+  }
 
   if (await isPlatformAdminUser(userId)) {
     const { data, error } = await supabaseService
@@ -209,10 +212,14 @@ export async function assertUserCanOperateCompany(
   }
 
   const memberships = await listOperationalCompaniesForUser(userId)
-  const allowed = memberships.some((row) => row.companyId === normalized)
+  const membership = memberships.find((row) => row.companyId === normalized)
 
-  if (!allowed) {
-    throw new Error('Du saknar en aktiv eller pausad bolagskoppling för valt elhandelsbolag.')
+  if (!membership) {
+    throw new Error('Du saknar en aktiv bolagskoppling för valt elhandelsbolag.')
+  }
+
+  if (!isCompanyWritableInTenantWorkspace(membership.companyStatus)) {
+    throw new Error('Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.')
   }
 
   return normalized
