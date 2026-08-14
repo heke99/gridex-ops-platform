@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest'
 
 const migrationPath = 'supabase/migrations/20260814125600_tenant_website_go_live_hardening.sql'
 const activationGuardPath = 'supabase/migrations/20260814133500_tenant_website_activation_guard.sql'
+const receiptBindingPath =
+  'supabase/migrations/20260814140000_tenant_website_receipt_ready_binding.sql'
 const migration = readFileSync(migrationPath, 'utf8')
 const activationGuard = readFileSync(activationGuardPath, 'utf8')
+const receiptBinding = readFileSync(receiptBindingPath, 'utf8')
 const docs = readFileSync('docs/gridex-customer-portal-api.md', 'utf8')
 const docsLayout = readFileSync('app/developers/customer-portal-api/layout.tsx', 'utf8')
 
@@ -17,6 +20,27 @@ describe('tenant website canonical go-live hardening', () => {
     expect(migration).toContain("when not readiness.client_ready then 'api_client_not_launch_ready'")
     expect(migration).toContain("when not readiness.receipt_ready then 'integration_receipt_not_verified'")
     expect(migration).toContain("when not readiness.capability_ready then 'integration_capability_not_ready'")
+  })
+
+  it('binds normal-traffic receipt_ready to the client metadata receipt, not any historical completed receipt', () => {
+    // Revalidation with a new idempotency key leaves prior completed receipts
+    // attached to the same api_client_id. Normal auth must require the exact
+    // provisioning_receipt_id currently linked on the client metadata.
+    expect(receiptBinding).toContain('authenticate_integration_request_v1')
+    expect(receiptBinding).toContain('as receipt_ready')
+    expect(receiptBinding).toContain(
+      "receipt.id::text = nullif(auth.metadata->>'provisioning_receipt_id','')",
+    )
+    expect(receiptBinding).toContain("receipt.state='completed'")
+    expect(receiptBinding).toContain("nullif(receipt.receipt_sha256,'') is not null")
+    // Stale any-receipt join must not remain as the sole receipt_ready predicate.
+    const receiptReadyBlock = receiptBinding.slice(
+      receiptBinding.indexOf('as receipt_ready') - 500,
+      receiptBinding.indexOf('as receipt_ready'),
+    )
+    expect(receiptReadyBlock).toContain("receipt.id::text = nullif(auth.metadata->>'provisioning_receipt_id','')")
+    expect(receiptReadyBlock).toContain('receipt.api_client_id=auth.client_id')
+    expect(receiptReadyBlock).toContain('receipt.company_id=auth.company_id')
   })
 
   it('adopts only canonical-readiness-paused primary clients without credential rotation', () => {
