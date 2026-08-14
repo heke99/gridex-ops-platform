@@ -47,7 +47,6 @@
     "20260813230000_runtime_readiness_dependency_resilience_v1.sql": "63b6099df1e28139d0a3e82011f582fa11c9e46d20db1aa3a2d43932050e8a0e",
     "20260814125600_tenant_website_go_live_hardening.sql": "f5da6189c3f571da2c62b9cf0126fcb1c0459902d89e40e717ac68845c220432",
     "20260814133500_tenant_website_activation_guard.sql": "daca4ef904c77b1559de08a2ee91fd485d9a46ebd8e42ec062c99f6aad50361a",
-    "20260814162000_tenant_lifecycle_status_helper.sql": "91a3052a71094be167800c657720e3a3aef9e27dc30fa5a75e41d212e6df959d",
-    "20260814162500_tenant_rls_lifecycle_hardening.sql": "ca1dcff3015c703122c253244b17828e33b5b26a79d63e1e1f3f00fc5b96f273"
+    "20260814162500_tenant_rls_lifecycle_hardening.sql": "e2eee5be4e4c795380782248683bfd32b682a66b2e2882a1fd241c9acc7498b2"
   }
 }
