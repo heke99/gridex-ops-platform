@@ -148,3 +148,14 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-08-14 — post-#135 tip residuals on 9740
+
+| Check | Result |
+|---|---|
+| vitest (go-live/lifecycle/circuit/RLS UI) | PASS 34/34 |
+| db:migrations:integrity | PASS 434 |
+| security:audit-production | PASS 0 |
+| tsc -p tsconfig.app.json | PASS |
+| hosted CI | NOT YET |
+| ggshield | BLOCKED |
