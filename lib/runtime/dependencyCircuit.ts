@@ -11,10 +11,15 @@ export async function withDependencyCircuit<T>(dependencyKey: string, operation:
   if (!gate?.allowed) throw new DependencyError('dependency_unavailable', 'Dependency circuit är tillfälligt öppen.')
   try {
     const result = await operation()
-    await supabaseService.rpc('gridex_dependency_circuit_record_v1', {
-      p_dependency_key: dependencyKey, p_outcome: 'success', p_error_code: null,
-      p_failure_threshold: 5, p_open_seconds: 60,
-    })
+    try {
+      await supabaseService.rpc('gridex_dependency_circuit_record_v1', {
+        p_dependency_key: dependencyKey, p_outcome: 'success', p_error_code: null,
+        p_failure_threshold: 5, p_open_seconds: 60,
+      })
+    } catch {
+      // A completed dependency call must still return to the caller. Circuit
+      // success telemetry is best-effort and must never fail-closed over it.
+    }
     return result
   } catch (error) {
     const classified = classifyDependencyError(error)

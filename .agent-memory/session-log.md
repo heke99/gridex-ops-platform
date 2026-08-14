@@ -374,3 +374,12 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
   synthesized null UTILTS match transaction ids.
 - Verification: vitest 50/50, residual regressions, types, audit 0, app tsc
   PASS; ggshield BLOCKED.
+
+## 2026-08-14 — Post-go-live tip health (`580a`)
+
+- Reviewed main tip `2c5a8c0f` tenant website go-live merge.
+- Cherry-picked unmerged `#127`/`8738` UTILTS identity + circuit + typegen gates.
+- Confirmed HIGH: unbound `receipt_ready` after revalidation with new idempotency key.
+- Added forward migration `20260814140000` (bind when metadata present; legacy fallback).
+- Verified vitest 30/30, migration integrity, types check, tsc app, production audit.
+- ggshield unavailable; hosted CI not yet observed.

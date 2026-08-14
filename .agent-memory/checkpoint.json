@@ -1,24 +1,22 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T09:11:00Z",
-  "branch": "codex/runtime-contract-performance-hardening-recovery-20260814",
-  "active_phase": "RUNTIME_CONTRACT_RECOVERY",
-  "active_task": "Recover, verify and deliver runtime contract hardening",
+  "updated_at": "2026-08-14T13:31:00Z",
+  "branch": "cursor/codebase-health-and-stability-580a",
+  "active_phase": "TIP_HEALTH_POST_GO_LIVE",
+  "active_task": "Close post-2c5a8c0f go-live tip residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "ca28cb0a",
-  "head_sha": null,
-  "pr": null,
+  "base_main_sha": "2c5a8c0f",
+  "head_sha": "32194e11",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/131",
   "verification": {
-    "vitest": "PASS_567",
-    "quality_vitest": "PASS_45",
-    "api_docs_contract": "PASS",
-    "migration_integrity": "PASS_429",
+    "vitest_go_live_utilts_circuit": "PASS_30",
+    "post_332_residuals": "PASS",
+    "migration_integrity": "PASS_432",
     "generated_types": "PASS_LOCAL_MANIFEST",
     "security_audit_production": "PASS_0",
     "typecheck_app": "PASS",
-    "build": "PASS",
-    "lint": "PASS_0_ERRORS_141_WARNINGS",
+    "ggshield": "BLOCKED_CLI_MISSING",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Commit, push, create PR and use hosted clean replay as the authoritative generated-types gate"
+  "resume_from": "Open PR for 580a and use hosted clean replay as the authoritative generated-types gate"
 }
