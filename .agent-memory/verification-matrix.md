@@ -136,3 +136,15 @@
 | app typecheck | PASS | `tsc -p tsconfig.app.json` |
 | ggshield | BLOCKED | CLI not installed |
 | hosted CI | PENDING | PR publish required |
+
+## POST-c2adf6a0 (#126) health residuals — 2026-08-14 (`8738`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| UTILTS disposition/persistence + runtime + circuit vitest | PASS 45/45 | null-id attribution, ACK targets, circuit success isolation |
+| post-332 field-511 residuals regression | PASS | includes UTILTS identity + circuit success telemetry locks |
+| generated types tip | PASS | pin `20260813230000` + sha `7df58d04...` + nullability |
+| production npm audit | PASS | 0 vulnerabilities |
+| app typecheck | PASS | `tsc -p tsconfig.app.json` |
+| ggshield | BLOCKED | CLI not installed |
+| hosted CI | PENDING | PR publish required |

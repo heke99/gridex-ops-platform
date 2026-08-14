@@ -7,7 +7,7 @@
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "c2adf6a0",
   "head_sha": "b1fc4bbb",
-  "pr": "pending_open",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/127",
   "verification": {
     "vitest_utilts_auth_runtime": "PASS_45",
     "post_332_field_511_residuals": "PASS",
