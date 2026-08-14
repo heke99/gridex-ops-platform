@@ -9,5 +9,5 @@ on `cursor/codebase-health-and-stability-e76c`.
 
 ## Exact next action
 
-Open PR for `e76c`. Wait for hosted CI/clean-replay, squash merge only after
+PR `#145` is open. Wait for hosted CI/clean-replay, squash merge only after
 required checks are green.
