@@ -111,10 +111,19 @@ check(
   'resolver Returns.description must remain nullable (SQL description text can be null)',
 )
 
+const timestampedMigrations = fs
+  .readdirSync(path.join(root, 'supabase/migrations'))
+  .filter((fileName) => /^\d{14}_.+\.sql$/.test(fileName))
+  .sort()
+const latestTimestampedMigration = timestampedMigrations.at(-1)
+
 check(
-  typesManifest.latest_migration ===
-    '20260813221500_ediel_utilts_field_511_l653q_description_trim.sql',
-  `generated-types tip must be the L653Q trim migration, got ${typesManifest.latest_migration}`,
+  typesManifest.latest_migration === latestTimestampedMigration,
+  `generated-types tip must match the latest timestamped migration (${latestTimestampedMigration}), got ${typesManifest.latest_migration}`,
+)
+check(
+  timestampedMigrations.includes(path.basename(trimMigration)),
+  'L653Q trim migration must remain in timestamped migration history',
 )
 
 const typesAbsolute = path.join(root, typesPath)

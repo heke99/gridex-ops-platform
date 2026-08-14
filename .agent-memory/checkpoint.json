@@ -1,23 +1,24 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-13T21:26:00Z",
-  "branch": "cursor/codebase-health-and-stability-13b2",
-  "active_phase": "CODEBASE_HEALTH_TIP_RESIDUALS",
-  "active_task": "Close post-3cad481b tip residuals after #123 merge",
+  "updated_at": "2026-08-14T09:11:00Z",
+  "branch": "codex/runtime-contract-performance-hardening-recovery-20260814",
+  "active_phase": "RUNTIME_CONTRACT_RECOVERY",
+  "active_task": "Recover, verify and deliver runtime contract hardening",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "3cad481b",
-  "head_sha": "fad131d0",
-  "pr": 124,
+  "base_main_sha": "ca28cb0a",
+  "head_sha": null,
+  "pr": null,
   "verification": {
-    "auth_utilts_vitest": "PASS_50",
-    "ops_health_regression": "PASS",
-    "post_332_field_511_residuals": "PASS",
-    "utilts_reason_regression": "PASS",
-    "generated_types": "PASS",
+    "vitest": "PASS_567",
+    "quality_vitest": "PASS_45",
+    "api_docs_contract": "PASS",
+    "migration_integrity": "PASS_429",
+    "generated_types": "PASS_LOCAL_MANIFEST",
     "security_audit_production": "PASS_0",
     "typecheck_app": "PASS",
-    "ggshield": "BLOCKED",
+    "build": "PASS",
+    "lint": "PASS_0_ERRORS_141_WARNINGS",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Monitor PR #124 CI; supersede open #122/#121/#120/#119/#117/#115/#113 after merge"
+  "resume_from": "Commit, push, create PR and use hosted clean replay as the authoritative generated-types gate"
 }

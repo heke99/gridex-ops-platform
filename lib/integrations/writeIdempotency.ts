@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { isValidIdempotencyKey } from '@/lib/api/idempotencyKey'
 
 export class IntegrationWriteIdempotencyError extends Error {
   readonly status: number
@@ -52,7 +53,7 @@ function normalizeIdempotencyKey(
   value: string | null | undefined,
   required: boolean,
 ): string | null {
-  const key = value?.trim() ?? ''
+  const key = value ?? ''
   if (!key) {
     if (required) {
       throw new IntegrationWriteIdempotencyError({
@@ -63,7 +64,7 @@ function normalizeIdempotencyKey(
     }
     return null
   }
-  if (key.length < 8 || key.length > 200) {
+  if (!isValidIdempotencyKey(key)) {
     throw new IntegrationWriteIdempotencyError({
       message: 'Idempotency-Key måste vara 8–200 tecken.',
       code: 'idempotency_key_invalid',

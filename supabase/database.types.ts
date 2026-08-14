@@ -12520,6 +12520,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_application_intakes_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
             foreignKeyName: "customer_application_intakes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -16090,6 +16097,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
           },
           {
             foreignKeyName: "customer_events_company_id_fkey"
@@ -20008,6 +20022,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_portal_api_access_logs_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
             foreignKeyName: "customer_portal_api_access_logs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -20339,6 +20360,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_completions_api_client_fk"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
           },
           {
             foreignKeyName: "customer_portal_completions_company_id_fkey"
@@ -20990,6 +21018,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_portal_write_idempotency_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
           },
           {
             foreignKeyName: "customer_portal_write_idempotency_company_id_fkey"
@@ -23048,6 +23083,48 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
         ]
+      }
+      dependency_circuit_state: {
+        Row: {
+          consecutive_failures: number
+          dependency_key: string
+          half_open_after: string | null
+          last_attempt_at: string | null
+          last_error_code: string | null
+          last_failure_at: string | null
+          last_success_at: string | null
+          opened_at: string | null
+          probe_lease_expires_at: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          dependency_key: string
+          half_open_after?: string | null
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          opened_at?: string | null
+          probe_lease_expires_at?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          dependency_key?: string
+          half_open_after?: string | null
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          opened_at?: string | null
+          probe_lease_expires_at?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       document_ai_extractions: {
         Row: {
@@ -41906,9 +41983,13 @@ export type Database = {
           expires_at: string | null
           id: string
           key_prefix: string
+          last_legacy_api_key_route: string | null
+          last_legacy_api_key_used_at: string | null
           last_used_at: string | null
           launch_blockers: Json | null
           launch_ready: boolean | null
+          legacy_api_key_migration_status: string
+          legacy_api_key_request_count: number
           metadata: Json
           name: string
           permission_groups: string[]
@@ -41935,9 +42016,13 @@ export type Database = {
           expires_at?: string | null
           id?: string
           key_prefix: string
+          last_legacy_api_key_route?: string | null
+          last_legacy_api_key_used_at?: string | null
           last_used_at?: string | null
           launch_blockers?: Json | null
           launch_ready?: boolean | null
+          legacy_api_key_migration_status?: string
+          legacy_api_key_request_count?: number
           metadata?: Json
           name: string
           permission_groups?: string[]
@@ -41964,9 +42049,13 @@ export type Database = {
           expires_at?: string | null
           id?: string
           key_prefix?: string
+          last_legacy_api_key_route?: string | null
+          last_legacy_api_key_used_at?: string | null
           last_used_at?: string | null
           launch_blockers?: Json | null
           launch_ready?: boolean | null
+          legacy_api_key_migration_status?: string
+          legacy_api_key_request_count?: number
           metadata?: Json
           name?: string
           permission_groups?: string[]
@@ -42153,6 +42242,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_api_rate_limit_buckets_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
           },
           {
             foreignKeyName: "integration_api_rate_limit_buckets_company_id_fkey"
@@ -42347,6 +42443,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "integration_api_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
             foreignKeyName: "integration_api_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -42497,6 +42600,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "integration_api_write_idempotency_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
             foreignKeyName: "integration_api_write_idempotency_company_client_fkey"
             columns: ["company_id", "api_client_id"]
             isOneToOne: false
@@ -42509,6 +42619,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "integration_api_write_idempotency_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
           },
           {
             foreignKeyName: "integration_api_write_idempotency_company_id_fkey"
@@ -50704,6 +50821,45 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_runtime_readiness: {
+        Row: {
+          blocking_issues: Json
+          capabilities: Json
+          deployment_id: string | null
+          id: boolean
+          is_ready: boolean
+          migration_version: string
+          schema_fingerprint: string
+          schema_version: string
+          updated_at: string
+          verified_at: string
+        }
+        Insert: {
+          blocking_issues?: Json
+          capabilities?: Json
+          deployment_id?: string | null
+          id?: boolean
+          is_ready?: boolean
+          migration_version: string
+          schema_fingerprint: string
+          schema_version: string
+          updated_at?: string
+          verified_at: string
+        }
+        Update: {
+          blocking_issues?: Json
+          capabilities?: Json
+          deployment_id?: string | null
+          id?: boolean
+          is_ready?: boolean
+          migration_version?: string
+          schema_fingerprint?: string
+          schema_version?: string
+          updated_at?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       platform_schema_state: {
         Row: {
           blocking_issues: Json
@@ -50800,6 +50956,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_usage_event_failures_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
           },
           {
             foreignKeyName: "platform_usage_event_failures_company_id_fkey"
@@ -59291,6 +59454,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tenant_website_installation_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
             foreignKeyName: "tenant_website_installation_receipts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -60240,6 +60410,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "website_contract_quotes_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
             foreignKeyName: "website_contract_quotes_company_application_fkey"
             columns: ["company_id", "consumed_application_id"]
             isOneToOne: false
@@ -60259,6 +60436,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_contract_quotes_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
           },
           {
             foreignKeyName: "website_contract_quotes_company_id_fkey"
@@ -60715,6 +60899,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_api_clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
           },
           {
             foreignKeyName: "website_customer_applications_company_id_fkey"
@@ -70407,6 +70598,130 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_legacy_api_key_sunset_v: {
+        Row: {
+          api_client_id: string | null
+          api_client_name: string | null
+          blocks_removal: boolean | null
+          company_id: string | null
+          last_legacy_api_key_route: string | null
+          last_legacy_api_key_used_at: string | null
+          legacy_api_key_migration_status: string | null
+          legacy_api_key_request_count: number | null
+          status: string | null
+          sunset_date: string | null
+        }
+        Insert: {
+          api_client_id?: string | null
+          api_client_name?: string | null
+          blocks_removal?: never
+          company_id?: string | null
+          last_legacy_api_key_route?: string | null
+          last_legacy_api_key_used_at?: string | null
+          legacy_api_key_migration_status?: string | null
+          legacy_api_key_request_count?: number | null
+          status?: string | null
+          sunset_date?: never
+        }
+        Update: {
+          api_client_id?: string | null
+          api_client_name?: string | null
+          blocks_removal?: never
+          company_id?: string | null
+          last_legacy_api_key_route?: string | null
+          last_legacy_api_key_used_at?: string | null
+          legacy_api_key_migration_status?: string | null
+          legacy_api_key_request_count?: number | null
+          status?: string | null
+          sunset_date?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       non_electricity_actor_readiness_v: {
         Row: {
           actor_name: string | null
@@ -72648,6 +72963,42 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_dependency_circuit_before_request_v1: {
+        Args: { p_dependency_key: string; p_probe_lease_seconds?: number }
+        Returns: {
+          allowed: boolean
+          circuit_state: string
+          retry_at: string
+        }[]
+      }
+      gridex_dependency_circuit_record_v1: {
+        Args: {
+          p_dependency_key: string
+          p_error_code?: string
+          p_failure_threshold?: number
+          p_open_seconds?: number
+          p_outcome: string
+        }
+        Returns: {
+          consecutive_failures: number
+          dependency_key: string
+          half_open_after: string | null
+          last_attempt_at: string | null
+          last_error_code: string | null
+          last_failure_at: string | null
+          last_success_at: string | null
+          opened_at: string | null
+          probe_lease_expires_at: string | null
+          state: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dependency_circuit_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gridex_dispute_information_complete: {
         Args: { p_value: Json }
         Returns: boolean
@@ -73623,6 +73974,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_record_legacy_api_key_use_v1: {
+        Args: { p_api_client_id: string; p_route: string }
+        Returns: undefined
+      }
       gridex_refresh_actor_certificate_statuses: {
         Args: { p_run_type?: string }
         Returns: Json
@@ -73630,6 +73985,31 @@ export type Database = {
       gridex_refresh_billing_export_run: {
         Args: { p_company_id: string; p_export_run_id: string }
         Returns: Json
+      }
+      gridex_refresh_platform_runtime_readiness_v1: {
+        Args: {
+          p_deployment_id?: string
+          p_migration_version?: string
+          p_schema_version: string
+        }
+        Returns: {
+          blocking_issues: Json
+          capabilities: Json
+          deployment_id: string | null
+          id: boolean
+          is_ready: boolean
+          migration_version: string
+          schema_fingerprint: string
+          schema_version: string
+          updated_at: string
+          verified_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "platform_runtime_readiness"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       gridex_register_late_metering_correction: {
         Args: {
@@ -73914,6 +74294,13 @@ export type Database = {
           p_source_url?: string
         }
         Returns: string
+      }
+      gridex_stage_energy_geodata_features_v2: {
+        Args: { p_features: Json; p_geodata_version_id: string }
+        Returns: {
+          rows_received: number
+          rows_upserted: number
+        }[]
       }
       gridex_store_billing_underlay: {
         Args: {

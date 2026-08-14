@@ -1,4 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { assertJsonResponse } from '@/lib/runtime/dependencyErrors'
+import { withDependencyCircuit } from '@/lib/runtime/dependencyCircuit'
 
 export const DEFAULT_SVK_GRID_AREA_SERVICE_URL = 'https://services2.arcgis.com/L8WLzcxhwLqd80Jx/ArcGIS/rest/services/Natomraden_250526/FeatureServer'
 export const DEFAULT_SVK_GRID_AREA_LAYER_ID = 3
@@ -274,12 +276,12 @@ export async function runSvkGeometryImport(input: {
   queryUrl.searchParams.set('outSR', '4326')
 
   try {
-    const response = await fetch(queryUrl.toString(), {
+    const response = await withDependencyCircuit('svk.arcgis', () => fetch(queryUrl.toString(), {
       cache: 'no-store',
       redirect: 'error',
       signal: AbortSignal.timeout(25_000),
-    })
-    if (!response.ok) throw new Error(`SVK ArcGIS svarade ${response.status}`)
+    }))
+    assertJsonResponse(response)
     const payload = await response.json() as {
       features?: Array<Record<string, unknown>>
       exceededTransferLimit?: boolean
@@ -289,28 +291,20 @@ export async function runSvkGeometryImport(input: {
       throw new Error(`SVK ArcGIS-fel ${payload.error.code ?? 'okänt'}: ${payload.error.message ?? payload.error.details?.join('; ') ?? 'okänt fel'}`)
     }
     const features = Array.isArray(payload.features) ? payload.features : []
-    let upserted = 0
-    const errors: string[] = []
-
-    for (const [index, feature] of features.entries()) {
+    const batch = features.map((feature, index) => {
       const properties = feature.properties && typeof feature.properties === 'object' ? feature.properties as Record<string, unknown> : {}
       const geometry = feature.geometry && typeof feature.geometry === 'object' ? feature.geometry as Record<string, unknown> : null
       const id = featureId(feature, offset + index)
       validateSvkFeatureProperties(properties, id)
-      const { error } = await supabaseService.rpc('gridex_stage_energy_geodata_feature', {
-        p_geodata_version_id: geodata.id,
-        p_feature_id: id,
-        p_properties: properties,
-        p_geometry_geojson: geometry,
-        p_source_url: queryUrl.toString(),
-      })
-      if (error) errors.push(`${id}: ${error.message}`)
-      else upserted += 1
-    }
-
-    if (errors.length > 0) {
-      throw new Error(`SVK-geometriimporten stoppades eftersom ${errors.length} polygonrader inte kunde sparas: ${errors.slice(0, 3).join('; ')}`)
-    }
+      return { feature_id: id, properties, geometry_geojson: geometry, source_url: queryUrl.toString() }
+    })
+    const staged = await supabaseService.rpc('gridex_stage_energy_geodata_features_v2', {
+      p_geodata_version_id: geodata.id,
+      p_features: batch,
+    })
+    if (staged.error) throw staged.error
+    const stagedRow = (Array.isArray(staged.data) ? staged.data[0] : staged.data) as { rows_upserted?: number } | null
+    const upserted = Number(stagedRow?.rows_upserted ?? 0)
 
     const hasMore = Boolean(payload.exceededTransferLimit) || features.length === limit
     const nextOffset = offset + features.length

@@ -67,15 +67,22 @@ export type IntegrationApiAuthResult =
       rateLimit?: IntegrationApiRateLimit
     }
 
-function bearerToken(request: NextRequest): string | null {
-  const authorization = request.headers.get('authorization') ?? ''
-  if (authorization.startsWith('Bearer ')) {
-    const token = authorization.slice('Bearer '.length).trim()
-    if (token) return token
-  }
+export type IntegrationCredential =
+  | { ok: true; token: string; legacyApiKey: boolean }
+  | { ok: false; malformedAuthorization: boolean }
 
+export function integrationCredential(request: Pick<NextRequest, 'headers'>): IntegrationCredential {
+  const authorization = request.headers.get('authorization')
+  if (authorization !== null) {
+    const match = /^Bearer ([^\s]+)$/i.exec(authorization)
+    return match
+      ? { ok: true, token: match[1], legacyApiKey: false }
+      : { ok: false, malformedAuthorization: true }
+  }
   const apiKey = request.headers.get('x-api-key')?.trim()
-  return apiKey || null
+  return apiKey
+    ? { ok: true, token: apiKey, legacyApiKey: true }
+    : { ok: false, malformedAuthorization: false }
 }
 
 export function expandIntegrationApiScopes(clientScopes: string[]): Set<string> {
@@ -338,8 +345,13 @@ async function resolveIntegrationApiAccess(
   // Reject unauthenticated traffic before touching Supabase. Besides being the
   // correct security boundary, this keeps public 401 responses deterministic
   // during schema outages and prevents route tests from waiting on the network.
-  const token = bearerToken(request)
-  if (!token) return publicError({ status: 401, code: 'missing_api_token', message: 'API-token saknas.' })
+  const credential = integrationCredential(request)
+  if (!credential.ok) return publicError({
+    status: 401,
+    code: credential.malformedAuthorization ? 'malformed_authorization' : 'missing_api_token',
+    message: credential.malformedAuthorization ? 'Authorization-headern har ogiltigt Bearer-format.' : 'API-token saknas.',
+  })
+  const token = credential.token
 
   try {
     await assertPlatformSchemaReady()
@@ -422,6 +434,13 @@ async function resolveIntegrationApiAccess(
     .update({ last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', client.id)
     .then(() => null)
+
+  if (credential.legacyApiKey) {
+    void supabaseService.rpc('gridex_record_legacy_api_key_use_v1', {
+      p_api_client_id: client.id,
+      p_route: route,
+    }).then(() => null)
+  }
 
   const context = tenantContextForIntegration({
     companyId: client.company_id,

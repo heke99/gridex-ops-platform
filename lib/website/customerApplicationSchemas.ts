@@ -2,6 +2,7 @@
 //lib/website/customerApplications.ts
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { IDEMPOTENCY_KEY_MAX_LENGTH, IDEMPOTENCY_KEY_MIN_LENGTH, isValidIdempotencyKey } from "@/lib/api/idempotencyKey";
 import { WebsiteApplicationError, calculatedEarliestStartDate, clean, isObject, stage, validationError } from "./customerApplicationShared";
 
 const OPTIONAL_TEXT = z.preprocess(
@@ -396,9 +397,6 @@ export function validateStructuredPoaForExternalSendability(
 
 export type ApplicationInput = z.infer<typeof ApplicationSchema>;
 
-const IDEMPOTENCY_KEY_MIN_LENGTH = 8;
-const IDEMPOTENCY_KEY_MAX_LENGTH = 200;
-const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._~:+-]+$/;
 const REQUESTED_START_MODES = new Set(["earliest_possible", "specific_date"]);
 export const REPLAYABLE_COMMITTED_STATUSES = new Set([
   "received",
@@ -743,9 +741,7 @@ export function validateIdempotencyKey(
     });
   }
   if (
-    value.length < IDEMPOTENCY_KEY_MIN_LENGTH ||
-    value.length > IDEMPOTENCY_KEY_MAX_LENGTH ||
-    !IDEMPOTENCY_KEY_PATTERN.test(value)
+    !isValidIdempotencyKey(value)
   ) {
     return new WebsiteApplicationError({
       message: "Idempotency-Key har ogiltigt format.",

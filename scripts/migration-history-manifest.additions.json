@@ -43,6 +43,7 @@
     "20260812222645_gridex_explicit_service_only_rls_deny_v1.sql": "ac5a420d7605bc9f3a56a9396f61cbe46ce83b8eee1de0ef0da76804904cd4cb",
     "20260813070046_gridex_review_hardening_v2.sql": "3e174ee285c0f32dfd223ccdc5c826abc3bd3fe26a362d31c2435ba5f403cfd3",
     "20260813210500_ediel_utilts_field_511_products_25_a_3.sql": "188b18da215227f35463ebcb432ef5f8b0064681a2d87b764b3653656a82e6b9",
-    "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql": "55e2e5e6bd04554fdc693bcdeb8942b2a96c4be0c5acfbcb035325987cf88a94"
+    "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql": "55e2e5e6bd04554fdc693bcdeb8942b2a96c4be0c5acfbcb035325987cf88a94",
+    "20260813230000_runtime_readiness_dependency_resilience_v1.sql": "63b6099df1e28139d0a3e82011f582fa11c9e46d20db1aa3a2d43932050e8a0e"
   }
 }
