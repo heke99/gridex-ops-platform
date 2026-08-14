@@ -136,8 +136,8 @@ jobs:
           npm run api:release:verify
           npm run api:runtime:parity
           npm run api:error-boundaries
-          npm run api:docs:version
-          npm run api:runtime:openapi
+          npm run api:docs-version
+          npm run api:public-contract-runtime-openapi
           node scripts/check-api-documentation-examples.cjs
           node scripts/gridex-website-quote-integrity-regression.mjs
           node scripts/gridex-customer-legal-package-regression.cjs
