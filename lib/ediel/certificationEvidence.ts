@@ -44,7 +44,10 @@ function timestamp(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function evidenceRowIsApproved(row: EvidenceRow, now: number): boolean {
+export function isEdielCertificationEvidenceApproved(
+  row: EvidenceRow,
+  now: number = Date.now(),
+): boolean {
   if (text(row.status) !== 'passed') return false
   if (!text(row.external_reference) || !text(row.evidence_document_reference)) return false
   if (!text(row.approved_by) || !timestamp(row.approved_at)) return false
@@ -88,7 +91,7 @@ export async function getEdielCertificationEvidenceReadiness(companyId: string) 
   const rows = (data ?? []) as EvidenceRow[]
   const passed = new Set(
     rows
-      .filter((row) => evidenceRowIsApproved(row, now))
+      .filter((row) => isEdielCertificationEvidenceApproved(row, now))
       .map((row) => text(row.evidence_type))
       .filter((value): value is string => Boolean(value)),
   )
