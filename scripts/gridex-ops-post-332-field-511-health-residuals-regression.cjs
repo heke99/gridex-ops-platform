@@ -293,6 +293,20 @@ check(
   opsHardening.includes('ediel-utilts-transaction-disposition.test.ts'),
   'ops-hardening verify must gate UTILTS disposition null-id synthesis vitest',
 )
+const dependencyCircuit = read('lib/runtime/dependencyCircuit.ts')
+check(
+  /p_outcome:\s*'success'[\s\S]*catch\s*\{[\s\S]*success telemetry[\s\S]*\}/.test(
+    dependencyCircuit,
+  ) ||
+    /try\s*\{[\s\S]*p_outcome:\s*'success'[\s\S]*\}\s*catch\s*\{[\s\S]*must never fail-closed/.test(
+      dependencyCircuit,
+    ),
+  'dependency circuit success telemetry must be best-effort and not fail-closed',
+)
+check(
+  opsHardening.includes('dependency-circuit.test.ts'),
+  'ops-hardening verify must gate dependency-circuit success telemetry vitest',
+)
 
 if (failures.length) {
   console.error('Post-#332 field-511 health residuals regression failed:')
