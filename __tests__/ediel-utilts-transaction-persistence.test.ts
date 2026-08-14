@@ -2,16 +2,20 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { getUtiltsAckTransactionTargets } from '@/lib/ediel/ack'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
   buildUtiltsTransactionPersistencePayload,
   resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
+import { resolveUtiltsTransactionId as resolveFromIdentity } from '@/lib/ediel/utilts/transactionIdentity'
 
 describe('UTILTS transaction persistence payload', () => {
   it('synthesizes stable transaction ids that match the SQL persistence fallback', () => {
     expect(resolveUtiltsTransactionId(null, 0)).toBe('transaction-1')
     expect(resolveUtiltsTransactionId('  ', 1)).toBe('transaction-2')
     expect(resolveUtiltsTransactionId('TX-KEEP', 4)).toBe('TX-KEEP')
+    expect(resolveFromIdentity(null, 0)).toBe('transaction-1')
 
     const payload = buildUtiltsTransactionPersistencePayload({
       messageCode: 'E66',
@@ -30,6 +34,24 @@ describe('UTILTS transaction persistence payload', () => {
     })
 
     expect(payload[0]?.transactionId).toBe('transaction-1')
+  })
+
+  it('fallback ACK targets keep null IDE+24 groups via transaction-N synthesis', () => {
+    const message = {
+      message_family: 'UTILTS',
+      raw_payload:
+        "UNA:+.? 'UNB+UNOC:3+SENDER:14+RECEIVER:14+260813:1200+REF1++E66++1'" +
+        "UNH+1+UTILTS:D:09B:UN:E2SE1'BGM+E66+MSG1+9'" +
+        "LOC+172+735999000000000001'QTY+220:1.5'UNT+5+1'UNZ+1+REF1'",
+    } as EdielMessageRow
+
+    expect(getUtiltsAckTransactionTargets(message)).toEqual([
+      expect.objectContaining({
+        reference: 'transaction-1',
+        transactionId: null,
+        meterPointId: '735999000000000001',
+      }),
+    ])
   })
 
   it('tenant match builder synthesizes the same null-id fallback used by persistence/ACK', () => {

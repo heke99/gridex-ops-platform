@@ -247,3 +247,11 @@ Status: VERIFIED LOCALLY
 - Normalized application and metering-point grid/price area compares case-insensitively.
 - Synchronized developer-guide contract examples to `2026-08-05.2`.
 - Recorded findings in `quality/findings-2026-08-06-codebase-health.md`.
+
+## 2026-08-14 — Post-#134 tip health residuals (b4c7)
+
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+
+- Ported unmerged 31d1 residuals onto tip `2afe1db8` and closed the new
+  scope-heuristic Aktivera server gap introduced by #134.
+- Forward migration `20260814170000_tenant_website_receipt_ready_binding.sql`.

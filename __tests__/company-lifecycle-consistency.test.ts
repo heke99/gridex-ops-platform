@@ -60,6 +60,28 @@ describe('company lifecycle consistency', () => {
     expect(actions).not.toContain("message: blockers.length > 0\n        ? 'Hård radering är avstängd. Bolaget arkiverades")
   })
 
+  it('keeps deleted_test_only exclusive to the blocker-gated test deletion action', () => {
+    // setCompanyOperationalStatusAction accepts crafted next_status values. If
+    // deleted_test_only is allowed there, history blockers are skipped even
+    // though the DB transition graph permits onboarding/pending_deletion →
+    // deleted_test_only.
+    expect(actions).toContain("nextStatus === 'deleted_test_only'")
+    expect(actions).toContain(
+      'Terminal test-radering måste gå via Radera test-/felregistrering så att historikblockerare kontrolleras.',
+    )
+    expect(actions).toContain('deleteTestCompanyAction')
+  })
+
+  it('requires writable lifecycle status for tenant operate assertions, not only paused visibility', () => {
+    expect(scope).toContain('isCompanyWritableInTenantWorkspace')
+    expect(scope).toMatch(
+      /assertUserCanOperateCompany[\s\S]*isCompanyWritableInTenantWorkspace\(membership\.companyStatus\)/,
+    )
+    expect(scope).not.toContain(
+      'Du saknar en aktiv eller pausad bolagskoppling för valt elhandelsbolag.',
+    )
+  })
+
   it('pauses dependent runtime surfaces through the canonical offboarding function', () => {
     for (const surface of [
       'integration_api_clients',

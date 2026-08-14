@@ -1,42 +1,40 @@
 # Current state
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-## Tip health after #123 merge
+## Tip health after #134 merge
 
-- Main tip: `3cad481b` (`fix(health): close post-2eb61986 tip residuals (#123)`).
-- Active health branch: `cursor/codebase-health-and-stability-13b2`.
-- Hosted CI for `#123` completed successfully on main, but tip review found
-  residuals that either regressed during the squash/types regen or were never
-  covered by the auth-only hardening package.
+- Main tip: `2afe1db8` (`Merge PR #134: harden tenant RLS and simplify go-live`).
+- Active health branch: `cursor/codebase-health-and-stability-b4c7`.
+- Hosted CI for `#134` landed RLS lifecycle guards + single-path go-live UX, but
+  unmerged `31d1` residuals and one new tip gap remained open.
 
-## Residuals closed on `13b2`
+## Residuals closed on `b4c7`
 
-1. HIGH — Field-511 resolver Returns nullability overwritten by types regen;
-   durable post-gen override + clean-replay/CI gate restored
-2. HIGH — Public `/teckna-avtal` rendered raw `?message=` and redirected
-   `error.message` (phishing + provider leak)
-3. MEDIUM — Portal `/portal/komplettera` rendered raw blocked `?message=`
-4. MEDIUM — Proxy set `reason=account_disabled` but login ignored it
-5. MEDIUM — Dual `getSafeNextPath` implementations (urls vs authEmailFlow)
-6. MEDIUM — UTILTS tenant match builder kept null IDE+24 refs, so synthesized
-   persistence ids could not join metering-point matches
-7. MEDIUM — post-332 residual regression was not gated in ops-hardening
+1. HIGH — UTILTS null IDE+24 identity join (shared `transactionIdentity`)
+2. MEDIUM — Circuit success telemetry fail-closed
+3. HIGH — Unbound `receipt_ready` after revalidation
+   Forward migration `20260814170000_tenant_website_receipt_ready_binding.sql`
+4. HIGH — Generic Aktivera / status activation for tenant website clients
+   (UI + server; server also covers scope-heuristic clients from #134)
+5. MEDIUM — Rotation metadata wipe
+6. HIGH — `deleted_test_only` via generic status action
+7. MEDIUM — Paused company write via `assertUserCanOperateCompany`
+8. MEDIUM — Durable `db:types:gen` + ops-hardening gates
 
-## Verification executed on `13b2`
+## Verification executed on `b4c7`
 
-- vitest auth-outage + UTILTS disposition/persistence: 50/50 PASS
+- vitest lifecycle + go-live + UTILTS disposition/persistence + circuit + RLS UI: 51/51 PASS
 - `gridex:post-332-field-511-health-residuals-regression`: PASS
-- ops health: PASS
-- `ediel:utilts-reason-regression`: PASS
-- `db:types:check`: PASS (nullable Returns + sha `2111c2c6...`)
+- `db:migrations:check`: PASS (433 files)
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
 - ggshield: BLOCKED (CLI not installed)
+- hosted CI: NOT YET
 
 ## Intentionally not changed
 
-- Applied field-511 import migration `20260813210500` (immutable).
-- Official UTILTS matrices / TGT-AGT evidence remain external blockers.
-- Open `#122` and older health PRs remain pre-`3cad481b` vehicles; close as
-  superseded after `13b2` merges.
+- Applied RLS migration `20260814162500` (immutable).
+- Official UTILTS matrices / TGT-AGT remain external.
+- Open `#132` and older health PRs remain pre-`2afe1db8` vehicles; close as
+  superseded after `b4c7` merges.
