@@ -9,5 +9,5 @@ Active work item: Post-#143 inbound manual-review reopen residual on
 
 ## Exact next action
 
-Open PR for `996c`. Wait for hosted CI/clean-replay, squash merge only after
+PR `#144` is open. Wait for hosted CI/clean-replay, squash merge only after
 required checks are green.
