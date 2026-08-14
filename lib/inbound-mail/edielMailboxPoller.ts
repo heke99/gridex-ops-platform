@@ -1582,6 +1582,17 @@ async function markInboundProcessingJobFinished(input: {
   step?: string | null;
   errorMessage?: string | null;
 }): Promise<void> {
+  // Resolving a review (including "Köa om" → queued) stamps review_resolved_at.
+  // When the same job later returns to manual_review, clear the sticky resolution
+  // so the open-review UI and canonical_resolve_inbound_manual_review can reopen it.
+  const reopenManualReview =
+    input.status === "manual_review"
+      ? {
+          review_resolved_at: null,
+          review_resolution: null,
+        }
+      : {};
+
   const { error } = await supabaseService
     .from("inbound_processing_jobs")
     .update({
@@ -1592,6 +1603,7 @@ async function markInboundProcessingJobFinished(input: {
       finished_at: nowIso(),
       error_message: input.errorMessage ?? null,
       updated_at: nowIso(),
+      ...reopenManualReview,
     })
     .eq("id", input.jobId);
 

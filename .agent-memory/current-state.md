@@ -2,33 +2,33 @@
 
 Updated: 2026-08-14
 
-## Tip health after #135 merge
+## Tip health after #143 merge
 
-- Main tip: `fbb8e617` (`Merge PR #135: close post-#134 health residuals`).
-- Active health branch: `cursor/codebase-health-and-stability-9740`.
-- Hosted CI for `#135` was still in progress at branch start; tip residual hunt
-  found second-order activation-guard gaps introduced by the go-live series.
+- Main tip: `15ef6bf6` (`Merge PR #143: fix inbound manual review status and message binding`).
+- Active health branch: `cursor/codebase-health-and-stability-996c`.
+- Tip residual hunt found sticky `review_resolved_at` after requeue cycles.
 
-## Residuals closed on `9740`
+## Residuals closed on `996c`
 
-1. HIGH — Lifecycle resume vs tenant_website activation guard
-   Forward migration `20260814180000_tenant_website_activation_lifecycle_resume.sql`
-2. HIGH — Permissions promote of active non-canonical clients to tenant_website
-3. LOW — Shared `isTenantWebsiteIntegrationClient` helper (UI/server drift class)
+1. HIGH — Requeue → reprocess → `manual_review` left review stamp sticky
+   (`markInboundProcessingJobFinished` + forward `20260814193000`)
+2. MEDIUM — Legacy terminal status `completed` rows normalized to `done`
+3. LOW — UI pass-through for known Swedish action errors
 
-## Verification executed on `9740`
+## Verification executed on `996c`
 
-- vitest go-live + lifecycle + circuit + RLS UI: 34/34 PASS
-- `db:migrations:integrity`: PASS (434 files)
+- vitest post-139 + post-143 residuals: 4/4 PASS
+- `db:migrations:integrity`: PASS (437 files)
+- `db:types:check`: PASS
 - `security:audit-production`: PASS (0 vulnerabilities)
 - `tsc -p tsconfig.app.json`: PASS
 - ggshield: BLOCKED (CLI not installed)
 - hosted CI: NOT YET
 
-## Intentionally not changed
+## Intentionally not changed / deferred
 
-- Applied activation guard / receipt-binding migrations (immutable; forward only).
+- Applied `20260814190000` (immutable; forward only).
+- Worker still does not invent review_owner/priority on first entry beyond
+  migration backfill for open rows with missing metadata.
 - Official UTILTS matrices / TGT-AGT remain external.
-- Platform-admin operate bypass remains intentional.
-- DB scope-heuristic DiD beyond profile_key left for a later pass (app layer
-  already fail-closed after #135).
+- Live DB apply of `20260814193000` not observed in this run.

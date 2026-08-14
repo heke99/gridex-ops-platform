@@ -27,8 +27,11 @@ export async function resolveInboundManualReviewUiAction(
     if (message.includes('manual_review_resolution_required')) {
       return { error: 'Beskriv vad som verifierades eller korrigerades.' }
     }
-    if (message.includes('manual_review_next_status_invalid')) {
+    if (message.includes('manual_review_next_status_invalid') || message === 'Nästa status är ogiltig.') {
       return { error: 'Nästa status är ogiltig.' }
+    }
+    if (message === 'Lösningen är för lång.') {
+      return { error: message }
     }
     return { error: 'Beslutet kunde inte sparas. Kontrollera uppgifterna och försök igen.' }
   }
