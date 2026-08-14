@@ -6,7 +6,7 @@
   "active_task": "Close post-#143 inbound manual review reopen residual",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "15ef6bf6",
-  "head_sha": "d5b58f14",
+  "head_sha": "c0e81735",
   "pr": null,
   "verification": {
     "vitest_targeted": "PASS_4",
