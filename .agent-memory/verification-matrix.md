@@ -159,3 +159,15 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-08-14 — post-#143 tip residuals on 996c
+
+| Check | Result |
+|---|---|
+| vitest (post-139 + post-143 inbound residuals) | PASS 4/4 |
+| db:migrations:integrity | PASS 437 |
+| db:types:check | PASS |
+| security:audit-production | PASS 0 |
+| tsc -p tsconfig.app.json | PASS |
+| hosted CI | NOT YET |
+| ggshield | BLOCKED |

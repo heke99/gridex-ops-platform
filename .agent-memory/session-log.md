@@ -377,3 +377,4 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 ## 2026-08-14
 - Closed post-#134 tip residuals on `cursor/codebase-health-and-stability-b4c7` (receipt binding, UTILTS identity, circuit telemetry, lifecycle/go-live guards).
 - Closed post-#135 tip residuals on `cursor/codebase-health-and-stability-9740` (lifecycle resume activation guard, permissions promote pause, shared tenant-website classifier).
+- Closed post-#143 tip residual on `cursor/codebase-health-and-stability-996c` (sticky review_resolved_at after Köa om → reprocess → manual_review; legacy completed→done; UI Swedish error pass-through). Local verification PASS; hosted CI pending.
