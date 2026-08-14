@@ -292,13 +292,29 @@ export async function resolveInboundManualReviewAction(formData: FormData) {
   );
   const resolution = requiredText(formData, "resolution", "Lösning");
   if (resolution.length > 2000) throw new Error("Lösningen är för lång.");
-  const nextStatus = requiredText(formData, "next_status", "Nästa status");
-  if (!['queued', 'completed', 'failed'].includes(nextStatus)) {
+  const nextStatusRaw = requiredText(formData, "next_status", "Nästa status");
+  // Accept legacy "completed" from older UI builds, but persist canonical "done".
+  const nextStatus = nextStatusRaw === "completed" ? "done" : nextStatusRaw;
+  if (!["queued", "done", "failed"].includes(nextStatus)) {
     throw new Error("Nästa status är ogiltig.");
+  }
+
+  const jobLookup = await supabaseService
+    .from("inbound_processing_jobs")
+    .select("id, inbound_email_message_id, status, review_resolved_at")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (jobLookup.error) throw jobLookup.error;
+  if (!jobLookup.data) {
+    throw new Error("inbound_processing_job_not_found");
+  }
+  if (jobLookup.data.inbound_email_message_id !== inboundEmailMessageId) {
+    throw new Error("inbound_processing_job_message_mismatch");
   }
 
   const { error } = await supabaseService.rpc("canonical_resolve_inbound_manual_review", {
     p_job_id: jobId,
+    p_inbound_email_message_id: inboundEmailMessageId,
     p_resolution: resolution,
     p_next_status: nextStatus,
     p_actor_user_id: admin.userId,

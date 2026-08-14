@@ -21,8 +21,14 @@ export async function resolveInboundManualReviewUiAction(
     if (message.includes('inbound_processing_job_not_found')) {
       return { error: 'Granskningsjobbet finns inte längre. Ladda om sidan.' }
     }
+    if (message.includes('inbound_processing_job_message_mismatch')) {
+      return { error: 'Jobbet hör inte till detta inbound-mail. Ladda om sidan.' }
+    }
     if (message.includes('manual_review_resolution_required')) {
       return { error: 'Beskriv vad som verifierades eller korrigerades.' }
+    }
+    if (message.includes('manual_review_next_status_invalid')) {
+      return { error: 'Nästa status är ogiltig.' }
     }
     return { error: 'Beslutet kunde inte sparas. Kontrollera uppgifterna och försök igen.' }
   }

@@ -71898,6 +71898,7 @@ export type Database = {
       canonical_resolve_inbound_manual_review: {
         Args: {
           p_actor_user_id: string
+          p_inbound_email_message_id: string
           p_job_id: string
           p_next_status: string
           p_resolution: string
