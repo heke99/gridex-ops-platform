@@ -1,5 +1,6 @@
 import {
   REQUIRED_PRODUCTION_EVIDENCE,
+  isEdielCertificationEvidenceApproved,
   type EdielCertificationEvidenceRecord,
 } from '@/lib/ediel/certificationEvidence'
 import { saveCertificationEvidenceAction } from '@/app/admin/platform/go-live/actions'
@@ -24,12 +25,13 @@ export function CertificationEvidencePanel({
   companyId: string
   records: EdielCertificationEvidenceRecord[]
 }) {
-  const passed = new Set(
+  const now = Date.now()
+  const approved = new Set(
     records
-      .filter((row) => row.status === 'passed' && row.approved_at)
+      .filter((row) => isEdielCertificationEvidenceApproved(row, now))
       .map((row) => row.evidence_type),
   )
-  const missingCount = REQUIRED_PRODUCTION_EVIDENCE.filter((type) => !passed.has(type)).length
+  const missingCount = REQUIRED_PRODUCTION_EVIDENCE.filter((type) => !approved.has(type)).length
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -44,7 +46,8 @@ export function CertificationEvidencePanel({
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
             Production får inte aktiveras genom en manuell genväg. Varje obligatoriskt
             bevis måste ha en extern referens, en spårbar dokument-/bevisreferens och ett
-            verkligt testdatum innan superadmin kan attestera det.
+            verkligt testdatum innan superadmin kan attestera det. Utgången eller
+            ofullständig evidens visas inte som godkänd.
           </p>
         </div>
         <span className={`rounded-full border px-3 py-1 text-xs font-bold ${missingCount === 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
@@ -55,12 +58,12 @@ export function CertificationEvidencePanel({
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         {REQUIRED_PRODUCTION_EVIDENCE.map((evidenceType) => {
           const current = currentFor(records, evidenceType)
-          const isPassed = current?.status === 'passed' && Boolean(current.approved_at)
+          const isApproved = current ? isEdielCertificationEvidenceApproved(current, now) : false
           return (
             <details
               key={evidenceType}
-              className={`rounded-2xl border p-5 ${isPassed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}
-              open={!isPassed}
+              className={`rounded-2xl border p-5 ${isApproved ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}
+              open={!isApproved}
             >
               <summary className="cursor-pointer list-none">
                 <div className="flex items-center justify-between gap-3">
@@ -70,8 +73,8 @@ export function CertificationEvidencePanel({
                       {current ? `${current.status} · ${formatDate(current.updated_at)}` : 'Ingen evidens registrerad'}
                     </div>
                   </div>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isPassed ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-800'}`}>
-                    {isPassed ? 'Godkänd' : 'Saknas'}
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isApproved ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-800'}`}>
+                    {isApproved ? 'Godkänd' : current ? 'Ej giltig' : 'Saknas'}
                   </span>
                 </div>
               </summary>
