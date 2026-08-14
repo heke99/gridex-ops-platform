@@ -160,6 +160,14 @@ begin
       'create policy tenant_lifecycle_delete_guard on public.%I as restrictive for delete to authenticated using (public.gridex_can_write_company(company_id))',
       target.table_name
     );
+
+    -- No raw tenant table is anonymously readable/writable. Public website delivery
+    -- goes through explicitly designed public/API surfaces, never direct tenant tables.
+    execute format('drop policy if exists tenant_lifecycle_anon_deny_guard on public.%I', target.table_name);
+    execute format(
+      'create policy tenant_lifecycle_anon_deny_guard on public.%I as restrictive for all to anon using (false) with check (false)',
+      target.table_name
+    );
   end loop;
 end
 $rls$;
@@ -189,7 +197,7 @@ revoke insert, update, delete on public.user_roles from anon, authenticated;
 revoke insert, update, delete on public.company_invitations from anon, authenticated;
 revoke all on public.companies from anon;
 
--- Verification: every UUID company-scoped table is RLS-enabled and has all four lifecycle guards.
+-- Verification: every UUID company-scoped table is RLS-enabled and has all lifecycle guards.
 do $verify$
 declare
   missing_rls text[];
@@ -239,9 +247,10 @@ begin
           'tenant_lifecycle_select_guard',
           'tenant_lifecycle_insert_guard',
           'tenant_lifecycle_update_guard',
-          'tenant_lifecycle_delete_guard'
+          'tenant_lifecycle_delete_guard',
+          'tenant_lifecycle_anon_deny_guard'
         )
-    ) <> 4
+    ) <> 5
   ) rows_without_guards;
 
   if coalesce(array_length(missing_guard, 1), 0) > 0 then
