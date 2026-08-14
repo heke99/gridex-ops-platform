@@ -1,0 +1,83 @@
+name: One-shot OpenAPI docs residual forward-port
+
+on:
+  push:
+    branches:
+      - remediation/openapi-docs-residuals-forward-port-2026-08-14
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-openapi-docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply narrow forward-port
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+
+          {
+            const path = 'lib/api/publicRouteRegistry.ts'
+            let source = fs.readFileSync(path, 'utf8')
+            const before = "  route.scopes.join(' eller '),"
+            const after = "  // scopeMode=all means every listed scope is required (AND). scopeMode=any\n  // means one of the listed scopes is enough (OR). Developer docs must match.\n  route.scopes.join(route.scopeMode === 'any' ? ' eller ' : ' och '),"
+            if (!source.includes(after)) {
+              if (!source.includes(before)) throw new Error('PUBLIC_API_ENDPOINT_ROWS scope-join anchor missing')
+              source = source.replace(before, after)
+            }
+            fs.writeFileSync(path, source)
+          }
+
+          {
+            const path = 'lib/integrations/openApiReleaseManifest.ts'
+            let source = fs.readFileSync(path, 'utf8')
+            const before = "export const OPENAPI_RELEASED_AT = '2026-08-10T20:25:00.000Z' as const"
+            const after = "export const OPENAPI_RELEASED_AT = '2026-08-14T18:26:00.000Z' as const"
+            if (!source.includes(after)) {
+              if (!source.includes(before)) throw new Error('OPENAPI_RELEASED_AT anchor missing')
+              source = source.replace(before, after)
+            }
+            fs.writeFileSync(path, source)
+          }
+
+          const testPath = '__tests__/post-128-openapi-tip-residuals.test.ts'
+          const test = `import { readFileSync } from 'node:fs'\nimport { describe, expect, it } from 'vitest'\nimport { PUBLIC_API_ENDPOINT_ROWS, PUBLIC_API_ROUTES } from '@/lib/api/publicRouteRegistry'\nimport { OPENAPI_RELEASED_AT } from '@/lib/integrations/openApiReleaseManifest'\nimport { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'\n\ndescribe('post-#128 OpenAPI tip residuals', () => {\n  it('documents all-mode scopes as AND and any-mode scopes as OR', () => {\n    const portalBundleRoutes = PUBLIC_API_ROUTES.filter((route) => route.path === '/api/v1/customer/portal-bundle')\n    expect(portalBundleRoutes.length).toBe(2)\n    for (const route of portalBundleRoutes) {\n      expect(route.scopeMode).toBe('all')\n      expect(route.scopes.length).toBeGreaterThan(1)\n    }\n\n    const portalBundleRows = PUBLIC_API_ENDPOINT_ROWS.filter((row) => row[1] === '/api/v1/customer/portal-bundle')\n    expect(portalBundleRows.length).toBe(2)\n    for (const row of portalBundleRows) {\n      expect(row[2]).toContain(' och ')\n      expect(row[2]).not.toContain(' eller ')\n    }\n\n    const anyModeRoutes = PUBLIC_API_ROUTES.filter((route) => route.scopeMode === 'any' && route.scopes.length > 1)\n    expect(anyModeRoutes.length).toBeGreaterThan(0)\n    for (const route of anyModeRoutes) {\n      const row = PUBLIC_API_ENDPOINT_ROWS.find((candidate) => candidate[0] === route.method && candidate[1] === (route.publicPath ?? route.path))\n      expect(row?.[2]).toContain(' eller ')\n      expect(row?.[2]).not.toContain(' och ')\n    }\n  })\n\n  it('uses the verified publication instant for contract release 2026-08-14.1', () => {\n    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-14.1')\n    expect(OPENAPI_RELEASED_AT).toBe('2026-08-14T18:26:00.000Z')\n    const source = readFileSync('lib/integrations/openApiReleaseManifest.ts', 'utf8')\n    expect(source).not.toContain(\"OPENAPI_RELEASED_AT = '2026-08-10T\")\n  })\n})\n`
+          fs.writeFileSync(testPath, test)
+          NODE
+      - name: Verify focused change
+        run: |
+          npx vitest run __tests__/post-128-openapi-tip-residuals.test.ts
+          npm run typecheck
+          npm run api:compatibility
+          npm run api:release:verify
+      - name: Commit forward-port
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/api/publicRouteRegistry.ts lib/integrations/openApiReleaseManifest.ts __tests__/post-128-openapi-tip-residuals.test.ts
+          git diff --cached --quiet && { echo "No changes."; exit 0; }
+          git commit -m "fix(api): align developer scope wording and release timestamp"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
