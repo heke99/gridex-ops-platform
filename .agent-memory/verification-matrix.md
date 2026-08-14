@@ -159,3 +159,16 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-08-14 — post-#139 tip residuals on ea1a
+
+| Check | Result |
+|---|---|
+| vitest (OpenAPI tip + inbound tip + related) | PASS 22/22 |
+| db:migrations:integrity | PASS 436 |
+| check-supabase-generated-types | PASS tip 20260814190000 |
+| security:audit-production | PASS 0 |
+| tsc -p tsconfig.app.json | PASS |
+| hosted CI | NOT YET |
+| ggshield | BLOCKED |
+| live DB apply 20260814190000 | NOT OBSERVED |
