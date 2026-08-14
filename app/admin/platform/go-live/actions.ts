@@ -11,6 +11,7 @@ import {
   type EdielCertificationEvidenceType,
 } from '@/lib/ediel/certificationEvidence'
 import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
+import { selectPrimaryTenantWebsiteClient } from '@/lib/integrations/tenantWebsiteClient'
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -130,17 +131,16 @@ export async function verifyTenantWebsiteGoLiveAction(formData: FormData) {
     finish(companyId, 'error', 'Minst en tillåten https-origin krävs för hemsidan.')
   }
 
-  const { data: currentClient, error: clientError } = await supabaseService
+  const { data: clientRows, error: clientError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,name,rate_limit_per_minute')
+    .select('id,name,rate_limit_per_minute,metadata,created_at')
     .eq('company_id', companyId)
     .eq('profile_key', 'tenant_website')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
   if (clientError) throw clientError
 
+  const currentClient = selectPrimaryTenantWebsiteClient(clientRows ?? [])
   if (!currentClient) {
     finish(
       companyId,

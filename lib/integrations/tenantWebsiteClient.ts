@@ -12,3 +12,22 @@ export function isTenantWebsiteIntegrationClient(input: {
     (scope) => scope.startsWith('customer_portal.') || scope === 'website_applications.write',
   )
 }
+
+/**
+ * Prefer the explicitly marked primary tenant_website client. Fall back to the
+ * newest row only when no primary flag exists so summary and verify stay aligned.
+ */
+export function selectPrimaryTenantWebsiteClient<T extends {
+  metadata?: unknown
+  created_at?: string | null
+}>(candidates: T[]): T | null {
+  if (!candidates.length) return null
+  const primary = candidates.find((row) => {
+    const metadata =
+      row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {}
+    return metadata.primary === true
+  })
+  return primary ?? candidates[0] ?? null
+}

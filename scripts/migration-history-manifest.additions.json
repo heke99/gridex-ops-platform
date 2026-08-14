@@ -55,6 +55,7 @@
     "20260814193000_inbound_manual_review_reopen_after_requeue.sql": "f4494f494480532293fdd1c394c68c76f21f2857e26e7f78f2b204b3a3a4d91b",
     "20260814200000_inbound_manual_review_metadata_on_entry.sql": "49d2eb86d401bda73319fd3550b8794792229d35bdd8ce1833db0cb0c2ef2355",
     "20260814210000_inbound_manual_review_actionable_reason_repair.sql": "cd6aeafeb02bba8e79005f10616f8bccf99620a028b148b3252d3a6dec1301aa",
+    "20260814235000_fix_canonical_production_command_request_hash.sql": "71985a1e746967eb0a3668fb5df1986f9e01c8913d89ff93e161311a04def0d1",
     "20260815093959_ediel_system_test_multitenant_profile_key.sql": "be223d7c75803845e72ac8f32f01f33a61c168c3f4e4e15ce74fc982e1446cfa",
     "20260815095427_ediel_role_scoped_test_configuration_binding.sql": "57589e4b199a849483a469a23a8bc2219996462099e78ec0ce800cecacd07ce9",
     "20260815114530_restore_pre_engine_live_ediel_approval.sql": "6850a14fc8154dc538192a525031409e04c7f0da740a4414a9add9f1b268ed29",
