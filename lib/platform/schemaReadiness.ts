@@ -7,8 +7,7 @@ import { supabaseService } from '@/lib/supabase/service'
  */
 export const REQUIRED_PLATFORM_SCHEMA_VERSION =
   '20260803093300-gridex-runtime-readiness-v3'
-export const PLATFORM_RUNTIME_CAPABILITY_VIEW =
-  'gridex_runtime_schema_capabilities_v3'
+export const PLATFORM_RUNTIME_CAPABILITY_VIEW = 'platform_runtime_readiness'
 export const PLATFORM_RUNTIME_FINGERPRINT_POLICY =
   'capability_evidence_sha256' as const
 
@@ -21,6 +20,9 @@ export type PlatformSchemaReadinessEvidence = {
   schema_fingerprint?: string | null
   capabilities?: unknown
   evaluated_at?: string | null
+  schema_version?: string | null
+  migration_version?: string | null
+  verified_at?: string | null
 }
 
 type ReadinessRow = PlatformSchemaReadinessEvidence
@@ -82,6 +84,7 @@ export function evaluatePlatformSchemaReadiness(
   return {
     ready:
       row.is_ready === true &&
+      row.schema_version === REQUIRED_PLATFORM_SCHEMA_VERSION &&
       schemaFingerprintVerified &&
       blockingIssuesVerified,
     schemaFingerprintVerified,
@@ -101,8 +104,9 @@ async function loadReadinessRow(): Promise<ReadinessRow> {
   const { data, error } = await supabaseService
     .from(PLATFORM_RUNTIME_CAPABILITY_VIEW)
     .select(
-      'is_ready,schema_fingerprint,blocking_issues,capabilities,evaluated_at',
+      'is_ready,schema_version,schema_fingerprint,blocking_issues,capabilities,verified_at,migration_version',
     )
+    .eq('id', true)
     .maybeSingle()
 
   if (error) {
@@ -156,7 +160,8 @@ export async function assertPlatformSchemaReady(): Promise<void> {
         schema_fingerprint: row.schema_fingerprint ?? null,
         blocking_issues: row.blocking_issues ?? [],
         capabilities: row.capabilities ?? {},
-        evaluated_at: row.evaluated_at ?? null,
+        verified_at: row.verified_at ?? null,
+        migration_version: row.migration_version ?? null,
       },
     )
   }

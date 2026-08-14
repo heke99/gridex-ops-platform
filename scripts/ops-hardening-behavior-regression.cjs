@@ -41,6 +41,8 @@ console.log(`OPS behavior regression passed (${cases.length} Swedish address cas
 
 const { safeSvkServiceUrl } = loadTypeScriptModule('lib/energy/svkGeometryImport.ts', {
   '@/lib/supabase/service': { supabaseService: {} },
+  '@/lib/runtime/dependencyErrors': { assertJsonResponse() {} },
+  '@/lib/runtime/dependencyCircuit': { withDependencyCircuit: (_key, operation) => operation() },
 })
 assert(safeSvkServiceUrl(undefined).startsWith('https://services2.arcgis.com/L8WLzcxhwLqd80Jx/'), 'Default SVK URL must remain allowlisted')
 for (const unsafe of [
