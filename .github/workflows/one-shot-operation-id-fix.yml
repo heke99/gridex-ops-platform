@@ -40,9 +40,14 @@ jobs:
           source = source.replace(anchor, replacement)
           fs.writeFileSync(path, source)
           NODE
-      - name: Regenerate and verify canonical release
+      - name: Regenerate unpublished release and verify
+        shell: bash
         run: |
           npm run api:finalize
+          # 2026-08-14.1 exists only on this unmerged remediation branch. Remove
+          # that unpublished materialized copy so it can be regenerated from the
+          # corrected canonical source; older published releases remain untouched.
+          rm -rf docs/openapi/releases/2026-08-14.1
           npm run api:materialize
           bash quality/mechanical/verify.sh
           npm run api:compatibility
