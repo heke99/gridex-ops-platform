@@ -36,6 +36,16 @@ describe('tenant go-live operator UX', () => {
     expect(page).toContain('Du ska inte behöva aktivera klienter, readiness eller capabilities med separata knappar.')
   })
 
+  it('prefills the selected tenant but clears tenant-specific values when switching companies', () => {
+    expect(page).toContain(".select('id,name,status,customer_portal_url')")
+    expect(page).toContain('defaultCustomerPortalUrl={defaultCustomerPortalUrl}')
+    expect(page).toContain('defaultAllowedOrigins={defaultAllowedOrigins}')
+    expect(form).toContain('function changeCompany(nextCompanyId: string)')
+    expect(form).toContain("setCustomerPortalUrl('')")
+    expect(form).toContain("setAllowedOrigins('')")
+    expect(form).toContain("Never carry one tenant's canonical URL/origins into another tenant by accident")
+  })
+
   it('keeps destructive credential operations behind secondary security controls', () => {
     expect(page).toContain('Säkerhetsåtgärder')
     expect(page).toContain('Återkalla nyckel')
