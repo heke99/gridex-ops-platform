@@ -1,21 +1,21 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T19:50:00Z",
-  "branch": "cursor/codebase-health-and-stability-e76c",
+  "updated_at": "2026-08-14T22:05:00Z",
+  "branch": "cursor/codebase-health-and-stability-e446",
   "active_phase": "TIP_HEALTH_RESIDUALS",
-  "active_task": "Close post-#144 inbound manual review metadata and Processa om sync",
+  "active_task": "Close post-#147 production hash variants and primary client drift",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "1dfc3559",
-  "head_sha": "815a4871",
-  "pr": 145,
+  "base_main_sha": "c5756245",
+  "head_sha": "bc76a230",
+  "pr": 148,
   "verification": {
-    "vitest_targeted": "PASS_6",
-    "migration_integrity": "PASS_438",
+    "vitest_targeted": "PASS_9",
+    "migration_integrity": "PASS_443",
     "types_check": "PASS",
     "security_audit_production": "PASS_0",
     "typecheck_app": "PASS",
     "ggshield": "BLOCKED",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Wait for hosted CI/clean-replay on PR #145, squash merge when green"
+  "resume_from": "Wait for hosted CI/clean-replay on PR #148, squash merge when green"
 }

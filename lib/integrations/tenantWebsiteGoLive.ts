@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { selectPrimaryTenantWebsiteClient } from '@/lib/integrations/tenantWebsiteClient'
 import {
   loadTenantWebsiteFlowReadiness,
   type TenantWebsiteFlowReadiness,
@@ -70,12 +71,7 @@ export async function getTenantWebsiteGoLiveSummary(
     launch_blockers?: unknown[] | null
     created_at?: string | null
   }>
-  const primary = candidates.find((row) => {
-    const metadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-      ? row.metadata as Record<string, unknown>
-      : {}
-    return metadata.primary === true
-  }) ?? candidates[0] ?? null
+  const primary = selectPrimaryTenantWebsiteClient(candidates)
 
   const readiness = primary
     ? await loadTenantWebsiteFlowReadiness({ companyId, client: primary })

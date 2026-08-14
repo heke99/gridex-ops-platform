@@ -14,7 +14,13 @@ import { supabaseService } from '@/lib/supabase/service'
 export async function processInboundEmailMessage(input: {
   inboundEmailMessageId: string
   actorUserId?: string | null
-}): Promise<{ status: string; companyId: string | null; parseResultId: string | null }> {
+}): Promise<{
+  status: string
+  companyId: string | null
+  parseResultId: string | null
+  /** Actionable ops reason for manual_review job metadata; null when processed. */
+  reason: string | null
+}> {
   const { data, error } = await supabaseService
     .from('inbound_email_messages')
     .select('*, ediel_mailboxes(*)')
@@ -60,7 +66,12 @@ export async function processInboundEmailMessage(input: {
       metadata: { inboundEmailMessageId: input.inboundEmailMessageId },
       actorUserId: input.actorUserId ?? null,
     })
-    return { status: 'manual_review', companyId: typeof row.company_id === 'string' ? row.company_id : null, parseResultId: null }
+    return {
+      status: 'manual_review',
+      companyId: typeof row.company_id === 'string' ? row.company_id : null,
+      parseResultId: null,
+      reason: 'Mail saknar EDIFACT payload.',
+    }
   }
 
   const mailbox = row.ediel_mailboxes as {
@@ -111,21 +122,24 @@ export async function processInboundEmailMessage(input: {
       environment,
       tenantResolution: tenant.shared,
     })
+    const tenantReason =
+      tenant.reasons.join('\n') || 'Systemet kunde inte matcha company_id säkert.'
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,
       companyId: tenant.companyId,
       status: 'manual_review',
       matchStatus: tenant.status,
+      errorMessage: tenantReason,
       matchPayload: { tenant, parsed },
     })
     await createInboundMailTask({
       companyId: tenant.companyId,
       title: 'Inkommande Ediel-mail saknar säker tenant-match',
-      description: tenant.reasons.join('\n') || 'Systemet kunde inte matcha company_id säkert.',
+      description: tenantReason,
       metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, tenant, parsed },
       actorUserId: input.actorUserId ?? null,
     })
-    return { status: 'manual_review', companyId: null, parseResultId }
+    return { status: 'manual_review', companyId: null, parseResultId, reason: tenantReason }
   }
 
   const outboundMatch = await matchOutboundRequestForInbound({
@@ -176,13 +190,23 @@ export async function processInboundEmailMessage(input: {
     })
   }
 
+  const matchReason = safeMatch
+    ? null
+    : outboundMatch.reasons.join('\n') || matchStatus || 'manual_match_required'
+
   await updateInboundEmailProcessingStatus({
     inboundEmailMessageId: input.inboundEmailMessageId,
     companyId: tenant.companyId,
     status: safeMatch ? 'processed' : 'manual_review',
     matchStatus,
+    errorMessage: matchReason,
     matchPayload: { tenant, outboundMatch, meteringPointMatch, parsed },
   })
 
-  return { status: safeMatch ? 'processed' : 'manual_review', companyId: tenant.companyId, parseResultId }
+  return {
+    status: safeMatch ? 'processed' : 'manual_review',
+    companyId: tenant.companyId,
+    parseResultId,
+    reason: matchReason,
+  }
 }
