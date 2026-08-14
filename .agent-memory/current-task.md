@@ -9,5 +9,5 @@ reason on `cursor/codebase-health-and-stability-4764`.
 
 ## Exact next action
 
-Open PR for tip residuals; wait for hosted CI/clean-replay, squash merge only
-after required checks are green.
+Open PR `#146` is open. Wait for hosted CI/clean-replay, squash merge only after
+required checks are green.

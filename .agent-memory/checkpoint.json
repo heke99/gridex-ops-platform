@@ -6,8 +6,8 @@
   "active_task": "Close post-#145 Processa om terminal sync and actionable review reason",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "73936c7c",
-  "head_sha": "a5b997dd",
-  "pr": null,
+  "head_sha": "5fac366c",
+  "pr": 146,
   "verification": {
     "vitest_targeted": "PASS_8",
     "migration_integrity": "PASS_439",
