@@ -57,9 +57,13 @@ function remediationForMessage(companyId: string, message: string) {
 export default function CreateApiClientForm({
   companies,
   defaultCompanyId = '',
+  defaultCustomerPortalUrl = '',
+  defaultAllowedOrigins = '',
 }: {
   companies: CompanyOption[]
   defaultCompanyId?: string
+  defaultCustomerPortalUrl?: string
+  defaultAllowedOrigins?: string
 }) {
   const [state, formAction, pending] = useActionState(createIntegrationApiClientAction, INITIAL_STATE)
   const [companyId, setCompanyId] = useState(defaultCompanyId)
@@ -139,6 +143,7 @@ export default function CreateApiClientForm({
             name="customerPortalUrl"
             type="url"
             required
+            defaultValue={defaultCustomerPortalUrl}
             placeholder="https://tenant.example/mina-sidor"
             className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
           />
@@ -151,6 +156,7 @@ export default function CreateApiClientForm({
             name="allowedOrigins"
             rows={3}
             required
+            defaultValue={defaultAllowedOrigins}
             placeholder={'https://tenant.example\nhttps://www.tenant.example'}
             className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
           />
