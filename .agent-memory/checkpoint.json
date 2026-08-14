@@ -1,22 +1,21 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T13:31:00Z",
-  "branch": "cursor/codebase-health-and-stability-580a",
-  "active_phase": "TIP_HEALTH_POST_GO_LIVE",
-  "active_task": "Close post-2c5a8c0f go-live tip residuals",
+  "updated_at": "2026-08-14T14:20:00Z",
+  "branch": "cursor/codebase-health-and-stability-31d1",
+  "active_phase": "TIP_HEALTH_RESIDUALS",
+  "active_task": "Close post-6f171011 go-live and lifecycle tip residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "2c5a8c0f",
-  "head_sha": "e1b202d7",
+  "base_main_sha": "6f171011",
+  "head_sha": "89c53828",
   "pr": null,
   "verification": {
-    "vitest_go_live_utilts_circuit": "PASS_30",
-    "post_332_residuals": "PASS",
+    "vitest_targeted": "PASS_44",
+    "post_332_field_511_residuals": "PASS",
     "migration_integrity": "PASS_432",
-    "generated_types": "PASS_LOCAL_MANIFEST",
     "security_audit_production": "PASS_0",
     "typecheck_app": "PASS",
     "ggshield": "BLOCKED_CLI_MISSING",
     "hosted_ci": "NOT_YET"
   },
-  "resume_from": "Open PR for 580a and use hosted clean replay as the authoritative generated-types gate"
+  "resume_from": "Open PR for 31d1, wait for hosted CI, close superseded health PRs after merge"
 }
