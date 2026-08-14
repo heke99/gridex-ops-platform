@@ -20,6 +20,7 @@ import {
   type CompanyOperationalStatus,
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
+import { canTransitionCompanyStatus } from '@/lib/tenant/lifecycle'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { seedCompanyOnboardingTasks } from '@/lib/onboarding/companyReadiness'
 import {
@@ -61,8 +62,6 @@ function errorMessage(error: unknown, fallback: string): string {
   }
   return fallback
 }
-
-
 
 function slugify(value: string): string {
   return value
@@ -127,6 +126,27 @@ async function assertCanManageCompanyUsers(companyId: string) {
   return context
 }
 
+type TenantLifecycleTransitionResult = {
+  ok?: boolean
+  changed?: boolean
+  code?: string
+  status?: string
+  state_version?: number
+  blocking_reasons?: Array<{ code?: string; message?: string; task_key?: string }>
+}
+
+function tenantLifecycleTransitionAccepted(
+  result: TenantLifecycleTransitionResult | null,
+  requestedStatus: CompanyOperationalStatus,
+): boolean {
+  if (!result) return false
+  if (result.ok === true || result.changed === true) return true
+  if (result.changed === false && result.status === requestedStatus) {
+    return !result.code || result.code === 'tenant_lifecycle_unchanged'
+  }
+  return false
+}
+
 async function setCompanyStatus(input: {
   companyId: string
   status: CompanyOperationalStatus
@@ -156,18 +176,14 @@ async function setCompanyStatus(input: {
       p_idempotency_key: idempotencyKey,
     })
   if (transitionError) throw transitionError
-  const result = transition as {
-    ok?: boolean
-    code?: string
-    blocking_reasons?: Array<{ code?: string; message?: string; task_key?: string }>
-  } | null
-  if (!result?.ok) {
+  const result = transition as TenantLifecycleTransitionResult | null
+  if (!tenantLifecycleTransitionAccepted(result, input.status)) {
     const blockers = (result?.blocking_reasons ?? [])
       .map((item) => item.message ?? item.code)
       .filter(Boolean)
     const error = new Error(
       blockers.length > 0
-        ? `Bolaget kan inte aktiveras eller stängas: ${blockers.join(' ')}`
+        ? `Bolagsåtgärden är blockerad: ${blockers.join(' ')}`
         : `Bolagsåtgärden blockerades (${result?.code ?? 'tenant_lifecycle_conflict'}).`,
     ) as Error & { code?: string; blockingReasons?: typeof blockers }
     error.code = result?.code ?? 'tenant_lifecycle_conflict'
@@ -184,6 +200,16 @@ async function setCompanyStatus(input: {
   return data as { id: string; name: string; status: string }
 }
 
+function revalidateCompanyLifecycleViews(companyId: string) {
+  revalidatePath('/admin/companies')
+  revalidatePath(`/admin/companies/${companyId}`)
+  revalidatePath(`/admin/companies/${companyId}/users`)
+  revalidatePath('/admin/controltower')
+  revalidatePath('/admin/ediel/control-tower')
+  revalidatePath('/admin/platform/go-live')
+  revalidatePath(`/admin/platform/go-live/${companyId}`)
+  revalidatePath('/admin/platform/api-clients')
+}
 
 async function verifyCompanyCreated(companyId: string) {
   const { data, error } = await supabaseService
@@ -245,8 +271,6 @@ export async function createCompanyAction(
     if (!createdCompanyId) throw new Error('Canonical provisioning returnerade inget company_id.')
     await verifyCompanyCreated(createdCompanyId)
     await seedDefaultCompanyEmailConfiguration(createdCompanyId)
-    // Seed the onboarding readiness checklist so the tenant has an explicit
-    // test/production readiness path from creation (best-effort).
     await seedCompanyOnboardingTasks(createdCompanyId).catch((error) =>
       console.warn('Company onboarding checklist could not be seeded', error),
     )
@@ -279,7 +303,7 @@ export async function createCompanyAction(
       },
     })
 
-    revalidatePath('/admin/companies')
+    revalidateCompanyLifecycleViews(createdCompanyId)
     revalidatePath('/admin/users')
 
     return {
@@ -391,6 +415,13 @@ export async function setCompanyOperationalStatusAction(
 
     const company = await getCompanyById(companyId)
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
+    const currentStatus = normalizeCompanyStatus(company.status)
+    if (!canTransitionCompanyStatus(currentStatus, nextStatus)) {
+      return {
+        ok: false,
+        message: `Ogiltig lifecycle-övergång: ${currentStatus} → ${nextStatus}. Välj en åtgärd som är tillåten för bolagets nuvarande status.`,
+      }
+    }
 
     const updated = await setCompanyStatus({ companyId, status: nextStatus, actorUserId, reason })
 
@@ -406,10 +437,7 @@ export async function setCompanyOperationalStatusAction(
       },
     })
 
-    revalidatePath('/admin/companies')
-    revalidatePath(`/admin/companies/${companyId}/users`)
-    revalidatePath('/admin/controltower')
-    revalidatePath('/admin/ediel/control-tower')
+    revalidateCompanyLifecycleViews(companyId)
 
     return { ok: true, message: `${updated.name} uppdaterades till ${nextStatus}.` }
   } catch (error) {
@@ -436,41 +464,73 @@ export async function deleteTestCompanyAction(
     await requirePlatformAdminActionAccess()
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
-    const reason = normalizeText(formData.get('reason')) || 'Arkiverad av superadmin'
+    const reason = normalizeText(formData.get('reason')) || 'Radering av test-/felregistrerat bolag'
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
     const company = await getCompanyById(companyId)
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
-    const blockers = await getCompanyDeleteBlockers(companyId)
+    const currentStatus = normalizeCompanyStatus(company.status)
+    if (currentStatus === 'closed' || currentStatus === 'deleted_test_only') {
+      return { ok: false, message: 'Bolaget är redan i ett terminalt lifecycle-läge.' }
+    }
 
-    await logTenantGovernanceEvent({
-      action: blockers.length > 0 ? 'SUPERADMIN_DELETE_BLOCKED_DUE_TO_HISTORY' : 'SUPERADMIN_COMPANY_DELETION_REQUESTED',
-      actorUserId,
-      companyId,
-      reason,
-      metadata: { blockers, companyName: company.name, db3HardDeleteDisabled: true },
-    })
+    const blockers = await getCompanyDeleteBlockers(companyId)
+    if (blockers.length > 0) {
+      await logTenantGovernanceEvent({
+        action: 'SUPERADMIN_DELETE_BLOCKED_DUE_TO_HISTORY',
+        actorUserId,
+        companyId,
+        reason,
+        metadata: { blockers, companyName: company.name, deletionMode: 'test_only_tombstone' },
+      })
+      return {
+        ok: false,
+        message: `Testbolaget kan inte raderas eftersom historik finns: ${blockers.map((blocker) => `${blocker.label} ${blocker.count}`).join(' · ')}. Arkivera eller använd ordinarie raderingsflöde i stället.`,
+      }
+    }
+
+    if (currentStatus !== 'pending_deletion') {
+      if (!canTransitionCompanyStatus(currentStatus, 'pending_deletion')) {
+        return { ok: false, message: `Bolaget kan inte gå från ${currentStatus} till raderingsläge.` }
+      }
+      await setCompanyStatus({
+        companyId,
+        status: 'pending_deletion',
+        actorUserId,
+        reason,
+      })
+    }
 
     await setCompanyStatus({
       companyId,
-      status: 'archived',
+      status: 'deleted_test_only',
       actorUserId,
       reason,
     })
 
-    revalidatePath('/admin/companies')
-    revalidatePath(`/admin/companies/${companyId}/users`)
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_COMPANY_DELETED_TEST_ONLY',
+      actorUserId,
+      companyId,
+      reason,
+      metadata: {
+        blockers: [],
+        companyName: company.name,
+        deletionMode: 'terminal_tombstone',
+        hardDeletePerformed: false,
+      },
+    })
+
+    revalidateCompanyLifecycleViews(companyId)
 
     return {
       ok: true,
-      message: blockers.length > 0
-        ? 'Hård radering är avstängd. Bolaget arkiverades och all historik behölls.'
-        : 'Bolaget arkiverades säkert utan att radera historik.',
+      message: 'Test-/felregistrerat bolag markerades som raderat och togs ur all normal drift. Ingen operativ historik raderades fysiskt.',
     }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte arkiveras.' }
+    return { ok: false, message: error instanceof Error ? error.message : 'Testbolaget kunde inte raderas säkert.' }
   }
 }
 
