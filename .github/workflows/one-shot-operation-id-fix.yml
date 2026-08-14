@@ -28,6 +28,66 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Align OpenAPI parity tooling with canonical scope metadata
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+
+          function patchFile(path, patch) {
+            let source = fs.readFileSync(path, 'utf8')
+            source = patch(source)
+            fs.writeFileSync(path, source)
+          }
+
+          const parserPrelude = `const scopeConstants = new Map(\n  [...registrySource.matchAll(/const\\s+([A-Z0-9_]+)\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*as const/g)].map((constant) => [\n    constant[1],\n    [...constant[2].matchAll(/'([^']+)'/g)].map((item) => item[1]),\n  ]),\n)\n\nfunction parseScopeExpression(expression) {\n  const scopes = [...expression.matchAll(/'([^']+)'/g)].map((item) => item[1])\n  for (const spread of expression.matchAll(/\\.\\.\\.([A-Z0-9_]+)/g)) {\n    const expanded = scopeConstants.get(spread[1])\n    if (!expanded) throw new Error(\`Unknown scope constant \\${spread[1]} in publicRouteRegistry.ts\`)\n    scopes.push(...expanded)\n  }\n  return scopes\n}\n`
+
+          patchFile('scripts/check-openapi-runtime-parity.cjs', (source) => {
+            if (!source.includes('function parseScopeExpression(expression)')) {
+              const anchor = "const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')\n"
+              if (!source.includes(anchor)) throw new Error('runtime parity registry anchor missing')
+              source = source.replace(anchor, `${anchor}${parserPrelude}`)
+            }
+            source = source.replace(
+              "scopes: [...match[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),",
+              'scopes: parseScopeExpression(match[4]),',
+            )
+            if (!source.includes('function normalizeScopeMode(value)')) {
+              const anchor = 'for (const route of registry) {'
+              if (!source.includes(anchor)) throw new Error('runtime parity comparison anchor missing')
+              source = source.replace(
+                anchor,
+                `function normalizeScopeMode(value) {\n  return String(value ?? 'all').startsWith('any') ? 'any' : 'all'\n}\n\n${anchor}`,
+              )
+            }
+            const oldComparison = `    for (const field of ['operationId', 'scopeMode', 'rateLimitClass', 'idempotencyRequired', 'cachePolicy', 'publicIdPolicy']) {\n      if (operation[field] !== route[field]) failures.push(\`\${route.method} \${route.path} metadata mismatch: \${field}\`)\n    }`
+            const newComparison = `    for (const field of ['operationId', 'scopeMode', 'rateLimitClass', 'idempotencyRequired', 'cachePolicy', 'publicIdPolicy']) {\n      const operationValue = field === 'scopeMode' ? normalizeScopeMode(operation[field]) : operation[field]\n      const routeValue = field === 'scopeMode' ? normalizeScopeMode(route[field]) : route[field]\n      if (operationValue !== routeValue) failures.push(\`\${route.method} \${route.path} metadata mismatch: \${field}\`)\n    }`
+            if (!source.includes(newComparison)) {
+              if (!source.includes(oldComparison)) throw new Error('runtime parity field comparison anchor missing')
+              source = source.replace(oldComparison, newComparison)
+            }
+            return source
+          })
+
+          patchFile('scripts/sync-openapi-operation-ids.cjs', (source) => {
+            if (!source.includes('function parseScopeExpression(expression)')) {
+              const anchor = "const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')\n"
+              if (!source.includes(anchor)) throw new Error('operationId sync registry anchor missing')
+              source = source.replace(anchor, `${anchor}${parserPrelude}`)
+            }
+            source = source.replace(
+              "scopes: [...registryMatch[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),",
+              'scopes: parseScopeExpression(registryMatch[4]),',
+            )
+            const oldScopeMode = `      operation['x-scope-mode'] = [\n        '/api/v1/website/legal-bundle',\n        '/api/v1/customer/profile-update',\n      ].includes(contract.path) ? 'any' : 'all'`
+            const newScopeMode = `      operation['x-scope-mode'] = contract.path === '/api/v1/customer/profile-update'\n        ? 'any-per-request; both required when both operations are present'\n        : contract.path === '/api/v1/website/legal-bundle'\n          ? 'any'\n          : 'all'`
+            if (!source.includes(newScopeMode)) {
+              if (!source.includes(oldScopeMode)) throw new Error('operationId sync scope-mode anchor missing')
+              source = source.replace(oldScopeMode, newScopeMode)
+            }
+            return source
+          })
+          NODE
       - name: Normalize immutable OpenAPI operation metadata
         shell: bash
         run: |
@@ -66,6 +126,7 @@ jobs:
           rm -rf docs/openapi/releases/2026-08-14.1
           npm run api:materialize
           bash quality/mechanical/verify.sh
+          node scripts/check-openapi-runtime-parity.cjs
           npm run api:compatibility
           npm run api:release:verify
           npm run api:runtime:parity
@@ -76,7 +137,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/finalize-openapi-release.cjs docs/openapi app/api/v1/openapi/2026-08-14.1
+          git add scripts/finalize-openapi-release.cjs scripts/check-openapi-runtime-parity.cjs scripts/sync-openapi-operation-ids.cjs docs/openapi app/api/v1/openapi/2026-08-14.1
           git diff --cached --quiet && { echo "No changes."; exit 0; }
           git commit -m "fix(api): normalize OpenAPI runtime metadata"
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
