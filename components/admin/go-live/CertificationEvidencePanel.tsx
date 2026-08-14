@@ -21,14 +21,15 @@ function currentFor(
 export function CertificationEvidencePanel({
   companyId,
   records,
+  verifiedAt,
 }: {
   companyId: string
   records: EdielCertificationEvidenceRecord[]
+  verifiedAt: number
 }) {
-  const now = Date.now()
   const approved = new Set(
     records
-      .filter((row) => isEdielCertificationEvidenceApproved(row, now))
+      .filter((row) => isEdielCertificationEvidenceApproved(row, verifiedAt))
       .map((row) => row.evidence_type),
   )
   const missingCount = REQUIRED_PRODUCTION_EVIDENCE.filter((type) => !approved.has(type)).length
@@ -58,7 +59,7 @@ export function CertificationEvidencePanel({
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         {REQUIRED_PRODUCTION_EVIDENCE.map((evidenceType) => {
           const current = currentFor(records, evidenceType)
-          const isApproved = current ? isEdielCertificationEvidenceApproved(current, now) : false
+          const isApproved = current ? isEdielCertificationEvidenceApproved(current, verifiedAt) : false
           return (
             <details
               key={evidenceType}
