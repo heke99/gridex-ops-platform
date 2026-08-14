@@ -17,6 +17,16 @@ import {
   type GoLiveSetupSummary,
 } from "@/lib/ediel/platformGoLive";
 import { CompanyGoLiveSetupPanel } from "@/components/admin/ediel/GoLiveSetupViews";
+import {
+  getTenantWebsiteGoLiveSummary,
+  type TenantWebsiteGoLiveSummary,
+} from "@/lib/integrations/tenantWebsiteGoLive";
+import {
+  getEdielCertificationEvidenceSnapshot,
+  type EdielCertificationEvidenceSnapshot,
+} from "@/lib/ediel/certificationEvidence";
+import { TenantWebsiteGoLivePanel } from "@/components/admin/go-live/TenantWebsiteGoLivePanel";
+import { CertificationEvidencePanel } from "@/components/admin/go-live/CertificationEvidencePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -84,48 +94,62 @@ export default async function PlatformGoLiveCompanyPage({
     return <div className="p-8">Bolaget hittades inte.</div>;
   }
 
-  const [readinessLoad, setupLoad] = await Promise.all([
+  const [readinessLoad, setupLoad, websiteLoad, evidenceLoad] = await Promise.all([
     safeLoad<ProductionReadinessResult>("production readiness", () =>
       getCompanyProductionReadiness(companyId, { checkedBy: admin.userId }),
     ),
     safeLoad<GoLiveSetupSummary | null>("setup summary", () =>
       getCompanyGoLiveSetupSummary(companyId),
     ),
+    safeLoad<TenantWebsiteGoLiveSummary | null>("website readiness", () =>
+      getTenantWebsiteGoLiveSummary(companyId),
+    ),
+    safeLoad<EdielCertificationEvidenceSnapshot>("certification evidence", () =>
+      getEdielCertificationEvidenceSnapshot(companyId),
+    ),
   ]);
 
   const readiness = readinessLoad.ok ? readinessLoad.data : null;
   const setupSummary = setupLoad.ok ? setupLoad.data : null;
+  const websiteSummary = websiteLoad.ok ? websiteLoad.data : null;
+  const certificationEvidence = evidenceLoad.ok ? evidenceLoad.data : null;
 
   return (
     <div className="min-h-screen">
       <AdminHeader
         title={`Produktionssättning · ${summary.company.name}`}
-        subtitle="Ett guidat go-live-flöde: komplettera blockerare, kör kontroll och dry run, aktivera först när allt är grönt."
+        subtitle="Ett repeterbart superadmin-flöde: bolagssäkerhet och lifecycle, production-evidens, dry run, aktivering, därefter webb/Mina sidor och kundflöde."
         userEmail={admin.email}
         workspaceMode="platform"
       />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">
-            Enkelt go-live-flöde
+            Repeterbart go-live-flöde
           </p>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">1. Fixa blockerare</div>
+              <div className="text-sm font-black text-slate-950">1. Bolaget är säkert</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Bolagsdata, Ediel-ID, BRP, routes och transport ska vara klara.
+                Aktivt bolag, rätt roller, bolagsseparerad åtkomst och verifierade lifecycle-regler för pause, suspend och archive.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">2. Kontroll + dry run</div>
+              <div className="text-sm font-black text-slate-950">2. Bevis + dry run</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Systemet verifierar tenant, route, mailbox, tester och send locks utan live-send.
+                Verklig certifiering/pilot, Ediel-routes, transport och dry run måste passera utan genvägar.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">3. Aktivera production</div>
+              <div className="text-sm font-black text-slate-950">3. Sätt bolaget live</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Aktivering blir möjlig först när backend-readiness och dry run passerar.
+                Production aktiveras först när backend-gaten är grön. Ingen UI-status får kringgå readiness.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+              <div className="text-sm font-black text-slate-950">4. Webb & kundflöde</div>
+              <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+                API-klient, origins, kundportal, mail och automation verifieras efter live. Nya elavtal kräver live-status även vid runtime.
               </p>
             </div>
           </div>
@@ -158,11 +182,25 @@ export default async function PlatformGoLiveCompanyPage({
             {notice.message}
           </div>
         ) : null}
+
         <ActorCompanyIdentityCard summary={summary} />
+
         {setupSummary ? <CompanyGoLiveSetupPanel summary={setupSummary} /> : null}
         {!setupLoad.ok ? (
           <LoadFailure title="Grundkontrollen kunde inte laddas" companyId={companyId} />
         ) : null}
+
+        {certificationEvidence ? (
+          <CertificationEvidencePanel
+            companyId={companyId}
+            records={certificationEvidence.records}
+            verifiedAt={certificationEvidence.verifiedAt}
+          />
+        ) : null}
+        {!evidenceLoad.ok ? (
+          <LoadFailure title="Production-evidens kunde inte laddas" companyId={companyId} />
+        ) : null}
+
         {readiness ? (
           <ProductionReadinessPanel
             readiness={readiness}
@@ -172,6 +210,12 @@ export default async function PlatformGoLiveCompanyPage({
         ) : (
           <LoadFailure title="Production readiness kunde inte laddas" companyId={companyId} />
         )}
+
+        {websiteSummary ? <TenantWebsiteGoLivePanel summary={websiteSummary} /> : null}
+        {!websiteLoad.ok || (websiteLoad.ok && !websiteSummary) ? (
+          <LoadFailure title="Webb & Mina sidor kunde inte verifieras" companyId={companyId} />
+        ) : null}
+
         <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <summary className="cursor-pointer text-sm font-black text-slate-950">
             Avancerat: testprofil, äldre actor-data och evidence package
