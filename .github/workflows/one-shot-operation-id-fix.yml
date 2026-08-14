@@ -1,141 +1,28 @@
-name: One-shot OpenAPI operationId repair
+name: OpenAPI contract verification
 
 on:
-  push:
-    branches:
-      - remediation/openapi-portal-scope-parity-2026-08-14
+  workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: one-shot-operation-id-${{ github.ref }}
-  cancel-in-progress: true
+  contents: read
 
 jobs:
-  repair:
-    if: github.actor != 'github-actions[bot]'
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Align OpenAPI parity tooling with canonical scope metadata
-        shell: bash
+      - name: Verify OpenAPI contracts
         run: |
-          node <<'NODE'
-          const fs = require('node:fs')
-
-          const parserPrelude = `const scopeConstants = new Map(\n  [...registrySource.matchAll(/const\\s+([A-Z0-9_]+)\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*as const/g)].map((constant) => [\n    constant[1],\n    [...constant[2].matchAll(/'([^']+)'/g)].map((item) => item[1]),\n  ]),\n)\n\nfunction parseScopeExpression(expression) {\n  const scopes = [...expression.matchAll(/'([^']+)'/g)].map((item) => item[1])\n  for (const spread of expression.matchAll(/\\.\\.\\.([A-Z0-9_]+)/g)) {\n    const expanded = scopeConstants.get(spread[1])\n    if (!expanded) throw new Error('Unknown scope constant ' + spread[1] + ' in publicRouteRegistry.ts')\n    scopes.push(...expanded)\n  }\n  return scopes\n}\n`
-
-          function insertScopeParser(source, label) {
-            if (source.includes('function parseScopeExpression(expression)')) return source
-            const anchor = "const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')\n"
-            if (!source.includes(anchor)) throw new Error(label + ': registry anchor missing')
-            return source.replace(anchor, anchor + parserPrelude)
-          }
-
-          {
-            const path = 'scripts/check-openapi-runtime-parity.cjs'
-            let source = insertScopeParser(fs.readFileSync(path, 'utf8'), path)
-            source = source.replace(
-              "scopes: [...match[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),",
-              'scopes: parseScopeExpression(match[4]),',
-            )
-            if (!source.includes('scopes: parseScopeExpression(match[4]),')) {
-              throw new Error(path + ': scope parser replacement failed')
-            }
-            if (!source.includes('function normalizeScopeMode(value)')) {
-              const anchor = 'for (const route of registry) {'
-              if (!source.includes(anchor)) throw new Error(path + ': comparison anchor missing')
-              source = source.replace(
-                anchor,
-                `function normalizeScopeMode(value) {\n  return String(value ?? 'all').startsWith('any') ? 'any' : 'all'\n}\n\n${anchor}`,
-              )
-            }
-            const oldLine = "      if (operation[field] !== route[field]) failures.push(`${route.method} ${route.path} metadata mismatch: ${field}`)"
-            const newLines = "      const operationValue = field === 'scopeMode' ? normalizeScopeMode(operation[field]) : operation[field]\n      const routeValue = field === 'scopeMode' ? normalizeScopeMode(route[field]) : route[field]\n      if (operationValue !== routeValue) failures.push(`${route.method} ${route.path} metadata mismatch: ${field}`)"
-            if (!source.includes(newLines)) {
-              if (!source.includes(oldLine)) throw new Error(path + ': field comparison line missing')
-              source = source.replace(oldLine, newLines)
-            }
-            fs.writeFileSync(path, source)
-          }
-
-          {
-            const path = 'scripts/sync-openapi-operation-ids.cjs'
-            let source = insertScopeParser(fs.readFileSync(path, 'utf8'), path)
-            source = source.replace(
-              "scopes: [...registryMatch[4].matchAll(/'([^']+)'/g)].map((item) => item[1]),",
-              'scopes: parseScopeExpression(registryMatch[4]),',
-            )
-            if (!source.includes('scopes: parseScopeExpression(registryMatch[4]),')) {
-              throw new Error(path + ': scope parser replacement failed')
-            }
-            const newScopeMode = `      operation['x-scope-mode'] = contract.path === '/api/v1/customer/profile-update'\n        ? 'any-per-request; both required when both operations are present'\n        : contract.path === '/api/v1/website/legal-bundle'\n          ? 'any'\n          : 'all'\n`
-            if (!source.includes(newScopeMode.trim())) {
-              const startAnchor = "      operation['x-scope-mode'] = ["
-              const endAnchor = "      operation['x-rate-limit-class'] = contract.rateLimitClass"
-              const start = source.indexOf(startAnchor)
-              const end = source.indexOf(endAnchor, start)
-              if (start < 0 || end < 0) throw new Error(path + ': scope-mode block missing')
-              source = source.slice(0, start) + newScopeMode + source.slice(end)
-            }
-            fs.writeFileSync(path, source)
-          }
-          NODE
-      - name: Normalize immutable OpenAPI operation metadata
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs')
-          const path = 'scripts/finalize-openapi-release.cjs'
-          let source = fs.readFileSync(path, 'utf8')
-
-          if (!source.includes('const immutableMatch = path.match(')) {
-            const anchor = `    const operation = document.paths?.[path]?.get\n    if (!operation) continue\n    operation.security = []`
-            const replacement = `    const operation = document.paths?.[path]?.get\n    if (!operation) continue\n    const immutableMatch = path.match(/^\\/api\\/v1\\/openapi\\/(\\d{4}-\\d{2}-\\d{2}\\.\\d+)\\/(website-integration-v1|customer-portal-v1)\\.json$/)\n    if (immutableMatch) {\n      const versionToken = immutableMatch[1].replace(/[^0-9A-Za-z]/g, '')\n      const documentToken = immutableMatch[2] === 'website-integration-v1'\n        ? 'WebsiteIntegrationV1Json'\n        : 'CustomerPortalV1Json'\n      operation.operationId = \`getApiV1Openapi\${versionToken}\${documentToken}\`\n    }\n    operation.security = []`
-            if (!source.includes(anchor)) throw new Error('finalizer operationId anchor missing')
-            source = source.replace(anchor, replacement)
-          }
-
-          if (!source.includes("operation['x-cache-policy'] = immutableMatch ? 'public-immutable' : 'private-revalidate'")) {
-            const anchor = `    operation.security = []\n    operation['x-required-scopes'] = []\n    const response200 = operation.responses?.['200']`
-            const replacement = `    operation.security = []\n    operation['x-required-scopes'] = []\n    operation['x-scope-mode'] = 'all'\n    operation['x-rate-limit-class'] = 'read'\n    operation['x-idempotency-required'] = false\n    operation['x-cache-policy'] = immutableMatch ? 'public-immutable' : 'private-revalidate'\n    operation['x-public-id-policy'] = 'none'\n    if (path === '/api/v1/openapi/release-manifest.json') {\n      operation.operationId = 'getApiV1OpenapiReleaseManifestJson'\n    }\n    const response200 = operation.responses?.['200']`
-            if (!source.includes(anchor)) throw new Error('finalizer metadata anchor missing')
-            source = source.replace(anchor, replacement)
-          }
-
-          fs.writeFileSync(path, source)
-          NODE
-      - name: Regenerate unpublished release and verify
-        shell: bash
-        run: |
-          npm run api:finalize
-          rm -rf docs/openapi/releases/2026-08-14.1
-          npm run api:materialize
           bash quality/mechanical/verify.sh
           node scripts/check-openapi-runtime-parity.cjs
           npm run api:compatibility
           npm run api:release:verify
           npm run api:runtime:parity
-      - name: Commit verified generator and artifacts
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/finalize-openapi-release.cjs scripts/check-openapi-runtime-parity.cjs scripts/sync-openapi-operation-ids.cjs docs/openapi app/api/v1/openapi/2026-08-14.1
-          git diff --cached --quiet && { echo "No changes."; exit 0; }
-          git commit -m "fix(api): normalize OpenAPI runtime metadata"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
