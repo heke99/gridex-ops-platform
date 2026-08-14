@@ -247,3 +247,10 @@ Status: VERIFIED LOCALLY
 - Normalized application and metering-point grid/price area compares case-insensitively.
 - Synchronized developer-guide contract examples to `2026-08-05.2`.
 - Recorded findings in `quality/findings-2026-08-06-codebase-health.md`.
+
+## 2026-08-14 — Post-go-live tip residuals on `580a`
+
+Status: IMPLEMENTED_NOT_VERIFIED_IN_CI
+
+- Ported `#127` UTILTS null-id / circuit / typegen residuals onto `2c5a8c0f`.
+- Forward-fixed go-live `receipt_ready` binding via `20260814140000`.

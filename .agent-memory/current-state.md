@@ -1,42 +1,39 @@
 # Current state
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-## Tip health after #123 merge
+## Tip health after tenant website go-live merge
 
-- Main tip: `3cad481b` (`fix(health): close post-2eb61986 tip residuals (#123)`).
-- Active health branch: `cursor/codebase-health-and-stability-13b2`.
-- Hosted CI for `#123` completed successfully on main, but tip review found
-  residuals that either regressed during the squash/types regen or were never
-  covered by the auth-only hardening package.
+- Main tip: `2c5a8c0f` (`Merge canonical tenant website go-live hardening`).
+- Active health branch: `cursor/codebase-health-and-stability-580a`.
+- Open `#127` on `8738` was still based on `c2adf6a0` and not merged; residuals
+  were replayed onto the go-live tip on `580a`.
 
-## Residuals closed on `13b2`
+## Residuals closed on `580a`
 
-1. HIGH — Field-511 resolver Returns nullability overwritten by types regen;
-   durable post-gen override + clean-replay/CI gate restored
-2. HIGH — Public `/teckna-avtal` rendered raw `?message=` and redirected
-   `error.message` (phishing + provider leak)
-3. MEDIUM — Portal `/portal/komplettera` rendered raw blocked `?message=`
-4. MEDIUM — Proxy set `reason=account_disabled` but login ignored it
-5. MEDIUM — Dual `getSafeNextPath` implementations (urls vs authEmailFlow)
-6. MEDIUM — UTILTS tenant match builder kept null IDE+24 refs, so synthesized
-   persistence ids could not join metering-point matches
-7. MEDIUM — post-332 residual regression was not gated in ops-hardening
+1. HIGH — UTILTS null IDE+24 disposition/ACK/profile identity join (from #127)
+2. MEDIUM — Circuit success telemetry fail-closed over completed dependency calls
+3. MEDIUM — Durable `db:types:gen` + ops-hardening gates for disposition/circuit
+4. HIGH (NEW on go-live tip) — `receipt_ready` accepted any completed receipt for
+   the api_client_id; revalidation with a new idempotency key left stale
+   completed receipts authorizing normal traffic. Forward migration
+   `20260814140000` binds to metadata `provisioning_receipt_id` when present,
+   with legacy null-metadata fallback.
 
-## Verification executed on `13b2`
+## Verification executed on `580a`
 
-- vitest auth-outage + UTILTS disposition/persistence: 50/50 PASS
+- vitest go-live + UTILTS disposition/persistence + circuit: 30/30 PASS
 - `gridex:post-332-field-511-health-residuals-regression`: PASS
-- ops health: PASS
-- `ediel:utilts-reason-regression`: PASS
-- `db:types:check`: PASS (nullable Returns + sha `2111c2c6...`)
-- `security:audit-production`: PASS (0 vulnerabilities)
+- migration integrity: PASS (432 files)
+- `db:types:check`: PASS (sha `7df58d04...`, tip `20260814140000`)
 - `tsc -p tsconfig.app.json`: PASS
+- `security:audit-production`: PASS (0 vulnerabilities)
 - ggshield: BLOCKED (CLI not installed)
 
 ## Intentionally not changed
 
-- Applied field-511 import migration `20260813210500` (immutable).
+- Applied go-live migrations `20260814125600` / `20260814133500` (immutable;
+  forward binding fix only).
 - Official UTILTS matrices / TGT-AGT evidence remain external blockers.
-- Open `#122` and older health PRs remain pre-`3cad481b` vehicles; close as
-  superseded after `13b2` merges.
+- Open `#127` and older health PRs remain pre-`2c5a8c0f` vehicles; close as
+  superseded after `580a` merges.

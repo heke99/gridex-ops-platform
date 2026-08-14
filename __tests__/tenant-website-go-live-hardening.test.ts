@@ -24,21 +24,27 @@ describe('tenant website canonical go-live hardening', () => {
 
   it('binds normal-traffic receipt_ready to the client metadata receipt, not any historical completed receipt', () => {
     // Revalidation with a new idempotency key leaves prior completed receipts
-    // attached to the same api_client_id. Normal auth must require the exact
-    // provisioning_receipt_id currently linked on the client metadata.
+    // attached to the same api_client_id. Once metadata.provisioning_receipt_id
+    // is present, normal auth must require that exact completed receipt.
+    // Legacy clients without the metadata key keep the previous fallback.
     expect(receiptBinding).toContain('authenticate_integration_request_v1')
     expect(receiptBinding).toContain('as receipt_ready')
     expect(receiptBinding).toContain(
       "receipt.id::text = nullif(auth.metadata->>'provisioning_receipt_id','')",
     )
+    expect(receiptBinding).toContain(
+      "nullif(auth.metadata->>'provisioning_receipt_id','') is null",
+    )
     expect(receiptBinding).toContain("receipt.state='completed'")
     expect(receiptBinding).toContain("nullif(receipt.receipt_sha256,'') is not null")
-    // Stale any-receipt join must not remain as the sole receipt_ready predicate.
     const receiptReadyBlock = receiptBinding.slice(
-      receiptBinding.indexOf('as receipt_ready') - 500,
+      receiptBinding.indexOf('as receipt_ready') - 700,
       receiptBinding.indexOf('as receipt_ready'),
     )
     expect(receiptReadyBlock).toContain("receipt.id::text = nullif(auth.metadata->>'provisioning_receipt_id','')")
+    expect(receiptReadyBlock).toContain(
+      "nullif(auth.metadata->>'provisioning_receipt_id','') is null",
+    )
     expect(receiptReadyBlock).toContain('receipt.api_client_id=auth.client_id')
     expect(receiptReadyBlock).toContain('receipt.company_id=auth.company_id')
   })
