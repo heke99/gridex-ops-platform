@@ -24,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
       - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
+      - run: npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
       - name: Integrated remaining-masterpoints golden path

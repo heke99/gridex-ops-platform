@@ -43,6 +43,8 @@ export function logRouteTiming(fields: RouteTimingFields): void {
   const payload: Record<string, unknown> = {
     route: fields.route,
     duration_ms: Math.round(fields.durationMs),
+    vercel_region: process.env.VERCEL_REGION ?? null,
+    deployment_id: process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? null,
   }
   if (typeof fields.status === 'number') payload.status = fields.status
   if (typeof fields.count === 'number') payload.count = fields.count
