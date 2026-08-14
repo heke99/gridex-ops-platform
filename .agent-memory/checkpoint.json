@@ -6,8 +6,8 @@
   "active_task": "Close post-#126 UTILTS null-id + circuit telemetry residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "c2adf6a0",
-  "head_sha": "bb957fa8",
-  "pr": null,
+  "head_sha": "b1fc4bbb",
+  "pr": "pending_open",
   "verification": {
     "vitest_utilts_auth_runtime": "PASS_45",
     "post_332_field_511_residuals": "PASS",
