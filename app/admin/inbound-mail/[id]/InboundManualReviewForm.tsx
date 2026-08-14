@@ -73,7 +73,7 @@ export default function InboundManualReviewForm({
           className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950"
         >
           <option value="queued">Köa om</option>
-          <option value="completed">Markera klar</option>
+          <option value="done">Markera klar</option>
           <option value="failed">Markera misslyckad</option>
         </select>
       </div>
