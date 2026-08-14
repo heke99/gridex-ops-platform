@@ -2483,6 +2483,14 @@ function normalizePublicOpenApiDocumentOperations(document) {
   for (const path of paths) {
     const operation = document.paths?.[path]?.get
     if (!operation) continue
+    const immutableMatch = path.match(/^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1)\.json$/)
+    if (immutableMatch) {
+      const versionToken = immutableMatch[1].replace(/[^0-9A-Za-z]/g, '')
+      const documentToken = immutableMatch[2] === 'website-integration-v1'
+        ? 'WebsiteIntegrationV1Json'
+        : 'CustomerPortalV1Json'
+      operation.operationId = `getApiV1Openapi${versionToken}${documentToken}`
+    }
     operation.security = []
     operation['x-required-scopes'] = []
     const response200 = operation.responses?.['200']

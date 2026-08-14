@@ -6816,7 +6816,7 @@
           }
         },
         "x-required-scopes": [],
-        "operationId": "getApiV1OpenapiCustomerPortalV1Json",
+        "operationId": "getApiV1Openapi202608101CustomerPortalV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
@@ -6892,7 +6892,7 @@
           }
         },
         "x-required-scopes": [],
-        "operationId": "getApiV1OpenapiCustomerPortalV1Json",
+        "operationId": "getApiV1Openapi202608141CustomerPortalV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
