@@ -402,6 +402,7 @@
     "20260813130500_ediel_utilts_canonical_field_matrix.sql": "f0b57556ac1b196ba598d6308ed34b7595da3ab7266150e8278110d3fb0ab1e5",
     "20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql": "98241372a19bb2c4db672cd2f28990d3a086fe2e959697e83a3bfa1b5b8242c2",
     "20260814232000_bind_website_sales_to_live_production.sql": "48a7eb20af6f7ba5d76cc24e0f91fa94b110a954d99d05e4d8a00c99dccf4f15",
+    "20260814234000_certification_evidence_passed_integrity.sql": "67e9943bcaff02f1c099becbd7dac9eb9823626ed7b13e9f2d216a13925fc9c9",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
