@@ -5,6 +5,7 @@ import {
 } from '@/lib/admin/navigationPreferences'
 import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 import { supabaseService } from '@/lib/supabase/service'
+import { isCompanyVisibleInTenantWorkspace } from '@/lib/tenant/lifecycle'
 
 export type CompanySummary = {
   id: string
@@ -21,6 +22,7 @@ export type CompanyMembershipSummary = {
   orgNumber: string | null
   membershipRole: string
   status: string
+  companyStatus: string | null
 }
 
 export type OperationalCompanyScope = {
@@ -128,9 +130,11 @@ export const listOperationalCompaniesForUser = cache(async function listOperatio
         orgNumber: company.org_number ?? null,
         membershipRole: row.membership_role ?? 'member',
         status: row.status ?? 'active',
+        companyStatus: company.status ?? null,
       } satisfies CompanyMembershipSummary
     })
     .filter((row): row is CompanyMembershipSummary => Boolean(row))
+    .filter((row) => isCompanyVisibleInTenantWorkspace(row.companyStatus))
 })
 
 export const getOperationalCompanyScope = cache(async function getOperationalCompanyScope(
@@ -157,7 +161,7 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
       memberships,
       requiresCompany: true,
       message:
-        'Kontot saknar aktiv bolagskoppling. Bolagsvy kräver ett aktivt medlemskap i ett elhandelsbolag.',
+        'Kontot saknar ett bolag som är aktivt, under onboarding eller tillfälligt pausat. Avstängda, arkiverade och stängda bolag är inte valbara i tenantläget.',
       selectedByPlatformAdmin: false,
     }
   }
@@ -208,7 +212,7 @@ export async function assertUserCanOperateCompany(
   const allowed = memberships.some((row) => row.companyId === normalized)
 
   if (!allowed) {
-    throw new Error('Du saknar aktiv bolagskoppling för valt elhandelsbolag.')
+    throw new Error('Du saknar en aktiv eller pausad bolagskoppling för valt elhandelsbolag.')
   }
 
   return normalized
