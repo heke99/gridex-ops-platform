@@ -159,3 +159,15 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-08-14 — post-#141 tip residuals on d15d
+
+| Check | Result |
+|---|---|
+| vitest (post-139 inbound + post-128 openapi) | PASS 4/4 |
+| db:migrations:integrity | PASS 436 |
+| db:types:check | PASS |
+| security:audit-production | PASS 0 |
+| tsc -p tsconfig.app.json | PASS |
+| hosted CI | NOT YET |
+| ggshield | BLOCKED |

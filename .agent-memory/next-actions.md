@@ -1,11 +1,13 @@
 # Next actions
 
-Updated: 2026-08-10
+Updated: 2026-08-14
 
-1. Restore this source on the real Git repository and record the checked 40-character HEAD in `.agent-memory/checkpoint.json` only on that same commit.
-2. Run the required GitHub workflow, including clean empty-database replay, and retain its artifacts.
-3. Verify staging and production Supabase parity before applying any forward migrations there.
-4. Enable Supabase Auth leaked-password protection if password login is enabled.
-5. Deploy the exact verified commit, prove Git/CI/Vercel SHA equality, then run tenant smoke/isolation/webhook checks.
-6. Capture production p50/p95/p99 with DB, compute and external-dependency timings.
-7. Change campaign status to `COMPLETE` only when every item above has evidence.
+1. Open/merge `cursor/codebase-health-and-stability-d15d` after hosted CI and
+   clean-migration-replay are green (squash only).
+2. Close superseded conflicting PR `#140`/`ea1a` after `d15d` merges.
+3. Apply forward migration `20260814190000` on staging/production only after
+   Git/CI parity evidence for the merged SHA.
+4. Run ggshield / secret scan in CI/host (CLI unavailable in this environment).
+5. Restore exact official UTILTS operation/request matrices and TGT/AGT evidence
+   when external sources become available.
+6. Change Vercel project runtime from Node 24.x to Node 22 when operators can.

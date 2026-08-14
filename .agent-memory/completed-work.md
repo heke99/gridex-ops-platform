@@ -264,3 +264,12 @@ Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
   (`20260814180000_tenant_website_activation_lifecycle_resume.sql`).
 - Force pause when permissions promote active non-canonical clients to
   tenant_website; share `isTenantWebsiteIntegrationClient`.
+
+## 2026-08-14 — Post-#141 tip health residuals (d15d)
+
+Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+
+- Re-applied inbound manual-review residuals left behind when `#141` merged
+  only the OpenAPI docs slice while `#140` remained conflicting.
+- Forward migration `20260814190000_inbound_manual_review_status_and_binding.sql`
+  (canonical `done`, job↔message binding, service-role-only 5-arg RPC).

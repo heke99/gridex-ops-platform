@@ -377,3 +377,4 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 ## 2026-08-14
 - Closed post-#134 tip residuals on `cursor/codebase-health-and-stability-b4c7` (receipt binding, UTILTS identity, circuit telemetry, lifecycle/go-live guards).
 - Closed post-#135 tip residuals on `cursor/codebase-health-and-stability-9740` (lifecycle resume activation guard, permissions promote pause, shared tenant-website classifier).
+- Closed post-#141 tip residuals on `cursor/codebase-health-and-stability-d15d` (inbound review done status + job↔message binding; OpenAPI already on tip via #141).
