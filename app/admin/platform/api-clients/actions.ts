@@ -48,6 +48,16 @@ function nullableDate(formData: FormData, key: string): string | null {
   return date.toISOString()
 }
 
+function isTenantWebsiteIntegrationClient(input: {
+  profile_key?: string | null
+  scopes?: string[] | null
+}): boolean {
+  if (input.profile_key === 'tenant_website') return true
+  return (input.scopes ?? []).some(
+    (scope) => scope.startsWith('customer_portal.') || scope === 'website_applications.write',
+  )
+}
+
 function normalizedWebhookRef(value: string): string | null {
   const cleaned = value.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_')
   return cleaned || null
@@ -264,12 +274,18 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,status')
+    .select('id,company_id,status,profile_key,scopes')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
+
+  if (status === 'active' && isTenantWebsiteIntegrationClient(current)) {
+    throw new Error(
+      'TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE: använd det canonicala go-live-flödet (Sätt bolaget live) i stället för generell statusaktivering.',
+    )
+  }
 
   const payload: Record<string, unknown> = {
     status,
@@ -408,13 +424,17 @@ export async function rotateIntegrationApiClientTokenAction(formData: FormData) 
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix')
+    .select('id,company_id,name,status,key_prefix,metadata')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
   if (current.status !== 'active' && current.status !== 'paused') throw new Error('Endast aktiva eller pausade API-klienter kan roteras.')
+
+  const metadata = current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+    ? current.metadata as Record<string, unknown>
+    : {}
 
   const tokenData = generateIntegrationApiToken()
   const { error } = await supabaseService
@@ -423,7 +443,11 @@ export async function rotateIntegrationApiClientTokenAction(formData: FormData) 
       key_prefix: tokenData.keyPrefix,
       secret_hash: tokenData.secretHash,
       updated_at: new Date().toISOString(),
-      metadata: { rotated_from_prefix: current.key_prefix, token_display: 'shown_once_on_rotate' },
+      metadata: {
+        ...metadata,
+        rotated_from_prefix: current.key_prefix,
+        token_display: 'shown_once_on_rotate',
+      },
     })
     .eq('id', clientId)
 
