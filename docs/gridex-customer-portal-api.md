@@ -4,248 +4,55 @@ Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
 Dokumentationsversion: `2026-08-10.1`.
 
-Den här filen är en tenant-neutral integrationsreferens. Den får aldrig innehålla
-verkliga kunduppgifter, verkliga kundnummer, verkliga externa kund-ID:n eller
-tenant-specifika hemligheter. Exakta request/response-scheman är canonical i
-OpenAPI.
+## Tenantkonfiguration
 
-## Canonical endpoints
+Tenantens hemsida eller Mina sidor behöver endast en server-side hemlighet:
 
-API base URL:
-
-```text
-https://app.gridex.se/api/v1
+```env
+GRIDEX_API_KEY=gridex_live_xxxxxxxxx
 ```
 
-OpenAPI:
+API base URL är alltid `https://app.gridex.se/api/v1`. API-nyckeln avgör tenant, `company_id` och scopes. Tenantens miljö ska inte innehålla separat tenant-ID, company-ID, quote-reference-läge eller OpenAPI-sökväg.
+
+Canonical `quote_reference`, `resolution_id` och `offer_reference` skickas alltid top-level i `POST /api/v1/website/customer-applications`. OpenAPI publiceras på:
 
 ```text
 https://app.gridex.se/api/v1/openapi/website-integration-v1.json
 https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 ```
 
-OpenAPI används för utveckling, validering och typgenerering. Runtime ska inte
-hämta OpenAPI för varje request.
+OpenAPI används för utveckling/typgenerering och är inte ett runtimeberoende.
 
-## Tenantkonfiguration
+### Production readiness
 
-Tenantens hemsida och Mina sidor behöver endast en server-side hemlighet:
+En giltig API-nyckel är inte ensam ett bevis på att tenantintegrationen är klar för live-trafik. OPS använder ett fail-closed go-live-flöde där normal trafik släpps först när API-klienten är aktiv, canonical installation receipt är verifierad, `launch_ready=true`, `launch_blockers=[]` och tenantens `api_sales` capability är redo.
 
-```env
-GRIDEX_API_KEY=gridex_live_xxxxxxxxx
-```
+Under provisionering eller revalidation kan API:t därför returnera följande 403-koder:
 
-API-nyckeln avgör tenant, internt `company_id` och scopes. Klienten ska därför
-aldrig skicka ett fritt `company_id`, tenant-ID eller annan bolagsväljare.
+- `api_client_not_launch_ready` – klientens canonical launch-verifiering är inte klar;
+- `integration_receipt_not_verified` – installationsbeviset är inte färdigställt;
+- `integration_capability_not_ready` – tenantens API-capability är inte produktionsklar.
 
-Frontend får aldrig exponera `GRIDEX_API_KEY`. Rekommenderat flöde är:
+De här koderna är operatörsåtgärder och ska inte lösas genom att klienten skickar ett fritt `company_id`, kringgår scopes eller retry:ar obegränsat. En manuellt pausad, revoked, deleted eller tvetydig credential återaktiveras aldrig automatiskt. En befintlig primary credential som endast pausades av canonical readiness får återanvändas först efter ny smoke, receipt och readiness-reconciliation.
+
+## Grundmodell
+
+Tenantens hemsida/Mina sidor äger inloggningssessionen. OPS är master för kund, kundnummer, avtal, anläggningar, fullmakter, juridiska godkännanden, dokument, status och processflöden.
+
+Flödet ska vara:
 
 ```text
-Browser
-  -> tenantens server route
-  -> Authorization: Bearer $GRIDEX_API_KEY
-  -> OPS API
-  -> tenant härleds från credential
-  -> tenantfiltrerad canonical data
+Tenant Mina sidor → tenant server route → OPS API → OPS company_id från API-nyckel → kundresolver → OPS masterdata → tenant UI
 ```
 
-OPS är master för kund, kundnummer, avtal, anläggningar, juridiska accepter,
-fullmakter, dokument, status och OPS-ägda processflöden.
+Frontend får aldrig anropa OPS direkt med API-nyckel och får aldrig skicka ett fritt `company_id`.
 
-## Produktionsaktivering och readiness
+Publika UUID:n är opaka och tenantbundna; de är aldrig en
+auktoriseringsmekanism. Interna prisplans-, publicerings-, portalidentitets- och
+provider-ID:n får inte förekomma i externa DTO:er. Se
+[Public API ID policy](./public-api-id-policy.md).
 
-En giltig API-nyckel är inte ensam ett bevis på att integrationen är klar för
-produktion. OPS använder ett fail-closed go-live-flöde. Normal trafik släpps
-först när samtliga canonical launch-bevis är verifierade:
-
-1. API-klienten är aktiv och har rätt scopes/origins.
-2. Tenantens publicerade avtal, juridik och obligatoriska driftberoenden är redo.
-3. Provisioning smoke har verifierat credential och centrala routes.
-4. En installation receipt är `completed`, har `completed_at` och SHA-256-bevis.
-5. `launch_ready=true` och `launch_blockers=[]`.
-6. Tenantens `api_sales` capability är `enabled=true` och `readiness_status=ready`.
-
-Under en kontrollerad provisionering/revalidation kan API:t därför tillfälligt
-returnera någon av följande 403-koder:
-
-- `api_client_not_launch_ready` – API-klientens launch-verifiering är inte klar.
-- `integration_receipt_not_verified` – canonical installation receipt är inte klar.
-- `integration_capability_not_ready` – tenantens API-capability är inte redo.
-
-Dessa fel ska inte lösas genom en retry-loop eller genom att en extern developer
-skickar egna tenantfält. De kräver att Gridex-operatören färdigställer canonical
-go-live/revalidation. Manuellt pausade eller revoked credentials återaktiveras
-aldrig automatiskt. En credential som endast pausades av en canonical
-readiness-migrering får återanvändas först efter ny receipt, smoke och readiness.
-
-## Behörigheter
-
-Varje endpoint kontrollerar scope server-side. Exempel på aktiva scopes:
-
-### Website Integration API
-
-- `integration_context.read`
-- `website_contracts.read`
-- `website_contracts.diagnostics`
-- `website_energy_area.resolve`
-- `website_market_prices.read`
-- `website_quotes.write`
-- `website_quotes.validate`
-- `website_legal.read`
-- `website_applications.write`
-- `website_switch_status.read`
-- `website_events.write`
-
-### Customer Portal API
-
-- `customer_profile.read`
-- `customer_contracts.read`
-- `customer_sites.read`
-- `customer_invoices.read`
-- `customer_metering.read`
-- `customer_documents.read`
-- `customer_legal.read`
-- `customer_events.read`
-- `customer_power_of_attorney.read`
-- `customer_notifications.read`
-- `customer_sync.write`
-- `customer_contact.write`
-- `customer_facility_data.write`
-- `customer_power_of_attorney.write`
-- `customer_notifications.write`
-
-`customer_portal.read` och `customer_portal.write` är legacy-alias som kan
-expanderas server-side under övergången. Nya integrationer ska använda de
-granulära scopes som respektive OpenAPI-operation kräver.
-
-## Verifiera tenantkontext
-
-```http
-GET /api/v1/integration/context
-Authorization: Bearer ${GRIDEX_API_KEY}
-Accept: application/json
-```
-
-Svaret innehåller en opak `tenant_reference`. Den är inte samma sak som internt
-`company_id` och ska inte användas för att kringgå API-nyckelns tenantgräns.
-
-## Publicerade avtal
-
-```http
-GET /api/v1/website/public-contracts?customer_type=private
-Authorization: Bearer ${GRIDEX_API_KEY}
-Accept: application/json
-```
-
-Detta är urvalsfeeden för tenantens hemsida. Klienten ska använda canonical
-`offer_reference` och `price_option_reference` från svaret och aldrig konstruera
-egna referenser.
-
-Ett giltigt tomt svar är inte samma sak som ett integrationsfel. HTTP-status och
-det canonical error-kuvertet ska alltid kontrolleras innan `data` renderas.
-
-För felsökning kan en behörig serverintegration använda den dokumenterade
-diagnostics-operationen med `website_contracts.diagnostics`. Intern diagnostik
-ska inte visas direkt för slutkund.
-
-## Elområde, marknadspris och quote
-
-Tenantens backend ska använda OPS canonicala flöde:
-
-1. resolve energy area,
-2. verifiera `pricing_ready`/`quote_ready`,
-3. hämta marknadsreferens när avtalsmodellen behöver den,
-4. skapa OPS-ägd quote,
-5. visa quote-resultatet utan att räkna om canonical prisdelar lokalt.
-
-Historisk marknadsdata är inte slutlig settlementdata. Fakturering ska använda
-de låsta `price_area` från quote-/avtalssnapshoten och annan canonical
-settlementdata, aldrig ett nytt postnummeruppslag i efterhand.
-
-## Kundansökan
-
-```http
-POST /api/v1/website/customer-applications
-Authorization: Bearer ${GRIDEX_API_KEY}
-Content-Type: application/json
-Idempotency-Key: website-order-12345
-```
-
-Canonical `offer_reference`, `quote_reference` och `resolution_id` skickas
-alltid top-level. Förenklat exempel:
-
-```json
-{
-  "external_customer_id": "tenant-customer-001234",
-  "offer_reference": "offer_...",
-  "quote_reference": "quote_...",
-  "resolution_id": "00000000-0000-4000-8000-000000000001",
-  "price_option_reference": "price_option_...",
-  "invoice_delivery_method": "email",
-  "selected_component_references": [],
-  "site_count": 1,
-  "annual_consumption_kwh": 5000,
-  "start_date": "2026-09-01",
-  "customer": {
-    "customer_type": "private",
-    "first_name": "Anna",
-    "last_name": "Andersson",
-    "email": "customer@example.com",
-    "phone": "+46700000000",
-    "personal_number": "YYYYMMDDXXXX"
-  },
-  "site": {
-    "facility_id": null,
-    "street": "Exempelgatan 1",
-    "postal_code": "21122",
-    "city": "Malmö",
-    "annual_consumption_kwh": 5000,
-    "move_in_date": "2026-09-01",
-    "current_supplier_name": "Nuvarande Leverantör AB",
-    "current_supplier_org_number": "5560000000",
-    "current_supplier_ediel_id": "12345"
-  },
-  "contract": {
-    "requested_start_mode": "specific_date",
-    "requested_start_date": "2026-09-01"
-  },
-  "legal_bundle_version": "<bundle-reference-from-ops>",
-  "legal_acceptances": [
-    {
-      "requirement_code": "agreement",
-      "document_reference": "<document-reference-from-ops>",
-      "document_version": "<document-version-from-ops>",
-      "document_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "accepted": true,
-      "accepted_at": "2026-08-14T10:00:00Z"
-    }
-  ]
-}
-```
-
-Ett accepterat svar betyder att canonical data har committats. Eftersteg körs
-beständigt och asynkront. `next_step` kan därför vara `automatic_processing` och
-OPS använder ett durable `customer_application_continuation`-jobb för nästa
-steg. Tenantens requestlivstid styr aldrig leverantörsbyte, mail, Ediel eller
-webhookleverans.
-
-## Idempotency
-
-`Idempotency-Key` är obligatorisk på dokumenterade write-operationer, bland
-annat kundansökan och kundsync.
-
-Viktiga konflikter:
-
-- `idempotency_key_payload_mismatch` – samma nyckel med annan payload.
-- `idempotency_in_progress` – första requesten pågår fortfarande.
-- `duplicate_application` – samma committed ansökan skickas under ny nyckel.
-- `application_business_in_progress` – samma affärshändelse behandlas redan.
-- `application_business_conflict` – en aktiv/committed affärshändelse krockar.
-
-Retry ska följa `retryable` i error-kuvertet. Generera inte automatiskt en ny
-idempotency-nyckel för att kringgå en affärskonflikt.
-
-## Mina sidor: kundidentifiering
+## Portal bundle payload
 
 Rekommenderad endpoint:
 
@@ -255,7 +62,7 @@ Authorization: Bearer ${GRIDEX_API_KEY}
 Content-Type: application/json
 ```
 
-Tenant-neutralt exempel:
+Payload ska innehålla så många stabila kundnycklar som möjligt. Exemplen i dokumentationen är avsiktligt tenant-neutrala och får inte innehålla verkliga kunduppgifter:
 
 ```json
 {
@@ -265,14 +72,26 @@ Tenant-neutralt exempel:
 }
 ```
 
-OPS löser kunden inom API-nyckelns tenant. Stabil portal identity/auth-länkning
-prioriteras före externa kundreferenser. En ensam e-postadress får inte användas
-för att bryta tenant- eller identitetsgränser.
+OPS löser kund inom API-nyckelns tenant i denna ordning:
 
-Kundresolvern måste länka portalidentiteten till rätt `company_id` och kund innan
-kunddata lämnas ut. Interna UUID:n är inte en auktoriseringsmekanism.
+1. länkad portal identity/account (när `x-gridex-customer-portal-user-id` / `x-gridex-auth-user-id` skickas)
+2. `external_customer_id`
+3. `customer_number`
+4. unik `email`
 
-Exempel på sanerat svar:
+Identifierare kan skickas som JSON-body (POST `portal-bundle` och `sync`) eller som
+headers/query (GET-endpoints och övriga POST-subrutter), t.ex.
+`x-gridex-external-customer-id`, `x-gridex-customer-number`, `x-gridex-customer-email`.
+
+Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` och tenant ska skicka `customer_number` eller `external_customer_id`.
+
+### Query-parametrar (portal-bundle)
+
+- `summary=true` – returnerar endast profil/status/datakvalitet
+- `include=contracts,sites,invoices,...` – begränsar vilka sektioner som laddas
+- `metering_values_limit`, `documents_limit`, `events_limit` – begränsar radantal per sektion
+
+## Portal bundle response
 
 ```json
 {
@@ -284,52 +103,77 @@ Exempel på sanerat svar:
     },
     "customer_status": {
       "code": "needs_facility_data",
+      "label": "Ansökan behandlas",
+      "message": "Vi behöver komplettera anläggningsuppgifter innan leverantörsbytet kan starta.",
       "supplier_switch": {
         "can_create_request": false,
         "can_dispatch": false,
-        "blockers": [
-          "missing_metering_point",
-          "missing_grid_owner",
-          "facility_not_verified"
-        ],
+        "blockers": ["missing_metering_point", "missing_grid_owner", "facility_not_verified"],
         "next_action": "complete_application"
-      }
+      },
+      "can_start_switch": false
+    },
+    "data_quality": {
+      "status": "needs_action",
+      "issues": ["missing_metering_point", "missing_grid_owner", "facility_not_verified"]
     }
   }
 }
 ```
 
-Om flera kunder matchar en otillräcklig identifierare ska API:t fail-closed och
-kräva starkare kundidentifiering i stället för att välja godtyckligt.
+`supplier_switch.can_create_request` och `supplier_switch.can_dispatch` är
+separata beslut. `can_start_switch` är en utfasad kompatibilitetsalias för
+`supplier_switch.can_dispatch`.
 
-## Mina sidor: sub-endpoints
+Det fullständiga svaret innehåller även `customer`, `contracts`, `sites`,
+`metering_points`, `invoices`, `metering_values`, `documents`,
+`legal_acceptances`, `powers_of_attorney`, `notifications`, `events`,
+`website_applications` och `bundle_status`. Vid delvis fel returneras 200 med
+tomma sektioner och `bundle_status.status = "partial"` (aldrig en HTML-sida).
 
-Exempel:
+### Sub-endpoints
 
-- `GET /api/v1/customer/me`
-- `GET /api/v1/customer/contracts`
-- `GET /api/v1/customer/sites`
-- `GET /api/v1/customer/invoices`
-- `GET /api/v1/customer/invoices/{id}`
-- `GET /api/v1/customer/metering-values`
-- `GET /api/v1/customer/documents`
-- `GET /api/v1/customer/legal-acceptances`
-- `GET /api/v1/customer/powers-of-attorney`
-- `GET /api/v1/customer/events`
-- `GET /api/v1/customer/notifications`
+Varje endpoint kontrollerar sitt granulära scope. Identifierare skickas enligt
+respektive OpenAPI-operation via headers, path eller query:
 
-Exakta query/path/header-fält och scopes kommer från Customer Portal OpenAPI.
+- `GET /api/v1/customer/me` – `customer_profile.read`
+- `GET /api/v1/customer/contracts` – `customer_contracts.read`
+- `GET /api/v1/customer/sites` – `customer_sites.read`
+- `GET /api/v1/customer/invoices` – `customer_invoices.read`
+- `GET /api/v1/customer/invoices/{id}` – `customer_invoices.read`; returnerar endast en publicerbar rad från `customer_invoices`
+- `GET /api/v1/customer/metering-values?from=&to=&facility_id=&limit=` – `customer_metering.read`
+- `GET /api/v1/customer/documents` – `customer_documents.read`
+- `GET /api/v1/customer/legal-acceptances` – `customer_legal.read`
+- `GET /api/v1/customer/powers-of-attorney` – `customer_power_of_attorney.read`
+- `GET /api/v1/customer/events` – `customer_events.read`
+- `GET /api/v1/customer/notifications` – `customer_notifications.read`
 
-## Synk av kunddata, dokument och fullmakt
+`GET /api/v1/customer/portal-bundle` behåller `customer_portal.read` som ett
+legacy-umbrella-scope. Det expanderas server-side till de granulara läsrättigheter
+som bundlen behöver, men ska inte användas som generell ersättning på nya
+sub-endpointintegrationer.
+
+Skriv-endpoints kräver granulära scopes: `customer_sync.write`, `customer_contact.write`, `customer_facility_data.write`, `customer_power_of_attorney.write` och `customer_notifications.write`. Legacy-scope `customer_portal.write` expanderas server-side under övergångsperioden. `profile-update` kräver det scope som motsvarar operationen och båda scopes när både profil och anläggningsdata skickas i samma request.
+
+## Kundens tecknade avtal
+
+`GET /api/v1/customer/contracts` och portal bundle läser tenantens `customer_contracts`, inte website-endpointens säljerbjudanden. Externa DTO:er använder dokumenterade, opaka och tenantbundna resurs-ID:n; interna publicerings-, prisplans-, provider- och snapshot-ID:n exponeras inte. Kundresolvern måste länka portalidentiteten till rätt tenant och kund; annars returneras ett tydligt identitetsfel i stället för andra kunders data.
+
+## Dokument, fullmakt och juridiska godkännanden
+
+Tenant ska skicka godkända fullmakter, juridiska godkännanden och dokument till OPS så OPS kan starta rätt processer.
 
 ```http
 POST /api/v1/customer/sync
 Authorization: Bearer ${GRIDEX_API_KEY}
 Content-Type: application/json
-Idempotency-Key: tenant-sync-001234
 ```
 
-Tenant-neutralt exempel:
+> `Idempotency-Key` är obligatorisk på `/sync`, `/profile-update`,
+> `/move-out`, `/notifications/read`, `POST /api/v1/events` och
+> `POST /api/v1/website/customer-events`. Nyckeln binds till tenant,
+> API-klient, kund, operation och payload-hash. Samma nyckel med samma payload
+> ger replay av lagrat resultat; samma nyckel med annan payload ger `409`.
 
 ```json
 {
@@ -361,108 +205,225 @@ Tenant-neutralt exempel:
   ],
   "documents": [
     {
-      "document_reference": "tenant-contract-001234",
+      "document_reference": "tenant-contract-123",
       "document_type": "contract_confirmation",
       "title": "Avtalsbekräftelse",
-      "secure_url": "https://tenant.example/documents/tenant-contract-001234.pdf"
+      "secure_url": "https://tenant.example/documents/tenant-contract-123.pdf"
     }
   ]
 }
 ```
 
-OPS ska spara exakt canonical evidens för fullmakt och juridiska accepter. En
-fristående boolean är inte tillräcklig när en exakt version/hash krävs.
+Fullmaktens `document_reference` får vara antingen den nya samlade
+`power_of_attorney`-referensen från OPS eller den äldre exakta modulreferensen
+från samma tenantbundna legal bundle. `scope` måste alltid innehålla
+`supplier_switch`; `facility_information_lookup` är det enda valbara tillägget.
+OPS sparar exakt scope oföränderligt och skapar samma authorization chain som
+webbansökan använder. `signer_name`, `signer_identity_number` och `method` krävs
+för att fullmakten ska bli signerad och kunna användas för nätägarbegäran eller
+leverantörsbyte. En äldre payload utan dessa fält tas emot som ett ofullständigt
+utkast och blockerar extern dispatch.
 
-## Webhooks
+`legal_acceptances` använder samma samlade kunddokument som webbansökan:
+`agreement`, `power_of_attorney` och, när det är tillämpligt, `withdrawal`.
+OPS expanderar varje samlad acceptans till en oföränderlig bevisrad per exakt
+underliggande juridikmodul. Äldre modulreferenser stöds fortsatt, men de får inte
+blandas med samlade dokumentreferenser i samma synkflöde.
 
-Webhook är valfritt för statusleverans; polling är canonical fallback. En
-production-webhook ska använda HTTPS och tenant-specifik signing secret.
-Mottagaren ska verifiera signatur och timestamp innan payload parsas och spara
-`event_id` idempotent innan affärslogik körs.
+OPS sparar:
 
-## Felmodell
+- fullmakt i `powers_of_attorney`
+- juridiska godkännanden i `customer_legal_acceptances`
+- dokument i `customer_documents`
+- processhändelser som domain events/webhooks
 
-API-fel returneras som JSON, aldrig HTML:
+## Eventstatus
+
+Publikt aktiva webhookevents omfattar bland annat `supply.started`,
+`invoice.created`, `invoice.sent`, `invoice.paid` och `invoice.disputed`.
+
+Interna livscykelhändelser omfattar `supplier_switch.requested`,
+`supplier_switch.accepted`, `supplier_switch.rejected`,
+`supply_period.activated` samt `invoice.provider.partially_paid`,
+`invoice.provider.overdue` och `invoice.provider.credited`. De interna namnen är
+inte ett publikt webhooklöfte.
+
+Följande publika namn är planerade och ska inte prenumereras på ännu:
+`contract.activated`, `supplier_switch.started`,
+`supplier_switch.completed`, `invoice.partially_paid`, `invoice.overdue` och
+`invoice.credited`.
+
+Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switch tills mätpunkt/nätägare är verifierade.
+
+## Website customer applications
+
+### Portföljmetod och sanerad historik
+
+`GET /api/v1/website/portfolio-prices?offer_reference=...&price_area=SE3`
+kräver `website_contracts.read`. API-nyckeln bestämmer bolaget och
+`offer_reference` bestämmer exakt publicerat portfölj-/mixavtal. Svaret innehåller endast:
+
+- `method`: den publika avtalsmetoden utan interna portfölj- eller versions-ID:n;
+- `historical_final_prices`: sanerade finala eller låsta historikrader med månad, elområde, belopp, enhet, momsstatus och status;
+- `market_price_responsibility=ops_quote`;
+- `calculator_market_price_supplied_by_ops=true`;
+- `final_billing_rule=locked_settlement_only`.
+
+Historiska portföljrader får inte användas som aktuell marknadsreferens i tenantens kalkylator. För kundspecifik preview skapar tenantens backend i stället en OPS-quote. Quotens additiva `market_reference` anger provider, prisområde, referensperiod, `as_of`, freshness, fallback och att värdet är indikativt.
+
+OPS använder separat verifierad och explicit låst settlement vid faktisk avräkning och fakturering. Preview och settlement är skilda datatyper; `market_reference` får aldrig användas som slutligt fakturapris.
+
+## Scopes
+
+Runtime kontrollerar granulära scopes per operation. Följ OpenAPI-operationens
+`security`/scopekrav när en API-klient provisioneras:
+
+- `customer_profile.read` – kundprofil
+- `customer_contracts.read` – kundens tecknade avtal
+- `customer_sites.read` – anläggningar och mätpunkter
+- `customer_invoices.read` – fakturor
+- `customer_metering.read` – mätvärden
+- `customer_documents.read` – dokument
+- `customer_legal.read` – juridiska accepter
+- `customer_events.read` – kundens portalhändelser
+- `customer_power_of_attorney.read` – fullmakter
+- `customer_notifications.read` / `customer_notifications.write` – notiser
+- `customer_sync.write` – kundsync och portalinitialisering
+- `customer_contact.write` – kontaktuppgifter i `profile-update`
+- `customer_facility_data.write` – anläggningsuppgifter och `move-out`
+- `customer_power_of_attorney.write` – fullmaktssync
+- `events.read` / `website_events.write` – globala respektive website-events
+
+`customer_portal.read` och `customer_portal.write` är legacy-alias som expanderas
+server-side under övergångsperioden. Nya klienter ska få de granulara scopes de
+faktiskt behöver. `profile-update` kräver `customer_contact.write`,
+`customer_facility_data.write` eller båda beroende på vilka payloadsektioner som
+skickas.
+
+## Felkoder
+
+Fel returneras alltid i det kanoniska JSON-kuvertet, aldrig som HTML:
 
 ```json
 {
   "error": {
     "code": "api_scope_missing",
-    "message": "Begäran saknar nödvändigt scope.",
+    "message": "Required API scope is missing.",
     "retryable": false,
     "field": null,
     "blockers": []
   },
   "request_id": "req_...",
-  "correlation_id": "req_...",
+  "correlation_id": null,
   "contract_schema_version": "2026-08-10.1"
 }
 ```
 
-Centrala auth/readiness-koder:
+- `401 missing_api_token` / `401 invalid_api_token` / `401 api_token_expired`
+- `403 api_scope_missing` / `403 api_ip_not_allowed` / `403 api_origin_not_allowed`
+- `403 api_client_not_launch_ready` / `403 integration_receipt_not_verified` / `403 integration_capability_not_ready`
+- `403 customer_portal_link_requires_sync` (första länkningen kräver två matchande nycklar eller en tidigare länk)
+- `404 customer_not_found` / `404 invoice_not_found`
+- `409 ambiguous_customer_match`
+- `400 idempotency_key_required` / `400 idempotency_key_invalid`
+- `409 idempotency_key_payload_mismatch` / `409 idempotency_in_progress`
+- `409 duplicate_application` / `409 application_business_in_progress` / `409 application_business_conflict` / `409 idempotent_failed`
+- `422 requested_start_mode_invalid` / `422 date_invalid` / `422 timestamp_invalid` / `422 unknown_field`
+- `422 missing_customer_identifier`
+- `429 rate_limited`
+- `500 customer_portal_internal_error`
+- `503 customer_portal_schema_missing`
 
-- `missing_api_token` – 401
-- `invalid_api_token` – 401
-- `api_token_expired` – 403
-- `api_client_inactive` – 403
-- `api_client_not_launch_ready` – 403
-- `integration_receipt_not_verified` – 403
-- `integration_capability_not_ready` – 403
-- `api_scope_missing` – 403
-- `api_origin_not_allowed` – 403
-- `api_ip_not_allowed` – 403
-- `tenant_not_operationally_ready` – 403
-- `tenant_paused` – 423
-- `tenant_closed` – 410
-- `rate_limited` – 429
-- `platform_schema_not_ready` – 503
-- `api_auth_unavailable` – 503
+## Canonical fastpris, quote och teckningsflöde (`2026-08-10.1`)
 
-`request_id` och `correlation_id` ska sparas vid support/felsökning. Logga aldrig
-API-token, secret hash, personnummer eller annan känslig payload i klientloggar.
+Den aktiva integrationsordningen är:
 
-## Säkerhetsregler för developers
+1. `GET /api/v1/website/public-contracts` hämtar varje publicerad produkt **en gång**. Ett fastprisavtal kan innehålla `area_pricing` med separata rader för SE1–SE4, men raderna tillhör samma `offer_reference`, produktversion och publicering.
+2. `POST /api/v1/website/energy-area/resolve` använder OPS tenant-skopade canonical resolver. Prisområdet SE1–SE4 avgörs separat genom `price_area_assurance`, medan nätområde, nätägare, anläggningsuppslag och EDIFACT har egna readiness-krav. Den gamla oautentiserade `GET /api/public/energy-area` är fortsatt borttagen.
+3. `POST /api/v1/website/quote` skapar en tenantbunden quote som fryser exakt publicerad version, valt SE-område, vald områdesprisrad, förbrukning, startdatum, avgifter, moms och beräkningsantaganden.
+4. `POST /api/v1/website/quote/validate` validerar samma bindning före teckning.
+5. `POST /api/v1/website/customer-applications` konsumerar `quote_reference`, skapar eller återanvänder en canonical kund och ett kundnummer, skapar en anläggningsbunden avtalsrelation och låser vald SE-prisrad i avtalets pris-/faktureringssnapshot. Kundansökan kräver top-level `offer_reference`, `quote_reference` och samma top-level `resolution_id`; `contract` innehåller endast kompletterande start-/avtalsuppgifter och ingen legacyfallback skapar avtal utan quote.
 
-- `GRIDEX_API_KEY` är server-side only.
-- Låt API-nyckeln bestämma tenant; skicka aldrig egen `company_id`.
-- Använd canonical referenser från OPS, inte interna databastabell-ID:n.
-- Respektera scopes per operation.
-- Respektera idempotency på writes.
-- Bygg retry utifrån HTTP-status + `retryable`, inte blint på alla fel.
-- Behandla readiness-403 som ett operatörs-/go-live-problem, inte som transient nätfel.
-- Rendera aldrig intern diagnostics direkt för slutkund.
-- Använd exakt publicerad juridiksnapshot från avtalet/quoten.
-- Slutlig fakturering ska använda låst canonical settlementdata.
+Kundansökan kan även skicka aktuell leverantörsidentitet, inklusive `current_supplier_ediel_id`, när den är känd. Svaret skiljer på skapande och dispatch i `supplier_switch`: `can_create_request` kan vara `true` samtidigt som `can_dispatch` är `false` tills mätpunkt, fullmakt, nuvarande leverantör, route och transportkrav är verifierade.
 
-## Operatörens enkla go-live-flöde
+`resolution_id` är obligatoriskt i quote och teckning. OPS läser området genom den autentiserade tenanten och `resolution_id`, kontrollerar expiry, `price_area_assurance` och den ändamålsspecifika capabilityn samt avvisar motstridigt område. Ett högkonfidens-konsensus från postnummer och ort kan öppna pricing/quote när alla kandidater ligger i samma SE-område, men öppnar aldrig anläggningsuppslag eller EDIFACT. Pricing/quote blockeras aldrig enbart av saknad PRODAT-route eller transportkonfiguration. För rörliga avtal innehåller quoten en additiv `market_reference` med provider, referensperiod, `as_of`, `is_indicative`, `is_stale` och fallbackmetadata. Preview får aldrig användas som settlement.
 
-Det här är ett OPS-operatörsflöde, inte något en extern developer ska emulera med
-SQL eller egna statusuppdateringar.
+För fastpris gäller:
+
+- `area_pricing` är den canonicala prismatrisen för samma produkt, inte fyra avtal;
+- `fixed_price_ore_per_kwh` och `pricing.fixed_price` är kompatibilitetsfält och är `null` när SE-områdena har olika priser;
+- kunden och kundportalen ser bara det avtal och den områdesprisrad som hör till kundens anläggning;
+- en kund med flera verkliga anläggningar kan ha en avtalsrelation per anläggning, men inte en ny kund eller fyra produktkopior per prisområde;
+- faktureringen använder den immutable valda prisraden och det låsta `price_area` från quote-/avtalssnapshoten, inte dagens publicerade webbpris eller ett senare ändrat område på anläggning/mätpunkt;
+- om operativ områdesdata motsäger avtalssnapshoten blockeras fakturaunderlaget i stället för att prisområdet skrivs över.
+
+`pricing.calculation_components` och kompatibilitetsfältet `pricing.components` innehåller alla tillämpliga pris- och avgiftskomponenter. Dolda komponenter får inte filtreras bort från kalkyl, quote, avtalssnapshot eller fakturering. `pricing.display_components` styr endast vilka komponenter som får visas som separata sälj-/avtalsrader.
+
+För penningvärden gäller:
+
+- `0` är ett giltigt publicerat numeriskt värde och betyder avgiftsfritt;
+- blankt, `null` och `undefined` betyder inte automatiskt `0`;
+- använd aldrig truthy/falsy-kontroller för pengar;
+- kontrollera uttryckligen `value === null || value === undefined`.
+
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-08-10.1`; versionsvärdet ingår i ETag-underlaget.
+
+## Publication revision, cache och kanaler
+
+`GET /api/v1/website/public-contracts` läser endast kanalen `website`. `internal` används av OPS och interna säljflöden. `api` är en separat partner-/serverkanal och ska inte automatiskt visas på hemsidan.
+
+Varje publiceringsrelevant ändring höjer en tenant- och kanalbunden `publication_revision`. Feed-svaret returnerar revisionen i `meta` och som `ETag`. Skicka `If-None-Match`; oförändrad revision ger `304 Not Modified`. Externa kunder ska inte förlita sig på Next.js `revalidateTag` för cacheinvalidering.
+
+API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande driftfilter, inte en fullständig säkerhetsgräns för server-till-server-anrop. IP-regler accepterar exakta IPv4/IPv6-adresser och CIDR. Forwarding-headers betros automatiskt endast på Vercel (`VERCEL=1`); andra reverse proxies måste uttryckligen sätta `INTEGRATION_API_TRUST_PROXY_HEADERS=true` efter att de konfigurerats att skriva över klientens inkommande forwarding-headers. Vid avsaknad av en betrodd proxy failar aktiva IP-allowlists stängt.
+
+## V1-deprecation
+
+`offer_reference` är den enda canonical externa avtalsidentiteten. Aliasen `contract_offer_id`, `publication_reference` och toppnivåfältet `contracts` finns kvar i V1 men är deprecated. Nya klienter ska använda `data` och `offer_reference`. Aliasen tas tidigast bort i en framtida major-version efter publicerad sunset-period.
+
+Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
+
+
+API-svaret innehåller `contract_schema_version=2026-08-10.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+
+## Avgränsning mot Website Integration API 2026-08-10.1
+
+Den här guiden beskriver kundportal och Mina sidor. Website checkout, publicerade erbjudanden, elområdesresolution, aktuellt marknadspris och quote dokumenteras canonicalt i `website-integration-v1.json`.
+
+Följande route tillhör Website Integration API och ska inte typgenereras från kundportalens OpenAPI-specifikation:
+
+```text
+POST /api/v1/website/market-price/current
+```
+
+Tenantens vanliga API-nyckel kan ha både kundportal- och website-scopes, men kontrakten är separata. `company_id` skickas aldrig som tenantväljare.
+
+- `website_market_prices.read` ingår i de canonicala profilerna `website_signup` och `tenant_website`; befintliga aktiva website-nycklar backfillas additivt. Ingen ny ENV-variabel eller API-nyckel krävs.
+
+
+## Automatisk fortsättning efter kundansökan
+
+Efter en accepterad website-kundansökan returnerar API:t `next_step: automatic_processing`. Samma databastransaktion skapar ett persistent `customer_application_continuation`-jobb. OPS-workern, inte website-requesten, avgör därefter nästa steg för juridiska utskick, komplettering, nätägaruppgifter, Z01/Z03, leverantörsbyte, aktivering och webhooks.
+
+## Extern kontraktsändring 2026-08-03.1
+
+Website Integration API modellerar nu `energy_direction` explicit som `consumption` eller `production`. Produktionsavtal returnerar en immutable `production_pricing` och kan använda `settlement_mode=self_billing`; de får inte behandlas som konsumtionsleverans eller vanlig kundfaktura. Canonical juridikroute är `GET /api/v1/website/legal-bundle`; tenant hämtas från API-nyckelns integrationskontext och inget externt `company_id` används. Felmodellen innehåller top-level `ok=false`, `code`, `message`, `request_id`, `correlation_id` och strukturerade `blockers`.
+
+## Operatörens canonical go-live-flöde
+
+Det här är ett OPS-operatörsflöde. Externa developers ska inte emulera det med direkt SQL eller egna statusuppdateringar.
 
 ```text
 1. Välj bolag
-2. Ange HTTPS-origin(s)
-3. Ange tenantens HTTPS-URL till Mina sidor
+2. Ange tillåtna HTTPS-origin(s)
+3. Ange bolagets HTTPS-URL till Mina sidor
 4. Valfritt: konfigurera webhook + signing-secret reference
 5. Kör canonical tenant website provision/revalidation
-6. OPS återanvänder säkert befintlig canonical-readiness-paused credential eller skapar en ny
-7. Provisioning smoke verifierar credential + centrala routes
-8. OPS reconcilar capabilities/readiness
-9. Receipt färdigställs med SHA-256-evidens
-10. launch_ready blir true först när blockers är tomma
-11. Ny token visas endast om en ny credential faktiskt skapades
+6. OPS återanvänder säkert en credential som endast readiness-pausats, annars skapas en ny
+7. Provisioning smoke verifierar credential, scopes och centrala routes
+8. OPS reconcilar capabilities och övrig readiness
+9. Installation receipt färdigställs med SHA-256-evidens
+10. launch_ready blir true endast när blockers är tomma
+11. Ny token visas endast om en ny credential skapades eller en tidigare osynlig engångscredential måste roteras efter ett misslyckat försök
 ```
 
-En manuellt pausad, revoked, deleted eller tvetydig credential ska stoppa flödet
-och kräva operatörsgranskning. Go-live får aldrig reduceras till
-`UPDATE integration_api_clients SET status='active'`.
-
-## Source of truth
-
-Vid skillnad mellan exempeltext och maskinläsbart kontrakt gäller:
-
-1. aktuell publicerad OpenAPI-version,
-2. canonical runtime-kontraktet,
-3. denna guide som förklarande text.
-
-Dokumentation och runtime ska verifieras tillsammans i CI före release.
+Manuellt pausade, revoked, deleted eller tvetydiga credentials ska stoppa flödet och kräva operatörsgranskning. Go-live får aldrig reduceras till `UPDATE integration_api_clients SET status='active'`.
