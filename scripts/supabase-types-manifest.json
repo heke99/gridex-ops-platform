@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-13T21:19:18.770Z",
+  "generated_at": "2026-08-14T07:26:46.854Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "622e1bc6d7074622c65943330d238b63e3020ad8740f9a7dd7ebf3ffacb11e69",
+  "sha256": "7df58d04afae520332bd9205be0e59bd6c9b3fe1fa0c8626ea66807e61d5c6e0",
   "latest_migration": "20260813230000_runtime_readiness_dependency_resilience_v1.sql"
 }
