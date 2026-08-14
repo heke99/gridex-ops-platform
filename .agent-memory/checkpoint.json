@@ -6,7 +6,7 @@
   "active_task": "Close post-#144 inbound manual review metadata and Processa om sync",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "1dfc3559",
-  "head_sha": "b6c75e0a",
+  "head_sha": "ca4d70bf",
   "pr": null,
   "verification": {
     "vitest_targeted": "PASS_6",
