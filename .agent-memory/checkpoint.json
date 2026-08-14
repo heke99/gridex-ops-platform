@@ -6,7 +6,7 @@
   "active_task": "Close post-#128 tip health residuals",
   "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
   "base_main_sha": "6f9b5d66",
-  "head_sha": "46b5a98f",
+  "head_sha": "8f93edaa",
   "pr": null,
   "verification": {
     "vitest_targeted": "PASS_29",
