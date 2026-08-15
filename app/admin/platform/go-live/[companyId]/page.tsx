@@ -195,6 +195,7 @@ export default async function PlatformGoLiveCompanyPage({
             companyId={companyId}
             records={certificationEvidence.records}
             verifiedAt={certificationEvidence.verifiedAt}
+            pilotRequired={certificationEvidence.pilotRequired}
           />
         ) : null}
         {!evidenceLoad.ok ? (

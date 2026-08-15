@@ -407,7 +407,8 @@
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
-    "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991"
+    "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991",
+    "20260815003554_conditional_limited_pilot_evidence_gate.sql": "d05eaff0ce10b5084d512187c10e06906fcd86c66f0a7ae33920e90463a6f513"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

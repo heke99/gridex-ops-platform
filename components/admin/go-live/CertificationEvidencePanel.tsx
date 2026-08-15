@@ -22,17 +22,22 @@ export function CertificationEvidencePanel({
   companyId,
   records,
   verifiedAt,
+  pilotRequired,
 }: {
   companyId: string
   records: EdielCertificationEvidenceRecord[]
   verifiedAt: number
+  pilotRequired: boolean
 }) {
   const approved = new Set(
     records
       .filter((row) => isEdielCertificationEvidenceApproved(row, verifiedAt))
       .map((row) => row.evidence_type),
   )
-  const missingCount = REQUIRED_PRODUCTION_EVIDENCE.filter((type) => !approved.has(type)).length
+  const requiredNow = pilotRequired
+    ? REQUIRED_PRODUCTION_EVIDENCE
+    : REQUIRED_PRODUCTION_EVIDENCE.filter((type) => type !== 'LIMITED_PILOT')
+  const missingCount = requiredNow.filter((type) => !approved.has(type)).length
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -47,7 +52,9 @@ export function CertificationEvidencePanel({
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
             Production får inte aktiveras genom en manuell genväg. Varje obligatoriskt
             bevis måste ha en extern referens, en spårbar dokument-/bevisreferens och ett
-            verkligt testdatum innan superadmin kan attestera det. Utgången eller
+            verkligt testdatum innan superadmin kan attestera det. LIMITED_PILOT blir
+            obligatorisk först efter den första verkliga production-sändningen; därefter
+            stoppas fortsatt drift tills pilotutfallet är attesterat. Utgången eller
             ofullständig evidens visas inte som godkänd.
           </p>
         </div>
@@ -60,11 +67,12 @@ export function CertificationEvidencePanel({
         {REQUIRED_PRODUCTION_EVIDENCE.map((evidenceType) => {
           const current = currentFor(records, evidenceType)
           const isApproved = current ? isEdielCertificationEvidenceApproved(current, verifiedAt) : false
+          const isRequiredNow = evidenceType !== 'LIMITED_PILOT' || pilotRequired
           return (
             <details
               key={evidenceType}
               className={`rounded-2xl border p-5 ${isApproved ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}
-              open={!isApproved}
+              open={isRequiredNow && !isApproved}
             >
               <summary className="cursor-pointer list-none">
                 <div className="flex items-center justify-between gap-3">
@@ -75,7 +83,7 @@ export function CertificationEvidencePanel({
                     </div>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isApproved ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-800'}`}>
-                    {isApproved ? 'Godkänd' : current ? 'Ej giltig' : 'Saknas'}
+                    {isApproved ? 'Godkänd' : !isRequiredNow ? 'Efter första live-send' : current ? 'Ej giltig' : 'Saknas'}
                   </span>
                 </div>
               </summary>
@@ -90,6 +98,7 @@ export function CertificationEvidencePanel({
                 </div>
               ) : null}
 
+              {isRequiredNow ? (
               <form action={saveCertificationEvidenceAction} className="mt-4 grid gap-3">
                 <input type="hidden" name="company_id" value={companyId} />
                 <input type="hidden" name="evidence_type" value={evidenceType} />
@@ -146,6 +155,11 @@ export function CertificationEvidencePanel({
                   Attestera verklig evidens
                 </button>
               </form>
+              ) : (
+                <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-semibold leading-5 text-blue-900">
+                  Pilotbevis kan attesteras först efter att den första riktiga production-sändningen har skickats.
+                </div>
+              )}
             </details>
           )
         })}

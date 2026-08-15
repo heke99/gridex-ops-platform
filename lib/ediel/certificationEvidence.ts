@@ -25,6 +25,7 @@ export type EdielCertificationEvidenceRecord = {
 export type EdielCertificationEvidenceSnapshot = {
   records: EdielCertificationEvidenceRecord[]
   verifiedAt: number
+  pilotRequired: boolean
 }
 
 type EvidenceRow = {
@@ -47,6 +48,24 @@ function timestamp(value: unknown): number | null {
   if (!normalized) return null
   const parsed = new Date(normalized).getTime()
   return Number.isFinite(parsed) ? parsed : null
+}
+
+async function isLimitedPilotRequired(companyId: string): Promise<boolean> {
+  const { count, error } = await supabaseService
+    .from('ediel_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+    .eq('environment', 'production')
+    .eq('direction', 'outbound')
+    .eq('status', 'sent')
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+function requiredProductionEvidence(pilotRequired: boolean) {
+  return pilotRequired
+    ? [...REQUIRED_PRODUCTION_EVIDENCE]
+    : REQUIRED_PRODUCTION_EVIDENCE.filter((type) => type !== 'LIMITED_PILOT')
 }
 
 export function isEdielCertificationEvidenceApproved(
@@ -85,8 +104,13 @@ export async function listEdielCertificationEvidence(companyId: string): Promise
 export async function getEdielCertificationEvidenceSnapshot(
   companyId: string,
 ): Promise<EdielCertificationEvidenceSnapshot> {
-  const records = await listEdielCertificationEvidence(companyId)
-  return { records, verifiedAt: Date.now() }
+  const normalizedCompanyId = text(companyId)
+  if (!normalizedCompanyId) throw new Error('certification_evidence_company_required')
+  const [records, pilotRequired] = await Promise.all([
+    listEdielCertificationEvidence(normalizedCompanyId),
+    isLimitedPilotRequired(normalizedCompanyId),
+  ])
+  return { records, verifiedAt: Date.now(), pilotRequired }
 }
 
 export async function getEdielCertificationEvidenceReadiness(companyId: string) {
@@ -99,6 +123,7 @@ export async function getEdielCertificationEvidenceReadiness(companyId: string) 
     .eq('environment', 'production')
     .eq('engine_schema_version', CANONICAL_ENGINE_SCHEMA_VERSION)
   if (error) throw error
+  const pilotRequired = await isLimitedPilotRequired(normalizedCompanyId)
   const now = Date.now()
   const rows = (data ?? []) as EvidenceRow[]
   const passed = new Set(
@@ -107,8 +132,9 @@ export async function getEdielCertificationEvidenceReadiness(companyId: string) 
       .map((row) => text(row.evidence_type))
       .filter((value): value is string => Boolean(value)),
   )
-  const missing = REQUIRED_PRODUCTION_EVIDENCE.filter((type) => !passed.has(type))
-  return { ready: missing.length === 0, passed: [...passed], missing }
+  const required = requiredProductionEvidence(pilotRequired)
+  const missing = required.filter((type) => !passed.has(type))
+  return { ready: missing.length === 0, passed: [...passed], missing, pilotRequired }
 }
 
 export async function recordEdielCertificationEvidence(input: {
@@ -135,6 +161,9 @@ export async function recordEdielCertificationEvidence(input: {
   const validUntilMs = timestamp(validUntil)
 
   if (input.status === 'passed') {
+    if (input.evidenceType === 'LIMITED_PILOT' && !(await isLimitedPilotRequired(companyId))) {
+      throw new Error('limited_pilot_requires_real_production_send')
+    }
     if (!approvedBy) throw new Error('certification_evidence_approver_required')
     if (!externalReference) throw new Error('certification_evidence_external_reference_required')
     if (!evidenceDocumentReference) throw new Error('certification_evidence_document_reference_required')
