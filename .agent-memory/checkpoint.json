@@ -1,21 +1,21 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-14T19:50:00Z",
-  "branch": "cursor/codebase-health-and-stability-e76c",
-  "active_phase": "TIP_HEALTH_RESIDUALS",
-  "active_task": "Close post-#144 inbound manual review metadata and Processa om sync",
-  "status": "IMPLEMENTED_NOT_VERIFIED_IN_CI",
-  "base_main_sha": "1dfc3559",
-  "head_sha": "815a4871",
-  "pr": 145,
+  "updated_at": "2026-08-15T23:52:00Z",
+  "branch": "fix/e2e-ediel-approval-20260815",
+  "active_phase": "PR_149_PRODUCTION_CLOSURE",
+  "active_task": "Explicit Ediel identity, generated types lock, Gridex production/API/contracts readiness",
+  "status": "LOCAL_VERIFICATION_IN_PROGRESS",
+  "base_main_sha": "c575624",
+  "head_sha": "working_tree",
+  "pr": 149,
   "verification": {
-    "vitest_targeted": "PASS_6",
-    "migration_integrity": "PASS_438",
-    "types_check": "PASS",
+    "migration_integrity": "PASS_450_FILES_354_GROUPS",
+    "types_check": "PASS_F8178706",
+    "verify_workflow_local": "PASS",
+    "quality_release_checkpoint": "PASS_623_TESTS_BUILD",
+    "tenant_ediel_contract_api_regressions": "PASS",
     "security_audit_production": "PASS_0",
-    "typecheck_app": "PASS",
-    "ggshield": "BLOCKED",
-    "hosted_ci": "NOT_YET"
+    "hosted_clean_replay": "PENDING"
   },
-  "resume_from": "Wait for hosted CI/clean-replay on PR #145, squash merge when green"
+  "resume_from": "Final full local rerun, commit/push PR #149, hosted clean replay, merge, deploy and smoke verification"
 }

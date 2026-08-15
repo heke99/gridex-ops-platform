@@ -1,11 +1,7 @@
 # Open blockers
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
-1. Hosted CI/clean-replay for `cursor/codebase-health-and-stability-e76c` is not yet observed.
-2. Vercel project runtime remains Node 24.x until the external project setting is changed to Node 22.
-3. Exact official 25-A-3 operation matrix R/D/O/X values for E30/E31/E66/S01/S05/S07 are absent.
-4. Exact official request matrix R/D/O/X values for E72/E73/E74/S06 are absent.
-5. Official TGT/AGT certificates and counterparty evidence are external and absent.
-6. ggshield CLI unavailable in this environment (secret scan deferred to CI/host).
-7. Live DB apply of `20260814200000_inbound_manual_review_metadata_on_entry.sql` not observed in this run.
+1. Hosted CI and clean empty-database replay have not yet run on the final PR #149 commit.
+2. Merge and Vercel production deployment verification must wait for all hosted checks to pass.
+3. Official external TGT/AGT portal certificates and counterparty evidence remain external inputs; the application does not invent them.

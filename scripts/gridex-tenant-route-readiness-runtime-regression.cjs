@@ -80,10 +80,16 @@ assert(/outbound\.company_id && routeCompanyId && outbound\.company_id !== route
 assert(/routeEnvironment && outboundEnvironment && routeEnvironment !== outboundEnvironment/.test(dbOutbound), 'outbound repair never crosses test/production boundaries')
 assert(/repairOutboundRequestCommunicationRoute/.test(shared) && /!existing\.communication_route_id && params\.communicationRouteId/.test(shared), 'findOrCreateDataRequestOutbound repairs stale outbound with null route')
 
-// Task 8 — production approval + send guard
-assert(/gridex_approve_first_production_send/.test(approval), 'production approval prefers the metadata-merging RPC')
-assert(/\.\.\.currentMetadata/.test(approval), 'production approval fallback merges (never overwrites) metadata')
-assert(/missing_company_scope_for_production_send/.test(approval) && /production_send_locked/.test(approval), 'production send guard fails closed for missing scope/lock in production')
+// Task 8 — canonical production approval + send guard
+assert(/canonical_approve_first_live_send/.test(approval), 'production approval uses the canonical idempotent live-send RPC')
+assert(!/gridex_approve_first_production_send/.test(approval) && !/\.from\(['"]ediel_actor_settings['"]\)\s*\.update/s.test(approval), 'production approval cannot fall back to direct actor-settings mutation')
+assert(
+  /missing_company_scope_for_production_send/.test(approval) &&
+    /canonical_production_state_missing/.test(approval) &&
+    /canonical_production_not_live/.test(approval) &&
+    /first_live_send_approval_required/.test(approval),
+  'production send guard fails closed for missing scope, state, live status, or approval',
+)
 
 // Task 6 — blocker preservation
 assert(/\[\s*["\']platform_route_exists_but_not_materialized["\']\s*,\s*["\']platform_route_exists_but_not_materialized["\']\s*,?\s*\]/.test(infoRequests), 'customer info requests preserve exact platform_route_exists_but_not_materialized blocker')

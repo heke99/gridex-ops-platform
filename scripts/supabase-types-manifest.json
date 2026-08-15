@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-14T19:05:43.000Z",
+  "generated_at": "2026-08-15T17:00:00.000Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "c0917477d048d65cbedb826a38780795be11a18150503171087dd672e9e1984e",
-  "latest_migration": "20260815003554_conditional_limited_pilot_evidence_gate.sql"
+  "sha256": "f81787066197c7be1c1021bdf7ee6f7e6e97491ab3bdfd672b40a3029ef9d1e7",
+  "latest_migration": "20260815170500_contract_publication_channel_readiness.sql"
 }

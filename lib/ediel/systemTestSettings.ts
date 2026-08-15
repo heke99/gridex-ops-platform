@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { canonicalEdielActorRole } from "@/lib/ediel/actorRole";
 
 export type EdielSystemTestSuite =
   | "AGT"
@@ -89,17 +90,10 @@ function metadata(row: Record<string, unknown>): Record<string, unknown> {
     : {};
 }
 
-function normalizeActorRole(value: unknown): "supplier" | "esco" | null {
-  const role = String(value ?? "").trim().toLowerCase();
-  if (role === "supplier" || role === "electricity_supplier") return "supplier";
-  if (role === "esco" || role === "energy_service_company") return "esco";
-  return null;
-}
-
 function databaseActorRole(
   value: unknown,
 ): "supplier" | "energy_service_company" | null {
-  const role = normalizeActorRole(value);
+  const role = canonicalEdielActorRole(value);
   if (role === "supplier") return "supplier";
   if (role === "esco") return "energy_service_company";
   return null;
@@ -248,7 +242,7 @@ function settingsFromRow(
     transportProfileId: clean(row.transport_profile_id),
     setupPackage: clean(row.setup_package) ?? clean(rowMetadata.setupPackage),
     actorRole:
-      normalizeActorRole(row.actor_role ?? rowMetadata.actorRole) ??
+      canonicalEdielActorRole(row.actor_role ?? rowMetadata.actorRole) ??
       clean(row.actor_role ?? rowMetadata.actorRole),
     messageFamily: upper(row.message_family ?? rowMetadata.messageFamily),
     applicationReference: upper(
@@ -274,7 +268,7 @@ export async function getEdielSystemTestSettings(
   const companyId = clean(params.companyId);
   if (!companyId) return null;
   const suite = upper(params.testSuite) ?? "AGT";
-  const actorRole = normalizeActorRole(params.actorRole);
+  const actorRole = canonicalEdielActorRole(params.actorRole);
   const messageFamily = upper(params.messageFamily);
   const setupPackage = clean(params.setupPackage);
   const environmentType = clean(params.environmentType);
@@ -330,7 +324,7 @@ async function getActiveTestActorSetting(
     .eq("environment", "test")
     .eq("is_active", true);
 
-  const role = normalizeActorRole(actorRole);
+  const role = canonicalEdielActorRole(actorRole);
   if (role === "supplier") {
     query = query.or(
       "role.eq.supplier,role.eq.electricity_supplier,actor_role.eq.supplier,actor_role.eq.electricity_supplier",
@@ -458,25 +452,10 @@ export async function saveEdielSystemTestSettings(
 
   const suite = upper(input.testSuite) ?? "AGT";
 
-  // Compatibility bridge for the old supplier AGT settings form. It is based
-  // on Ediel semantics, never on a tenant id or a specific supplier Ediel id.
-  const legacySupplierAgt =
-    suite === "AGT" &&
-    !clean(input.actorRole) &&
-    !clean(input.messageFamily) &&
-    !clean(input.setupPackage) &&
-    !clean(input.environmentType);
-
-  const actorRole =
-    normalizeActorRole(input.actorRole) ??
-    (legacySupplierAgt ? "supplier" : null);
-  const messageFamily =
-    upper(input.messageFamily) ?? (legacySupplierAgt ? "PRODAT" : null);
-  const setupPackage =
-    clean(input.setupPackage) ??
-    (legacySupplierAgt ? "agt_ddq_prodat_l" : null);
-  const environmentType =
-    clean(input.environmentType) ?? (legacySupplierAgt ? "agt_test" : null);
+  const actorRole = canonicalEdielActorRole(input.actorRole);
+  const messageFamily = upper(input.messageFamily);
+  const setupPackage = clean(input.setupPackage);
+  const environmentType = clean(input.environmentType);
 
   if (!actorRole || !messageFamily || !setupPackage || !environmentType) {
     throw new Error(
@@ -703,16 +682,18 @@ export async function getEdielSystemTestRuntimeContext(params: {
   if (!companyId) return null;
 
   const suite = (upper(params.testSuite) ?? "TGT") as EdielSystemTestSuite;
+  const actorRole = canonicalEdielActorRole(params.actorRole);
+  if (!actorRole) return null;
   const [settings, actor] = await Promise.all([
     getEdielSystemTestSettings({
       companyId,
       testSuite: suite,
-      actorRole: params.actorRole,
+      actorRole,
       messageFamily: params.messageFamily,
       setupPackage: params.setupPackage,
       environmentType: params.environmentType,
     }),
-    getActiveTestActorSetting(companyId, params.actorRole),
+    getActiveTestActorSetting(companyId, actorRole),
   ]);
 
   const actorEdielId = upper(actor?.actor_ediel_id ?? actor?.ediel_id);

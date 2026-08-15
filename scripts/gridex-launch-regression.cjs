@@ -150,8 +150,8 @@ if (fs.existsSync(path.join(root, "lib/admin/websiteIntegrationOps.ts"))) {
     fail("Legacy application fallback was removed instead of safely bridged");
 }
 
-if (fs.existsSync(path.join(root, "lib/website/customerApplications.ts"))) {
-  const content = read("lib/website/customerApplications.ts");
+if (fs.existsSync(path.join(root, "lib/website/customerApplicationPersistence.ts"))) {
+  const content = read("lib/website/customerApplicationPersistence.ts");
   if (!content.includes("syncExternalContractIntakeRow"))
     fail("Website intake flow does not sync external_contract_intakes");
   if (!/from\([\'\"]external_contract_intakes[\'\"]\)/.test(content))

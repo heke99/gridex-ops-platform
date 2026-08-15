@@ -1,13 +1,11 @@
 # Current task
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
-Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+Status: `LOCAL_VERIFICATION_IN_PROGRESS`
 
-Active work item: Post-#144 inbound manual-review metadata + Processa om sync
-on `cursor/codebase-health-and-stability-e76c`.
+Active work item: complete PR #149 for explicit Ediel role identity, generated Supabase contract locking, Gridex El production/API/contract readiness, hosted clean replay, merge, Vercel deployment, and post-deploy verification.
 
 ## Exact next action
 
-PR `#145` is open. Wait for hosted CI/clean-replay, squash merge only after
-required checks are green.
+Run the final complete local gates on the current diff, commit and push PR `#149`, require all hosted jobs including clean migration replay to pass, then merge and verify the production deployment and non-destructive API/contract smoke checks.

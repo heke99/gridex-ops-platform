@@ -52,11 +52,19 @@ const edielActions = read('app/admin/companies/[id]/ediel-actions.ts')
 assert(/recalculateCompanyOnboardingReadiness\(/.test(edielActions), 'saving Ediel/BRP settings recalculates onboarding readiness')
 
 // Gap 2 — API intake tenant safety
-const apps = read('lib/website/customerApplications.ts')
-assert(/\.eq\('provider', WEBSITE_PORTAL_PROVIDER\)\s*\n\s*\.eq\('external_customer_id'/.test(apps), 'identity lookup filters by provider + external_customer_id (no cross-provider match)')
-assert(/external_customer_id: externalCustomerId/.test(apps), 'customers.external_customer_id is persisted at intake')
+const applicationCommunication = read('lib/website/customerApplicationCommunication.ts')
+assert(
+  /\.from\('customer_portal_identities'\)[\s\S]{0,260}\.eq\('company_id', companyId\)[\s\S]{0,160}\.eq\('provider', WEBSITE_PORTAL_PROVIDER\)[\s\S]{0,160}\.eq\('external_customer_id', externalCustomerId\)/.test(applicationCommunication),
+  'identity lookup filters by tenant + provider + external_customer_id (no cross-tenant/provider match)',
+)
+assert(
+  /provider: WEBSITE_PORTAL_PROVIDER/.test(applicationCommunication) &&
+    /external_customer_id: input\.externalCustomerId/.test(applicationCommunication) &&
+    /onConflict: 'company_id,provider,external_customer_id'/.test(applicationCommunication),
+  'canonical portal identity is persisted and upserted by tenant/provider/external id',
+)
 const webhooks = read('lib/integrations/webhooks.ts')
-assert(/environment: eventEnvironment\(data\)/.test(webhooks), 'webhook canonical payload surfaces environment')
+assert(/environment: eventEnvironment\(sourceData\)/.test(webhooks), 'webhook canonical payload surfaces environment')
 assert(/x-gridex-environment/.test(webhooks), 'webhook signed headers include environment when present')
 
 // Gap 5 — inbound environment + operation_id

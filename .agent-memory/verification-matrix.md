@@ -1,5 +1,20 @@
 # Verification matrix — PHASE-43
 
+## PR #149 production closure — 2026-08-15
+
+| Check | Result | Evidence |
+|---|---|---|
+| Generated Supabase types lock | PASS local | 2,704,161 bytes; SHA `f8178706...`; tip `20260815170500` |
+| Migration governance | PASS local | 450 files / 354 version groups; checksums verified |
+| Ediel supplier/ESCO isolation | PASS | role unit tests + explicit AGT/TGT runtime identity |
+| CI verify command chain | PASS local | migrations, tenant/API, Ediel transaction, hardening, audit |
+| Quality release chain | PASS checkpoint | lint 0 errors; 87 files / 623 tests; OpenAPI/RBAC; production build |
+| Tenant website/contracts/API/mail | PASS | idempotency, canonical onboarding, publication, legal snapshot, scopes |
+| Test/production + two-tenant routing | PASS | separation, route materialization and isolation regressions |
+| Production dependency audit | PASS | 0 vulnerabilities |
+| Hosted clean empty-DB replay | PENDING | requires pushed final PR commit |
+| Merge/deploy/post-deploy smoke | PENDING | gated on hosted CI |
+
 | Area | Status | Evidence |
 |---|---|---|
 | API/OpenAPI/docs version | PASS | Canonical contract remains `2026-08-04.2` |

@@ -84,7 +84,7 @@ export default function EdielFileEnginePanel({
               koppla svaret till rätt TGT-run automatiskt.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="text-sm font-medium text-slate-900">
                 Riktning
@@ -114,6 +114,20 @@ export default function EdielFileEnginePanel({
                 <option value="agt">AGT 2026A · aktiv leverantör</option>
                 <option value="internal_test">Intern test</option>
                 <option value="production_dry_run">Production dry-run</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-900">
+                Aktörsroll
+              </span>
+              <select
+                name="actorRole"
+                defaultValue="supplier"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950"
+              >
+                <option value="supplier">Elleverantör</option>
+                <option value="esco">Energitjänsteföretag</option>
               </select>
             </label>
           </div>

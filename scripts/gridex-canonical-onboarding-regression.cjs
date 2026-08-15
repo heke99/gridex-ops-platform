@@ -28,7 +28,7 @@ for (const token of [
 
 const intakeFiles = [
   'app/admin/customers/actions.ts',
-  'lib/website/customerApplications.ts',
+  'lib/website/customerApplicationOnboarding.ts',
   'lib/external-contracts/intake.ts',
   'lib/ediel/inboundCases.ts',
 ]
@@ -42,13 +42,13 @@ for (const file of intakeFiles) {
 
 forbidText('app/admin/customers/actions.ts', 'cleanupCreatedGraph')
 forbidText('app/admin/customers/actions.ts', 'CreationContext')
-forbidText('lib/website/customerApplications.ts', 'async function createOrUpdateCustomer(')
-forbidText('lib/website/customerApplications.ts', 'async function upsertSite(')
-forbidText('lib/website/customerApplications.ts', 'async function upsertMeteringPoint(')
-forbidText('lib/website/customerApplications.ts', 'async function createContract(')
-forbidText('lib/website/customerApplications.ts', 'reserveCustomerNumber')
-forbidText('lib/website/customerApplications.ts', 'reserveContractNumber')
-forbidText('lib/website/customerApplications.ts', 'candidate_customer_ids: result.candidate_customer_ids')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'async function createOrUpdateCustomer(')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'async function upsertSite(')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'async function upsertMeteringPoint(')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'async function createContract(')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'reserveCustomerNumber')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'reserveContractNumber')
+forbidText('lib/website/customerApplicationOnboarding.ts', 'candidate_customer_ids: result.candidate_customer_ids')
 
 requireText('lib/billing/invoiceReadiness.ts', 'evaluateBillingReadinessCore')
 forbidText('lib/billing/invoiceReadiness.ts', 'evaluateContractBillingAccountReadiness')

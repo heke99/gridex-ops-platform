@@ -23,7 +23,15 @@ function expect(condition, message) {
   }
 }
 
-const intake = read('lib/website/customerApplications.ts')
+// The public barrel intentionally contains exports only. Inspect the canonical
+// split runtime as one surface so refactors cannot silently disable these
+// guards while keeping the assertions tied to an obsolete monolith.
+const intake = [
+  'lib/website/customerApplicationCore.ts',
+  'lib/website/customerApplicationSchemas.ts',
+  'lib/website/customerApplicationPersistence.ts',
+  'lib/website/customerApplicationProcess.ts',
+].map(read).join('\n')
 const orchestration = read('lib/customer-operations/supplierSwitchOrchestration.ts')
 const adminActions = read('app/admin/customers/[id]/actions.ts')
 const migration = read('supabase/migrations/20260710110000_website_application_idempotency_and_supplier_resume.sql')
