@@ -1057,7 +1057,9 @@ export async function createEdielTestRun(
     engine_version: 'actor-testing-evidence-v2',
     environment: 'test',
     message_variant: input.messageVariant ?? null,
-    setup_package: input.setupPackage ?? input.testSuite,
+    // Never invent setup_package from the message-family test_suite token
+    // (PRODAT/UTILTS). Multi-package tenants require the explicit package id.
+    setup_package: input.setupPackage ?? null,
     approval_version: input.approvalVersion ?? null,
     role_code: input.roleCode,
     test_suite: input.testSuite,

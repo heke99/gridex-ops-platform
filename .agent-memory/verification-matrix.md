@@ -210,3 +210,15 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## Post-#149 health residuals — 2026-08-15
+
+| Check | Result | Evidence |
+|---|---|---|
+| Reland #148 Processa om + hash/primary | PASS local | cherry-picks `780929d6` / `488366fd` + tests |
+| Ediel package identity residuals | PASS local | `__tests__/post-149-ediel-runtime-identity-residuals.test.ts` |
+| Migration integrity | PASS | 454 files / 358 groups |
+| Types check | PASS | latest `20260815220000`; sha `d39755f6...` |
+| tsc app | PASS | `tsconfig.app.json` |
+| Production audit | PASS | 0 vulnerabilities |
+| Hosted CI | PENDING | PR on `7053` |
