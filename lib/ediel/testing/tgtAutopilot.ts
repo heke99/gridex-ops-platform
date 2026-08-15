@@ -374,6 +374,11 @@ async function createDraftForStep(params: {
     companyId: params.evaluation.testRun.company_id,
     testSuite: runtimeSuite,
     actorRole: params.evaluation.definition.roleCode,
+    messageFamily:
+      params.evaluation.testRun.message_family ??
+      params.evaluation.definition.suite,
+    setupPackage: params.evaluation.testRun.setup_package,
+    environmentType: params.evaluation.testRun.environment_type,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -569,6 +574,10 @@ export async function createMockPortalMessageForNextStep(params: {
     companyId: evaluation.testRun.company_id,
     testSuite: runtimeSuite,
     actorRole: evaluation.definition.roleCode,
+    messageFamily:
+      evaluation.testRun.message_family ?? evaluation.definition.suite,
+    setupPackage: evaluation.testRun.setup_package,
+    environmentType: evaluation.testRun.environment_type,
   });
 
   const message = await createEdielMessage(

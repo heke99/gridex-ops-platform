@@ -284,6 +284,7 @@ export async function reprocessInboundEmailAction(formData: FormData) {
   await syncActiveInboundProcessingJobForMessage({
     inboundEmailMessageId: id,
     outcomeStatus: outcome.status,
+    errorMessage: outcome.reason ?? null,
   });
   revalidatePath("/admin/inbound-mail");
   revalidatePath(`/admin/inbound-mail/${id}`);

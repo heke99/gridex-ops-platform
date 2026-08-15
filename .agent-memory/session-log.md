@@ -391,3 +391,9 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Hosted clean replay on PR #149 exposed that the verified live-schema helper `canonical_current_ediel_engine_schema_version()` was present as a bootstrap artifact but absent from the replay plan. Declared it as hash-bound verified-live-schema evidence and interleaved it after `20260815002945` and before its first consumer `20260815003554`. Static provenance and the full migration/type contract check pass locally.
 - The next hosted replay reached `20260815095427` and exposed the second omitted source prerequisite: `ediel_test_runs.environment_type`, originally defined by a checksum-pinned migration whose replay is replaced by a narrower enum foundation. Added a minimal hash-bound derived artifact at the exact chronological boundary; static provenance and migration/type contracts pass locally.
 - Hosted replay then completed the entire empty-database history, verified the CLI ledger and schema fingerprint, and produced the authoritative generated TypeScript contract. Replaced `supabase/database.types.ts` with that artifact, normalized typegen EOF deterministically in the existing override script, and locked hash `d39755f6e8a9de374e494faaab9e5519bdd3c199577d985b761dcd85324b130a`; all TypeScript targets and migration/type checks pass locally.
+
+## 2026-08-15 — post-#149 health residuals (`7053`)
+
+- Tip `c5a5501a` (#149). Relanded open #148 Processa om + production hash/primary client fixes.
+- Closed #149 multi-package AGT UTILTS identity drift: package resolver, exact bind migration, no family-token setup_package invention.
+- Local gates: vitest residuals PASS; migration integrity 454/358 PASS; types check PASS; tsc PASS; audit 0.

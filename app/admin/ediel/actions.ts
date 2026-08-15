@@ -146,10 +146,12 @@ import {
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
 import {
-  getEdielSystemTestSettings,
   requireEdielSystemTestRuntimeContext,
 } from "@/lib/ediel/systemTestSettings";
-import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
+import {
+  isAgtSystemTestCase,
+  resolveEdielSystemTestPackageForCase,
+} from "@/lib/ediel/systemTestPackages";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
@@ -1508,6 +1510,8 @@ export async function registerEdielFileAction(formData: FormData) {
   const mode = parseFileEngineMode(formData.get("mode"));
   const systemTestActorRole =
     mode === "agt" ? "supplier" : formString(formData.get("actorRole"));
+  const systemTestSetupPackage = formString(formData.get("setupPackage"));
+  const systemTestMessageFamily = formString(formData.get("messageFamily"));
   const companyId = isPlatformAdminContext(context)
     ? (requestedCompanyId ?? scope.companyId)
     : scope.companyId;
@@ -1530,12 +1534,25 @@ export async function registerEdielFileAction(formData: FormData) {
     throw new Error("Ladda upp en fil eller klistra in EDIFACT/CSV-innehåll.");
   }
 
+  const importPackage =
+    mode === "tgt" || mode === "agt"
+      ? resolveEdielSystemTestPackageForCase({
+          setupPackage: systemTestSetupPackage,
+          runtimeSuite: mode === "agt" ? "AGT" : "TGT",
+          actorRole: systemTestActorRole,
+          messageFamily: systemTestMessageFamily,
+        })
+      : null;
   const systemTestContext =
     mode === "tgt" || mode === "agt"
       ? await requireEdielSystemTestRuntimeContext({
           companyId,
           testSuite: mode === "agt" ? "AGT" : "TGT",
           actorRole: systemTestActorRole,
+          messageFamily:
+            importPackage?.messageFamily ?? systemTestMessageFamily,
+          setupPackage: importPackage?.value ?? systemTestSetupPackage,
+          environmentType: importPackage?.environmentType,
         })
       : null;
   const agtRuntime =
@@ -1762,14 +1779,35 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   }
 
   await requireCompanyOperationalForWrites(companyId);
-  const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: runtimeSuite });
-  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: runtimeSuite, actorRole: roleCode });
 
   if (!definition) {
     throw new Error(
       `Okänt TGT-testfall: ${testSuite}/${roleCode}/${testCaseCode}`,
     );
   }
+
+  const runtimePackage = resolveEdielSystemTestPackageForCase({
+    setupPackage,
+    runtimeSuite,
+    actorRole: roleCode,
+    messageFamily: definition.suite,
+    messageCode: definition.expectedSteps[0]?.code ?? null,
+    testCaseCode: definition.testCaseCode,
+  });
+  if (!runtimePackage) {
+    throw new Error(
+      "Systemtest kräver explicit setup package för tenant-/roll-/familjekontexten. Flera aktiva UTILTS-paket kan inte delas via meddelandefamiljen ensam.",
+    );
+  }
+
+  const systemTestContext = await requireEdielSystemTestRuntimeContext({
+    companyId,
+    testSuite: runtimeSuite,
+    actorRole: roleCode,
+    messageFamily: runtimePackage.messageFamily,
+    setupPackage: runtimePackage.value,
+    environmentType: runtimePackage.environmentType,
+  });
 
   const testRun = await createEdielTestRun({
     actorUserId: context.userId,
@@ -1785,6 +1823,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
       ...definition.notes,
       `Runtime suite: ${runtimeSuite}. Environment type: ${environmentType}.`,
       `Certificate environment: ${certificateEnvironment}. Transport environment: ${transportEnvironment}.`,
+      `Setup package: ${runtimePackage.value}.`,
       isAgtRuntime
         ? "AGT: actor test uses production SMTP/certificate readiness while keeping AGT logical flow."
         : "Autopilot: första Gridex-fil skapas automatiskt om första steget ägs av Gridex.",
@@ -1792,11 +1831,13 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     status: "running",
     startedAt: new Date().toISOString(),
     actorRole: definition.roleCode,
-    messageFamily: definition.suite,
+    messageFamily: runtimePackage.messageFamily,
     businessCode: definition.expectedSteps[0]?.code ?? null,
     encryptionMode,
-    routeProfileId: systemTestSettings?.routeProfileId ?? null,
-    environmentType,
+    routeProfileId:
+      systemTestContext.settings?.routeProfileId ?? null,
+    environmentType: runtimePackage.environmentType,
+    setupPackage: runtimePackage.value,
     expectedFlow: definition.expectedSteps,
   });
 
@@ -2027,10 +2068,24 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     );
   }
   await requireCompanyOperationalForWrites(companyId);
+  const draftPackage = resolveEdielSystemTestPackageForCase({
+    runtimeSuite: "TGT",
+    actorRole: roleCode,
+    messageFamily: testSuite,
+    testCaseCode,
+  });
+  if (!draftPackage) {
+    throw new Error(
+      "TGT-utkast kräver explicit setup package för roll och meddelandefamilj.",
+    );
+  }
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
     testSuite: "TGT",
     actorRole: roleCode,
+    messageFamily: draftPackage.messageFamily,
+    setupPackage: draftPackage.value,
+    environmentType: draftPackage.environmentType,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(

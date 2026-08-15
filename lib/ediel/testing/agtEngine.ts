@@ -31,6 +31,7 @@ import {
   type EdielAgtExpectedStep,
   type EdielAgtTestCaseDefinition,
 } from '@/lib/ediel/testing/agtRegistry'
+import { resolveEdielSystemTestPackageForCase } from '@/lib/ediel/systemTestPackages'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type {
   CreateEdielMessageInput,
@@ -286,6 +287,19 @@ export async function createEdielSupplierAgtRun(params: {
     )
   }
 
+  const agtPackage = resolveEdielSystemTestPackageForCase({
+    runtimeSuite: 'AGT',
+    actorRole: definition.roleCode,
+    messageFamily: definition.messageFamily,
+    messageCode: definition.messageCode,
+    testCaseCode: definition.testCaseCode,
+  })
+  if (!agtPackage) {
+    throw new Error(
+      `AGT-testfall ${definition.testCaseCode} saknar explicit setup package för ${definition.messageFamily}/${definition.messageCode}.`,
+    )
+  }
+
   return createEdielTestRun({
     actorUserId: params.actorUserId,
     companyId: params.companyId,
@@ -296,11 +310,17 @@ export async function createEdielSupplierAgtRun(params: {
     title: definition.title,
     status: 'running',
     startedAt: new Date().toISOString(),
+    actorRole: definition.roleCode,
+    messageFamily: definition.messageFamily,
+    businessCode: definition.messageCode,
+    environmentType: agtPackage.environmentType,
+    setupPackage: agtPackage.value,
     notes: [
       definition.purpose,
       definition.agtInstruction,
       `AGT-aktör: ${readiness.actor.actorName} (${readiness.actor.actorEdielId})`,
       `Motpart: DB-konfigurerad systemtestportal ${readiness.actor.receiverEdielId || 'saknas'} / ${readiness.actor.receiverEmail || 'saknas'}.`,
+      `Setup package: ${agtPackage.value}.`,
       'PRODAT använder leverantörens registrerade UNB sender-subadress om sådan finns i Edielregistret; annars tom. Receiver-subadress mot Edielportalen är PRODAT. UTILTS använder ingen subadress.',
       ...definition.notes,
     ].join('\n'),

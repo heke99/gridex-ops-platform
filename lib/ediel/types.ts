@@ -358,6 +358,7 @@ export type EdielTestRunRow = {
   message_variant?: string | null;
   setup_package?: string | null;
   environment?: EdielEnvironment | string | null;
+  environment_type?: "tgt_test" | "agt_test" | "bilateral_test" | "production" | string | null;
   is_stale?: boolean | null;
   stale_reason?: string | null;
 
