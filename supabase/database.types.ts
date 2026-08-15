@@ -74275,6 +74275,14 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_republish_active_public_contract_v1: {
+        Args: {
+          p_actor_user_id?: string
+          p_explicit_invoice_fee_sek?: number
+          p_publication_version_id: string
+        }
+        Returns: Json
+      }
       gridex_republish_active_public_contract_v2: {
         Args: {
           p_actor_user_id?: string

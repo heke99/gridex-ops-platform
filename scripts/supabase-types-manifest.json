@@ -2,6 +2,6 @@
   "project_id": "piidsfebjqjmnepdpnas",
   "generated_at": "2026-08-15T17:00:00.000Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "d39755f6e8a9de374e494faaab9e5519bdd3c199577d985b761dcd85324b130a",
+  "sha256": "a27f1f30dd596d46cd149080439fd52c0d20840e3922ffc941bf35696d7baa6b",
   "latest_migration": "20260815220000_contract_publication_successor_transition_order.sql"
 }
