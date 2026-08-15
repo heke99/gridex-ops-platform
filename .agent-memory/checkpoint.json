@@ -1,10 +1,10 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-16T00:24:00Z",
+  "updated_at": "2026-08-16T00:30:00Z",
   "branch": "fix/e2e-ediel-approval-20260815",
   "active_phase": "PR_149_PRODUCTION_CLOSURE",
   "active_task": "Explicit Ediel identity, generated types lock, Gridex production/API/contracts readiness",
-  "status": "HOSTED_CLEAN_REPLAY_ORDER_FIX_VERIFIED_LOCALLY",
+  "status": "HOSTED_CLEAN_REPLAY_SECOND_PREREQUISITE_VERIFIED_LOCALLY",
   "base_main_sha": "c575624",
   "head_sha": "working_tree",
   "pr": 149,
@@ -15,7 +15,7 @@
     "quality_release_checkpoint": "PASS_623_TESTS_BUILD",
     "tenant_ediel_contract_api_regressions": "PASS",
     "security_audit_production": "PASS_0",
-    "hosted_clean_replay": "FAILED_MISSING_HELPER_THEN_ORDER_FIX_LOCAL_PASS"
+    "hosted_clean_replay": "FAILED_MISSING_HELPER_FIXED_THEN_MISSING_TEST_RUN_ENVIRONMENT_FIXED_LOCAL_PASS"
   },
-  "resume_from": "Publish replay ordering fix, rerun hosted clean replay and gates, apply production migration, merge, deploy and smoke verification"
+  "resume_from": "Publish test-run environment prerequisite, rerun hosted clean replay and gates, apply production migration, merge, deploy and smoke verification"
 }

@@ -115,6 +115,11 @@
       "path": "bootstrap/20260815_current_ediel_engine_schema_version_prerequisite.sql",
       "afterLedgerVersion": "20260815002945",
       "beforeLedgerVersion": "20260815003554"
+    },
+    {
+      "path": "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql",
+      "afterLedgerVersion": "20260815093959",
+      "beforeLedgerVersion": "20260815095427"
     }
   ],
   "derivedBootstrap": {
@@ -310,6 +315,11 @@
         "canonical_current_ediel_engine_schema_version()"
       ],
       "purpose": "Restore the pg_get_functiondef-verified live Ediel engine schema-version helper immediately before the first canonical limited-pilot evidence gate that consumes it; no tenant, approval or evidence rows are seeded."
+    },
+    "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql": {
+      "source": "migrations/20260602143000_ediel_environment_business_action_locks.sql",
+      "artifactSha256": "e99d45f17b4bce864f75fb03c1b19ae3bb118079bea424348c9e58358df9826d",
+      "purpose": "Restore only the source-defined ediel_test_runs environment_type column omitted by the earlier enum-only substitution, immediately before canonical role-scoped configuration binding consumes it; no test runs or tenant data are seeded or rewritten."
     },
     "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql": {
       "source": "migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
