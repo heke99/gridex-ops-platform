@@ -1,18 +1,3 @@
--- Keep the current Ediel engine version helper reproducible in clean replay.
--- Production already has this function; CREATE OR REPLACE makes the migration
--- idempotent while ensuring fresh databases do not depend on untracked live state.
-create or replace function public.canonical_current_ediel_engine_schema_version()
-returns text
-language sql
-immutable
-set search_path to 'public', 'pg_temp'
-as $function$
-  select '20260713100000-ediel-completion-and-platform-contract'::text
-$function$;
-
-revoke all on function public.canonical_current_ediel_engine_schema_version() from public,anon,authenticated;
-grant execute on function public.canonical_current_ediel_engine_schema_version() to service_role;
-
 create or replace function public.canonical_ediel_production_evidence_readiness(p_company_id uuid)
 returns jsonb
 language sql
