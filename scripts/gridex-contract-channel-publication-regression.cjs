@@ -113,12 +113,14 @@ check(
     successorOrderMigration.includes(
       "gridex_republish_active_public_contract_v1_transition_marker_missing",
     ) &&
-    /revoke all on function public\\.gridex_republish_active_public_contract_v1\\(uuid, uuid, numeric\\)[\\s\\S]*from public, anon, authenticated/.test(
-      successorOrderMigration,
+    successorOrderMigration.includes(
+      "revoke all on function public.gridex_republish_active_public_contract_v1(uuid, uuid, numeric)",
     ) &&
-    /revoke all on function public\\.gridex_republish_active_public_contract_v2\\(uuid, uuid, numeric\\)[\\s\\S]*from public, anon, authenticated/.test(
-      successorOrderMigration,
-    ),
+    successorOrderMigration.includes(
+      "revoke all on function public.gridex_republish_active_public_contract_v2(uuid, uuid, numeric)",
+    ) &&
+    (successorOrderMigration.match(/from public, anon, authenticated;/g) ?? [])
+      .length === 2,
   "publication repair releases predecessor before successor finalization and stays service-role only",
 );
 
