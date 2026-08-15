@@ -25,15 +25,15 @@ export type EdielSystemTestSettings = {
   defaultSenderSubaddress: string | null;
   routeProfileId: string | null;
   transportProfileId: string | null;
-  setupPackage?: string | null;
-  actorRole?: string | null;
-  messageFamily?: string | null;
-  applicationReference?: string | null;
-  environmentType?: string | null;
-  certificateEnvironment?: string | null;
-  transportEnvironment?: string | null;
-  smtpProvider?: string | null;
-  metadata?: Record<string, unknown> | null;
+  setupPackage: string | null;
+  actorRole: string | null;
+  messageFamily: string | null;
+  applicationReference: string | null;
+  environmentType: string | null;
+  certificateEnvironment: string | null;
+  transportEnvironment: string | null;
+  smtpProvider: string | null;
+  metadata: Record<string, unknown> | null;
   isActive: boolean;
 };
 
@@ -62,6 +62,15 @@ export type SaveEdielSystemTestSettingsInput = {
   isActive?: boolean;
 };
 
+export type EdielSystemTestSettingsSelector = {
+  companyId?: string | null;
+  testSuite?: EdielSystemTestSuite | string | null;
+  actorRole?: string | null;
+  messageFamily?: string | null;
+  setupPackage?: string | null;
+  environmentType?: string | null;
+};
+
 function clean(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
@@ -78,6 +87,20 @@ function metadata(row: Record<string, unknown>): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function normalizeActorRole(value: unknown): "supplier" | "esco" | null {
+  const role = String(value ?? "").trim().toLowerCase();
+  if (role === "supplier" || role === "electricity_supplier") return "supplier";
+  if (role === "esco" || role === "energy_service_company") return "esco";
+  return null;
+}
+
+function databaseActorRole(value: unknown): "supplier" | "energy_service_company" | null {
+  const role = normalizeActorRole(value);
+  if (role === "supplier") return "supplier";
+  if (role === "esco") return "energy_service_company";
+  return null;
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -125,11 +148,16 @@ async function upsertTestCounterparty(params: {
     .order("id", { ascending: true })
     .limit(2);
 
-  if (existing.error) {
-    if (!isMissingRelationError(existing.error)) throw existing.error;
+  if (existing.error && !isMissingRelationError(existing.error)) {
+    throw existing.error;
   }
+
   const existingRows = (existing.data ?? []) as Array<{ id?: string | null }>;
-  if (existingRows.length > 1) throw new Error("Flera aktiva systemtestmotparter matchar samma tenantidentitet.");
+  if (existingRows.length > 1) {
+    throw new Error(
+      "Flera aktiva systemtestmotparter matchar samma tenantidentitet.",
+    );
+  }
   const existingId = clean(existingRows[0]?.id);
 
   const payload = {
@@ -137,10 +165,14 @@ async function upsertTestCounterparty(params: {
     environment: "test",
     counterparty_name:
       clean(params.name) ??
-      (params.role === "test_portal" ? "Edielportalen systemtest" : "Test-BRP"),
+      (params.role === "test_portal"
+        ? "Edielportalen systemtest"
+        : "Test-BRP"),
     name:
       clean(params.name) ??
-      (params.role === "test_portal" ? "Edielportalen systemtest" : "Test-BRP"),
+      (params.role === "test_portal"
+        ? "Edielportalen systemtest"
+        : "Test-BRP"),
     counterparty_ediel_id: edielId,
     ediel_id: edielId,
     counterparty_role: params.role,
@@ -178,23 +210,87 @@ async function upsertTestCounterparty(params: {
   return id;
 }
 
-export async function getEdielSystemTestSettings(params: {
-  companyId?: string | null;
-  testSuite?: EdielSystemTestSuite | string | null;
-}): Promise<EdielSystemTestSettings | null> {
+function settingsFromRow(
+  row: Record<string, unknown>,
+  params: {
+    companyId: string;
+    suite: string;
+    portal: Record<string, unknown> | null;
+    brp: Record<string, unknown> | null;
+  },
+): EdielSystemTestSettings {
+  const rowMetadata = metadata(row);
+  return {
+    id: clean(row.id),
+    companyId: params.companyId,
+    environment: "test",
+    testSuite: params.suite as EdielSystemTestSuite,
+    testPortalCounterpartyId: clean(row.test_portal_counterparty_id),
+    testPortalEdielId: upper(
+      params.portal?.ediel_id ?? params.portal?.counterparty_ediel_id,
+    ),
+    testPortalName: clean(
+      params.portal?.name ?? params.portal?.counterparty_name,
+    ),
+    testPortalEmail: clean(
+      params.portal?.email_address ?? params.portal?.email,
+    ),
+    testBrpCounterpartyId: clean(row.test_brp_counterparty_id),
+    testBrpEdielId: upper(params.brp?.ediel_id ?? params.brp?.counterparty_ediel_id),
+    testBrpName: clean(params.brp?.name ?? params.brp?.counterparty_name),
+    defaultReceiverSubaddress: upper(row.default_receiver_subaddress),
+    defaultSenderSubaddress: upper(row.default_sender_subaddress),
+    routeProfileId: clean(row.route_profile_id),
+    transportProfileId: clean(row.transport_profile_id),
+    setupPackage: clean(row.setup_package) ?? clean(rowMetadata.setupPackage),
+    actorRole:
+      normalizeActorRole(row.actor_role ?? rowMetadata.actorRole) ??
+      clean(row.actor_role ?? rowMetadata.actorRole),
+    messageFamily: upper(row.message_family ?? rowMetadata.messageFamily),
+    applicationReference: upper(
+      row.application_reference ?? rowMetadata.applicationReference,
+    ),
+    environmentType:
+      clean(row.environment_type) ?? clean(rowMetadata.environmentType),
+    certificateEnvironment:
+      clean(row.certificate_environment) ??
+      clean(rowMetadata.certificateEnvironment),
+    transportEnvironment:
+      clean(row.transport_environment) ?? clean(rowMetadata.transportEnvironment),
+    smtpProvider: clean(row.smtp_provider) ?? clean(rowMetadata.smtpProvider),
+    metadata: rowMetadata,
+    isActive: row.is_active !== false,
+  };
+}
+
+export async function getEdielSystemTestSettings(
+  params: EdielSystemTestSettingsSelector,
+): Promise<EdielSystemTestSettings | null> {
   const companyId = clean(params.companyId);
   if (!companyId) return null;
   const suite = upper(params.testSuite) ?? "AGT";
+  const actorRole = normalizeActorRole(params.actorRole);
+  const messageFamily = upper(params.messageFamily);
+  const setupPackage = clean(params.setupPackage);
+  const environmentType = clean(params.environmentType);
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from("ediel_system_test_settings")
     .select("*")
     .eq("company_id", companyId)
     .eq("environment", "test")
     .eq("test_suite", suite)
-    .eq("is_active", true)
+    .eq("is_active", true);
+
+  if (actorRole) query = query.eq("actor_role", actorRole);
+  if (messageFamily) query = query.eq("message_family", messageFamily);
+  if (setupPackage) query = query.eq("setup_package", setupPackage);
+  if (environmentType) query = query.eq("environment_type", environmentType);
+
+  const { data, error } = await query
+    .order("updated_at", { ascending: false })
     .order("id", { ascending: true })
-    .limit(2);
+    .limit(3);
 
   if (error) {
     if (isMissingRelationError(error)) return null;
@@ -202,7 +298,11 @@ export async function getEdielSystemTestSettings(params: {
   }
 
   const rows = (data ?? []) as Array<Record<string, unknown>>;
-  if (rows.length > 1) throw new Error("Flera aktiva systemtestinställningar finns för samma tenant och suite.");
+  if (rows.length > 1) {
+    throw new Error(
+      "Flera aktiva systemtestinställningar matchar samma tenant och runtimekontext. Ange roll, meddelandefamilj och testpaket explicit.",
+    );
+  }
   const row = rows[0] ?? null;
   if (!row) return null;
 
@@ -211,33 +311,79 @@ export async function getEdielSystemTestSettings(params: {
     findCounterparty(clean(row.test_brp_counterparty_id)),
   ]);
 
-  return {
-    id: clean(row.id),
-    companyId,
-    environment: "test",
-    testSuite: (suite as EdielSystemTestSuite) ?? "AGT",
-    testPortalCounterpartyId: clean(row.test_portal_counterparty_id),
-    testPortalEdielId: upper(portal?.ediel_id ?? portal?.counterparty_ediel_id),
-    testPortalName: clean(portal?.name ?? portal?.counterparty_name),
-    testPortalEmail: clean(portal?.email_address ?? portal?.email),
-    testBrpCounterpartyId: clean(row.test_brp_counterparty_id),
-    testBrpEdielId: upper(brp?.ediel_id ?? brp?.counterparty_ediel_id),
-    testBrpName: clean(brp?.name ?? brp?.counterparty_name),
-    defaultReceiverSubaddress: upper(row.default_receiver_subaddress),
-    defaultSenderSubaddress: upper(row.default_sender_subaddress),
-    routeProfileId: clean(row.route_profile_id),
-    transportProfileId: clean(row.transport_profile_id),
-    setupPackage: clean(row.setup_package) ?? clean(metadata(row).setupPackage),
-    actorRole: clean(row.actor_role) ?? clean(metadata(row).actorRole),
-    messageFamily: upper(row.message_family ?? metadata(row).messageFamily),
-    applicationReference: upper(row.application_reference ?? metadata(row).applicationReference),
-    environmentType: clean(row.environment_type) ?? clean(metadata(row).environmentType),
-    certificateEnvironment: clean(row.certificate_environment) ?? clean(metadata(row).certificateEnvironment),
-    transportEnvironment: clean(row.transport_environment) ?? clean(metadata(row).transportEnvironment),
-    smtpProvider: clean(row.smtp_provider) ?? clean(metadata(row).smtpProvider),
-    metadata: metadata(row),
-    isActive: row.is_active !== false,
-  };
+  return settingsFromRow(row, { companyId, suite, portal, brp });
+}
+
+async function captureCurrentSnapshot(params: {
+  companyId: string;
+  actorUserId: string;
+  reason: string;
+}): Promise<string> {
+  const { data, error } = await supabaseService.rpc(
+    "canonical_capture_ediel_configuration_snapshot",
+    {
+      p_company_id: params.companyId,
+      p_actor_user_id: params.actorUserId,
+      p_reason: params.reason,
+    },
+  );
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const snapshotId = clean(
+    row && typeof row === "object"
+      ? (row as Record<string, unknown>).id
+      : null,
+  );
+  if (!snapshotId) {
+    throw new Error("Kunde inte fånga aktuell Ediel-konfigurationssnapshot.");
+  }
+  return snapshotId;
+}
+
+async function activateCanonicalTestConfiguration(params: {
+  companyId: string;
+  actorUserId: string;
+  logicalSuite: string;
+  actorRole: "supplier" | "esco";
+  messageFamily: string;
+  setupPackage: string;
+  environmentType: string;
+  configurationSnapshotId: string;
+}) {
+  const dbRole = databaseActorRole(params.actorRole);
+  if (!dbRole) throw new Error("Ogiltig Ediel-roll för aktiv testkonfiguration.");
+
+  const deactivate = await supabaseService
+    .from("ediel_active_test_configurations")
+    .update({ status: "inactive", updated_at: new Date().toISOString() })
+    .eq("company_id", params.companyId)
+    .eq("environment", "test")
+    .eq("environment_type", params.environmentType)
+    .eq("test_suite", params.messageFamily)
+    .eq("actor_role", dbRole)
+    .eq("message_family", params.messageFamily)
+    .eq("setup_package", params.setupPackage)
+    .eq("status", "active");
+  if (deactivate.error && !isMissingRelationError(deactivate.error)) {
+    throw deactivate.error;
+  }
+
+  const { error } = await supabaseService
+    .from("ediel_active_test_configurations")
+    .insert({
+      company_id: params.companyId,
+      environment: "test",
+      environment_type: params.environmentType,
+      test_suite: params.messageFamily,
+      actor_role: dbRole,
+      message_family: params.messageFamily,
+      setup_package: params.setupPackage,
+      configuration_snapshot_id: params.configurationSnapshotId,
+      status: "active",
+      created_by: params.actorUserId,
+    });
+  if (error) throw error;
 }
 
 export async function saveEdielSystemTestSettings(
@@ -245,10 +391,40 @@ export async function saveEdielSystemTestSettings(
 ): Promise<EdielSystemTestSettings> {
   const companyId = clean(input.companyId);
   const portalEdielId = upper(input.testPortalEdielId);
-  if (!companyId)
+  if (!companyId) {
     throw new Error("company_id saknas för systemtestinställning.");
-  if (!portalEdielId)
+  }
+  if (!portalEdielId) {
     throw new Error("Systemtestportalens Ediel-ID måste fyllas i.");
+  }
+
+  const suite = upper(input.testSuite) ?? "AGT";
+
+  // Compatibility bridge for the legacy supplier-only AGT screen. This is
+  // semantic, never tenant-specific: no company id or Gridex Ediel id is baked in.
+  const legacySupplierAgt =
+    suite === "AGT" &&
+    !clean(input.actorRole) &&
+    !clean(input.messageFamily) &&
+    !clean(input.setupPackage) &&
+    !clean(input.environmentType);
+
+  const actorRole =
+    normalizeActorRole(input.actorRole) ??
+    (legacySupplierAgt ? "supplier" : null);
+  const messageFamily =
+    upper(input.messageFamily) ?? (legacySupplierAgt ? "PRODAT" : null);
+  const setupPackage =
+    clean(input.setupPackage) ??
+    (legacySupplierAgt ? "agt_ddq_prodat_l" : null);
+  const environmentType =
+    clean(input.environmentType) ?? (legacySupplierAgt ? "agt_test" : null);
+
+  if (!actorRole || !messageFamily || !setupPackage || !environmentType) {
+    throw new Error(
+      "Systemtestprofil kräver explicit aktörsroll, meddelandefamilj, setup package och environment type. AGT/TGT ensam är inte en säker runtimeidentitet.",
+    );
+  }
 
   const portalCounterpartyId = await upsertTestCounterparty({
     companyId,
@@ -270,9 +446,7 @@ export async function saveEdielSystemTestSettings(
       })
     : null;
 
-  const suite = upper(input.testSuite) ?? "AGT";
-
-  await supabaseService
+  const deactivate = await supabaseService
     .from("ediel_system_test_settings")
     .update({
       is_active: false,
@@ -282,7 +456,31 @@ export async function saveEdielSystemTestSettings(
     .eq("company_id", companyId)
     .eq("environment", "test")
     .eq("test_suite", suite)
+    .eq("actor_role", actorRole)
+    .eq("message_family", messageFamily)
+    .eq("setup_package", setupPackage)
+    .eq("environment_type", environmentType)
     .eq("is_active", true);
+  if (deactivate.error) throw deactivate.error;
+
+  const rowMetadata = {
+    ...(input.metadata ?? {}),
+    canonicalRuntimeIdentity: {
+      logicalSuite: suite,
+      actorRole,
+      messageFamily,
+      setupPackage,
+      environmentType,
+    },
+    setupPackage,
+    actorRole,
+    messageFamily,
+    applicationReference: upper(input.applicationReference),
+    environmentType,
+    certificateEnvironment: clean(input.certificateEnvironment),
+    transportEnvironment: clean(input.transportEnvironment),
+    smtpProvider: clean(input.smtpProvider),
+  };
 
   const payload = {
     company_id: companyId,
@@ -294,25 +492,15 @@ export async function saveEdielSystemTestSettings(
     default_sender_subaddress: upper(input.defaultSenderSubaddress),
     route_profile_id: clean(input.routeProfileId),
     transport_profile_id: clean(input.transportProfileId),
-    setup_package: clean(input.setupPackage),
-    actor_role: clean(input.actorRole),
-    message_family: upper(input.messageFamily),
+    setup_package: setupPackage,
+    actor_role: actorRole,
+    message_family: messageFamily,
     application_reference: upper(input.applicationReference),
-    environment_type: clean(input.environmentType),
+    environment_type: environmentType,
     certificate_environment: clean(input.certificateEnvironment),
     transport_environment: clean(input.transportEnvironment),
     smtp_provider: clean(input.smtpProvider),
-    metadata: {
-      ...(input.metadata ?? {}),
-      setupPackage: clean(input.setupPackage),
-      actorRole: clean(input.actorRole),
-      messageFamily: upper(input.messageFamily),
-      applicationReference: upper(input.applicationReference),
-      environmentType: clean(input.environmentType),
-      certificateEnvironment: clean(input.certificateEnvironment),
-      transportEnvironment: clean(input.transportEnvironment),
-      smtpProvider: clean(input.smtpProvider),
-    },
+    metadata: rowMetadata,
     is_active: input.isActive !== false,
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
@@ -322,6 +510,23 @@ export async function saveEdielSystemTestSettings(
     .from("ediel_system_test_settings")
     .insert(payload);
   if (error) throw error;
+
+  const configurationSnapshotId = await captureCurrentSnapshot({
+    companyId,
+    actorUserId: input.actorUserId,
+    reason: `system_test_profile:${suite}:${actorRole}:${messageFamily}:${setupPackage}`,
+  });
+
+  await activateCanonicalTestConfiguration({
+    companyId,
+    actorUserId: input.actorUserId,
+    logicalSuite: suite,
+    actorRole,
+    messageFamily,
+    setupPackage,
+    environmentType,
+    configurationSnapshotId,
+  });
 
   await supabaseService
     .from("audit_logs")
@@ -333,23 +538,20 @@ export async function saveEdielSystemTestSettings(
       entity_id: companyId,
       new_values: {
         testSuite: suite,
+        actorRole,
+        messageFamily,
+        setupPackage,
+        environmentType,
         testPortalCounterpartyId: portalCounterpartyId,
         testBrpCounterpartyId: brpCounterpartyId,
-        defaultReceiverSubaddress: upper(input.defaultReceiverSubaddress),
-        defaultSenderSubaddress: upper(input.defaultSenderSubaddress),
         routeProfileId: clean(input.routeProfileId),
         transportProfileId: clean(input.transportProfileId),
-        setupPackage: clean(input.setupPackage),
-        actorRole: clean(input.actorRole),
-        messageFamily: upper(input.messageFamily),
         applicationReference: upper(input.applicationReference),
-        environmentType: clean(input.environmentType),
-        certificateEnvironment: clean(input.certificateEnvironment),
-        transportEnvironment: clean(input.transportEnvironment),
-        smtpProvider: clean(input.smtpProvider),
+        configurationSnapshotId,
       },
       metadata: {
         source: "ediel_system_test_settings",
+        multitenantRuntimeIdentity: true,
       },
     })
     .then((result: { error?: { code?: string } | null }) => {
@@ -369,13 +571,19 @@ export async function saveEdielSystemTestSettings(
   const saved = await getEdielSystemTestSettings({
     companyId,
     testSuite: suite,
+    actorRole,
+    messageFamily,
+    setupPackage,
+    environmentType,
   });
-  if (!saved)
+  if (!saved) {
     throw new Error(
       "Systemtestinställningen sparades men kunde inte läsas tillbaka.",
     );
+  }
   return saved;
 }
+
 export type EdielSystemTestRuntimeContext = {
   companyId: string;
   testSuite: EdielSystemTestSuite;
@@ -401,15 +609,21 @@ async function getActiveTestActorSetting(
     .select("*")
     .eq("company_id", companyId)
     .eq("environment", "test")
-    .eq("is_active", true)
+    .eq("is_active", true);
 
-  const role = clean(actorRole);
-  if (role) {
-    const dbActorRole = role === "esco" ? "energy_service_company" : role;
-    query = query.or(`role.eq.${role},actor_role.eq.${dbActorRole}`);
+  const role = normalizeActorRole(actorRole);
+  if (role === "supplier") {
+    query = query.or(
+      "role.eq.supplier,role.eq.electricity_supplier,actor_role.eq.supplier,actor_role.eq.electricity_supplier",
+    );
+  } else if (role === "esco") {
+    query = query.or(
+      "role.eq.esco,role.eq.energy_service_company,actor_role.eq.esco,actor_role.eq.energy_service_company",
+    );
   }
 
   const { data, error } = await query
+    .order("updated_at", { ascending: false })
     .order("id", { ascending: true })
     .limit(2);
 
@@ -419,7 +633,11 @@ async function getActiveTestActorSetting(
   }
 
   const rows = (data ?? []) as Array<Record<string, unknown>>;
-  if (rows.length > 1) throw new Error("Flera aktiva Ediel-aktörsprofiler matchar systemtestkontexten.");
+  if (rows.length > 1) {
+    throw new Error(
+      "Flera aktiva Ediel-aktörsprofiler matchar samma tenant och aktörsroll.",
+    );
+  }
   return rows[0] ?? null;
 }
 
@@ -427,17 +645,27 @@ export async function getEdielSystemTestRuntimeContext(params: {
   companyId?: string | null;
   testSuite?: EdielSystemTestSuite | string | null;
   actorRole?: string | null;
+  messageFamily?: string | null;
+  setupPackage?: string | null;
+  environmentType?: string | null;
 }): Promise<EdielSystemTestRuntimeContext | null> {
   const companyId = clean(params.companyId);
   if (!companyId) return null;
 
   const suite = (upper(params.testSuite) ?? "TGT") as EdielSystemTestSuite;
   const [settings, actor] = await Promise.all([
-    getEdielSystemTestSettings({ companyId, testSuite: suite }),
+    getEdielSystemTestSettings({
+      companyId,
+      testSuite: suite,
+      actorRole: params.actorRole,
+      messageFamily: params.messageFamily,
+      setupPackage: params.setupPackage,
+      environmentType: params.environmentType,
+    }),
     getActiveTestActorSetting(companyId, params.actorRole),
   ]);
 
-  const actorEdielId = upper(actor?.ediel_id ?? actor?.actor_ediel_id);
+  const actorEdielId = upper(actor?.actor_ediel_id ?? actor?.ediel_id);
   const portalEdielId = upper(settings?.testPortalEdielId);
 
   if (!actorEdielId || !portalEdielId) return null;
@@ -470,11 +698,14 @@ export async function requireEdielSystemTestRuntimeContext(params: {
   companyId?: string | null;
   testSuite?: EdielSystemTestSuite | string | null;
   actorRole?: string | null;
+  messageFamily?: string | null;
+  setupPackage?: string | null;
+  environmentType?: string | null;
 }): Promise<EdielSystemTestRuntimeContext> {
   const context = await getEdielSystemTestRuntimeContext(params);
   if (!context) {
     throw new Error(
-      "Systemtest/TGT kräver aktiv test-aktör och DB-konfigurerad systemtestportal. Gå till Company → Ediel & Go-live → Testmiljö och spara bolagets Ediel-ID, testportal och eventuell test-BRP först.",
+      "Systemtest kräver en aktiv, tenant- och rollscopad testprofil med explicit testpaket, Ediel-aktör och systemtestportal. Konfigurera profilen under Ediel & Go-live innan testet körs.",
     );
   }
   return context;
