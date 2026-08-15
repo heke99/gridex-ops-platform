@@ -297,14 +297,15 @@
     },
     "bootstrap/20260731_publication_repair_live_functions_foundation.sql": {
       "sourceKind": "verified_live_schema",
-      "artifactSha256": "61487cf238edc0c6c945f972ce4e142a3be4bdeb3006e72325901dd7ce019dcc",
+      "artifactSha256": "7367614b7073313871a297e9bc141be691c0dcd2c13154d9071ef034bc9da549",
       "projectId": "piidsfebjqjmnepdpnas",
-      "capturedAt": "2026-08-10",
+      "capturedAt": "2026-08-10 and 2026-08-15",
       "signatures": [
+        "gridex_republish_active_public_contract_v1(uuid,uuid,numeric)",
         "gridex_republish_active_public_contract_v2(uuid,uuid,numeric)",
         "gridex_seed_publication_price_option_template_v2(uuid,uuid)"
       ],
-      "purpose": "Restore the two pg_get_functiondef-verified live functions required by the canonical 20260731210000 public-contract repair; no data is seeded."
+      "purpose": "Restore the three pg_get_functiondef-verified live functions required by the canonical public-contract repair and its successor transition; no data is seeded."
     },
     "bootstrap/20260815_current_ediel_engine_schema_version_prerequisite.sql": {
       "sourceKind": "verified_live_schema",
