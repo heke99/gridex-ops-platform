@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-15T17:00:00.000Z",
+  "generated_at": "2026-08-15T21:55:00.000Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "a27f1f30dd596d46cd149080439fd52c0d20840e3922ffc941bf35696d7baa6b",
-  "latest_migration": "20260815220000_contract_publication_successor_transition_order.sql"
+  "latest_migration": "20260815230000_ediel_test_run_setup_package_exact_bind.sql"
 }

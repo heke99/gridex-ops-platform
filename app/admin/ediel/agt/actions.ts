@@ -45,6 +45,7 @@ import { pollAndIngestEdielMailbox } from "@/lib/ediel/orchestrator";
 import { registerEdielFile } from "@/lib/ediel/fileEngine";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
 import { saveEdielSystemTestSettings } from "@/lib/ediel/systemTestSettings";
+import { resolveEdielSystemTestPackageForCase } from "@/lib/ediel/systemTestPackages";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 
 function value(formData: FormData, key: string): string | null {
@@ -190,6 +191,19 @@ async function ensureAgtRunForCase(params: {
 
   if (activeRun) return activeRun;
 
+  const agtPackage = resolveEdielSystemTestPackageForCase({
+    runtimeSuite: "AGT",
+    actorRole: params.testCase.roleCode,
+    messageFamily: params.testCase.messageFamily,
+    messageCode: params.testCase.messageCode,
+    testCaseCode: params.testCase.testCaseCode,
+  });
+  if (!agtPackage) {
+    throw new Error(
+      `AGT-testfall ${params.testCase.testCaseCode} saknar explicit setup package.`,
+    );
+  }
+
   return createEdielTestRun({
     actorUserId: params.actorUserId,
     companyId: params.companyId,
@@ -198,9 +212,14 @@ async function ensureAgtRunForCase(params: {
     testCaseCode: params.testCase.testCaseCode,
     title: params.testCase.title,
     approvalVersion: params.testCase.approvalVersion,
-    notes: `${params.testCase.notes} Skapad automatiskt från AGT-testkortet vid import.`,
+    notes: `${params.testCase.notes} Skapad automatiskt från AGT-testkortet vid import. Setup package: ${agtPackage.value}.`,
     status: "running",
     startedAt: new Date().toISOString(),
+    actorRole: params.testCase.roleCode,
+    messageFamily: params.testCase.messageFamily,
+    businessCode: params.testCase.messageCode,
+    environmentType: agtPackage.environmentType,
+    setupPackage: agtPackage.value,
   });
 }
 
@@ -710,6 +729,13 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
       : null,
     routeProfileId: routeProfile?.id ?? null,
     environmentType: "agt_test",
+    setupPackage: resolveEdielSystemTestPackageForCase({
+      runtimeSuite: "AGT",
+      actorRole: testCase.roleCode,
+      messageFamily: testCase.messageFamily,
+      messageCode: testCase.messageCode,
+      testCaseCode: testCase.testCaseCode,
+    })?.value ?? null,
     expectedFlow: testCase.expectedSteps,
   });
 
@@ -763,6 +789,18 @@ export async function createAllAgtSupplierTestRunsAction(formData: FormData) {
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
 
   for (const testCase of EDIEL_AGT_SUPPLIER_2026A_CASES) {
+    const agtPackage = resolveEdielSystemTestPackageForCase({
+      runtimeSuite: "AGT",
+      actorRole: testCase.roleCode,
+      messageFamily: testCase.messageFamily,
+      messageCode: testCase.messageCode,
+      testCaseCode: testCase.testCaseCode,
+    });
+    if (!agtPackage) {
+      throw new Error(
+        `AGT-testfall ${testCase.testCaseCode} saknar explicit setup package.`,
+      );
+    }
     await createEdielTestRun({
       actorUserId,
       companyId,
@@ -771,8 +809,13 @@ export async function createAllAgtSupplierTestRunsAction(formData: FormData) {
       testCaseCode: testCase.testCaseCode,
       title: testCase.title,
       approvalVersion: testCase.approvalVersion,
-      notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida.`,
+      notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida. Setup package: ${agtPackage.value}.`,
       status: "running",
+      actorRole: testCase.roleCode,
+      messageFamily: testCase.messageFamily,
+      businessCode: testCase.messageCode,
+      environmentType: agtPackage.environmentType,
+      setupPackage: agtPackage.value,
     });
   }
 

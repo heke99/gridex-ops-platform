@@ -245,6 +245,94 @@ export function getSupplierAgtUtiltsSetupPackage(
   }
 }
 
+/**
+ * Resolve the canonical setup package for an AGT/TGT runtime. Partial identity
+ * (suite+role without family/package) is unsafe once multiple UTILTS packages
+ * can be active for the same tenant.
+ */
+export function resolveEdielSystemTestPackageForCase(input: {
+  setupPackage?: string | null;
+  runtimeSuite?: string | null;
+  actorRole?: string | null;
+  messageFamily?: string | null;
+  messageCode?: string | null;
+  testCaseCode?: string | null;
+}): EdielSystemTestPackageDefinition | null {
+  const explicit = String(input.setupPackage ?? "").trim();
+  if (explicit) {
+    const known = EDIEL_SYSTEM_TEST_PACKAGES.find((item) => item.value === explicit);
+    if (known) return known;
+  }
+
+  const runtimeSuite = String(input.runtimeSuite ?? "")
+    .trim()
+    .toUpperCase();
+  const role = String(input.actorRole ?? "")
+    .trim()
+    .toLowerCase();
+  const canonicalRole =
+    role === "supplier" || role === "electricity_supplier"
+      ? "supplier"
+      : role === "esco" || role === "energy_service_company"
+        ? "esco"
+        : null;
+  const family = String(input.messageFamily ?? "")
+    .trim()
+    .toUpperCase();
+  const messageCode = String(input.messageCode ?? "").trim().toUpperCase();
+  const testCaseCode = String(input.testCaseCode ?? "")
+    .trim()
+    .toUpperCase();
+
+  if (!canonicalRole || !family) return null;
+
+  const isAgt =
+    runtimeSuite === "AGT" ||
+    isAgtSystemTestCase({
+      setupPackage: explicit || null,
+      runtimeTestSuite: runtimeSuite,
+      roleCode: canonicalRole,
+      suite: family,
+      testCaseCode,
+    });
+
+  if (isAgt && canonicalRole === "supplier" && family === "PRODAT") {
+    return getEdielSystemTestPackage("agt_ddq_prodat_l");
+  }
+  if (isAgt && canonicalRole === "supplier" && family === "UTILTS") {
+    const utiltsPackage =
+      getSupplierAgtUtiltsSetupPackage(messageCode) ??
+      (testCaseCode.startsWith("UL")
+        ? getSupplierAgtUtiltsSetupPackage(
+            ({
+              UL1: "S03",
+              UL2: "E66",
+              UL3: "E66",
+              UL4: "S02",
+              UL6: "E31",
+            } as Record<string, string>)[testCaseCode],
+          )
+        : null);
+    return utiltsPackage ? getEdielSystemTestPackage(utiltsPackage) : null;
+  }
+  if (isAgt && canonicalRole === "esco" && family === "PRODAT") {
+    return getEdielSystemTestPackage("agt_dgi_prodat_e3_e8");
+  }
+  if (isAgt && canonicalRole === "esco" && family === "UTILTS") {
+    return getEdielSystemTestPackage("agt_dgi_utilts_ue1_ue2");
+  }
+  if (!isAgt && canonicalRole === "esco" && family === "UTILTS") {
+    return getEdielSystemTestPackage("tgt_dgi_utilts_u3");
+  }
+  if (!isAgt && canonicalRole === "supplier") {
+    return getEdielSystemTestPackage("tgt_ddq_prodat_utilts");
+  }
+  if (!isAgt && canonicalRole === "esco" && family === "PRODAT") {
+    return getEdielSystemTestPackage("agt_dgi_prodat_e3_e8");
+  }
+  return null;
+}
+
 export function isAgtSystemTestCase(input: {
   setupPackage?: string | null;
   runtimeTestSuite?: string | null;

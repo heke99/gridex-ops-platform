@@ -1,21 +1,20 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-16T00:35:00Z",
-  "branch": "fix/e2e-ediel-approval-20260815",
-  "active_phase": "PR_149_PRODUCTION_CLOSURE",
-  "active_task": "Explicit Ediel identity, generated types lock, Gridex production/API/contracts readiness",
-  "status": "CLEAN_REPLAY_TYPES_LOCK_VERIFIED_LOCALLY",
-  "base_main_sha": "c575624",
+  "updated_at": "2026-08-15T21:56:00Z",
+  "branch": "cursor/codebase-health-and-stability-7053",
+  "active_phase": "POST_149_HEALTH_RESIDUALS",
+  "active_task": "Reland #148 residuals + Ediel multi-package runtime identity",
+  "status": "LOCAL_GATES_PASS",
+  "base_main_sha": "c5a5501a",
   "head_sha": "working_tree",
-  "pr": 149,
+  "pr": null,
   "verification": {
-    "migration_integrity": "REVERIFY_451_FILES_355_GROUPS",
-    "types_check": "PASS_D39755F6_CLEAN_REPLAY",
-    "verify_workflow_local": "PASS",
-    "quality_release_checkpoint": "PASS_623_TESTS_BUILD",
-    "tenant_ediel_contract_api_regressions": "PASS",
+    "vitest_tip_residuals": "PASS_POST_145_147_149_EDIEL",
+    "migration_integrity": "PASS_454_FILES_358_GROUPS",
+    "types_check": "PASS_LATEST_20260815220000",
+    "tsc_app": "PASS",
     "security_audit_production": "PASS_0",
-    "hosted_clean_replay": "SCHEMA_REPLAY_PASS_TYPES_HASH_DELTA_LOCKED_LOCALLY"
+    "hosted_ci": "PENDING"
   },
-  "resume_from": "Publish clean-replay generated types lock, require all hosted gates green, apply production migration, merge, deploy and smoke verification"
+  "resume_from": "Open PR, wait for hosted CI, merge after review"
 }
