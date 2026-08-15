@@ -24,6 +24,7 @@ const adminActions = read("app/admin/contracts/actions.ts");
 const adminPage = read("app/admin/contracts/page.tsx");
 const twoStepMigration = read("supabase/migrations/20260804093500_contract_publication_two_step_invoice_fee_repair.sql");
 const rpcSecurityMigration = read("supabase/migrations/20260815210353_restrict_recent_security_definer_rpcs.sql");
+const successorOrderMigration = read("supabase/migrations/20260815220000_contract_publication_successor_transition_order.sql");
 const companyControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
@@ -102,6 +103,25 @@ check(
   ) && /pg_advisory_xact_lock/.test(migration),
   "publication is protected by transaction lock and one-active-version index",
 );
+const predecessorEndIndex = successorOrderMigration.indexOf("set status = 'ended'");
+const successorFinalizeIndex = successorOrderMigration.indexOf(
+  "perform public.gridex_finalize_contract_publication_v1(",
+);
+check(
+  predecessorEndIndex >= 0 &&
+    successorFinalizeIndex > predecessorEndIndex &&
+    successorOrderMigration.includes(
+      "gridex_republish_active_public_contract_v1_transition_marker_missing",
+    ) &&
+    /revoke all on function public\\.gridex_republish_active_public_contract_v1\\(uuid, uuid, numeric\\)[\\s\\S]*from public, anon, authenticated/.test(
+      successorOrderMigration,
+    ) &&
+    /revoke all on function public\\.gridex_republish_active_public_contract_v2\\(uuid, uuid, numeric\\)[\\s\\S]*from public, anon, authenticated/.test(
+      successorOrderMigration,
+    ),
+  "publication repair releases predecessor before successor finalization and stays service-role only",
+);
+
 check(
   /gridex_validate_contract_channel_readiness/.test(migration) &&
     /api_contracts\.read/.test(migration) &&
