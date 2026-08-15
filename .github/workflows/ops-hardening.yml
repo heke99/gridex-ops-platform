@@ -16,6 +16,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Temporary migration checksum diagnostics
+        run: |
+          SHA_A="$(sha256sum supabase/migrations/20260815093959_ediel_system_test_multitenant_profile_key.sql | awk '{print $1}')"
+          SHA_B="$(sha256sum supabase/migrations/20260815095427_ediel_role_scoped_test_configuration_binding.sql | awk '{print $1}')"
+          echo "::error file=scripts/migration-history-manifest.additions.json,line=1::MIGRATION_SHA256_093959=$SHA_A MIGRATION_SHA256_095427=$SHA_B"
+          exit 1
       - run: npm run db:migrations:check
       - run: node scripts/check-agent-memory-git-state.cjs
       - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
