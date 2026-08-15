@@ -18,20 +18,22 @@ describe('Ediel E2E regression guards', () => {
   })
 
   it('keeps request hashes atomic and running projections non-destructive', () => {
-    expect(migration).toContain("request_hash = v_hash")
+    expect(migration).toContain('request_hash = v_hash')
     expect(migration).toContain("v_status='running'")
     expect(migration).toContain('EDIEL_TEST_PROJECTION_PRESERVED_AUTHORITATIVE')
     expect(migration).toContain("v_authoritative.status in ('passed','manual_verified')")
   })
+
   it('treats limited pilot as a post-first-send stop-loss', () => {
     const evidence = readFileSync('lib/ediel/certificationEvidence.ts', 'utf8')
     const pilotMigration = readFileSync('supabase/migrations/20260815003554_conditional_limited_pilot_evidence_gate.sql', 'utf8')
     const panel = readFileSync('components/admin/go-live/CertificationEvidencePanel.tsx', 'utf8')
+    const goLivePage = readFileSync('app/admin/platform/go-live/[companyId]/page.tsx', 'utf8')
     expect(evidence).toContain('limited_pilot_requires_real_production_send')
     expect(evidence).toContain("type !== 'LIMITED_PILOT'")
     expect(pilotMigration).toContain("m.status = 'sent'")
     expect(pilotMigration).toContain("select 'LIMITED_PILOT'")
     expect(panel).toContain('Efter första live-send')
+    expect(goLivePage).toContain('pilotRequired={certificationEvidence.pilotRequired}')
   })
-
 })
