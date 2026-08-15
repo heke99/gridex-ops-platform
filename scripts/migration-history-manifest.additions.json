@@ -62,6 +62,8 @@
     "20260815164000_ediel_brp_active_state_hotfix.sql": "fb41eb40df6970df28b487d6e1ab7cad5e7448fbcf72ad306f16086ea9ecea43",
     "20260815170500_contract_publication_channel_readiness.sql": "4c8505c9457262c50784204f6fb07627a356ce5452a3874b5894ed7f59177fd8",
     "20260815210353_restrict_recent_security_definer_rpcs.sql": "5e2a5542b30bb560911645015382cf87029004f3adba03575f270f9377b93d69",
-    "20260815220000_contract_publication_successor_transition_order.sql": "2b394258e007392383f2a1ae0293877c2faf16a59f52e3bb59e50928540d4424"
+    "20260815220000_contract_publication_successor_transition_order.sql": "2b394258e007392383f2a1ae0293877c2faf16a59f52e3bb59e50928540d4424",
+    "20260815233059_tenant_website_installation_completion_v1.sql": "e2e1aaf6bb489d7c7392bb7758e5e6c08d87c9ceb54ed907ffd1a65b3e2ee64f",
+    "20260815233411_tenant_website_installation_completion_trigger_v1.sql": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827"
   }
 }
