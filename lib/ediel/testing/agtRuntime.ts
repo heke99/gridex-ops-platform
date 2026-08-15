@@ -80,6 +80,7 @@ async function getActiveTestSupplierActor(companyId?: string | null): Promise<Ed
     .eq('company_id', companyId)
     .eq('environment', 'test')
     .eq('is_active', true)
+    .in('actor_role', ['supplier', 'electricity_supplier'])
     .limit(2)
 
   if (error) throw error

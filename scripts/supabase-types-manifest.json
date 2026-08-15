@@ -3,5 +3,5 @@
   "generated_at": "2026-08-14T19:05:43.000Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "c0917477d048d65cbedb826a38780795be11a18150503171087dd672e9e1984e",
-  "latest_migration": "20260814234000_certification_evidence_passed_integrity.sql"
+  "latest_migration": "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql"
 }
