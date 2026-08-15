@@ -1,13 +1,11 @@
 # Current task
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
-Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
+Status: `CLEAN_REPLAY_TYPES_LOCK_VERIFIED_LOCALLY`
 
-Active work item: Post-#144 inbound manual-review metadata + Processa om sync
-on `cursor/codebase-health-and-stability-e76c`.
+Active work item: complete PR #149 for explicit Ediel role identity, generated Supabase contract locking, Gridex El production/API/contract readiness, hosted clean replay, merge, Vercel deployment, and post-deploy verification.
 
 ## Exact next action
 
-PR `#145` is open. Wait for hosted CI/clean-replay, squash merge only after
-required checks are green.
+Publish the exact clean-replay-generated Supabase types and normalized deterministic hash to PR `#149`, require all hosted jobs to pass, then apply the service-role RPC restriction, merge, and verify the production deployment plus non-destructive API/contract smoke checks.

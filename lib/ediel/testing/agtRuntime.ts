@@ -1,4 +1,5 @@
 import type { EdielActorSettingsRow, EdielRouteProfileRow } from '@/lib/ediel/types'
+import { isSupplierEdielActorRole } from '@/lib/ediel/actorRole'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
@@ -80,6 +81,7 @@ async function getActiveTestSupplierActor(companyId?: string | null): Promise<Ed
     .eq('company_id', companyId)
     .eq('environment', 'test')
     .eq('is_active', true)
+    .in('actor_role', ['supplier', 'electricity_supplier'])
     .limit(2)
 
   if (error) throw error
@@ -150,7 +152,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
     })
   }
 
-  if (actor.actor_role !== 'supplier') {
+  if (!isSupplierEdielActorRole(actor.actor_role)) {
     issues.push({
       severity: 'warning',
       code: 'agt_actor_role_not_supplier',
@@ -377,7 +379,14 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
 
 export async function getEdielAgtSupplierRuntime(companyId?: string | null): Promise<EdielAgtSupplierRuntime> {
   const actor = await getActiveTestSupplierActor(companyId)
-  const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: 'AGT' })
+  const systemTestSettings = await getEdielSystemTestSettings({
+    companyId,
+    testSuite: 'AGT',
+    actorRole: 'supplier',
+    messageFamily: 'PRODAT',
+    setupPackage: 'agt_ddq_prodat_l',
+    environmentType: 'agt_test',
+  })
   const [prodatRoute, utiltsRoute] = await Promise.all([
     getRouteByName(getEdielAgtRouteName('PRODAT'), companyId),
     getRouteByName(getEdielAgtRouteName('UTILTS'), companyId),

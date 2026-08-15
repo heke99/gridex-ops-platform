@@ -53,6 +53,14 @@
     "20260814183500_remaining_production_gaps_forward_port.sql": "349359875c2dbcdfcf2c819c720c26e275aaa5cfa262fa05d65d0087a02eebbf",
     "20260814190000_inbound_manual_review_status_and_binding.sql": "433339563c48e24e3f9fd102b10705616b69431712c97a9dfa834515f5af66b1",
     "20260814193000_inbound_manual_review_reopen_after_requeue.sql": "f4494f494480532293fdd1c394c68c76f21f2857e26e7f78f2b204b3a3a4d91b",
-    "20260814200000_inbound_manual_review_metadata_on_entry.sql": "49d2eb86d401bda73319fd3550b8794792229d35bdd8ce1833db0cb0c2ef2355"
+    "20260814200000_inbound_manual_review_metadata_on_entry.sql": "49d2eb86d401bda73319fd3550b8794792229d35bdd8ce1833db0cb0c2ef2355",
+    "20260815093959_ediel_system_test_multitenant_profile_key.sql": "be223d7c75803845e72ac8f32f01f33a61c168c3f4e4e15ce74fc982e1446cfa",
+    "20260815095427_ediel_role_scoped_test_configuration_binding.sql": "57589e4b199a849483a469a23a8bc2219996462099e78ec0ce800cecacd07ce9",
+    "20260815114530_restore_pre_engine_live_ediel_approval.sql": "6850a14fc8154dc538192a525031409e04c7f0da740a4414a9add9f1b268ed29",
+    "20260815114814_restore_pre_engine_live_ediel_approval_uuid_aggregate_hotfix.sql": "4bb48b081c68fa11e5ca0fb8106aa2448ad62b50f266ff2be241fddd7882c650",
+    "20260815162500_tenant_readiness_truth_convergence.sql": "33d8791b3e082df78f788a878739987283022351c31cb16770b267543ad199c5",
+    "20260815164000_ediel_brp_active_state_hotfix.sql": "fb41eb40df6970df28b487d6e1ab7cad5e7448fbcf72ad306f16086ea9ecea43",
+    "20260815170500_contract_publication_channel_readiness.sql": "4c8505c9457262c50784204f6fb07627a356ce5452a3874b5894ed7f59177fd8",
+    "20260815210353_restrict_recent_security_definer_rpcs.sql": "5e2a5542b30bb560911645015382cf87029004f3adba03575f270f9377b93d69"
   }
 }

@@ -36,20 +36,24 @@ returnsBlock = returnsBlock
   .replace(/(\bdescription:\s*)string(\s*\|\s*null)?/, '$1string | null')
   .replace(/(\bvalid_to:\s*)string(\s*\|\s*null)?/, '$1string | null')
 
-const next = original.replace(resolverPattern, `$1${returnsBlock}$3`)
-if (next === original) {
-  // Already overridden or unexpected shape — still rewrite to keep idempotent.
-  if (
+const overridden = original.replace(resolverPattern, `$1${returnsBlock}$3`)
+const next = overridden.replace(/\s+$/u, '\n')
+if (
+  overridden === original &&
+  !(
     /description:\s*string\s*\|\s*null/.test(match[2]) &&
     /valid_to:\s*string\s*\|\s*null/.test(match[2])
-  ) {
-    console.log(
-      `Supabase types nullability overrides already present: ${path.relative(process.cwd(), targetPath)}`,
-    )
-    process.exit(0)
-  }
+  )
+) {
   console.error('Nullability overrides did not change the Returns block')
   process.exit(1)
+}
+
+if (next === original) {
+  console.log(
+    `Supabase types nullability overrides already present: ${path.relative(process.cwd(), targetPath)}`,
+  )
+  process.exit(0)
 }
 
 fs.writeFileSync(targetPath, next)

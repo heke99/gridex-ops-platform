@@ -238,36 +238,41 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
                         </form>
                       </div>
 
-                      <form action={saveActorTestResultAction} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
-                        <input type="hidden" name="company_id" value={summary.company.id} />
-                        <input type="hidden" name="test_key" value={testCase.key} />
-                        <input type="hidden" name="ediel_test_run_id" value={result?.ediel_test_run_id ?? ''} />
-                        <div className="grid gap-3 md:grid-cols-3">
-                          <label className="grid gap-1 text-xs font-semibold text-slate-700">
-                            Status
-                            <select name="status" defaultValue={result?.status ?? 'passed'} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                              <option value="passed">Godkänd</option>
-                              <option value="manual_verified">Manuellt verifierad</option>
-                              <option value="failed">Nekad</option>
-                              <option value="blocked">Blockerad</option>
-                              <option value="running">Pågår</option>
-                            </select>
-                          </label>
-                          <label className="grid gap-1 text-xs font-semibold text-slate-700 md:col-span-2">
-                            Portalstatus / kommentar
-                            <input name="portal_status" defaultValue={result?.portal_status ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ex. Godkänt i Edielportalen" />
-                          </label>
+                      {result?.status === 'passed' ? (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+                          Godkänd av evidensmotorn. Statusen är skrivskyddad; starta eller synka en ny körning för ny maskinell verifiering.
                         </div>
-                        <label className="grid gap-1 text-xs font-semibold text-slate-700">
-                          Felorsak vid nekad/blockerad
-                          <input name="failure_reason" defaultValue={result?.failure_reason ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ange felorsak om testet inte är godkänt" />
-                        </label>
-                        <label className="grid gap-1 text-xs font-semibold text-slate-700">
-                          Rå payload / bevisnotering
-                          <textarea name="raw_payload" defaultValue={result?.raw_payload ?? ''} className="min-h-24 rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs" placeholder="Klistra in payload eller portalnotering vid behov" />
-                        </label>
-                        <button className="w-fit rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Spara testresultat</button>
-                      </form>
+                      ) : (
+                        <form action={saveActorTestResultAction} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
+                          <input type="hidden" name="company_id" value={summary.company.id} />
+                          <input type="hidden" name="test_key" value={testCase.key} />
+                          <input type="hidden" name="ediel_test_run_id" value={result?.ediel_test_run_id ?? ''} />
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <label className="grid gap-1 text-xs font-semibold text-slate-700">
+                              Status
+                              <select name="status" defaultValue={result?.status ?? 'manual_verified'} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                                <option value="manual_verified">Manuellt verifierad</option>
+                                <option value="failed">Nekad</option>
+                                <option value="blocked">Blockerad</option>
+                                <option value="running">Pågår</option>
+                              </select>
+                            </label>
+                            <label className="grid gap-1 text-xs font-semibold text-slate-700 md:col-span-2">
+                              Portalstatus / kommentar
+                              <input name="portal_status" defaultValue={result?.portal_status ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ex. Godkänt i Edielportalen" />
+                            </label>
+                          </div>
+                          <label className="grid gap-1 text-xs font-semibold text-slate-700">
+                            Felorsak vid nekad/blockerad
+                            <input name="failure_reason" defaultValue={result?.failure_reason ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ange felorsak om testet inte är godkänt" />
+                          </label>
+                          <label className="grid gap-1 text-xs font-semibold text-slate-700">
+                            Rå payload / bevisnotering
+                            <textarea name="raw_payload" defaultValue={result?.raw_payload ?? ''} className="min-h-24 rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs" placeholder="Klistra in payload eller portalnotering vid behov" />
+                          </label>
+                          <button className="w-fit rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Spara testresultat</button>
+                        </form>
+                      )}
                     </div>
                   ) : null}
                 </article>

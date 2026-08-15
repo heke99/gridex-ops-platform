@@ -1506,6 +1506,8 @@ export async function registerEdielFileAction(formData: FormData) {
   const scope = await getOperationalCompanyScope(context.userId);
   const requestedCompanyId = formString(formData.get("companyId"));
   const mode = parseFileEngineMode(formData.get("mode"));
+  const systemTestActorRole =
+    mode === "agt" ? "supplier" : formString(formData.get("actorRole"));
   const companyId = isPlatformAdminContext(context)
     ? (requestedCompanyId ?? scope.companyId)
     : scope.companyId;
@@ -1533,6 +1535,7 @@ export async function registerEdielFileAction(formData: FormData) {
       ? await requireEdielSystemTestRuntimeContext({
           companyId,
           testSuite: mode === "agt" ? "AGT" : "TGT",
+          actorRole: systemTestActorRole,
         })
       : null;
   const agtRuntime =
@@ -2027,6 +2030,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
     testSuite: "TGT",
+    actorRole: roleCode,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(

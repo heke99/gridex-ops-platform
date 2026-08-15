@@ -379,3 +379,15 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Closed post-#135 tip residuals on `cursor/codebase-health-and-stability-9740` (lifecycle resume activation guard, permissions promote pause, shared tenant-website classifier).
 - Closed post-#143 tip residual on `cursor/codebase-health-and-stability-996c` (sticky review_resolved_at after Köa om → reprocess → manual_review; legacy completed→done; UI Swedish error pass-through). Local verification PASS; hosted CI pending.
 - Closed post-#144 tip residuals on `cursor/codebase-health-and-stability-e76c` (worker invents review owner/priority/reason/SLA on manual_review entry; Processa om syncs active inbound_processing_jobs; forward metadata backfill). Local verification PASS; hosted CI pending.
+
+## 2026-08-15 — PR #149 production closure
+
+- Pinned generated Supabase TypeScript types and the three missing migration checksums; restored ordinary CI migration diagnostics.
+- Removed implicit AGT/runtime role fallbacks and added explicit supplier/ESCO isolation, including rejection of `system_supplier` as a tenant supplier.
+- Confirmed Gridex El remains live on production Ediel ID `21660`; `92825` is reserved for new system tests.
+- Repaired stale regression harnesses after canonical production approval and website runtime module splits; fixed limiter-unavailable HTTP classification.
+- Local verify, quality, production build, tenant isolation, website intake, contract publication, legal snapshot, and API scope checks pass. Hosted clean replay/merge/deploy remain next.
+- Supabase security advisor review found the two new privileged restoration/integrity RPCs on the authenticated API surface. Added forward migration `20260815210353` to restrict both to `service_role`; re-verification follows before merge.
+- Hosted clean replay on PR #149 exposed that the verified live-schema helper `canonical_current_ediel_engine_schema_version()` was present as a bootstrap artifact but absent from the replay plan. Declared it as hash-bound verified-live-schema evidence and interleaved it after `20260815002945` and before its first consumer `20260815003554`. Static provenance and the full migration/type contract check pass locally.
+- The next hosted replay reached `20260815095427` and exposed the second omitted source prerequisite: `ediel_test_runs.environment_type`, originally defined by a checksum-pinned migration whose replay is replaced by a narrower enum foundation. Added a minimal hash-bound derived artifact at the exact chronological boundary; static provenance and migration/type contracts pass locally.
+- Hosted replay then completed the entire empty-database history, verified the CLI ledger and schema fingerprint, and produced the authoritative generated TypeScript contract. Replaced `supabase/database.types.ts` with that artifact, normalized typegen EOF deterministically in the existing override script, and locked hash `d39755f6e8a9de374e494faaab9e5519bdd3c199577d985b761dcd85324b130a`; all TypeScript targets and migration/type checks pass locally.

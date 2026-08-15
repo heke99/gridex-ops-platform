@@ -333,7 +333,12 @@ function splitScopeRequirement(requirement: IntegrationScopeRequirement): {
 function authenticationStatus(code: string, tenantStatus: string | null): number {
   if (code === 'invalid_api_token') return 401
   if (code === 'rate_limited') return 429
-  if (code === 'tenant_status_unavailable' || code === 'api_rate_limit_invalid') return 503
+  if (
+    code === 'tenant_status_unavailable' ||
+    code === 'api_rate_limit_invalid' ||
+    code === 'api_rate_limiter_unavailable' ||
+    code === 'api_auth_unavailable'
+  ) return 503
   if (code.startsWith('tenant_')) return tenantApiAccessError(tenantStatus)?.status ?? 403
   return 403
 }
@@ -408,7 +413,9 @@ async function resolveIntegrationApiAccess(
     const code = row.error_code ?? 'api_auth_unavailable'
     const status = authenticationStatus(code, row.tenant_status)
     const message = code === 'rate_limited'
-      ? 'API-klientens kostnadsjusterade trafikgräns har överskridits.'
+      ? 'API-klientens trafikgräns har överskridits (kostnadsjusterad).'
+      : code === 'api_rate_limiter_unavailable'
+        ? 'API:ts trafikskydd kunde inte verifieras.'
       : code === 'invalid_api_token'
         ? 'API-token är ogiltig.'
         : code === 'api_scope_missing'

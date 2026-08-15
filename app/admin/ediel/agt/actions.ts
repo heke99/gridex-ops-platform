@@ -609,6 +609,10 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     testBrpName: balanceResponsibleEdielId ? "AGT test-BRP" : null,
     defaultReceiverSubaddress: receiverSubAddress,
     defaultSenderSubaddress: prodatSenderSubAddress,
+    actorRole: "supplier",
+    messageFamily: "PRODAT",
+    setupPackage: "agt_ddq_prodat_l",
+    environmentType: "agt_test",
     isActive: true,
   });
 
