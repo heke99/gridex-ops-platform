@@ -236,4 +236,155 @@ unscoped test runs and found one duplicate active profile group plus one missing
 production snapshot. No database mutation was performed. PostgreSQL parsing, all
 TypeScript targets, 417 tests, 337-file/241-group migration integrity, canonical
 and security regressions, zero-vulnerability audit and the Node 22 production
-build pass.
+build pass. Delivery/runbook artifacts and a guarded staging sync script are
+present. Release remains NO-GO pending deterministic staging cleanup, exact
+ledger/schema reconciliation, controlled apply and environment proof.
+
+## 2026-08-02 — A-C parity and multi-role Ediel identity correction
+
+- Verified complete A-C catalog, grants and seed invariants read-only against
+  `gridex-ops-dev`; guarded ledger repair is now authorized for that inspected
+  project state.
+- Identified the supplier/test duplicate as an unreferenced 21660 legacy row;
+  canonical 92825/test and 21660/production rows already exist.
+- Found and fixed an additional convergence defect: environment-only identity
+  collapsed supplier and ESCO profiles. Identity and mutations are now scoped
+  by company, environment and actor role.
+- Added safe preflight, deterministic Gridex profile repair and post-apply SQL.
+- PostgreSQL parsing, canonical hardening regression, migration integrity and
+  `git diff --check` pass. No remote mutation was performed.
+
+## 2026-08-02 15:59 CEST — PostgreSQL UUID aggregate repair
+
+- Reproduced the preflight failure as unsupported `min(uuid)` and found the
+  same defect in the pending convergence migration before staging apply.
+- Changed the preflight to accept a child-message tenant only when exactly one
+  distinct non-null tenant exists, using `min(company_id::text)::uuid`.
+- Changed the single-row profile identity seed to `min(id::text)::uuid` and
+  added a static regression preventing reintroduction of `min(id)`.
+- The full corrected preflight and the corrected aggregate query execute
+  read-only on `gridex-ops-dev`; migration integrity, canonical hardening and
+  RBAC audit pass. No remote database mutation was performed.
+
+## 2026-08-02 18:56 CEST — PHASE-40 V2 emergency access lockdown
+
+- Reconciled the real `gridex-ops-dev` ledger and superseded stale memory: all
+  canonical migrations through `20260802180000` are registered.
+- Captured read-only catalog, privilege, RLS, advisor and data evidence. The
+  pre-lockdown release decision is FAIL/NO-GO.
+- Added and registered `20260802190000_canonical_emergency_access_lockdown.sql`,
+  a static regression, a read-only metadata postflight and focused reports.
+- Emergency regression, 339-file/243-group migration integrity and the 24-check
+  RBAC audit pass locally.
+- A safety review rejected the persistent remote ACL/view/RLS/helper/trigger
+  mutation pending explicit user approval. No workaround and no remote or
+  GitHub mutation occurred.
+- Located connected GitHub repository `heke99/gridex-ops-platform` and observed
+  `main` head `8374b70ef902caac1510b85d1f01f3630629a09e`; archive parity remains unproven.
+- Installed 446 locked dependencies in a writable cache and reran the complete
+  local app gates: all TypeScript targets, 62 files/417 tests, lint with 0
+  errors/125 inherited warnings, 0-vulnerability production audit and the full
+  Next.js build pass on Node 24.14.0. Node 22 parity and PostgreSQL compile of
+  the pending migration remain NOT VERIFIED.
+
+## 2026-08-04T13:03:20+02:00 — PHASE-42
+
+Reviewed the supplied `gridex-ops-platform-main(133).zip` against the 21-item
+website application target. Implemented one tenant-neutral readiness and
+provisioning path, fail-closed portal ownership, exact application status,
+durable continuation/mail/webhook evidence, resumable partial applications and
+canonical tenant status events. Added migration `20260804121000`, OpenAPI
+`2026-08-04.1`, regressions, safe ledger repair, postflight and sync tooling.
+Rollback-compiled the migration against live Supabase and verified prior missing
+ledger migrations by exact function hashes without mutating live data. Full
+static/broad regressions pass. Clean npm install/build remains environment-blocked;
+database apply/deployment/two-tenant E2E remain pending.
+
+## 2026-08-04 — PHASE-43 SVK geodata and billing price-area convergence
+
+- Compared the repository importer with the current official SVK ArcGIS service and
+  found an obsolete source/layer plus missing exact field aliases.
+- Found billing readiness deriving area from mutable meter/site data instead of the
+  immutable contract pricing evidence.
+- Updated importer, cron, underlay generation, invoice readiness, public developer
+  documentation and release evidence.
+- Added and applied migrations
+  `20260804190000_svk_geodata_and_billing_price_area_canonicalization` and
+  `20260804193000_contract_price_snapshot_company_guard_fix` to
+  `gridex-ops-dev`, aligned its live migration-ledger version and closed the old
+  running import/version.
+- Verified a real staged BRL/SE3 feature through the new live parser inside a
+  rollback transaction. A second rollback E2E exposed and repaired the broken
+  contract-snapshot tenant guard, then proved SE3 canonicalization and SE4 rejection.
+  Existing persistent contract/snapshot/underlay counts remained zero.
+- Static regression, migration integrity and changed-source syntax checks pass.
+- Full npm-backed gates remain pending because the sandbox cannot resolve the npm
+  registry and the uploaded archive contains no dependencies.
+- Updated application deployment and full current-source import remain pending;
+  active official SVK geometry rows are currently zero.
+
+## 2026-08-05T15:14:58+02:00 — PHASE-44
+
+Implemented the three-document multitenant legal package, retained immutable
+module evidence, corrected Customer Portal grouped acceptance expansion, and
+hardened POA scope reuse through the supplier-switch authorization chain. Local
+regressions and API release checks pass. Dependency-backed build gates and live
+tenant E2E remain pending.
+
+## 2026-08-05T15:20:07+02:00
+- Re-ran legal package, platform POA, website POA, API version/compatibility/examples/runtime/release gates: all passed.
+- Re-ran TypeScript 5.8.3 syntax transpilation for 17 changed TS/TSX files: passed.
+- Kept full dependency-backed build blocked by package mirror 404 for zod-validation-error@4.0.2.
+
+## 2026-08-06T08:50:00Z — PHASE-45
+
+Completed incomplete OpenAPI `2026-08-05.2` health package on
+`cursor/codebase-health-and-stability-ec6b`: quote timestamptz/grid-area
+integrity, fail-closed immutable release verify, market-price example required
+fields, developer-guide version sync, and case-insensitive application /
+metering-point area compares. Local regressions pass. Full npm gates and live
+quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
+
+## 2026-08-11 — post-#110 health residuals on 0f25
+- Cherry-picked post-#108 security residual onto post-#110 tip.
+- Hardened login/update-password error flash allowlists and next-path backslash rejection.
+- Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
+
+## 2026-08-13 — post-f2c6a729 health residuals on a029
+
+- Reviewed main tip `f2c6a729` Field 511 generated-types sync.
+- Replayed open `#121`/`c107` auth/SVK/UTILTS/L653Q/packaging residuals onto tip.
+- Fixed tip-specific resolver Returns nullability for `description`/`valid_to`.
+- Verification: vitest 35/35, residual regressions, migration/types, app tsc PASS.
+
+## 2026-08-13 — post-2eb61986 health residuals on 0a00
+
+- Reviewed main tip `2eb61986` production dependency remediation (lockfile only).
+- Replayed open `#122`/`a029` residuals onto tip, then closed tip-specific auth
+  flash, fail-closed base URL, auth-action retry context, and override pin gaps.
+- Verification: vitest 43/43, residual regressions, migration/types, audit 0,
+  app tsc PASS; ggshield BLOCKED.
+
+## 2026-08-13 — post-3cad481b health residuals on 13b2
+
+- Reviewed main tip `3cad481b` after `#123` merge.
+- Restored durable field-511 Returns nullability against typegen regen, gated
+  post-332 residuals in ops-hardening, allowlisted public/portal flashes,
+  mapped disabled-session login reason, unified getSafeNextPath, and
+  synthesized null UTILTS match transaction ids.
+- Verification: vitest 50/50, residual regressions, types, audit 0, app tsc
+  PASS; ggshield BLOCKED.
+## 2026-08-14
+- Closed post-#134 tip residuals on `cursor/codebase-health-and-stability-b4c7` (receipt binding, UTILTS identity, circuit telemetry, lifecycle/go-live guards).
+- Closed post-#135 tip residuals on `cursor/codebase-health-and-stability-9740` (lifecycle resume activation guard, permissions promote pause, shared tenant-website classifier).
+- Closed post-#143 tip residual on `cursor/codebase-health-and-stability-996c` (sticky review_resolved_at after Köa om → reprocess → manual_review; legacy completed→done; UI Swedish error pass-through). Local verification PASS; hosted CI pending.
+- Closed post-#144 tip residuals on `cursor/codebase-health-and-stability-e76c` (worker invents review owner/priority/reason/SLA on manual_review entry; Processa om syncs active inbound_processing_jobs; forward metadata backfill). Local verification PASS; hosted CI pending.
+
+## 2026-08-15 — PR #149 production closure
+
+- Pinned generated Supabase TypeScript types and the three missing migration checksums; restored ordinary CI migration diagnostics.
+- Removed implicit AGT/runtime role fallbacks and added explicit supplier/ESCO isolation, including rejection of `system_supplier` as a tenant supplier.
+- Confirmed Gridex El remains live on production Ediel ID `21660`; `92825` is reserved for new system tests.
+- Repaired stale regression harnesses after canonical production approval and website runtime module splits; fixed limiter-unavailable HTTP classification.
+- Local verify, quality, production build, tenant isolation, website intake, contract publication, legal snapshot, and API scope checks pass. Hosted clean replay/merge/deploy remain next.
+- Supabase security advisor review found the two new privileged restoration/integrity RPCs on the authenticated API surface. Added forward migration `20260815210353` to restrict both to `service_role`; re-verification follows before merge.

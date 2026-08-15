@@ -506,4 +506,574 @@ async function upsertAgtRoute(input: {
     id: existingId ?? undefined,
     routeName,
     isActive: true,
-    rou
+    routeScope: input.family === "PRODAT" ? "supplier_switch" : "meter_values",
+    routeType: "ediel_partner",
+    gridOwnerId: null,
+    targetSystem: "ediel",
+    endpoint: null,
+    targetEmail: input.targetEmail,
+    supportedPayloadVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
+    notes: `${input.family} AGT 2026A mot DB-konfigurerad testportal ${input.receiverEdielId}.`,
+  });
+
+  await upsertRouteProfile({
+    actorUserId: input.actorUserId,
+    companyId: input.companyId,
+    routeId: route.id,
+    family: input.family,
+    senderEdielId: input.actorEdielId,
+    senderName: input.senderName,
+    senderSubAddress: input.senderSubAddress,
+    receiverName: input.receiverName,
+    receiverEdielId: input.receiverEdielId,
+    receiverSubAddress: input.receiverSubAddress,
+    applicationReference: input.applicationReference,
+    defaultMessageVersion: input.defaultMessageVersion,
+    ackMode: input.family === "PRODAT" ? "contrl_and_aperak" : "default",
+    mailbox: input.mailbox,
+    smtpTo: input.targetEmail,
+  });
+}
+
+export async function saveAgtSupplierRuntimeAction(formData: FormData) {
+  const context = await requireEdielWriteActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  if (!companyId) throw new Error("Välj bolag innan AGT-runtime sparas.");
+
+  const actorName = value(formData, "actor_name") ?? "";
+  const actorEdielId = upper(formData, "actor_ediel_id") ?? "";
+  const senderName = value(formData, "sender_name");
+  const prodatSenderSubAddress = nullableUpper(
+    value(formData, "prodat_sender_sub_address"),
+  );
+  const smtpFromEmail = value(formData, "smtp_from_email");
+  const smtpReplyToEmail = value(formData, "smtp_reply_to_email");
+  const mailbox = value(formData, "mailbox");
+  const balanceResponsibleEdielId = upper(
+    formData,
+    "balance_responsible_ediel_id",
+  );
+  const targetEmail = value(formData, "target_email");
+  const receiverName = value(formData, "receiver_name") ?? "Edielportalen";
+  const receiverEdielId = upper(formData, "receiver_ediel_id");
+  const receiverSubAddress = nullableUpper(
+    value(formData, "receiver_sub_address"),
+  );
+  const prodatApplicationReference = nullableUpper(
+    value(formData, "prodat_application_reference"),
+  );
+  const prodatDefaultVersion = value(
+    formData,
+    "prodat_default_message_version",
+  );
+  const utiltsDefaultVersion = value(
+    formData,
+    "utilts_default_message_version",
+  );
+
+  if (!targetEmail) {
+    throw new Error(
+      "SMTP till systemtestportalen måste fyllas i och sparas i systemtest-inställningar.",
+    );
+  }
+
+  if (!receiverEdielId) {
+    throw new Error(
+      "Systemtestportalens Ediel-ID måste fyllas i. Värdet ska sparas i databasen och inte hårdkodas.",
+    );
+  }
+
+  await saveActiveSupplierActor({
+    actorUserId,
+    companyId,
+    actorName,
+    actorEdielId,
+    senderName,
+    senderSubAddress: prodatSenderSubAddress,
+    smtpFromEmail,
+    smtpReplyToEmail,
+    mailbox,
+    balanceResponsibleEdielId,
+    notes: emptyToNull(agtActorNotes({ balanceResponsibleEdielId })),
+  });
+
+  await saveEdielSystemTestSettings({
+    companyId,
+    actorUserId,
+    testSuite: "AGT",
+    testPortalEdielId: receiverEdielId,
+    testPortalName: receiverName,
+    testPortalEmail: targetEmail,
+    testBrpEdielId: balanceResponsibleEdielId,
+    testBrpName: balanceResponsibleEdielId ? "AGT test-BRP" : null,
+    defaultReceiverSubaddress: receiverSubAddress,
+    defaultSenderSubaddress: prodatSenderSubAddress,
+    actorRole: "supplier",
+    messageFamily: "PRODAT",
+    setupPackage: "agt_ddq_prodat_l",
+    environmentType: "agt_test",
+    isActive: true,
+  });
+
+  await upsertAgtRoute({
+    actorUserId,
+    companyId,
+    family: "PRODAT",
+    actorEdielId,
+    senderName,
+    senderSubAddress: prodatSenderSubAddress,
+    receiverName,
+    receiverEdielId,
+    receiverSubAddress,
+    targetEmail,
+    applicationReference: prodatApplicationReference,
+    defaultMessageVersion: prodatDefaultVersion,
+    mailbox,
+  });
+
+  await upsertAgtRoute({
+    actorUserId,
+    companyId,
+    family: "UTILTS",
+    actorEdielId,
+    senderName,
+    senderSubAddress: null,
+    receiverName,
+    receiverEdielId,
+    receiverSubAddress: null,
+    targetEmail,
+    applicationReference: null,
+    defaultMessageVersion: utiltsDefaultVersion,
+    mailbox,
+  });
+
+  revalidateAgt();
+}
+
+export async function createAgtSupplierTestRunAction(formData: FormData) {
+  const context = await requireEdielWriteActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  const testCaseCode = upper(formData, "test_case_code") ?? "";
+  const encryptionMode = value(formData, "encryption_mode") === "smime" ? "smime" : "none";
+  const testCase = getEdielAgtSupplier2026ACase(testCaseCode);
+  const runtime = await getEdielAgtSupplierRuntime(companyId);
+  const routeProfile =
+    testCase?.suite === "PRODAT"
+      ? runtime.prodat.profile
+      : testCase?.suite === "UTILTS"
+        ? runtime.utilts.profile
+        : null;
+
+  if (!testCase) {
+    throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode}`);
+  }
+
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId });
+  for (const run of runs) {
+    if (
+      run.role_code === testCase.roleCode &&
+      run.test_suite === testCase.suite &&
+      run.test_case_code === testCase.testCaseCode &&
+      run.approval_version === testCase.approvalVersion &&
+      (run.status === "draft" || run.status === "running")
+    ) {
+      await updateEdielTestRunStatus({
+        actorUserId,
+        companyId,
+        testRunId: run.id,
+        status: "cancelled",
+        failureReason:
+          "Ny AGT-körning startades för samma testfall. En aktiv körning åt gången hålls i GridCore för att inte blanda portalens testlogg med gamla payloads.",
+        completedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  await createEdielTestRun({
+    actorUserId,
+    companyId,
+    testSuite: testCase.suite,
+    roleCode: testCase.roleCode,
+    testCaseCode: testCase.testCaseCode,
+    title: testCase.title,
+    approvalVersion: testCase.approvalVersion,
+    notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida.`,
+    status: "running",
+    actorRole: testCase.roleCode,
+    messageFamily: testCase.messageFamily,
+    businessCode: testCase.messageCode,
+    encryptionMode,
+    certificateId: encryptionMode === "smime"
+      ? routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
+      : null,
+    routeProfileId: routeProfile?.id ?? null,
+    environmentType: "agt_test",
+    expectedFlow: testCase.expectedSteps,
+  });
+
+  revalidateAgt();
+}
+
+export async function createAgtSupplierOutboundCommandAction(
+  formData: FormData,
+) {
+  const context = await requireEdielWriteActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  const testCaseCode = upper(formData, "test_case_code") ?? "";
+  const testRunId = value(formData, "test_run_id");
+
+  if (!testCaseCode) throw new Error("test_case_code saknas");
+
+  const message = await createEdielSupplierAgtOutboundCommand({
+    actorUserId,
+    companyId,
+    testRunId,
+    testCaseCode,
+  });
+
+  await createEdielMessageEvent({
+    actorUserId,
+    edielMessageId: message.id,
+    eventType: "manual_note",
+    eventStatus: "info",
+    message:
+      "AGT outbound-payload förbereddes som draft/prepared. Kontrollera payloaden innan du skickar.",
+    payload: {
+      agt: true,
+      phase: "manual_payload_review_required",
+      testCaseCode,
+      companyId: companyId ?? null,
+    },
+  });
+
+  revalidateAgt();
+  redirect(`/admin/ediel/messages/${message.id}`);
+}
+
+// Backwards-compatible server action name for older imports. It skapar endast draft/prepared; använd meddelandesidan för manuell payloadkontroll och skick.
+export const createAgtSupplierOutboundDraftAction =
+  createAgtSupplierOutboundCommandAction;
+
+export async function createAllAgtSupplierTestRunsAction(formData: FormData) {
+  const context = await requireEdielWriteActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+
+  for (const testCase of EDIEL_AGT_SUPPLIER_2026A_CASES) {
+    await createEdielTestRun({
+      actorUserId,
+      companyId,
+      testSuite: testCase.suite,
+      roleCode: testCase.roleCode,
+      testCaseCode: testCase.testCaseCode,
+      title: testCase.title,
+      approvalVersion: testCase.approvalVersion,
+      notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida.`,
+      status: "running",
+    });
+  }
+
+  revalidateAgt();
+}
+
+export async function pollAgtMailboxForCaseAction(formData: FormData) {
+  const context = await requireEdielSendActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    companyId,
+    testRunId: value(formData, "test_run_id"),
+  });
+
+  const runtime = await getEdielAgtSupplierRuntime(companyId);
+  const routeId =
+    testCase.suite === "PRODAT"
+      ? runtime.prodat.route?.id
+      : runtime.utilts.route?.id;
+  const mailbox =
+    value(formData, "mailbox") ?? runtime.actor?.mailbox ?? "INBOX";
+  const limitRaw = value(formData, "limit");
+  const limit = limitRaw ? Number(limitRaw) : 10;
+
+  const imported = await pollAndIngestEdielMailbox({
+    actorUserId,
+    mailbox,
+    communicationRouteId: routeId ?? null,
+    companyId,
+    environment: "test",
+    force: true,
+    markSeen: false,
+    sharedOnly: true,
+    createDiagnosticMessagesForUnresolved: true,
+    limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
+  });
+
+  let matched = 0;
+  const sortedImported = [...imported].sort(
+    (a, b) => messageTime(b) - messageTime(a),
+  );
+  const messagesToAttach =
+    testCase.direction === "portal_to_actor"
+      ? sortedImported
+          .filter((message) =>
+            isPrimaryBusinessInboundForCase(testCase, message),
+          )
+          .slice(0, 1)
+      : sortedImported.filter((message) =>
+          Boolean(expectedInboundStepForMessage(testCase, message)),
+        );
+
+  for (const message of messagesToAttach) {
+    const step = await attachExpectedAgtMessage({
+      actorUserId,
+      companyId,
+      testRunId: testRun.id,
+      testCase,
+      message,
+    });
+
+    if (!step) continue;
+    matched += 1;
+
+    await createAgtResponsesIfBusinessInbound({
+      actorUserId,
+      companyId,
+      testRunId: testRun.id,
+      testCase,
+      message,
+    });
+  }
+
+  if (matched === 0 && imported[0]) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: imported[0].id,
+      eventType: "manual_note",
+      eventStatus: "warning",
+      message: `AGT ${testCase.testCaseCode}: IMAP importerade ${imported.length} meddelanden, men inget matchade förväntat steg.`,
+      payload: {
+        agt: true,
+        testRunId: testRun.id,
+        testCaseCode: testCase.testCaseCode,
+        importedCount: imported.length,
+        matchedCount: matched,
+      },
+    });
+  }
+
+  revalidateAgt();
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId));
+}
+
+export async function importAgtRawInboundForCaseAction(formData: FormData) {
+  const context = await requireEdielSendActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    companyId,
+    testRunId: value(formData, "test_run_id"),
+  });
+
+  const uploaded = await uploadedFileText(formData.get("ediel_file"));
+  const pasted = value(formData, "raw_payload");
+  const rawPayload = uploaded.text ?? pasted;
+  if (!rawPayload)
+    throw new Error(
+      "Ladda upp EDIFACT-fil eller klistra in inbound-payload från Edielportalen.",
+    );
+
+  const result = await registerEdielFile({
+    actorUserId,
+    companyId,
+    direction: "inbound",
+    mode: "agt",
+    rawPayload,
+    fileName: uploaded.fileName,
+    mailbox: value(formData, "mailbox") ?? "agt-manual-import",
+    mailboxMessageId:
+      value(formData, "mailbox_message_id") ??
+      `agt-${testCase.testCaseCode}-${Date.now()}`,
+    subject: `AGT ${testCase.testCaseCode} manual import`,
+  });
+
+  const message = await getEdielMessageById(result.id, { companyId });
+  if (!message)
+    throw new Error(
+      "Det importerade meddelandet kunde inte läsas efter import.",
+    );
+
+  const step = await attachExpectedAgtMessage({
+    actorUserId,
+    companyId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  });
+
+  if (!step) {
+    throw new Error(
+      `Importerad fil är ${message.message_family}/${message.message_code}, men ${testCase.testCaseCode} väntar på ${testCase.messageFamily}/${testCase.messageCode} eller portalens kvittenser.`,
+    );
+  }
+
+  await createAgtResponsesIfBusinessInbound({
+    actorUserId,
+    companyId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  });
+
+  await syncActorTestingForMessage({
+    actorUserId,
+    edielMessage: message,
+    explicitTestCaseCode: testCase.testCaseCode,
+    autoRespond: true,
+    autoSend: false,
+  });
+
+  revalidateAgt();
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId));
+}
+
+export async function attachAgtInboundAndCreateResponsesAction(
+  formData: FormData,
+) {
+  const context = await requireEdielSendActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    companyId,
+    testRunId: value(formData, "test_run_id"),
+  });
+  const sourceMessageId = value(formData, "source_message_id");
+  if (!sourceMessageId)
+    throw new Error("Välj ett inbound-meddelande att koppla.");
+
+  const message = await getEdielMessageById(sourceMessageId, { companyId });
+  if (!message) throw new Error("Meddelandet hittades inte.");
+
+  const step = await attachExpectedAgtMessage({
+    actorUserId,
+    companyId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  });
+
+  if (!step) {
+    throw new Error(
+      `Meddelandet ${message.message_family}/${message.message_code} matchar inte förväntat portalsteg för ${testCase.testCaseCode}.`,
+    );
+  }
+
+  await createAgtResponsesIfBusinessInbound({
+    actorUserId,
+    companyId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  });
+
+  await syncActorTestingForMessage({
+    actorUserId,
+    edielMessage: message,
+    explicitTestCaseCode: testCase.testCaseCode,
+    autoRespond: true,
+    autoSend: false,
+  });
+
+  revalidateAgt();
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId));
+}
+
+export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
+  const context = await requireEdielWriteActionAccess();
+  const actorUserId = context.userId;
+  const companyId = await resolveAgtCompanyIdForAction(context, formData);
+  const testCase = await getAgtCaseOrThrow(upper(formData, "test_case_code"));
+  const keepRunId = value(formData, "test_run_id");
+
+  const runs = await listEdielTestRuns({ scope: "tenant", companyId });
+  const sameCaseRuns = runs.filter(
+    (run) =>
+      run.role_code === testCase.roleCode &&
+      run.test_suite === testCase.suite &&
+      run.test_case_code === testCase.testCaseCode &&
+      run.approval_version === testCase.approvalVersion &&
+      run.status !== "cancelled",
+  );
+
+  for (const run of sameCaseRuns) {
+    const links = await listEdielTestRunMessages({ companyId, testRunId: run.id });
+    const messages = await listEdielMessagesByIds(
+      links.map((link) => link.ediel_message_id),
+      { companyId },
+    );
+
+    for (const message of messages) {
+      const canCancel =
+        message.direction === "outbound" &&
+        (message.status === "draft" ||
+          message.status === "prepared" ||
+          message.status === "queued");
+
+      if (!canCancel) continue;
+
+      await updateEdielMessageStatus({
+        actorUserId,
+        edielMessageId: message.id,
+        status: "cancelled",
+        failureReason: `Rensad från AGT ${testCase.testCaseCode}. Historik behålls men meddelandet ska inte skickas.`,
+      });
+
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: "manual_note",
+        eventStatus: "warning",
+        message: `AGT ${testCase.testCaseCode}: gammalt oskickat AGT-meddelande makulerades från testfönstret.`,
+        payload: {
+          agt: true,
+          testCaseCode: testCase.testCaseCode,
+          testRunId: run.id,
+          cleanup: true,
+        },
+      });
+    }
+
+    if (
+      keepRunId &&
+      run.id !== keepRunId &&
+      (run.status === "draft" || run.status === "running")
+    ) {
+      await updateEdielTestRunStatus({
+        actorUserId,
+        companyId,
+        testRunId: run.id,
+        status: "cancelled",
+        failureReason: `Rensad från AGT ${testCase.testCaseCode}; aktuell run behölls: ${keepRunId}.`,
+        completedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  revalidateAgt();
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId));
+}
+
+// Backwards-compatible server action name for older imports. It cleans only unsent queued/prepared test commands.
+export const cleanupAgtCaseDraftMessagesAction =
+  cleanupAgtCaseUnsentMessagesAction;
