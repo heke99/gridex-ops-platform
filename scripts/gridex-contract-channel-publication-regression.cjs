@@ -23,6 +23,7 @@ const migration = read(
 const adminActions = read("app/admin/contracts/actions.ts");
 const adminPage = read("app/admin/contracts/page.tsx");
 const twoStepMigration = read("supabase/migrations/20260804093500_contract_publication_two_step_invoice_fee_repair.sql");
+const rpcSecurityMigration = read("supabase/migrations/20260815210353_restrict_recent_security_definer_rpcs.sql");
 const companyControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
@@ -181,6 +182,12 @@ check(
 );
 
 const contractsOperation = openapi.paths["/api/v1/contracts"].get;
+check(
+  /revoke all on function public\.gridex_published_website_offer_integrity\(uuid\)[\s\S]*from public, anon, authenticated/.test(rpcSecurityMigration) &&
+    /grant execute on function public\.gridex_published_website_offer_integrity\(uuid\)[\s\S]*to service_role/.test(rpcSecurityMigration) &&
+    /revoke all on function public\.canonical_restore_pre_engine_live_ediel_approval\(uuid, uuid, text\)[\s\S]*from public, anon, authenticated/.test(rpcSecurityMigration),
+  "recent privileged maintenance and integrity RPCs are service-role only",
+);
 check(
   JSON.stringify(contractsOperation["x-required-scopes"]) ===
     JSON.stringify(["api_contracts.read"]),

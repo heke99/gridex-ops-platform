@@ -60,6 +60,7 @@
     "20260815114814_restore_pre_engine_live_ediel_approval_uuid_aggregate_hotfix.sql": "4bb48b081c68fa11e5ca0fb8106aa2448ad62b50f266ff2be241fddd7882c650",
     "20260815162500_tenant_readiness_truth_convergence.sql": "33d8791b3e082df78f788a878739987283022351c31cb16770b267543ad199c5",
     "20260815164000_ediel_brp_active_state_hotfix.sql": "fb41eb40df6970df28b487d6e1ab7cad5e7448fbcf72ad306f16086ea9ecea43",
-    "20260815170500_contract_publication_channel_readiness.sql": "4c8505c9457262c50784204f6fb07627a356ce5452a3874b5894ed7f59177fd8"
+    "20260815170500_contract_publication_channel_readiness.sql": "4c8505c9457262c50784204f6fb07627a356ce5452a3874b5894ed7f59177fd8",
+    "20260815210353_restrict_recent_security_definer_rpcs.sql": "5e2a5542b30bb560911645015382cf87029004f3adba03575f270f9377b93d69"
   }
 }

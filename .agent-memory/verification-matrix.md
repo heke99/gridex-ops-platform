@@ -14,6 +14,7 @@
 | Production dependency audit | PASS | 0 vulnerabilities |
 | Hosted clean empty-DB replay | PENDING | requires pushed final PR commit |
 | Merge/deploy/post-deploy smoke | PENDING | gated on hosted CI |
+| New privileged RPC exposure | FIXED, REVERIFY | forward migration `20260815210353` restricts restoration/integrity RPCs to `service_role` |
 
 | Area | Status | Evidence |
 |---|---|---|

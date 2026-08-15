@@ -10,6 +10,7 @@ Updated: 2026-08-15
 - AGT/TGT runtime requires an explicit canonical supplier or ESCO role plus message family, setup package, and environment type. Legacy implicit AGT defaults and unscoped runtime selection are removed.
 - Supplier/ESCO role isolation and canonical production-approval regressions are locked. Refactored website/onboarding regressions inspect the active split runtime modules.
 - API rate-limiter infrastructure failures map to HTTP 503; real quota exhaustion remains HTTP 429.
+- Newly introduced privileged restoration/integrity RPCs are restricted to `service_role` after the Supabase security advisor review.
 - Temporary CI migration diagnostics were restored to the normal workflow.
 
 ## Verification
@@ -20,4 +21,4 @@ Updated: 2026-08-15
 - Targeted tenant/Ediel/contracts/API tests: PASS.
 - Production build: PASS.
 - Production dependency audit: 0 vulnerabilities.
-- Hosted clean migration replay: pending the next pushed commit.
+- Hosted clean migration replay: pending the next pushed security commit.

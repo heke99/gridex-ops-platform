@@ -2,7 +2,7 @@
 
 Updated: 2026-08-15
 
-Status: `LOCAL_VERIFICATION_IN_PROGRESS`
+Status: `SECURITY_DELTA_VERIFICATION_IN_PROGRESS`
 
 Active work item: complete PR #149 for explicit Ediel role identity, generated Supabase contract locking, Gridex El production/API/contract readiness, hosted clean replay, merge, Vercel deployment, and post-deploy verification.
 

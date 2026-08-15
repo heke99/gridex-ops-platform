@@ -4,12 +4,12 @@
   "branch": "fix/e2e-ediel-approval-20260815",
   "active_phase": "PR_149_PRODUCTION_CLOSURE",
   "active_task": "Explicit Ediel identity, generated types lock, Gridex production/API/contracts readiness",
-  "status": "LOCAL_VERIFICATION_IN_PROGRESS",
+  "status": "SECURITY_DELTA_VERIFICATION_IN_PROGRESS",
   "base_main_sha": "c575624",
   "head_sha": "working_tree",
   "pr": 149,
   "verification": {
-    "migration_integrity": "PASS_450_FILES_354_GROUPS",
+    "migration_integrity": "REVERIFY_451_FILES_355_GROUPS",
     "types_check": "PASS_F8178706",
     "verify_workflow_local": "PASS",
     "quality_release_checkpoint": "PASS_623_TESTS_BUILD",
@@ -17,5 +17,5 @@
     "security_audit_production": "PASS_0",
     "hosted_clean_replay": "PENDING"
   },
-  "resume_from": "Final full local rerun, commit/push PR #149, hosted clean replay, merge, deploy and smoke verification"
+  "resume_from": "Verify service-role RPC migration, push PR #149, hosted clean replay, merge, apply production migration, deploy and smoke verification"
 }
