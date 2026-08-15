@@ -3,9 +3,6 @@ on:
   pull_request:
   push:
     branches: [main]
-# TEMPORARY CI RECOVERY: removed immediately after replay commits generated types.
-permissions:
-  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -94,23 +91,7 @@ jobs:
           echo "generated_types_sha256=$GENERATED_HASH"
           if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
             echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
-            # TEMPORARY CI RECOVERY: commit the exact replay output while the local
-            # executor is unavailable. This block and write permission are removed
-            # by the orchestrating change immediately after the push.
-            cp rem002-database.types.ts supabase/database.types.ts
-            node -e "const fs=require('fs');const p='scripts/supabase-types-manifest.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.sha256=process.argv[1];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n')" "$GENERATED_HASH"
-            cp supabase/database.types.ts /tmp/gridex-database.types.ts
-            cp scripts/supabase-types-manifest.json /tmp/gridex-supabase-types-manifest.json
-            git fetch origin "$GITHUB_HEAD_REF"
-            git checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
-            cp /tmp/gridex-database.types.ts supabase/database.types.ts
-            cp /tmp/gridex-supabase-types-manifest.json scripts/supabase-types-manifest.json
-            git config user.name "gridex-ci"
-            git config user.email "gridex-ci@users.noreply.github.com"
-            git add supabase/database.types.ts scripts/supabase-types-manifest.json
-            git commit -m "Regenerate locked Supabase types from clean replay"
-            git push origin "HEAD:$GITHUB_HEAD_REF"
-            exit 0
+            exit 1
           fi
           if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
