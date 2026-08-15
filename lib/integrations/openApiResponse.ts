@@ -6,8 +6,52 @@ export type OpenApiDocumentResponseOptions = {
   cacheControl?: string
 }
 
+type JsonRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Normalizes release metadata at the final serialization boundary.
+ *
+ * OpenAPI source files are also materialized by the release tooling, but every
+ * canonical and immutable route passes through this function. Keeping the
+ * final boundary strict prevents a stale top-level release extension or a
+ * copied response description from being served even if a generated JSON file
+ * was produced by an older finalizer.
+ */
+export function normalizeOpenApiDocument(document: unknown): unknown {
+  const normalized = JSON.parse(JSON.stringify(document)) as unknown
+  if (!isRecord(normalized)) return normalized
+
+  const info = normalized.info
+  if (isRecord(info) && typeof info.version === 'string' && info.version.trim()) {
+    normalized['x-gridex-release-version'] = info.version.trim()
+  }
+
+  const paths = normalized.paths
+  if (isRecord(paths)) {
+    const syncPath = paths['/api/v1/customer-portal/sync']
+    if (isRecord(syncPath)) {
+      for (const method of ['post', 'get']) {
+        const operation = syncPath[method]
+        if (!isRecord(operation)) continue
+        const responses = operation.responses
+        if (!isRecord(responses)) continue
+        const ok = responses['200']
+        if (!isRecord(ok)) continue
+        ok.description =
+          'Tenant- och kundfiltrerad portalsynk med profil, anläggningar, avtal, fakturor, mätvärden, juridik, händelser, dokument, fullmakter och notiser.'
+      }
+    }
+  }
+
+  return normalized
+}
+
 export function serializeOpenApiDocument(document: unknown): string {
-  return `${JSON.stringify(document, null, 2)}\n`
+  return `${JSON.stringify(normalizeOpenApiDocument(document), null, 2)}\n`
 }
 
 export function openApiDocumentResponse(
