@@ -17,6 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      - run: npm run gridex:contract-channel-publication-regression
       - run: node scripts/check-agent-memory-git-state.cjs
       - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs
       - run: node scripts/gridex-ops-health-regression.cjs
