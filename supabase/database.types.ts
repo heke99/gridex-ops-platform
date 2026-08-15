@@ -24277,6 +24277,7 @@ export type Database = {
       }
       ediel_active_test_configurations: {
         Row: {
+          actor_profile_id: string | null
           actor_role: string
           company_id: string
           configuration_snapshot_id: string
@@ -24288,12 +24289,15 @@ export type Database = {
             | null
           id: string
           message_family: string
+          route_profile_id: string | null
           setup_package: string
           status: string
+          system_test_settings_id: string | null
           test_suite: string
           updated_at: string
         }
         Insert: {
+          actor_profile_id?: string | null
           actor_role: string
           company_id: string
           configuration_snapshot_id: string
@@ -24305,12 +24309,15 @@ export type Database = {
             | null
           id?: string
           message_family: string
+          route_profile_id?: string | null
           setup_package: string
           status?: string
+          system_test_settings_id?: string | null
           test_suite: string
           updated_at?: string
         }
         Update: {
+          actor_profile_id?: string | null
           actor_role?: string
           company_id?: string
           configuration_snapshot_id?: string
@@ -24322,12 +24329,49 @@ export type Database = {
             | null
           id?: string
           message_family?: string
+          route_profile_id?: string | null
           setup_package?: string
           status?: string
+          system_test_settings_id?: string | null
           test_suite?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_active_test_configurations_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_active_actor_settings_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_actor_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_route_readiness_v"
+            referencedColumns: ["sender_settings_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_business_readiness_v"
+            referencedColumns: ["sender_settings_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_materialization_readiness_v"
+            referencedColumns: ["sender_settings_id"]
+          },
           {
             foreignKeyName: "ediel_active_test_configurations_company_id_fkey"
             columns: ["company_id"]
@@ -24417,6 +24461,48 @@ export type Database = {
             columns: ["configuration_snapshot_id"]
             isOneToOne: false
             referencedRelation: "ediel_configuration_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_route_profile_id_fkey"
+            columns: ["route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_route_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_route_profile_id_fkey"
+            columns: ["route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_route_runtime_v"
+            referencedColumns: ["route_profile_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_route_profile_id_fkey"
+            columns: ["route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_route_readiness_v"
+            referencedColumns: ["ediel_route_profile_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_route_profile_id_fkey"
+            columns: ["route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_business_readiness_v"
+            referencedColumns: ["ediel_route_profile_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_route_profile_id_fkey"
+            columns: ["route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_materialization_readiness_v"
+            referencedColumns: ["ediel_route_profile_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_system_test_settings_id_fkey"
+            columns: ["system_test_settings_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_system_test_settings"
             referencedColumns: ["id"]
           },
         ]
@@ -37053,6 +37139,7 @@ export type Database = {
           encryption_mode: string
           engine_version: string | null
           environment: string | null
+          environment_type: Database["public"]["Enums"]["ediel_environment_type"]
           expected_flow: Json
           failure_reason: string | null
           grid_owner_id: string | null
@@ -37100,6 +37187,7 @@ export type Database = {
           encryption_mode?: string
           engine_version?: string | null
           environment?: string | null
+          environment_type?: Database["public"]["Enums"]["ediel_environment_type"]
           expected_flow?: Json
           failure_reason?: string | null
           grid_owner_id?: string | null
@@ -37147,6 +37235,7 @@ export type Database = {
           encryption_mode?: string
           engine_version?: string | null
           environment?: string | null
+          environment_type?: Database["public"]["Enums"]["ediel_environment_type"]
           expected_flow?: Json
           failure_reason?: string | null
           grid_owner_id?: string | null
@@ -71782,6 +71871,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      canonical_capture_ediel_test_configuration_snapshot: {
+        Args: {
+          p_actor_profile_id: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_reason: string
+          p_route_profile_id: string
+        }
+        Returns: {
+          actor_role: string | null
+          company_id: string
+          configuration_hash: string
+          created_at: string
+          created_by: string | null
+          id: string
+          payload: Json
+          primary_production_route_id: string | null
+          primary_test_route_id: string | null
+          production_application_reference: string | null
+          production_brp_ediel_id: string | null
+          production_ediel_id: string | null
+          reason: string
+          snapshot_version: number
+          test_application_reference: string | null
+          test_brp_ediel_id: string | null
+          test_ediel_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ediel_configuration_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       canonical_change_tenant_user_access: {
         Args: { p_command: Json }
         Returns: Json
@@ -71850,6 +71973,14 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      canonical_current_ediel_engine_schema_version: {
+        Args: never
+        Returns: string
+      }
+      canonical_ediel_production_evidence_readiness: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       canonical_json_sha256: { Args: { p_payload: Json }; Returns: string }
       canonical_manage_platform_user_access: {
         Args: { p_command: Json }
@@ -71905,6 +72036,14 @@ export type Database = {
           p_job_id: string
           p_next_status: string
           p_resolution: string
+        }
+        Returns: Json
+      }
+      canonical_restore_pre_engine_live_ediel_approval: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_reason?: string
         }
         Returns: Json
       }
@@ -72614,6 +72753,10 @@ export type Database = {
           p_street: string
         }
         Returns: undefined
+      }
+      gridex_company_go_live_readiness: {
+        Args: { p_company_id: string }
+        Returns: Json
       }
       gridex_company_legal_contract_runtime_health: {
         Args: never
@@ -73348,6 +73491,10 @@ export type Database = {
         Args: { p_snapshot: Json }
         Returns: Json
       }
+      gridex_invoice_fee_snapshot_readiness: {
+        Args: { p_snapshot: Json }
+        Returns: Json
+      }
       gridex_is_current_session_allowed: { Args: never; Returns: boolean }
       gridex_json_text: {
         Args: { p_keys: string[]; p_payload: Json }
@@ -73926,6 +74073,10 @@ export type Database = {
         }
         Returns: string
       }
+      gridex_published_website_offer_integrity: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       gridex_queue_billing_export_run: {
         Args: {
           p_actor_user_id?: string
@@ -73944,6 +74095,10 @@ export type Database = {
       }
       gridex_recalculate_actor_readiness: {
         Args: { p_platform_market_actor_id?: string }
+        Returns: Json
+      }
+      gridex_reconcile_company_onboarding_tasks_v1: {
+        Args: { p_company_id: string }
         Returns: Json
       }
       gridex_reconcile_grid_owner_mappings_v1: {
