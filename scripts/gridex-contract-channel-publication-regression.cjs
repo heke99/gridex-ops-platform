@@ -104,7 +104,7 @@ check(
   "publication is protected by transaction lock and one-active-version index",
 );
 const predecessorEndIndex = successorOrderMigration.indexOf("set status = 'ended'");
-const successorFinalizeIndex = successorOrderMigration.indexOf(
+const successorFinalizeIndex = successorOrderMigration.lastIndexOf(
   "perform public.gridex_finalize_contract_publication_v1(",
 );
 check(
