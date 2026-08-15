@@ -3,5 +3,5 @@
   "generated_at": "2026-08-15T17:00:00.000Z",
   "generated_types": "supabase/database.types.ts",
   "sha256": "d39755f6e8a9de374e494faaab9e5519bdd3c199577d985b761dcd85324b130a",
-  "latest_migration": "20260815210353_restrict_recent_security_definer_rpcs.sql"
+  "latest_migration": "20260815220000_contract_publication_successor_transition_order.sql"
 }
