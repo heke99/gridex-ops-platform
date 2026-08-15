@@ -110,6 +110,11 @@
       "path": "migrations/20260519_ediel_operations_engine_batch.sql",
       "afterLedgerVersion": "20260813123500",
       "beforeLedgerVersion": "20260813124500"
+    },
+    {
+      "path": "bootstrap/20260815_current_ediel_engine_schema_version_prerequisite.sql",
+      "afterLedgerVersion": "20260815002945",
+      "beforeLedgerVersion": "20260815003554"
     }
   ],
   "derivedBootstrap": {
@@ -295,6 +300,16 @@
         "gridex_seed_publication_price_option_template_v2(uuid,uuid)"
       ],
       "purpose": "Restore the two pg_get_functiondef-verified live functions required by the canonical 20260731210000 public-contract repair; no data is seeded."
+    },
+    "bootstrap/20260815_current_ediel_engine_schema_version_prerequisite.sql": {
+      "sourceKind": "verified_live_schema",
+      "artifactSha256": "bdb9be64c786579e3482725784ee207960462bdc2eda087158d671f8f8f84492",
+      "projectId": "piidsfebjqjmnepdpnas",
+      "capturedAt": "2026-08-15",
+      "signatures": [
+        "canonical_current_ediel_engine_schema_version()"
+      ],
+      "purpose": "Restore the pg_get_functiondef-verified live Ediel engine schema-version helper immediately before the first canonical limited-pilot evidence gate that consumes it; no tenant, approval or evidence rows are seeded."
     },
     "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql": {
       "source": "migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
