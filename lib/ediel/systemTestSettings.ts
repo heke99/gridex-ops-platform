@@ -96,7 +96,9 @@ function normalizeActorRole(value: unknown): "supplier" | "esco" | null {
   return null;
 }
 
-function databaseActorRole(value: unknown): "supplier" | "energy_service_company" | null {
+function databaseActorRole(
+  value: unknown,
+): "supplier" | "energy_service_company" | null {
   const role = normalizeActorRole(value);
   if (role === "supplier") return "supplier";
   if (role === "esco") return "energy_service_company";
@@ -236,7 +238,9 @@ function settingsFromRow(
       params.portal?.email_address ?? params.portal?.email,
     ),
     testBrpCounterpartyId: clean(row.test_brp_counterparty_id),
-    testBrpEdielId: upper(params.brp?.ediel_id ?? params.brp?.counterparty_ediel_id),
+    testBrpEdielId: upper(
+      params.brp?.ediel_id ?? params.brp?.counterparty_ediel_id,
+    ),
     testBrpName: clean(params.brp?.name ?? params.brp?.counterparty_name),
     defaultReceiverSubaddress: upper(row.default_receiver_subaddress),
     defaultSenderSubaddress: upper(row.default_sender_subaddress),
@@ -256,7 +260,8 @@ function settingsFromRow(
       clean(row.certificate_environment) ??
       clean(rowMetadata.certificateEnvironment),
     transportEnvironment:
-      clean(row.transport_environment) ?? clean(rowMetadata.transportEnvironment),
+      clean(row.transport_environment) ??
+      clean(rowMetadata.transportEnvironment),
     smtpProvider: clean(row.smtp_provider) ?? clean(rowMetadata.smtpProvider),
     metadata: rowMetadata,
     isActive: row.is_active !== false,
@@ -314,16 +319,61 @@ export async function getEdielSystemTestSettings(
   return settingsFromRow(row, { companyId, suite, portal, brp });
 }
 
-async function captureCurrentSnapshot(params: {
+async function getActiveTestActorSetting(
+  companyId: string,
+  actorRole?: string | null,
+): Promise<Record<string, unknown> | null> {
+  let query = supabaseService
+    .from("ediel_actor_settings")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("environment", "test")
+    .eq("is_active", true);
+
+  const role = normalizeActorRole(actorRole);
+  if (role === "supplier") {
+    query = query.or(
+      "role.eq.supplier,role.eq.electricity_supplier,actor_role.eq.supplier,actor_role.eq.electricity_supplier",
+    );
+  } else if (role === "esco") {
+    query = query.or(
+      "role.eq.esco,role.eq.energy_service_company,actor_role.eq.esco,actor_role.eq.energy_service_company",
+    );
+  }
+
+  const { data, error } = await query
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(2);
+
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw error;
+  }
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  if (rows.length > 1) {
+    throw new Error(
+      "Flera aktiva Ediel-aktörsprofiler matchar samma tenant och aktörsroll.",
+    );
+  }
+  return rows[0] ?? null;
+}
+
+async function captureRoleScopedSnapshot(params: {
   companyId: string;
   actorUserId: string;
+  actorProfileId: string;
+  routeProfileId: string;
   reason: string;
 }): Promise<string> {
   const { data, error } = await supabaseService.rpc(
-    "canonical_capture_ediel_configuration_snapshot",
+    "canonical_capture_ediel_test_configuration_snapshot",
     {
       p_company_id: params.companyId,
       p_actor_user_id: params.actorUserId,
+      p_actor_profile_id: params.actorProfileId,
+      p_route_profile_id: params.routeProfileId,
       p_reason: params.reason,
     },
   );
@@ -336,7 +386,9 @@ async function captureCurrentSnapshot(params: {
       : null,
   );
   if (!snapshotId) {
-    throw new Error("Kunde inte fånga aktuell Ediel-konfigurationssnapshot.");
+    throw new Error(
+      "Kunde inte fånga rollscopad Ediel-konfigurationssnapshot.",
+    );
   }
   return snapshotId;
 }
@@ -344,15 +396,18 @@ async function captureCurrentSnapshot(params: {
 async function activateCanonicalTestConfiguration(params: {
   companyId: string;
   actorUserId: string;
-  logicalSuite: string;
   actorRole: "supplier" | "esco";
   messageFamily: string;
   setupPackage: string;
   environmentType: string;
   configurationSnapshotId: string;
+  actorProfileId: string;
+  routeProfileId: string;
+  systemTestSettingsId: string;
 }) {
   const dbRole = databaseActorRole(params.actorRole);
-  if (!dbRole) throw new Error("Ogiltig Ediel-roll för aktiv testkonfiguration.");
+  if (!dbRole)
+    throw new Error("Ogiltig Ediel-roll för aktiv testkonfiguration.");
 
   const deactivate = await supabaseService
     .from("ediel_active_test_configurations")
@@ -380,6 +435,9 @@ async function activateCanonicalTestConfiguration(params: {
       message_family: params.messageFamily,
       setup_package: params.setupPackage,
       configuration_snapshot_id: params.configurationSnapshotId,
+      actor_profile_id: params.actorProfileId,
+      route_profile_id: params.routeProfileId,
+      system_test_settings_id: params.systemTestSettingsId,
       status: "active",
       created_by: params.actorUserId,
     });
@@ -400,8 +458,8 @@ export async function saveEdielSystemTestSettings(
 
   const suite = upper(input.testSuite) ?? "AGT";
 
-  // Compatibility bridge for the legacy supplier-only AGT screen. This is
-  // semantic, never tenant-specific: no company id or Gridex Ediel id is baked in.
+  // Compatibility bridge for the old supplier AGT settings form. It is based
+  // on Ediel semantics, never on a tenant id or a specific supplier Ediel id.
   const legacySupplierAgt =
     suite === "AGT" &&
     !clean(input.actorRole) &&
@@ -426,6 +484,14 @@ export async function saveEdielSystemTestSettings(
     );
   }
 
+  const actor = await getActiveTestActorSetting(companyId, actorRole);
+  const actorProfileId = clean(actor?.id);
+  if (!actorProfileId) {
+    throw new Error(
+      `Aktiv testprofil saknas för rollen ${actorRole}. Systemet får inte återanvända en annan rolls Ediel-ID.`,
+    );
+  }
+
   const portalCounterpartyId = await upsertTestCounterparty({
     companyId,
     actorUserId: input.actorUserId,
@@ -446,6 +512,8 @@ export async function saveEdielSystemTestSettings(
       })
     : null;
 
+  const routeProfileId = clean(input.routeProfileId);
+
   const deactivate = await supabaseService
     .from("ediel_system_test_settings")
     .update({
@@ -463,6 +531,7 @@ export async function saveEdielSystemTestSettings(
     .eq("is_active", true);
   if (deactivate.error) throw deactivate.error;
 
+  const activationState = routeProfileId ? "ready_to_activate" : "pending_route";
   const rowMetadata = {
     ...(input.metadata ?? {}),
     canonicalRuntimeIdentity: {
@@ -472,8 +541,10 @@ export async function saveEdielSystemTestSettings(
       setupPackage,
       environmentType,
     },
+    activationState,
     setupPackage,
     actorRole,
+    actorProfileId,
     messageFamily,
     applicationReference: upper(input.applicationReference),
     environmentType,
@@ -488,9 +559,10 @@ export async function saveEdielSystemTestSettings(
     test_suite: suite,
     test_portal_counterparty_id: portalCounterpartyId,
     test_brp_counterparty_id: brpCounterpartyId,
+    sender_actor_setting_id: actorProfileId,
     default_receiver_subaddress: upper(input.defaultReceiverSubaddress),
     default_sender_subaddress: upper(input.defaultSenderSubaddress),
-    route_profile_id: clean(input.routeProfileId),
+    route_profile_id: routeProfileId,
     transport_profile_id: clean(input.transportProfileId),
     setup_package: setupPackage,
     actor_role: actorRole,
@@ -506,27 +578,43 @@ export async function saveEdielSystemTestSettings(
     updated_by: input.actorUserId,
   };
 
-  const { error } = await supabaseService
+  const { data: inserted, error } = await supabaseService
     .from("ediel_system_test_settings")
-    .insert(payload);
+    .insert(payload)
+    .select("id")
+    .single();
   if (error) throw error;
 
-  const configurationSnapshotId = await captureCurrentSnapshot({
-    companyId,
-    actorUserId: input.actorUserId,
-    reason: `system_test_profile:${suite}:${actorRole}:${messageFamily}:${setupPackage}`,
-  });
+  const systemTestSettingsId = clean(
+    (inserted as { id?: string | null } | null)?.id,
+  );
+  if (!systemTestSettingsId) {
+    throw new Error("Systemtestinställningen saknar id efter insert.");
+  }
 
-  await activateCanonicalTestConfiguration({
-    companyId,
-    actorUserId: input.actorUserId,
-    logicalSuite: suite,
-    actorRole,
-    messageFamily,
-    setupPackage,
-    environmentType,
-    configurationSnapshotId,
-  });
+  let configurationSnapshotId: string | null = null;
+  if (routeProfileId && input.isActive !== false) {
+    configurationSnapshotId = await captureRoleScopedSnapshot({
+      companyId,
+      actorUserId: input.actorUserId,
+      actorProfileId,
+      routeProfileId,
+      reason: `system_test_profile:${suite}:${actorRole}:${messageFamily}:${setupPackage}`,
+    });
+
+    await activateCanonicalTestConfiguration({
+      companyId,
+      actorUserId: input.actorUserId,
+      actorRole,
+      messageFamily,
+      setupPackage,
+      environmentType,
+      configurationSnapshotId,
+      actorProfileId,
+      routeProfileId,
+      systemTestSettingsId,
+    });
+  }
 
   await supabaseService
     .from("audit_logs")
@@ -535,19 +623,22 @@ export async function saveEdielSystemTestSettings(
       actor_user_id: input.actorUserId,
       action: "ediel.system_test_settings.updated",
       entity_type: "ediel_system_test_settings",
-      entity_id: companyId,
+      entity_id: systemTestSettingsId,
       new_values: {
         testSuite: suite,
         actorRole,
+        actorProfileId,
         messageFamily,
         setupPackage,
         environmentType,
         testPortalCounterpartyId: portalCounterpartyId,
         testBrpCounterpartyId: brpCounterpartyId,
-        routeProfileId: clean(input.routeProfileId),
+        routeProfileId,
         transportProfileId: clean(input.transportProfileId),
         applicationReference: upper(input.applicationReference),
         configurationSnapshotId,
+        activationState:
+          configurationSnapshotId && routeProfileId ? "active" : "pending_route",
       },
       metadata: {
         source: "ediel_system_test_settings",
@@ -599,47 +690,6 @@ export type EdielSystemTestRuntimeContext = {
   testBrpName: string | null;
   settings: EdielSystemTestSettings | null;
 };
-
-async function getActiveTestActorSetting(
-  companyId: string,
-  actorRole?: string | null,
-): Promise<Record<string, unknown> | null> {
-  let query = supabaseService
-    .from("ediel_actor_settings")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("environment", "test")
-    .eq("is_active", true);
-
-  const role = normalizeActorRole(actorRole);
-  if (role === "supplier") {
-    query = query.or(
-      "role.eq.supplier,role.eq.electricity_supplier,actor_role.eq.supplier,actor_role.eq.electricity_supplier",
-    );
-  } else if (role === "esco") {
-    query = query.or(
-      "role.eq.esco,role.eq.energy_service_company,actor_role.eq.esco,actor_role.eq.energy_service_company",
-    );
-  }
-
-  const { data, error } = await query
-    .order("updated_at", { ascending: false })
-    .order("id", { ascending: true })
-    .limit(2);
-
-  if (error) {
-    if (isMissingRelationError(error)) return null;
-    throw error;
-  }
-
-  const rows = (data ?? []) as Array<Record<string, unknown>>;
-  if (rows.length > 1) {
-    throw new Error(
-      "Flera aktiva Ediel-aktörsprofiler matchar samma tenant och aktörsroll.",
-    );
-  }
-  return rows[0] ?? null;
-}
 
 export async function getEdielSystemTestRuntimeContext(params: {
   companyId?: string | null;
