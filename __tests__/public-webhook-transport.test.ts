@@ -9,6 +9,7 @@ describe('public webhook transport SSRF policy', () => {
     expect(parsePublicWebhookUrl('https://partner.example.com/webhooks/gridex').hostname)
       .toBe('partner.example.com')
     expect(parsePublicWebhookUrl('https://8.8.8.8/webhook').hostname).toBe('8.8.8.8')
+    expect(isDisallowedWebhookAddress('2606:4700:4700::1111')).toBe(false)
   })
 
   it('requires HTTPS and rejects embedded credentials', () => {
@@ -30,9 +31,13 @@ describe('public webhook transport SSRF policy', () => {
     'https://198.51.100.10/webhook',
     'https://203.0.113.10/webhook',
     'https://[::1]/webhook',
+    'https://[64:ff9b::7f00:1]/webhook',
     'https://[fc00::1]/webhook',
     'https://[fe80::1]/webhook',
+    'https://[ff02::1]/webhook',
     'https://[2001:db8::1]/webhook',
+    'https://[2002:7f00:1::]/webhook',
+    'https://[3fff::1]/webhook',
   ])('rejects non-public target %s', (url) => {
     expect(() => parsePublicWebhookUrl(url)).toThrow()
   })
@@ -46,10 +51,13 @@ describe('public webhook transport SSRF policy', () => {
       '172.31.255.255',
       '192.168.0.1',
       '::1',
+      '64:ff9b::7f00:1',
       'fc00::1',
       'fd12:3456::1',
       'fe80::1',
+      'ff02::1',
       '2001:db8::1',
+      '2002:7f00:1::',
       '::ffff:127.0.0.1',
     ]) {
       expect(isDisallowedWebhookAddress(address)).toBe(true)
