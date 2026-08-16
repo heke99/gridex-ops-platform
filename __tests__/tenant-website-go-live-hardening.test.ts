@@ -55,43 +55,114 @@ describe('tenant website canonical go-live hardening', () => {
   })
 
   it('adopts only canonical-readiness-paused primary clients without credential rotation', () => {
-    expect(apiClientsActions).toContain('adoptExistingApiClientForTenantWebsite')
-    expect(apiClientsActions).toContain('canonical_readiness_paused')
-    expect(apiClientsActions).toContain('provisioning_preflight_pending')
-    expect(apiClientsActions).toContain('profile_key')
-    expect(apiClientsActions).toContain('tenant_website')
+    expect(migration).toContain("existing.status = 'paused'")
+    expect(migration).toContain("'canonical_readiness_required'")
+    expect(migration).toContain("'canonical_readiness_revalidation_required'")
+    expect(migration).toContain("'canonical_readiness_revalidation_pending'")
+    expect(migration).toContain('TENANT_WEBSITE_PAUSED_CLIENT_REQUIRES_OPERATOR_REVIEW')
+    expect(migration).toContain("'credential_rotated',false")
+    expect(migration).toContain("v_client.revoked_at is not null")
+    expect(migration).toContain("existing.deleted_at is null")
   })
 
   it('forces a fresh receipt proof on every explicit revalidation', () => {
-    expect(apiClientsActions).toContain('revalidateTenantWebsiteApiClientAction')
-    expect(apiClientsActions).toContain('provisioning_receipt_id')
-    expect(apiClientsActions).toContain('launch_ready')
+    expect(migration).toContain("state = 'company_ready'")
+    expect(migration).toContain('receipt_sha256 = null')
+    expect(migration).toContain('completed_at = null')
+    expect(migration).toContain("launch_ready = false")
+    expect(migration).toContain("'provisioning_preflight_pending'")
   })
 
   it('prevents generic status activation from bypassing canonical go-live', () => {
-    expect(activationGuard).toContain('gridex_guard_tenant_website_activation_v1')
+    expect(activationGuard).toContain('gridex_guard_tenant_website_activation_v2')
     expect(activationGuard).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
+    expect(activationGuard).toContain("coalesce(new.metadata->>'go_live_flow','') <> 'canonical_tenant_website_v2'")
+    expect(activationGuard).toContain("receipt.id::text = v_receipt_id_text")
+    expect(activationGuard).toContain("'provisioning_preflight_pending','provisioning_retry_in_progress'")
+    expect(activationGuard).toContain('new.revoked_at is not null')
   })
 
   it('keeps admin UX aligned with canonical go-live instead of a generic Aktivera path', () => {
-    expect(apiClientsPage).toContain('Sätt live')
-    expect(apiClientsPage).toContain('Revalidera')
-    expect(apiClientsPage).toContain('launch_ready')
+    // Single-path go-live copy after #134; tenant_website rows must route to
+    // Sätt live / revalidera, and the server action must fail closed.
+    expect(createApiClientForm).toContain('Sätt bolaget live')
+    expect(createApiClientForm).toContain('Ingen separat aktivering behövs')
+    expect(apiClientsPage).toContain('isTenantWebsiteIntegrationClient')
+    expect(apiClientsPage).toContain('Sätt live / revalidera')
+    expect(apiClientsPage).toContain('goLiveHref(client.company_id)')
+
+    const goLiveAction = apiClientsPage.indexOf('Sätt live / revalidera')
+    expect(goLiveAction).toBeGreaterThan(-1)
+    const tenantActions = apiClientsPage.slice(Math.max(0, goLiveAction - 1200), goLiveAction + 200)
+    expect(tenantActions).toContain('{tenantWebsite ? (')
+    expect(tenantActions).toContain('goLiveHref(client.company_id)')
+    expect(tenantActions).not.toContain('>Aktivera<')
+    expect(tenantActions).not.toContain('value="active"')
+    // Non-tenant clients may keep a generic Aktivera control after the tenant branch.
+    const aktiveraAt = apiClientsPage.indexOf('>Aktivera<')
+    expect(aktiveraAt).toBeGreaterThan(goLiveAction)
+    const aroundAktivera = apiClientsPage.slice(aktiveraAt - 500, aktiveraAt + 40)
+    expect(aroundAktivera).toContain('value="active"')
+    expect(aroundAktivera).toContain('setIntegrationApiClientStatusAction')
+
+    expect(apiClientsActions).toContain('isTenantWebsiteIntegrationClient')
+    expect(apiClientsActions).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
+    expect(apiClientsActions).toContain('canonicala go-live-flödet')
+    expect(apiClientsActions).toMatch(
+      /select\('id,company_id,status,profile_key,scopes'\)/,
+    )
+
+    const sharedClassifier = readFileSync('lib/integrations/tenantWebsiteClient.ts', 'utf8')
+    expect(sharedClassifier).toContain("profile_key === 'tenant_website'")
+    expect(sharedClassifier).toContain("scope.startsWith('customer_portal.')")
+    expect(sharedClassifier).toContain("scope === 'website_applications.write'")
   })
 
   it('preserves tenant website go-live metadata when rotating credentials', () => {
-    expect(apiClientsActions).toContain('rotateApiClientKeyAction')
-    expect(apiClientsActions).toContain('metadata')
+    // Rotation must merge into existing metadata. Replacing the object would
+    // drop provisioning_receipt_id / go_live_flow and reopen readiness gaps.
+    expect(apiClientsActions).toContain('rotateIntegrationApiClientTokenAction')
+    expect(apiClientsActions).toContain('rotated_from_prefix')
+    expect(apiClientsActions).toMatch(
+      /rotateIntegrationApiClientTokenAction[\s\S]*select\([\s\S]*metadata/,
+    )
+    expect(apiClientsActions).toMatch(
+      /rotateIntegrationApiClientTokenAction[\s\S]*metadata:\s*\{[\s\S]*\.\.\.metadata[\s\S]*rotated_from_prefix/,
+    )
+    expect(apiClientsActions).not.toMatch(
+      /rotateIntegrationApiClientTokenAction[\s\S]*metadata:\s*\{\s*rotated_from_prefix/,
+    )
   })
 
   it('does not promote an already-active non-canonical client into tenant_website without pausing', () => {
-    expect(apiClientsActions).toContain('canonical_readiness_paused')
-    expect(apiClientsActions).toContain('tenant_website')
+    // "Spara avancerat" always writes profile_key=tenant_website. If the row is
+    // already active and lacks canonical go-live metadata, the guard skips
+    // (old.status=active) and reconcile can flip launch_ready without a receipt.
+    expect(apiClientsActions).toContain('updateIntegrationApiClientPermissionsAction')
+    expect(apiClientsActions).toMatch(
+      /updateIntegrationApiClientPermissionsAction[\s\S]*select\([\s\S]*status[\s\S]*profile_key[\s\S]*metadata/,
+    )
+    expect(apiClientsActions).toContain('canonical_tenant_website_v2')
+    expect(apiClientsActions).toContain('provisioning_receipt_id')
+    expect(apiClientsActions).toMatch(
+      /updateIntegrationApiClientPermissionsAction[\s\S]*status:\s*'paused'/,
+    )
+    expect(apiClientsActions).toContain(
+      'TENANT_WEBSITE_PERMISSIONS_REQUIRE_CANONICAL_GO_LIVE',
+    )
   })
 
   it('shares one tenant-website client classifier between UI and server actions', () => {
-    expect(apiClientsActions).toContain('isTenantWebsiteApiClient')
-    expect(apiClientsPage).toContain('isTenantWebsiteApiClient')
+    expect(apiClientsPage).toContain(
+      "from '@/lib/integrations/tenantWebsiteClient'",
+    )
+    expect(apiClientsActions).toContain(
+      "from '@/lib/integrations/tenantWebsiteClient'",
+    )
+    expect(apiClientsPage).toContain('isTenantWebsiteIntegrationClient')
+    expect(apiClientsActions).toContain('isTenantWebsiteIntegrationClient')
+    expect(apiClientsPage).not.toMatch(/function isTenantWebsiteClient\(/)
+    expect(apiClientsActions).not.toMatch(/function isTenantWebsiteIntegrationClient\(/)
   })
 
   it('lets lifecycle resume re-activate launch-ready tenant website clients paused by offboarding', () => {
@@ -124,7 +195,7 @@ describe('tenant website canonical go-live hardening', () => {
     expect(docs).toContain('aldrig skicka ett fritt `company_id`')
   })
 
-  it('documents every readiness denial in operator/technical integration docs', () => {
+  it('documents every readiness denial emitted by normal atomic authentication', () => {
     for (const code of [
       'api_client_not_launch_ready',
       'integration_receipt_not_verified',
@@ -132,9 +203,5 @@ describe('tenant website canonical go-live hardening', () => {
     ]) {
       expect(docs).toContain(code)
     }
-  })
-
-  it('keeps the tenant website setup form explicit about canonical provisioning', () => {
-    expect(createApiClientForm).toContain('tenant_website')
   })
 })
