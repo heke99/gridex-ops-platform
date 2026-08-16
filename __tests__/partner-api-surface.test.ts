@@ -25,9 +25,9 @@ describe('Partner API v1 public surface', () => {
     expect(core).toContain('Tenant selection is not accepted in request payloads.')
     expect(core).toContain('assertPublicResponsePayload(envelope)')
     expect(core).toContain(".eq('company_id',")
-    expect(openApi).not.toContain('company_id:')
-    expect(openApi).not.toContain('customer_id:')
-    expect(openApi).not.toContain('contract_id:')
+    expect(openApi).not.toMatch(/(^|[,{\s])company_id\s*:/m)
+    expect(openApi).not.toMatch(/(^|[,{\s])customer_id\s*:/m)
+    expect(openApi).not.toMatch(/(^|[,{\s])contract_id\s*:/m)
   })
 
   it('requires idempotency and bounded POA uploads', () => {
