@@ -1,0 +1,44 @@
+name: Partner API type hotfix
+
+on:
+  push:
+    branches:
+      - agent/api-docs-prod-remediation-2026-08-16
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[partner-type-hotfix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/api-docs-prod-remediation-2026-08-16
+      - name: Patch exact inferred UUID return type
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/partner-api/core.ts')
+          source = path.read_text()
+          old = 'function partnerJson(body: Json, status = 200, id = randomUUID()): NextResponse {'
+          new = 'function partnerJson(body: Json, status = 200, id: string = randomUUID()): NextResponse {'
+          if source.count(old) != 1:
+              raise SystemExit(f'expected exactly one partnerJson signature, found {source.count(old)}')
+          path.write_text(source.replace(old, new))
+          PY
+          git diff --check
+          git diff --exit-code -- lib/partner-api/core.ts && exit 0 || true
+      - name: Commit exact fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/partner-api/core.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'fix: widen partner request id type [partner-type-hotfix]'
+          git push origin HEAD:agent/api-docs-prod-remediation-2026-08-16
