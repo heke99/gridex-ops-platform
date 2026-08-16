@@ -97,7 +97,7 @@ function safeError(error: unknown): { status: number; code: string; message: str
   }
 }
 
-function partnerJson(body: Json, status = 200, id = randomUUID()): NextResponse {
+function partnerJson(body: Json, status = 200, id: string = randomUUID()): NextResponse {
   const envelope = {
     ...body,
     request_id: id,
