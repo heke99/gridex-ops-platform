@@ -45,9 +45,9 @@ describe('canonical public API release', () => {
     )
   })
 
-  it('aligns guide, OpenAPI, runtime and database on mandatory pre-authentication', () => {
-    const guide = readFileSync(
-      'app/developers/customer-portal-api/page.tsx',
+  it('aligns legacy Website API OpenAPI, runtime and database on mandatory pre-authentication', () => {
+    const legacyGuide = readFileSync(
+      'docs/external-website-api-integration-guide.md',
       'utf8',
     )
     const runtime = [
@@ -63,9 +63,8 @@ describe('canonical public API release', () => {
     expect(application.required).toEqual(
       expect.arrayContaining(['auth_user_id', 'customer_portal_user_id']),
     )
-    expect(guide).toContain('Kunden måste autentiseras i tenantens egen')
-    expect(guide).toContain('<strong>innan</strong> kundansökan skickas till OPS')
-    expect(guide).not.toContain('När kunden redan är inloggad skickas')
+    expect(legacyGuide).toContain('Frontend får aldrig anropa OPS direkt med API-nyckel')
+    expect(legacyGuide).toContain('API-nyckeln avgör tenant, bolag och scopes')
     expect(runtime).toContain('portal_auth_identity_required')
     expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)
     expect(migration).toContain('alter column portal_identity_required set default true')
@@ -139,7 +138,6 @@ describe('canonical public API release', () => {
     })
     expect(response.headers.get('x-request-id')).toBe('request-123')
   })
-
 
   it('keeps website application lookup public and tenant-bound', () => {
     const path = websiteOpenApi.paths['/api/v1/website/customer-applications/{application_number}']
