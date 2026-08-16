@@ -22590,12 +22590,17 @@ export type Database = {
           archive_reason: string | null
           archived_at: string | null
           archived_by: string | null
+          billing_city: string | null
+          billing_country: string
+          billing_postal_code: string | null
+          billing_street: string | null
           campaign_id: string | null
           company_id: string | null
           company_name: string | null
           created_at: string
           created_by: string | null
           customer_number: string | null
+          customer_reference: string
           customer_type: string
           data_retention_note: string | null
           email: string | null
@@ -22642,12 +22647,17 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          billing_city?: string | null
+          billing_country?: string
+          billing_postal_code?: string | null
+          billing_street?: string | null
           campaign_id?: string | null
           company_id?: string | null
           company_name?: string | null
           created_at?: string
           created_by?: string | null
           customer_number?: string | null
+          customer_reference?: string
           customer_type?: string
           data_retention_note?: string | null
           email?: string | null
@@ -22694,12 +22704,17 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          billing_city?: string | null
+          billing_country?: string
+          billing_postal_code?: string | null
+          billing_street?: string | null
           campaign_id?: string | null
           company_id?: string | null
           company_name?: string | null
           created_at?: string
           created_by?: string | null
           customer_number?: string | null
+          customer_reference?: string
           customer_type?: string
           data_retention_note?: string | null
           email?: string | null
@@ -52743,6 +52758,7 @@ export type Database = {
           metering_point_id: string | null
           method: string | null
           notes: string | null
+          power_of_attorney_reference: string
           reference: string | null
           revoked_at: string | null
           scope: string
@@ -52788,6 +52804,7 @@ export type Database = {
           metering_point_id?: string | null
           method?: string | null
           notes?: string | null
+          power_of_attorney_reference?: string
           reference?: string | null
           revoked_at?: string | null
           scope?: string
@@ -52833,6 +52850,7 @@ export type Database = {
           metering_point_id?: string | null
           method?: string | null
           notes?: string | null
+          power_of_attorney_reference?: string
           reference?: string | null
           revoked_at?: string | null
           scope?: string
@@ -60135,6 +60153,7 @@ export type Database = {
           timeout_ms: number
           updated_at: string
           updated_by: string | null
+          webhook_subscription_reference: string
         }
         Insert: {
           company_id: string
@@ -60160,6 +60179,7 @@ export type Database = {
           timeout_ms?: number
           updated_at?: string
           updated_by?: string | null
+          webhook_subscription_reference?: string
         }
         Update: {
           company_id?: string
@@ -60185,6 +60205,7 @@ export type Database = {
           timeout_ms?: number
           updated_at?: string
           updated_by?: string | null
+          webhook_subscription_reference?: string
         }
         Relationships: [
           {
@@ -72974,6 +72995,22 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_create_partner_contract_v1: {
+        Args: { p_api_client_id: string; p_company_id: string; p_payload: Json }
+        Returns: Json
+      }
+      gridex_create_partner_webhook_subscription_v1: {
+        Args: {
+          p_api_client_id: string
+          p_company_id: string
+          p_description?: string
+          p_endpoint_url: string
+          p_event_types: string[]
+          p_name: string
+          p_secret: string
+        }
+        Returns: Json
+      }
       gridex_create_portfolio: {
         Args: {
           p_actor_user_id: string
@@ -73119,6 +73156,14 @@ export type Database = {
       gridex_default_document_prefix: {
         Args: { p_company_id: string; p_sequence_key: string }
         Returns: string
+      }
+      gridex_delete_partner_webhook_subscription_v1: {
+        Args: {
+          p_api_client_id: string
+          p_company_id: string
+          p_subscription_reference: string
+        }
+        Returns: boolean
       }
       gridex_delete_unused_contract: {
         Args: {
@@ -74085,6 +74130,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_read_webhook_signing_secret_v1: {
+        Args: { p_company_id: string; p_subscription_id: string }
+        Returns: string
+      }
       gridex_rebuild_company_legal_profile: {
         Args: {
           p_actor_user_id?: string
@@ -74343,6 +74392,14 @@ export type Database = {
           p_company_id: string
           p_payload: Json
           p_pricing_snapshot: Json
+        }
+        Returns: Json
+      }
+      gridex_resolve_partner_api_offer_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_type?: string
+          p_offer_reference: string
         }
         Returns: Json
       }

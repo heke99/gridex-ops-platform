@@ -6,10 +6,13 @@ import type { DomainEventRow } from '@/lib/events/domainEvents'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
+import { postPublicWebhook } from '@/lib/integrations/publicWebhookTransport'
+import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
 
 type WebhookSubscriptionRow = {
   id: string
   company_id: string
+  api_client_id?: string | null
   name: string
   endpoint_url: string
   event_types: string[]
@@ -19,6 +22,7 @@ type WebhookSubscriptionRow = {
   max_attempts: number
   signing_secret_ref: string | null
   failure_count?: number | null
+  metadata?: Record<string, unknown> | null
 }
 
 type WebhookDeliveryRow = {
@@ -47,8 +51,8 @@ type EnqueueOptions = {
 
 function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
-  const message = (error as { message?: string } | null)?.message ?? ''
-  return ['42P01', '42703', 'PGRST205', 'PGRST204', '42P10'].includes(code) || /schema cache|does not exist|column .* does not exist|no unique or exclusion constraint/i.test(message)
+  const message = (error as { message?: unknown } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST205', 'PGRST204', '42P10'].includes(code) || /schema cache|does not exist|column .* does not exist|no unique or exclusion constraint/i.test(String(message))
 }
 
 function eventMatchesSubscription(eventType: string, subscriptionTypes: string[]): boolean {
@@ -99,10 +103,17 @@ export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProject
   'contract.closed': { dataKeys: ['contract_reference', 'offer_reference', 'reason'] },
   'contract.application_received': { dataKeys: ['application_number', 'status', 'offer_reference'] },
   'contract.created': { dataKeys: ['contract_reference', 'application_number', 'offer_reference', 'status'] },
+  'contract.status_changed': { dataKeys: ['contract_reference', 'status', 'previous_status', 'offer_reference'] },
+  'customer.created': { dataKeys: ['customer_reference', 'customer_number', 'status'] },
+  'customer.updated': { dataKeys: ['customer_reference', 'customer_number', 'status'] },
+  'site.created': { dataKeys: ['site_reference', 'status', 'data_quality_status'] },
+  'site.updated': { dataKeys: ['site_reference', 'status', 'data_quality_status'] },
+  'power_of_attorney.created': { dataKeys: ['power_of_attorney_reference', 'status', 'scope'] },
   'customer_application.accepted': { dataKeys: ['application_number', 'status'] },
   'customer_application.needs_information': { dataKeys: ['application_number', 'status', 'reason'] },
   'customer_application.status_changed': { dataKeys: ['application_number', 'status', 'previous_status'] },
   'invoice.created': { dataKeys: ['invoice_reference', 'invoice_number', 'status', 'due_date'] },
+  'invoice.updated': { dataKeys: ['invoice_reference', 'invoice_number', 'status', 'due_date'] },
   'invoice.sent': { dataKeys: ['invoice_reference', 'invoice_number', 'status'] },
   'metering_values.updated': { dataKeys: ['facility_reference', 'period_start', 'period_end', 'resolution'] },
   'quote.created': { dataKeys: ['quote_reference', 'offer_reference', 'price_area', 'expires_at'] },
@@ -270,6 +281,33 @@ async function publicPayloadForDelivery(
     data as DomainEventRow,
     tenantReference,
   ) as Record<string, unknown>
+}
+
+function isPartnerSubscription(subscription: WebhookSubscriptionRow): boolean {
+  return String(subscription.metadata?.source ?? '').toLowerCase() === 'partner_api'
+}
+
+function partnerWebhookPayload(publicPayload: Record<string, unknown>): Record<string, unknown> {
+  const aggregate = publicPayload.aggregate && typeof publicPayload.aggregate === 'object' && !Array.isArray(publicPayload.aggregate)
+    ? publicPayload.aggregate as Record<string, unknown>
+    : null
+  const payload = {
+    event_id: publicPayload.event_id,
+    event_type: publicPayload.event_type,
+    created_at: publicPayload.created_at,
+    ...(publicPayload.environment ? { environment: publicPayload.environment } : {}),
+    resource: aggregate
+      ? {
+          type: aggregate.type,
+          reference: aggregate.reference,
+        }
+      : undefined,
+    ...(publicPayload.customer ? { customer: publicPayload.customer } : {}),
+    data: publicPayload.data ?? {},
+    api_version: PARTNER_API_VERSION,
+  }
+  assertPublicResponsePayload(payload)
+  return payload
 }
 
 function nextAttempt(attempts: number): string {
@@ -552,10 +590,15 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     let responseBody: string | null = null
 
     try {
-      const publicPayload = await publicPayloadForDelivery(delivery)
+      const storedPayload = await publicPayloadForDelivery(delivery)
+      const tenantReference = String(storedPayload.tenant_reference ?? '')
+      if (!tenantReference) throw new Error('webhook_tenant_reference_missing')
+      const publicPayload = isPartnerSubscription(subscription)
+        ? partnerWebhookPayload(storedPayload)
+        : storedPayload
       publicDeliveryId = opaqueReference(
         'delivery',
-        String(publicPayload.tenant_reference),
+        tenantReference,
         delivery.id,
       )
       const body = JSON.stringify({
@@ -581,8 +624,8 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         continue
       }
 
-      const response = await fetch(targetUrl, {
-        method: 'POST',
+      const response = await postPublicWebhook({
+        url: targetUrl,
         headers: signedHeaders(
           subscription,
           delivery,
@@ -596,7 +639,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
       })
       providerResponded = true
       responseStatus = response.status
-      responseBody = await response.text()
+      responseBody = response.body
 
       if (response.ok) {
         await finalizeClaimedDelivery(delivery, {

@@ -1,0 +1,52 @@
+version: 1
+
+project:
+  name: YOUR_PROJECT
+  repository: owner/repository
+  production_safe_tests_only: true
+  never_use_real_customer_data: true
+  test_data_prefix: E2E-
+
+execution:
+  continue_independent_scenarios_after_failure: true
+  diagnose_failures: true
+  remediate_when_user_authorized: true
+  rerun_after_fix: true
+  require_p0_green_for_green_verdict: true
+
+target_scope:
+  default_mode: all_targets
+  supported_modes: [all_targets, single_target]
+  explicit_target_request:
+    strict_scope: true
+    zero_matches: BLOCKED
+    multiple_matches: BLOCKED
+    allow_fallback_to_all_targets: false
+    allow_other_target_business_flows: false
+    allow_other_target_mutation: false
+
+browser:
+  driver_skill: .agents/skills/browser-e2e/SKILL.md
+  preferred_driver: agent-browser
+  require_real_browser_for_browser_boundaries: true
+  isolate_auth_state_per_target: true
+
+scenarios:
+  - id: E2E-P0-001
+    priority: P0
+    name: Primary business happy path
+    boundaries: [browser, auth, api, database, async_effects, read_back]
+    applicability:
+      scope: target
+      modes: [single_target, all_targets]
+    expected:
+      - final business outcome is persisted and visible through the promised user surface
+    negative_cases:
+      - missing required input
+      - duplicate submit
+      - unauthorized actor
+
+cleanup:
+  required_for_mutating_scenarios: true
+  only_remove_tagged_test_data: true
+  never_delete_real_customer_data: true

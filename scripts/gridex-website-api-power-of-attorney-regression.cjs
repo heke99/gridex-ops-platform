@@ -136,13 +136,13 @@ ok(poaOrchestrator.includes('grid_owner_contact_required') && poaOrchestrator.in
 ok(src.includes('processWebsiteApplicationIntake({') && src.includes('references: intakeDecision.references'), 'continuation status includes canonical facility-request references from the orchestrator')
 ok(src.includes('responsePayload.power_of_attorney = {'), 'response includes a power_of_attorney status block')
 
-// 6) Docs updated.
+// 6) Docs updated. The canonical supplier page is intentionally Partner API-only;
+// the legacy Website API contract remains documented in its dedicated guide.
 const opsDoc = read('docs/ops-api-customer-intake-facility.md')
 ok(opsDoc.includes('powerOfAttorney') && opsDoc.includes('power_of_attorney') && opsDoc.includes('communication') && opsDoc.includes('next_action'), 'ops API doc separates structured POA input from canonical public response')
 const extDoc = read('docs/external-website-api-integration-guide.md')
 ok(extDoc.includes('powerOfAttorney') && extDoc.includes('textVersionId'), 'external integration guide documents structured POA')
-const devPage = read('app/developers/customer-portal-api/page.tsx')
-ok(devPage.includes('powerOfAttorney') && devPage.includes('next_step') && devPage.includes('next_action') && devPage.includes('automatic_processing'), 'developer API page documents structured POA and asynchronous next-step semantics')
+ok(extDoc.includes('next_step') && extDoc.includes('next_action') && extDoc.includes('automatic_processing'), 'legacy Website API guide documents structured POA and asynchronous next-step semantics')
 
 // 8) Identity aliases normalized to canonical columns (Task D).
 for (const alias of [
