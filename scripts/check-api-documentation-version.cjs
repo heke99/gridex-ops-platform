@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 
 const legacyExpected = '2026-08-14.1'
-const partnerExpected = '2026-08-16.1'
+const partnerExpected = '2026-08-16.2'
 const legacyFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
   'docs/openapi/website-integration-v1.json',
@@ -37,7 +37,9 @@ const partnerOpenApi = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')
 const partnerGuide = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
 const legacyGuide = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
 const partnerCore = fs.readFileSync('lib/partner-api/core.ts', 'utf8')
+const canonical = fs.readFileSync('lib/partner-api/canonical.ts', 'utf8')
 const partnerRoute = fs.readFileSync('app/api/partner/v1/[[...path]]/route.ts', 'utf8')
+const eventMigration = fs.readFileSync('supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql', 'utf8')
 
 if (!partnerOpenApi.includes(partnerExpected)) {
   failures.push(`lib/partner-api/openApi.ts does not expose Partner API version ${partnerExpected}`)
@@ -54,21 +56,44 @@ if (!legacyGuide.includes('Customer Portal API')) {
 
 for (const marker of [
   "PARTNER_API_BASE_URL = 'https://app.gridex.se/api/partner/v1'",
-  "'/contracts'",
-  "'/contracts/{contract_reference}/status'",
-  "'/webhooks/subscriptions'",
+  "'/contract'",
+  "'/contract/{contract_reference}/state'",
+  "'/customer/{customer_reference}/site/{site_reference}/powerofattorney'",
+  "'/customer/{customer_reference}/site/{site_reference}/invoice'",
+  "'/customer/{customer_reference}/site/{site_reference}/measurement'",
+  "'/webhook/subscription'",
   'Idempotency-Key',
-  'contract.status_changed',
 ]) {
   if (!partnerOpenApi.includes(marker)) failures.push(`Partner OpenAPI is missing marker: ${marker}`)
+}
+
+for (const legacyPath of ["'/contracts'", "'/customers'", "'/sites'", "'/webhooks/subscriptions'"]) {
+  if (partnerOpenApi.includes(legacyPath)) {
+    failures.push(`Canonical Partner OpenAPI must not expose compatibility alias ${legacyPath}`)
+  }
+}
+
+for (const event of [
+  'customer.created',
+  'customer.updated',
+  'site.created',
+  'site.updated',
+  'power_of_attorney.created',
+  'contract.created',
+  'contract.status_changed',
+  'invoice.created',
+  'invoice.updated',
+]) {
+  if (!partnerOpenApi.includes(`'${event}'`)) failures.push(`Partner OpenAPI is missing webhook event ${event}`)
+  if (!eventMigration.includes(`'${event}'`)) failures.push(`Partner event migration is missing webhook event ${event}`)
 }
 
 for (const marker of [
   'Partner API v1',
   '/api/partner/v1/openapi.json',
   'backend-to-backend',
-  'Company onboarding',
-  'not part of the Partner API',
+  'Company onboarding is not part of the Partner API',
+  'Existing plural Partner API routes',
 ]) {
   if (!partnerGuide.includes(marker)) failures.push(`Partner developer guide is missing marker: ${marker}`)
 }
@@ -79,8 +104,14 @@ if (!partnerCore.includes('assertPublicResponsePayload(envelope)')) {
 if (!partnerCore.includes('executeIdempotentPortalWrite')) {
   failures.push('Partner API writes must use canonical idempotency')
 }
-if (!partnerRoute.includes('handlePartnerApi')) {
-  failures.push('Partner API route must delegate to the canonical handler')
+if (!canonical.includes('path_body_reference_mismatch')) {
+  failures.push('Canonical nested routes must reject conflicting path/body resource references')
+}
+if (!canonical.includes(".eq('company_id', access.client.company_id)")) {
+  failures.push('Canonical nested routes must enforce credential-bound company ownership')
+}
+if (!partnerRoute.includes('handleCanonicalPartnerApi') || !partnerRoute.includes('handlePartnerApi')) {
+  failures.push('Partner route must serve canonical paths and retain compatibility aliases')
 }
 
 if (failures.length) {
