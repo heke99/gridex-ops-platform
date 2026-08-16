@@ -8,11 +8,13 @@ describe('Partner API v1 public surface', () => {
   const canonical = read('lib/partner-api/canonical.ts')
   const openApi = read('lib/partner-api/openApi.ts')
   const docs = read('app/developers/partner-api/page.tsx')
-  const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
+  const customerPortalDocs = read('app/developers/customer-portal-api/page.tsx')
   const scopes = read('lib/integrations/apiClientScopes.ts')
   const contractMigration = read('supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql')
   const eventMigration = read('supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql')
   const dispatch = read('app/api/internal/webhooks/dispatch/route.ts')
+  const webhooks = read('lib/integrations/webhooks.ts')
+  const webhookTransport = read('lib/integrations/publicWebhookTransport.ts')
   const vault = read('lib/integrations/webhookVaultSecrets.ts')
 
   it('exposes the simplified business-resource surface from the integration example', () => {
@@ -114,6 +116,7 @@ describe('Partner API v1 public surface', () => {
     ]) {
       expect(openApi).toContain(`'${event}'`)
       expect(eventMigration).toContain(`'${event}'`)
+      expect(webhooks).toContain(`'${event}'`)
     }
     expect(eventMigration).toContain('insert into public.webhook_deliveries')
     expect(eventMigration).toContain("'event_' || substr")
@@ -127,11 +130,26 @@ describe('Partner API v1 public surface', () => {
     expect(dispatch).toContain('cleanupVaultSecrets?.()')
   })
 
-  it('keeps Partner and legacy Customer Portal documentation separate', () => {
+  it('blocks webhook SSRF targets at creation and delivery', () => {
+    expect(dispatch).toContain('assertPublicWebhookTarget')
+    expect(dispatch).toContain('webhook_target_not_public')
+    expect(webhookTransport).toContain("url.protocol !== 'https:'")
+    expect(webhookTransport).toContain("hostname === 'localhost'")
+    expect(webhookTransport).toContain('isDisallowedWebhookAddress')
+    expect(webhookTransport).toContain('lookup(hostname, { all: true, verbatim: true })')
+    expect(webhookTransport).toContain('callback(null, pinned.address, pinned.family)')
+    expect(webhooks).toContain('postPublicWebhook')
+    expect(webhooks).not.toContain('const response = await fetch(targetUrl')
+  })
+
+  it('serves the simplified Partner API guide on both developer URLs', () => {
     expect(docs).toContain('backend-to-backend')
-    expect(docs).toContain('Company onboarding is not part of the Partner API')
+    expect(docs).toContain('Company setup is intentionally outside this API')
     expect(docs).toContain('/api/partner/v1')
-    expect(docs).toContain('Existing plural Partner API routes')
-    expect(legacyDocs).toContain('Customer Portal API')
+    expect(docs).toContain('Existing plural Partner API paths')
+    expect(docs).not.toContain('tenant_reference')
+    expect(docs).toContain('"resource"')
+    expect(customerPortalDocs).toContain("import PartnerApiDocumentationPage from '../partner-api/page'")
+    expect(customerPortalDocs).toContain('<PartnerApiDocumentationPage />')
   })
 })
