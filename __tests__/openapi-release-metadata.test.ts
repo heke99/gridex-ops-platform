@@ -8,7 +8,18 @@ import {
   serializeOpenApiDocument,
 } from '@/lib/integrations/openApiResponse'
 
-type JsonRecord = Record<string, any>
+type JsonRecord = {
+  info: { version: string }
+  paths: Record<
+    string,
+    {
+      post: {
+        responses: Record<string, { description: string }>
+      }
+    }
+  >
+  [key: string]: unknown
+}
 
 function sha256(document: unknown): string {
   return createHash('sha256').update(serializeOpenApiDocument(document)).digest('hex')
