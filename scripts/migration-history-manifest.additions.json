@@ -64,6 +64,7 @@
     "20260815210353_restrict_recent_security_definer_rpcs.sql": "5e2a5542b30bb560911645015382cf87029004f3adba03575f270f9377b93d69",
     "20260815220000_contract_publication_successor_transition_order.sql": "2b394258e007392383f2a1ae0293877c2faf16a59f52e3bb59e50928540d4424",
     "20260815233059_tenant_website_installation_completion_v1.sql": "e2e1aaf6bb489d7c7392bb7758e5e6c08d87c9ceb54ed907ffd1a65b3e2ee64f",
-    "20260815233411_tenant_website_installation_completion_trigger_v1.sql": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827"
+    "20260815233411_tenant_website_installation_completion_trigger_v1.sql": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827",
+    "20260816101505_partner_api_v1_multicompany_foundation.sql": "5cfb827c20cc04a8ed01df99929a2891de4afc6a702471f029264bc1225a8978"
   }
 }
