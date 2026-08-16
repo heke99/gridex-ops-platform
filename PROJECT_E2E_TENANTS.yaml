@@ -1,0 +1,128 @@
+version: 1
+extends: PROJECT_E2E.yaml
+
+scope:
+  default_mode: all_eligible_tenants
+  supported_modes: [all_eligible_tenants, single_tenant]
+
+  explicit_tenant_request:
+    mode: single_tenant
+    strict_scope: true
+    resolution_source: public.companies
+    resolution_fields: [id, company_slug, slug, external_tenant_reference, name]
+    zero_matches: BLOCKED
+    multiple_matches: BLOCKED
+    allow_fallback_to_all_tenants: false
+    allow_other_tenant_business_flows: false
+    allow_cross_tenant_mutation: false
+    run_global_release_gates_once: true
+    rerun_only_selected_tenant_after_fix: true
+
+  all_tenants:
+    discovery_source: public.companies
+    include_lifecycle_states: [active, onboarding, paused, suspended]
+    evaluate_capabilities_per_tenant: true
+    run_global_release_gates_once: true
+    run_each_tenant_from_entry_to_terminal_outcome_before_next_tenant: true
+
+capability_discovery:
+  sources:
+    - public.company_capabilities
+    - public.tenant_website_readiness_v
+    - public.tenant_launch_states
+    - public.platform_tenant_governance_overview
+  classification:
+    disabled_by_design: NOT_APPLICABLE
+    expected_but_not_ready: BLOCKED
+    enabled_but_broken: FAIL
+  never_infer_pass_from_configuration: true
+
+browser:
+  driver_skill: .agents/skills/browser-e2e/SKILL.md
+  preferred_driver: agent-browser
+  require_real_browser_for_browser_boundaries: true
+  reuse_auth_state_per_tenant_only: true
+  never_reuse_auth_state_between_tenants: true
+
+tenant_run_order:
+  - resolve_exact_tenant_identity
+  - capture_tenant_baseline
+  - discover_enabled_and_expected_capabilities
+  - create_isolated_test_fixtures
+  - run_applicable_p0_from_entry_to_final_business_outcome
+  - diagnose_and_remediate_failures_when_authorized
+  - rerun_targeted_regressions
+  - rerun_selected_tenant_p0_after_shared_fix
+  - run_applicable_p1
+  - cleanup_only_tagged_test_data
+  - record_tenant_verdict
+
+scenario_overrides:
+  GRIDEX-P0-001:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_all: [website_sales, api_sales]
+    capabilities_optional: [email_outbound]
+  GRIDEX-P0-002:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [manual_intake_enabled, customer_intake_enabled, customer_intake]
+  GRIDEX-P0-003:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [customer_intake_enabled, website_sales, manual_intake_enabled]
+  GRIDEX-P0-004:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [ediel_enabled, facility_lookup_enabled, power_of_attorney_required]
+  GRIDEX-P0-005:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_all: [email_outbound]
+  GRIDEX-P0-006:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_all: [api_sales, website_sales]
+  GRIDEX-P0-007:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_all: [partner_api_enabled]
+  GRIDEX-P0-008:
+    scope: multi_tenant_security
+    modes: [all_eligible_tenants]
+  GRIDEX-P0-009:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+  GRIDEX-P0-010:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+  GRIDEX-P0-011:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [ediel_enabled, ediel_test, ediel_production]
+  GRIDEX-P0-012:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [customer_intake_enabled, website_sales, manual_intake_enabled]
+  GRIDEX-P0-013:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [webhooks, webhook_delivery_enabled, partner_api_enabled]
+  GRIDEX-P0-014:
+    scope: global
+    modes: [single_tenant, all_eligible_tenants]
+  GRIDEX-P1-001:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+    capabilities_any: [billing, invoice_enabled]
+  GRIDEX-P1-002:
+    scope: tenant
+    modes: [single_tenant, all_eligible_tenants]
+
+single_tenant_invariants:
+  - requested_tenant_equals_resolved_tenant
+  - all_created_fixtures_have_selected_company_id
+  - all_events_jobs_outbox_and_communications_have_selected_company_id
+  - all_api_clients_and_publications_resolve_to_selected_company
+  - no_other_tenant_business_flow_is_executed
+  - no_other_tenant_is_mutated
