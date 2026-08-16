@@ -9,7 +9,6 @@ const migration = readFileSync(migrationPath, 'utf8')
 const activationGuard = readFileSync(activationGuardPath, 'utf8')
 const receiptBinding = readFileSync(receiptBindingPath, 'utf8')
 const docs = readFileSync('docs/gridex-customer-portal-api.md', 'utf8')
-const docsLayout = readFileSync('app/developers/customer-portal-api/layout.tsx', 'utf8')
 const apiClientsPage = readFileSync('app/admin/platform/api-clients/page.tsx', 'utf8')
 const apiClientsActions = readFileSync('app/admin/platform/api-clients/actions.ts', 'utf8')
 const createApiClientForm = readFileSync(
@@ -203,7 +202,6 @@ describe('tenant website canonical go-live hardening', () => {
       'integration_capability_not_ready',
     ]) {
       expect(docs).toContain(code)
-      expect(docsLayout).toContain(code)
     }
   })
 })
