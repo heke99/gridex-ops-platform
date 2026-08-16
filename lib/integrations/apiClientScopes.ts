@@ -123,7 +123,7 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
     groupKey: 'partner_api',
     label: 'Partner API',
-    description: 'Backendintegrationer får registrera kund, anläggning, avtal och fullmakt samt hantera sina egna webhook-prenumerationer. Tenant väljs alltid av API-nyckeln.',
+    description: 'Backendintegrationer får registrera och läsa sina kund-, anläggnings-, avtals-, fullmakts-, faktura- och mätdata samt hantera egna webhook-prenumerationer. Bolagskontext väljs alltid av API-nyckeln.',
     category: 'events',
     scopes: [
       'partner_contracts.write',
@@ -131,6 +131,12 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
       'partner_sites.write',
       'partner_power_of_attorney.write',
       'partner_webhooks.manage',
+      'customer_contracts.read',
+      'customer_profile.read',
+      'customer_sites.read',
+      'customer_power_of_attorney.read',
+      'customer_invoices.read',
+      'customer_metering.read',
     ],
     recommendedDefault: false,
     riskLevel: 'high',

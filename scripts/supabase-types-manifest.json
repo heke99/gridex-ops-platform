@@ -1,7 +1,8 @@
 {
-  "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-16T14:06:00.000Z",
-  "generated_types": "supabase/database.types.ts",
-  "sha256": "6590add6bbf4f1ac260ded103aca77943619747453409dac972348200132d92bb",
-  "latest_migration": "20260816101505_partner_api_v1_multicompany_foundation.sql"
+  "version": 1,
+  "source": "Supabase dev project piidsfebjqjmnepdpnas",
+  "generatedAt": "2026-08-16T14:06:00Z",
+  "latestMigration": "20260816135746_partner_api_v1_transactional_contract_create.sql",
+  "databaseTypesPath": "supabase/database.types.ts",
+  "databaseTypesSha256": "6590add6226a2bc82f03ec73592de40412471923ebbadde833b62016ca681c47"
 }
