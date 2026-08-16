@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { dispatchDueWebhookDeliveries } from '@/lib/integrations/webhooks'
+import { hydrateVaultWebhookSecretsForDispatch } from '@/lib/integrations/webhookVaultSecrets'
 import { processDomainEventWebhookFanout } from '@/lib/events/domainEvents'
 
 export const runtime = 'nodejs'
@@ -37,14 +38,18 @@ async function run(request: NextRequest) {
   }
 
   const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit') ?? '25') || 25, 1), 100)
+  let cleanupVaultSecrets: (() => void) | null = null
   try {
     const fanout = await processDomainEventWebhookFanout({ limit })
+    cleanupVaultSecrets = await hydrateVaultWebhookSecretsForDispatch()
     const deliveries = await dispatchDueWebhookDeliveries(limit)
     return customerPortalJson({ data: { fanout, deliveries } })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[webhook-dispatch] failed', { traceId, error })
     return customerPortalJson({ error: 'Webhook-dispatch kunde inte slutföras.', code: 'webhook_dispatch_failed', trace_id: traceId }, { status: 500 })
+  } finally {
+    cleanupVaultSecrets?.()
   }
 }
 

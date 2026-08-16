@@ -121,6 +121,22 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     sortOrder: 20,
   },
   {
+    groupKey: 'partner_api',
+    label: 'Partner API',
+    description: 'Backendintegrationer får registrera kund, anläggning, avtal och fullmakt samt hantera sina egna webhook-prenumerationer. Tenant väljs alltid av API-nyckeln.',
+    category: 'events',
+    scopes: [
+      'partner_contracts.write',
+      'partner_customers.write',
+      'partner_sites.write',
+      'partner_power_of_attorney.write',
+      'partner_webhooks.manage',
+    ],
+    recommendedDefault: false,
+    riskLevel: 'high',
+    sortOrder: 25,
+  },
+  {
     groupKey: 'customer_portal',
     label: 'Mina sidor',
     description: 'Kunden kan se och komplettera uppgifter, avtal, anläggningar, fakturor och status.',
@@ -196,6 +212,11 @@ export const CUSTOMER_PORTAL_SCOPES = [
   'customer_contact.write',
   'customer_facility_data.write',
   'customer_power_of_attorney.write',
+  'partner_contracts.write',
+  'partner_customers.write',
+  'partner_sites.write',
+  'partner_power_of_attorney.write',
+  'partner_webhooks.manage',
 ] as const
 
 export const INTEGRATION_API_SCOPE_OPTIONS = INTEGRATION_API_PERMISSION_GROUPS.flatMap((group) =>
