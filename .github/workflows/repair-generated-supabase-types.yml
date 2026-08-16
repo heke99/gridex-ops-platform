@@ -1,13 +1,52 @@
-name: Repair generated Supabase types (manual)
+name: Repair generated Supabase types (one-shot)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - agent/api-docs-prod-remediation-2026-08-16
+    paths:
+      - .github/workflows/repair-generated-supabase-types.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  note:
+  repair:
+    if: contains(github.event.head_commit.message, '[repair-types]')
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - run: echo "Historical one-shot repair workflow retained as inert evidence; canonical generated types are enforced by ops-hardening.yml."
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/api-docs-prod-remediation-2026-08-16
+          fetch-depth: 2
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Regenerate canonical types from clean replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase gen types typescript --local > supabase/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
+          HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'scripts/supabase-types-manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const { execFileSync } = require('child_process');
+          manifest.sha256 = execFileSync('sha256sum', ['supabase/database.types.ts'], {encoding:'utf8'}).trim().split(/\s+/)[0];
+          manifest.generated_at = new Date().toISOString();
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+NODE
+          git show HEAD^:.github/workflows/repair-generated-supabase-types.yml > .github/workflows/repair-generated-supabase-types.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json .github/workflows/repair-generated-supabase-types.yml
+          git commit -m "ci: regenerate canonical Supabase types"
+          git push origin HEAD:agent/api-docs-prod-remediation-2026-08-16
