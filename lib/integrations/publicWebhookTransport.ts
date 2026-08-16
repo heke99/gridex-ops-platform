@@ -65,7 +65,7 @@ export function isDisallowedWebhookAddress(address: string): boolean {
       (firstHextet === 0x2001 && Number.isFinite(secondHextet) && secondHextet <= 0x01ff) || // IETF special-purpose block
       /^2001:db8(?::|$)/.test(normalized) || // documentation
       /^2002(?::|$)/.test(normalized) || // 6to4 embeds an IPv4 target
-      /^3fff:(?:0|[0-9a-f]{1,3})(?::|$)/.test(normalized) // documentation allocation
+      /^3fff:/.test(normalized) // documentation allocation 3fff::/20
     )
   }
 
