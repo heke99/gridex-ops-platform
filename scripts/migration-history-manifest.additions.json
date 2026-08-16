@@ -67,6 +67,7 @@
     "20260815233411_tenant_website_installation_completion_trigger_v1.sql": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827",
     "20260816101505_partner_api_v1_multicompany_foundation.sql": "5cfb827c20cc04a8ed01df99929a2891de4afc6a702471f029264bc1225a8978",
     "20260816135746_partner_api_v1_transactional_contract_create.sql": "2965ebf859b9d4119bbd5d2dc615b7a639372f3c54ece154fd985b8af8c7e6da",
+    "20260816165000_partner_api_customer_billing_replay_parity.sql": "eb5ab821c7f1e84ad61e34d566807fcb624291fd0847ad7067b03e00824e2d1e",
     "20260816170000_partner_api_v1_canonical_surface_events.sql": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b"
   }
 }
