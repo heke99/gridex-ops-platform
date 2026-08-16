@@ -5,31 +5,68 @@ const read = (path: string) => fs.readFileSync(path, 'utf8')
 
 describe('Partner API v1 public surface', () => {
   const core = read('lib/partner-api/core.ts')
+  const canonical = read('lib/partner-api/canonical.ts')
   const openApi = read('lib/partner-api/openApi.ts')
   const docs = read('app/developers/partner-api/page.tsx')
   const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
   const scopes = read('lib/integrations/apiClientScopes.ts')
-  const migration = read('supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql')
+  const contractMigration = read('supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql')
+  const eventMigration = read('supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql')
   const dispatch = read('app/api/internal/webhooks/dispatch/route.ts')
   const vault = read('lib/integrations/webhookVaultSecrets.ts')
 
-  it('exposes business resources without supplier configuration endpoints', () => {
-    expect(openApi).toContain("'/contracts'")
-    expect(openApi).toContain("'/customers'")
-    expect(openApi).toContain("'/sites'")
-    expect(openApi).toContain("'/webhooks/subscriptions'")
+  it('exposes the simplified business-resource surface from the integration example', () => {
+    for (const path of [
+      "'/contract'",
+      "'/contract/{contract_reference}/state'",
+      "'/customer'",
+      "'/customer/{customer_reference}/site'",
+      "'/customer/{customer_reference}/site/{site_reference}'",
+      "'/customer/{customer_reference}/site/{site_reference}/powerofattorney'",
+      "'/customer/{customer_reference}/site/{site_reference}/invoice'",
+      "'/customer/{customer_reference}/site/{site_reference}/measurement'",
+      "'/invoice/{invoice_reference}'",
+      "'/invoice/{invoice_reference}/pdf'",
+      "'/webhook/subscription'",
+    ]) {
+      expect(openApi).toContain(path)
+    }
     expect(openApi).not.toContain("'/companies'")
     expect(openApi).not.toContain("'/tenants'")
     expect(openApi).not.toContain("'/config")
+    expect(openApi).not.toContain("'/website")
+  })
+
+  it('keeps old plural Partner paths as runtime compatibility aliases, not the canonical OpenAPI', () => {
+    expect(core).toContain("segments[0] === 'contracts'")
+    expect(core).toContain("segments[0] === 'customers'")
+    expect(core).toContain("segments[0] === 'sites'")
+    expect(core).toContain("segments[0] === 'webhooks'")
+    expect(canonical).toContain("segments[0] === 'contract'")
+    expect(canonical).toContain("segments[0] === 'customer'")
+    expect(canonical).toContain("segments[0] === 'webhook'")
+    expect(openApi).not.toContain("'/contracts'")
+    expect(openApi).not.toContain("'/customers'")
+    expect(openApi).not.toContain("'/sites'")
+    expect(openApi).not.toContain("'/webhooks/subscriptions'")
   })
 
   it('keeps tenant selection credential-bound and strips internal identifiers', () => {
     expect(core).toContain('Tenant selection is not accepted in request payloads.')
     expect(core).toContain('assertPublicResponsePayload(envelope)')
     expect(core).toContain(".eq('company_id',")
+    expect(canonical).toContain(".eq('company_id', access.client.company_id)")
     expect(openApi).not.toMatch(/(^|[,{\s])company_id\s*:/m)
     expect(openApi).not.toMatch(/(^|[,{\s])customer_id\s*:/m)
     expect(openApi).not.toMatch(/(^|[,{\s])contract_id\s*:/m)
+  })
+
+  it('enforces nested customer/site ownership in canonical routes', () => {
+    expect(canonical).toContain(".eq('customer_reference', customerReference)")
+    expect(canonical).toContain(".eq('facility_reference', siteReference)")
+    expect(canonical).toContain('String(siteResult.data.customer_id) !== String(customerResult.data.id)')
+    expect(canonical).toContain('path_body_reference_mismatch')
+    expect(canonical).toContain("operation: 'invoice.list_by_site'")
   })
 
   it('makes the Partner API permission group usable for writes and reads', () => {
@@ -57,17 +94,30 @@ describe('Partner API v1 public surface', () => {
     expect(core).toContain("bytes.subarray(0, 5).toString('ascii') !== '%PDF-'")
   })
 
-  it('keeps privileged database functions service-role only', () => {
-    expect(migration).toContain('gridex_create_partner_contract_v1')
-    expect(migration).toMatch(/revoke all on function public\.gridex_create_partner_contract_v1[\s\S]*from public, anon, authenticated/)
-    expect(migration).toMatch(/grant execute on function public\.gridex_create_partner_contract_v1[\s\S]*to service_role/)
+  it('keeps privileged contract creation service-role only', () => {
+    expect(contractMigration).toContain('gridex_create_partner_contract_v1')
+    expect(contractMigration).toMatch(/revoke all on function public\.gridex_create_partner_contract_v1[\s\S]*from public, anon, authenticated/)
+    expect(contractMigration).toMatch(/grant execute on function public\.gridex_create_partner_contract_v1[\s\S]*to service_role/)
   })
 
-  it('delivers contract status events without exposing UUIDs', () => {
-    expect(migration).toContain("'contract.status_changed'")
-    expect(migration).toContain('insert into public.webhook_deliveries')
-    expect(migration).toContain("'event_' || substr")
-    expect(migration).toContain("'contract_reference', new.customer_contract_reference")
+  it('implements every documented core webhook event before publishing it', () => {
+    for (const event of [
+      'customer.created',
+      'customer.updated',
+      'site.created',
+      'site.updated',
+      'power_of_attorney.created',
+      'contract.created',
+      'contract.status_changed',
+      'invoice.created',
+      'invoice.updated',
+    ]) {
+      expect(openApi).toContain(`'${event}'`)
+      expect(eventMigration).toContain(`'${event}'`)
+    }
+    expect(eventMigration).toContain('insert into public.webhook_deliveries')
+    expect(eventMigration).toContain("'event_' || substr")
+    expect(eventMigration).toContain("'contract_schema_version', '2026-08-16.2'")
   })
 
   it('hydrates Vault webhook secrets only inside internal dispatch', () => {
@@ -77,12 +127,11 @@ describe('Partner API v1 public surface', () => {
     expect(dispatch).toContain('cleanupVaultSecrets?.()')
   })
 
-  it('keeps Partner and legacy Customer Portal documentation as separate contracts', () => {
+  it('keeps Partner and legacy Customer Portal documentation separate', () => {
     expect(docs).toContain('backend-to-backend')
-    expect(docs).toContain('Company onboarding')
-    expect(docs).toContain('not part of the Partner API')
-    expect(docs).toContain('/api/v1/website/*')
+    expect(docs).toContain('Company onboarding is not part of the Partner API')
     expect(docs).toContain('/api/partner/v1')
+    expect(docs).toContain('Existing plural Partner API routes')
     expect(legacyDocs).toContain('Customer Portal API')
   })
 })
