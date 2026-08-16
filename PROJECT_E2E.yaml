@@ -1,0 +1,385 @@
+version: 1
+
+project:
+  name: Gridex Ops
+  repository: heke99/gridex-ops-platform
+  configuration_owner: platform
+  production_safe_tests_only: true
+  never_use_real_customer_data: true
+  test_data_prefix: "E2E-"
+  source_of_truth:
+    - repository
+    - applied Supabase schema
+    - deployed runtime
+    - published API contracts
+
+execution:
+  continue_independent_scenarios_after_failure: true
+  diagnose_failures: true
+  remediate_when_user_authorized: true
+  rerun_after_fix: true
+  max_identical_retries: 2
+  require_all_p0_terminal: true
+  require_p0_green_for_green_verdict: true
+  preserve_unrelated_changes: true
+
+environments:
+  preferred_order:
+    - preview
+    - production-safe-smoke
+  production:
+    allow_destructive_tests: false
+    allow_real_customer_mutation: false
+    require_isolated_test_identity: true
+    allow_live_external_send_only_when_explicitly_configured: true
+
+release_gates:
+  discover_additional_from_package_json: true
+  commands:
+    - id: install
+      command: npm ci
+      required: true
+    - id: migrations
+      command: npm run db:migrations:check
+      required: true
+    - id: generated_db_types
+      command: npm run db:types:check
+      required: true
+    - id: lint
+      command: npm run lint
+      required: true
+    - id: typecheck_app
+      command: npm run typecheck
+      required: true
+    - id: typecheck_scripts
+      command: npm run typecheck:scripts
+      required: true
+    - id: typecheck_tests
+      command: npm run typecheck:tests
+      required: true
+    - id: tests
+      command: npm test
+      required: true
+    - id: api_compatibility
+      command: npm run api:compatibility
+      required: true
+    - id: api_release
+      command: npm run api:release:verify
+      required: true
+    - id: api_runtime_parity
+      command: npm run api:runtime:parity
+      required: true
+    - id: tenant_route_readiness
+      command: npm run gridex:production-route-readiness-regression
+      required: true
+    - id: build
+      command: npm run build
+      required: true
+  hosted:
+    - github_ci
+    - vercel_preview
+    - supabase_security_advisor
+    - supabase_performance_advisor
+
+actors:
+  - id: anonymous
+    role: anonymous
+  - id: customer
+    role: customer
+    credentials_from_environment: true
+  - id: company_user
+    role: authenticated_company_user
+    credentials_from_environment: true
+  - id: company_admin
+    role: company_admin
+    credentials_from_environment: true
+  - id: platform_superadmin
+    role: platform_superadmin
+    credentials_from_environment: true
+  - id: website_api_client
+    role: integration_api_client
+    credentials_from_environment: true
+  - id: partner_api_client
+    role: partner_api_client
+    credentials_from_environment: true
+
+browser:
+  check_console_errors: true
+  check_failed_network_requests: true
+  capture_sanitized_screenshots: true
+  desktop_for_p0: true
+  mobile_for_public_p0: true
+
+database:
+  verify_forward_migrations: true
+  verify_clean_replay_when_supported: true
+  verify_generated_types: true
+  verify_rls_and_grants: true
+  verify_security_definer_boundaries: true
+  verify_cross_company_isolation: true
+  verify_idempotency_constraints: true
+  verify_security_advisors: true
+  verify_performance_advisors: true
+
+integrations:
+  resend:
+    verify_provider_acceptance: true
+    verify_delivery_when_observable: true
+  webhooks:
+    verify_outbox: true
+    verify_delivery_attempts: true
+    verify_retry_semantics: true
+  ediel:
+    distinguish_test_and_production: true
+    fail_closed_without_route_or_certificate_readiness: true
+    never_treat_system_test_identity_as_tenant_supplier_identity: true
+  vercel:
+    verify_preview: true
+    verify_runtime_logs_on_failure: true
+  supabase:
+    verify_live_schema_against_repository_contract: true
+
+scenarios:
+  - id: GRIDEX-P0-001
+    priority: P0
+    name: Public website electricity-contract happy path
+    actor: anonymous
+    boundaries: [browser, api, database, events, email, read_back]
+    expected:
+      - published contract is selectable
+      - application is accepted once
+      - customer, site/facility and contract are owned by the correct company
+      - legal acceptance and power-of-attorney state are persisted when required
+      - customer number/status are correct
+      - application/confirmation event chain is created
+      - configured confirmation email reaches provider acceptance
+      - resulting application/status is visible through the promised surface
+    negative_cases:
+      - missing required customer data
+      - missing facility data
+      - duplicate submit
+      - browser refresh during submission
+
+  - id: GRIDEX-P0-002
+    priority: P0
+    name: Internal company contract registration
+    actor: company_user
+    boundaries: [browser, auth, api, database, events, email, read_back]
+    expected:
+      - internal registration creates the same canonical customer/site/contract domain state as supported public intake
+      - company ownership and creator attribution are correct
+      - required confirmation communication is generated
+    negative_cases:
+      - unauthorized company
+      - duplicate registration
+      - invalid contract/offer reference
+
+  - id: GRIDEX-P0-003
+    priority: P0
+    name: Missing facility information recovery
+    actor: company_user
+    boundaries: [browser, api, database, events, email, read_back]
+    expected:
+      - incomplete application enters the intended needs-information state
+      - outbound market action remains blocked until prerequisites exist
+      - missing-information communication is generated only as intended
+      - providing missing information resumes the same application without duplicate customer or contract
+      - final facility/grid-owner linkage is correct
+
+  - id: GRIDEX-P0-004
+    priority: P0
+    name: Power-of-attorney and grid-owner routing
+    actor: company_user
+    boundaries: [api, database, events, external_integration, read_back]
+    expected:
+      - power-of-attorney requirement is resolved from canonical configuration
+      - correct grid owner/route is selected
+      - outbound intent/message is created only when all production prerequisites pass
+      - wrong or missing route, certificate, identity or facility data fails closed
+      - audit/event trail identifies the correct company and customer
+    negative_cases:
+      - missing facility
+      - missing route
+      - certificate/environment mismatch
+      - wrong actor role
+
+  - id: GRIDEX-P0-005
+    priority: P0
+    name: Customer confirmation and required email lifecycle
+    actor: company_user
+    boundaries: [database, events, email, read_back]
+    expected:
+      - the configured sender/reply-to for the owning company is used
+      - confirmation and other required lifecycle messages are not duplicated
+      - provider acceptance is observable
+      - communication status in Gridex reflects the provider/application truth
+    negative_cases:
+      - provider controlled failure
+      - retry
+      - missing recipient
+
+  - id: GRIDEX-P0-006
+    priority: P0
+    name: Website API client contract visibility
+    actor: website_api_client
+    boundaries: [auth, api, database]
+    expected:
+      - active correctly scoped client can read only its intended published website/API data
+      - contract/offer/status fields match the published API contract
+      - another company client cannot read the data
+    negative_cases:
+      - missing scope
+      - invalid credential
+      - wrong origin where enforced
+      - unverified integration receipt
+
+  - id: GRIDEX-P0-007
+    priority: P0
+    name: Partner API v1 contract registration and read-back
+    actor: partner_api_client
+    boundaries: [auth, api, database, events, webhooks, read_back]
+    expected:
+      - documented partner request creates/binds canonical company-scoped records
+      - opaque/public references resolve without leaking internal identifiers
+      - documented status/read endpoints return the same canonical state
+      - partner events/webhook outbox use the correct company/client binding
+    negative_cases:
+      - wrong company reference
+      - replayed request
+      - invalid offer/publication version
+      - unauthorized status lookup
+
+  - id: GRIDEX-P0-008
+    priority: P0
+    name: Multi-company tenant isolation
+    actor: company_user
+    boundaries: [browser, auth, api, database]
+    expected:
+      - company A can access allowed A records
+      - company B cannot read, update, delete, export, message, invoice, route or otherwise act on A records
+      - direct API/database-context attempts fail as well as UI attempts
+      - forbidden attempts do not mutate state
+
+  - id: GRIDEX-P0-009
+    priority: P0
+    name: Role and superadmin authorization boundaries
+    actor: platform_superadmin
+    boundaries: [browser, auth, api, database]
+    expected:
+      - normal authenticated session never implies platform-admin rights
+      - company admin remains company-scoped
+      - superadmin-only operations require explicit privileged authorization
+      - service-role-only RPCs cannot be invoked by normal authenticated actors
+
+  - id: GRIDEX-P0-010
+    priority: P0
+    name: Company lifecycle pause suspend archive and go-live
+    actor: platform_superadmin
+    boundaries: [browser, auth, api, database, read_back]
+    expected:
+      - paused/suspended/archived states block prohibited writes and integrations
+      - visible status/reason is consistent
+      - go-live checks required readiness instead of bypassing it
+      - restoring live state re-enables only intended capabilities
+    negative_cases:
+      - attempt customer/contract write while blocked
+      - attempt integration use while blocked
+      - attempt go-live with missing readiness prerequisite
+
+  - id: GRIDEX-P0-011
+    priority: P0
+    name: Ediel production/test identity separation
+    actor: company_admin
+    boundaries: [api, database, events, external_integration]
+    expected:
+      - tenant production supplier/ESCO identities are explicit and role-correct
+      - system-test identities never become tenant production identities
+      - message family and environment are explicit
+      - production route selection is company-scoped and fail-closed
+    negative_cases:
+      - system-test identity in production path
+      - supplier versus ESCO role mismatch
+      - test certificate/route in production
+
+  - id: GRIDEX-P0-012
+    priority: P0
+    name: Multi-site customer flow
+    actor: company_user
+    boundaries: [browser, api, database, events, read_back]
+    expected:
+      - one customer may hold multiple distinct sites without accidental collapse
+      - customer/site/contract/metering/billing relationships stay correctly scoped
+      - API and UI expose the intended sites and statuses
+    negative_cases:
+      - duplicate site
+      - wrong site attached to contract
+      - cross-company site reference
+
+  - id: GRIDEX-P0-013
+    priority: P0
+    name: Event outbox webhook and retry integrity
+    actor: partner_api_client
+    boundaries: [api, database, events, webhooks]
+    expected:
+      - domain event is emitted once for the business transition
+      - outbox is company/client scoped
+      - webhook delivery attempts are idempotent and observable
+      - retries do not duplicate the underlying business operation
+    negative_cases:
+      - controlled endpoint failure
+      - retry
+      - stale webhook configuration
+
+  - id: GRIDEX-P0-014
+    priority: P0
+    name: Published OpenAPI and runtime contract parity
+    actor: anonymous
+    boundaries: [browser, api, deployment]
+    expected:
+      - developer documentation page loads in Preview
+      - OpenAPI JSON loads in Preview
+      - served release/version metadata is internally consistent
+      - implemented routes, auth, request and response shapes match the published contract
+      - Partner API and customer/website APIs remain company-scoped
+
+  - id: GRIDEX-P1-001
+    priority: P1
+    name: Billing and invoice readiness from canonical customer contract state
+    actor: company_user
+    boundaries: [api, database, events, read_back]
+    expected:
+      - billing readiness derives from the correct customer/site/contract and price snapshot
+      - invoice/customer references remain company and customer scoped
+      - incomplete metering/pricing state fails safely
+
+  - id: GRIDEX-P1-002
+    priority: P1
+    name: Dashboard consistency after writes
+    actor: company_user
+    boundaries: [browser, api, database]
+    expected:
+      - customer, contract, site, communication and operational status update without stale contradictory views
+      - refresh/read-back yields the same canonical state
+
+cleanup:
+  required_for_mutating_scenarios: true
+  use_project_cleanup_tools_when_available: true
+  only_remove_tagged_test_data: true
+  never_delete_real_customer_data: true
+
+report:
+  path_pattern: quality/e2e/<date>-<environment>-<short-sha>/
+  require_sanitized_evidence: true
+  required_sections:
+    - release_verdict
+    - execution_identity
+    - quality_gates
+    - scenario_matrix
+    - p0_evidence
+    - security_and_tenancy
+    - database_and_migrations
+    - external_integrations
+    - deployment
+    - defects_and_regressions
+    - cleanup
+    - remaining_blockers
