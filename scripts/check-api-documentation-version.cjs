@@ -34,7 +34,8 @@ for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/cu
 }
 
 const partnerOpenApi = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')
-const partnerGuide = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const partnerGuide = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
+const legacyGuide = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
 const partnerCore = fs.readFileSync('lib/partner-api/core.ts', 'utf8')
 const partnerRoute = fs.readFileSync('app/api/partner/v1/[[...path]]/route.ts', 'utf8')
 
@@ -46,6 +47,9 @@ if (!partnerGuide.includes('PARTNER_API_VERSION')) {
 }
 if (!partnerGuide.includes('v{PARTNER_API_VERSION}')) {
   failures.push('Partner developer guide must visibly render the canonical Partner API version')
+}
+if (!legacyGuide.includes('Customer Portal API')) {
+  failures.push('Legacy Customer Portal developer guide must remain available as a separate contract')
 }
 
 for (const marker of [

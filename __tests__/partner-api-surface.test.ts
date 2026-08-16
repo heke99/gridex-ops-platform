@@ -6,8 +6,10 @@ const read = (path: string) => fs.readFileSync(path, 'utf8')
 describe('Partner API v1 public surface', () => {
   const core = read('lib/partner-api/core.ts')
   const openApi = read('lib/partner-api/openApi.ts')
-  const docs = read('app/developers/customer-portal-api/page.tsx')
-  const migration = read('supabase/migrations/20260816133000_partner_api_v1_contract_registration.sql')
+  const docs = read('app/developers/partner-api/page.tsx')
+  const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
+  const scopes = read('lib/integrations/apiClientScopes.ts')
+  const migration = read('supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql')
   const dispatch = read('app/api/internal/webhooks/dispatch/route.ts')
   const vault = read('lib/integrations/webhookVaultSecrets.ts')
 
@@ -28,6 +30,24 @@ describe('Partner API v1 public surface', () => {
     expect(openApi).not.toMatch(/(^|[,{\s])company_id\s*:/m)
     expect(openApi).not.toMatch(/(^|[,{\s])customer_id\s*:/m)
     expect(openApi).not.toMatch(/(^|[,{\s])contract_id\s*:/m)
+  })
+
+  it('makes the Partner API permission group usable for writes and reads', () => {
+    for (const scope of [
+      'partner_contracts.write',
+      'partner_customers.write',
+      'partner_sites.write',
+      'partner_power_of_attorney.write',
+      'partner_webhooks.manage',
+      'customer_contracts.read',
+      'customer_profile.read',
+      'customer_sites.read',
+      'customer_power_of_attorney.read',
+      'customer_invoices.read',
+      'customer_metering.read',
+    ]) {
+      expect(scopes).toContain(`'${scope}'`)
+    }
   })
 
   it('requires idempotency and bounded POA uploads', () => {
@@ -57,11 +77,12 @@ describe('Partner API v1 public surface', () => {
     expect(dispatch).toContain('cleanupVaultSecrets?.()')
   })
 
-  it('documents the backend-to-backend model and legacy migration path', () => {
+  it('keeps Partner and legacy Customer Portal documentation as separate contracts', () => {
     expect(docs).toContain('backend-to-backend')
     expect(docs).toContain('Company onboarding')
     expect(docs).toContain('not part of the Partner API')
     expect(docs).toContain('/api/v1/website/*')
     expect(docs).toContain('/api/partner/v1')
+    expect(legacyDocs).toContain('Customer Portal API')
   })
 })
