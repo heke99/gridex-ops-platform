@@ -40,10 +40,10 @@ export function isDisallowedWebhookAddress(address: string): boolean {
       (a === 100 && b >= 64 && b <= 127) ||
       (a === 169 && b === 254) ||
       (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 0) ||
-      (a === 192 && b === 168) ||
-      (a === 192 && b === 88 && c === 99) ||
+      (a === 192 && b === 0 && c === 0) ||
       (a === 192 && b === 0 && c === 2) ||
+      (a === 192 && b === 88 && c === 99) ||
+      (a === 192 && b === 168) ||
       (a === 198 && (b === 18 || b === 19)) ||
       (a === 198 && b === 51 && c === 100) ||
       (a === 203 && b === 0 && c === 113) ||
@@ -56,9 +56,15 @@ export function isDisallowedWebhookAddress(address: string): boolean {
       normalized === '::' ||
       normalized === '::1' ||
       normalized.startsWith('::') ||
+      /^64:ff9b(?::|$)/.test(normalized) ||
+      /^64:ff9b:1(?::|$)/.test(normalized) ||
+      /^100:(?:0(?::|$)|[0-9a-f]{1,4}:)/.test(normalized) ||
+      /^2001:(?:0{0,3}[0-1][0-9a-f]{0,2})(?::|$)/.test(normalized) ||
+      /^2001:db8(?::|$)/.test(normalized) ||
+      /^2002(?::|$)/.test(normalized) ||
       /^f[cd][0-9a-f]{2}:/.test(normalized) ||
-      /^fe[89ab][0-9a-f]:/.test(normalized) ||
-      /^2001:db8(?::|$)/.test(normalized)
+      /^fe[89abcdef][0-9a-f]:/.test(normalized) ||
+      /^ff[0-9a-f]{2}:/.test(normalized)
     )
   }
 
