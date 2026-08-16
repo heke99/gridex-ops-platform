@@ -1,7 +1,7 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-16T19:37:00.000Z",
+  "generated_at": "2026-08-16T19:45:38.014Z",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "6b0d26ad4441fb4b508481e207a3b6e8a813c3d134f7e7bcfdeea45b940550bf",
+  "sha256": "24daddeab90583b25230c541b6bed9d36321d657f0b2af9b1d3e53a0e24320d7",
   "latest_migration": "20260816170000_partner_api_v1_canonical_surface_events.sql"
 }

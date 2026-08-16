@@ -22590,6 +22590,10 @@ export type Database = {
           archive_reason: string | null
           archived_at: string | null
           archived_by: string | null
+          billing_city: string | null
+          billing_country: string
+          billing_postal_code: string | null
+          billing_street: string | null
           campaign_id: string | null
           company_id: string | null
           company_name: string | null
@@ -22643,6 +22647,10 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          billing_city?: string | null
+          billing_country?: string
+          billing_postal_code?: string | null
+          billing_street?: string | null
           campaign_id?: string | null
           company_id?: string | null
           company_name?: string | null
@@ -22696,6 +22704,10 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          billing_city?: string | null
+          billing_country?: string
+          billing_postal_code?: string | null
+          billing_street?: string | null
           campaign_id?: string | null
           company_id?: string | null
           company_name?: string | null
@@ -72981,6 +72993,10 @@ export type Database = {
           p_valid_from?: string
           p_valid_to?: string
         }
+        Returns: Json
+      }
+      gridex_create_partner_contract_v1: {
+        Args: { p_api_client_id: string; p_company_id: string; p_payload: Json }
         Returns: Json
       }
       gridex_create_partner_webhook_subscription_v1: {
