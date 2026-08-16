@@ -4,6 +4,8 @@ import { isIP } from 'node:net'
 
 const MAX_WEBHOOK_RESPONSE_BYTES = 64 * 1024
 
+type PublicAddress = { address: string; family: 4 | 6 }
+
 export class PublicWebhookTargetError extends Error {
   constructor(message = 'Webhook target must be a publicly routable HTTPS endpoint.') {
     super(message)
@@ -12,7 +14,7 @@ export class PublicWebhookTargetError extends Error {
 }
 
 function normalizeHost(hostname: string): string {
-  return hostname.toLowerCase().replace(/\.$/, '')
+  return hostname.toLowerCase().replace(/\.$/, '').replace(/^\[|\]$/g, '')
 }
 
 function ipv4Bytes(address: string): number[] | null {
@@ -24,13 +26,13 @@ function ipv4Bytes(address: string): number[] | null {
 }
 
 export function isDisallowedWebhookAddress(address: string): boolean {
-  const normalized = address.trim().toLowerCase().split('%')[0]
+  const normalized = normalizeHost(address.trim().split('%')[0])
   const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1]
   if (mappedIpv4) return isDisallowedWebhookAddress(mappedIpv4)
 
   const v4 = ipv4Bytes(normalized)
   if (v4) {
-    const [a, b] = v4
+    const [a, b, c] = v4
     return (
       a === 0 ||
       a === 10 ||
@@ -40,7 +42,11 @@ export function isDisallowedWebhookAddress(address: string): boolean {
       (a === 172 && b >= 16 && b <= 31) ||
       (a === 192 && b === 0) ||
       (a === 192 && b === 168) ||
+      (a === 192 && b === 88 && c === 99) ||
+      (a === 192 && b === 0 && c === 2) ||
       (a === 198 && (b === 18 || b === 19)) ||
+      (a === 198 && b === 51 && c === 100) ||
+      (a === 203 && b === 0 && c === 113) ||
       a >= 224
     )
   }
@@ -49,8 +55,10 @@ export function isDisallowedWebhookAddress(address: string): boolean {
     return (
       normalized === '::' ||
       normalized === '::1' ||
+      normalized.startsWith('::') ||
       /^f[cd][0-9a-f]{2}:/.test(normalized) ||
-      /^fe[89ab][0-9a-f]:/.test(normalized)
+      /^fe[89ab][0-9a-f]:/.test(normalized) ||
+      /^2001:db8(?::|$)/.test(normalized)
     )
   }
 
@@ -86,16 +94,17 @@ export function parsePublicWebhookUrl(raw: string): URL {
   return url
 }
 
-async function resolvePublicAddresses(url: URL) {
+async function resolvePublicAddresses(url: URL): Promise<PublicAddress[]> {
   const hostname = normalizeHost(url.hostname)
-  if (isIP(hostname)) {
+  const family = isIP(hostname)
+  if (family) {
     if (isDisallowedWebhookAddress(hostname)) throw new PublicWebhookTargetError()
-    return [{ address: hostname, family: isIP(hostname) as 4 | 6 }]
+    return [{ address: hostname, family: family as 4 | 6 }]
   }
 
-  let addresses: Awaited<ReturnType<typeof lookup>>
+  let addresses: PublicAddress[]
   try {
-    addresses = await lookup(hostname, { all: true, verbatim: true })
+    addresses = await lookup(hostname, { all: true, verbatim: true }) as PublicAddress[]
   } catch {
     throw new PublicWebhookTargetError('Webhook target hostname could not be resolved.')
   }
