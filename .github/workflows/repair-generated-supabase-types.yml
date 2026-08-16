@@ -12,14 +12,14 @@ permissions:
 
 jobs:
   repair:
-    if: contains(github.event.head_commit.message, '[repair-types]')
+    if: contains(github.event.head_commit.message, '[repair-types-2]')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/api-docs-prod-remediation-2026-08-16
-          fetch-depth: 2
+          fetch-depth: 1
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -34,17 +34,8 @@ jobs:
           source scripts/gridex-aud-003-clean-replay.sh
           supabase gen types typescript --local > supabase/database.types.ts
           node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
-          HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
-          node - <<'NODE'
-          const fs = require('fs');
-          const path = 'scripts/supabase-types-manifest.json';
-          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
-          const { execFileSync } = require('child_process');
-          manifest.sha256 = execFileSync('sha256sum', ['supabase/database.types.ts'], {encoding:'utf8'}).trim().split(/\s+/)[0];
-          manifest.generated_at = new Date().toISOString();
-          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
-NODE
-          git show HEAD^:.github/workflows/repair-generated-supabase-types.yml > .github/workflows/repair-generated-supabase-types.yml
+          node -e "const fs=require('fs'),cp=require('child_process'); const p='scripts/supabase-types-manifest.json'; const m=JSON.parse(fs.readFileSync(p,'utf8')); m.sha256=cp.execFileSync('sha256sum',['supabase/database.types.ts'],{encoding:'utf8'}).trim().split(/\\s+/)[0]; m.generated_at=new Date().toISOString(); fs.writeFileSync(p,JSON.stringify(m,null,2)+'\\n');"
+          printf '%s\n' 'name: Repair generated Supabase types (manual)' '' 'on:' '  workflow_dispatch:' '' 'permissions:' '  contents: read' '' 'jobs:' '  note:' '    runs-on: ubuntu-latest' '    steps:' '      - run: echo "Historical one-shot repair workflow retained as inert evidence; canonical generated types are enforced by ops-hardening.yml."' > .github/workflows/repair-generated-supabase-types.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add supabase/database.types.ts scripts/supabase-types-manifest.json .github/workflows/repair-generated-supabase-types.yml
