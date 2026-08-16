@@ -38,11 +38,14 @@ const partnerGuide = fs.readFileSync('app/developers/customer-portal-api/page.ts
 const partnerCore = fs.readFileSync('lib/partner-api/core.ts', 'utf8')
 const partnerRoute = fs.readFileSync('app/api/partner/v1/[[...path]]/route.ts', 'utf8')
 
-for (const [file, source] of [
-  ['lib/partner-api/openApi.ts', partnerOpenApi],
-  ['app/developers/customer-portal-api/page.tsx', partnerGuide],
-]) {
-  if (!source.includes(partnerExpected)) failures.push(`${file} does not expose Partner API version ${partnerExpected}`)
+if (!partnerOpenApi.includes(partnerExpected)) {
+  failures.push(`lib/partner-api/openApi.ts does not expose Partner API version ${partnerExpected}`)
+}
+if (!partnerGuide.includes('PARTNER_API_VERSION')) {
+  failures.push('Partner developer guide must render the canonical PARTNER_API_VERSION source')
+}
+if (!partnerGuide.includes('v{PARTNER_API_VERSION}')) {
+  failures.push('Partner developer guide must visibly render the canonical Partner API version')
 }
 
 for (const marker of [
@@ -66,7 +69,7 @@ for (const marker of [
   if (!partnerGuide.includes(marker)) failures.push(`Partner developer guide is missing marker: ${marker}`)
 }
 
-if (!partnerCore.includes("assertPublicResponsePayload(envelope)")) {
+if (!partnerCore.includes('assertPublicResponsePayload(envelope)')) {
   failures.push('Partner API success payloads must pass the public payload safety guard')
 }
 if (!partnerCore.includes('executeIdempotentPortalWrite')) {
