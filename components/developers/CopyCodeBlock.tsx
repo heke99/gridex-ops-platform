@@ -4,12 +4,19 @@ import { useState } from 'react'
 
 type CopyState = 'idle' | 'copied' | 'failed'
 
-export function CopyCodeBlock({ children }: { children: string }) {
+type CopyCodeBlockProps = {
+  children?: string
+  code?: string
+  language?: string
+}
+
+export function CopyCodeBlock({ children, code }: CopyCodeBlockProps) {
   const [state, setState] = useState<CopyState>('idle')
+  const value = children ?? code ?? ''
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(children)
+      await navigator.clipboard.writeText(value)
       setState('copied')
     } catch {
       setState('failed')
@@ -42,7 +49,7 @@ export function CopyCodeBlock({ children }: { children: string }) {
             : ''}
       </span>
       <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 pr-32 text-xs leading-6 text-slate-100">
-        <code>{children}</code>
+        <code>{value}</code>
       </pre>
     </div>
   )
