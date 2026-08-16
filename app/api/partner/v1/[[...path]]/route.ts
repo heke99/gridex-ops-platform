@@ -5,6 +5,7 @@ import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTrans
 import { handleCanonicalPartnerApi } from '@/lib/partner-api/canonical'
 import { handlePartnerApi } from '@/lib/partner-api/core'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
+import { handleSimplePartnerApi } from '@/lib/partner-api/simple'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,14 +26,15 @@ async function preflightWebhookTarget(request: NextRequest, path: string[] | und
 
   const startedAt = Date.now()
   const access = await requireIntegrationApiAccess(request, ['partner_webhooks.manage'])
-  if (!access.ok) return null // Preserve the canonical authentication response from the normal handler.
+  if (!access.ok) return null
 
   let endpointUrl: string | null = null
   try {
     const body = await request.clone().json() as Record<string, unknown>
-    endpointUrl = typeof body.endpoint_url === 'string' ? body.endpoint_url.trim() : null
+    const raw = body.target_url ?? body.endpoint_url
+    endpointUrl = typeof raw === 'string' ? raw.trim() : null
   } catch {
-    return null // The normal handler owns JSON validation and error formatting.
+    return null
   }
   if (!endpointUrl) return null
 
@@ -53,10 +55,9 @@ async function preflightWebhookTarget(request: NextRequest, path: string[] | und
       {
         error: {
           code: 'webhook_target_not_public',
-          message: 'endpoint_url must be a publicly routable HTTPS endpoint.',
+          message: 'target_url must be a publicly routable HTTPS endpoint.',
         },
         request_id: id,
-        api_version: PARTNER_API_VERSION,
       },
       {
         status: 422,
@@ -78,6 +79,10 @@ async function dispatch(
   const { path } = await context.params
   const targetRejection = await preflightWebhookTarget(request, path)
   if (targetRejection) return targetRejection
+
+  const simple = await handleSimplePartnerApi(request, method, path)
+  if (simple) return simple
+
   const canonical = await handleCanonicalPartnerApi(request, method, path)
   return canonical ?? handlePartnerApi(request, method, path)
 }

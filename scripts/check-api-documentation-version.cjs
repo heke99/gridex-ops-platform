@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 
 const legacyExpected = '2026-08-14.1'
-const partnerExpected = '2026-08-16.2'
+const partnerExpected = '2026-08-17.1'
 const legacyFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
   'docs/openapi/website-integration-v1.json',
@@ -36,6 +36,7 @@ for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/cu
 const partnerOpenApi = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')
 const partnerGuide = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
 const customerPortalDeveloperRoute = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const simple = fs.readFileSync('lib/partner-api/simple.ts', 'utf8')
 const partnerCore = fs.readFileSync('lib/partner-api/core.ts', 'utf8')
 const canonical = fs.readFileSync('lib/partner-api/canonical.ts', 'utf8')
 const partnerRoute = fs.readFileSync('app/api/partner/v1/[[...path]]/route.ts', 'utf8')
@@ -59,10 +60,10 @@ if (!customerPortalDeveloperRoute.includes("import PartnerApiDocumentationPage f
 for (const marker of [
   "PARTNER_API_BASE_URL = 'https://app.gridex.se/api/partner/v1'",
   "'/contract'",
-  "'/contract/{contract_reference}/state'",
-  "'/customer/{customer_reference}/site/{site_reference}/powerofattorney'",
-  "'/customer/{customer_reference}/site/{site_reference}/invoice'",
-  "'/customer/{customer_reference}/site/{site_reference}/measurement'",
+  "'/contract/{contract_id}/state'",
+  "'/customer/{customer_id}/site/{site_id}/powerofattorney'",
+  "'/customer/{customer_id}/site/{site_id}/invoice'",
+  "'/customer/{customer_id}/site/{site_id}/measurement'",
   "'/webhook/subscription'",
   'Idempotency-Key',
 ]) {
@@ -74,63 +75,78 @@ for (const legacyPath of ["'/contracts'", "'/customers'", "'/sites'", "'/webhook
     failures.push(`Canonical Partner OpenAPI must not expose compatibility alias ${legacyPath}`)
   }
 }
+if (partnerOpenApi.includes('offer_reference:')) {
+  failures.push('Canonical Partner OpenAPI must not require an internal offer_reference')
+}
+if (partnerOpenApi.includes('company_id:') || partnerOpenApi.includes('tenant_id:')) {
+  failures.push('Canonical Partner OpenAPI must not expose tenant selection')
+}
 
 for (const event of [
-  'customer.created',
-  'customer.updated',
-  'site.created',
-  'site.updated',
-  'power_of_attorney.created',
-  'contract.created',
-  'contract.status_changed',
-  'invoice.created',
-  'invoice.updated',
+  ['CUSTOMER_CREATED', 'customer.created'],
+  ['CUSTOMER_UPDATED', 'customer.updated'],
+  ['SITE_CREATED', 'site.created'],
+  ['SITE_UPDATED', 'site.updated'],
+  ['POWER_OF_ATTORNEY_CREATED', 'power_of_attorney.created'],
+  ['CONTRACT_CREATED', 'contract.created'],
+  ['CONTRACT_STATUS_CHANGE', 'contract.status_changed'],
+  ['INVOICE_CREATED', 'invoice.created'],
+  ['INVOICE_UPDATED', 'invoice.updated'],
 ]) {
-  if (!partnerOpenApi.includes(`'${event}'`)) failures.push(`Partner OpenAPI is missing webhook event ${event}`)
-  if (!eventMigration.includes(`'${event}'`)) failures.push(`Partner event migration is missing webhook event ${event}`)
-  if (!webhookDispatch.includes(`'${event}'`)) failures.push(`Webhook dispatcher is missing Partner event ${event}`)
+  if (!partnerOpenApi.includes(`'${event[0]}'`)) failures.push(`Partner OpenAPI is missing webhook event ${event[0]}`)
+  if (!simple.includes(`${event[0]}:`)) failures.push(`Simple Partner handler is missing webhook mapping ${event[0]}`)
+  if (!eventMigration.includes(`'${event[1]}'`)) failures.push(`Partner event migration is missing internal webhook event ${event[1]}`)
+  if (!webhookDispatch.includes(`'${event[1]}'`)) failures.push(`Webhook dispatcher is missing internal Partner event ${event[1]}`)
 }
 
 for (const marker of [
-  'Partner API v1',
+  'Partner API Reference',
+  'Registration, Data Retrieval & Webhooks',
   '/api/partner/v1/openapi.json',
-  'backend-to-backend',
-  'Company setup is intentionally outside this API',
-  'Existing plural Partner API paths',
+  'Gridex configures the company, permissions and published electricity offer behind the API key',
 ]) {
   if (!partnerGuide.includes(marker)) failures.push(`Partner developer guide is missing marker: ${marker}`)
 }
-
 if (partnerGuide.includes('tenant_reference')) {
   failures.push('Canonical Partner developer guide must not expose tenant_reference')
 }
-if (!partnerGuide.includes('"resource"')) {
-  failures.push('Canonical Partner webhook example must use the public resource envelope')
+if (partnerGuide.includes('offer_reference')) {
+  failures.push('Canonical Partner developer guide must not require partners to select internal offers')
 }
+
 if (!webhookTransport.includes("url.protocol !== 'https:'") || !webhookTransport.includes('pinned.address')) {
   failures.push('Partner webhook delivery must validate public HTTPS and pin the resolved address')
 }
 if (!webhookDispatch.includes('postPublicWebhook')) {
   failures.push('Webhook dispatcher must use the hardened public webhook transport')
 }
-if (!partnerCore.includes('assertPublicResponsePayload(envelope)')) {
-  failures.push('Partner API success payloads must pass the public payload safety guard')
+if (!simple.includes('executeIdempotentPortalWrite')) {
+  failures.push('Simple Partner API writes must use canonical idempotency')
 }
-if (!partnerCore.includes('executeIdempotentPortalWrite')) {
-  failures.push('Partner API writes must use canonical idempotency')
+if (!simple.includes("supabaseService.rpc('gridex_create_partner_contract_v1'")) {
+  failures.push('Simple Partner contract registration must reuse the transactional canonical RPC')
+}
+if (!simple.includes(".from('canonical_public_contract_diagnostics_v')")) {
+  failures.push('Simple Partner API must resolve published offers server-side')
+}
+if (!simple.includes("key === 'company_id' || key === 'tenant_id' || key === 'tenant_reference'")) {
+  failures.push('Simple Partner API must reject tenant selectors recursively')
+}
+if (!simple.includes(".select('file_path,metadata')") || simple.includes(".select('public_url')")) {
+  failures.push('Simple Partner invoice PDF must use private storage file paths, not public URL descriptors')
+}
+if (!partnerCore.includes('assertPublicResponsePayload(envelope)')) {
+  failures.push('Compatibility Partner API success payloads must retain the public payload safety guard')
 }
 if (!canonical.includes('path_body_reference_mismatch')) {
-  failures.push('Canonical nested routes must reject conflicting path/body resource references')
+  failures.push('Compatibility canonical nested routes must reject conflicting path/body resource references')
 }
-if (!canonical.includes(".eq('company_id', access.client.company_id)")) {
-  failures.push('Canonical nested routes must enforce credential-bound company ownership')
-}
-if (!partnerRoute.includes('handleCanonicalPartnerApi') || !partnerRoute.includes('handlePartnerApi')) {
-  failures.push('Partner route must serve canonical paths and retain compatibility aliases')
+if (!partnerRoute.includes('handleSimplePartnerApi') || !partnerRoute.includes('handleCanonicalPartnerApi') || !partnerRoute.includes('handlePartnerApi')) {
+  failures.push('Partner route must serve the simple contract first and retain compatibility handlers')
 }
 
 if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log(`API documentation parity OK (legacy ${legacyExpected}; Partner API ${partnerExpected}).`)
+console.log(`API documentation parity OK (legacy ${legacyExpected}; simple Partner API ${partnerExpected}).`)

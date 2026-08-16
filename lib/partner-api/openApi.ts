@@ -1,4 +1,4 @@
-export const PARTNER_API_VERSION = '2026-08-16.2'
+export const PARTNER_API_VERSION = '2026-08-17.1'
 export const PARTNER_API_BASE_URL = 'https://app.gridex.se/api/partner/v1'
 
 const errorResponse = {
@@ -15,11 +15,11 @@ const idempotencyHeader = {
   in: 'header',
   required: true,
   schema: { type: 'string', minLength: 8, maxLength: 200 },
-  description: 'Stable unique key for this business write. Reuse it only for an identical retry.',
+  description: 'Unique key for the business write. Reuse the same key only when retrying the same request.',
 }
 
-const customerReference = { $ref: '#/components/parameters/CustomerReference' }
-const siteReference = { $ref: '#/components/parameters/SiteReference' }
+const customerId = { $ref: '#/components/parameters/CustomerId' }
+const siteId = { $ref: '#/components/parameters/SiteId' }
 
 export const partnerOpenApi = {
   openapi: '3.1.0',
@@ -27,15 +27,15 @@ export const partnerOpenApi = {
     title: 'Gridex Partner API',
     version: PARTNER_API_VERSION,
     description:
-      'Backend-to-backend API for electricity suppliers and integration partners. Gridex manages company onboarding, credentials, products, permissions and market configuration outside this API. The integration surface contains only business resources: contracts, customers, sites, powers of attorney, invoices, measurements and signed change notifications.',
+      'Small backend-to-backend API for contract registration, customer/site data, invoices, measurements and change notifications. Gridex configures the company, API credential, permissions and default published offer outside the API.',
   },
   servers: [{ url: PARTNER_API_BASE_URL }],
   security: [{ BearerAuth: [] }],
   paths: {
     '/contract': {
       post: {
-        summary: 'Register contract',
-        description: 'Recommended combined flow. Registers customer, site and contract in one transaction and may include signed power-of-attorney evidence.',
+        summary: 'Create contract',
+        description: 'Combined registration. Creates the customer, site and contract in one transaction. A power of attorney may be included.',
         parameters: [idempotencyHeader],
         requestBody: {
           required: true,
@@ -46,7 +46,29 @@ export const partnerOpenApi = {
           },
         },
         responses: {
-          '201': { description: 'Contract registered' },
+          '201': {
+            description: 'Contract created',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateContractResponse' } } },
+          },
+          '400': errorResponse,
+          '401': errorResponse,
+          '403': errorResponse,
+          '409': errorResponse,
+          '413': errorResponse,
+          '422': errorResponse,
+        },
+      },
+    },
+    '/customer': {
+      post: {
+        summary: 'Create customer',
+        parameters: [idempotencyHeader],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/CustomerInput' } } },
+        },
+        responses: {
+          '201': { description: 'Customer created', content: { 'application/json': { schema: { $ref: '#/components/schemas/EntityResponse' } } } },
           '400': errorResponse,
           '401': errorResponse,
           '403': errorResponse,
@@ -55,128 +77,178 @@ export const partnerOpenApi = {
         },
       },
     },
-    '/contract/{contract_reference}': {
-      get: {
-        summary: 'Get contract',
-        parameters: [{ $ref: '#/components/parameters/ContractReference' }],
-        responses: { '200': { description: 'Contract' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+    '/customer/{customer_id}/site': {
+      post: {
+        summary: 'Create site',
+        parameters: [customerId, idempotencyHeader],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/SiteInput' } } },
+        },
+        responses: {
+          '201': { description: 'Site created', content: { 'application/json': { schema: { $ref: '#/components/schemas/EntityResponse' } } } },
+          '400': errorResponse,
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+          '409': errorResponse,
+          '422': errorResponse,
+        },
       },
     },
-    '/contract/{contract_reference}/state': {
+    '/customer/{customer_id}/site/{site_id}/powerofattorney': {
+      post: {
+        summary: 'Upload power of attorney',
+        parameters: [customerId, siteId, idempotencyHeader],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/PowerOfAttorneyInput' } } },
+        },
+        responses: {
+          '201': { description: 'Power of attorney created', content: { 'application/json': { schema: { $ref: '#/components/schemas/EntityResponse' } } } },
+          '400': errorResponse,
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+          '409': errorResponse,
+          '413': errorResponse,
+          '422': errorResponse,
+        },
+      },
+      get: {
+        summary: 'Get power of attorney',
+        parameters: [customerId, siteId],
+        responses: {
+          '200': { description: 'Power of attorney', content: { 'application/json': { schema: { $ref: '#/components/schemas/PowerOfAttorney' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+        },
+      },
+    },
+    '/contract/{contract_id}/state': {
       get: {
         summary: 'Get contract state',
-        parameters: [{ $ref: '#/components/parameters/ContractReference' }],
-        responses: { '200': { description: 'Current contract state' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        parameters: [{ $ref: '#/components/parameters/ContractId' }],
+        responses: {
+          '200': { description: 'Contract state', content: { 'application/json': { schema: { $ref: '#/components/schemas/ContractState' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+        },
       },
     },
-    '/customer': {
-      post: {
-        summary: 'Create customer',
-        parameters: [idempotencyHeader],
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CustomerInput' } } } },
-        responses: { '201': { description: 'Customer created' }, '401': errorResponse, '403': errorResponse, '409': errorResponse, '422': errorResponse },
-      },
-    },
-    '/customer/{customer_reference}': {
+    '/customer/{customer_id}': {
       get: {
         summary: 'Get customer',
-        parameters: [customerReference],
-        responses: { '200': { description: 'Customer' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        parameters: [customerId],
+        responses: {
+          '200': { description: 'Customer', content: { 'application/json': { schema: { $ref: '#/components/schemas/Customer' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+        },
       },
     },
-    '/customer/{customer_reference}/site': {
-      post: {
-        summary: 'Create site for customer',
-        parameters: [customerReference, idempotencyHeader],
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/SiteInput' } } } },
-        responses: { '201': { description: 'Site created' }, '401': errorResponse, '403': errorResponse, '404': errorResponse, '409': errorResponse, '422': errorResponse },
-      },
-    },
-    '/customer/{customer_reference}/site/{site_reference}': {
+    '/customer/{customer_id}/site/{site_id}': {
       get: {
         summary: 'Get site',
-        parameters: [customerReference, siteReference],
-        responses: { '200': { description: 'Site' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        parameters: [customerId, siteId],
+        responses: {
+          '200': { description: 'Site', content: { 'application/json': { schema: { $ref: '#/components/schemas/Site' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+        },
       },
     },
-    '/customer/{customer_reference}/site/{site_reference}/powerofattorney': {
-      post: {
-        summary: 'Register signed power of attorney',
-        parameters: [customerReference, siteReference, idempotencyHeader],
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/PowerOfAttorneyInput' } } } },
-        responses: { '201': { description: 'Power of attorney registered' }, '401': errorResponse, '403': errorResponse, '404': errorResponse, '409': errorResponse, '422': errorResponse },
-      },
-      get: {
-        summary: 'Get latest power of attorney for site',
-        parameters: [customerReference, siteReference],
-        responses: { '200': { description: 'Power of attorney' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
-      },
-    },
-    '/customer/{customer_reference}/site/{site_reference}/invoice': {
+    '/customer/{customer_id}/site/{site_id}/invoice': {
       get: {
         summary: 'List invoices for site',
         parameters: [
-          customerReference,
-          siteReference,
+          customerId,
+          siteId,
           { name: 'from_date', in: 'query', schema: { type: 'string', format: 'date' } },
           { name: 'to_date', in: 'query', schema: { type: 'string', format: 'date' } },
         ],
-        responses: { '200': { description: 'Invoices' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        responses: {
+          '200': { description: 'Invoices', content: { 'application/json': { schema: { $ref: '#/components/schemas/InvoiceList' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+          '422': errorResponse,
+        },
       },
     },
-    '/invoice/{invoice_reference}': {
+    '/invoice/{invoice_id}': {
       get: {
         summary: 'Get invoice',
-        parameters: [{ $ref: '#/components/parameters/InvoiceReference' }],
-        responses: { '200': { description: 'Invoice' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        parameters: [{ $ref: '#/components/parameters/InvoiceId' }],
+        responses: {
+          '200': { description: 'Invoice', content: { 'application/json': { schema: { $ref: '#/components/schemas/Invoice' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+        },
       },
     },
-    '/invoice/{invoice_reference}/pdf': {
+    '/invoice/{invoice_id}/pdf': {
       get: {
-        summary: 'Get authorized invoice PDF download descriptor',
-        parameters: [{ $ref: '#/components/parameters/InvoiceReference' }],
-        responses: { '200': { description: 'PDF download descriptor' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        summary: 'Get invoice PDF',
+        parameters: [{ $ref: '#/components/parameters/InvoiceId' }],
+        responses: {
+          '200': { description: 'Invoice PDF', content: { 'application/json': { schema: { $ref: '#/components/schemas/PdfDocument' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+          '413': errorResponse,
+        },
       },
     },
-    '/customer/{customer_reference}/site/{site_reference}/measurement': {
+    '/customer/{customer_id}/site/{site_id}/measurement': {
       get: {
-        summary: 'Get site measurements',
+        summary: 'Get measurements',
         parameters: [
-          customerReference,
-          siteReference,
+          customerId,
+          siteId,
           { name: 'from_date', in: 'query', required: true, schema: { type: 'string', format: 'date' } },
           { name: 'to_date', in: 'query', required: true, schema: { type: 'string', format: 'date' } },
           { name: 'resolution', in: 'query', schema: { type: 'string', enum: ['15m', '1h'], default: '1h' } },
         ],
-        responses: { '200': { description: 'Measurements' }, '401': errorResponse, '403': errorResponse, '404': errorResponse, '422': errorResponse },
+        responses: {
+          '200': { description: 'Measurements', content: { 'application/json': { schema: { $ref: '#/components/schemas/MeasurementResponse' } } } },
+          '401': errorResponse,
+          '403': errorResponse,
+          '404': errorResponse,
+          '422': errorResponse,
+        },
       },
     },
     '/webhook/subscription': {
-      get: {
-        summary: 'List webhook subscriptions for this API client',
-        responses: { '200': { description: 'Webhook subscriptions' }, '401': errorResponse, '403': errorResponse },
-      },
       post: {
         summary: 'Create webhook subscription',
-        description: 'Registers a public HTTPS endpoint for signed change notifications. Private, loopback, link-local and otherwise non-public targets are rejected.',
+        description: 'Registers one event subscription. target_url must be a public HTTPS endpoint. The signing secret is supplied by the partner and stored in Gridex Vault.',
         parameters: [idempotencyHeader],
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/WebhookSubscriptionInput' } } } },
-        responses: { '201': { description: 'Webhook subscription created' }, '401': errorResponse, '403': errorResponse, '409': errorResponse, '422': errorResponse },
-      },
-    },
-    '/webhook/subscription/{webhook_subscription_reference}': {
-      delete: {
-        summary: 'Delete webhook subscription',
-        parameters: [{ $ref: '#/components/parameters/WebhookSubscriptionReference' }],
-        responses: { '200': { description: 'Deleted' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/WebhookSubscriptionInput' } } },
+        },
+        responses: {
+          '201': { description: 'Webhook subscription created', content: { 'application/json': { schema: { $ref: '#/components/schemas/EntityResponse' } } } },
+          '400': errorResponse,
+          '401': errorResponse,
+          '403': errorResponse,
+          '409': errorResponse,
+          '422': errorResponse,
+        },
       },
     },
   },
   webhooks: {
     resourceChanged: {
       post: {
-        summary: 'Signed business-resource change notification',
-        description: 'Gridex sends this notification to the subscribed endpoint. The receiver should verify the HMAC-SHA256 signature over the exact raw body, acknowledge quickly with 2xx, then fetch the current resource from the Partner API.',
+        summary: 'Signed change notification',
+        description: 'Treat the webhook as a signal. Verify the HMAC-SHA256 signature, then call the relevant GET endpoint for current state.',
         security: [],
         parameters: [
           { name: 'x-gridex-timestamp', in: 'header', required: true, schema: { type: 'string' } },
@@ -186,15 +258,9 @@ export const partnerOpenApi = {
         ],
         requestBody: {
           required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/WebhookEvent' },
-            },
-          },
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/WebhookNotification' } } },
         },
-        responses: {
-          '200': { description: 'Receiver accepted the notification' },
-        },
+        responses: { '200': { description: 'Receiver accepted the notification' } },
       },
     },
   },
@@ -203,203 +269,209 @@ export const partnerOpenApi = {
       BearerAuth: {
         type: 'http',
         scheme: 'bearer',
-        description: 'Server-side Gridex API key. Never expose this key in a browser or mobile application.',
+        description: 'Server-side Gridex API key. Never expose it in a browser or mobile application.',
       },
     },
     parameters: {
-      ContractReference: { name: 'contract_reference', in: 'path', required: true, schema: { type: 'string' } },
-      CustomerReference: { name: 'customer_reference', in: 'path', required: true, schema: { type: 'string' } },
-      SiteReference: { name: 'site_reference', in: 'path', required: true, schema: { type: 'string' } },
-      InvoiceReference: { name: 'invoice_reference', in: 'path', required: true, schema: { type: 'string' } },
-      WebhookSubscriptionReference: { name: 'webhook_subscription_reference', in: 'path', required: true, schema: { type: 'string' } },
+      CustomerId: { name: 'customer_id', in: 'path', required: true, schema: { type: 'string' }, description: 'Opaque entity_id returned by the Partner API.' },
+      SiteId: { name: 'site_id', in: 'path', required: true, schema: { type: 'string' }, description: 'Opaque entity_id returned by the Partner API.' },
+      ContractId: { name: 'contract_id', in: 'path', required: true, schema: { type: 'string' }, description: 'Opaque entity_id returned by the Partner API.' },
+      InvoiceId: { name: 'invoice_id', in: 'path', required: true, schema: { type: 'string' }, description: 'Opaque entity_id returned by the Partner API.' },
     },
     schemas: {
-      Address: {
+      EntityResponse: {
         type: 'object',
         additionalProperties: false,
-        required: ['street', 'postal_code', 'city'],
-        properties: {
-          street: { type: 'string' },
-          postal_code: { type: 'string' },
-          city: { type: 'string' },
-          country: { type: 'string', default: 'SE' },
-        },
+        required: ['entity_id'],
+        properties: { entity_id: { type: 'string' } },
       },
       CustomerInput: {
         type: 'object',
         additionalProperties: false,
-        required: ['external_customer_id', 'type', 'email'],
+        required: ['soc_id', 'customer_type', 'email'],
         properties: {
-          external_customer_id: { type: 'string', description: 'Stable reference from the partner system.' },
-          type: { type: 'string', enum: ['private', 'business', 'association'] },
           first_name: { type: 'string' },
           last_name: { type: 'string' },
+          soc_id: { type: 'string', description: 'Personal identity number for PRIVATE or organisation number for COMPANY.' },
+          customer_type: { type: 'string', enum: ['PRIVATE', 'COMPANY'] },
           company_name: { type: 'string' },
-          identity_number: { type: 'string', description: 'Required for private customers.' },
-          organization_number: { type: 'string', description: 'Required for business or association customers.' },
+          invoice_address: { type: 'string' },
+          zip_code: { type: 'string' },
+          city: { type: 'string' },
+          country: { type: 'string', default: 'SE' },
           email: { type: 'string', format: 'email' },
-          phone: { type: 'string' },
-          invoice_address: { $ref: '#/components/schemas/Address' },
-          metadata: { type: 'object', additionalProperties: true },
+          cell_phone: { type: 'string' },
         },
+      },
+      Customer: {
+        allOf: [
+          { $ref: '#/components/schemas/CustomerInput' },
+          { $ref: '#/components/schemas/EntityResponse' },
+        ],
       },
       SiteInput: {
         type: 'object',
         additionalProperties: false,
-        required: ['electricity_type', 'address'],
+        required: ['address', 'zip_code', 'city', 'site_electricity_type'],
         properties: {
-          name: { type: 'string' },
-          electricity_type: { type: 'string', enum: ['consumption', 'production'] },
-          facility_id: { type: 'string' },
-          address: { $ref: '#/components/schemas/Address' },
-          move_in_date: { type: 'string', format: 'date' },
-          annual_consumption_kwh: { type: 'number', minimum: 0 },
+          address: { type: 'string' },
+          zip_code: { type: 'string' },
+          city: { type: 'string' },
+          country: { type: 'string', default: 'SE' },
+          site_electricity_type: { type: 'string', enum: ['CONSUMPTION', 'PRODUCTION'] },
         },
       },
-      AgreementEvidence: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          accepted_at: { type: 'string', format: 'date-time' },
-          signer_name: { type: 'string' },
-          evidence_reference: { type: 'string' },
-          distance_agreement: { type: 'boolean', default: true },
-        },
-        description: 'If accepted_at is sent, signer_name and evidence_reference are required. Without signed evidence the contract is created as pending_signature.',
+      Site: {
+        allOf: [
+          { $ref: '#/components/schemas/SiteInput' },
+          { $ref: '#/components/schemas/EntityResponse' },
+        ],
       },
       PowerOfAttorneyInput: {
         type: 'object',
         additionalProperties: false,
-        required: ['accepted', 'signer_name', 'evidence_reference'],
+        required: ['poa_type', 'transaction_type', 'file_base64', 'file_extension'],
         properties: {
-          contract_reference: { type: 'string' },
-          accepted: { const: true },
-          accepted_at: { type: 'string', format: 'date-time' },
-          signer_name: { type: 'string' },
-          signer_identity_number: { type: 'string' },
-          poa_type: { type: 'string', enum: ['web', 'paper', 'audio'] },
+          poa_type: { type: 'string', enum: ['WEB', 'PAPER', 'AUDIO'] },
           transaction_type: { type: 'string', enum: ['SWITCH', 'MOVE_OUT'] },
-          evidence_reference: { type: 'string' },
-          file_base64: { type: 'string', description: 'Optional PDF. Maximum decoded size 5 MB.' },
+          file_base64: { type: 'string', description: 'Signed PDF encoded as base64. Maximum decoded size 5 MB.' },
           file_extension: { type: 'string', enum: ['pdf'] },
+        },
+      },
+      PowerOfAttorney: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['entity_id', 'poa_type', 'transaction_type', 'file_base64', 'file_extension'],
+        properties: {
+          entity_id: { type: 'string' },
+          poa_type: { type: 'string', enum: ['WEB', 'PAPER', 'AUDIO'] },
+          transaction_type: { type: 'string', enum: ['SWITCH', 'MOVE_OUT'] },
+          file_base64: { type: ['string', 'null'] },
+          file_extension: { type: ['string', 'null'] },
         },
       },
       CreateContractRequest: {
         type: 'object',
         additionalProperties: false,
-        required: ['offer_reference', 'customer', 'site'],
+        required: ['customer', 'site'],
         properties: {
-          offer_reference: { type: 'string', description: 'Stable reference for an API-published Gridex product.' },
           customer: { $ref: '#/components/schemas/CustomerInput' },
           site: { $ref: '#/components/schemas/SiteInput' },
-          agreement: { $ref: '#/components/schemas/AgreementEvidence' },
-          power_of_attorney: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['accepted', 'signer_name', 'evidence_reference'],
-            properties: {
-              accepted: { const: true },
-              accepted_at: { type: 'string', format: 'date-time' },
-              signer_name: { type: 'string' },
-              signer_identity_number: { type: 'string' },
-              poa_type: { type: 'string', enum: ['web', 'paper', 'audio'] },
-              transaction_type: { type: 'string', enum: ['SWITCH', 'MOVE_OUT'] },
-              evidence_reference: { type: 'string' },
-              file_base64: { type: 'string', description: 'Optional PDF. Maximum decoded size 5 MB.' },
-              file_extension: { type: 'string', enum: ['pdf'] },
-            },
-          },
-          requested_start_date: { type: 'string', format: 'date' },
-          requested_start_mode: { type: 'string', enum: ['earliest_possible', 'specific_date'], default: 'earliest_possible' },
-          metadata: { type: 'object', additionalProperties: true },
+          power_of_attorney: { $ref: '#/components/schemas/PowerOfAttorneyInput' },
+        },
+      },
+      CreateContractResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['entity_id', 'customer', 'site', 'power_of_attorney'],
+        properties: {
+          entity_id: { type: 'string' },
+          customer: { $ref: '#/components/schemas/EntityResponse' },
+          site: { $ref: '#/components/schemas/EntityResponse' },
+          power_of_attorney: { anyOf: [{ $ref: '#/components/schemas/EntityResponse' }, { type: 'null' }] },
+        },
+      },
+      ContractState: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['entity_id', 'state'],
+        properties: { entity_id: { type: 'string' }, state: { type: 'string' } },
+      },
+      Invoice: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['entity_id', 'invoice_number', 'invoice_date', 'due_date', 'amount', 'currency', 'status'],
+        properties: {
+          entity_id: { type: 'string' },
+          invoice_number: { type: ['string', 'null'] },
+          invoice_date: { type: ['string', 'null'], format: 'date' },
+          due_date: { type: ['string', 'null'], format: 'date' },
+          amount: { type: ['number', 'null'] },
+          currency: { type: ['string', 'null'], default: 'SEK' },
+          status: { type: ['string', 'null'] },
+        },
+      },
+      InvoiceList: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['invoices'],
+        properties: { invoices: { type: 'array', items: { $ref: '#/components/schemas/Invoice' } } },
+      },
+      PdfDocument: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['entity_id', 'file_base64', 'file_extension'],
+        properties: {
+          entity_id: { type: 'string' },
+          file_base64: { type: 'string' },
+          file_extension: { type: 'string', const: 'pdf' },
+        },
+      },
+      Measurement: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['timestamp', 'value', 'unit', 'type'],
+        properties: {
+          timestamp: { type: 'string', format: 'date-time' },
+          value: { type: ['number', 'null'] },
+          unit: { type: 'string', const: 'kWh' },
+          type: { type: 'string', enum: ['CONSUMPTION', 'PRODUCTION'] },
+        },
+      },
+      MeasurementResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['site_id', 'measurements'],
+        properties: {
+          site_id: { type: 'string' },
+          measurements: { type: 'array', items: { $ref: '#/components/schemas/Measurement' } },
         },
       },
       WebhookSubscriptionInput: {
         type: 'object',
         additionalProperties: false,
-        required: ['name', 'endpoint_url', 'event_types', 'signing_secret'],
+        required: ['webhook_event', 'target_url', 'signing_secret'],
         properties: {
-          name: { type: 'string' },
-          endpoint_url: {
-            type: 'string',
-            format: 'uri',
-            pattern: '^https://',
-            description: 'Public HTTPS URL. Private, loopback, link-local and otherwise non-public targets are rejected.',
-          },
-          event_types: {
-            type: 'array',
-            minItems: 1,
-            uniqueItems: true,
-            items: {
-              type: 'string',
-              enum: [
-                'customer.created',
-                'customer.updated',
-                'site.created',
-                'site.updated',
-                'power_of_attorney.created',
-                'contract.created',
-                'contract.status_changed',
-                'invoice.created',
-                'invoice.updated',
-              ],
-            },
-          },
-          signing_secret: {
-            type: 'string',
-            minLength: 32,
-            writeOnly: true,
-            description: 'Partner-generated signing secret. Stored in Gridex Vault and never returned by the API.',
-          },
-          description: { type: 'string' },
-        },
-      },
-      WebhookEvent: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['event_id', 'event_type', 'created_at', 'resource', 'data', 'api_version', 'delivery_id'],
-        properties: {
-          event_id: { type: 'string', pattern: '^event_' },
-          event_type: {
+          webhook_event: {
             type: 'string',
             enum: [
-              'customer.created',
-              'customer.updated',
-              'site.created',
-              'site.updated',
-              'power_of_attorney.created',
-              'contract.created',
-              'contract.status_changed',
-              'invoice.created',
-              'invoice.updated',
+              'CUSTOMER_CREATED',
+              'CUSTOMER_UPDATED',
+              'SITE_CREATED',
+              'SITE_UPDATED',
+              'POWER_OF_ATTORNEY_CREATED',
+              'CONTRACT_CREATED',
+              'CONTRACT_STATUS_CHANGE',
+              'INVOICE_CREATED',
+              'INVOICE_UPDATED',
             ],
           },
+          target_url: { type: 'string', format: 'uri', pattern: '^https://' },
+          notification_email: { type: 'string', format: 'email' },
+          signing_secret: { type: 'string', minLength: 32, writeOnly: true },
+        },
+      },
+      WebhookNotification: {
+        type: 'object',
+        required: ['event_id', 'event_type', 'created_at', 'resource', 'data', 'api_version', 'delivery_id'],
+        properties: {
+          event_id: { type: 'string' },
+          event_type: { type: 'string' },
           created_at: { type: 'string', format: 'date-time' },
           resource: {
             type: 'object',
-            additionalProperties: false,
             required: ['type', 'reference'],
-            properties: {
-              type: { type: 'string' },
-              reference: { type: 'string' },
-            },
-          },
-          customer: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              customer_reference: { type: ['string', 'null'] },
-              customer_number: { type: ['string', 'null'] },
-            },
+            properties: { type: { type: 'string' }, reference: { type: 'string' } },
           },
           data: { type: 'object', additionalProperties: true },
-          api_version: { type: 'string', const: PARTNER_API_VERSION },
-          delivery_id: { type: 'string', pattern: '^delivery_' },
+          api_version: { type: 'string' },
+          delivery_id: { type: 'string' },
         },
+        additionalProperties: true,
       },
       ErrorResponse: {
         type: 'object',
-        required: ['error', 'request_id', 'api_version'],
+        required: ['error', 'request_id'],
         properties: {
           error: {
             type: 'object',
@@ -411,7 +483,6 @@ export const partnerOpenApi = {
             },
           },
           request_id: { type: 'string' },
-          api_version: { type: 'string' },
         },
       },
     },

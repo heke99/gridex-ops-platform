@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => fs.readFileSync(path, 'utf8')
 
-describe('Partner API v1 public surface', () => {
+describe('Partner API v1 simple public surface', () => {
+  const simple = read('lib/partner-api/simple.ts')
   const core = read('lib/partner-api/core.ts')
   const canonical = read('lib/partner-api/canonical.ts')
   const openApi = read('lib/partner-api/openApi.ts')
@@ -11,68 +12,115 @@ describe('Partner API v1 public surface', () => {
   const customerPortalDocs = read('app/developers/customer-portal-api/page.tsx')
   const scopes = read('lib/integrations/apiClientScopes.ts')
   const contractMigration = read('supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql')
-  const eventMigration = read('supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql')
-  const internalDispatch = read('app/api/internal/webhooks/dispatch/route.ts')
   const partnerRoute = read('app/api/partner/v1/[[...path]]/route.ts')
   const webhooks = read('lib/integrations/webhooks.ts')
   const webhookTransport = read('lib/integrations/publicWebhookTransport.ts')
   const vault = read('lib/integrations/webhookVaultSecrets.ts')
 
-  it('exposes the simplified business-resource surface from the integration example', () => {
+  it('publishes only the small PDF-style business API as the canonical OpenAPI', () => {
     for (const path of [
       "'/contract'",
-      "'/contract/{contract_reference}/state'",
       "'/customer'",
-      "'/customer/{customer_reference}/site'",
-      "'/customer/{customer_reference}/site/{site_reference}'",
-      "'/customer/{customer_reference}/site/{site_reference}/powerofattorney'",
-      "'/customer/{customer_reference}/site/{site_reference}/invoice'",
-      "'/customer/{customer_reference}/site/{site_reference}/measurement'",
-      "'/invoice/{invoice_reference}'",
-      "'/invoice/{invoice_reference}/pdf'",
+      "'/customer/{customer_id}/site'",
+      "'/customer/{customer_id}/site/{site_id}/powerofattorney'",
+      "'/contract/{contract_id}/state'",
+      "'/customer/{customer_id}'",
+      "'/customer/{customer_id}/site/{site_id}'",
+      "'/customer/{customer_id}/site/{site_id}/invoice'",
+      "'/invoice/{invoice_id}'",
+      "'/invoice/{invoice_id}/pdf'",
+      "'/customer/{customer_id}/site/{site_id}/measurement'",
       "'/webhook/subscription'",
     ]) {
       expect(openApi).toContain(path)
     }
-    expect(openApi).not.toContain("'/companies'")
-    expect(openApi).not.toContain("'/tenants'")
-    expect(openApi).not.toContain("'/config")
-    expect(openApi).not.toContain("'/website")
-  })
-
-  it('keeps old plural Partner paths as runtime compatibility aliases, not the canonical OpenAPI', () => {
-    expect(core).toContain("segments[0] === 'contracts'")
-    expect(core).toContain("segments[0] === 'customers'")
-    expect(core).toContain("segments[0] === 'sites'")
-    expect(core).toContain("segments[0] === 'webhooks'")
-    expect(canonical).toContain("segments[0] === 'contract'")
-    expect(canonical).toContain("segments[0] === 'customer'")
-    expect(canonical).toContain("segments[0] === 'webhook'")
-    expect(openApi).not.toContain("'/contracts'")
-    expect(openApi).not.toContain("'/customers'")
-    expect(openApi).not.toContain("'/sites'")
-    expect(openApi).not.toContain("'/webhooks/subscriptions'")
-  })
-
-  it('keeps tenant selection credential-bound and strips internal identifiers', () => {
-    expect(core).toContain('Tenant selection is not accepted in request payloads.')
-    expect(core).toContain('assertPublicResponsePayload(envelope)')
-    expect(core).toContain(".eq('company_id',")
-    expect(canonical).toContain(".eq('company_id', access.client.company_id)")
+    for (const internalPath of ["'/companies'", "'/tenants'", "'/config", "'/website", "'/contracts'", "'/customers'", "'/sites'"]) {
+      expect(openApi).not.toContain(internalPath)
+    }
+    expect(openApi).not.toContain('offer_reference:')
     expect(openApi).not.toMatch(/(^|[,{\s])company_id\s*:/m)
-    expect(openApi).not.toMatch(/(^|[,{\s])customer_id\s*:/m)
-    expect(openApi).not.toMatch(/(^|[,{\s])contract_id\s*:/m)
+    expect(openApi).not.toMatch(/(^|[,{\s])tenant_id\s*:/m)
   })
 
-  it('enforces nested customer/site ownership in canonical routes', () => {
-    expect(canonical).toContain(".eq('customer_reference', customerReference)")
-    expect(canonical).toContain(".eq('facility_reference', siteReference)")
-    expect(canonical).toContain('String(siteResult.data.customer_id) !== String(customerResult.data.id)')
-    expect(canonical).toContain('path_body_reference_mismatch')
-    expect(canonical).toContain("operation: 'invoice.list_by_site'")
+  it('serves the simple handler first while preserving old compatibility handlers behind it', () => {
+    expect(partnerRoute).toContain("import { handleSimplePartnerApi } from '@/lib/partner-api/simple'")
+    expect(partnerRoute).toContain('const simple = await handleSimplePartnerApi(request, method, path)')
+    expect(partnerRoute).toContain('if (simple) return simple')
+    expect(partnerRoute).toContain('handleCanonicalPartnerApi')
+    expect(partnerRoute).toContain('handlePartnerApi')
+    expect(core).toContain("segments[0] === 'contracts'")
+    expect(canonical).toContain("segments[0] === 'contract'")
   })
 
-  it('makes the Partner API permission group usable for writes and reads', () => {
+  it('keeps company selection credential-bound and rejects tenant selectors recursively', () => {
+    expect(simple).toContain('requireIntegrationApiAccess')
+    expect(simple).toContain("key === 'company_id' || key === 'tenant_id' || key === 'tenant_reference'")
+    expect(simple).toContain(".eq('company_id', companyId)")
+    expect(simple).toContain(".eq('company_id', context.client.company_id)")
+    expect(simple).toContain('simple_partner_api_internal_uuid_leak')
+  })
+
+  it('keeps product/publication configuration out of the external request', () => {
+    expect(simple).toContain('partner_default_offer_reference')
+    expect(simple).toContain(".from('canonical_public_contract_diagnostics_v')")
+    expect(simple).toContain(".eq('channel', 'api')")
+    expect(simple).toContain(".eq('visible', true)")
+    expect(simple).toContain('default_offer_not_configured')
+    expect(simple).toContain("ensureKeys(body, ['customer', 'site', 'power_of_attorney'])")
+    expect(openApi).not.toContain("offer_reference: { type: 'string'")
+  })
+
+  it('uses canonical idempotency and the transactional contract RPC', () => {
+    expect(simple).toContain('executeIdempotentPortalWrite')
+    expect(simple).toContain('requireIdempotencyKey')
+    expect(openApi).toContain('Idempotency-Key')
+    expect(simple).toContain("supabaseService.rpc('gridex_create_partner_contract_v1'")
+    expect(contractMigration).toMatch(/revoke all on function public\.gridex_create_partner_contract_v1[\s\S]*from public, anon, authenticated/)
+    expect(contractMigration).toMatch(/grant execute on function public\.gridex_create_partner_contract_v1[\s\S]*to service_role/)
+  })
+
+  it('stores POA privately and exposes only bounded PDF content', () => {
+    expect(simple).toContain("const POA_BUCKET = 'customer-documents'")
+    expect(simple).toContain('MAX_POA_BYTES = 5 * 1024 * 1024')
+    expect(simple).toContain("bytes.subarray(0, 5).toString('ascii') !== '%PDF-'")
+    expect(simple).toContain("file.toString('base64')")
+    expect(openApi).toContain("file_extension: { type: 'string', enum: ['pdf'] }")
+  })
+
+  it('reads invoice PDFs from allowlisted private storage instead of fetching arbitrary URLs', () => {
+    expect(simple).toContain(".select('file_path,metadata')")
+    expect(simple).toContain("'customer-documents', 'customer-contract-documents', 'contract-pdfs', 'billing-exports'")
+    expect(simple).toContain('MAX_INVOICE_PDF_BYTES = 15 * 1024 * 1024')
+    expect(simple).not.toContain(".select('public_url')")
+    expect(simple).not.toContain('fetch(document')
+    expect(simple).not.toContain('download_url')
+  })
+
+  it('maps the simple webhook events onto the hardened signed webhook subsystem', () => {
+    for (const event of [
+      'CUSTOMER_CREATED',
+      'CUSTOMER_UPDATED',
+      'SITE_CREATED',
+      'SITE_UPDATED',
+      'POWER_OF_ATTORNEY_CREATED',
+      'CONTRACT_CREATED',
+      'CONTRACT_STATUS_CHANGE',
+      'INVOICE_CREATED',
+      'INVOICE_UPDATED',
+    ]) {
+      expect(openApi).toContain(`'${event}'`)
+      expect(simple).toContain(`${event}:`)
+    }
+    expect(simple).toContain('assertPublicWebhookTarget(targetUrl)')
+    expect(simple).toContain("gridex_create_partner_webhook_subscription_v1")
+    expect(simple).toContain('signing_secret')
+    expect(webhookTransport).toContain("url.protocol !== 'https:'")
+    expect(webhookTransport).toContain('pinned.address')
+    expect(webhooks).toContain('postPublicWebhook')
+    expect(vault).toContain('gridex_read_webhook_signing_secret_v1')
+  })
+
+  it('keeps the Partner API permission group usable for the simple write/read operations', () => {
     for (const scope of [
       'partner_contracts.write',
       'partner_customers.write',
@@ -90,66 +138,14 @@ describe('Partner API v1 public surface', () => {
     }
   })
 
-  it('requires idempotency and bounded POA uploads', () => {
-    expect(core).toContain('executeIdempotentPortalWrite')
-    expect(openApi).toContain('Idempotency-Key')
-    expect(core).toContain('MAX_POA_BYTES = 5 * 1024 * 1024')
-    expect(core).toContain("bytes.subarray(0, 5).toString('ascii') !== '%PDF-'")
-  })
-
-  it('keeps privileged contract creation service-role only', () => {
-    expect(contractMigration).toContain('gridex_create_partner_contract_v1')
-    expect(contractMigration).toMatch(/revoke all on function public\.gridex_create_partner_contract_v1[\s\S]*from public, anon, authenticated/)
-    expect(contractMigration).toMatch(/grant execute on function public\.gridex_create_partner_contract_v1[\s\S]*to service_role/)
-  })
-
-  it('implements every documented core webhook event before publishing it', () => {
-    for (const event of [
-      'customer.created',
-      'customer.updated',
-      'site.created',
-      'site.updated',
-      'power_of_attorney.created',
-      'contract.created',
-      'contract.status_changed',
-      'invoice.created',
-      'invoice.updated',
-    ]) {
-      expect(openApi).toContain(`'${event}'`)
-      expect(eventMigration).toContain(`'${event}'`)
-      expect(webhooks).toContain(`'${event}'`)
-    }
-    expect(eventMigration).toContain('insert into public.webhook_deliveries')
-    expect(eventMigration).toContain("'event_' || substr")
-    expect(eventMigration).toContain("'contract_schema_version', '2026-08-16.2'")
-  })
-
-  it('hydrates Vault webhook secrets only inside internal dispatch', () => {
-    expect(vault).toContain('gridex_read_webhook_signing_secret_v1')
-    expect(vault).toContain('delete process.env[item.envKey]')
-    expect(internalDispatch).toContain('hydrateVaultWebhookSecretsForDispatch')
-    expect(internalDispatch).toContain('cleanupVaultSecrets?.()')
-  })
-
-  it('blocks webhook SSRF targets at creation and delivery', () => {
-    expect(partnerRoute).toContain('assertPublicWebhookTarget')
-    expect(partnerRoute).toContain('webhook_target_not_public')
-    expect(webhookTransport).toContain("url.protocol !== 'https:'")
-    expect(webhookTransport).toContain("hostname === 'localhost'")
-    expect(webhookTransport).toContain('isDisallowedWebhookAddress')
-    expect(webhookTransport).toContain('lookup(hostname, { all: true, verbatim: true })')
-    expect(webhookTransport).toContain('callback(null, pinned.address, pinned.family)')
-    expect(webhooks).toContain('postPublicWebhook')
-    expect(webhooks).not.toContain('const response = await fetch(targetUrl')
-  })
-
-  it('serves the simplified Partner API guide on both developer URLs', () => {
-    expect(docs).toContain('backend-to-backend')
-    expect(docs).toContain('Company setup is intentionally outside this API')
-    expect(docs).toContain('/api/partner/v1')
-    expect(docs).toContain('Existing plural Partner API paths')
+  it('serves the same simple guide on the customer-portal developer URL', () => {
+    expect(docs).toContain('Partner API Reference')
+    expect(docs).toContain('Registration, Data Retrieval & Webhooks')
+    expect(docs).toContain('Gridex configures the company, permissions and published electricity offer behind the API key')
+    expect(docs).toContain('/contract/{contract_id}/state')
+    expect(docs).toContain('/customer/{customer_id}/site/{site_id}/invoice')
+    expect(docs).toContain('/webhook/subscription')
     expect(docs).not.toContain('tenant_reference')
-    expect(docs).toContain('"resource"')
     expect(customerPortalDocs).toContain("import PartnerApiDocumentationPage from '../partner-api/page'")
     expect(customerPortalDocs).toContain('<PartnerApiDocumentationPage />')
   })

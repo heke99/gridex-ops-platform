@@ -104,30 +104,28 @@ if (JSON.stringify(documentedPublicContractsExample) !== JSON.stringify(publicCo
   failures.push('Published public-contracts example must be generated from the production-like fixture.')
 }
 
-// The customer-portal developer URL is now intentionally the canonical supplier
-// Partner API guide. Legacy Website API correctness remains protected by its
-// OpenAPI schemas/examples above and by the dedicated legacy integration guide.
 const partnerDocumentationPage = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
 const customerPortalRoute = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
 const legacyWebsiteGuide = fs.readFileSync('docs/external-website-api-integration-guide.md', 'utf8')
 
 for (const requiredTerm of [
-  'backend-to-backend',
-  'Company setup is intentionally outside this API',
-  'Authorization: Bearer $GRIDEX_API_KEY',
+  'Partner API Reference',
+  'Registration, Data Retrieval & Webhooks',
+  'Authorization: Bearer',
   'Idempotency-Key',
-  '/contract/{contract_reference}/state',
-  '/customer/{customer_reference}/site/{site_reference}/invoice',
-  '/customer/{customer_reference}/site/{site_reference}/measurement',
+  '/contract/{contract_id}/state',
+  '/customer/{customer_id}/site/{site_id}/invoice',
+  '/customer/{customer_id}/site/{site_id}/measurement',
   '/webhook/subscription',
-  'request_id',
-  'api_version',
   'HMAC-SHA256',
-  'x-gridex-signature',
+  'signing_secret',
 ]) {
   if (!partnerDocumentationPage.includes(requiredTerm)) {
     failures.push(`Partner developer guide is missing ${requiredTerm}.`)
   }
+}
+if (!partnerDocumentationPage.includes('Gridex configures the company, permissions and published electricity offer behind the API key')) {
+  failures.push('Partner developer guide must state that company/product configuration remains Gridex-managed.')
 }
 if (!customerPortalRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'")) {
   failures.push('Customer Portal developer URL must render the canonical Partner API guide.')
@@ -136,10 +134,6 @@ if (!customerPortalRoute.includes('<PartnerApiDocumentationPage />')) {
   failures.push('Customer Portal developer URL does not render PartnerApiDocumentationPage.')
 }
 
-// Keep the canonical Partner guide fully tenant-neutral. The legacy Website
-// guide intentionally documents the DX customer-number format with a synthetic
-// DX-123456 placeholder, so keep checking it for actual customer/operator data
-// without treating that format example as production data.
 const sensitiveDocumentationPatterns = [
   ['personal email address', /heke99@live\.se/i],
   ['tenant-specific GRIDEX-WEB external id', /GRIDEX-WEB-[A-Z0-9-]+/],
@@ -166,8 +160,10 @@ if (partnerDocumentationPage.includes('company_id') || partnerDocumentationPage.
 if (partnerDocumentationPage.includes('tenant_reference')) {
   failures.push('Canonical Partner developer guide must not expose tenant_reference.')
 }
+if (partnerDocumentationPage.includes('offer_reference')) {
+  failures.push('Canonical Partner developer guide must not require partners to select internal offer configuration.')
+}
 
-// Legacy Website API guide stays available for already-connected website clients.
 for (const requiredLegacyTerm of [
   'powerOfAttorney',
   'textVersionId',
@@ -193,4 +189,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log('API documentation examples OK (canonical Partner guide + legacy Website OpenAPI/guide).')
+console.log('API documentation examples OK (simple Partner guide + legacy Website OpenAPI/guide).')

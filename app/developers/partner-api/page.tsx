@@ -5,150 +5,10 @@ import { PARTNER_API_BASE_URL, PARTNER_API_VERSION } from '@/lib/partner-api/ope
 
 export const metadata: Metadata = {
   title: 'Partner API v1 | Gridex Developers',
-  description:
-    'Canonical backend-to-backend API for electricity suppliers: contracts, customers, sites, invoices, measurements and signed change notifications.',
+  description: 'Simple Partner API for registration, data retrieval and webhooks.',
 }
 
 export const revalidate = 3600
-
-const endpoints = [
-  ['POST', '/contract', 'Register customer, site and contract atomically'],
-  ['GET', '/contract/{contract_reference}', 'Get a contract'],
-  ['GET', '/contract/{contract_reference}/state', 'Get current contract state'],
-  ['POST', '/customer', 'Create a customer'],
-  ['GET', '/customer/{customer_reference}', 'Get a customer'],
-  ['POST', '/customer/{customer_reference}/site', 'Create a site for a customer'],
-  ['GET', '/customer/{customer_reference}/site/{site_reference}', 'Get a site'],
-  ['POST', '/customer/{customer_reference}/site/{site_reference}/powerofattorney', 'Register signed power of attorney'],
-  ['GET', '/customer/{customer_reference}/site/{site_reference}/powerofattorney', 'Get latest power of attorney'],
-  ['GET', '/customer/{customer_reference}/site/{site_reference}/invoice', 'List invoices for a site'],
-  ['GET', '/invoice/{invoice_reference}', 'Get an invoice'],
-  ['GET', '/invoice/{invoice_reference}/pdf', 'Get authorized invoice PDF descriptor'],
-  ['GET', '/customer/{customer_reference}/site/{site_reference}/measurement', 'Get 15-minute or hourly measurements'],
-  ['GET', '/webhook/subscription', 'List webhook subscriptions for this API client'],
-  ['POST', '/webhook/subscription', 'Create a webhook subscription'],
-  ['DELETE', '/webhook/subscription/{webhook_subscription_reference}', 'Delete a webhook subscription'],
-] as const
-
-const events = [
-  'customer.created',
-  'customer.updated',
-  'site.created',
-  'site.updated',
-  'power_of_attorney.created',
-  'contract.created',
-  'contract.status_changed',
-  'invoice.created',
-  'invoice.updated',
-] as const
-
-const createContract = `curl -X POST "${PARTNER_API_BASE_URL}/contract" \\
-  -H "Authorization: Bearer $GRIDEX_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: order-20260816-00042" \\
-  -d '{
-    "offer_reference": "offer_variable_monthly",
-    "customer": {
-      "external_customer_id": "cust_45821",
-      "type": "private",
-      "first_name": "Anna",
-      "last_name": "Andersson",
-      "identity_number": "199001011234",
-      "email": "anna@example.se",
-      "phone": "+46701234567",
-      "invoice_address": {
-        "street": "Exempelgatan 1",
-        "postal_code": "11122",
-        "city": "Stockholm",
-        "country": "SE"
-      }
-    },
-    "site": {
-      "electricity_type": "consumption",
-      "address": {
-        "street": "Exempelgatan 1",
-        "postal_code": "11122",
-        "city": "Stockholm",
-        "country": "SE"
-      }
-    },
-    "agreement": {
-      "accepted_at": "2026-08-16T13:00:00Z",
-      "signer_name": "Anna Andersson",
-      "evidence_reference": "sign_92b6ac",
-      "distance_agreement": true
-    }
-  }'`
-
-const createContractResponse = `{
-  "data": {
-    "contract_reference": "contract_...",
-    "status": "signed",
-    "customer": {
-      "customer_reference": "customer_...",
-      "customer_number": "DX-..."
-    },
-    "site": {
-      "site_reference": "site_..."
-    }
-  },
-  "request_id": "...",
-  "api_version": "${PARTNER_API_VERSION}"
-}`
-
-const resourceFlow = `POST /customer
-POST /customer/{customer_reference}/site
-POST /customer/{customer_reference}/site/{site_reference}/powerofattorney
-
-GET /customer/{customer_reference}
-GET /customer/{customer_reference}/site/{site_reference}
-GET /customer/{customer_reference}/site/{site_reference}/powerofattorney`
-
-const readFlow = `GET /contract/{contract_reference}/state
-GET /customer/{customer_reference}/site/{site_reference}/invoice?from_date=2026-01-01&to_date=2026-01-31
-GET /invoice/{invoice_reference}
-GET /invoice/{invoice_reference}/pdf
-GET /customer/{customer_reference}/site/{site_reference}/measurement?from_date=2026-01-01&to_date=2026-01-31&resolution=15m`
-
-const webhookCreate = `curl -X POST "${PARTNER_API_BASE_URL}/webhook/subscription" \\
-  -H "Authorization: Bearer $GRIDEX_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: webhook-primary-v1" \\
-  -d '{
-    "name": "Production events",
-    "endpoint_url": "https://partner.example.com/webhooks/gridex",
-    "event_types": ["contract.created", "contract.status_changed", "invoice.created"],
-    "signing_secret": "generate-and-store-at-least-32-random-characters"
-  }'`
-
-const webhookPayload = `{
-  "event_id": "event_...",
-  "event_type": "contract.status_changed",
-  "created_at": "2026-08-16T13:05:12Z",
-  "resource": {
-    "type": "contract",
-    "reference": "contract_..."
-  },
-  "customer": {
-    "customer_reference": "customer_...",
-    "customer_number": "DX-..."
-  },
-  "data": {
-    "status": "active",
-    "previous_status": "signed"
-  },
-  "api_version": "${PARTNER_API_VERSION}",
-  "delivery_id": "delivery_..."
-}`
-
-const errorExample = `{
-  "error": {
-    "code": "customer_not_found",
-    "message": "Customer not found."
-  },
-  "request_id": "...",
-  "api_version": "${PARTNER_API_VERSION}"
-}`
 
 const Section = ({ id, title, children }: { id: string; title: string; children: ReactNode }) => (
   <section id={id} className="scroll-mt-24 space-y-4 border-b border-slate-200 pb-10">
@@ -157,32 +17,161 @@ const Section = ({ id, title, children }: { id: string; title: string; children:
   </section>
 )
 
+const createContract = `POST /contract
+
+{
+  "customer": {
+    "first_name": "Anna",
+    "last_name": "Andersson",
+    "soc_id": "19900101-1234",
+    "customer_type": "PRIVATE",
+    "company_name": null,
+    "invoice_address": "Exempelgatan 1",
+    "zip_code": "11122",
+    "city": "Stockholm",
+    "country": "SE",
+    "email": "anna@example.se",
+    "cell_phone": "+46701234567"
+  },
+  "site": {
+    "address": "Exempelgatan 1",
+    "zip_code": "11122",
+    "city": "Stockholm",
+    "country": "SE",
+    "site_electricity_type": "CONSUMPTION"
+  },
+  "power_of_attorney": {
+    "poa_type": "WEB",
+    "transaction_type": "SWITCH",
+    "file_base64": "<pdf_base64>",
+    "file_extension": "pdf"
+  }
+}`
+
+const createContractResponse = `{
+  "entity_id": "contract_...",
+  "customer": { "entity_id": "customer_..." },
+  "site": { "entity_id": "site_..." },
+  "power_of_attorney": { "entity_id": "poa_..." }
+}`
+
+const createCustomer = `POST /customer
+
+{
+  "first_name": "Anna",
+  "last_name": "Andersson",
+  "soc_id": "19900101-1234",
+  "customer_type": "PRIVATE",
+  "company_name": null,
+  "invoice_address": "Exempelgatan 1",
+  "zip_code": "11122",
+  "city": "Stockholm",
+  "country": "SE",
+  "email": "anna@example.se",
+  "cell_phone": "+46701234567"
+}`
+
+const createSite = `POST /customer/{customer_id}/site
+
+{
+  "address": "Exempelgatan 1",
+  "zip_code": "11122",
+  "city": "Stockholm",
+  "country": "SE",
+  "site_electricity_type": "CONSUMPTION"
+}`
+
+const createPoa = `POST /customer/{customer_id}/site/{site_id}/powerofattorney
+
+{
+  "poa_type": "WEB",
+  "transaction_type": "SWITCH",
+  "file_base64": "<pdf_base64>",
+  "file_extension": "pdf"
+}`
+
+const invoiceResponse = `{
+  "invoices": [
+    {
+      "entity_id": "invoice_...",
+      "invoice_number": "100042",
+      "invoice_date": "2026-08-01",
+      "due_date": "2026-08-31",
+      "amount": 845.50,
+      "currency": "SEK",
+      "status": "sent"
+    }
+  ]
+}`
+
+const measurementResponse = `{
+  "site_id": "site_...",
+  "measurements": [
+    {
+      "timestamp": "2026-08-01T00:00:00Z",
+      "value": 0.42,
+      "unit": "kWh",
+      "type": "CONSUMPTION"
+    }
+  ]
+}`
+
+const webhookRequest = `POST /webhook/subscription
+
+{
+  "webhook_event": "CONTRACT_STATUS_CHANGE",
+  "target_url": "https://partner.example.com/webhooks/gridex",
+  "notification_email": "integration@example.com",
+  "signing_secret": "<at-least-32-random-characters>"
+}`
+
+const endpointRows = [
+  ['POST', '/contract', 'Create contract, customer and site together'],
+  ['POST', '/customer', 'Create customer'],
+  ['POST', '/customer/{customer_id}/site', 'Create site'],
+  ['POST', '/customer/{customer_id}/site/{site_id}/powerofattorney', 'Upload power of attorney'],
+  ['GET', '/contract/{contract_id}/state', 'Get contract state'],
+  ['GET', '/customer/{customer_id}', 'Get customer'],
+  ['GET', '/customer/{customer_id}/site/{site_id}', 'Get site'],
+  ['GET', '/customer/{customer_id}/site/{site_id}/powerofattorney', 'Get power of attorney'],
+  ['GET', '/customer/{customer_id}/site/{site_id}/invoice', 'List invoices'],
+  ['GET', '/invoice/{invoice_id}', 'Get invoice'],
+  ['GET', '/invoice/{invoice_id}/pdf', 'Get invoice PDF'],
+  ['GET', '/customer/{customer_id}/site/{site_id}/measurement', 'Get measurements'],
+  ['POST', '/webhook/subscription', 'Create webhook subscription'],
+] as const
+
+const webhookEvents = [
+  'CUSTOMER_CREATED',
+  'CUSTOMER_UPDATED',
+  'SITE_CREATED',
+  'SITE_UPDATED',
+  'POWER_OF_ATTORNEY_CREATED',
+  'CONTRACT_CREATED',
+  'CONTRACT_STATUS_CHANGE',
+  'INVOICE_CREATED',
+  'INVOICE_UPDATED',
+] as const
+
 export default function PartnerApiDocumentationPage() {
   return (
     <main className="mx-auto max-w-6xl px-5 py-12 sm:px-8 lg:px-10">
       <div className="grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <nav className="sticky top-8 space-y-2 text-sm text-slate-600">
-            <a className="block hover:text-slate-950" href="#overview">Overview</a>
-            <a className="block hover:text-slate-950" href="#auth">Authentication</a>
-            <a className="block hover:text-slate-950" href="#contract">Register contract</a>
-            <a className="block hover:text-slate-950" href="#resources">Customers & sites</a>
-            <a className="block hover:text-slate-950" href="#read">Read data</a>
+            <a className="block hover:text-slate-950" href="#start">Start</a>
+            <a className="block hover:text-slate-950" href="#registration">Registration</a>
+            <a className="block hover:text-slate-950" href="#data">Data retrieval</a>
             <a className="block hover:text-slate-950" href="#webhooks">Webhooks</a>
-            <a className="block hover:text-slate-950" href="#errors">Errors & retries</a>
-            <a className="block hover:text-slate-950" href="#security">Security</a>
-            <a className="block hover:text-slate-950" href="#endpoints">Endpoints</a>
+            <a className="block hover:text-slate-950" href="#summary">Endpoint summary</a>
           </nav>
         </aside>
 
         <article className="min-w-0 space-y-10">
           <header className="space-y-4">
             <div className="text-sm font-medium text-slate-500">Gridex Developers · v{PARTNER_API_VERSION}</div>
-            <h1 className="text-4xl font-semibold tracking-tight text-slate-950">Partner API v1</h1>
-            <p className="max-w-3xl text-lg leading-8 text-slate-600">
-              One small backend-to-backend API for supplier integrations: register contracts, read
-              customer/site/invoice data, read contract state and receive signed change notifications.
-            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-slate-950">Partner API Reference</h1>
+            <p className="max-w-3xl text-lg leading-8 text-slate-600">Registration, Data Retrieval & Webhooks.</p>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <strong>Base URL:</strong> <code>{PARTNER_API_BASE_URL}</code>
               <br />
@@ -191,139 +180,117 @@ export default function PartnerApiDocumentationPage() {
             </div>
           </header>
 
-          <Section id="overview" title="1. Integration model">
+          <Section id="start" title="Before you start">
             <p className="leading-7 text-slate-700">
-              Your backend calls Gridex. Your mobile app, website and customer portal call your own
-              backend. The Gridex API key must never be shipped to a browser or mobile application.
-            </p>
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              <strong>Company setup is intentionally outside this API.</strong> Gridex manages API
-              credentials, permissions, products, market/Ediel configuration and internal platform
-              settings. Integrators only work with business resources.
+              The API is server-to-server. Send your API key as <code>Authorization: Bearer &lt;API_KEY&gt;</code>.
+              Do not put the key in a browser or mobile app.
             </p>
             <p className="leading-7 text-slate-700">
-              The credential determines the company context. Requests cannot select another company.
-              Public references such as <code>customer_reference</code>, <code>site_reference</code>,
-              <code>contract_reference</code> and <code>invoice_reference</code> are used instead of
-              internal database IDs.
+              Gridex configures the company, permissions and published electricity offer behind the API key.
+              Your integration does not send company IDs, tenant IDs, product configuration or market-system settings.
+              If the company has one published API offer it is selected automatically; if several are available Gridex binds a default offer to the credential internally.
+            </p>
+            <p className="leading-7 text-slate-700">
+              All POST requests require an <code>Idempotency-Key</code>. Reuse the same key only when retrying the same request.
+              Returned <code>entity_id</code> values are opaque public IDs; they are not database IDs.
             </p>
           </Section>
 
-          <Section id="auth" title="2. Authentication">
-            <CopyCodeBlock code="Authorization: Bearer $GRIDEX_API_KEY" language="text" />
+          <Section id="registration" title="1. Registration">
             <p className="leading-7 text-slate-700">
-              Keep the key server-side. Gridex grants only the permissions needed by the integration.
-              Every write requires an <code>Idempotency-Key</code>. Retry the same business operation
-              with the same key and the same payload; use a new key for a new operation.
+              Use <code>POST /contract</code> for the normal combined flow. Use the individual endpoints only when your backend creates the resources in separate steps.
             </p>
-          </Section>
 
-          <Section id="contract" title="3. Register a contract">
-            <p className="leading-7 text-slate-700">
-              For most suppliers, <code>POST /contract</code> is the primary write endpoint. It
-              registers customer, site and contract in one database transaction. Signed power-of-
-              attorney evidence can be included when required.
-            </p>
-            <CopyCodeBlock code={createContract} language="bash" />
-            <h3 className="text-lg font-semibold text-slate-950">Response</h3>
+            <h3 className="text-lg font-semibold text-slate-950">1.1 Create Contract</h3>
+            <CopyCodeBlock code={createContract} language="json" />
+            <h4 className="font-semibold text-slate-950">Response</h4>
             <CopyCodeBlock code={createContractResponse} language="json" />
-          </Section>
 
-          <Section id="resources" title="4. Customers, sites and power of attorney">
-            <p className="leading-7 text-slate-700">
-              Use the individual resources only when your integration creates them in separate steps.
-              Nested routes enforce that the customer and site belong together and that both belong to
-              the company bound to the API credential.
-            </p>
-            <CopyCodeBlock code={resourceFlow} language="text" />
+            <div className="rounded-xl border border-slate-200 p-4 text-sm leading-6 text-slate-700">
+              <strong>Supported values:</strong> customer_type = PRIVATE | COMPANY · site_electricity_type = CONSUMPTION | PRODUCTION · poa_type = WEB | PAPER | AUDIO · transaction_type = SWITCH | MOVE_OUT.
+              Power-of-attorney file uploads are PDF-only and limited to 5 MB.
+            </div>
+
+            <h3 className="text-lg font-semibold text-slate-950">1.2 Create Customer</h3>
+            <CopyCodeBlock code={createCustomer} language="json" />
+            <CopyCodeBlock code={`{\n  "entity_id": "customer_..."\n}`} language="json" />
+
+            <h3 className="text-lg font-semibold text-slate-950">1.3 Create Site</h3>
+            <CopyCodeBlock code={createSite} language="json" />
+            <CopyCodeBlock code={`{\n  "entity_id": "site_..."\n}`} language="json" />
+
+            <h3 className="text-lg font-semibold text-slate-950">1.4 Upload Power of Attorney</h3>
+            <CopyCodeBlock code={createPoa} language="json" />
+            <CopyCodeBlock code={`{\n  "entity_id": "poa_..."\n}`} language="json" />
+
             <p className="text-sm leading-6 text-slate-600">
-              Optional power-of-attorney evidence is PDF-only, limited to 5 MB and stored privately.
-              Internal storage paths are not returned through the Partner API.
+              Individual registration flow: create Customer → create Site with customer_id → upload Power of Attorney with customer_id and site_id.
             </p>
           </Section>
 
-          <Section id="read" title="5. Contract state, invoices and measurements">
-            <CopyCodeBlock code={readFlow} language="text" />
-            <p className="leading-7 text-slate-700">
-              Measurement resolution is <code>15m</code> or <code>1h</code>. Invoice and measurement
-              queries are scoped to the customer/site path. The invoice PDF endpoint returns an
-              authorized HTTPS descriptor only when a document exists.
+          <Section id="data" title="2. Data Retrieval">
+            <h3 className="text-lg font-semibold text-slate-950">2.1 Contract State</h3>
+            <CopyCodeBlock code={`GET /contract/{contract_id}/state\n\n{\n  "entity_id": "contract_...",\n  "state": "active"\n}`} language="json" />
+
+            <h3 className="text-lg font-semibold text-slate-950">2.2 Customer</h3>
+            <CopyCodeBlock code="GET /customer/{customer_id}" language="text" />
+
+            <h3 className="text-lg font-semibold text-slate-950">2.3 Site</h3>
+            <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}" language="text" />
+
+            <h3 className="text-lg font-semibold text-slate-950">2.4 Power of Attorney</h3>
+            <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}/powerofattorney" language="text" />
+
+            <h3 className="text-lg font-semibold text-slate-950">2.5 Invoices</h3>
+            <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}/invoice?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD" language="text" />
+            <CopyCodeBlock code={invoiceResponse} language="json" />
+            <p className="text-sm leading-6 text-slate-600">
+              from_date and to_date are optional for invoice lists. Use <code>GET /invoice/{'{invoice_id}'}</code> for one invoice and <code>GET /invoice/{'{invoice_id}'}/pdf</code> for its PDF as base64.
             </p>
+
+            <h3 className="text-lg font-semibold text-slate-950">2.6 Consumption / Production Measurements</h3>
+            <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}/measurement?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD&resolution=1h" language="text" />
+            <CopyCodeBlock code={measurementResponse} language="json" />
+            <p className="text-sm leading-6 text-slate-600">Resolution is <code>15m</code> or <code>1h</code>.</p>
           </Section>
 
-          <Section id="webhooks" title="6. Change notifications">
+          <Section id="webhooks" title="3. Webhook Subscriptions">
             <p className="leading-7 text-slate-700">
-              Webhooks tell you that a resource changed. They are not a second source of truth. After
-              receiving an event, fetch the current resource from its GET endpoint.
+              A webhook is a change signal. Verify the Gridex HMAC-SHA256 signature and then call the relevant GET endpoint to retrieve current data.
             </p>
-            <CopyCodeBlock code={webhookCreate} language="bash" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {events.map((event) => (
-                <code key={event} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
-                  {event}
-                </code>
+            <CopyCodeBlock code={webhookRequest} language="json" />
+            <CopyCodeBlock code={`{\n  "entity_id": "webhook_..."\n}`} language="json" />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {webhookEvents.map((event) => (
+                <code key={event} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">{event}</code>
               ))}
             </div>
-            <h3 className="text-lg font-semibold text-slate-950">Webhook payload</h3>
-            <CopyCodeBlock code={webhookPayload} language="json" />
             <p className="text-sm leading-6 text-slate-600">
-              Gridex signs the exact raw body with HMAC-SHA256 and sends <code>x-gridex-timestamp</code>,
-              <code> x-gridex-signature</code>, <code>x-gridex-event-id</code> and
-              <code> x-gridex-delivery-id</code>. The partner-generated signing secret is stored in
-              Vault and is never returned. Webhook targets must use public HTTPS endpoints; private,
-              loopback and link-local network targets are rejected.
+              target_url must be a public HTTPS endpoint. Private, loopback and link-local destinations are blocked. The signing secret is stored in Vault and is never returned by the API.
             </p>
           </Section>
 
-          <Section id="errors" title="7. Errors and safe retries">
-            <CopyCodeBlock code={errorExample} language="json" />
-            <p className="leading-7 text-slate-700">
-              Use <code>request_id</code> when contacting Gridex support. Treat <code>401</code> and
-              <code>403</code> as authentication/permission failures, <code>404</code> as a missing
-              resource, <code>409</code> as a conflicting/replayed business resource and
-              <code>422</code> as invalid input. Retry transient server/network failures with backoff;
-              never change the idempotency key for an identical retry.
-            </p>
-          </Section>
-
-          <Section id="security" title="8. Security model">
-            <ul className="list-disc space-y-2 pl-5 leading-7 text-slate-700">
-              <li>API keys are server-side credentials and bind requests to exactly one company.</li>
-              <li>Scopes are checked per operation; no client can request or elevate its own scopes.</li>
-              <li>Nested customer/site routes verify ownership before returning data.</li>
-              <li>Internal UUIDs, storage paths and signing secrets are not part of public responses.</li>
-              <li>Writes are idempotent; contract registration is transactional.</li>
-              <li>Privileged database functions are service-role only.</li>
-              <li>Webhook secrets are stored in Vault and outbound targets are public-HTTPS validated and DNS-pinned for delivery.</li>
-            </ul>
-          </Section>
-
-          <Section id="endpoints" title="9. Endpoint summary">
+          <Section id="summary" title="4. Endpoint Summary">
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead className="bg-slate-50 text-slate-700">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Method</th>
                     <th className="px-4 py-3 font-semibold">Endpoint</th>
-                    <th className="px-4 py-3 font-semibold">Purpose</th>
+                    <th className="px-4 py-3 font-semibold">Description</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {endpoints.map(([method, endpoint, purpose]) => (
+                  {endpointRows.map(([method, endpoint, description]) => (
                     <tr key={`${method}-${endpoint}`}>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono">{method}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono">{endpoint}</td>
-                      <td className="px-4 py-3 text-slate-700">{purpose}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">{method}</td>
+                      <td className="px-4 py-3"><code>{endpoint}</code></td>
+                      <td className="px-4 py-3 text-slate-600">{description}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-sm leading-6 text-slate-600">
-              Existing plural Partner API paths and older Website/Customer Portal routes remain only
-              for compatibility with already connected integrations. New supplier integrations should
-              use the canonical <code>/api/partner/v1</code> paths above.
-            </p>
           </Section>
         </article>
       </div>
