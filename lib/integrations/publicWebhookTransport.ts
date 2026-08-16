@@ -52,13 +52,17 @@ export function isDisallowedWebhookAddress(address: string): boolean {
   }
 
   if (isIP(normalized) === 6) {
-    // Fail closed to the IANA global-unicast allocation (2000::/3). This blocks
-    // loopback, link-local, ULA, multicast, NAT64 and other special-use prefixes.
-    const firstHextet = Number.parseInt(normalized.split(':', 1)[0], 16)
+    // Fail closed to the current global-unicast allocation (2000::/3). This
+    // excludes loopback, link-local, ULA, multicast, NAT64 and other local-use
+    // prefixes before any connection is attempted.
+    const [firstPart, secondPart = '0'] = normalized.split(':')
+    const firstHextet = Number.parseInt(firstPart, 16)
+    const secondHextet = Number.parseInt(secondPart || '0', 16)
     if (!Number.isFinite(firstHextet) || firstHextet < 0x2000 || firstHextet > 0x3fff) {
       return true
     }
     return (
+      (firstHextet === 0x2001 && Number.isFinite(secondHextet) && secondHextet <= 0x01ff) || // IETF special-purpose block
       /^2001:db8(?::|$)/.test(normalized) || // documentation
       /^2002(?::|$)/.test(normalized) || // 6to4 embeds an IPv4 target
       /^3fff:(?:0|[0-9a-f]{1,3})(?::|$)/.test(normalized) // documentation allocation
