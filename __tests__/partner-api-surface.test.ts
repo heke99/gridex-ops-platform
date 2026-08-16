@@ -12,7 +12,8 @@ describe('Partner API v1 public surface', () => {
   const scopes = read('lib/integrations/apiClientScopes.ts')
   const contractMigration = read('supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql')
   const eventMigration = read('supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql')
-  const dispatch = read('app/api/internal/webhooks/dispatch/route.ts')
+  const internalDispatch = read('app/api/internal/webhooks/dispatch/route.ts')
+  const partnerRoute = read('app/api/partner/v1/[[...path]]/route.ts')
   const webhooks = read('lib/integrations/webhooks.ts')
   const webhookTransport = read('lib/integrations/publicWebhookTransport.ts')
   const vault = read('lib/integrations/webhookVaultSecrets.ts')
@@ -126,13 +127,13 @@ describe('Partner API v1 public surface', () => {
   it('hydrates Vault webhook secrets only inside internal dispatch', () => {
     expect(vault).toContain('gridex_read_webhook_signing_secret_v1')
     expect(vault).toContain('delete process.env[item.envKey]')
-    expect(dispatch).toContain('hydrateVaultWebhookSecretsForDispatch')
-    expect(dispatch).toContain('cleanupVaultSecrets?.()')
+    expect(internalDispatch).toContain('hydrateVaultWebhookSecretsForDispatch')
+    expect(internalDispatch).toContain('cleanupVaultSecrets?.()')
   })
 
   it('blocks webhook SSRF targets at creation and delivery', () => {
-    expect(dispatch).toContain('assertPublicWebhookTarget')
-    expect(dispatch).toContain('webhook_target_not_public')
+    expect(partnerRoute).toContain('assertPublicWebhookTarget')
+    expect(partnerRoute).toContain('webhook_target_not_public')
     expect(webhookTransport).toContain("url.protocol !== 'https:'")
     expect(webhookTransport).toContain("hostname === 'localhost'")
     expect(webhookTransport).toContain('isDisallowedWebhookAddress')
