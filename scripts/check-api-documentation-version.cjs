@@ -35,11 +35,13 @@ for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/cu
 
 const partnerOpenApi = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')
 const partnerGuide = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
-const legacyGuide = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const customerPortalDeveloperRoute = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
 const partnerCore = fs.readFileSync('lib/partner-api/core.ts', 'utf8')
 const canonical = fs.readFileSync('lib/partner-api/canonical.ts', 'utf8')
 const partnerRoute = fs.readFileSync('app/api/partner/v1/[[...path]]/route.ts', 'utf8')
 const eventMigration = fs.readFileSync('supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql', 'utf8')
+const webhookTransport = fs.readFileSync('lib/integrations/publicWebhookTransport.ts', 'utf8')
+const webhookDispatch = fs.readFileSync('lib/integrations/webhooks.ts', 'utf8')
 
 if (!partnerOpenApi.includes(partnerExpected)) {
   failures.push(`lib/partner-api/openApi.ts does not expose Partner API version ${partnerExpected}`)
@@ -50,8 +52,8 @@ if (!partnerGuide.includes('PARTNER_API_VERSION')) {
 if (!partnerGuide.includes('v{PARTNER_API_VERSION}')) {
   failures.push('Partner developer guide must visibly render the canonical Partner API version')
 }
-if (!legacyGuide.includes('Customer Portal API')) {
-  failures.push('Legacy Customer Portal developer guide must remain available as a separate contract')
+if (!customerPortalDeveloperRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'")) {
+  failures.push('The /developers/customer-portal-api route must render the canonical Partner API guide')
 }
 
 for (const marker of [
@@ -86,18 +88,31 @@ for (const event of [
 ]) {
   if (!partnerOpenApi.includes(`'${event}'`)) failures.push(`Partner OpenAPI is missing webhook event ${event}`)
   if (!eventMigration.includes(`'${event}'`)) failures.push(`Partner event migration is missing webhook event ${event}`)
+  if (!webhookDispatch.includes(`'${event}'`)) failures.push(`Webhook dispatcher is missing Partner event ${event}`)
 }
 
 for (const marker of [
   'Partner API v1',
   '/api/partner/v1/openapi.json',
   'backend-to-backend',
-  'Company onboarding is not part of the Partner API',
-  'Existing plural Partner API routes',
+  'Company setup is intentionally outside this API',
+  'Existing plural Partner API paths',
 ]) {
   if (!partnerGuide.includes(marker)) failures.push(`Partner developer guide is missing marker: ${marker}`)
 }
 
+if (partnerGuide.includes('tenant_reference')) {
+  failures.push('Canonical Partner developer guide must not expose tenant_reference')
+}
+if (!partnerGuide.includes('"resource"')) {
+  failures.push('Canonical Partner webhook example must use the public resource envelope')
+}
+if (!webhookTransport.includes("url.protocol !== 'https:'") || !webhookTransport.includes('pinned.address')) {
+  failures.push('Partner webhook delivery must validate public HTTPS and pin the resolved address')
+}
+if (!webhookDispatch.includes('postPublicWebhook')) {
+  failures.push('Webhook dispatcher must use the hardened public webhook transport')
+}
 if (!partnerCore.includes('assertPublicResponsePayload(envelope)')) {
   failures.push('Partner API success payloads must pass the public payload safety guard')
 }
