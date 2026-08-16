@@ -52,19 +52,16 @@ export function isDisallowedWebhookAddress(address: string): boolean {
   }
 
   if (isIP(normalized) === 6) {
+    // Fail closed to the IANA global-unicast allocation (2000::/3). This blocks
+    // loopback, link-local, ULA, multicast, NAT64 and other special-use prefixes.
+    const firstHextet = Number.parseInt(normalized.split(':', 1)[0], 16)
+    if (!Number.isFinite(firstHextet) || firstHextet < 0x2000 || firstHextet > 0x3fff) {
+      return true
+    }
     return (
-      normalized === '::' ||
-      normalized === '::1' ||
-      normalized.startsWith('::') ||
-      /^64:ff9b(?::|$)/.test(normalized) ||
-      /^64:ff9b:1(?::|$)/.test(normalized) ||
-      /^100:(?:0(?::|$)|[0-9a-f]{1,4}:)/.test(normalized) ||
-      /^2001:(?:0{0,3}[0-1][0-9a-f]{0,2})(?::|$)/.test(normalized) ||
-      /^2001:db8(?::|$)/.test(normalized) ||
-      /^2002(?::|$)/.test(normalized) ||
-      /^f[cd][0-9a-f]{2}:/.test(normalized) ||
-      /^fe[89abcdef][0-9a-f]:/.test(normalized) ||
-      /^ff[0-9a-f]{2}:/.test(normalized)
+      /^2001:db8(?::|$)/.test(normalized) || // documentation
+      /^2002(?::|$)/.test(normalized) || // 6to4 embeds an IPv4 target
+      /^3fff:(?:0|[0-9a-f]{1,3})(?::|$)/.test(normalized) // documentation allocation
     )
   }
 
