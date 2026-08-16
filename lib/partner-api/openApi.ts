@@ -27,7 +27,7 @@ export const partnerOpenApi = {
     title: 'Gridex Partner API',
     version: PARTNER_API_VERSION,
     description:
-      'Simple backend-to-backend API for electricity suppliers and integration partners. Gridex manages company onboarding, tenant configuration, API credentials, products and market configuration outside this API. The public API exposes only business resources: contracts, customers, sites, powers of attorney, invoices, measurements and webhook notifications.',
+      'Backend-to-backend API for electricity suppliers and integration partners. Gridex manages company onboarding, credentials, products, permissions and market configuration outside this API. The integration surface contains only business resources: contracts, customers, sites, powers of attorney, invoices, measurements and signed change notifications.',
   },
   servers: [{ url: PARTNER_API_BASE_URL }],
   security: [{ BearerAuth: [] }],
@@ -158,6 +158,7 @@ export const partnerOpenApi = {
       },
       post: {
         summary: 'Create webhook subscription',
+        description: 'Registers a public HTTPS endpoint for signed change notifications. Private, loopback, link-local and otherwise non-public targets are rejected.',
         parameters: [idempotencyHeader],
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/WebhookSubscriptionInput' } } } },
         responses: { '201': { description: 'Webhook subscription created' }, '401': errorResponse, '403': errorResponse, '409': errorResponse, '422': errorResponse },
@@ -168,6 +169,32 @@ export const partnerOpenApi = {
         summary: 'Delete webhook subscription',
         parameters: [{ $ref: '#/components/parameters/WebhookSubscriptionReference' }],
         responses: { '200': { description: 'Deleted' }, '401': errorResponse, '403': errorResponse, '404': errorResponse },
+      },
+    },
+  },
+  webhooks: {
+    resourceChanged: {
+      post: {
+        summary: 'Signed business-resource change notification',
+        description: 'Gridex sends this notification to the subscribed endpoint. The receiver should verify the HMAC-SHA256 signature over the exact raw body, acknowledge quickly with 2xx, then fetch the current resource from the Partner API.',
+        security: [],
+        parameters: [
+          { name: 'x-gridex-timestamp', in: 'header', required: true, schema: { type: 'string' } },
+          { name: 'x-gridex-signature', in: 'header', required: true, schema: { type: 'string', pattern: '^sha256=' } },
+          { name: 'x-gridex-event-id', in: 'header', required: true, schema: { type: 'string' } },
+          { name: 'x-gridex-delivery-id', in: 'header', required: true, schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/WebhookEvent' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Receiver accepted the notification' },
+        },
       },
     },
   },
@@ -293,7 +320,12 @@ export const partnerOpenApi = {
         required: ['name', 'endpoint_url', 'event_types', 'signing_secret'],
         properties: {
           name: { type: 'string' },
-          endpoint_url: { type: 'string', format: 'uri', pattern: '^https://' },
+          endpoint_url: {
+            type: 'string',
+            format: 'uri',
+            pattern: '^https://',
+            description: 'Public HTTPS URL. Private, loopback, link-local and otherwise non-public targets are rejected.',
+          },
           event_types: {
             type: 'array',
             minItems: 1,
@@ -320,6 +352,49 @@ export const partnerOpenApi = {
             description: 'Partner-generated signing secret. Stored in Gridex Vault and never returned by the API.',
           },
           description: { type: 'string' },
+        },
+      },
+      WebhookEvent: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['event_id', 'event_type', 'created_at', 'resource', 'data', 'api_version', 'delivery_id'],
+        properties: {
+          event_id: { type: 'string', pattern: '^event_' },
+          event_type: {
+            type: 'string',
+            enum: [
+              'customer.created',
+              'customer.updated',
+              'site.created',
+              'site.updated',
+              'power_of_attorney.created',
+              'contract.created',
+              'contract.status_changed',
+              'invoice.created',
+              'invoice.updated',
+            ],
+          },
+          created_at: { type: 'string', format: 'date-time' },
+          resource: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['type', 'reference'],
+            properties: {
+              type: { type: 'string' },
+              reference: { type: 'string' },
+            },
+          },
+          customer: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              customer_reference: { type: ['string', 'null'] },
+              customer_number: { type: ['string', 'null'] },
+            },
+          },
+          data: { type: 'object', additionalProperties: true },
+          api_version: { type: 'string', const: PARTNER_API_VERSION },
+          delivery_id: { type: 'string', pattern: '^delivery_' },
         },
       },
       ErrorResponse: {
