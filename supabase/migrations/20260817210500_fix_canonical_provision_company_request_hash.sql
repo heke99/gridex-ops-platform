@@ -16,6 +16,10 @@ begin;
 set local lock_timeout = '10s';
 set local statement_timeout = '180s';
 
+alter table public.companies
+  add column if not exists industry text not null
+  default 'electricity_supplier';
+
 create or replace function public.canonical_provision_company_v3_pre_invitation_intent(
   p_command jsonb
 )
