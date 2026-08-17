@@ -82,5 +82,16 @@ on public.customer_sites
 for each row
 execute function private.gridex_guard_site_resolution_materialization_v1();
 
+drop policy if exists gridex_mp_c67c044a47edb7cb85b8 on public.platform_postal_code_grid_mappings;
+drop policy if exists platform_postal_code_grid_mappings_platform_admin_read on public.platform_postal_code_grid_mappings;
+create policy platform_postal_code_grid_mappings_platform_admin_read
+on public.platform_postal_code_grid_mappings
+for select
+to authenticated
+using ((select public.gridex_user_is_platform_admin()));
+
 comment on function private.gridex_guard_site_resolution_materialization_v1() is
 'Fail-closed materialization guard: when a site binds a new canonical energy resolution, only sufficiently trusted price area and resolution-owned exact coordinates/grid context may be copied. Postal suggestions can never bind grid owner/grid area, and unsafe/stale derived site values are cleared.';
+
+comment on policy platform_postal_code_grid_mappings_platform_admin_read on public.platform_postal_code_grid_mappings is
+'Shared postcode/grid resolver cache is internal masterdata. Tenant sessions cannot enumerate it; service-role resolver access and platform-admin inspection remain allowed.';
