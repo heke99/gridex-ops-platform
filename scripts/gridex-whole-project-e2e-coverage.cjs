@@ -111,14 +111,18 @@ for (const [domain, tokens] of Object.entries(requiredCoverageTokens)) {
   }
 }
 
-const npmScriptsReferenced = [...orchestrator.matchAll(/npmStep\([^\n]*?,'([^']+)'\s*,\s*'[^']*'\)/g)].map((match) => match[1])
+const npmScriptsReferenced = [
+  ...orchestrator.matchAll(/npmStep\(\s*'[^']+'\s*,\s*'[^']+'\s*,\s*'([^']+)'/g),
+].map((match) => match[1])
 for (const script of [...new Set(npmScriptsReferenced)]) {
   if (!Object.prototype.hasOwnProperty.call(packageScripts, script)) {
     issues.push(`Stale E2E reference: package.json script does not exist: ${script}`)
   }
 }
 
-const nodeFilesReferenced = [...orchestrator.matchAll(/nodeStep\([^\n]*?,'([^']+)'\s*,\s*\[/g)].map((match) => match[1])
+const nodeFilesReferenced = [
+  ...orchestrator.matchAll(/nodeStep\(\s*'[^']+'\s*,\s*'[^']+'\s*,\s*'([^']+)'/g),
+].map((match) => match[1])
 for (const file of [...new Set(nodeFilesReferenced)]) {
   if (!fs.existsSync(path.join(root, file))) issues.push(`Stale E2E reference: node step file does not exist: ${file}`)
 }
@@ -154,6 +158,10 @@ const report = {
     allowed_api_namespaces: [...allowedApiNamespaces].sort(),
     unknown_api_namespaces: unknownApiNamespaces,
   },
+  references: {
+    npm_scripts_checked: [...new Set(npmScriptsReferenced)].length,
+    node_files_checked: [...new Set(nodeFilesReferenced)].length,
+  },
   diff: {
     available: changed.available,
     range: changed.range,
@@ -173,5 +181,5 @@ if (issues.length > 0) {
   process.exit(1)
 }
 
-console.log(`Gridex whole-project E2E coverage passed: ${apiRoutes.length} API routes across ${apiNamespaces.length} classified namespaces, ${migrationFiles.length} migrations, and all required domain gates are wired.`)
+console.log(`Gridex whole-project E2E coverage passed: ${apiRoutes.length} API routes across ${apiNamespaces.length} classified namespaces, ${migrationFiles.length} migrations, ${report.references.npm_scripts_checked} npm E2E scripts and ${report.references.node_files_checked} node E2E files are wired.`)
 if (!changed.available) console.log('Git diff inventory was unavailable in this checkout; static whole-repository coverage still passed.')
