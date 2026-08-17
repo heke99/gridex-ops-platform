@@ -8,6 +8,7 @@ import {
   type IntegrationScopeRequirement,
 } from '@/lib/integrations/apiAuth'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
+import { EnergyResolutionBindingError } from '@/lib/energy/resolutionBinding'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
@@ -294,6 +295,15 @@ async function defaultOfferReference(
 
 function normalizeError(error: unknown): BusinessPartnerApiError {
   if (error instanceof BusinessPartnerApiError) return error
+  if (error instanceof EnergyResolutionBindingError) {
+    return new BusinessPartnerApiError(
+      error.message,
+      error.code,
+      error.status,
+      error.field,
+      error.details,
+    )
+  }
   if (error instanceof OfferQuoteError) {
     return new BusinessPartnerApiError(
       error.message,
