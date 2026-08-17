@@ -218,8 +218,7 @@ includesAll(commercialEditor, [
 includesAll(page, [
   "Stäng för ny försäljning",
   "Kontrollera readiness och gör internt",
-  "Publicera på hemsidan",
-  "pauseContractOfferAction",
+  "ContractChannelControl",
   "deletionPreview",
   "Kundförhandsgranskning och versionsskillnad",
   "contractVersionDiff",
@@ -238,10 +237,10 @@ includesAll(channelControl, [
   "unpublishContractChannelAction",
 ], "canonical per-channel lifecycle UX");
 includesAll(deleteControl, [
-  "ContractChannelControl",
   "Radera permanent",
   "Arkivera och dölj",
-], "current channel/delete/archive controls");
+], "current delete/archive controls");
+check(!deleteControl.includes("ContractChannelControl"), "delete/archive UI stays independent from channel lifecycle UI");
 
 includesAll(actions, [
   "requireContractPermissionAction",

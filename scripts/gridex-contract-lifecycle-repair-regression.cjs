@@ -195,7 +195,8 @@ includesAll(channelControl, [
 includesAll(page, [
   "website_publication_allowed",
   "removable_system_dependencies",
-], "admin UI retains tenant assignment and dependency lifecycle evidence");
+  "ContractChannelControl",
+], "admin UI retains tenant assignment, dependency evidence and reachable per-channel lifecycle controls");
 includesAll(tenantControls, [
   "listTenantContractProducts",
   "previewContractDelete",
@@ -214,12 +215,12 @@ includesAll(adminActions, [
   "archiveContractAction",
 ], "shared actor-bound contract actions");
 includesAll(deleteControl, [
-  "ContractChannelControl",
   "Radera permanent",
   "Bekräfta permanent radering",
   "expected_preview_token",
   "Arkivera och dölj",
-], "shared channel and preview-driven delete controls are composed together");
+], "preview-driven delete/archive concern stays separate from sales-channel lifecycle controls");
+check(!deleteControl.includes("ContractChannelControl"), "delete/archive control must not own sales-channel lifecycle UI");
 check(!tenantControls.includes("&edit=${offer.source_contract_offer_id}"), "legacy edit query parameter removed");
 includesAll(tenantActions, [
   "assertLifecycleResult",

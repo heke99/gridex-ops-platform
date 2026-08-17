@@ -11,10 +11,7 @@ import {
   cleanupUnusedContractDraftsAction,
   closeContractOfferAction,
   copyContractOfferAction,
-  pauseContractOfferAction,
-  publishContractChannelAction,
   publishContractVersionAction,
-  unpublishContractChannelAction,
   updateTenantContractChannelAction,
 } from "./actions";
 import {
@@ -37,6 +34,7 @@ import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import ContractOfferAdminForm from "@/components/admin/contracts/ContractOfferAdminForm";
 import ContractDeleteControl from "@/components/admin/contracts/ContractDeleteControl";
+import ContractChannelControl from "@/components/admin/contracts/ContractChannelControl";
 import { contractLifecycleAllows } from "@/lib/contracts/lifecycle";
 import {
   listTenantContractProducts,
@@ -1478,37 +1476,11 @@ export default async function AdminContractsPage({
                                    Readiness godkänns när avtalsversionen görs intern. Därefter styrs hemsida och API separat mot samma låsta version.
                                 </p>
                               </div>
-                              <form
-                                action={
-                                  offer.website_channel_status === "active"
-                                    ? unpublishContractChannelAction
-                                    : publishContractChannelAction
-                                }
-                              >
-                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                <input type="hidden" name="id" value={offer.id} />
-                                <input type="hidden" name="channel" value="website" />
-                                <button
-                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black ${
-                                    offer.website_channel_status === "active"
-                                      ? "border-amber-200 bg-amber-50 text-amber-800"
-                                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                  }`}
-                                >
-                                  {offer.website_channel_status === "active"
-                                    ? "Ta bort från hemsidan"
-                                    : "Publicera på hemsidan"}
-                                </button>
-                              </form>
-                              {contractLifecycleAllows(offer.lifecycle_status, "pause_channels") ? (
-                                <form action={pauseContractOfferAction}>
-                                  <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                  <input type="hidden" name="id" value={offer.id} />
-                                  <button className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
-                                    Pausa avtalet internt och på hemsidan
-                                  </button>
-                                </form>
-                              ) : null}
+                              <ContractChannelControl
+                                companyId={scope.companyId ?? ""}
+                                offerId={offer.id}
+                                surface="contracts"
+                              />
                             </div>
                           ) : null}
                           {offer.lifecycle_status === "archived" || offer.lifecycle_status === "closed" ? (
