@@ -124,7 +124,11 @@ for (const requiredTerm of [
     failures.push(`Partner developer guide is missing ${requiredTerm}.`)
   }
 }
-if (!partnerDocumentationPage.includes('Gridex configures the company, permissions and published electricity offer behind the API key')) {
+if (
+  !partnerDocumentationPage.includes('Gridex determines the company from the API key') ||
+  !partnerDocumentationPage.includes('published electricity offer server-side') ||
+  !partnerDocumentationPage.includes('product IDs')
+) {
   failures.push('Partner developer guide must state that company/product configuration remains Gridex-managed.')
 }
 if (!customerPortalRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'")) {
