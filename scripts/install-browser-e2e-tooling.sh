@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Intentionally installed without changing package.json/package-lock.json.
-# This keeps the existing application dependency lock stable while pinning the
-# browser-quality toolchain used by CI and local E2E runs.
-npm install --no-save --package-lock=false \
-  @playwright/test@1.60.0 \
-  @axe-core/playwright@4.11.3
-
+# @playwright/test and @axe-core/playwright are pinned in package.json/package-lock.json
+# and installed by npm ci. This step only installs the reviewed Chromium runtime
+# and its OS dependencies, avoiding a second npm dependency-tree mutation in CI.
 npx playwright install --with-deps chromium
