@@ -41,16 +41,12 @@ for (const column of [
 }
 
 // ---- 3. Application reference belongs to the environment-scoped canonical profile ----
-for (const field of ['test_application_reference', 'production_application_reference']) {
-  assert(
-    edielActions.includes(field),
-    `ediel-actions.ts: bolagskort reads environment-specific ${field}`,
-  )
-}
 assert(
-  edielActions.includes('application_reference: applicationReference') &&
-    edielActions.includes('saveCanonicalEdielActorProfile'),
-  'ediel-actions.ts: persists application_reference through the canonical environment-scoped actor profile',
+  edielActions.includes("formData.get('application_reference')") &&
+    edielActions.includes('[`${environment}_application_reference`]') &&
+    edielActions.includes("rpc('canonical_save_ediel_actor_profile'") &&
+    edielActions.includes('p_command: command'),
+  'ediel-actions.ts: persists application_reference as an environment-scoped canonical actor-profile command',
 )
 assert(
   !edielActions.includes('default_application_reference'),
