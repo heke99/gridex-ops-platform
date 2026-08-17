@@ -2,12 +2,11 @@
 // Regression: Tenant bolagskort / source-of-truth
 // Verifies:
 // 1. Bolagskort actor save is the source of truth (ediel_actor_settings).
-// 2. Ediel ID / subaddresses / application references are written into the
-//    ACTUAL schema columns (sender_sub_address, sender_subaddress,
-//    sender_subaddress_prodat, sender_subaddress_utilts).
-// 3. No code relies on a non-existing bare `subaddress` column on ediel_actor_settings.
-// 4. Production profile uses production actor setting (env-scoped resolution).
-// 5. Test profile uses test actor setting (env-scoped resolution).
+// 2. Ediel ID / subaddresses are written into the actual schema columns.
+// 3. Application references are environment-scoped and persisted through the
+//    canonical Ediel actor profile instead of a deprecated default column.
+// 4. No code relies on a non-existing bare `subaddress` column on ediel_actor_settings.
+// 5. Production/test profile resolution is environment-scoped.
 // 6. Duplicate active actor settings are detected and surfaced.
 // 7. Shared mailbox is transport only (company_id null + platform_shared scope),
 //    never tenant identity.
@@ -20,10 +19,10 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
 
 const assert = (condition, message) => {
   if (!condition) {
-    console.error(`\u274c ${message}`)
+    console.error(`❌ ${message}`)
     process.exit(1)
   }
-  console.log(`\u2705 ${message}`)
+  console.log(`✅ ${message}`)
 }
 
 // ---- 1 + 2. Bolagskort writes per-family subaddresses to actual columns ----
@@ -33,8 +32,6 @@ for (const column of [
   'sender_subaddress',
   'sender_subaddress_prodat',
   'sender_subaddress_utilts',
-  'default_application_reference',
-  'application_reference',
   'ediel_id',
 ]) {
   assert(
@@ -43,13 +40,30 @@ for (const column of [
   )
 }
 
-// ---- 3. No code writes a bare `subaddress` column to ediel_actor_settings ----
+// ---- 3. Application reference belongs to the environment-scoped canonical profile ----
+for (const field of ['test_application_reference', 'production_application_reference']) {
+  assert(
+    edielActions.includes(field),
+    `ediel-actions.ts: bolagskort reads environment-specific ${field}`,
+  )
+}
+assert(
+  edielActions.includes('application_reference: applicationReference') &&
+    edielActions.includes('saveCanonicalEdielActorProfile'),
+  'ediel-actions.ts: persists application_reference through the canonical environment-scoped actor profile',
+)
+assert(
+  !edielActions.includes('default_application_reference'),
+  'ediel-actions.ts: does not depend on deprecated default_application_reference',
+)
+
+// ---- 4. No code writes a bare `subaddress` column to ediel_actor_settings ----
 assert(
   !/from\(['"]ediel_actor_settings['"]\)[\s\S]{0,400}\bsubaddress:\s/.test(edielActions),
   'ediel-actions.ts: does NOT write a bare `subaddress` column to ediel_actor_settings',
 )
 
-// ---- 4 + 5. Production/test use environment-scoped actor settings ----
+// ---- 5. Production/test use environment-scoped actor settings ----
 const senderResolver = read('lib/ediel/senderSettingsResolver.ts')
 assert(
   senderResolver.includes('lower(row.environment) === environment'),
@@ -93,4 +107,4 @@ assert(
   'companies/[id]/page.tsx: clarifies shared mailbox is transport, Ediel-profil is identity',
 )
 
-console.log('\n\u2713 Tenant source-of-truth regression passed.')
+console.log('\n✓ Tenant source-of-truth regression passed.')
