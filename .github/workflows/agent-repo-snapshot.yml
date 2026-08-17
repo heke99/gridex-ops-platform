@@ -1,0 +1,22 @@
+name: Agent repo snapshot
+
+on:
+  push:
+    branches:
+      - audit/website-contract-e2e-20260817
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package repository snapshot
+        run: tar -czf repo-snapshot.tgz --exclude=.git --exclude=node_modules --exclude=e2e-artifacts .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-ops-repo-snapshot-${{ github.run_id }}
+          path: repo-snapshot.tgz
+          retention-days: 1
