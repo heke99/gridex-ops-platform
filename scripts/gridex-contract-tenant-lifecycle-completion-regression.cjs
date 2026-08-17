@@ -47,11 +47,12 @@ assert.ok(
   "tenant close must detect active customer contracts",
 );
 assert.ok(
-  apiAuth.includes(".from('companies')") &&
+  apiAuth.includes("authenticate_integration_request_v1") &&
+    apiAuth.includes("tenant_status") &&
     apiAuth.includes("tenantApiAccessError") &&
     apiAuth.includes("tenant_paused") &&
     apiAuth.includes("tenant_closed"),
-  "integration auth must centrally verify tenant lifecycle",
+  "integration auth must atomically verify tenant lifecycle",
 );
 assert.ok(
   contractActions.includes('"gridex_close_contract_product"') &&
