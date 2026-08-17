@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTransport'
+import { handlePartnerBusinessApi } from '@/lib/partner-api/business'
+import { synchronizePartnerCreatedSite } from '@/lib/partner-api/businessResolution'
 import { handleCanonicalPartnerApi } from '@/lib/partner-api/canonical'
 import { handlePartnerApi } from '@/lib/partner-api/core'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
@@ -80,11 +82,30 @@ async function dispatch(
   const targetRejection = await preflightWebhookTarget(request, path)
   if (targetRejection) return targetRejection
 
-  const simple = await handleSimplePartnerApi(request, method, path)
-  if (simple) return simple
+  // Business-first surface: small partner DTOs backed by the same canonical
+  // energy, market-price and quote engines as the rest of Gridex.
+  const business = await handlePartnerBusinessApi(request, method, path)
+  if (business) return business
 
-  const canonical = await handleCanonicalPartnerApi(request, method, path)
-  return canonical ?? handlePartnerApi(request, method, path)
+  const simple = await handleSimplePartnerApi(request, method, path)
+  const canonical = simple ? null : await handleCanonicalPartnerApi(request, method, path)
+  const response = simple ?? canonical ?? await handlePartnerApi(request, method, path)
+
+  // Contract/site creation remains owned by the existing transaction/idempotency
+  // layer. After a successful write we resolve the canonical customer_sites row
+  // before returning, so every partner-created site follows the same resolver
+  // and database fields as website/OPS flows.
+  if (method === 'POST') {
+    try {
+      await synchronizePartnerCreatedSite(response, path)
+    } catch (error) {
+      console.error('[partner-api] post-create site resolution failed', {
+        path: (path ?? []).join('/'),
+        error,
+      })
+    }
+  }
+  return response
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
