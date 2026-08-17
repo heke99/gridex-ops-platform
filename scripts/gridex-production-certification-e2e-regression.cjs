@@ -20,6 +20,17 @@ function rejectText(source, needle, label) {
   if (source.includes(needle)) throw new Error(`${label}: forbidden ${JSON.stringify(needle)}`)
 }
 
+function jobSection(source, jobName, nextJobName = null) {
+  const startToken = `\n  ${jobName}:\n`
+  const start = source.indexOf(startToken)
+  if (start < 0) throw new Error(`Missing workflow job: ${jobName}`)
+  if (!nextJobName) return source.slice(start)
+  const endToken = `\n  ${nextJobName}:\n`
+  const end = source.indexOf(endToken, start + startToken.length)
+  if (end < 0) throw new Error(`Missing workflow job after ${jobName}: ${nextJobName}`)
+  return source.slice(start, end)
+}
+
 const workflow = read('.github/workflows/production-certification-e2e.yml')
 const config = read('playwright.production-certification.config.mjs')
 const preflight = read('e2e/production/preflight.spec.mjs')
@@ -37,6 +48,29 @@ requireText(workflow, 'AUTHORIZED_LIVE_CUSTOMER', 'live customer authorization g
 requireText(workflow, 'https://app.gridex.se', 'production OPS target pin')
 requireText(workflow, 'https://gridex.se', 'Gridex tenant website target pin')
 requireText(workflow, 'environment: production-e2e', 'production GitHub Environment boundary')
+
+const preflightJob = jobSection(workflow, 'preflight', 'tenant-bootstrap')
+const tenantJob = jobSection(workflow, 'tenant-bootstrap', 'live-customer-preflight')
+const liveQuoteJob = jobSection(workflow, 'live-customer-preflight')
+
+for (const secret of [
+  'GRIDEX_E2E_CUSTOMER_ADDRESS',
+  'GRIDEX_E2E_CUSTOMER_POSTAL_CODE',
+  'GRIDEX_E2E_CUSTOMER_CITY',
+  'GRIDEX_E2E_CUSTOMER_ANNUAL_KWH',
+]) {
+  rejectText(preflightJob, secret, 'platform preflight must not receive customer fixture secrets')
+  rejectText(tenantJob, secret, 'tenant bootstrap must not receive customer fixture secrets')
+  requireText(liveQuoteJob, secret, 'live quote must receive only required customer fixture secrets')
+}
+for (const secret of [
+  'GRIDEX_E2E_SUPERADMIN_EMAIL',
+  'GRIDEX_E2E_SUPERADMIN_PASSWORD',
+  'GRIDEX_E2E_TENANT_ADMIN_EMAIL',
+  'GRIDEX_E2E_TENANT_ADMIN_PASSWORD',
+]) {
+  rejectText(liveQuoteJob, secret, 'live quote job must not receive admin credentials')
+}
 
 for (const [key, value] of [
   ['trace', "trace: 'off'"],
@@ -74,9 +108,6 @@ rejectText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_PHONE', 'quote preflight 
 requireText(evidence, "createHash('sha256')", 'evidence fingerprint implementation')
 requireText(evidence, "mode: 0o600", 'local evidence file permissions')
 
-// Only the minimum location/consumption fixture needed for a quote may enter the
-// current workflow. Identity, contact, legal and facility secrets remain blocked
-// until the separately gated real-contract phase is implemented.
 const forbiddenLiveContractSecrets = [
   'GRIDEX_E2E_CUSTOMER_NAME',
   'GRIDEX_E2E_CUSTOMER_EMAIL',
@@ -87,15 +118,6 @@ const forbiddenLiveContractSecrets = [
 ]
 for (const secret of forbiddenLiveContractSecrets) {
   rejectText(workflow, secret, 'real-contract/customer identity secrets must stay outside quote preflight workflow')
-}
-
-for (const allowedSecret of [
-  'GRIDEX_E2E_CUSTOMER_ADDRESS',
-  'GRIDEX_E2E_CUSTOMER_POSTAL_CODE',
-  'GRIDEX_E2E_CUSTOMER_CITY',
-  'GRIDEX_E2E_CUSTOMER_ANNUAL_KWH',
-]) {
-  requireText(workflow, allowedSecret, 'authorized quote preflight secret wiring')
 }
 
 console.log('Gridex production certification E2E safety regression passed.')
