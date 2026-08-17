@@ -5,6 +5,10 @@ import {
   requireEnv,
   writeEvidence,
 } from './helpers/evidence.mjs'
+import {
+  isValidSwedishOrganizationNumber,
+  syntheticSwedishOrganizationNumber,
+} from './helpers/swedish-organization-number.mjs'
 
 const prodBaseUrl = requireEnv('GRIDEX_E2E_PROD_BASE_URL').replace(/\/$/, '')
 const superadminEmail = requireEnv('GRIDEX_E2E_SUPERADMIN_EMAIL').trim().toLowerCase()
@@ -30,10 +34,14 @@ test('superadmin provisions a fresh synthetic tenant and real admin invitation i
   const tenantName = `GRIDEX E2E Certification ${suffix}`
   const slug = `gridex-e2e-cert-${suffix}`
   const prefix = `E2${suffix.slice(-6)}`.toUpperCase()
+  const organizationNumber = syntheticSwedishOrganizationNumber(runId)
   const checks = []
   let companyId = null
 
   try {
+    expect(isValidSwedishOrganizationNumber(organizationNumber)).toBe(true)
+    checks.push({ name: 'synthetic_org_number_valid', status: 'passed' })
+
     await loginAsSuperadmin(page)
     checks.push({ name: 'superadmin_login', status: 'passed' })
 
@@ -41,7 +49,7 @@ test('superadmin provisions a fresh synthetic tenant and real admin invitation i
     await expect(page.getByRole('heading', { name: 'Skapa nytt elhandelsbolag' })).toBeVisible()
 
     await page.getByLabel('Bolagsnamn').fill(tenantName)
-    await page.getByLabel('Organisationsnummer').fill(`E2E-${suffix}`)
+    await page.getByLabel('Organisationsnummer').fill(organizationNumber)
     await page.getByLabel('Kortnamn').fill(slug)
     await page.getByLabel('Kundnummerprefix').fill(prefix)
     await page.getByLabel('Kontaktperson').fill('Gridex E2E Certification')
@@ -82,6 +90,7 @@ test('superadmin provisions a fresh synthetic tenant and real admin invitation i
         name: tenantName,
         slug,
         customer_number_prefix: prefix,
+        organization_number_fingerprint: fingerprint(organizationNumber),
         tenant_admin_email_fingerprint: fingerprint(tenantAdminEmail),
       },
       checks,
@@ -94,7 +103,12 @@ test('superadmin provisions a fresh synthetic tenant and real admin invitation i
       status: 'failed',
       started_at: startedAt,
       finished_at: new Date().toISOString(),
-      synthetic_tenant: companyId ? { company_id: companyId } : null,
+      synthetic_tenant: companyId
+        ? {
+            company_id: companyId,
+            organization_number_fingerprint: fingerprint(organizationNumber),
+          }
+        : null,
       error: error instanceof Error ? error.message : String(error),
       checks,
       pii_written_to_artifact: false,
