@@ -7,6 +7,7 @@ const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), '
 describe('Papilite postal centroid hardening', () => {
   const resolver = read('lib/energy/resolver.ts')
   const migration = read('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql')
+  const materializationGuard = read('supabase/migrations/20260817124500_site_resolution_materialization_guard.sql')
 
   it('uses PAP/API Lite as postcode-only enrichment', () => {
     expect(resolver).toContain("const PAPILITE_DEFAULT_URL = 'https://api.papapi.se/lite/'")
@@ -39,6 +40,17 @@ describe('Papilite postal centroid hardening', () => {
     expect(resolver).toContain('resolved.priceAreaAssurance.confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE')
     expect(resolver).toContain("const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null")
     expect(resolver).toContain("const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null")
+  })
+
+  it('enforces fail-closed materialization again at the database boundary', () => {
+    expect(materializationGuard).toContain("v_resolution.price_area_assurance_status = 'verified'")
+    expect(materializationGuard).toContain("v_resolution.price_area_assurance_status = 'estimated'")
+    expect(materializationGuard).toContain('v_resolution.price_area_assurance_confidence >= 0.8')
+    expect(materializationGuard).toContain("lower(coalesce(v_resolution.resolution_status, '')) = 'postal_suggested'")
+    expect(materializationGuard).toContain('new.grid_owner_id := null')
+    expect(materializationGuard).toContain('new.grid_area_code := null')
+    expect(materializationGuard).toContain("v_resolution.result_snapshot->'coordinates'")
+    expect(materializationGuard).toContain('customer_site_id = new.id')
   })
 
   it('learns shared mapping only from verified tenant sites and copies no tenant identity', () => {
