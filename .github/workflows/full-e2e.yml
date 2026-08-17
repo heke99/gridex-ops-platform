@@ -17,6 +17,7 @@ on:
           - smoke
           - full
           - runtime
+          - real
           - all
 
 permissions:
@@ -38,6 +39,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -63,6 +66,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -92,8 +97,11 @@ jobs:
       GRIDEX_E2E_TARGET: staging
       GRIDEX_E2E_CONFIRM_STAGING: 'YES'
       GRIDEX_E2E_ALLOW_MUTATION: 'YES'
+      GRIDEX_E2E_ALLOW_OUTBOUND: 'NO'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -128,6 +136,67 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gridex-e2e-runtime-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  real-customer-staging:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'real' || inputs.mode == 'all'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_E2E_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      GRIDEX_E2E_REAL_COMPANY_ID: ${{ secrets.GRIDEX_E2E_REAL_COMPANY_ID }}
+      GRIDEX_E2E_REAL_CUSTOMER_ID: ${{ secrets.GRIDEX_E2E_REAL_CUSTOMER_ID }}
+      GRIDEX_E2E_REAL_SITE_ID: ${{ secrets.GRIDEX_E2E_REAL_SITE_ID }}
+      GRIDEX_E2E_REAL_CONTRACT_ID: ${{ secrets.GRIDEX_E2E_REAL_CONTRACT_ID }}
+      GRIDEX_E2E_REAL_CUSTOMER_NUMBER: ${{ secrets.GRIDEX_E2E_REAL_CUSTOMER_NUMBER }}
+      GRIDEX_E2E_REAL_REQUIRE_LEGAL: ${{ vars.GRIDEX_E2E_REAL_REQUIRE_LEGAL }}
+      GRIDEX_E2E_REAL_REQUIRE_BILLING: ${{ vars.GRIDEX_E2E_REAL_REQUIRE_BILLING }}
+      GRIDEX_E2E_TARGET: staging
+      GRIDEX_E2E_REAL_CUSTOMER_CONFIRM: 'YES'
+      GRIDEX_E2E_ALLOW_OUTBOUND: 'NO'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: real-fixture
+        name: Verify protected real-customer fixture
+        shell: bash
+        run: |
+          missing=0
+          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_REAL_COMPANY_ID GRIDEX_E2E_REAL_CUSTOMER_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              echo "Manual real-customer E2E requires the protected staging fixture secrets." >&2
+              exit 1
+            fi
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nightly real-customer E2E skipped because protected fixture secrets are not configured."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run persistent real-customer certificate
+        if: steps.real-fixture.outputs.enabled == 'true'
+        run: node scripts/gridex-full-production-e2e.cjs --mode=real
+      - name: Upload real-customer E2E evidence
+        if: always() && steps.real-fixture.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-e2e-real-customer-${{ github.run_id }}
           path: e2e-artifacts/
           if-no-files-found: error
           retention-days: 30

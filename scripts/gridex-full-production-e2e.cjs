@@ -12,12 +12,12 @@ fs.mkdirSync(logsDir, { recursive: true })
 
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const packageScripts = pkg.scripts || {}
-const validModes = new Set(['smoke', 'full', 'runtime', 'all'])
+const validModes = new Set(['smoke', 'full', 'runtime', 'real', 'all'])
 const requested = process.argv.find((arg) => arg.startsWith('--mode='))?.split('=')[1]
   || process.env.GRIDEX_E2E_MODE
   || 'smoke'
 if (!validModes.has(requested)) {
-  console.error(`Unknown E2E mode ${JSON.stringify(requested)}. Use smoke, full, runtime or all.`)
+  console.error(`Unknown E2E mode ${JSON.stringify(requested)}. Use smoke, full, runtime, real or all.`)
   process.exit(2)
 }
 
@@ -40,6 +40,7 @@ const nodeStep = (id, category, file, args, description) => ({
 // The smoke suite is intentionally fast enough for every push while still
 // touching every production boundary through existing Gridex regression gates.
 const smoke = [
+  nodeStep('whole-project-coverage', 'coverage', 'scripts/gridex-whole-project-e2e-coverage.cjs', [], 'Inventories the whole repository and rejects unclassified API surfaces, migration drift and stale E2E references.'),
   nodeStep('tenant-platform-contract', 'tenant', 'scripts/gridex-tenant-platform-e2e-contract-regression.cjs', [], 'Locks canonical tenant, invitation, lifecycle and website intake invariants.'),
   npmStep('migrations', 'database', 'db:migrations:check', 'Migration integrity, public contracts and generated schema types.'),
   npmStep('tenant-model', 'tenant', 'tenant:multitenant:static', 'Canonical multi-tenant model and isolation contract.'),
@@ -130,6 +131,10 @@ const runtime = [
   nodeStep('fresh-tenant-runtime', 'runtime_tenant', 'scripts/gridex-tenant-runtime-e2e.mjs', [], 'Staging-only new-tenant canonical lifecycle and contract roundtrip.'),
 ]
 
+const realCustomer = [
+  nodeStep('real-customer-runtime', 'real_customer', 'scripts/gridex-real-customer-e2e.mjs', [], 'Read-only persistent staging customer graph validation using protected fixture IDs.'),
+]
+
 function mergeUnique(...groups) {
   const seen = new Set()
   return groups.flat().filter((step) => {
@@ -145,18 +150,24 @@ const steps = requested === 'smoke'
     ? mergeUnique(smoke, fullOnly)
     : requested === 'runtime'
       ? runtime
-      : mergeUnique(smoke, fullOnly, runtime)
+      : requested === 'real'
+        ? realCustomer
+        : mergeUnique(smoke, fullOnly, runtime, realCustomer)
 
 function secretValues() {
   const explicitNames = [
     'SUPABASE_SERVICE_ROLE_KEY',
     'GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY',
+    'GRIDEX_E2E_ACTOR_USER_ID',
     'DATABASE_URL',
     'RESEND_API_KEY',
     'CRON_SECRET',
     'OPENAI_API_KEY',
   ]
-  return explicitNames.map((name) => process.env[name]).filter((value) => typeof value === 'string' && value.length >= 8)
+  const dynamicRealFixtureNames = Object.keys(process.env).filter((name) => name.startsWith('GRIDEX_E2E_REAL_'))
+  return [...new Set([...explicitNames, ...dynamicRealFixtureNames])]
+    .map((name) => process.env[name])
+    .filter((value) => typeof value === 'string' && value.length >= 6)
 }
 
 const secrets = secretValues()
@@ -175,25 +186,43 @@ function slug(value) {
   return value.replace(/[^a-z0-9_.-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase()
 }
 
+function classifyFailure(step, combined, explicitError) {
+  const text = `${explicitError || ''}\n${combined || ''}`.toLowerCase()
+  if (/missing required package\.json script|node step file does not exist|stale e2e reference|cannot find module|module not found|unclassified api namespace/.test(text)) {
+    return 'stale_regression_or_uncovered_surface'
+  }
+  if (step.category === 'database' || /migration|schema drift|database drift|generated types|supabase.*schema/.test(text)) {
+    return 'database_or_migration_drift'
+  }
+  if (/missing required secret|staging configuration|enotfound|econnrefused|network|timeout|timed out|rate limit|http 429|http 5\d\d|external dependency/.test(text)) {
+    return 'environment_or_external_dependency'
+  }
+  return 'code_or_workflow_defect'
+}
+
 function runStep(step) {
   if (step.kind === 'npm' && !Object.prototype.hasOwnProperty.call(packageScripts, step.script)) {
+    const error = `Required package.json script is missing: ${step.script}`
     return {
       ...step,
       status: 'failed',
       exit_code: 127,
       duration_ms: 0,
       log_file: null,
-      error: `Required package.json script is missing: ${step.script}`,
+      error,
+      failure_class: classifyFailure(step, '', error),
     }
   }
   if (step.kind === 'node' && !fs.existsSync(path.join(root, step.file))) {
+    const error = `Required E2E script is missing: ${step.file}`
     return {
       ...step,
       status: 'failed',
       exit_code: 127,
       duration_ms: 0,
       log_file: null,
-      error: `Required E2E script is missing: ${step.file}`,
+      error,
+      failure_class: classifyFailure(step, '', error),
     }
   }
 
@@ -215,7 +244,9 @@ function runStep(step) {
 
   const exitCode = typeof result.status === 'number' ? result.status : 1
   const status = exitCode === 0 ? 'passed' : 'failed'
-  console.log(`${status.toUpperCase()} ${step.id} (${Math.round(duration / 100) / 10}s)`)
+  const explicitError = result.error ? redact(result.error.message) : null
+  const failureClass = status === 'failed' ? classifyFailure(step, combined, explicitError) : null
+  console.log(`${status.toUpperCase()} ${step.id} (${Math.round(duration / 100) / 10}s)${failureClass ? ` [${failureClass}]` : ''}`)
   if (status === 'failed') {
     const tail = combined.split('\n').slice(-30).join('\n')
     console.error(tail)
@@ -227,7 +258,8 @@ function runStep(step) {
     signal: result.signal || null,
     duration_ms: duration,
     log_file: path.relative(root, logPath),
-    error: result.error ? redact(result.error.message) : null,
+    error: explicitError,
+    failure_class: failureClass,
   }
 }
 
@@ -248,13 +280,15 @@ const passed = results.filter((row) => row.status === 'passed').length
 const failed = results.filter((row) => row.status === 'failed').length
 const totalDuration = results.reduce((sum, row) => sum + row.duration_ms, 0)
 const categories = {}
+const failureClasses = {}
 for (const row of results) {
   categories[row.category] ||= { passed: 0, failed: 0 }
   categories[row.category][row.status] += 1
+  if (row.failure_class) failureClasses[row.failure_class] = (failureClasses[row.failure_class] || 0) + 1
 }
 
 const report = {
-  schema_version: 1,
+  schema_version: 2,
   suite: 'gridex-full-production-e2e',
   mode: requested,
   started_at: startedAt,
@@ -263,11 +297,14 @@ const report = {
   status: failed === 0 ? 'passed' : 'failed',
   summary: { total: results.length, passed, failed },
   categories,
+  failure_classes: failureClasses,
   safety: {
     ci_self_modifies_repository: false,
     production_mutation_allowed: false,
     runtime_mutation_requires_explicit_staging_opt_in: true,
-    logs_redact_known_secrets: true,
+    real_customer_fixture_is_read_only: true,
+    real_customer_outbound_allowed: false,
+    logs_redact_known_secrets_and_fixture_values: true,
   },
   results,
 }
@@ -283,23 +320,25 @@ const md = [
   `- Started: ${startedAt}`,
   `- Finished: ${finishedAt}`,
   '',
-  '| Domain | Step | Status | Duration | Evidence |',
-  '|---|---|---:|---:|---|',
-  ...results.map((row) => `| ${row.category} | ${row.id} | ${row.status} | ${(row.duration_ms / 1000).toFixed(1)}s | ${row.log_file || row.error || '-'} |`),
+  '| Domain | Step | Status | Failure class | Duration | Evidence |',
+  '|---|---|---:|---|---:|---|',
+  ...results.map((row) => `| ${row.category} | ${row.id} | ${row.status} | ${row.failure_class || '-'} | ${(row.duration_ms / 1000).toFixed(1)}s | ${row.log_file || row.error || '-'} |`),
   '',
   '## Safety contract',
   '',
   '- CI never edits production data or commits fixes by itself.',
-  '- Runtime tenant mutation is staging-only and requires three explicit opt-ins.',
+  '- Fresh-tenant runtime mutation is staging-only and requires explicit opt-ins.',
+  '- Persistent real-customer validation is read-only and refuses outbound traffic.',
+  '- Real fixture values and known credentials are redacted from runner logs.',
   '- Test tenant retirement uses lifecycle tombstones; no business history is hard-deleted.',
-  '- Failures are localized to domain/step and full redacted logs are uploaded as CI artifacts.',
+  '- Failures are classified so stale tests, database drift, external blockers and production defects are not conflated.',
   '',
 ]
 fs.writeFileSync(path.join(artifactDir, 'gridex-e2e-report.md'), `${md.join('\n')}\n`)
 
 const junitCases = results.map((row) => {
   const failure = row.status === 'failed'
-    ? `<failure message="${xmlEscape(row.error || `exit ${row.exit_code}`)}">See ${xmlEscape(row.log_file || 'E2E report')}</failure>`
+    ? `<failure message="${xmlEscape(row.failure_class || row.error || `exit ${row.exit_code}`)}">See ${xmlEscape(row.log_file || 'E2E report')}</failure>`
     : ''
   return `<testcase classname="gridex.e2e.${xmlEscape(row.category)}" name="${xmlEscape(row.id)}" time="${(row.duration_ms / 1000).toFixed(3)}">${failure}</testcase>`
 }).join('')
