@@ -1,0 +1,133 @@
+name: Gridex full E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: E2E suite to run
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - full
+          - runtime
+          - all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gridex-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'smoke')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run tenant-wide smoke certificate
+        run: node scripts/gridex-full-production-e2e.cjs --mode=smoke
+      - name: Upload E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-e2e-smoke-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  full:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.mode == 'all'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run full production release certificate
+        run: node scripts/gridex-full-production-e2e.cjs --mode=full
+      - name: Upload full E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-e2e-full-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  runtime-staging:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'runtime' || inputs.mode == 'all'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_E2E_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      GRIDEX_E2E_ACTOR_USER_ID: ${{ secrets.GRIDEX_E2E_ACTOR_USER_ID }}
+      GRIDEX_E2E_TARGET: staging
+      GRIDEX_E2E_CONFIRM_STAGING: 'YES'
+      GRIDEX_E2E_ALLOW_MUTATION: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: staging-secrets
+        name: Verify isolated staging configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              echo "Manual runtime E2E requires all staging secrets." >&2
+              exit 1
+            fi
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nightly runtime tenant E2E skipped because isolated staging secrets are not configured."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run fresh-tenant runtime certificate
+        if: steps.staging-secrets.outputs.enabled == 'true'
+        run: node scripts/gridex-full-production-e2e.cjs --mode=runtime
+      - name: Upload runtime E2E evidence
+        if: always() && steps.staging-secrets.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-e2e-runtime-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: error
+          retention-days: 30
