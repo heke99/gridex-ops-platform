@@ -85,6 +85,7 @@ jobs:
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           supabase gen types typescript --local > rem002-database.types.ts
           # Typegen emits non-null Returns for nullable SQL columns on the
           # field-511 resolver; apply the same durable override used on tip.
