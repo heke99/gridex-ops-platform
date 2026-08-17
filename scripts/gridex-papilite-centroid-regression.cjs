@@ -3,6 +3,7 @@ const fs = require('node:fs')
 
 const resolver = fs.readFileSync('lib/energy/resolver.ts', 'utf8')
 const binding = fs.readFileSync('lib/energy/resolutionBinding.ts', 'utf8')
+const business = fs.readFileSync('lib/partner-api/business.ts', 'utf8')
 const migration = fs.readFileSync('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql', 'utf8')
 
 function assert(condition, message) {
@@ -35,6 +36,8 @@ assert(binding.includes("normalized === 'postal_centroid'"), 'resolution binding
 assert(binding.includes('const MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE = 0.8'), 'normal estimated price-area evidence keeps 0.8 floor')
 assert(binding.includes('const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7'), 'postal centroid has a separate indicative-pricing floor')
 assert(binding.includes("assurance.source === 'postal_centroid'"), 'weaker centroid threshold is source-scoped, not global')
+assert(business.includes("import { EnergyResolutionBindingError } from '@/lib/energy/resolutionBinding'"), 'Partner API imports canonical readiness error')
+assert(business.includes('error instanceof EnergyResolutionBindingError'), 'Partner API preserves readiness failures instead of converting them to 500')
 assert(migration.includes("not in ('facility_verified', 'manual_verified')"), 'global mapping learns only from verified sites')
 assert(!migration.includes('company_id'), 'global mapping contains no tenant ID')
 assert(!migration.includes('customer_id'), 'global mapping contains no customer ID')
