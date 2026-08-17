@@ -38,7 +38,7 @@ const webhooks = read('lib/integrations/webhooks.ts')
 const webhookCron = read('app/api/internal/webhooks/dispatch/route.ts')
 const migration = read('supabase/migrations/20260804121000_multitenant_website_application_flow_completion.sql')
 const preAuthMigration = read('supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql')
-const legacyDocsRedirect = read('app/developers/customer-portal-api/page.tsx')
+const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
 const partnerDocs = read('app/developers/partner-api/page.tsx')
 const releaseManifest = read('lib/integrations/openApiReleaseManifest.ts')
 const websiteContract = read('lib/integrations/websiteIntegrationContract.ts')
@@ -123,9 +123,13 @@ check(preAuthMigration.includes('alter column portal_identity_required set defau
 check(migration.includes('gridex_project_terminal_application_continuation') && migration.includes('event_outbox_webhook_fanout_due_idx'), 'database adds terminal projection safety and webhook fan-out index')
 check(migration.includes('canonical_readiness_revalidation_required') && migration.includes("profile_key = 'tenant_website'"), 'migration invalidates historical scopes-only launch flags')
 
-// The old customer-portal developer page is intentionally no longer the public
-// integration contract. It must route integrations to the simplified Partner API.
-check(legacyDocsRedirect.includes('redirect("/developers/partner-api")') || legacyDocsRedirect.includes("redirect('/developers/partner-api')"), 'legacy customer-portal API documentation redirects to the canonical Partner API')
+// The historical customer-portal developer URL must expose the exact same
+// supplier-facing canonical Partner API guide without reintroducing old API docs.
+check(
+  legacyDocs.includes("import PartnerApiDocumentationPage from '../partner-api/page'") &&
+    legacyDocs.includes('<PartnerApiDocumentationPage />'),
+  'legacy customer-portal API URL serves the canonical Partner API guide',
+)
 check(partnerDocs.includes('Partner API Reference') && partnerDocs.includes('PARTNER_API_BASE_URL') && partnerDocs.includes('/api/partner/v1/openapi.json'), 'Partner API documentation exposes the canonical v1 base URL and OpenAPI contract')
 check(partnerDocs.includes('The API is server-to-server') && partnerDocs.includes('Authorization: Bearer') && partnerDocs.includes('Do not put the key in a browser or mobile app'), 'Partner API documentation makes server-side authentication and key handling explicit')
 check(partnerDocs.includes('Do not send company IDs, tenant IDs') && partnerDocs.includes('opaque public IDs; they are not database IDs'), 'Partner API documentation keeps tenant and database identifiers server-side')
