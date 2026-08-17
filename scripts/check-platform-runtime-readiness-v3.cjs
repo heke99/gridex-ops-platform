@@ -10,7 +10,7 @@ const assert = (condition, message) => { if (!condition) failures.push(message) 
 const sha256 = (file) => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')
 
 const runtime = read('lib/platform/schemaReadiness.ts')
-assert(runtime.includes("gridex_runtime_schema_capabilities_v3"), 'runtime must read the v3 capability view')
+assert(runtime.includes("PLATFORM_RUNTIME_CAPABILITY_VIEW = 'platform_runtime_readiness'"), 'runtime must read the persisted platform runtime readiness gate')
 assert(!runtime.includes(".from('platform_schema_state')"), 'runtime must not gate traffic from legacy platform_schema_state')
 assert(runtime.includes('PLATFORM_RUNTIME_FINGERPRINT_POLICY'), 'runtime must describe the fingerprint evidence policy')
 assert(runtime.includes('evaluatePlatformSchemaReadiness'), 'runtime must evaluate the capability result through one canonical helper')
@@ -28,6 +28,14 @@ for (const token of [
   'RUNTIME_COLUMN_MISSING','RUNTIME_RLS_POLICY_MISSING','DUPLICATE_PRIMARY_TENANT_WEBSITE_CLIENT',
   'pg_get_functiondef','security_invoker=true','grant select on public.gridex_runtime_schema_capabilities_v3 to service_role'
 ]) assert(capabilities.includes(token), `runtime capability migration is missing ${token}`)
+
+const persistedReadiness = read('supabase/migrations/20260813230000_runtime_readiness_dependency_resilience_v1.sql')
+for (const token of [
+  'create table if not exists public.platform_runtime_readiness',
+  'gridex_refresh_platform_runtime_readiness_v1',
+  'from public.gridex_runtime_schema_capabilities_v3',
+  "select public.gridex_refresh_platform_runtime_readiness_v1('20260803093300-gridex-runtime-readiness-v3'",
+]) assert(persistedReadiness.includes(token), `persisted runtime readiness migration is missing ${token}`)
 
 const governance = read('supabase/migrations/20260803093200_gridex_migration_governance_v3.sql')
 assert(!governance.includes("interval '24 hours'"), 'migration governance must not expire by wall-clock time')
