@@ -17,6 +17,7 @@ const graphMigration = read("supabase/migrations/20260721170000_contract_graph_a
 const adminRepository = read("lib/contracts/adminRepository.ts");
 const adminActions = read("lib/contracts/adminActions.ts");
 const deleteControl = read("components/admin/contracts/ContractDeleteControl.tsx");
+const channelControl = read("components/admin/contracts/ContractChannelControl.tsx");
 const channelPublication = read("lib/contracts/channelPublication.ts");
 
 const migrationsDirectory = path.join(root, "supabase/migrations");
@@ -178,13 +179,23 @@ includesAll(channelPublication, [
   "contract_channel_post_commit_verification_failed",
   "contract_channel_unpublish_verification_failed",
 ], "canonical channel service rejects false success and verifies committed state");
-includesAll(page, [
-  "Avpublicera från hemsida",
-  "Avpublicera från API",
+includesAll(channelControl, [
+  "publishContractChannelAction",
+  "unpublishContractChannelAction",
+  'channel: "internal"',
+  'channel: "website"',
+  'channel: "api"',
+  "Aktivera intern försäljning",
   "Pausa intern försäljning",
+  "Publicera på hemsidan",
+  "Avpublicera från hemsida",
+  "Publicera via API",
+  "Avpublicera från API",
+], "canonical admin channel control supports each sales channel independently");
+includesAll(page, [
   "website_publication_allowed",
   "removable_system_dependencies",
-], "admin UI supports channel-by-channel lifecycle");
+], "admin UI retains tenant assignment and dependency lifecycle evidence");
 includesAll(tenantControls, [
   "listTenantContractProducts",
   "previewContractDelete",
@@ -203,11 +214,12 @@ includesAll(adminActions, [
   "archiveContractAction",
 ], "shared actor-bound contract actions");
 includesAll(deleteControl, [
+  "ContractChannelControl",
   "Radera permanent",
   "Bekräfta permanent radering",
   "expected_preview_token",
   "Arkivera och dölj",
-], "preview-driven delete confirmation control");
+], "shared channel and preview-driven delete controls are composed together");
 check(!tenantControls.includes("&edit=${offer.source_contract_offer_id}"), "legacy edit query parameter removed");
 includesAll(tenantActions, [
   "assertLifecycleResult",

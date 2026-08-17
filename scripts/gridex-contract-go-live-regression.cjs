@@ -27,6 +27,7 @@ const lifecycle = read("lib/contracts/lifecycle.ts");
 const lifecycleErrors = read("lib/contracts/lifecycleErrors.ts");
 const slug = read("lib/contracts/slug.ts");
 const deleteControl = read("components/admin/contracts/ContractDeleteControl.tsx");
+const channelControl = read("components/admin/contracts/ContractChannelControl.tsx");
 const repairPostApply = read("scripts/gridex-contract-repair-post-apply.sql");
 
 const failures = [];
@@ -218,17 +219,29 @@ includesAll(page, [
   "Stäng för ny försäljning",
   "Kontrollera readiness och gör internt",
   "Publicera på hemsidan",
-  "Pausa avtalet i alla försäljningskanaler",
+  "pauseContractOfferAction",
   "deletionPreview",
   "Kundförhandsgranskning och versionsskillnad",
   "contractVersionDiff",
   "publishContractVersionAction",
   "Arkivering är terminal och irreversibel",
 ], "explicit lifecycle, preview and version comparison UX");
+includesAll(channelControl, [
+  "Styr försäljningskanaler",
+  "Aktivera intern försäljning",
+  "Pausa intern försäljning",
+  "Publicera på hemsidan",
+  "Avpublicera från hemsida",
+  "Publicera via API",
+  "Avpublicera från API",
+  "publishContractChannelAction",
+  "unpublishContractChannelAction",
+], "canonical per-channel lifecycle UX");
 includesAll(deleteControl, [
+  "ContractChannelControl",
   "Radera permanent",
   "Arkivera och dölj",
-], "current delete/archive control labels");
+], "current channel/delete/archive controls");
 
 includesAll(actions, [
   "requireContractPermissionAction",

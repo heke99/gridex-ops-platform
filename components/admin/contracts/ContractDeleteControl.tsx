@@ -9,6 +9,7 @@ import {
   type ContractDeletePreviewActionState,
 } from "@/lib/contracts/adminActions";
 import type { ContractAdminView } from "@/lib/contracts/adminDto";
+import ContractChannelControl from "@/components/admin/contracts/ContractChannelControl";
 
 const INITIAL_CONTRACT_DELETE_PREVIEW_STATE: ContractDeletePreviewActionState = {
   status: "idle",
@@ -94,7 +95,13 @@ export default function ContractDeleteControl({
 
   return (
     <>
-      <form action={previewAction}>
+      <ContractChannelControl
+        companyId={companyId}
+        offerId={offerId}
+        surface={surface}
+      />
+
+      <form action={previewAction} className="mt-2">
         {hiddenFields}
         <button
           type="submit"
