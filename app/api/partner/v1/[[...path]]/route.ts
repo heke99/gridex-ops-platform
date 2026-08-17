@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTransport'
 import { handleBusinessPartnerApi } from '@/lib/partner-api/business'
+import { partnerPublicOpenApi } from '@/lib/partner-api/businessOpenApi'
 import { handleCanonicalPartnerApi } from '@/lib/partner-api/canonical'
 import { handlePartnerApi } from '@/lib/partner-api/core'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
@@ -78,6 +79,17 @@ async function dispatch(
   context: RouteContext,
 ) {
   const { path } = await context.params
+  const segments = (path ?? []).filter(Boolean)
+
+  if (method === 'GET' && segments.length === 1 && segments[0] === 'openapi.json') {
+    return NextResponse.json(partnerPublicOpenApi, {
+      headers: {
+        'Cache-Control': 'public, max-age=300, s-maxage=300',
+        'X-Gridex-API-Version': PARTNER_API_VERSION,
+      },
+    })
+  }
+
   const targetRejection = await preflightWebhookTarget(request, path)
   if (targetRejection) return targetRejection
 
