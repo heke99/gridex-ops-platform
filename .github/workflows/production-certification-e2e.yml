@@ -36,92 +36,27 @@ env:
   NODE_OPTIONS: --max-old-space-size=4096
 
 jobs:
-  production-certification:
-    name: ${{ inputs.mode }}
+  preflight:
+    if: inputs.mode == 'preflight'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production-e2e
-    env:
-      GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
-      GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
-      GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
-      GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
-      GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
-      GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
-      GRIDEX_E2E_CUSTOMER_ADDRESS: ${{ secrets.GRIDEX_E2E_CUSTOMER_ADDRESS }}
-      GRIDEX_E2E_CUSTOMER_POSTAL_CODE: ${{ secrets.GRIDEX_E2E_CUSTOMER_POSTAL_CODE }}
-      GRIDEX_E2E_CUSTOMER_CITY: ${{ secrets.GRIDEX_E2E_CUSTOMER_CITY }}
-      GRIDEX_E2E_CUSTOMER_ANNUAL_KWH: ${{ secrets.GRIDEX_E2E_CUSTOMER_ANNUAL_KWH }}
-      GRIDEX_E2E_RUN_ID: prod-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - name: Reject non-explicit production execution
+      - name: Confirm production and target configuration
         shell: bash
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
+          GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+          GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.confirm_production }}" != "PRODUCTION" ]]; then
-            echo "Production certification requires confirm_production=PRODUCTION." >&2
-            exit 1
-          fi
-          case "${{ inputs.mode }}" in
-            preflight)
-              ;;
-            tenant-bootstrap)
-              if [[ "${{ inputs.confirm_synthetic_tenant }}" != "CREATE_SYNTHETIC_TENANT" ]]; then
-                echo "tenant-bootstrap requires confirm_synthetic_tenant=CREATE_SYNTHETIC_TENANT." >&2
-                exit 1
-              fi
-              ;;
-            live-customer-preflight)
-              if [[ "${{ inputs.confirm_live_customer }}" != "AUTHORIZED_LIVE_CUSTOMER" ]]; then
-                echo "live-customer-preflight requires confirm_live_customer=AUTHORIZED_LIVE_CUSTOMER." >&2
-                exit 1
-              fi
-              ;;
-            *)
-              echo "Unsupported production certification mode." >&2
-              exit 1
-              ;;
-          esac
-
-      - name: Verify required secrets without printing values
-        shell: bash
-        run: |
-          set -euo pipefail
-          required=(
-            GRIDEX_E2E_PROD_BASE_URL
-            GRIDEX_E2E_TENANT_WEBSITE_URL
-            GRIDEX_E2E_SUPERADMIN_EMAIL
-            GRIDEX_E2E_SUPERADMIN_PASSWORD
-          )
-          if [[ "${{ inputs.mode }}" == "tenant-bootstrap" ]]; then
-            required+=(GRIDEX_E2E_TENANT_ADMIN_EMAIL GRIDEX_E2E_TENANT_ADMIN_PASSWORD)
-          fi
-          if [[ "${{ inputs.mode }}" == "live-customer-preflight" ]]; then
-            required+=(
-              GRIDEX_E2E_CUSTOMER_ADDRESS
-              GRIDEX_E2E_CUSTOMER_POSTAL_CODE
-              GRIDEX_E2E_CUSTOMER_CITY
-              GRIDEX_E2E_CUSTOMER_ANNUAL_KWH
-            )
-          fi
-          missing=0
-          for name in "${required[@]}"; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "Missing required secret: $name" >&2
-              missing=1
-            fi
+          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "preflight requires confirm_production=PRODUCTION." >&2; exit 1; }
+          for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_TENANT_WEBSITE_URL GRIDEX_E2E_SUPERADMIN_EMAIL GRIDEX_E2E_SUPERADMIN_PASSWORD; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
           done
-          [[ "$missing" -eq 0 ]]
-
-          if [[ "$GRIDEX_E2E_PROD_BASE_URL" != "https://app.gridex.se" && "$GRIDEX_E2E_PROD_BASE_URL" != "https://app.gridex.se/" ]]; then
-            echo "Production certification is pinned to https://app.gridex.se." >&2
-            exit 1
-          fi
-          if [[ "$GRIDEX_E2E_TENANT_WEBSITE_URL" != "https://gridex.se" && "$GRIDEX_E2E_TENANT_WEBSITE_URL" != "https://gridex.se/" ]]; then
-            echo "This Gridex certification is pinned to https://gridex.se." >&2
-            exit 1
-          fi
-
+          [[ "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se" || "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se/" ]] || { echo "OPS production target must be https://app.gridex.se." >&2; exit 1; }
+          [[ "$GRIDEX_E2E_TENANT_WEBSITE_URL" == "https://gridex.se" || "$GRIDEX_E2E_TENANT_WEBSITE_URL" == "https://gridex.se/" ]] || { echo "Tenant website target must be https://gridex.se." >&2; exit 1; }
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -132,33 +67,134 @@ jobs:
         run: node scripts/gridex-production-certification-e2e-regression.cjs
       - name: Install pinned Playwright tooling
         run: bash scripts/install-browser-e2e-tooling.sh
-
       - name: Run production preflight
-        if: inputs.mode == 'preflight'
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
+          GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+          GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
+          GRIDEX_E2E_RUN_ID: prod-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           mkdir -p e2e-artifacts
           npx playwright test e2e/production/preflight.spec.mjs \
             --config=playwright.production-certification.config.mjs
-
-      - name: Bootstrap isolated synthetic tenant
-        if: inputs.mode == 'tenant-bootstrap'
-        run: |
-          mkdir -p e2e-artifacts
-          npx playwright test e2e/production/tenant-bootstrap.spec.mjs \
-            --config=playwright.production-certification.config.mjs
-
-      - name: Verify authorized live customer quote without submitting contract
-        if: inputs.mode == 'live-customer-preflight'
-        run: |
-          mkdir -p e2e-artifacts
-          npx playwright test e2e/production/live-customer-preflight.spec.mjs \
-            --config=playwright.production-certification.config.mjs
-
       - name: Upload sanitized certification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gridex-production-certification-${{ inputs.mode }}-${{ github.run_id }}
+          name: gridex-production-certification-preflight-${{ github.run_id }}
+          path: |
+            e2e-artifacts/gridex-production-*.json
+            e2e-artifacts/production-certification-junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  tenant-bootstrap:
+    if: inputs.mode == 'tenant-bootstrap'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-e2e
+    steps:
+      - name: Confirm explicit synthetic production mutation
+        shell: bash
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+          GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
+          GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
+          GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "tenant-bootstrap requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "${{ inputs.confirm_synthetic_tenant }}" == "CREATE_SYNTHETIC_TENANT" ]] || { echo "tenant-bootstrap requires confirm_synthetic_tenant=CREATE_SYNTHETIC_TENANT." >&2; exit 1; }
+          for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_SUPERADMIN_EMAIL GRIDEX_E2E_SUPERADMIN_PASSWORD GRIDEX_E2E_TENANT_ADMIN_EMAIL GRIDEX_E2E_TENANT_ADMIN_PASSWORD; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
+          done
+          [[ "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se" || "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se/" ]] || { echo "OPS production target must be https://app.gridex.se." >&2; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify production E2E safety contract
+        run: node scripts/gridex-production-certification-e2e-regression.cjs
+      - name: Install pinned Playwright tooling
+        run: bash scripts/install-browser-e2e-tooling.sh
+      - name: Bootstrap isolated synthetic tenant
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+          GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
+          GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
+          GRIDEX_E2E_RUN_ID: prod-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          mkdir -p e2e-artifacts
+          npx playwright test e2e/production/tenant-bootstrap.spec.mjs \
+            --config=playwright.production-certification.config.mjs
+      - name: Upload sanitized certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-production-certification-tenant-bootstrap-${{ github.run_id }}
+          path: |
+            e2e-artifacts/gridex-production-*.json
+            e2e-artifacts/production-certification-junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  live-customer-preflight:
+    if: inputs.mode == 'live-customer-preflight'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-e2e
+    steps:
+      - name: Confirm authorized live customer quote
+        shell: bash
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
+          GRIDEX_E2E_CUSTOMER_ADDRESS: ${{ secrets.GRIDEX_E2E_CUSTOMER_ADDRESS }}
+          GRIDEX_E2E_CUSTOMER_POSTAL_CODE: ${{ secrets.GRIDEX_E2E_CUSTOMER_POSTAL_CODE }}
+          GRIDEX_E2E_CUSTOMER_CITY: ${{ secrets.GRIDEX_E2E_CUSTOMER_CITY }}
+          GRIDEX_E2E_CUSTOMER_ANNUAL_KWH: ${{ secrets.GRIDEX_E2E_CUSTOMER_ANNUAL_KWH }}
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "live-customer-preflight requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "${{ inputs.confirm_live_customer }}" == "AUTHORIZED_LIVE_CUSTOMER" ]] || { echo "live-customer-preflight requires confirm_live_customer=AUTHORIZED_LIVE_CUSTOMER." >&2; exit 1; }
+          for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_TENANT_WEBSITE_URL GRIDEX_E2E_CUSTOMER_ADDRESS GRIDEX_E2E_CUSTOMER_POSTAL_CODE GRIDEX_E2E_CUSTOMER_CITY GRIDEX_E2E_CUSTOMER_ANNUAL_KWH; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
+          done
+          [[ "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se" || "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se/" ]] || { echo "OPS production target must be https://app.gridex.se." >&2; exit 1; }
+          [[ "$GRIDEX_E2E_TENANT_WEBSITE_URL" == "https://gridex.se" || "$GRIDEX_E2E_TENANT_WEBSITE_URL" == "https://gridex.se/" ]] || { echo "Tenant website target must be https://gridex.se." >&2; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify production E2E safety contract
+        run: node scripts/gridex-production-certification-e2e-regression.cjs
+      - name: Install pinned Playwright tooling
+        run: bash scripts/install-browser-e2e-tooling.sh
+      - name: Verify authorized live customer quote without submitting contract
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
+          GRIDEX_E2E_CUSTOMER_ADDRESS: ${{ secrets.GRIDEX_E2E_CUSTOMER_ADDRESS }}
+          GRIDEX_E2E_CUSTOMER_POSTAL_CODE: ${{ secrets.GRIDEX_E2E_CUSTOMER_POSTAL_CODE }}
+          GRIDEX_E2E_CUSTOMER_CITY: ${{ secrets.GRIDEX_E2E_CUSTOMER_CITY }}
+          GRIDEX_E2E_CUSTOMER_ANNUAL_KWH: ${{ secrets.GRIDEX_E2E_CUSTOMER_ANNUAL_KWH }}
+          GRIDEX_E2E_RUN_ID: prod-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          mkdir -p e2e-artifacts
+          npx playwright test e2e/production/live-customer-preflight.spec.mjs \
+            --config=playwright.production-certification.config.mjs
+      - name: Upload sanitized certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-production-certification-live-customer-preflight-${{ github.run_id }}
           path: |
             e2e-artifacts/gridex-production-*.json
             e2e-artifacts/production-certification-junit.xml
