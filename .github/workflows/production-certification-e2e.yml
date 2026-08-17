@@ -11,6 +11,7 @@ on:
         options:
           - preflight
           - tenant-bootstrap
+          - tenant-admin-verify
           - live-customer-preflight
       confirm_production:
         description: Type PRODUCTION to confirm the real production target
@@ -18,6 +19,10 @@ on:
         type: string
       confirm_synthetic_tenant:
         description: For tenant-bootstrap only, type CREATE_SYNTHETIC_TENANT
+        required: false
+        type: string
+      confirm_tenant_admin:
+        description: After manual Strato invite acceptance/password setup, type VERIFIED_TENANT_ADMIN_MANUALLY
         required: false
         type: string
       confirm_live_customer:
@@ -137,6 +142,57 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gridex-production-certification-tenant-bootstrap-${{ github.run_id }}
+          path: |
+            e2e-artifacts/gridex-production-*.json
+            e2e-artifacts/production-certification-junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  tenant-admin-verify:
+    if: inputs.mode == 'tenant-admin-verify'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-e2e
+    steps:
+      - name: Confirm manual Strato verification checkpoint
+        shell: bash
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
+          GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "tenant-admin-verify requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "${{ inputs.confirm_tenant_admin }}" == "VERIFIED_TENANT_ADMIN_MANUALLY" ]] || { echo "tenant-admin-verify requires confirm_tenant_admin=VERIFIED_TENANT_ADMIN_MANUALLY after the Strato email has been accepted and the configured password is active." >&2; exit 1; }
+          for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_TENANT_ADMIN_EMAIL GRIDEX_E2E_TENANT_ADMIN_PASSWORD; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
+          done
+          [[ "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se" || "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se/" ]] || { echo "OPS production target must be https://app.gridex.se." >&2; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify production E2E safety contract
+        run: node scripts/gridex-production-certification-e2e-regression.cjs
+      - name: Install pinned Playwright tooling
+        run: bash scripts/install-browser-e2e-tooling.sh
+      - name: Verify tenant-admin login, own-tenant scope and platform denial
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
+          GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
+          GRIDEX_E2E_RUN_ID: prod-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          mkdir -p e2e-artifacts
+          npx playwright test e2e/production/tenant-admin-verify.spec.mjs \
+            --config=playwright.production-certification.config.mjs
+      - name: Upload sanitized certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-production-certification-tenant-admin-verify-${{ github.run_id }}
           path: |
             e2e-artifacts/gridex-production-*.json
             e2e-artifacts/production-certification-junit.xml
