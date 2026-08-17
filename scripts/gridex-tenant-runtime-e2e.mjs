@@ -4,6 +4,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import {
+  isValidSwedishOrganizationNumber,
+  syntheticSwedishOrganizationNumber,
+} from '../e2e/production/helpers/swedish-organization-number.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '..')
@@ -85,6 +89,9 @@ function requireField(payload, field, label) {
 }
 
 async function provisionTenant(input) {
+  if (!isValidSwedishOrganizationNumber(input.orgNumber)) {
+    throw new Error(`Synthetic tenant organization number is invalid: ${input.orgNumber}`)
+  }
   const command = {
     name: input.name,
     slug: input.slug,
@@ -238,11 +245,13 @@ async function check(name, fn) {
 
 try {
   const suffix = runId.replace(/[^a-z0-9]/gi, '').slice(-10).toLowerCase()
+  const tenantAOrganizationNumber = syntheticSwedishOrganizationNumber(`${runId}:tenant-a`)
+  const tenantBOrganizationNumber = syntheticSwedishOrganizationNumber(`${runId}:tenant-b`)
   const tenantA = await check('provision tenant A idempotently', () => provisionTenant({
     runId,
     name: `GRIDEX E2E Operational ${suffix}`,
     slug: `gridex-e2e-operational-${suffix}`,
-    orgNumber: `E2E-A-${suffix}`,
+    orgNumber: tenantAOrganizationNumber,
     prefix: `EA${suffix.slice(-6).toUpperCase()}`,
     email: `gridex-e2e-owner-a-${suffix}@example.invalid`,
     idempotencyKey: `gridex-e2e-provision-a:${runId}`,
@@ -276,7 +285,7 @@ try {
     runId,
     name: `GRIDEX E2E Disposable ${suffix}`,
     slug: `gridex-e2e-disposable-${suffix}`,
-    orgNumber: `E2E-B-${suffix}`,
+    orgNumber: tenantBOrganizationNumber,
     prefix: `EB${suffix.slice(-6).toUpperCase()}`,
     email: `gridex-e2e-owner-b-${suffix}@example.invalid`,
     idempotencyKey: `gridex-e2e-provision-b:${runId}`,

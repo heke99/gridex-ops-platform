@@ -6,16 +6,18 @@ on:
     branches: [main]
   schedule:
     - cron: '47 3 * * *'
+    - cron: '17 4 * * 0'
   workflow_dispatch:
     inputs:
       mode:
-        description: Open-source E2E layer to run
+        description: Browser/security/performance layer to run
         required: true
         default: public
         type: choice
         options:
           - public
           - staging
+          - soak
           - all
 
 permissions:
@@ -43,6 +45,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify P0 executor contract
+        run: node scripts/gridex-p0-executor.cjs
       - name: Verify open-source E2E wiring
         run: node scripts/gridex-open-source-e2e-tooling-regression.cjs
       - name: Install pinned Playwright and axe-core tooling
@@ -51,6 +55,9 @@ jobs:
         run: |
           mkdir -p e2e-artifacts
           npx playwright test e2e/browser/public.spec.mjs --config=playwright.config.mjs
+      - name: Build sanitized AI verification handoff
+        if: always()
+        run: node scripts/gridex-ai-verification-handoff.cjs
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,7 +69,7 @@ jobs:
 
   browser-staging:
     if: >-
-      github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -77,40 +84,30 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - id: staging-browser-secrets
-        name: Verify staging browser configuration
+      - name: Require staging browser configuration
         shell: bash
         run: |
-          missing=0
+          set -euo pipefail
           for name in GRIDEX_E2E_BROWSER_BASE_URL GRIDEX_E2E_BROWSER_EMAIL GRIDEX_E2E_BROWSER_PASSWORD; do
-            if [[ -z "${!name}" ]]; then
-              echo "Missing required secret: $name"
-              missing=1
-            fi
+            [[ -n "${!name:-}" ]] || { echo "Missing required staging browser secret: $name" >&2; exit 1; }
           done
-          if [[ "$missing" -eq 1 ]]; then
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              echo "Manual staging browser E2E requires all browser secrets." >&2
-              exit 1
-            fi
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Nightly staging browser E2E skipped because browser secrets are not configured."
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Verify P0 executor contract
+        run: node scripts/gridex-p0-executor.cjs
       - name: Verify open-source E2E wiring
-        if: steps.staging-browser-secrets.outputs.enabled == 'true'
         run: node scripts/gridex-open-source-e2e-tooling-regression.cjs
       - name: Install pinned Playwright and axe-core tooling
-        if: steps.staging-browser-secrets.outputs.enabled == 'true'
         run: bash scripts/install-browser-e2e-tooling.sh
       - name: Run staging browser E2E
-        if: steps.staging-browser-secrets.outputs.enabled == 'true'
         run: |
           mkdir -p e2e-artifacts
           npx playwright test --config=playwright.config.mjs
+      - name: Build sanitized AI verification handoff
+        if: always()
+        env:
+          GRIDEX_E2E_TARGET: staging
+        run: node scripts/gridex-ai-verification-handoff.cjs
       - name: Upload staging browser evidence
-        if: always() && steps.staging-browser-secrets.outputs.enabled == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gridex-browser-staging-${{ github.run_id }}
@@ -118,54 +115,87 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  k6-staging-smoke:
+  k6-staging-load:
     if: >-
-      github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       GRIDEX_E2E_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
+      GRIDEX_E2E_K6_READ_ROUTES: ${{ vars.GRIDEX_E2E_K6_READ_ROUTES }}
+      GRIDEX_E2E_K6_BEARER_TOKEN: ${{ secrets.GRIDEX_E2E_K6_BEARER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - id: k6-target
-        name: Verify k6 staging target
+      - name: Require k6 staging target
         shell: bash
         run: |
-          if [[ -z "$GRIDEX_E2E_BASE_URL" ]]; then
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              echo "Manual k6 staging E2E requires GRIDEX_E2E_BROWSER_BASE_URL." >&2
-              exit 1
-            fi
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Nightly k6 smoke skipped because the staging URL is not configured."
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Run pinned k6 smoke thresholds
-        if: steps.k6-target.outputs.enabled == 'true'
+          set -euo pipefail
+          [[ -n "$GRIDEX_E2E_BASE_URL" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for staging performance certification.' >&2; exit 1; }
+      - name: Run pinned k6 smoke load and spike thresholds
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           mkdir -p e2e-artifacts
-          docker run --rm \
-            -e GRIDEX_E2E_BASE_URL="$GRIDEX_E2E_BASE_URL" \
-            -v "$PWD:/work" \
-            -w /work \
-            grafana/k6:2.1.0 \
-            run e2e/k6/platform-smoke.js | tee e2e-artifacts/k6-smoke.log
+          for profile in platform-smoke platform-load platform-spike; do
+            docker run --rm \
+              -e GRIDEX_E2E_BASE_URL="$GRIDEX_E2E_BASE_URL" \
+              -e GRIDEX_E2E_K6_READ_ROUTES="$GRIDEX_E2E_K6_READ_ROUTES" \
+              -e GRIDEX_E2E_K6_BEARER_TOKEN="$GRIDEX_E2E_K6_BEARER_TOKEN" \
+              -v "$PWD:/work" -w /work grafana/k6:2.1.0 \
+              run "e2e/k6/${profile}.js" | tee "e2e-artifacts/${profile}.log"
+          done
       - name: Upload k6 evidence
-        if: always() && steps.k6-target.outputs.enabled == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gridex-k6-staging-${{ github.run_id }}
-          path: e2e-artifacts/k6-smoke.log
+          path: e2e-artifacts/*.log
+          if-no-files-found: error
+          retention-days: 30
+
+  k6-staging-soak:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '17 4 * * 0') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'soak' || inputs.mode == 'all'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_E2E_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
+      GRIDEX_E2E_K6_READ_ROUTES: ${{ vars.GRIDEX_E2E_K6_READ_ROUTES }}
+      GRIDEX_E2E_K6_BEARER_TOKEN: ${{ secrets.GRIDEX_E2E_K6_BEARER_TOKEN }}
+      GRIDEX_E2E_K6_SOAK_DURATION: ${{ vars.GRIDEX_E2E_K6_SOAK_DURATION || '15m' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require k6 soak staging target
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$GRIDEX_E2E_BASE_URL" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for soak certification.' >&2; exit 1; }
+      - name: Run pinned k6 soak thresholds
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p e2e-artifacts
+          docker run --rm \
+            -e GRIDEX_E2E_BASE_URL="$GRIDEX_E2E_BASE_URL" \
+            -e GRIDEX_E2E_K6_READ_ROUTES="$GRIDEX_E2E_K6_READ_ROUTES" \
+            -e GRIDEX_E2E_K6_BEARER_TOKEN="$GRIDEX_E2E_K6_BEARER_TOKEN" \
+            -e GRIDEX_E2E_K6_SOAK_DURATION="$GRIDEX_E2E_K6_SOAK_DURATION" \
+            -v "$PWD:/work" -w /work grafana/k6:2.1.0 \
+            run e2e/k6/platform-soak.js | tee e2e-artifacts/platform-soak.log
+      - name: Upload soak evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-k6-soak-${{ github.run_id }}
+          path: e2e-artifacts/platform-soak.log
           if-no-files-found: error
           retention-days: 30
 
   zap-staging-baseline:
     if: >-
-      github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -173,26 +203,48 @@ jobs:
       GRIDEX_E2E_ZAP_TARGET: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
-      - id: zap-target
-        name: Verify ZAP staging target
+      - name: Require ZAP staging target
         shell: bash
         run: |
-          if [[ -z "$GRIDEX_E2E_ZAP_TARGET" ]]; then
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              echo "Manual ZAP staging baseline requires GRIDEX_E2E_BROWSER_BASE_URL." >&2
-              exit 1
-            fi
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Nightly ZAP baseline skipped because the staging URL is not configured."
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Run OWASP ZAP passive baseline
-        if: steps.zap-target.outputs.enabled == 'true'
+          set -euo pipefail
+          [[ -n "$GRIDEX_E2E_ZAP_TARGET" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for ZAP staging certification.' >&2; exit 1; }
+      - name: Run blocking OWASP ZAP passive baseline
         uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ env.GRIDEX_E2E_ZAP_TARGET }}
           allow_issue_writing: false
-          fail_action: false
+          fail_action: true
           cmd_options: '-a'
           artifact_name: gridex-zap-staging-${{ github.run_id }}
+
+  staging-quality-certificate:
+    if: >-
+      always() && (
+        (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
+      )
+    needs: [browser-staging, k6-staging-load, zap-staging-baseline]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all staging quality gates to execute and pass
+        shell: bash
+        env:
+          BROWSER_RESULT: ${{ needs.browser-staging.result }}
+          K6_RESULT: ${{ needs.k6-staging-load.result }}
+          ZAP_RESULT: ${{ needs.zap-staging-baseline.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p e2e-artifacts
+          cat > e2e-artifacts/staging-quality-certificate.json <<JSON
+          {"schema_version":1,"browser":"$BROWSER_RESULT","performance":"$K6_RESULT","dast":"$ZAP_RESULT","verdict":"$([[ "$BROWSER_RESULT" == success && "$K6_RESULT" == success && "$ZAP_RESULT" == success ]] && echo GREEN || echo RED)"}
+          JSON
+          [[ "$BROWSER_RESULT" == success ]] || { echo "browser-staging did not pass: $BROWSER_RESULT" >&2; exit 1; }
+          [[ "$K6_RESULT" == success ]] || { echo "k6-staging-load did not pass: $K6_RESULT" >&2; exit 1; }
+          [[ "$ZAP_RESULT" == success ]] || { echo "zap-staging-baseline did not pass: $ZAP_RESULT" >&2; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-staging-quality-certificate-${{ github.run_id }}
+          path: e2e-artifacts/staging-quality-certificate.json
+          if-no-files-found: error
+          retention-days: 30

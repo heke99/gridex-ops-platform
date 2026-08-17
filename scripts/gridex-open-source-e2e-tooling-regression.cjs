@@ -14,6 +14,9 @@ const requiredFiles = [
   'e2e/browser/public.spec.mjs',
   'e2e/browser/authenticated.spec.mjs',
   'e2e/k6/platform-smoke.js',
+  'e2e/k6/platform-load.js',
+  'e2e/k6/platform-spike.js',
+  'e2e/k6/platform-soak.js',
   'scripts/install-browser-e2e-tooling.sh',
   '.github/workflows/production-certification-e2e.yml',
   'playwright.production-certification.config.mjs',
@@ -30,17 +33,23 @@ for (const file of requiredFiles) {
 
 if (issues.length === 0) {
   const workflow = read('.github/workflows/browser-quality-e2e.yml')
-  const install = read('scripts/install-browser-e2e-tooling.sh')
+  const pkg = JSON.parse(read('package.json'))
   const config = read('playwright.config.mjs')
   const publicSpec = read('e2e/browser/public.spec.mjs')
   const authenticatedSpec = read('e2e/browser/authenticated.spec.mjs')
   const k6 = read('e2e/k6/platform-smoke.js')
 
+  if (pkg.devDependencies?.['@playwright/test'] !== '1.60.0') {
+    issues.push('Playwright is not pinned to @playwright/test@1.60.0 in package.json.')
+  }
+  if (pkg.devDependencies?.['@axe-core/playwright'] !== '4.11.3') {
+    issues.push('axe-core Playwright integration is not pinned to @axe-core/playwright@4.11.3 in package.json.')
+  }
+
   const requiredTokens = [
-    [install, '@playwright/test@1.60.0', 'Playwright is not pinned to the reviewed version.'],
-    [install, '@axe-core/playwright@4.11.3', 'axe-core Playwright integration is not pinned to the reviewed version.'],
     [workflow, 'grafana/k6:2.1.0', 'k6 is not pinned to the reviewed version.'],
     [workflow, 'zaproxy/action-baseline@v0.15.0', 'OWASP ZAP baseline action is missing or not pinned.'],
+    [workflow, 'fail_action: true', 'OWASP ZAP is not a blocking staging gate.'],
     [workflow, 'GRIDEX_E2E_BROWSER_BASE_URL', 'Staging browser target is not wired.'],
     [workflow, 'GRIDEX_E2E_BROWSER_EMAIL', 'Staging browser account email is not wired.'],
     [workflow, 'GRIDEX_E2E_BROWSER_PASSWORD', 'Staging browser account password is not wired.'],
@@ -80,4 +89,4 @@ if (issues.length > 0) {
   process.exit(1)
 }
 
-console.log('Gridex open-source E2E tooling regression passed: Playwright + axe-core + k6 + OWASP ZAP + guarded production certification are pinned and wired.')
+console.log('Gridex open-source E2E tooling regression passed: locked Playwright + axe-core + k6 + blocking OWASP ZAP + guarded production certification are wired.')

@@ -282,7 +282,8 @@
     "gridex:price-area-case-normalization-regression": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/gridex-price-area-case-normalization-regression.mjs",
     "gridex:canonical-architecture-57-regression": "node scripts/gridex-canonical-architecture-57-point-regression.cjs",
     "gridex:post-108-health-residuals-regression": "node scripts/gridex-ops-post-108-health-residuals-regression.cjs",
-    "gridex:post-332-field-511-health-residuals-regression": "node scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs"
+    "gridex:post-332-field-511-health-residuals-regression": "node scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
@@ -309,7 +310,10 @@
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "@vitest/coverage-v8": "4.1.9",
+    "@playwright/test": "1.60.0",
+    "@axe-core/playwright": "4.11.3"
   },
   "overrides": {
     "postcss": "8.5.25",
