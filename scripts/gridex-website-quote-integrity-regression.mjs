@@ -146,17 +146,20 @@ for (const field of [
   )
 }
 
+// /developers/customer-portal-api intentionally delegates to the Partner API
+// documentation surface. The Website Integration contract version is governed
+// exclusively by the versioned OpenAPI artifacts verified above.
 const developerGuide = fs.readFileSync(
   new URL('../app/developers/customer-portal-api/page.tsx', import.meta.url),
   'utf8',
 )
 assert.ok(
-  !developerGuide.includes('"contract_schema_version": "2026-08-05.1"'),
-  'developer guide must not pin stale contract_schema_version 2026-08-05.1',
+  developerGuide.includes("PartnerApiDocumentationPage from '../partner-api/page'"),
+  'customer portal developer route must delegate to the canonical Partner API documentation',
 )
 assert.ok(
-  developerGuide.includes('"contract_schema_version": "2026-08-14.1"'),
-  'developer guide examples must use current contract_schema_version',
+  developerGuide.includes('<PartnerApiDocumentationPage />'),
+  'customer portal developer route must render the canonical Partner API documentation',
 )
 
 // Create may accept mixed-case price_area that matches a resolution case-

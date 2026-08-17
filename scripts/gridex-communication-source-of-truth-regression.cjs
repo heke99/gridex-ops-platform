@@ -4,9 +4,6 @@
 // semantics, and no "SMTP skickad" claim without actual dispatch proof.
 const fs = require('fs')
 
-// TypeScript sources are formatter-dependent (single vs double quotes); the
-// static assertions below are structural, so quotes are normalized for
-// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(file) {
   const source = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
   return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
@@ -21,24 +18,27 @@ function mustNotInclude(file, needle, why) {
 }
 
 const confirmation = 'lib/operations/businessActions/sendCustomerConfirmation.ts'
-const website = 'lib/website/customerApplications.ts'
+const websiteCommunication = 'lib/website/customerApplicationCommunication.ts'
+const websiteBarrel = 'lib/website/customerApplications.ts'
 const workflow = 'lib/customer-operations/customerCardWorkflow.ts'
 
 // 1. No orphan customer_communications write path: confirmation mail flows
-//    through triggerEmailEvent -> communication_logs like every other mail.
+// through triggerEmailEvent -> communication_logs like every other mail.
 mustInclude(confirmation, 'triggerEmailEvent', 'confirmation must use the canonical pipeline')
 mustNotInclude(confirmation, "from('customer_communications')", 'orphan customer_communications write removed')
 mustInclude(confirmation, 'communication_logs', 'source of truth documented in the action result')
 
-// 2. API handoff truth: accepted response is pending; worker results derive
-//    queued-vs-sent from communication_logs after durable continuation.
-mustInclude(website, 'function emailDispatchStatus', 'per-event dispatch status from communication_logs')
-mustInclude(website, "dispatch_status: emailDispatchStatus(result)", 'each event result exposes dispatch_status')
-mustInclude(website, "source_of_truth: 'communication_logs'", 'response declares the source of truth')
-mustInclude(website, 'queued: [],', 'accepted response does not claim that worker e-mails are already queued')
-mustInclude(website, 'sent: [],', 'accepted response does not claim provider-confirmed delivery')
-mustInclude(website, 'pending: true', 'accepted response declares asynchronous communication pending')
-mustInclude(website, 'initial_customer_communication_failed:', 'failed communication-log/outbox creation fails the durable continuation for retry')
+// 2. The old monolith is now an intentional barrel; communication semantics live
+// in the extracted communication module and remain derived from communication_logs.
+mustInclude(websiteBarrel, './customerApplicationProcess', 'website barrel delegates processing to the bounded module')
+mustInclude(websiteCommunication, 'emailDispatchStatus', 'per-event dispatch status derives from canonical communication evidence')
+mustInclude(websiteCommunication, "dispatch_status: emailDispatchStatus(result)", 'each event result exposes dispatch_status')
+mustInclude(websiteCommunication, "source_of_truth: 'communication_logs'", 'response declares the source of truth')
+mustInclude(websiteCommunication, "pending: items.some((item) => item.status === 'queued')", 'pending is true only for actually queued communication')
+mustInclude(websiteCommunication, "queued: items.filter((item) => item.status === 'queued')", 'queued results are derived from dispatch evidence')
+mustInclude(websiteCommunication, "sent: items.filter((item) => item.status === 'sent')", 'sent results require sent dispatch evidence')
+mustInclude(websiteCommunication, "failed: items.filter((item) => item.status === 'failed')", 'failed dispatches remain explicit and retryable')
+mustInclude(websiteCommunication, '.catch((error) => [', 'communication trigger failures are captured as durable failed outcomes')
 
 // 3. Workflow step: EDIEL SMTP send claims require dispatch proof.
 mustInclude(workflow, "label: 'EDIEL-utskick (SMTP)'", 'SMTP step is channel-specific')

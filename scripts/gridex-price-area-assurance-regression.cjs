@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 const crypto = require('node:crypto')
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentContractVersion } = require('./lib/current-api-contract.cjs')
 
 function read(path) {
   return fs.readFileSync(path, 'utf8')
@@ -26,7 +26,9 @@ includes('lib/energy/resolver.ts', [
   "status: 'estimated'",
   "conflictCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous'",
   'mappingConflictCount',
-  'postal_price_area_fallback_used',
+  'postal_price_area_consensus_used',
+  'recordCanonicalEnergyEvent',
+  'price_area_assurance: saved.priceAreaAssurance',
   'price_area_assurance_status: resolved.priceAreaAssurance.status',
 ])
 includes('lib/energy/resolutionBinding.ts', [

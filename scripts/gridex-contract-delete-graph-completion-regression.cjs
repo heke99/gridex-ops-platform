@@ -161,17 +161,20 @@ for (const code of [
   "api_scope_missing",
 ]) {
   assert(
-    developerPage.includes(code) &&
-      websiteOpenApi.includes(code) &&
-      integrationGuide.includes(code),
-    `runtime auth code ${code} must be documented consistently`,
+    websiteOpenApi.includes(code) && integrationGuide.includes(code),
+    `runtime auth code ${code} must be documented consistently in the Website OpenAPI and integration guide`,
   );
 }
 assert(
-  developerPage.includes("resolution.data.capabilities.pricing_ready") &&
-    developerPage.includes("resolution.data.capabilities.quote_ready") &&
+  developerPage.includes("PartnerApiDocumentationPage from '../partner-api/page'") &&
+    developerPage.includes("<PartnerApiDocumentationPage />"),
+  "customer portal developer route must delegate to the canonical Partner API documentation",
+);
+assert(
+  integrationGuide.includes('"pricing_ready": true') &&
+    integrationGuide.includes('"quote_ready": true') &&
     integrationGuide.includes("postal_suggested"),
-  "resolver examples must gate price and quote calls on purpose-specific capabilities",
+  "website integration guide must gate price and quote calls on purpose-specific resolver capabilities",
 );
 assert(
   databaseLifecycleTest.includes(

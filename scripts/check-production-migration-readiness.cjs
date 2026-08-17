@@ -10,7 +10,7 @@ function fail(message) {
 execFileSync(process.execPath, ['scripts/check-migration-versions.cjs'], { stdio: 'inherit' })
 execFileSync(process.execPath, ['scripts/generate-canonical-migration-inventory.cjs'], { stdio: 'inherit' })
 
-const inventory = JSON.parse(fs.readFileSync('artifacts/migration-inventory-2026-08-02.json', 'utf8'))
+const inventory = JSON.parse(fs.readFileSync('artifacts/migration-inventory-2026-08-03.json', 'utf8'))
 const history = JSON.parse(fs.readFileSync('scripts/migration-history-manifest.json', 'utf8'))
 const allowed = history.allowedLegacyCollisions ?? {}
 const duplicates = inventory.duplicate_versions ?? []
