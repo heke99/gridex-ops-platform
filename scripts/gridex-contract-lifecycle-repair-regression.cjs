@@ -179,12 +179,15 @@ includesAll(channelPublication, [
   "contract_channel_unpublish_verification_failed",
 ], "canonical channel service rejects false success and verifies committed state");
 includesAll(page, [
-  "Avpublicera från hemsida",
-  "Avpublicera från API",
-  "Pausa intern försäljning",
+  "updateTenantContractChannelAction",
+  'channel: "internal"',
+  'channel: "website"',
+  '<option value="active">Aktiv</option>',
+  '<option value="paused">Pausad</option>',
+  '<option value="ended">Avslutad</option>',
   "website_publication_allowed",
   "removable_system_dependencies",
-], "admin UI supports channel-by-channel lifecycle");
+], "admin UI supports canonical channel-by-channel lifecycle");
 includesAll(tenantControls, [
   "listTenantContractProducts",
   "previewContractDelete",
