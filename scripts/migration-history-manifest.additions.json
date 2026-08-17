@@ -71,6 +71,7 @@
     "20260816170000_partner_api_v1_canonical_surface_events.sql": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
     "20260817083859_partner_postal_grid_materialization.sql": "55bf5ef2f0d74c59dfbc4835e856a48b3b7292ca543e5b64da59bc000fd3ae09",
     "20260817094125_papilite_verified_postal_learning.sql": "4f3307eb05581388655dc961691cdfd38b8d17734eed60cb28dfff7e362f173d",
-    "20260817124500_site_resolution_materialization_guard.sql": "f709935b848dc6f4bd1cd6383def91e2d5411de05c5f491f9273878f2a568429"
+    "20260817124500_site_resolution_materialization_guard.sql": "f709935b848dc6f4bd1cd6383def91e2d5411de05c5f491f9273878f2a568429",
+    "20260817210500_fix_canonical_provision_company_request_hash.sql": "6f145037c73cc03524beff2ad77919392d6ed80e12d25b7e1fe57b76ede33aeb"
   }
 }

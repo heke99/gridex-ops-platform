@@ -7135,6 +7135,7 @@ export type Database = {
           ediel_shared_transport_mode: string
           external_tenant_reference: string
           id: string
+          industry: string
           invoice_export_enabled: boolean
           invoice_export_format: string
           invoice_export_target_system: string | null
@@ -7273,6 +7274,7 @@ export type Database = {
           ediel_shared_transport_mode?: string
           external_tenant_reference?: string
           id?: string
+          industry?: string
           invoice_export_enabled?: boolean
           invoice_export_format?: string
           invoice_export_target_system?: string | null
@@ -7411,6 +7413,7 @@ export type Database = {
           ediel_shared_transport_mode?: string
           external_tenant_reference?: string
           id?: string
+          industry?: string
           invoice_export_enabled?: boolean
           invoice_export_format?: string
           invoice_export_target_system?: string | null
