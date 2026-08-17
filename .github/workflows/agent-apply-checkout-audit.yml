@@ -20,15 +20,29 @@ jobs:
         shell: bash
         run: |
           base64 --decode .github/ops-audit.patch.gz.b64 > /tmp/ops-audit.patch.gz
-          echo 'e528fc987705f2d1abbd07825ea6fdc6ea4b5860e8a545a3b9f40129802e6324  /tmp/ops-audit.patch.gz' | sha256sum --check --strict
+          echo '4c26379914a56f02904c31f5e7d327031f935028bf8dca3a7bf277609608b90f  /tmp/ops-audit.patch.gz' | sha256sum --check --strict
           gzip -dc /tmp/ops-audit.patch.gz > /tmp/ops-audit.patch
           git apply --check /tmp/ops-audit.patch
           git apply /tmp/ops-audit.patch
+      - name: Verify targeted checkout invariants
+        run: |
+          node scripts/gridex-canonical-contract-model-regression.cjs
+          node scripts/gridex-single-api-key-tenant-integration-regression.cjs
+          node scripts/gridex-contract-go-live-regression.cjs
       - name: Commit audited remediation
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/admin/contracts/page.tsx lib/contracts/canonical.ts lib/customers/canonicalOnboarding.ts scripts/
-          git commit -m 'fix: certify website customer contract onboarding'
+          git add \
+            lib/contracts/adminContractSchema.ts \
+            lib/website/publicContracts.ts \
+            lib/website/customerApplicationCommunication.ts \
+            lib/website/customerApplicationOnboarding.ts \
+            lib/customer-contracts/agreementPdf.ts \
+            scripts/gridex-canonical-contract-model-regression.cjs \
+            scripts/gridex-single-api-key-tenant-integration-regression.cjs \
+            scripts/gridex-contract-go-live-regression.cjs \
+            __tests__/contract-admin-schema.test.ts
+          git commit -m 'fix: bind website contracts to canonical commercial terms'
           git push origin HEAD:audit/website-contract-e2e-20260817
