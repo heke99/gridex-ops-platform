@@ -13,7 +13,7 @@ const publicationMigration = read(
   "supabase/migrations/20260730220000_canonical_price_option_publication_api_completion.sql",
 );
 const quote = read("lib/pricing/offerQuote.ts");
-const onboarding = read("lib/website/customerApplications.ts");
+const onboarding = read("lib/website/customerApplicationOnboarding.ts");
 const billing = read("lib/billing/underlayEngine.ts");
 const internalCustomer = read(
   "components/admin/customers/contracts/actions.ts",
@@ -61,11 +61,15 @@ assert.ok(
   "quote must freeze exact resolved components",
 );
 assert.ok(
-  onboarding.includes("quote_commercial_selection_incomplete"),
+  onboarding.includes("quote_commercial_selection_incomplete") &&
+    onboarding.includes("gridex_contract_pricing_v6_selection") &&
+    onboarding.includes("resolved_base_components") &&
+    onboarding.includes("resolved_price_components"),
   "contract creation must fail closed on incomplete v6 quote",
 );
 assert.ok(
-  onboarding.includes("price_components_snapshot: frozenPriceComponents"),
+  onboarding.includes("price_components_snapshot: frozenPriceComponents") &&
+    onboarding.includes("base_price_components_snapshot: frozenBaseComponents"),
   "signed contract must use exact quote components",
 );
 assert.ok(

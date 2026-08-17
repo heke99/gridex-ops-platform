@@ -90,8 +90,14 @@ const rows = inventory
 const template = `-- GENERATED TEMPLATE. DO NOT RUN BEFORE CLEAN RECONSTRUCTION AND LIVE EFFECT VERIFICATION.\n-- Required psql variables: environment, verification_source, release_identifier, schema_fingerprint.\n\ninsert into public.canonical_migration_manifest(\n  version,filename,checksum,applied_environment,verified_at,verification_source,release_identifier,schema_fingerprint\n)\nvalues\n${rows.join(',\n')}\non conflict(version,filename) do update set\n  checksum=excluded.checksum,\n  applied_environment=excluded.applied_environment,\n  verified_at=excluded.verified_at,\n  verification_source=excluded.verification_source,\n  release_identifier=excluded.release_identifier,\n  schema_fingerprint=excluded.schema_fingerprint;\n`
 fs.writeFileSync(templatePath, template)
 
-if (inventory.some((item) => !item.checksum_registered)) {
-  console.error('Migration inventory generated, but one or more repository checksums are not registered.')
+const unregistered = inventory.filter((item) => !item.checksum_registered)
+if (unregistered.length > 0) {
+  console.error(`Migration inventory generated, but ${unregistered.length} repository checksum(s) are not registered:`)
+  for (const item of unregistered) {
+    const expected = registeredChecksums[item.filename]
+    console.error(`- ${item.filename}: expected=${expected ?? '<missing>'} current=${item.checksum}`)
+  }
+  console.error('Do not update migration-history-manifest.json until the historical change has been verified as intentional and its schema effect has been reviewed.')
   process.exit(1)
 }
 console.log(

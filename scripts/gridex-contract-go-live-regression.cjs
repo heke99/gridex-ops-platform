@@ -19,7 +19,7 @@ const commercialEditor = read(
 );
 const schema = read("lib/contracts/adminContractSchema.ts");
 const db = read("lib/customer-contracts/db.ts");
-const runtime = read("lib/website/customerApplications.ts");
+const runtime = read("lib/website/customerApplicationProcess.ts");
 const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
 const alignmentMigration = read("supabase/migrations/20260727161000_contract_type_slug_alignment.sql");
 const integrityRepair = read("supabase/migrations/20260727162000_contract_slug_version_integrity_repair.sql");
@@ -218,7 +218,7 @@ includesAll(page, [
   "Stäng för ny försäljning",
   "Kontrollera readiness och gör internt",
   "Publicera på hemsidan",
-  "Pausa avtalet internt och på hemsidan",
+  "Pausa avtalet i alla försäljningskanaler",
   "deletionPreview",
   "Kundförhandsgranskning och versionsskillnad",
   "contractVersionDiff",
