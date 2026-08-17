@@ -33,6 +33,9 @@ const cityParameter = {
   description: 'City. Recommended together with address.',
 }
 
+const nullableString = { type: 'string', nullable: true } as const
+const nullableNumber = { type: 'number', nullable: true } as const
+
 export const partnerPublicOpenApi = {
   ...partnerOpenApi,
   info: {
@@ -120,41 +123,33 @@ export const partnerPublicOpenApi = {
         ],
         properties: {
           postal_code: { type: 'string', pattern: '^\\d{5}$' },
-          city: { type: ['string', 'null'] },
+          city: nullableString,
           status: { type: 'string', enum: ['resolved', 'partial', 'ambiguous', 'unresolved'] },
-          price_area: { type: ['string', 'null'], enum: ['SE1', 'SE2', 'SE3', 'SE4', null] },
+          price_area: { type: 'string', nullable: true, enum: ['SE1', 'SE2', 'SE3', 'SE4'] },
           grid_area: {
-            anyOf: [
-              {
-                type: 'object',
-                additionalProperties: false,
-                required: ['code', 'name', 'verified'],
-                properties: {
-                  code: { type: 'string' },
-                  name: { type: ['string', 'null'] },
-                  verified: { type: 'boolean' },
-                },
-              },
-              { type: 'null' },
-            ],
+            type: 'object',
+            nullable: true,
+            additionalProperties: false,
+            required: ['code', 'name', 'verified'],
+            properties: {
+              code: { type: 'string' },
+              name: nullableString,
+              verified: { type: 'boolean' },
+            },
           },
           grid_owner: {
-            anyOf: [
-              {
-                type: 'object',
-                additionalProperties: false,
-                required: ['name', 'verified'],
-                properties: {
-                  name: { type: 'string' },
-                  verified: { type: 'boolean' },
-                },
-              },
-              { type: 'null' },
-            ],
+            type: 'object',
+            nullable: true,
+            additionalProperties: false,
+            required: ['name', 'verified'],
+            properties: {
+              name: { type: 'string' },
+              verified: { type: 'boolean' },
+            },
           },
           confidence: { type: 'number', minimum: 0, maximum: 1 },
           price_area_confidence: { type: 'number', minimum: 0, maximum: 1 },
-          resolution_method: { type: ['string', 'null'] },
+          resolution_method: nullableString,
           requires_address: { type: 'boolean' },
           required_fields: { type: 'array', items: { type: 'string' } },
           warnings: { type: 'array', items: { type: 'string' } },
@@ -190,10 +185,10 @@ export const partnerPublicOpenApi = {
               valid_to: { type: 'string', format: 'date-time' },
               price_sek_per_kwh_ex_vat: { type: 'number' },
               price_ore_per_kwh_ex_vat: { type: 'number' },
-              currency: { type: 'string', const: 'SEK' },
-              includes_vat: { type: 'boolean', const: false },
-              includes_supplier_fees: { type: 'boolean', const: false },
-              includes_grid_fees: { type: 'boolean', const: false },
+              currency: { type: 'string', enum: ['SEK'] },
+              includes_vat: { type: 'boolean', enum: [false] },
+              includes_supplier_fees: { type: 'boolean', enum: [false] },
+              includes_grid_fees: { type: 'boolean', enum: [false] },
               source_as_of: { type: 'string', format: 'date-time' },
               next_update_at: { type: 'string', format: 'date-time' },
             },
@@ -226,15 +221,15 @@ export const partnerPublicOpenApi = {
         type: 'object',
         additionalProperties: false,
         properties: {
-          code: { type: ['string', 'null'] },
-          name: { type: ['string', 'null'] },
-          quantity: { type: ['number', 'null'] },
-          unit: { type: ['string', 'null'] },
-          unit_price_ex_vat: { type: ['number', 'null'] },
-          amount_ex_vat: { type: ['number', 'null'] },
-          vat_rate: { type: ['number', 'null'] },
-          vat_amount: { type: ['number', 'null'] },
-          amount_inc_vat: { type: ['number', 'null'] },
+          code: nullableString,
+          name: nullableString,
+          quantity: nullableNumber,
+          unit: nullableString,
+          unit_price_ex_vat: nullableNumber,
+          amount_ex_vat: nullableNumber,
+          vat_rate: nullableNumber,
+          vat_amount: nullableNumber,
+          amount_inc_vat: nullableNumber,
         },
       },
       PriceResponse: {
@@ -253,9 +248,9 @@ export const partnerPublicOpenApi = {
             additionalProperties: false,
             required: ['name', 'code', 'contract_type'],
             properties: {
-              name: { type: ['string', 'null'] },
-              code: { type: ['string', 'null'] },
-              contract_type: { type: ['string', 'null'] },
+              name: nullableString,
+              code: nullableString,
+              contract_type: nullableString,
             },
           },
           customer_price: {
@@ -263,9 +258,9 @@ export const partnerPublicOpenApi = {
             additionalProperties: false,
             required: ['estimated_sek_per_kwh_inc_vat', 'currency', 'unit'],
             properties: {
-              estimated_sek_per_kwh_inc_vat: { type: ['number', 'null'] },
-              currency: { type: 'string', const: 'SEK' },
-              unit: { type: 'string', const: 'kWh' },
+              estimated_sek_per_kwh_inc_vat: nullableNumber,
+              currency: { type: 'string', enum: ['SEK'] },
+              unit: { type: 'string', enum: ['kWh'] },
             },
           },
           estimated_cost: {
@@ -276,17 +271,17 @@ export const partnerPublicOpenApi = {
               'annual_ex_vat', 'annual_vat', 'annual_inc_vat', 'currency',
             ],
             properties: {
-              monthly_ex_vat: { type: ['number', 'null'] },
-              monthly_vat: { type: ['number', 'null'] },
-              monthly_inc_vat: { type: ['number', 'null'] },
-              annual_ex_vat: { type: ['number', 'null'] },
-              annual_vat: { type: ['number', 'null'] },
-              annual_inc_vat: { type: ['number', 'null'] },
-              currency: { type: 'string', const: 'SEK' },
+              monthly_ex_vat: nullableNumber,
+              monthly_vat: nullableNumber,
+              monthly_inc_vat: nullableNumber,
+              annual_ex_vat: nullableNumber,
+              annual_vat: nullableNumber,
+              annual_inc_vat: nullableNumber,
+              currency: { type: 'string', enum: ['SEK'] },
             },
           },
           price_components: { type: 'array', items: { $ref: '#/components/schemas/PriceComponent' } },
-          is_binding: { type: 'boolean', const: false },
+          is_binding: { type: 'boolean', enum: [false] },
           warnings: { type: 'array', items: { type: 'string' } },
           assumptions: { type: 'array', items: { type: 'string' } },
         },
