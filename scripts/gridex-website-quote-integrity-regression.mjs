@@ -146,17 +146,25 @@ for (const field of [
   )
 }
 
-const developerGuide = fs.readFileSync(
+// The immutable 2026-08-14.1 website contract remains the compatibility
+// source above. The public legacy developer URL now intentionally delegates to
+// the simpler canonical Partner API guide, so it must not embed a second copy
+// of the legacy contract schema/version.
+const legacyDeveloperRoute = fs.readFileSync(
   new URL('../app/developers/customer-portal-api/page.tsx', import.meta.url),
   'utf8',
 )
 assert.ok(
-  !developerGuide.includes('"contract_schema_version": "2026-08-05.1"'),
-  'developer guide must not pin stale contract_schema_version 2026-08-05.1',
+  legacyDeveloperRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'"),
+  'legacy customer-portal developer URL must delegate to the canonical Partner API guide',
 )
 assert.ok(
-  developerGuide.includes('"contract_schema_version": "2026-08-14.1"'),
-  'developer guide examples must use current contract_schema_version',
+  legacyDeveloperRoute.includes('<PartnerApiDocumentationPage />'),
+  'legacy developer route must render the canonical Partner API guide',
+)
+assert.ok(
+  !legacyDeveloperRoute.includes('"contract_schema_version": "2026-08-05.1"'),
+  'legacy developer route must not pin stale contract schema versions',
 )
 
 // Create may accept mixed-case price_area that matches a resolution case-
