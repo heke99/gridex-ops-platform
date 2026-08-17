@@ -3,6 +3,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const { spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
@@ -14,6 +15,12 @@ const requiredFiles = [
   'e2e/browser/authenticated.spec.mjs',
   'e2e/k6/platform-smoke.js',
   'scripts/install-browser-e2e-tooling.sh',
+  '.github/workflows/production-certification-e2e.yml',
+  'playwright.production-certification.config.mjs',
+  'e2e/production/preflight.spec.mjs',
+  'e2e/production/tenant-bootstrap.spec.mjs',
+  'e2e/production/helpers/evidence.mjs',
+  'scripts/gridex-production-certification-e2e-regression.cjs',
 ]
 
 const issues = []
@@ -51,6 +58,20 @@ if (issues.length === 0) {
   for (const [source, token, message] of requiredTokens) {
     if (!source.includes(token)) issues.push(message)
   }
+
+  const productionSafety = spawnSync(
+    process.execPath,
+    ['scripts/gridex-production-certification-e2e-regression.cjs'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 4 * 1024 * 1024,
+    },
+  )
+  if (productionSafety.status !== 0) {
+    const detail = String(productionSafety.stderr || productionSafety.stdout || '').trim()
+    issues.push(`Production certification safety contract failed${detail ? `: ${detail}` : '.'}`)
+  }
 }
 
 if (issues.length > 0) {
@@ -59,4 +80,4 @@ if (issues.length > 0) {
   process.exit(1)
 }
 
-console.log('Gridex open-source E2E tooling regression passed: Playwright + axe-core + k6 + OWASP ZAP are pinned and wired.')
+console.log('Gridex open-source E2E tooling regression passed: Playwright + axe-core + k6 + OWASP ZAP + guarded production certification are pinned and wired.')
