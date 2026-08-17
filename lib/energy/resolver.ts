@@ -1,551 +1,84 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { normaliseSwedishAddress } from '@/lib/energy/address'
-import type {
-  EnergyResolverDiagnostics,
-  EnergyResolverInput,
-  EnergyResolverResult,
-  EnergyResolutionStatus,
-  PriceArea,
-  PriceAreaAssurance,
-} from '@/lib/energy/types'
-import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
+import type { EnergyResolverInput, EnergyResolverResult, PriceArea } from '@/lib/energy/types'
+import {
+  normalizePostalCode,
+  normaliseGridAreaCode,
+  resolveEnergyContext as resolveCoreEnergyContext,
+  upsertPlatformGridAreaMasterRows,
+} from './resolverCore'
 
-const PRICE_AREAS: PriceArea[] = ['SE1', 'SE2', 'SE3', 'SE4']
-const GEOCODE_TIMEOUT_MS = 10_000
-const RESOLVER_VERSION = 'energy-resolver-v2'
-const DEFAULT_RESOLUTION_TTL_HOURS = 24
+export { normalizePostalCode, normaliseGridAreaCode, upsertPlatformGridAreaMasterRows }
+
+const PAPILITE_DEFAULT_URL = 'https://api.papapi.se/lite/'
+const PAPILITE_TIMEOUT_MS = 8_000
+const PAPILITE_PRICE_AREA_CONFIDENCE = 0.8
 const DEFAULT_GEODATA_MAX_AGE_DAYS = 30
-const MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE = 0.8
-const MAX_POSTAL_CANDIDATES = 100
+const PRICE_AREAS: PriceArea[] = ['SE1', 'SE2', 'SE3', 'SE4']
 
-type Coordinates = {
-  addressKey: string
-  latitude: number | null
-  longitude: number | null
-  sweref99X: number | null
-  sweref99Y: number | null
-  confidence: number
-  raw: Record<string, unknown>
+type PapiliteResult = {
+  postal_code?: unknown
+  city?: unknown
+  latitude?: unknown
+  longitude?: unknown
+  streets?: unknown
+  country?: unknown
+  updated?: unknown
 }
 
-type GeocodeLookup = {
-  coordinates: Coordinates | null
-  warnings: string[]
-  diagnostics: EnergyResolverDiagnostics
+type PapilitePayload = {
+  api?: Record<string, unknown>
+  results?: PapiliteResult[]
 }
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function numberOrNull(value: unknown): number | null {
+function numeric(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string' && value.trim()) {
-    const parsed = Number(value.replace(',', '.'))
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return null
+  const parsed = Number(String(value ?? '').replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+function normalizeText(value: unknown): string | null {
+  const text = clean(value)
+  return text
+    ? text.normalize('NFKC').toLocaleLowerCase('sv-SE').replace(/\s+/g, ' ')
+    : null
 }
 
-function missingSchema(error: unknown): boolean {
-  const code = (error as { code?: string } | null)?.code ?? ''
-  const message = (error as { message?: string } | null)?.message ?? ''
-  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
-}
-
-class ResolverSchemaError extends Error {
-  constructor(readonly resource: string, cause?: unknown) {
-    super(`Resolver dependency is unavailable: ${resource}`)
-    this.name = 'ResolverSchemaError'
-    if (cause) this.cause = cause
-  }
-}
-
-function requireResolverSchema(resource: string, error: unknown): never {
-  throw new ResolverSchemaError(resource, error)
-}
-
-function normalisePriceArea(value: unknown): PriceArea | null {
+function normalizePriceArea(value: unknown): PriceArea | null {
   const area = clean(value)?.toUpperCase()
   return PRICE_AREAS.includes(area as PriceArea) ? area as PriceArea : null
 }
 
-function normalizeCity(value: unknown): string | null {
-  const city = clean(value)
-  return city
-    ? city.normalize('NFKC').toLocaleLowerCase('sv-SE').replace(/\s+/g, ' ')
-    : null
-}
-
-function unresolvedPriceAreaAssurance(
-  patch: Partial<PriceAreaAssurance> = {},
-): PriceAreaAssurance {
+function postalOnlyInput(input: EnergyResolverInput): EnergyResolverInput {
   return {
-    status: 'unresolved',
-    priceArea: null,
-    confidence: 0,
-    source: null,
-    candidateCount: 0,
-    uniquePriceAreaCount: 0,
-    sourceVersion: null,
-    evidence: {},
-    ...patch,
+    ...input,
+    // PAP/API Lite has postcode-area centroids, not house-number coordinates.
+    // The core resolver must therefore never interpret PAP/API Lite coordinates
+    // as an exact delivery point for operational grid-owner automation.
+    street: null,
+    streetNumber: null,
   }
 }
 
-function verifiedPriceAreaAssurance(input: {
-  priceArea: PriceArea | null
-  confidence: number
-  source: 'facility_data' | 'grid_area_master' | 'address_polygon'
-  sourceVersion?: string | null
-  evidence?: Record<string, unknown>
-}): PriceAreaAssurance {
-  if (!input.priceArea) {
-    return unresolvedPriceAreaAssurance({
-      confidence: input.confidence,
-      source: input.source,
-      sourceVersion: input.sourceVersion ?? null,
-      evidence: input.evidence ?? {},
-    })
-  }
-  return {
-    status: 'verified',
-    priceArea: input.priceArea,
-    confidence: input.confidence,
-    source: input.source,
-    candidateCount: 1,
-    uniquePriceAreaCount: 1,
-    sourceVersion: input.sourceVersion ?? null,
-    evidence: input.evidence ?? {},
-  }
-}
-
-export function normaliseGridAreaCode(value: unknown): string | null {
-  return clean(value)?.replace(/\s+/g, '').toUpperCase() ?? null
-}
-
-export function normalizePostalCode(value: unknown): string | null {
-  const digits = clean(value)?.replace(/\D/g, '') ?? ''
-  return /^\d{5}$/.test(digits) ? digits : null
-}
-
-function hasFullAddress(input: EnergyResolverInput): boolean {
-  return Boolean(clean(input.street) && normalizePostalCode(input.postalCode) && clean(input.city))
-}
-
-function addressKeyFor(parts: { street: string | null; streetNumber: string | null; postalCode: string | null; city: string | null; country: string | null }): string | null {
-  if (!parts.street || !parts.postalCode || !parts.city) return null
-  return [parts.street, parts.streetNumber, parts.postalCode, parts.city, parts.country ?? 'SE']
-    .map((part) => clean(part)?.toLocaleLowerCase('sv-SE').replace(/\s+/g, ' ') ?? '')
-    .join('|')
-}
-
-function addressAttempts(input: EnergyResolverInput) {
-  const parsed = normaliseSwedishAddress(input.street, input.streetNumber)
-  const postalCode = normalizePostalCode(input.postalCode)
-  const city = clean(input.city)
-  const country = clean(input.country) ?? 'SE'
-  const attempts: Array<{ street: string; streetNumber: string | null; key: string }> = []
-  const add = (street: string | null, streetNumber: string | null) => {
-    const key = addressKeyFor({ street, streetNumber, postalCode, city, country })
-    if (!street || !key || attempts.some((candidate) => candidate.key === key)) return
-    attempts.push({ street, streetNumber, key })
-  }
-
-  // Provider-specific normalised form first, exact input second for providers
-  // which accept a full address in one field.
-  add(parsed.streetName, parsed.streetNumber)
-  add(parsed.originalStreet, clean(input.streetNumber))
-  return attempts
-}
-
-function addressKey(input: EnergyResolverInput): string | null {
-  return addressAttempts(input)[0]?.key ?? null
-}
-
-function lookupKey(input: EnergyResolverInput): string {
-  return [
-    normaliseGridAreaCode(input.gridAreaCode) ?? '',
-    addressKey(input) ?? '',
-    clean(input.facilityId) ?? '',
-    clean(input.meteringPointId) ?? '',
-  ].join('|')
-}
-
-function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>): EnergyResolverResult {
-  return {
-    gridAreaCode: null,
-    gridAreaName: null,
-    gridOwnerId: null,
-    gridOwnerName: null,
-    priceArea: null,
-    priceAreaAssurance: unresolvedPriceAreaAssurance(),
-    resolutionStatus: 'failed',
-    confidence: 0,
-    sourceChain: [],
-    automationAllowed: false,
-    nextRequiredAction: 'Granska adress- och nätområdesuppgifter manuellt.',
-    lookupKey: lookupKey(input),
-    warnings: [],
-    resolverVersion: RESOLVER_VERSION,
-    geodataVersion: null,
-    conflictCode: null,
-    diagnostics: {
-      addressAttempts: [],
-      geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
-      providerStatus: process.env.PAPILITE_GEOCODE_URL ? 'not_attempted' : 'not_configured',
-      providerHttpStatus: null,
-      providerErrorCode: null,
-      coordinateReferenceSystem: null,
-      polygonStatus: 'not_attempted',
-      mappingStatus: 'not_applicable',
-    },
-    ...patch,
-  }
-}
-
-function nextActionFor(status: EnergyResolutionStatus, hasFacilityData: boolean): string {
-  if (status === 'facility_verified') return 'Starta leverantörsbyte när övriga readiness-krav är uppfyllda.'
-  if (hasFacilityData && status === 'grid_area_master_validated') return 'Verifiera anläggningsuppgifter och starta leverantörsbyte när fullmakt och avtal är klara.'
-  if (status === 'grid_area_master_validated') return 'Begär anläggningsuppgifter från nätägare innan leverantörsbyte kan startas.'
-  if (status === 'postal_suggested') return 'Verifiera föreslagen nätägare innan EDIFACT skickas.'
-  if (status === 'address_resolved' || status === 'grid_area_resolved') return 'Validera nätområde mot masterdata eller granska manuellt.'
-  return 'Granska ansökan manuellt innan automation fortsätter.'
-}
-
-async function mapPlatformGridOwnerToOpsGridOwner(platformGridOwnerId: string | null): Promise<string | null> {
-  const id = clean(platformGridOwnerId)
-  if (!id) return null
+async function hasActivePostalMapping(postalCode: string): Promise<boolean> {
   const { data, error } = await supabaseService
-    .from('platform_grid_owners')
-    .select('ops_grid_owner_id')
-    .eq('id', id)
-    .maybeSingle()
-  if (error) {
-    if (missingSchema(error)) requireResolverSchema('platform_grid_owners', error)
-    throw error
-  }
-  return clean((data as { ops_grid_owner_id?: string | null } | null)?.ops_grid_owner_id)
-}
-
-async function applyGridOwnerVerification(resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
-  if (!resolved.gridOwnerId) return resolved
-  const verification = await getGridOwnerVerification(resolved.gridOwnerId).catch(() => null)
-  if (!verification) {
-    return {
-      ...resolved,
-      automationAllowed: false,
-      gridOwnerVerificationStatus: 'unknown',
-      gridOwnerVerificationIssues: ['grid_owner_verification_missing'],
-      warnings: [...resolved.warnings, 'grid_owner_verification_missing'],
-      nextRequiredAction: 'Granska nätägare manuellt innan leverantörsbyte eller Ediel-förfrågan skickas.',
-    }
-  }
-  if (verification.verificationStatus !== 'verified' || !verification.verifiedForCustomerFlow || !verification.canUseForProdat) {
-    const issues = verification.reasons.length
-      ? verification.reasons
-      : [!verification.canUseForProdat ? 'prodat_route_not_ready' : verification.verificationStatus]
-    return {
-      ...resolved,
-      automationAllowed: false,
-      gridOwnerVerificationStatus: verification.verificationStatus,
-      gridOwnerVerificationIssues: issues,
-      warnings: [...resolved.warnings, !verification.canUseForProdat ? 'grid_owner_prodat_not_ready' : `grid_owner_${verification.verificationStatus}`],
-      nextRequiredAction: verification.nextAction ?? 'Verifiera nätägare, PRODAT-route, subadress, kontaktväg och certifikat innan automation fortsätter.',
-    }
-  }
-  return {
-    ...resolved,
-    gridOwnerVerificationStatus: 'verified',
-    gridOwnerVerificationIssues: [],
-    warnings: resolved.warnings.filter((warning) => !warning.startsWith('grid_owner_')),
-  }
-}
-
-async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverResult | null> {
-  const { data, error } = await supabaseService
-    .from('platform_grid_areas')
-    .select('id,grid_area_code,grid_area_name,grid_owner_id,grid_owner_name,price_area,platform_grid_owners(name,ops_grid_owner_id)')
-    .eq('grid_area_code', gridAreaCode)
+    .from('platform_postal_code_grid_mappings')
+    .select('id')
+    .eq('postal_code', postalCode)
     .eq('is_active', true)
-    .maybeSingle()
-
-  if (error) {
-    if (missingSchema(error)) requireResolverSchema('platform_grid_areas', error)
-    throw error
-  }
-  if (!data) return null
-  const ownerRelation = data.platform_grid_owners as { name?: string | null; ops_grid_owner_id?: string | null } | null | undefined
-  const opsGridOwnerId = clean(ownerRelation?.ops_grid_owner_id) ?? await mapPlatformGridOwnerToOpsGridOwner(clean(data.grid_owner_id))
-  const mappingMissing = Boolean(clean(data.grid_owner_id) && !opsGridOwnerId)
-  const hasPriceArea = Boolean(normalisePriceArea(data.price_area))
-  return applyGridOwnerVerification(result({}, {
-    gridAreaCode: clean(data.grid_area_code),
-    gridAreaName: clean(data.grid_area_name),
-    gridOwnerId: opsGridOwnerId,
-    gridOwnerName: clean(ownerRelation?.name) ?? clean(data.grid_owner_name),
-    priceArea: normalisePriceArea(data.price_area),
-    priceAreaAssurance: verifiedPriceAreaAssurance({
-      priceArea: normalisePriceArea(data.price_area),
-      confidence: hasPriceArea ? 0.98 : 0.82,
-      source: 'grid_area_master',
-      evidence: { grid_area_code: clean(data.grid_area_code) },
-    }),
-    resolutionStatus: hasPriceArea ? 'grid_area_master_validated' : 'grid_area_resolved',
-    confidence: hasPriceArea ? 0.98 : 0.82,
-    sourceChain: ['input.grid_area_code', 'platform_grid_areas'],
-    automationAllowed: hasPriceArea && !mappingMissing,
-    nextRequiredAction: mappingMissing
-      ? 'Nätområdet är känt men saknar koppling till OPS-nätägaren. Slutför masterdatamappningen innan Ediel skickas.'
-      : nextActionFor(hasPriceArea ? 'grid_area_master_validated' : 'grid_area_resolved', false),
-    lookupKey: gridAreaCode,
-    warnings: mappingMissing ? ['platform_to_ops_grid_owner_mapping_missing'] : [],
-    diagnostics: {
-      addressAttempts: [],
-      geocodeProvider: null,
-      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
-      providerStatus: process.env.PAPILITE_GEOCODE_URL ? 'not_attempted' : 'not_configured',
-      providerHttpStatus: null,
-      providerErrorCode: null,
-      coordinateReferenceSystem: null,
-      polygonStatus: 'not_attempted',
-      mappingStatus: mappingMissing ? 'platform_to_ops_missing' : 'mapped',
-    },
-  }))
-}
-
-async function cachedAddressCoordinates(input: EnergyResolverInput): Promise<Coordinates | null> {
-  const attempts = addressAttempts(input)
-  if (attempts.length === 0) return null
-  const keys = attempts.map((attempt) => attempt.key)
-  const { data, error } = await supabaseService
-    .from('platform_address_lookup_cache')
-    .select('*')
-    .in('address_key', keys)
-    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-    .order('updated_at', { ascending: false })
     .limit(1)
-    .maybeSingle()
 
-  if (error) {
-    if (missingSchema(error)) return null
-    throw error
-  }
-  if (!data) return null
-  return {
-    addressKey: clean(data.address_key) ?? keys[0],
-    latitude: numberOrNull(data.latitude),
-    longitude: numberOrNull(data.longitude),
-    sweref99X: numberOrNull(data.sweref99_x),
-    sweref99Y: numberOrNull(data.sweref99_y),
-    confidence: numberOrNull(data.confidence) ?? 0.7,
-    raw: isRecord(data.raw_payload) ? data.raw_payload : {},
-  }
+  if (error) throw error
+  return Boolean(data?.length)
 }
 
-function firstFromRecord(record: Record<string, unknown>, keys: string[]): unknown {
-  for (const key of keys) {
-    if (record[key] !== undefined && record[key] !== null && record[key] !== '') return record[key]
-  }
-  return null
-}
-
-function candidateFromPayload(payload: unknown): Record<string, unknown> | null {
-  if (Array.isArray(payload)) return isRecord(payload[0]) ? payload[0] : null
-  if (!isRecord(payload)) return null
-  for (const key of ['results', 'data', 'items', 'features']) {
-    const nested = payload[key]
-    if (Array.isArray(nested) && isRecord(nested[0])) return nested[0]
-  }
-  return payload
-}
-
-function coordinateRecords(candidate: Record<string, unknown>): Record<string, unknown>[] {
-  return [candidate, candidate.properties, candidate.attributes]
-    .filter(isRecord)
-}
-
-function numberFromRecords(records: Record<string, unknown>[], keys: string[]): number | null {
-  for (const row of records) {
-    const value = firstFromRecord(row, keys)
-    const parsed = numberOrNull(value)
-    if (parsed !== null) return parsed
-  }
-  return null
-}
-
-function coordinateReference(candidate: Record<string, unknown>, records: Record<string, unknown>[]): string | null {
-  const geometry = isRecord(candidate.geometry) ? candidate.geometry : {}
-  const spatialReference = isRecord(candidate.spatialReference)
-    ? candidate.spatialReference
-    : isRecord(geometry.spatialReference)
-      ? geometry.spatialReference
-      : {}
-  const raw = numberFromRecords([spatialReference, ...records], ['wkid', 'latestWkid', 'srid', 'epsg', 'epsg_code'])
-  return raw ? `EPSG:${Math.trunc(raw)}` : null
-}
-
-function coordinatesFromCandidate(candidate: Record<string, unknown>) {
-  const records = coordinateRecords(candidate)
-  const geometry = isRecord(candidate.geometry) ? candidate.geometry : null
-  const geometryCoordinates = Array.isArray(geometry?.coordinates) ? geometry?.coordinates : null
-  const reference = coordinateReference(candidate, records)
-
-  let latitude = numberFromRecords(records, ['latitude', 'lat'])
-  let longitude = numberFromRecords(records, ['longitude', 'lng', 'lon'])
-  let sweref99X = numberFromRecords(records, ['sweref99_x', 'sweref_x', 'swerefX', 'x_3006'])
-  let sweref99Y = numberFromRecords(records, ['sweref99_y', 'sweref_y', 'swerefY', 'y_3006'])
-
-  // GeoJSON positions are always longitude, latitude. Raw x/y fields are only
-  // accepted when the provider explicitly declares SWEREF99 TM (EPSG:3006).
-  if ((latitude === null || longitude === null) && Array.isArray(geometryCoordinates) && geometryCoordinates.length >= 2) {
-    longitude = longitude ?? numberOrNull(geometryCoordinates[0])
-    latitude = latitude ?? numberOrNull(geometryCoordinates[1])
-  }
-  if (reference === 'EPSG:3006') {
-    sweref99X = sweref99X ?? numberFromRecords(records, ['x'])
-    sweref99Y = sweref99Y ?? numberFromRecords(records, ['y'])
-  }
-
-  return { latitude, longitude, sweref99X, sweref99Y }
-}
-
-async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup> {
-  const url = clean(process.env.PAPILITE_GEOCODE_URL)
-  const attempts = addressAttempts(input)
-  const diagnostics: EnergyResolverDiagnostics = {
-    addressAttempts: [],
-    geocodeProvider: url ? 'papilite' : null,
-    geocodeStatus: url ? 'no_match' : 'not_configured',
-    providerStatus: url ? 'not_attempted' : 'not_configured',
-    providerHttpStatus: null,
-    providerErrorCode: url ? null : 'missing_base_url',
-    coordinateReferenceSystem: null,
-    polygonStatus: 'not_attempted',
-    mappingStatus: 'not_applicable',
-  }
-  if (!url || attempts.length === 0 || !hasFullAddress(input)) {
-    return { coordinates: null, warnings: [url ? 'address_not_complete_for_geocoding' : 'papilite_not_configured'], diagnostics: { ...diagnostics, geocodeStatus: url ? 'no_match' : 'not_configured', providerStatus: url ? 'not_attempted' : 'not_configured', providerErrorCode: url ? 'address_not_complete' : 'missing_base_url' } }
-  }
-
-  for (const attempt of attempts) {
-    const endpoint = new URL(url)
-    endpoint.searchParams.set('street', attempt.street)
-    if (attempt.streetNumber) endpoint.searchParams.set('street_number', attempt.streetNumber)
-    endpoint.searchParams.set('postal_code', normalizePostalCode(input.postalCode) ?? '')
-    endpoint.searchParams.set('city', clean(input.city) ?? '')
-    endpoint.searchParams.set('country', clean(input.country) ?? 'SE')
-
-    const headers: Record<string, string> = { accept: 'application/json' }
-    if (process.env.PAPILITE_API_KEY) headers.authorization = `Bearer ${process.env.PAPILITE_API_KEY}`
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS)
-    try {
-      const response = await fetch(endpoint.toString(), {
-        headers,
-        cache: 'no-store',
-        redirect: 'error',
-        signal: controller.signal,
-      })
-      diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: response.ok ? 'response_received' : 'http_error', httpStatus: response.status })
-      if (!response.ok) {
-        diagnostics.geocodeHttpStatus = response.status
-        diagnostics.providerHttpStatus = response.status
-        diagnostics.providerStatus = 'http_error'
-        diagnostics.providerErrorCode = `http_${response.status}`
-        diagnostics.geocodeStatus = response.status === 401 || response.status === 403 ? 'unauthorized' : response.status === 429 ? 'rate_limited' : 'provider_unavailable'
-        continue
-      }
-      const payload = await response.json().catch(() => null) as unknown
-      diagnostics.geocodeHttpStatus = response.status
-      diagnostics.providerHttpStatus = response.status
-      diagnostics.providerStatus = 'success'
-      diagnostics.geocodeResponseShape = Array.isArray(payload)
-        ? 'array'
-        : payload && typeof payload === 'object'
-          ? `object:${Object.keys(payload as Record<string, unknown>).sort().slice(0, 8).join(',')}`
-          : typeof payload
-      const candidate = candidateFromPayload(payload)
-      if (!candidate) {
-        diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'no_match' })
-        diagnostics.geocodeStatus = 'no_match'
-        continue
-      }
-
-      const { latitude, longitude, sweref99X, sweref99Y } = coordinatesFromCandidate(candidate)
-      if ((sweref99X === null || sweref99Y === null) && (latitude === null || longitude === null)) {
-        diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'coordinates_missing' })
-        diagnostics.geocodeStatus = 'invalid_response'
-        continue
-      }
-
-      const coordinates: Coordinates = {
-        addressKey: attempt.key,
-        latitude,
-        longitude,
-        sweref99X,
-        sweref99Y,
-        confidence: numberOrNull(candidate.confidence) ?? 0.78,
-        raw: isRecord(payload) ? payload : { payload },
-      }
-      const row = {
-        address_key: attempt.key,
-        street: attempt.street,
-        postal_code: normalizePostalCode(input.postalCode),
-        city: clean(input.city),
-        country: clean(input.country) ?? 'SE',
-        latitude,
-        longitude,
-        sweref99_x: sweref99X,
-        sweref99_y: sweref99Y,
-        provider: 'papilite',
-        confidence: coordinates.confidence,
-        raw_payload: coordinates.raw,
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-      const cache = await supabaseService.from('platform_address_lookup_cache').upsert(row, { onConflict: 'address_key' })
-      const warnings = cache.error && !missingSchema(cache.error) ? ['address_cache_write_failed'] : []
-      diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'matched' })
-      diagnostics.geocodeStatus = 'success'
-      diagnostics.coordinateReferenceSystem = sweref99X !== null && sweref99Y !== null ? 'EPSG:3006' : 'EPSG:4326'
-      return { coordinates, warnings, diagnostics }
-    } catch (error) {
-      const outcome = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'provider_unavailable'
-      diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome })
-      diagnostics.geocodeStatus = outcome === 'timeout' ? 'provider_unavailable' : 'provider_unavailable'
-      diagnostics.providerStatus = outcome
-      diagnostics.providerErrorCode = outcome
-    } finally {
-      clearTimeout(timeout)
-    }
-  }
-
-  const status = diagnostics.geocodeStatus
-  const warning = status === 'unauthorized'
-    ? 'papilite_unauthorized'
-    : status === 'rate_limited'
-      ? 'papilite_rate_limited'
-      : status === 'provider_unavailable' && diagnostics.providerErrorCode === 'timeout'
-        ? 'papilite_timeout'
-        : status === 'provider_unavailable'
-          ? 'papilite_unavailable'
-          : status === 'invalid_response'
-            ? 'papilite_invalid_response'
-            : 'papilite_no_result'
-  return { coordinates: null, warnings: [warning], diagnostics }
-}
-
-
-async function currentGeodataVersion(): Promise<{ version: string | null; stale: boolean }> {
-  const maxAgeDaysRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
-  const maxAgeDays = Number.isFinite(maxAgeDaysRaw) ? Math.min(Math.max(maxAgeDaysRaw, 1), 365) : DEFAULT_GEODATA_MAX_AGE_DAYS
+async function currentVerifiedGeodataVersion(): Promise<{ version: string | null; usable: boolean }> {
+  const maxAgeRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
+  const maxAgeDays = Number.isFinite(maxAgeRaw) ? Math.min(Math.max(maxAgeRaw, 1), 365) : DEFAULT_GEODATA_MAX_AGE_DAYS
   const { data, error } = await supabaseService
     .from('energy_geodata_versions')
     .select('version_key,verified_at,completed_at,started_at')
@@ -554,590 +87,240 @@ async function currentGeodataVersion(): Promise<{ version: string | null; stale:
     .order('verified_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  if (error) {
-    if (missingSchema(error)) return { version: null, stale: true }
-    throw error
-  }
-  if (!data) return { version: null, stale: true }
+
+  if (error || !data) return { version: null, usable: false }
   const timestamp = clean(data.verified_at) ?? clean(data.completed_at) ?? clean(data.started_at)
-  const ageMs = timestamp ? Date.now() - Date.parse(timestamp) : Number.POSITIVE_INFINITY
+  const age = timestamp ? Date.now() - Date.parse(timestamp) : Number.POSITIVE_INFINITY
   return {
     version: clean(data.version_key),
-    stale: !Number.isFinite(ageMs) || ageMs > maxAgeDays * 24 * 60 * 60 * 1000,
+    usable: Number.isFinite(age) && age <= maxAgeDays * 24 * 60 * 60 * 1000,
   }
 }
 
-async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordinates): Promise<EnergyResolverResult | null> {
-  let data: unknown = null
-  let error: unknown = null
-  let coordinateReferenceSystem: EnergyResolverDiagnostics['coordinateReferenceSystem'] = null
+async function fetchPapilitePostcode(input: EnergyResolverInput, postalCode: string) {
+  const apiKey = clean(process.env.PAPILITE_API_KEY)
+  if (!apiKey) return { candidate: null, warnings: ['papilite_api_key_missing'] as string[] }
 
-  if (coordinates.sweref99X !== null && coordinates.sweref99Y !== null) {
-    coordinateReferenceSystem = 'EPSG:3006'
-    const response = await supabaseService.rpc('gridex_point_to_grid_area', { p_x: coordinates.sweref99X, p_y: coordinates.sweref99Y })
-    data = response.data
-    error = response.error
-  } else if (coordinates.longitude !== null && coordinates.latitude !== null) {
-    coordinateReferenceSystem = 'EPSG:4326'
-    const response = await supabaseService.rpc('gridex_lonlat_to_grid_area', { p_longitude: coordinates.longitude, p_latitude: coordinates.latitude })
-    data = response.data
-    error = response.error
-  }
+  const endpoint = new URL(clean(process.env.PAPILITE_GEOCODE_URL) ?? PAPILITE_DEFAULT_URL)
+  endpoint.searchParams.set('query', postalCode)
+  endpoint.searchParams.set('format', 'json')
+  endpoint.searchParams.set('apikey', apiKey)
+  endpoint.searchParams.set('country', (clean(input.country) ?? 'SE').toLowerCase())
 
-  if (error) {
-    if (missingSchema(error)) requireResolverSchema('gridex_point_to_grid_area', error)
-    throw error
-  }
-  const row = Array.isArray(data) ? data[0] : data
-  if (!isRecord(row)) return null
-  const status: EnergyResolutionStatus = normalisePriceArea(row.price_area) && clean(row.grid_owner_name)
-    ? 'grid_area_master_validated'
-    : 'grid_area_resolved'
-  const opsGridOwnerId = await mapPlatformGridOwnerToOpsGridOwner(clean(row.grid_owner_id))
-  const mappingMissing = Boolean(clean(row.grid_owner_id) && !opsGridOwnerId)
-  const geodata = await currentGeodataVersion()
-  const resolved = await applyGridOwnerVerification(result(input, {
-    gridAreaCode: clean(row.grid_area_code),
-    gridAreaName: clean(row.grid_area_name),
-    gridOwnerId: opsGridOwnerId,
-    gridOwnerName: clean(row.grid_owner_name),
-    priceArea: normalisePriceArea(row.price_area),
-    priceAreaAssurance: geodata.stale
-      ? unresolvedPriceAreaAssurance({
-          priceArea: normalisePriceArea(row.price_area),
-          confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
-          source: 'address_polygon',
-          sourceVersion: geodata.version,
-          evidence: { grid_area_code: clean(row.grid_area_code), geodata_stale: true },
-        })
-      : verifiedPriceAreaAssurance({
-          priceArea: normalisePriceArea(row.price_area),
-          confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
-          source: 'address_polygon',
-          sourceVersion: geodata.version,
-          evidence: { grid_area_code: clean(row.grid_area_code), coordinate_reference_system: coordinateReferenceSystem },
-        }),
-    resolutionStatus: status,
-    confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
-    sourceChain: ['address', 'papilite/cache', 'svk_arcgis_polygon', 'platform_grid_areas'],
-    automationAllowed: status === 'grid_area_master_validated' && !mappingMissing && !geodata.stale,
-    geodataVersion: geodata.version,
-    nextRequiredAction: mappingMissing
-      ? 'Nätområdet är känt men saknar OPS-nätägar-mappning. Granska masterdata innan Ediel skickas.'
-      : nextActionFor(status, Boolean(clean(input.facilityId) && clean(input.meteringPointId))),
-    coordinates: {
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      sweref99X: coordinates.sweref99X,
-      sweref99Y: coordinates.sweref99Y,
-    },
-    warnings: [
-      ...(mappingMissing ? ['platform_to_ops_grid_owner_mapping_missing'] : []),
-      ...(geodata.stale ? ['svk_geodata_stale_or_unverified'] : []),
-    ],
-    diagnostics: {
-      addressAttempts: [],
-      geocodeProvider: 'papilite',
-      geocodeStatus: 'success',
-      providerStatus: 'success',
-      providerHttpStatus: null,
-      providerErrorCode: null,
-      coordinateReferenceSystem,
-      polygonStatus: 'matched',
-      mappingStatus: mappingMissing ? 'platform_to_ops_missing' : 'mapped',
-    },
-  }))
-  if (geodata.stale) {
-    return {
-      ...resolved,
-      automationAllowed: false,
-      nextRequiredAction: 'SVK-geometrin är för gammal eller ej verifierad. Uppdatera geodata innan automation fortsätter.',
-    }
-  }
-  return resolved
-}
-
-async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResolverResult | null> {
-  const postalCode = normalizePostalCode(input.postalCode)
-  if (!postalCode) return null
-
-  const { data, error, count } = await supabaseService
-    .from('platform_postal_code_grid_mappings')
-    .select('postal_code,city,grid_area_code,price_area,confidence,source,updated_at', { count: 'exact' })
-    .eq('postal_code', postalCode)
-    .eq('is_active', true)
-    .order('confidence', { ascending: false })
-    .limit(MAX_POSTAL_CANDIDATES)
-
-  if (error) {
-    if (missingSchema(error)) requireResolverSchema('platform_postal_code_grid_mappings', error)
-    throw error
-  }
-
-  const rows = (data ?? []) as Array<Record<string, unknown>>
-  if (rows.length === 0) return null
-  const candidateLimitExceeded = typeof count === 'number' && count > rows.length
-
-  const requestedCity = normalizeCity(input.city)
-  const exactCityRows = requestedCity
-    ? rows.filter((row) => normalizeCity(row.city) === requestedCity)
-    : []
-  const candidates = exactCityRows.length > 0 ? exactCityRows : rows
-  const gridAreaCodes = [...new Set(
-    candidates
-      .map((row) => normaliseGridAreaCode(row.grid_area_code))
-      .filter((value): value is string => Boolean(value)),
-  )]
-
-  const masterPriceAreas = new Map<string, PriceArea>()
-  if (gridAreaCodes.length > 0) {
-    const masterResponse = await supabaseService
-      .from('platform_grid_areas')
-      .select('grid_area_code,price_area')
-      .in('grid_area_code', gridAreaCodes)
-      .eq('is_active', true)
-    if (masterResponse.error) {
-      if (missingSchema(masterResponse.error)) requireResolverSchema('platform_grid_areas', masterResponse.error)
-      throw masterResponse.error
-    }
-    for (const row of masterResponse.data ?? []) {
-      const code = normaliseGridAreaCode(row.grid_area_code)
-      const area = normalisePriceArea(row.price_area)
-      if (code && area) masterPriceAreas.set(code, area)
-    }
-  }
-
-  const classified = candidates.map((row) => {
-    const gridAreaCode = normaliseGridAreaCode(row.grid_area_code)
-    const rowPriceArea = normalisePriceArea(row.price_area)
-    const masterPriceArea = gridAreaCode ? masterPriceAreas.get(gridAreaCode) ?? null : null
-    const mappingConflict = Boolean(rowPriceArea && masterPriceArea && rowPriceArea !== masterPriceArea)
-    return {
-      row,
-      gridAreaCode,
-      rowPriceArea,
-      masterPriceArea,
-      // Canonical grid-area masterdata wins when available, but any mismatch is
-      // still an explicit conflict and therefore cannot become pricing-ready.
-      priceArea: masterPriceArea ?? rowPriceArea,
-      mappingConflict,
-      confidence: Math.max(0, Math.min(1, numberOrNull(row.confidence) ?? 0)),
-    }
-  })
-  const unknownCandidateCount = classified.filter((candidate) => !candidate.priceArea).length
-  const mappingConflictCount = classified.filter((candidate) => candidate.mappingConflict).length
-  const uniquePriceAreas = [...new Set(
-    classified
-      .flatMap((candidate) => [candidate.rowPriceArea, candidate.masterPriceArea])
-      .filter((value): value is PriceArea => Boolean(value)),
-  )]
-  const source = exactCityRows.length > 0 ? 'postal_city_consensus' as const : 'postal_consensus' as const
-  const best = classified[0]
-  const bestMaster = best?.gridAreaCode ? await findGridAreaByCode(best.gridAreaCode) : null
-  const rawConfidence = classified.reduce((max, candidate) => Math.max(max, candidate.confidence), 0)
-  const confidence = Math.min(exactCityRows.length > 0 ? 0.9 : 0.85, rawConfidence)
-  const evidence = {
-    postal_code: postalCode,
-    requested_city: clean(input.city),
-    city_scope: exactCityRows.length > 0 ? 'exact_city' : 'postal_code',
-    candidate_count: classified.length,
-    total_postal_candidate_count: count ?? rows.length,
-    candidate_limit_exceeded: candidateLimitExceeded,
-    unknown_candidate_count: unknownCandidateCount,
-    mapping_conflict_count: mappingConflictCount,
-    grid_area_codes: [...new Set(classified.map((candidate) => candidate.gridAreaCode).filter(Boolean))],
-    price_areas: uniquePriceAreas,
-    sources: [...new Set(classified.map((candidate) => clean(candidate.row.source)).filter(Boolean))],
-    newest_mapping_at: classified
-      .map((candidate) => clean(candidate.row.updated_at))
-      .filter((value): value is string => Boolean(value))
-      .sort()
-      .at(-1) ?? null,
-  }
-
-  if (uniquePriceAreas.length > 1 || mappingConflictCount > 0) {
-    return result(input, {
-      suggestedGridAreaCode: best?.gridAreaCode ?? null,
-      suggestedGridOwnerId: bestMaster?.gridOwnerId ?? null,
-      suggestedGridOwnerName: bestMaster?.gridOwnerName ?? null,
-      suggestionSource: source,
-      suggestionConfidence: confidence,
-      priceArea: null,
-      priceAreaAssurance: {
-        status: 'ambiguous',
-        priceArea: null,
-        confidence,
-        source,
-        candidateCount: candidateLimitExceeded ? (count ?? classified.length) : classified.length,
-        uniquePriceAreaCount: uniquePriceAreas.length,
-        sourceVersion: clean(evidence.newest_mapping_at),
-        evidence,
-      },
-      resolutionStatus: 'postal_suggested',
-      confidence,
-      sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', 'postal_price_area_consensus'],
-      automationAllowed: false,
-      conflictCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous',
-      nextRequiredAction: mappingConflictCount > 0
-        ? 'Postnummermappningen motsäger nätområdets masterdata. Korrigera masterdata eller komplettera full adress.'
-        : 'Komplettera full adress eller verifierat nätområde. Postnumret omfattar flera elprisområden.',
-      warnings: [
-        ...(uniquePriceAreas.length > 1 ? ['postal_candidates_cross_price_areas'] : []),
-        ...(mappingConflictCount > 0 ? ['postal_mapping_master_conflict'] : []),
-      ],
-      diagnostics: {
-        addressAttempts: [],
-        geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-        geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
-        providerStatus: 'not_attempted',
-        providerHttpStatus: null,
-        providerErrorCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous',
-        coordinateReferenceSystem: null,
-        polygonStatus: 'not_attempted',
-        mappingStatus: 'not_applicable',
-      },
-    })
-  }
-
-  const resolvedPriceArea = uniquePriceAreas[0] ?? null
-  const assuranceReady = Boolean(
-    resolvedPriceArea &&
-    unknownCandidateCount === 0 &&
-    !candidateLimitExceeded &&
-    confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE,
-  )
-  const warnings = [
-    ...(classified.length > 1 ? ['postal_code_multiple_grid_area_candidates'] : []),
-    ...(unknownCandidateCount > 0 ? ['postal_candidate_price_area_missing'] : []),
-    ...(candidateLimitExceeded ? ['postal_candidate_limit_exceeded'] : []),
-    ...(!assuranceReady ? ['postal_price_area_confidence_insufficient'] : []),
-  ]
-
-  return result(input, {
-    suggestedGridAreaCode: best?.gridAreaCode ?? null,
-    suggestedGridOwnerId: bestMaster?.gridOwnerId ?? null,
-    suggestedGridOwnerName: bestMaster?.gridOwnerName ?? null,
-    suggestionSource: source,
-    suggestionConfidence: confidence,
-    priceArea: resolvedPriceArea,
-    priceAreaAssurance: assuranceReady
-      ? {
-          status: 'estimated',
-          priceArea: resolvedPriceArea,
-          confidence,
-          source,
-          candidateCount: candidateLimitExceeded ? (count ?? classified.length) : classified.length,
-          uniquePriceAreaCount: resolvedPriceArea ? 1 : 0,
-          sourceVersion: clean(evidence.newest_mapping_at),
-          evidence,
-        }
-      : unresolvedPriceAreaAssurance({
-          priceArea: resolvedPriceArea,
-          confidence,
-          source,
-          candidateCount: candidateLimitExceeded ? (count ?? classified.length) : classified.length,
-          uniquePriceAreaCount: resolvedPriceArea ? 1 : 0,
-          sourceVersion: clean(evidence.newest_mapping_at),
-          evidence,
-        }),
-    resolutionStatus: 'postal_suggested',
-    confidence,
-    sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', 'postal_price_area_consensus', ...(bestMaster ? ['platform_grid_areas'] : [])],
-    automationAllowed: false,
-    nextRequiredAction: assuranceReady
-      ? nextActionFor('postal_suggested', false)
-      : 'Komplettera full adress för att fastställa elprisområdet med tillräcklig säkerhet.',
-    warnings,
-    diagnostics: {
-      addressAttempts: [],
-      geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
-      providerStatus: 'not_attempted',
-      providerHttpStatus: null,
-      providerErrorCode: assuranceReady ? 'postal_price_area_consensus_used' : 'postal_price_area_unresolved',
-      coordinateReferenceSystem: null,
-      polygonStatus: 'not_attempted',
-      mappingStatus: 'not_applicable',
-    },
-  })
-}
-
-async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
-  if (!input.companyId) return resolved
-  const now = new Date().toISOString()
-  const ttlRaw = Number(process.env.ENERGY_RESOLUTION_TTL_HOURS ?? DEFAULT_RESOLUTION_TTL_HOURS)
-  const ttlHours = Number.isFinite(ttlRaw) ? Math.min(Math.max(ttlRaw, 1), 168) : DEFAULT_RESOLUTION_TTL_HOURS
-  const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString()
-  const row = {
-    company_id: input.companyId,
-    customer_id: clean(input.customerId),
-    customer_site_id: clean(input.customerSiteId),
-    customer_application_id: clean(input.customerApplicationId),
-    grid_owner_id: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridOwnerId),
-    grid_area_code: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaCode),
-    grid_area_name: clean(resolved.gridAreaName),
-    grid_owner_name: resolved.resolutionStatus === 'postal_suggested' ? clean(resolved.suggestedGridOwnerName) : clean(resolved.gridOwnerName),
-    price_area: resolved.priceArea,
-    price_area_assurance_status: resolved.priceAreaAssurance.status,
-    price_area_assurance_source: resolved.priceAreaAssurance.source,
-    price_area_assurance_confidence: resolved.priceAreaAssurance.confidence,
-    price_area_assurance_source_version: resolved.priceAreaAssurance.sourceVersion,
-    price_area_candidate_count: resolved.priceAreaAssurance.candidateCount,
-    price_area_unique_count: resolved.priceAreaAssurance.uniquePriceAreaCount,
-    price_area_evidence: resolved.priceAreaAssurance.evidence,
-    resolution_status: resolved.resolutionStatus,
-    confidence: resolved.confidence,
-    source_chain: resolved.sourceChain,
-    input_snapshot: input,
-    result_snapshot: resolved,
-    automation_allowed: Boolean(resolved.automationAllowed && resolved.gridOwnerId && resolved.gridAreaCode && resolved.priceArea && resolved.gridOwnerVerificationStatus === 'verified'),
-    next_required_action: resolved.nextRequiredAction,
-    resolved_at: now,
-    expires_at: expiresAt,
-    resolver_version: resolved.resolverVersion ?? RESOLVER_VERSION,
-    geodata_version: resolved.geodataVersion ?? null,
-    source_claims: { grid_area_code: normaliseGridAreaCode(input.gridAreaCode) },
-    conflict_code: resolved.conflictCode ?? null,
-    updated_at: now,
-  }
-
-  const { data, error } = await supabaseService
-    .from('customer_site_resolution')
-    .insert(row)
-    .select('id')
-    .single()
-
-  if (error) {
-    if (missingSchema(error)) requireResolverSchema('customer_site_resolution', error)
-    throw error
-  }
-
-  if (input.customerSiteId) {
-    const current = await supabaseService
-      .from('customer_sites')
-      .select('resolution_status,address_status,facility_data_status,grid_owner_id,grid_area_code,price_area_code,address_hash,metadata')
-      .eq('id', input.customerSiteId)
-      .eq('company_id', input.companyId)
-      .maybeSingle()
-    if (current.error) {
-      if (missingSchema(current.error)) requireResolverSchema('customer_sites.energy_resolution_columns', current.error)
-      throw current.error
-    }
-    const currentRow = (current.data ?? null) as Record<string, unknown> | null
-    const currentStatus = String(currentRow?.resolution_status ?? '').toLowerCase()
-    const protectedManualVerification = ['manual_verified', 'facility_verified'].includes(currentStatus)
-    const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridOwnerId)
-    const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaCode)
-    const resolvedPriceAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null : resolved.priceArea
-    const fullyVerifiedResolution = Boolean(
-      resolved.automationAllowed &&
-      resolvedGridOwnerId &&
-      resolvedGridAreaCode &&
-      resolvedPriceAreaCode &&
-      resolved.gridOwnerVerificationStatus === 'verified',
-    )
-
-    // Address commits invalidate derived grid context in the database. Once a
-    // new resolver result exists it is the source of truth; stale values must
-    // never win merely because they are non-null. A manually verified row is
-    // preserved only when the new result is not fully verified.
-    if (!protectedManualVerification || fullyVerifiedResolution) {
-      const siteUpdate: Record<string, unknown> = {
-        grid_owner_id: resolvedGridOwnerId,
-        grid_area_code: resolvedGridAreaCode,
-        price_area_code: resolvedPriceAreaCode,
-        resolution_id: data.id,
-        resolution_status: resolved.resolutionStatus,
-        resolution_confidence: resolved.confidence,
-        latitude: resolved.coordinates?.latitude ?? null,
-        longitude: resolved.coordinates?.longitude ?? null,
-        sweref99_x: resolved.coordinates?.sweref99X ?? null,
-        sweref99_y: resolved.coordinates?.sweref99Y ?? null,
-        updated_at: now,
-      }
-      const siteResult = await supabaseService
-        .from('customer_sites')
-        .update(siteUpdate)
-        .eq('id', input.customerSiteId)
-        .eq('company_id', input.companyId)
-        .select('id')
-      if (siteResult.error) {
-        if (missingSchema(siteResult.error)) requireResolverSchema('customer_sites.energy_resolution_columns', siteResult.error)
-        throw siteResult.error
-      }
-      if (!siteResult.data?.length) throw new Error('Nätägarresolutionen kunde inte sparas på rätt tenant/anläggning.')
-    }
-  }
-
-  const saved = { ...resolved, resolutionId: data.id as string, resolvedAt: now, expiresAt, resolverVersion: resolved.resolverVersion ?? RESOLVER_VERSION }
-  await recordCanonicalEnergyEvent({
-    eventType: saved.resolutionStatus === 'needs_review' || saved.resolutionStatus === 'failed'
-      ? 'energy_area.needs_review'
-      : 'energy_area.resolved',
-    companyId: input.companyId,
-    customerId: input.customerId ?? null,
-    siteId: input.customerSiteId ?? null,
-    resolutionId: saved.resolutionId,
-    source: 'ops_energy_resolver',
-    payload: {
-      price_area: saved.priceArea,
-      grid_area_code: saved.gridAreaCode,
-      grid_owner_id: saved.gridOwnerId,
-      resolution_status: saved.resolutionStatus,
-      confidence: saved.confidence,
-      price_area_assurance: saved.priceAreaAssurance,
-      automation_allowed: saved.automationAllowed,
-      resolver_version: saved.resolverVersion,
-      geodata_version: saved.geodataVersion,
-      conflict_code: saved.conflictCode ?? null,
-    },
-  })
-  return saved
-}
-
-export async function resolveEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
-  const warnings: string[] = []
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), PAPILITE_TIMEOUT_MS)
   try {
-    const explicitCode = normaliseGridAreaCode(input.gridAreaCode)
-    const explicit = explicitCode ? await findGridAreaByCode(explicitCode) : null
-    if (explicitCode && !explicit) warnings.push('grid_area_code_not_found_in_master')
-
-    if (hasFullAddress(input)) {
-      const cached = await cachedAddressCoordinates(input)
-      const geocode = cached
-        ? {
-            coordinates: cached,
-            warnings: [] as string[],
-            diagnostics: {
-              addressAttempts: [],
-              geocodeProvider: 'cache',
-              geocodeStatus: 'success',
-              providerStatus: 'cache_hit',
-              providerHttpStatus: null,
-              providerErrorCode: null,
-              coordinateReferenceSystem: cached.sweref99X !== null && cached.sweref99Y !== null ? 'EPSG:3006' as const : 'EPSG:4326' as const,
-              polygonStatus: 'not_attempted' as const,
-              mappingStatus: 'not_applicable' as const,
-            },
-          }
-        : await lookupPapilite(input)
-      warnings.push(...geocode.warnings)
-      if (geocode.coordinates) {
-        const polygon = await pointToGridArea(input, geocode.coordinates)
-        if (polygon) {
-          if (explicitCode && polygon.gridAreaCode && explicitCode !== normaliseGridAreaCode(polygon.gridAreaCode)) {
-            return saveResolution(input, {
-              ...polygon,
-              resolutionStatus: 'needs_review',
-              automationAllowed: false,
-              conflictCode: 'grid_area_address_mismatch',
-              sourceChain: [...polygon.sourceChain, 'client_grid_area_claim_cross_validation'],
-              nextRequiredAction: 'Inskickad nätområdeskod matchar inte adressens polygon. Granska uppgifterna innan quote eller leverantörsbyte.',
-              warnings: [...warnings, ...polygon.warnings, 'grid_area_address_mismatch'],
-              diagnostics: { ...geocode.diagnostics, ...polygon.diagnostics, polygonStatus: 'matched' },
-            })
-          }
-          return saveResolution(input, {
-            ...polygon,
-            sourceChain: explicitCode ? [...polygon.sourceChain, 'client_grid_area_claim_validated'] : polygon.sourceChain,
-            warnings: [...warnings, ...polygon.warnings],
-            diagnostics: { ...geocode.diagnostics, ...polygon.diagnostics, polygonStatus: 'matched' },
-          })
-        }
-        warnings.push(geocode.coordinates.sweref99X === null && geocode.coordinates.longitude !== null ? 'polygon_wgs84_transform_unavailable_or_no_match' : 'polygon_no_match')
-        const postalFallback = await postalSuggestion(input)
-        if (postalFallback?.priceAreaAssurance.status === 'estimated' && postalFallback.priceArea) {
-          return saveResolution(input, {
-            ...postalFallback,
-            coordinates: {
-              latitude: geocode.coordinates.latitude,
-              longitude: geocode.coordinates.longitude,
-              sweref99X: geocode.coordinates.sweref99X,
-              sweref99Y: geocode.coordinates.sweref99Y,
-            },
-            sourceChain: [
-              'address',
-              cached ? 'address_cache' : 'papilite',
-              'polygon_no_match',
-              ...postalFallback.sourceChain,
-            ],
-            warnings: [...warnings, ...postalFallback.warnings, 'postal_price_area_fallback_used'],
-            diagnostics: { ...geocode.diagnostics, ...postalFallback.diagnostics, polygonStatus: 'no_match' },
-          })
-        }
-        return saveResolution(input, result(input, {
-          resolutionStatus: 'address_resolved',
-          confidence: Math.max(0.55, geocode.coordinates.confidence),
-          sourceChain: ['address', cached ? 'address_cache' : 'papilite'],
-          nextRequiredAction: 'Adressen hittades men kunde inte kopplas till ett verifierat nätområde. Granska geodata eller nätområdesmasterdata.',
-          coordinates: {
-            latitude: geocode.coordinates.latitude,
-            longitude: geocode.coordinates.longitude,
-            sweref99X: geocode.coordinates.sweref99X,
-            sweref99Y: geocode.coordinates.sweref99Y,
-          },
-          warnings,
-          diagnostics: { ...geocode.diagnostics, polygonStatus: 'no_match' },
-        }))
+    const response = await fetch(endpoint.toString(), {
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+      redirect: 'error',
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      return {
+        candidate: null,
+        warnings: [response.status === 401
+          ? 'papilite_unauthorized'
+          : response.status === 403
+            ? 'papilite_quota_or_access_denied'
+            : response.status === 404
+              ? 'papilite_postal_code_not_found'
+              : `papilite_http_${response.status}`],
       }
     }
 
-    if (explicit) {
-      return saveResolution(input, result(input, {
-        gridAreaCode: explicit.gridAreaCode,
-        gridAreaName: explicit.gridAreaName,
-        gridOwnerId: explicit.gridOwnerId,
-        gridOwnerName: explicit.gridOwnerName,
-        priceArea: explicit.priceArea,
-        resolutionStatus: 'needs_review',
-        confidence: Math.min(explicit.confidence, 0.6),
-        sourceChain: ['client_grid_area_claim', 'platform_grid_areas'],
-        automationAllowed: false,
-        conflictCode: 'grid_area_claim_unverified',
-        nextRequiredAction: 'Nätområdeskoden är endast ett klientpåstående. Komplettera full adress eller invänta verifierade anläggningsuppgifter från OPS/nätägaren.',
-        warnings: [...warnings, 'grid_area_claim_requires_address_cross_validation'],
-      }))
+    const payload = await response.json().catch(() => null) as PapilitePayload | null
+    const results = Array.isArray(payload?.results) ? payload.results : []
+    const requestedCity = normalizeText(input.city)
+    const exactPostal = results.filter((row) => normalizePostalCode(row.postal_code) === postalCode)
+    const cityMatch = requestedCity
+      ? exactPostal.find((row) => normalizeText(row.city) === requestedCity)
+      : null
+    const candidate = cityMatch ?? exactPostal[0] ?? null
+    if (!candidate) return { candidate: null, warnings: ['papilite_postal_code_not_found'] }
+
+    const warnings: string[] = []
+    if (requestedCity && normalizeText(candidate.city) !== requestedCity) warnings.push('papilite_city_mismatch')
+
+    const requestedStreet = normalizeText(normaliseSwedishAddress(input.street, input.streetNumber).streetName)
+    if (requestedStreet && Array.isArray(candidate.streets)) {
+      const streetMatches = candidate.streets.some((street) => normalizeText(street) === requestedStreet)
+      if (!streetMatches) warnings.push('papilite_street_mismatch')
     }
 
-    const postal = await postalSuggestion(input)
-    if (postal) return saveResolution(input, { ...postal, warnings: [...postal.warnings, ...warnings] })
-
-    return saveResolution(input, result(input, {
-      resolutionStatus: explicitCode || hasFullAddress(input) ? 'needs_review' : 'postal_suggested',
-      confidence: 0,
-      sourceChain: ['input'],
-      nextRequiredAction: explicitCode || hasFullAddress(input)
-        ? 'Nätområde kunde inte verifieras från adressen. Granska adressmatchning, geodata och masterdata innan något skickas.'
-        : 'Komplettera full adress för automatisk nätområdesmatchning.',
-      warnings: [...warnings, 'no_energy_resolution_candidate'],
-    }))
+    return { candidate, warnings }
   } catch (error) {
-    const code = (error as { code?: string } | null)?.code ?? null
-    const schemaResource = error instanceof ResolverSchemaError ? error.resource : null
-    const failed = result(input, {
-      resolutionStatus: 'failed',
-      confidence: 0,
-      sourceChain: ['energy_resolver_error'],
-      nextRequiredAction: schemaResource
-        ? 'OPS saknar ett nödvändigt schemaobjekt för nätområdesmatchning. Kör driftkontrollen och senaste migration innan automation fortsätter.'
-        : 'Teknisk admin behöver kontrollera resolver, geodataimport eller schema.',
-      warnings: [...warnings, schemaResource ? `resolver_schema_missing:${schemaResource}` : code ? `resolver_database_error_${code}` : 'resolver_unexpected_error'],
-      diagnostics: {
-        addressAttempts: [],
-        geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-        geocodeStatus: schemaResource ? 'provider_unavailable' : 'provider_unavailable',
-        providerStatus: schemaResource ? 'schema_missing' : 'failed',
-        providerHttpStatus: null,
-        providerErrorCode: schemaResource ? `schema_missing:${schemaResource}` : (code ?? 'resolver_failed'),
-        coordinateReferenceSystem: null,
-        polygonStatus: schemaResource ? 'schema_missing' : 'not_attempted',
-        mappingStatus: 'not_applicable',
-      },
-    })
-    // A missing result table must never be reported as absent business data.
-    // Avoid a second failing write when the schema itself is unavailable.
-    return schemaResource ? failed : saveResolution(input, failed).catch(() => failed)
+    return {
+      candidate: null,
+      warnings: [error instanceof Error && error.name === 'AbortError' ? 'papilite_timeout' : 'papilite_unavailable'],
+    }
+  } finally {
+    clearTimeout(timeout)
   }
+}
+
+async function mapCentroidToPriceArea(candidate: PapiliteResult) {
+  const latitude = numeric(candidate.latitude)
+  const longitude = numeric(candidate.longitude)
+  if (latitude === null || longitude === null) {
+    return { priceArea: null, suggestedGridAreaCode: null, geodataVersion: null, warnings: ['papilite_coordinates_missing'] as string[] }
+  }
+
+  const geodata = await currentVerifiedGeodataVersion()
+  if (!geodata.usable) {
+    return { priceArea: null, suggestedGridAreaCode: null, geodataVersion: geodata.version, warnings: ['svk_geodata_stale_or_unverified'] }
+  }
+
+  const { data, error } = await supabaseService.rpc('gridex_lonlat_to_grid_area', {
+    p_longitude: longitude,
+    p_latitude: latitude,
+  })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  const record = row && typeof row === 'object' && !Array.isArray(row) ? row as Record<string, unknown> : null
+  const priceArea = normalizePriceArea(record?.price_area)
+  return {
+    priceArea,
+    suggestedGridAreaCode: normaliseGridAreaCode(record?.grid_area_code),
+    geodataVersion: geodata.version,
+    warnings: priceArea ? [] : ['papilite_centroid_price_area_unresolved'],
+  }
+}
+
+async function persistPapilitePriceArea(input: {
+  postalCode: string
+  city: string | null
+  priceArea: PriceArea
+  suggestedGridAreaCode: string | null
+  geodataVersion: string | null
+  providerUpdated: string | null
+}) {
+  const now = new Date().toISOString()
+  const existingQuery = supabaseService
+    .from('platform_postal_code_grid_mappings')
+    .select('id,metadata')
+    .eq('postal_code', input.postalCode)
+    .eq('source', 'papilite_price_area_centroid')
+    .is('grid_area_code', null)
+    .limit(25)
+  const { data: existingRows, error: existingError } = await existingQuery
+  if (existingError) throw existingError
+  const normalizedCity = normalizeText(input.city)
+  const existing = (existingRows ?? []).find((row) => normalizeText((row as Record<string, unknown>).metadata && typeof (row as Record<string, unknown>).metadata === 'object'
+    ? ((row as Record<string, unknown>).metadata as Record<string, unknown>).canonical_city
+    : null) === normalizedCity)
+
+  const metadata = {
+    canonical_city: input.city,
+    coordinate_precision: 'postal_centroid',
+    provider: 'papilite',
+    provider_updated: input.providerUpdated,
+    suggested_grid_area_code: input.suggestedGridAreaCode,
+    geodata_version: input.geodataVersion,
+    operational_grid_owner_allowed: false,
+    last_verified_at: now,
+  }
+
+  if (existing?.id) {
+    const { error } = await supabaseService
+      .from('platform_postal_code_grid_mappings')
+      .update({
+        city: input.city,
+        price_area: input.priceArea,
+        confidence: PAPILITE_PRICE_AREA_CONFIDENCE,
+        is_active: true,
+        metadata,
+        updated_at: now,
+      })
+      .eq('id', existing.id)
+    if (error) throw error
+    return
+  }
+
+  const { error } = await supabaseService
+    .from('platform_postal_code_grid_mappings')
+    .insert({
+      postal_code: input.postalCode,
+      city: input.city,
+      grid_area_code: null,
+      price_area: input.priceArea,
+      confidence: PAPILITE_PRICE_AREA_CONFIDENCE,
+      source: 'papilite_price_area_centroid',
+      is_active: true,
+      metadata,
+      created_at: now,
+      updated_at: now,
+    })
+  if (error && (error as { code?: string }).code !== '23505') throw error
+}
+
+async function persistTenantPriceArea(input: EnergyResolverInput, resolved: EnergyResolverResult) {
+  if (
+    !input.companyId ||
+    !input.customerSiteId ||
+    !resolved.priceArea ||
+    !['verified', 'estimated'].includes(resolved.priceAreaAssurance.status)
+  ) return
+
+  const { error } = await supabaseService
+    .from('customer_sites')
+    .update({
+      price_area_code: resolved.priceArea,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.customerSiteId)
+    .eq('company_id', input.companyId)
+  if (error) throw error
+}
+
+async function localPostalResolution(input: EnergyResolverInput, extraWarnings: string[] = []) {
+  const resolved = await resolveCoreEnergyContext(postalOnlyInput(input))
+  const withWarnings = extraWarnings.length
+    ? { ...resolved, warnings: [...new Set([...resolved.warnings, ...extraWarnings])] }
+    : resolved
+  await persistTenantPriceArea(input, withWarnings)
+  return withWarnings
+}
+
+/**
+ * Canonical facade for energy resolution.
+ *
+ * Order of operations is intentionally persistence-first:
+ * 1) reuse global postcode/grid/price mappings shared across tenants;
+ * 2) call PAP/API Lite only on a true postcode cache miss;
+ * 3) persist only price-area evidence from PAP/API Lite's postcode centroid;
+ * 4) never promote a postcode centroid to an operationally verified grid owner.
+ *
+ * A verified/manual-verified customer site later strengthens the global mapping
+ * through the database trigger in 20260817094125_papilite_verified_postal_learning.
+ */
+export async function resolveEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
+  const postalCode = normalizePostalCode(input.postalCode)
+  if (!postalCode) return resolveCoreEnergyContext(postalOnlyInput(input))
+
+  if (await hasActivePostalMapping(postalCode)) {
+    return localPostalResolution(input)
+  }
+
+  const papilite = await fetchPapilitePostcode(input, postalCode)
+  if (!papilite.candidate) {
+    return localPostalResolution(input, papilite.warnings)
+  }
+
+  const mapped = await mapCentroidToPriceArea(papilite.candidate)
+  const priceArea = mapped.priceArea
+  if (priceArea) {
+    await persistPapilitePriceArea({
+      postalCode,
+      city: clean(papilite.candidate.city) ?? clean(input.city),
+      priceArea,
+      suggestedGridAreaCode: mapped.suggestedGridAreaCode,
+      geodataVersion: mapped.geodataVersion,
+      providerUpdated: clean(papilite.candidate.updated),
+    })
+  }
+
+  return localPostalResolution(input, [...papilite.warnings, ...mapped.warnings])
 }
 
 export async function publicPriceAreaByPostalCode(postalCodeRaw: string | null) {
@@ -1145,33 +328,11 @@ export async function publicPriceAreaByPostalCode(postalCodeRaw: string | null) 
   if (!postalCode) {
     return { postalCode: postalCodeRaw, priceArea: null, confidence: 0, disclaimer: 'Ange ett svenskt postnummer.' }
   }
-
-  const suggestion = await postalSuggestion({ postalCode })
+  const resolved = await resolveEnergyContext({ postalCode })
   return {
     postalCode,
-    priceArea: suggestion?.priceArea ?? null,
-    confidence: suggestion?.confidence ?? 0,
-    disclaimer: 'Prisområde från postnummer är preliminärt. Nätområdeskod och nätägare verifieras först via full adress, geodata och masterdata i OPS.',
+    priceArea: resolved.priceArea,
+    confidence: resolved.priceAreaAssurance.confidence,
+    disclaimer: 'Elområde återanvänds från Gridex gemensamma postnummercache när det finns. PAP/API Lite används endast vid cache miss och dess postnummerkoordinat används aldrig ensam som verifierad nätägare.',
   }
-}
-
-export async function upsertPlatformGridAreaMasterRows(rows: Array<{ gridOwnerName?: string | null; gridAreaName?: string | null; gridAreaCode?: string | null; priceArea?: string | null; metadata?: Record<string, unknown> }>) {
-  const results: Array<{ gridAreaCode: string | null; ok: boolean; id?: string | null; error?: string }> = []
-  for (const row of rows) {
-    const code = normaliseGridAreaCode(row.gridAreaCode)
-    if (!code) {
-      results.push({ gridAreaCode: null, ok: false, error: 'grid_area_code saknas' })
-      continue
-    }
-    const { data, error } = await supabaseService.rpc('gridex_import_grid_area_master_row', {
-      p_grid_owner_name: clean(row.gridOwnerName) ?? 'Okänd nätägare',
-      p_grid_area_name: clean(row.gridAreaName),
-      p_grid_area_code: code,
-      p_price_area: normalisePriceArea(row.priceArea),
-      p_source: 'manual_platform_import',
-      p_metadata: row.metadata ?? {},
-    })
-    results.push({ gridAreaCode: code, ok: !error, id: data as string | null, error: error?.message })
-  }
-  return results
 }
