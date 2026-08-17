@@ -1,0 +1,43 @@
+name: Agent commercial terms integrity
+
+on:
+  push:
+    branches:
+      - fix/website-commercial-terms-integrity-20260817
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply audited commercial terms fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin 0fee5deec088255da754f41db9ba607cb0fac499
+          git cherry-pick 0fee5deec088255da754f41db9ba607cb0fac499
+      - run: npm ci
+      - name: Targeted commercial and checkout regression
+        run: |
+          npm test -- --run __tests__/contract-admin-schema.test.ts
+          node scripts/gridex-contract-commercial-selection-regression.cjs
+          node scripts/gridex-website-full-regression.cjs
+          node scripts/gridex-website-quote-integrity-regression.cjs
+          node scripts/gridex-website-ops-chain-regression.cjs
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Push applied fix
+        run: git push origin HEAD:fix/website-commercial-terms-integrity-20260817
