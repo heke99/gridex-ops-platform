@@ -35,6 +35,7 @@ const workflow = read('.github/workflows/production-certification-e2e.yml')
 const config = read('playwright.production-certification.config.mjs')
 const preflight = read('e2e/production/preflight.spec.mjs')
 const tenantBootstrap = read('e2e/production/tenant-bootstrap.spec.mjs')
+const tenantAdminVerify = read('e2e/production/tenant-admin-verify.spec.mjs')
 const liveCustomerPreflight = read('e2e/production/live-customer-preflight.spec.mjs')
 const evidence = read('e2e/production/helpers/evidence.mjs')
 
@@ -44,13 +45,15 @@ rejectText(workflow, 'push:', 'production workflow must never run on pushes')
 rejectText(workflow, 'schedule:', 'production workflow must never run on a schedule')
 requireText(workflow, 'confirm_production', 'production workflow confirmation gate')
 requireText(workflow, 'CREATE_SYNTHETIC_TENANT', 'synthetic tenant mutation confirmation gate')
+requireText(workflow, 'VERIFIED_TENANT_ADMIN_MANUALLY', 'manual Strato tenant-admin checkpoint gate')
 requireText(workflow, 'AUTHORIZED_LIVE_CUSTOMER', 'live customer authorization gate')
 requireText(workflow, 'https://app.gridex.se', 'production OPS target pin')
 requireText(workflow, 'https://gridex.se', 'Gridex tenant website target pin')
 requireText(workflow, 'environment: production-e2e', 'production GitHub Environment boundary')
 
 const preflightJob = jobSection(workflow, 'preflight', 'tenant-bootstrap')
-const tenantJob = jobSection(workflow, 'tenant-bootstrap', 'live-customer-preflight')
+const tenantBootstrapJob = jobSection(workflow, 'tenant-bootstrap', 'tenant-admin-verify')
+const tenantAdminJob = jobSection(workflow, 'tenant-admin-verify', 'live-customer-preflight')
 const liveQuoteJob = jobSection(workflow, 'live-customer-preflight')
 
 for (const secret of [
@@ -60,16 +63,24 @@ for (const secret of [
   'GRIDEX_E2E_CUSTOMER_ANNUAL_KWH',
 ]) {
   rejectText(preflightJob, secret, 'platform preflight must not receive customer fixture secrets')
-  rejectText(tenantJob, secret, 'tenant bootstrap must not receive customer fixture secrets')
+  rejectText(tenantBootstrapJob, secret, 'tenant bootstrap must not receive customer fixture secrets')
+  rejectText(tenantAdminJob, secret, 'tenant-admin verification must not receive customer fixture secrets')
   requireText(liveQuoteJob, secret, 'live quote must receive only required customer fixture secrets')
 }
+
 for (const secret of [
   'GRIDEX_E2E_SUPERADMIN_EMAIL',
   'GRIDEX_E2E_SUPERADMIN_PASSWORD',
+]) {
+  rejectText(tenantAdminJob, secret, 'tenant-admin verification must not receive superadmin credentials')
+  rejectText(liveQuoteJob, secret, 'live quote job must not receive superadmin credentials')
+}
+for (const secret of [
   'GRIDEX_E2E_TENANT_ADMIN_EMAIL',
   'GRIDEX_E2E_TENANT_ADMIN_PASSWORD',
 ]) {
-  rejectText(liveQuoteJob, secret, 'live quote job must not receive admin credentials')
+  requireText(tenantAdminJob, secret, 'tenant-admin verification credential wiring')
+  rejectText(liveQuoteJob, secret, 'live quote job must not receive tenant-admin credentials')
 }
 
 for (const [key, value] of [
@@ -91,6 +102,14 @@ requireText(tenantBootstrap, "status: 'waiting_external'", 'tenant bootstrap dur
 requireText(tenantBootstrap, "waiting_for: 'tenant_admin_invitation_email_verification'", 'tenant invitation wait reason')
 requireText(tenantBootstrap, 'tenant_admin_email_fingerprint', 'tenant admin PII-safe fingerprint evidence')
 rejectText(tenantBootstrap, 'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER', 'tenant bootstrap must not load customer PII')
+
+requireText(tenantAdminVerify, "mode: 'tenant-admin-verify'", 'tenant-admin verification evidence')
+requireText(tenantAdminVerify, 'tenant_admin_email_fingerprint', 'tenant-admin evidence fingerprint')
+requireText(tenantAdminVerify, 'platform_company_admin_denied', 'tenant admin platform-company denial assertion')
+requireText(tenantAdminVerify, 'platform_go_live_denied', 'tenant admin platform-go-live denial assertion')
+requireText(tenantAdminVerify, 'mutation_attempted: false', 'tenant-admin verification must be read-only')
+rejectText(tenantAdminVerify, 'GRIDEX_E2E_SUPERADMIN_PASSWORD', 'tenant-admin verification must not load superadmin password')
+rejectText(tenantAdminVerify, 'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER', 'tenant-admin verification must not load customer identity')
 
 requireText(liveCustomerPreflight, "mode: 'live-customer-preflight'", 'live customer quote preflight evidence')
 requireText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_ADDRESS', 'live quote needs real address secret')
@@ -117,7 +136,7 @@ const forbiddenLiveContractSecrets = [
   'GRIDEX_E2E_CUSTOMER_PORTAL_PASSWORD',
 ]
 for (const secret of forbiddenLiveContractSecrets) {
-  rejectText(workflow, secret, 'real-contract/customer identity secrets must stay outside quote preflight workflow')
+  rejectText(workflow, secret, 'real-contract/customer identity secrets must stay outside quote-preflight workflow until final live submission mode exists')
 }
 
 console.log('Gridex production certification E2E safety regression passed.')
