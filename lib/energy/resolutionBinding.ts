@@ -142,7 +142,8 @@ function assuranceSource(value: unknown): PriceAreaAssuranceSource {
     normalized === 'grid_area_master' ||
     normalized === 'address_polygon' ||
     normalized === 'postal_city_consensus' ||
-    normalized === 'postal_consensus'
+    normalized === 'postal_consensus' ||
+    normalized === 'postal_centroid'
     ? normalized
     : null
 }
