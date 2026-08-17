@@ -69,6 +69,7 @@
     "20260816135746_partner_api_v1_transactional_contract_create.sql": "2965ebf859b9d4119bbd5d2dc615b7a639372f3c54ece154fd985b8af8c7e6da",
     "20260816165000_partner_api_customer_billing_replay_parity.sql": "eb5ab821c7f1e84ad61e34d566807fcb624291fd0847ad7067b03e00824e2d1e",
     "20260816170000_partner_api_v1_canonical_surface_events.sql": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
-    "20260817083859_partner_postal_grid_materialization.sql": "55bf5ef2f0d74c59dfbc4835e856a48b3b7292ca543e5b64da59bc000fd3ae09"
+    "20260817083859_partner_postal_grid_materialization.sql": "55bf5ef2f0d74c59dfbc4835e856a48b3b7292ca543e5b64da59bc000fd3ae09",
+    "20260817094125_papilite_verified_postal_learning.sql": "4f3307eb05581388655dc961691cdfd38b8d17734eed60cb28dfff7e362f173d"
   }
 }
