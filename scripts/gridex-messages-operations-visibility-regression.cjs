@@ -54,8 +54,9 @@ assert(
 
 // ---- 5. Outbound rows without ediel_message filtered ----
 assert(
-  /ediel_message_id.*null|is.*null.*ediel_message_id|\.is\(.*ediel_message_id.*null/.test(messagesPage),
-  'messages/page.tsx: outbound_requests query filters for null ediel_message_id'
+  /linked_ediel_messages:ediel_messages!ediel_messages_outbound_request_id_fkey/.test(messagesPage) &&
+    /\.is\('linked_ediel_messages', null\)/.test(messagesPage),
+  'messages/page.tsx: outbound_requests query filters rows without a linked EDIEL message through the canonical FK'
 )
 
 // ---- 6. grid_owner_data_requests status filter ----

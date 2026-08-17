@@ -9,6 +9,7 @@ export type CanonicalContractCatalogRow = {
   valid_to: string | null
   internal_sales_allowed: boolean
   website_publication_allowed: boolean
+  api_publication_allowed: boolean
   relation_status: 'ok' | 'missing_product_version' | 'missing_product'
   contract_product_version_id: string
   version_number: number
@@ -113,7 +114,7 @@ export async function listCanonicalContractCatalog(companyId: string): Promise<C
   const { data, error } = await supabaseService
     .from('tenant_contract_assignments')
     .select(`
-      id,company_id,status,legal_mode,valid_from,valid_to,internal_sales_allowed,website_publication_allowed,
+      id,company_id,status,legal_mode,valid_from,valid_to,internal_sales_allowed,website_publication_allowed,api_publication_allowed,
       contract_product_versions(
         id,version_number,status,customer_type,contract_type,pricing_model,commercial_snapshot,required_legal_modules,
         contract_products(id,product_code,name,product_category)
@@ -141,6 +142,7 @@ export async function listCanonicalContractCatalog(companyId: string): Promise<C
       valid_to: nullableText(raw.valid_to),
       internal_sales_allowed: bool(raw.internal_sales_allowed),
       website_publication_allowed: bool(raw.website_publication_allowed),
+      api_publication_allowed: bool(raw.api_publication_allowed),
       relation_status: !version.id
         ? 'missing_product_version'
         : !product.id

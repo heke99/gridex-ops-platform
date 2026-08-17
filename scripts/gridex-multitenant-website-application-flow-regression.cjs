@@ -23,7 +23,12 @@ const context = read('lib/integrations/tenantContext.ts')
 const provisioning = read('lib/integrations/tenantWebsiteProvisioning.ts')
 const apiClientActions = read('app/admin/platform/api-clients/actions.ts')
 const apiClientForm = read('app/admin/platform/api-clients/CreateApiClientForm.tsx')
-const application = read('lib/website/customerApplications.ts')
+const application = [
+  read('lib/website/customerApplications.ts'),
+  read('lib/website/customerApplicationProcess.ts'),
+  read('lib/website/customerApplicationPersistence.ts'),
+  read('lib/website/customerApplicationCommunication.ts'),
+].join('\n')
 const applicationWorkflow = read('lib/website/applicationWorkflow.ts')
 const status = read('lib/website/customerApplicationStatus.ts')
 const resolver = read('lib/customer-portal/customerResolver.ts')
@@ -35,7 +40,7 @@ const webhooks = read('lib/integrations/webhooks.ts')
 const webhookCron = read('app/api/internal/webhooks/dispatch/route.ts')
 const migration = read('supabase/migrations/20260804121000_multitenant_website_application_flow_completion.sql')
 const preAuthMigration = read('supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql')
-const docs = read('app/developers/customer-portal-api/page.tsx')
+const docs = read('docs/external-website-api-integration-guide.md')
 const releaseManifest = read('lib/integrations/openApiReleaseManifest.ts')
 const websiteContract = read('lib/integrations/websiteIntegrationContract.ts')
 const portalPreAuthRelease = read('docs/release/2026-08-04-portal-pre-auth-contract-alignment.md')
@@ -72,7 +77,9 @@ check(readiness.includes('const canonicalPortalUrl') && readiness.includes('port
 check(context.includes('readiness.complete_tenant_website_ready') && !context.includes('missingRecommendedScopes.length === 0'), 'integration context reports full readiness instead of scopes-only readiness')
 check(provisioning.includes('customerPortalUrl: string') && provisioning.includes("state: 'completed' | 'blocked'"), 'provisioning requires tenant portal URL and distinguishes blocked from completed')
 check(provisioning.includes('TENANT_WEBSITE_SCHEMA_NOT_READY') && !provisioning.includes('if (fallback.error)'), 'tenant portal persistence fails closed on an old database schema')
-check(provisioning.indexOf('await storeTenantPortalUrl') < provisioning.indexOf("supabaseService.rpc("), 'portal schema is verified before a one-time API credential is created')
+const provisionStart = provisioning.indexOf('export async function provisionTenantWebsite')
+const provisionBody = provisionStart >= 0 ? provisioning.slice(provisionStart) : provisioning
+check(provisionBody.indexOf('await storeTenantPortalUrl') >= 0 && provisionBody.indexOf('await storeTenantPortalUrl') < provisionBody.indexOf("supabaseService.rpc("), 'portal schema is verified before a one-time API credential is created')
 check(provisioning.includes("row.installation_state === 'failed'") && provisioning.includes('provisioning_retry_in_progress'), 'failed provisioning rotates an unrevealed credential on idempotent resume')
 check(!apiClientForm.includes('defaultValue="Gridex hemsida · Mina sidor"'), 'tenant provisioning UI has no Gridex-specific client-name default')
 check(provisioning.includes('visible_contract_count') && provisioning.includes('readiness.blockers'), 'launch receipt binds contract visibility and canonical readiness blockers')
@@ -109,13 +116,14 @@ check(migration.includes('customer_portal_url') && migration.includes('portal_id
 check(preAuthMigration.includes('alter column portal_identity_required set default true') && preAuthMigration.includes("tg_op = 'INSERT'") && preAuthMigration.includes('portal_auth_identity_downgrade_forbidden'), 'database makes pre-auth mandatory for all new rows and prevents canonical downgrade')
 check(migration.includes('gridex_project_terminal_application_continuation') && migration.includes('event_outbox_webhook_fanout_due_idx'), 'database adds terminal projection safety and webhook fan-out index')
 check(migration.includes('canonical_readiness_revalidation_required') && migration.includes("profile_key = 'tenant_website'"), 'migration invalidates historical scopes-only launch flags')
-check(docs.includes('# accepted betyder att canonical') && docs.includes('fortsätter asynkront'), 'developer documentation defines accepted as durable commit plus asynchronous continuation')
-check(docs.includes('Kunden måste autentiseras i tenantens egen') && docs.includes('<strong>innan</strong> kundansökan skickas till OPS') && !docs.includes('När kunden redan är inloggad skickas'), 'human guide makes authentication mandatory before website application submission')
-check(docs.includes('breaking-request-requirement') && docs.includes('openApiRelease.compatibility_classification'), 'human guide exposes the release manifest compatibility classification')
+const websiteApplicationDescription = websiteOpenApi.paths?.['/api/v1/website/customer-applications']?.post?.description ?? ''
+check(websiteApplicationDescription.includes('status=accepted') && websiteApplicationDescription.includes('fortsätter asynkront'), 'published Website OpenAPI defines accepted as durable commit plus asynchronous continuation')
+check(docs.includes('Kunden måste autentiseras i tenantens egen Mina sidor/Auth innan kundansökan skickas') && docs.includes('OPS accepterar inte anonyma kundansökningar'), 'human guide makes authentication mandatory before website application submission')
+check(releaseManifest.includes('compatibility_classification') && portalPreAuthRelease.includes('breaking-request-requirement'), 'release metadata exposes the current compatibility classification and preserves the breaking pre-auth history')
 check(portalPreAuthRelease.includes('breaking-client-update-required-for-portal-identity') && portalPreAuthRelease.includes('breaking-request-requirement'), 'historical portal pre-auth release preserves its breaking classification')
 check(releaseManifest.includes('API_COMPATIBILITY_CLASSIFICATION') && websiteContract.includes('additive-public-boundary-and-tenant-remediation'), 'current release manifest uses the single canonical remediation compatibility classification')
 check(websiteOpenApi.info.version === currentContractVersion, `website OpenAPI version is ${currentContractVersion}`)
-check(docs.includes('customer_application.status_changed') && docs.includes('supplier_switch.updated'), 'developer documentation promises the two canonical tenant status events that runtime emits')
+check(JSON.stringify(websiteOpenApi).includes('customer_application.status_changed') && JSON.stringify(websiteOpenApi).includes('supplier_switch.updated'), 'published Website OpenAPI promises the two canonical tenant status events that runtime emits')
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'OpenAPI publishes customer-application and supplier-switch webhook callbacks')
 check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), `immutable ${currentContractVersion} website OpenAPI release matches the current published contract`)
 const request = websiteOpenApi.components.schemas.CustomerApplicationRequest

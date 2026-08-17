@@ -37,8 +37,8 @@ assert(!/facility_lookup_manual_route_allowed/.test(routeReadiness), 'facility l
 const monthly = read('lib/billing/monthlyAutomation.ts')
 assert(/runMonthlyBillingAutomationForCompany/.test(monthly), 'monthly billing automation entrypoint exists')
 assert(/generateBillingUnderlaysForMonth/.test(monthly), 'monthly automation generates billing underlays')
-assert(/createBillingExportRun/.test(monthly), 'monthly automation creates export runs')
-assert(/queueReadyBillingExportRunItems/.test(monthly), 'monthly automation queues ready export rows')
+assert(/createInvoiceExportRun/.test(monthly), 'monthly automation creates canonical invoice export runs')
+assert(/itemCount/.test(monthly) && /skippedAlreadyExported/.test(monthly), 'monthly automation records ready canonical invoice export rows')
 
 const cron = read('app/api/cron/billing/monthly/route.ts')
 assert(/BILLING_AUTOMATION_CRON_SECRET/.test(cron), 'monthly billing cron is protected by secret')

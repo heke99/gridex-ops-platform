@@ -24,6 +24,7 @@ const companyActions = read('app/admin/companies/actions.ts')
 const invitationFlow = read('lib/auth/companyInvitationFlow.ts')
 const lifecycle = read('lib/tenant/lifecycle.ts')
 const websiteApplicationRoute = read('app/api/v1/website/customer-applications/route.ts')
+const canonicalOnboarding = read('lib/customers/canonicalOnboarding.ts')
 
 const failures = [
   ...requireAll('company actions', companyActions, [
@@ -49,6 +50,13 @@ const failures = [
     ['closed must be terminal', 'closed: []'],
     ['deleted_test_only must be terminal', 'deleted_test_only: []'],
     ['pause semantics must stop API/webhooks/sales/automation/outbound', 'API, webhooks, försäljning, automation och outbound stoppas'],
+  ]),
+  ...requireAll('canonical onboarding response', canonicalOnboarding, [
+    ['requested site must produce a site_id', "[command.site, 'site_id']"],
+    ['requested contract must produce a contract_id', "[command.contract, 'contract_id']"],
+    ['requested price snapshot must produce a price_snapshot_id', "[command.price_snapshot, 'price_snapshot_id']"],
+    ['requested legal snapshot must produce a legal_snapshot_id', "[command.legal, 'legal_snapshot_id']"],
+    ['partial graph responses fail closed', 'missingRequestedOutputs.length > 0'],
   ]),
   ...requireAll('website customer application API', websiteApplicationRoute, [
     ['website writes must require the website_applications.write scope', "['website_applications.write']"],

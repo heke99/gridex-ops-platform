@@ -21,7 +21,10 @@ function mustNotInclude(file, needle, why) {
 }
 
 const confirmation = 'lib/operations/businessActions/sendCustomerConfirmation.ts'
-const website = 'lib/website/customerApplications.ts'
+const websiteCommunication = 'lib/website/customerApplicationCommunication.ts'
+const websitePersistence = 'lib/website/customerApplicationPersistence.ts'
+const websiteRepair = 'lib/website/customerApplicationRepair.ts'
+const websiteLegal = 'lib/website/customerApplicationLegal.ts'
 const workflow = 'lib/customer-operations/customerCardWorkflow.ts'
 
 // 1. No orphan customer_communications write path: confirmation mail flows
@@ -32,13 +35,13 @@ mustInclude(confirmation, 'communication_logs', 'source of truth documented in t
 
 // 2. API handoff truth: accepted response is pending; worker results derive
 //    queued-vs-sent from communication_logs after durable continuation.
-mustInclude(website, 'function emailDispatchStatus', 'per-event dispatch status from communication_logs')
-mustInclude(website, "dispatch_status: emailDispatchStatus(result)", 'each event result exposes dispatch_status')
-mustInclude(website, "source_of_truth: 'communication_logs'", 'response declares the source of truth')
-mustInclude(website, 'queued: [],', 'accepted response does not claim that worker e-mails are already queued')
-mustInclude(website, 'sent: [],', 'accepted response does not claim provider-confirmed delivery')
-mustInclude(website, 'pending: true', 'accepted response declares asynchronous communication pending')
-mustInclude(website, 'initial_customer_communication_failed:', 'failed communication-log/outbox creation fails the durable continuation for retry')
+mustInclude(websiteLegal, 'export function emailDispatchStatus', 'per-event dispatch status comes from communication_logs')
+mustInclude(websiteCommunication, "dispatch_status: emailDispatchStatus(result)", 'each event result exposes dispatch_status')
+mustInclude(websiteCommunication, "source_of_truth: 'communication_logs'", 'response declares the source of truth')
+mustInclude(websitePersistence, 'queued: [],', 'accepted response does not claim that worker e-mails are already queued')
+mustInclude(websitePersistence, 'sent: [],', 'accepted response does not claim provider-confirmed delivery')
+mustInclude(websitePersistence, 'pending: true', 'accepted response declares asynchronous communication pending')
+mustInclude(websiteRepair, 'initial_customer_communication_failed:', 'failed communication-log/outbox creation fails the durable continuation for retry')
 
 // 3. Workflow step: EDIEL SMTP send claims require dispatch proof.
 mustInclude(workflow, "label: 'EDIEL-utskick (SMTP)'", 'SMTP step is channel-specific')

@@ -30,7 +30,7 @@ for (const file of fs.readdirSync(path.join(root, 'app/api/v1'), { recursive: tr
 }
 ok(websiteRoute.includes('bindPayloadToTenant') && websiteRoute.includes('auth.context.companyId'), 'public website intake binds payload to authenticated tenant')
 ok(onboarding.includes("rpc('canonical_onboard_customer_graph'") && onboarding.includes('assertTenantContextCompany'), 'canonical onboarding requires context and neutral RPC')
-for (const file of ['app/admin/customers/actions.ts','lib/website/customerApplications.ts','lib/external-contracts/intake.ts','lib/ediel/inboundCases.ts']) {
+for (const file of ['app/admin/customers/actions.ts','lib/website/customerApplicationOnboarding.ts','lib/external-contracts/intake.ts','lib/ediel/inboundCases.ts']) {
   const source = read(file)
   ok(source.includes('createTenantContext') && source.includes('tenantContext)'), `${file} passes explicit tenant context to onboarding`)
 }

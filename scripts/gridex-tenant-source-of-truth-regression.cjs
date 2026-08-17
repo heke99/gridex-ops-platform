@@ -33,7 +33,6 @@ for (const column of [
   'sender_subaddress',
   'sender_subaddress_prodat',
   'sender_subaddress_utilts',
-  'default_application_reference',
   'application_reference',
   'ediel_id',
 ]) {
@@ -42,6 +41,14 @@ for (const column of [
     `ediel-actions.ts: bolagskort writes actual column ${column}`,
   )
 }
+
+
+const actorProfileMigration = read('supabase/migrations/20260802170000_canonical_security_convergence.sql')
+assert(
+  actorProfileMigration.includes("default_application_reference = nullif(upper(p_command->>(v_environment || '_application_reference')), '')") &&
+    actorProfileMigration.includes("application_reference = nullif(upper(p_command->>(v_environment || '_application_reference')), '')"),
+  'canonical actor-profile RPC mirrors application_reference to compatibility default_application_reference',
+)
 
 // ---- 3. No code writes a bare `subaddress` column to ediel_actor_settings ----
 assert(

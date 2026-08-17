@@ -13,7 +13,7 @@ const publicationMigration = read(
   "supabase/migrations/20260730220000_canonical_price_option_publication_api_completion.sql",
 );
 const quote = read("lib/pricing/offerQuote.ts");
-const onboarding = read("lib/website/customerApplications.ts");
+const onboarding = read("lib/website/customerApplicationOnboarding.ts");
 const billing = read("lib/billing/underlayEngine.ts");
 const internalCustomer = read(
   "components/admin/customers/contracts/actions.ts",

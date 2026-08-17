@@ -147,16 +147,16 @@ for (const field of [
 }
 
 const developerGuide = fs.readFileSync(
-  new URL('../app/developers/customer-portal-api/page.tsx', import.meta.url),
+  new URL('../docs/external-website-api-integration-guide.md', import.meta.url),
   'utf8',
 )
 assert.ok(
-  !developerGuide.includes('"contract_schema_version": "2026-08-05.1"'),
-  'developer guide must not pin stale contract_schema_version 2026-08-05.1',
+  !developerGuide.includes('contract_schema_version: 2026-08-05.1'),
+  'legacy website guide must not pin stale contract_schema_version 2026-08-05.1',
 )
 assert.ok(
-  developerGuide.includes('"contract_schema_version": "2026-08-14.1"'),
-  'developer guide examples must use current contract_schema_version',
+  developerGuide.includes(version),
+  'legacy website guide must reference the current Website contract version',
 )
 
 // Create may accept mixed-case price_area that matches a resolution case-

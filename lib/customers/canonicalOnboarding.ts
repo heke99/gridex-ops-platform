@@ -221,6 +221,33 @@ export async function onboardCustomerGraph(
         cause: result,
       })
     }
+
+    const requestedGraphOutputs: Array<[unknown, keyof CanonicalOnboardingSuccess]> = [
+      [command.contact, 'contact_id'],
+      [command.address, 'address_id'],
+      [command.site, 'site_id'],
+      [command.metering_point, 'metering_point_id'],
+      [command.contract, 'contract_id'],
+      [command.price_snapshot, 'price_snapshot_id'],
+      [command.power_of_attorney, 'power_of_attorney_id'],
+      [command.authorization_document, 'authorization_document_id'],
+      [command.legal, 'legal_snapshot_id'],
+      [command.application, 'application_id'],
+      [command.task, 'task_id'],
+      [command.info_request, 'info_request_id'],
+    ]
+    const missingRequestedOutputs = requestedGraphOutputs
+      .filter(([requested, resultField]) => requested && typeof requested === 'object' && !clean(result[resultField]))
+      .map(([, resultField]) => resultField)
+
+    if (missingRequestedOutputs.length > 0) {
+      throw new CanonicalOnboardingError({
+        code: 'canonical_onboarding_incomplete_response',
+        message: `Kundregistreringen saknar skapade delar av den begärda kundgrafen (${missingRequestedOutputs.join(', ')}). Referens: ${correlationId}.`,
+        correlationId,
+        cause: result,
+      })
+    }
   }
 
   return result

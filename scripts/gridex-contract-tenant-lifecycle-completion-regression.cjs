@@ -9,6 +9,7 @@ const migration = read(
 );
 const apiAuth = read("lib/integrations/apiAuth.ts");
 const contractActions = read("app/admin/contracts/actions.ts");
+const atomicAuth = read("supabase/migrations/20260809191057_authenticate_integration_request_route_cost.sql");
 const companyActions = read("app/admin/companies/actions.ts");
 const companyProfileActions = read(
   "app/admin/companies/[id]/company-profile-actions.ts",
@@ -47,11 +48,13 @@ assert.ok(
   "tenant close must detect active customer contracts",
 );
 assert.ok(
-  apiAuth.includes(".from('companies')") &&
+  apiAuth.includes("rpc('authenticate_integration_request_v1'") &&
     apiAuth.includes("tenantApiAccessError") &&
     apiAuth.includes("tenant_paused") &&
-    apiAuth.includes("tenant_closed"),
-  "integration auth must centrally verify tenant lifecycle",
+    apiAuth.includes("tenant_closed") &&
+    atomicAuth.includes("select c.status into v_tenant_status") &&
+    atomicAuth.includes("if v_tenant_status <> 'active'"),
+  "integration auth must centrally and atomically verify tenant lifecycle",
 );
 assert.ok(
   contractActions.includes('"gridex_close_contract_product"') &&
@@ -59,7 +62,7 @@ assert.ok(
   "admin contract close must use the canonical RPC and permission",
 );
 assert.ok(
-  companyActions.includes("'gridex_transition_tenant_lifecycle'"),
+  companyActions.includes("'canonical_transition_tenant_lifecycle'"),
   "tenant governance must use the canonical transition RPC",
 );
 assert.ok(

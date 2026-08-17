@@ -26,7 +26,8 @@ includes('lib/energy/resolver.ts', [
   "status: 'estimated'",
   "conflictCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous'",
   'mappingConflictCount',
-  'postal_price_area_fallback_used',
+  'postal_centroid_not_facility_location',
+  "source: 'postal_centroid'",
   'price_area_assurance_status: resolved.priceAreaAssurance.status',
 ])
 includes('lib/energy/resolutionBinding.ts', [

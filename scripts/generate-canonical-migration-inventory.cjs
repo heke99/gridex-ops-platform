@@ -7,8 +7,12 @@ const root = process.cwd()
 const migrationsDirectory = path.join(root, 'supabase', 'migrations')
 const outputDirectory = path.join(root, 'artifacts')
 const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
+const additionsManifestPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
 const historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))
-const registeredChecksums = historyManifest.files ?? {}
+const additionsManifest = fs.existsSync(additionsManifestPath)
+  ? JSON.parse(fs.readFileSync(additionsManifestPath, 'utf8'))
+  : { files: {} }
+const registeredChecksums = { ...(historyManifest.files ?? {}), ...(additionsManifest.files ?? {}) }
 
 function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex')

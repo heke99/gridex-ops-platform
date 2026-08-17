@@ -241,6 +241,9 @@ async function TenantCustomerContracts({
                 const internal = item.channels.find(
                   (channel) => channel.channel === "internal",
                 );
+                const api = item.channels.find(
+                  (channel) => channel.channel === "api",
+                );
                 const ready = readinessByAssignment.get(item.assignment_id);
                 const blockers = Array.isArray(ready?.blockers)
                   ? (ready?.blockers as string[])
@@ -281,7 +284,7 @@ async function TenantCustomerContracts({
                         publiceras.
                       </p>
                     ) : null}
-                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <div className="mt-4 grid gap-4 lg:grid-cols-3">
                       {[
                         {
                           channel: "internal",
@@ -294,6 +297,12 @@ async function TenantCustomerContracts({
                           row: website,
                           allowed: item.website_publication_allowed,
                           label: "Hemsida",
+                        },
+                        {
+                          channel: "api",
+                          row: api,
+                          allowed: item.api_publication_allowed,
+                          label: "API",
                         },
                       ].map((entry) => (
                         <form
@@ -1478,34 +1487,59 @@ export default async function AdminContractsPage({
                                    Readiness godkänns när avtalsversionen görs intern. Därefter styrs hemsida och API separat mot samma låsta version.
                                 </p>
                               </div>
-                              <form
-                                action={
-                                  offer.website_channel_status === "active"
-                                    ? unpublishContractChannelAction
-                                    : publishContractChannelAction
-                                }
-                              >
-                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
-                                <input type="hidden" name="id" value={offer.id} />
-                                <input type="hidden" name="channel" value="website" />
-                                <button
-                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black ${
-                                    offer.website_channel_status === "active"
-                                      ? "border-amber-200 bg-amber-50 text-amber-800"
-                                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                  }`}
-                                >
-                                  {offer.website_channel_status === "active"
-                                    ? "Ta bort från hemsidan"
-                                    : "Publicera på hemsidan"}
-                                </button>
-                              </form>
+                              {[
+                                {
+                                  channel: "internal",
+                                  status: offer.internal_channel_status,
+                                  activeLabel: "Pausa intern försäljning",
+                                  inactiveLabel: "Aktivera intern försäljning",
+                                },
+                                {
+                                  channel: "website",
+                                  status: offer.website_channel_status,
+                                  activeLabel: "Avpublicera från hemsida",
+                                  inactiveLabel: "Publicera på hemsidan",
+                                },
+                                {
+                                  channel: "api",
+                                  status: offer.api_channel_status,
+                                  activeLabel: "Avpublicera från API",
+                                  inactiveLabel: "Publicera till API",
+                                },
+                              ].map((channelControl) => {
+                                const isActive = channelControl.status === "active";
+                                return (
+                                  <form
+                                    key={channelControl.channel}
+                                    action={
+                                      isActive
+                                        ? unpublishContractChannelAction
+                                        : publishContractChannelAction
+                                    }
+                                  >
+                                    <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                    <input type="hidden" name="id" value={offer.id} />
+                                    <input type="hidden" name="channel" value={channelControl.channel} />
+                                    <button
+                                      className={`w-full rounded-xl border px-3 py-2 text-xs font-black ${
+                                        isActive
+                                          ? "border-amber-200 bg-amber-50 text-amber-800"
+                                          : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                      }`}
+                                    >
+                                      {isActive
+                                        ? channelControl.activeLabel
+                                        : channelControl.inactiveLabel}
+                                    </button>
+                                  </form>
+                                );
+                              })}
                               {contractLifecycleAllows(offer.lifecycle_status, "pause_channels") ? (
                                 <form action={pauseContractOfferAction}>
                                   <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
                                   <input type="hidden" name="id" value={offer.id} />
-                                  <button className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
-                                    Pausa avtalet internt och på hemsidan
+                                  <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700">
+                                    Pausa alla försäljningskanaler
                                   </button>
                                 </form>
                               ) : null}
