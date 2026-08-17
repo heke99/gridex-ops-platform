@@ -52,5 +52,8 @@ assert(materializationGuard.includes('new.grid_area_code := null'), 'database gu
 assert(materializationGuard.includes('else null\n  end;'), 'database guard clears unsafe/stale price area')
 assert(materializationGuard.includes("v_resolution.result_snapshot->'coordinates'"), 'database guard sources exact coordinates from bound canonical resolution only')
 assert(materializationGuard.includes("customer_site_id = new.id"), 'database guard prevents cross-site resolution binding')
+assert(materializationGuard.includes('drop policy if exists gridex_mp_c67c044a47edb7cb85b8'), 'database migration removes broad authenticated postcode-cache read policy')
+assert(materializationGuard.includes('create policy platform_postal_code_grid_mappings_platform_admin_read'), 'database migration replaces it with explicit platform-admin read policy')
+assert(materializationGuard.includes('to authenticated\nusing ((select public.gridex_user_is_platform_admin()))'), 'tenant authenticated sessions cannot enumerate shared postcode cache')
 
 if (process.exitCode) process.exit(process.exitCode)
