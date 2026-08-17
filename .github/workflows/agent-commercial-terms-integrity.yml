@@ -12,7 +12,7 @@ jobs:
   apply:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,14 +21,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Apply audited commercial terms fix
+      - name: Apply audited commercial terms fix onto current main
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch origin 0fee5deec088255da754f41db9ba607cb0fac499
-          git cherry-pick 0fee5deec088255da754f41db9ba607cb0fac499
+          if ! git cherry-pick 0fee5deec088255da754f41db9ba607cb0fac499; then
+            test -f scripts/gridex-contract-go-live-regression.cjs
+            git checkout --ours scripts/gridex-contract-go-live-regression.cjs
+            git add scripts/gridex-contract-go-live-regression.cjs
+            git cherry-pick --continue
+          fi
       - run: npm ci
       - name: Targeted commercial and checkout regression
         run: |
