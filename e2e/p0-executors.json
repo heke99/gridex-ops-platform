@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "scenarios": {
+    "GRIDEX-P0-001": {
+      "npm_scripts": ["verify:multitenant-website-application-flow:static", "verify:customer-legal-package", "gridex:website-quote-integrity-regression"],
+      "browser_specs": ["e2e/browser/public.spec.mjs", "e2e/production/live-customer-preflight.spec.mjs"]
+    },
+    "GRIDEX-P0-002": {
+      "npm_scripts": ["gridex:platform-tenant-contracts-api-mail-regression", "gridex:contract-lifecycle-repair-regression"],
+      "browser_specs": ["e2e/browser/authenticated.spec.mjs"]
+    },
+    "GRIDEX-P0-003": {
+      "npm_scripts": ["gridex:z01-missing-facility-controlled-blocker-regression", "gridex:facility-lookup-manual-workflow-regression", "gridex:automatic-facility-lookup-edifact-dispatch-regression"],
+      "browser_specs": ["e2e/browser/authenticated.spec.mjs"]
+    },
+    "GRIDEX-P0-004": {
+      "npm_scripts": ["gridex:poa-authorization-chain-regression", "gridex:production-route-readiness-regression"],
+      "browser_specs": []
+    },
+    "GRIDEX-P0-005": {
+      "npm_scripts": ["gridex:communication-source-of-truth-regression", "gridex:manual-email-recipient-resolution-regression"],
+      "browser_specs": []
+    },
+    "GRIDEX-P0-006": {
+      "npm_scripts": ["gridex:customer-portal-multi-site-api-regression", "api:runtime:parity"],
+      "browser_specs": []
+    },
+    "GRIDEX-P0-007": {
+      "npm_scripts": ["gridex:external-contract-intake-regression", "api:release:verify", "api:runtime:parity"],
+      "browser_specs": []
+    },
+    "GRIDEX-P0-008": {
+      "npm_scripts": ["gridex:tenant-source-of-truth-regression", "gridex:rls-multisite-metering-billing-regression"],
+      "browser_specs": ["e2e/browser/authenticated.spec.mjs", "e2e/production/tenant-admin-verify.spec.mjs"]
+    },
+    "GRIDEX-P0-009": {
+      "npm_scripts": ["security:rbac", "tenant:multitenant:static"],
+      "browser_specs": ["e2e/production/tenant-admin-verify.spec.mjs"]
+    },
+    "GRIDEX-P0-010": {
+      "npm_scripts": ["gridex:contract-tenant-lifecycle-completion-regression", "gridex:tenant-source-of-truth-regression"],
+      "browser_specs": ["e2e/production/tenant-bootstrap.spec.mjs", "e2e/production/tenant-admin-verify.spec.mjs"]
+    },
+    "GRIDEX-P0-011": {
+      "npm_scripts": ["gridex:test-production-separation-regression", "gridex:production-route-readiness-regression"],
+      "browser_specs": []
+    },
+    "GRIDEX-P0-012": {
+      "npm_scripts": ["gridex:multi-site-customer-chain-regression", "gridex:customer-portal-multi-site-api-regression"],
+      "browser_specs": ["e2e/browser/authenticated.spec.mjs"]
+    },
+    "GRIDEX-P0-013": {
+      "npm_scripts": ["gridex:website-api-webhook-regression", "gridex:automation-idempotency-multisite-regression"],
+      "browser_specs": []
+    },
+    "GRIDEX-P0-014": {
+      "npm_scripts": ["api:docs", "api:compatibility", "api:release:verify", "api:runtime:parity"],
+      "browser_specs": ["e2e/browser/public.spec.mjs"]
+    }
+  }
+}
