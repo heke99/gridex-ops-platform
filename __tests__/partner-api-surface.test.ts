@@ -8,6 +8,8 @@ describe('Partner API v1 simple public surface', () => {
   const core = read('lib/partner-api/core.ts')
   const canonical = read('lib/partner-api/canonical.ts')
   const openApi = read('lib/partner-api/openApi.ts')
+  const businessOpenApi = read('lib/partner-api/businessOpenApi.ts')
+  const business = read('lib/partner-api/business.ts')
   const docs = read('app/developers/partner-api/page.tsx')
   const customerPortalDocs = read('app/developers/customer-portal-api/page.tsx')
   const scopes = read('lib/integrations/apiClientScopes.ts')
@@ -34,15 +36,24 @@ describe('Partner API v1 simple public surface', () => {
     ]) {
       expect(openApi).toContain(path)
     }
+    for (const path of ["'/location'", "'/price/current'", "'/price'"]) {
+      expect(businessOpenApi).toContain(path)
+    }
     for (const internalPath of ["'/companies'", "'/tenants'", "'/config", "'/website", "'/contracts'", "'/customers'", "'/sites'"]) {
       expect(openApi).not.toContain(internalPath)
+      expect(businessOpenApi).not.toContain(internalPath)
     }
     expect(openApi).not.toContain('offer_reference:')
     expect(openApi).not.toMatch(/(^|[,{\s])company_id\s*:/m)
     expect(openApi).not.toMatch(/(^|[,{\s])tenant_id\s*:/m)
+    expect(businessOpenApi).not.toMatch(/(^|[,{\s])company_id\s*:/m)
+    expect(businessOpenApi).not.toMatch(/(^|[,{\s])tenant_id\s*:/m)
   })
 
-  it('serves the simple handler first while preserving old compatibility handlers behind it', () => {
+  it('serves the business resolver first while preserving old compatibility handlers behind it', () => {
+    expect(partnerRoute).toContain("import { handleBusinessPartnerApi } from '@/lib/partner-api/business'")
+    expect(partnerRoute).toContain('const business = await handleBusinessPartnerApi(request, method, path)')
+    expect(partnerRoute).toContain('if (business) return business')
     expect(partnerRoute).toContain("import { handleSimplePartnerApi } from '@/lib/partner-api/simple'")
     expect(partnerRoute).toContain('const simple = await handleSimplePartnerApi(request, method, path)')
     expect(partnerRoute).toContain('if (simple) return simple')
@@ -58,6 +69,9 @@ describe('Partner API v1 simple public surface', () => {
     expect(simple).toContain(".eq('company_id', companyId)")
     expect(simple).toContain(".eq('company_id', context.client.company_id)")
     expect(simple).toContain('simple_partner_api_internal_uuid_leak')
+    expect(business).toContain("'company_id'")
+    expect(business).toContain("'tenant_id'")
+    expect(business).toContain('internal_field_forbidden')
   })
 
   it('keeps product/publication configuration out of the external request', () => {
@@ -68,6 +82,7 @@ describe('Partner API v1 simple public surface', () => {
     expect(simple).toContain('default_offer_not_configured')
     expect(simple).toContain("ensureKeys(body, ['customer', 'site', 'power_of_attorney'])")
     expect(openApi).not.toContain("offer_reference: { type: 'string'")
+    expect(businessOpenApi).not.toContain("offer_reference: { type: 'string'")
   })
 
   it('uses canonical idempotency and the transactional contract RPC', () => {
@@ -141,7 +156,11 @@ describe('Partner API v1 simple public surface', () => {
   it('serves the same simple guide on the customer-portal developer URL', () => {
     expect(docs).toContain('Partner API Reference')
     expect(docs).toContain('Registration, Data Retrieval & Webhooks')
-    expect(docs).toContain('Gridex configures the company, permissions and published electricity offer behind the API key')
+    expect(docs).toContain('Send business information only. Gridex determines the company from the API key')
+    expect(docs).toContain('grid owner, market-price source and published electricity offer server-side')
+    expect(docs).toContain('/location')
+    expect(docs).toContain('/price/current')
+    expect(docs).toContain('/price')
     expect(docs).toContain('/contract/{contract_id}/state')
     expect(docs).toContain('/customer/{customer_id}/site/{site_id}/invoice')
     expect(docs).toContain('/webhook/subscription')
