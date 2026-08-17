@@ -1,0 +1,46 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), 'utf8')
+
+describe('Papilite postal centroid hardening', () => {
+  const resolver = read('lib/energy/resolver.ts')
+  const migration = read('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql')
+
+  it('uses PAP/API Lite as postcode-only enrichment', () => {
+    expect(resolver).toContain("const PAPILITE_DEFAULT_URL = 'https://api.papapi.se/lite/'")
+    expect(resolver).toContain("endpoint.searchParams.set('query', postalCode)")
+    expect(resolver).toContain("endpoint.searchParams.set('format', 'json')")
+    expect(resolver).toContain("endpoint.searchParams.set('apikey', apiKey)")
+    expect(resolver).not.toContain("endpoint.searchParams.set('street'")
+    expect(resolver).not.toContain("endpoint.searchParams.set('street_number'")
+  })
+
+  it('keeps postcode coordinates separate from exact address cache', () => {
+    expect(resolver).toContain("postal_centroid|")
+    expect(resolver).toContain("provider: 'papilite_postal_centroid'")
+    expect(resolver).toContain("coordinate_scope: 'postal_centroid'")
+    expect(resolver).toContain("raw.coordinate_scope === 'postal_centroid'")
+  })
+
+  it('never promotes Papilite centroid to Ediel-capable grid-owner verification', () => {
+    expect(resolver).toContain("resolutionStatus: 'postal_suggested'")
+    expect(resolver).toContain('automationAllowed: false')
+    expect(resolver).toContain('papilite_postal_centroid_not_facility_verification')
+  })
+
+  it('materializes safe price area to a tenant site without materializing suggested grid owner', () => {
+    expect(resolver).toContain('const resolvedPriceAreaCode = resolved.priceAreaAssurance.status === \'verified\' || resolved.priceAreaAssurance.status === \'estimated\'')
+    expect(resolver).toContain("const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null")
+    expect(resolver).toContain("const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null")
+  })
+
+  it('learns shared mapping only from verified tenant sites and copies no tenant identity', () => {
+    expect(migration).toContain("not in ('facility_verified', 'manual_verified')")
+    expect(migration).toContain("'learned_from', 'verified_customer_site'")
+    expect(migration).not.toContain('company_id')
+    expect(migration).not.toContain('customer_id')
+    expect(migration).not.toContain('customer_site_id')
+  })
+})
