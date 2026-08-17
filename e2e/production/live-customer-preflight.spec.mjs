@@ -71,9 +71,13 @@ test('authorized real customer address can resolve a canonical Gridex quote with
 
     await expect(page.getByText(/Elområde:\s*SE[1-4]/).first()).toBeVisible({ timeout: 45_000 })
     await expect(page.getByText('Beräknad månadskostnad inkl. moms')).toBeVisible({ timeout: 45_000 })
-    await expect(page.getByRole('link', { name: 'Teckna elavtal' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Välj detta avtal' })).toBeVisible()
     await expect(page.locator('#calculator-status')).not.toContainText(/kunde inte|fel|försök igen/i)
     checks.push({ name: 'canonical_quote_returned', status: 'passed' })
+
+    await page.getByRole('button', { name: 'Välj detta avtal' }).click()
+    await expect(page.getByRole('heading', { name: 'Slutför teckningen' })).toBeVisible()
+    checks.push({ name: 'quote_continues_to_customer_details', status: 'passed' })
 
     const failedPublicCalls = observedResponses.filter((item) => item.status >= 400)
     expect(failedPublicCalls, 'Gridex quote preflight must not contain failed public/checkout API responses').toEqual([])
@@ -85,9 +89,9 @@ test('authorized real customer address can resolve a canonical Gridex quote with
       },
     })
 
-    // Intentionally stop here. Following the "Teckna elavtal" link would enter
-    // authenticated registration/legal acceptance and eventually a real business
-    // transaction. That requires a stronger, separate live-customer confirmation gate.
+    // Intentionally stop here. Customer authentication, identity fields, legal
+    // acceptance and the final application submit form a real business transaction
+    // and require a stronger, separate live-customer confirmation gate.
     writeEvidence('gridex-production-live-customer-preflight.json', {
       run_id: runId,
       mode: 'live-customer-preflight',
