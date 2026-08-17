@@ -3,6 +3,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const { spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '..')
 
@@ -38,6 +39,8 @@ const tenantBootstrap = read('e2e/production/tenant-bootstrap.spec.mjs')
 const tenantAdminVerify = read('e2e/production/tenant-admin-verify.spec.mjs')
 const liveCustomerPreflight = read('e2e/production/live-customer-preflight.spec.mjs')
 const evidence = read('e2e/production/helpers/evidence.mjs')
+const organizationNumberHelper = read('e2e/production/helpers/swedish-organization-number.mjs')
+read('scripts/gridex-synthetic-org-number-regression.mjs')
 
 requireText(workflow, 'workflow_dispatch:', 'production workflow must be manual-only')
 rejectText(workflow, 'pull_request:', 'production workflow must never run on pull requests')
@@ -98,10 +101,38 @@ requireText(preflight, 'superadmin_email_fingerprint', 'production preflight ide
 rejectText(preflight, 'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER', 'preflight must not load customer PII')
 
 requireText(tenantBootstrap, 'GRIDEX E2E Certification', 'synthetic tenant unmistakable naming')
+requireText(tenantBootstrap, 'syntheticSwedishOrganizationNumber(runId)', 'tenant bootstrap deterministic Swedish organization-number fixture')
+requireText(tenantBootstrap, 'isValidSwedishOrganizationNumber(organizationNumber)', 'tenant bootstrap validates its organization-number fixture before mutation')
+requireText(tenantBootstrap, 'synthetic_org_number_valid', 'tenant bootstrap records organization-number validation evidence')
+requireText(tenantBootstrap, 'organization_number_fingerprint', 'tenant bootstrap must fingerprint organization number evidence')
+rejectText(tenantBootstrap, '.fill(`E2E-${suffix}`)', 'legacy invalid E2E organization-number fixture')
 requireText(tenantBootstrap, "status: 'waiting_external'", 'tenant bootstrap durable external wait state')
 requireText(tenantBootstrap, "waiting_for: 'tenant_admin_invitation_email_verification'", 'tenant invitation wait reason')
 requireText(tenantBootstrap, 'tenant_admin_email_fingerprint', 'tenant admin PII-safe fingerprint evidence')
 rejectText(tenantBootstrap, 'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER', 'tenant bootstrap must not load customer PII')
+
+requireText(organizationNumberHelper, "createHash('sha256')", 'synthetic organization-number deterministic seed hashing')
+requireText(organizationNumberHelper, 'luhnCheckDigit', 'synthetic organization-number Luhn calculation')
+requireText(organizationNumberHelper, 'isValidSwedishOrganizationNumber', 'synthetic organization-number validator')
+requireText(organizationNumberHelper, "const base = `559${serial}`", 'synthetic organization-number safe organization prefix')
+
+const organizationNumberRegression = spawnSync(
+  process.execPath,
+  ['scripts/gridex-synthetic-org-number-regression.mjs'],
+  {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024,
+  },
+)
+if (organizationNumberRegression.status !== 0) {
+  const detail = String(
+    organizationNumberRegression.stderr || organizationNumberRegression.stdout || '',
+  ).trim()
+  throw new Error(
+    `Synthetic Swedish organization-number regression failed${detail ? `: ${detail}` : '.'}`,
+  )
+}
 
 requireText(tenantAdminVerify, "mode: 'tenant-admin-verify'", 'tenant-admin verification evidence')
 requireText(tenantAdminVerify, 'tenant_admin_email_fingerprint', 'tenant-admin evidence fingerprint')
