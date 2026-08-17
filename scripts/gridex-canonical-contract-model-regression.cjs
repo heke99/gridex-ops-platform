@@ -12,7 +12,11 @@ const migration = [
   ),
 ].join("\n");
 const publicContracts = read("lib/website/publicContracts.ts");
-const application = read("lib/website/customerApplications.ts");
+const applicationProcess = read("lib/website/customerApplicationProcess.ts");
+const applicationLegal = read("lib/website/customerApplicationLegal.ts");
+const applicationCommunication = read(
+  "lib/website/customerApplicationCommunication.ts",
+);
 
 const requiredTables = [
   "contract_products",
@@ -68,13 +72,17 @@ for (const apiControl of [
   if (!publicContracts.includes(apiControl))
     throw new Error(`Public contract API misses ${apiControl}`);
 }
-if (!application.includes("offer_reference_mismatch"))
+if (!applicationProcess.includes("offer_reference_mismatch"))
   throw new Error(
     "Application flow must fail closed on offer_reference mismatch",
   );
-if (!application.includes("loadOfferBoundLegalVersions"))
+if (!applicationLegal.includes("loadOfferBoundLegalVersions"))
   throw new Error("Application flow must load offer-bound legal versions");
-if (!application.includes("gridex_finalize_website_contract_signature"))
+if (
+  !applicationCommunication.includes(
+    "gridex_finalize_website_contract_signature",
+  )
+)
   throw new Error(
     "Application flow must finalize exact contract/legal/signature evidence atomically",
   );
