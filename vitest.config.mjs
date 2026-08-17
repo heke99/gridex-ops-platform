@@ -1,4 +1,7 @@
+import fs from 'node:fs'
 import { defineConfig } from 'vitest/config'
+
+const baseline = JSON.parse(fs.readFileSync(new URL('./config/coverage-baseline.json', import.meta.url), 'utf8'))
 
 export default defineConfig({
   test: {
@@ -22,6 +25,12 @@ export default defineConfig({
         '**/.next/**',
         'supabase/database.types.ts',
       ],
+      thresholds: {
+        statements: baseline.statements,
+        branches: baseline.branches,
+        functions: baseline.functions,
+        lines: baseline.lines,
+      },
     },
   },
 })
