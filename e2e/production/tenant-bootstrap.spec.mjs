@@ -51,8 +51,9 @@ test('superadmin provisions a fresh synthetic tenant and real admin invitation i
     await page.locator('input[name="admin_email"]').fill(tenantAdminEmail)
 
     await page.getByRole('button', { name: 'Skapa bolag' }).click()
-    await page.waitForURL((url) => url.pathname === '/admin/companies', { timeout: 45_000 })
-    await expect(page.locator('body')).toContainText('Bolagsansvarig får åtkomst först efter verifierad Auth-inbjudan')
+    await expect(page).toHaveURL(/\/admin\/companies\?success=/, { timeout: 45_000 })
+    await expect(page.locator('body')).toContainText('Elhandelsbolaget skapades via canonical provisioning.')
+    await expect(page.locator('body')).toContainText('Bolagsansvarig får åtkomst först efter verifierad Auth-inbjudan.')
     checks.push({ name: 'canonical_tenant_provisioning', status: 'passed' })
 
     const companyCard = page.locator('article').filter({ hasText: tenantName }).first()
