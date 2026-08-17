@@ -1,0 +1,45 @@
+name: Apply contract channel UI patch once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/contract-channel-ui-patch-trigger'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contract-channel-ui-patch-once
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply exact source transform
+        run: node scripts/apply-contract-channel-ui-patch.cjs
+      - name: Validate transformed files
+        run: |
+          git diff --check
+          node scripts/gridex-contract-lifecycle-repair-regression.cjs
+          node scripts/gridex-contract-go-live-regression.cjs
+      - name: Commit canonical placement
+        shell: bash
+        run: |
+          if git diff --quiet -- app/admin/contracts/page.tsx components/admin/contracts/ContractDeleteControl.tsx scripts/gridex-contract-lifecycle-repair-regression.cjs scripts/gridex-contract-go-live-regression.cjs; then
+            echo 'Expected source transform produced no diff.' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/admin/contracts/page.tsx components/admin/contracts/ContractDeleteControl.tsx scripts/gridex-contract-lifecycle-repair-regression.cjs scripts/gridex-contract-go-live-regression.cjs
+          git commit -m 'fix(contracts): expose canonical channel controls on published offers'
+          git push origin HEAD:main
