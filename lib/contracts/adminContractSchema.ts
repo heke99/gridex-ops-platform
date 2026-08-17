@@ -481,6 +481,29 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     invoice_delivery_methods: invoiceDeliveryMethods,
   });
 
+  // Publication-level contract terms describe the default customer choice.
+  // Keep them identical to the explicit default price option so the website,
+  // quote engine, signed contract row and agreement evidence cannot disagree.
+  const defaultPriceOption = priceOptions.find((option) => option.default);
+  if (!defaultPriceOption) {
+    throw new Error("Standardprisalternativ saknas.");
+  }
+  const canonicalBindingMonths = bindingMonths ?? 0;
+  const canonicalNoticeMonths = noticeMonths ?? 0;
+  const canonicalRenewalTermMonths = automaticRenewal
+    ? automaticRenewalTermMonths
+    : null;
+  if (
+    defaultPriceOption.binding_months !== canonicalBindingMonths ||
+    defaultPriceOption.notice_months !== canonicalNoticeMonths ||
+    defaultPriceOption.auto_renew_enabled !== automaticRenewal ||
+    defaultPriceOption.renewal_term_months !== canonicalRenewalTermMonths
+  ) {
+    throw new Error(
+      "Standardprisalternativets bindnings-, uppsägnings- och förlängningsvillkor måste matcha avtalets standardvillkor.",
+    );
+  }
+
   const selectableCommercialComponents = commercialComponents.filter(
     (component) =>
       !isReservedStandardComponentCode(component.component_code),

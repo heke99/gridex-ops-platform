@@ -20,6 +20,10 @@ const commercialEditor = read(
 const schema = read("lib/contracts/adminContractSchema.ts");
 const db = read("lib/customer-contracts/db.ts");
 const runtime = read("lib/website/customerApplicationProcess.ts");
+const publicContracts = read("lib/website/publicContracts.ts");
+const onboarding = read("lib/website/customerApplicationOnboarding.ts");
+const communication = read("lib/website/customerApplicationCommunication.ts");
+const agreementPdf = read("lib/customer-contracts/agreementPdf.ts");
 const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
 const alignmentMigration = read("supabase/migrations/20260727161000_contract_type_slug_alignment.sql");
 const integrityRepair = read("supabase/migrations/20260727162000_contract_slug_version_integrity_repair.sql");
@@ -360,3 +364,39 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Contract go-live regression passed (${checks} controls).`);
+includesAll(schema, [
+  "Standardprisalternativets bindnings-",
+  "defaultPriceOption.binding_months !== canonicalBindingMonths",
+  "defaultPriceOption.auto_renew_enabled !== automaticRenewal",
+], "default price option lifecycle terms match contract defaults");
+includesAll(publicContracts, [
+  "price_option_default_contract_terms_normalized",
+  "price_option_default_contract_terms_mismatch",
+  "price_option_default_contract_terms_incomplete",
+], "historical public price-option term drift fails closed or normalizes only the single option");
+includesAll(onboarding, [
+  "binding_months: selected.bindingMonths",
+  "notice_months: selected.noticeMonths",
+  "auto_renew_enabled: selected.autoRenewEnabled",
+  "auto_renew_term_months: selected.autoRenewTermMonths",
+  "quote_price_option_publication_mismatch",
+], "website contract lifecycle terms are derived from the quote-bound published option");
+check(
+  !onboarding.includes("binding_months: input.body.contract?.binding_months"),
+  "website onboarding must never trust browser binding_months",
+);
+check(
+  !onboarding.includes("notice_months: input.body.contract?.notice_months"),
+  "website onboarding must never trust browser notice_months",
+);
+includesAll(communication, [
+  "price_option_reference: input.contract.price_option_reference",
+  "binding_months: input.contract.binding_months",
+  "auto_renew_enabled: input.contract.auto_renew_enabled",
+], "signature and communication evidence include stored commercial lifecycle terms");
+includesAll(agreementPdf, [
+  "Automatisk förlängning:",
+  "autoRenewTermMonths",
+], "customer agreement renders automatic renewal terms");
+
+

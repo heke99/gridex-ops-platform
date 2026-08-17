@@ -178,6 +178,109 @@ describe("admin contract canonical form", () => {
     ]);
   });
 
+
+  it("rejects a default price option whose lifecycle terms diverge from the contract defaults", () => {
+    const mismatchedOptions = JSON.stringify([
+      {
+        price_option_reference: "test_price_option",
+        option_code: "test_option",
+        customer_name: "Testalternativ",
+        customer_type: "both",
+        default: true,
+        selection_required: false,
+        internal_description: null,
+        contract_type: "fixed",
+        binding_months: 0,
+        notice_months: 1,
+        auto_renew_enabled: false,
+        renewal_term_months: null,
+        valid_from: null,
+        valid_to: null,
+        earliest_start_date: null,
+        latest_start_date: null,
+        status: "active",
+        sort_order: 0,
+        version_number: 1,
+        area_prices: ["SE1", "SE2", "SE3", "SE4"].map((priceArea) => ({
+          price_row_reference: `test_area_${priceArea.toLowerCase()}`,
+          price_area: priceArea,
+          amount: 99.5,
+          unit: "ore_per_kwh",
+          vat_treatment: "standard",
+          valid_from: null,
+          valid_to: null,
+          metadata: {},
+        })),
+        metadata: {},
+      },
+    ]);
+    expect(() =>
+      parseAdminContractForm(
+        baseForm({
+          contract_type: "fixed",
+          fixed_price_ore_per_kwh: "99.5",
+          default_binding_months: "12",
+          default_notice_months: "1",
+          automatic_renewal: "true",
+          automatic_renewal_term_months: "12",
+          price_options_json: mismatchedOptions,
+        }),
+      ),
+    ).toThrow(/standardprisalternativets.*villkor/i);
+  });
+
+  it("accepts a default price option when binding, notice and renewal terms match", () => {
+    const matchingOptions = JSON.stringify([
+      {
+        price_option_reference: "test_price_option",
+        option_code: "test_option",
+        customer_name: "Testalternativ",
+        customer_type: "both",
+        default: true,
+        selection_required: false,
+        internal_description: null,
+        contract_type: "fixed",
+        binding_months: 12,
+        notice_months: 1,
+        auto_renew_enabled: true,
+        renewal_term_months: 12,
+        valid_from: null,
+        valid_to: null,
+        earliest_start_date: null,
+        latest_start_date: null,
+        status: "active",
+        sort_order: 0,
+        version_number: 1,
+        area_prices: ["SE1", "SE2", "SE3", "SE4"].map((priceArea) => ({
+          price_row_reference: `test_area_${priceArea.toLowerCase()}`,
+          price_area: priceArea,
+          amount: 99.5,
+          unit: "ore_per_kwh",
+          vat_treatment: "standard",
+          valid_from: null,
+          valid_to: null,
+          metadata: {},
+        })),
+        metadata: {},
+      },
+    ]);
+    const parsed = parseAdminContractForm(
+      baseForm({
+        contract_type: "fixed",
+        fixed_price_ore_per_kwh: "99.5",
+        default_binding_months: "12",
+        default_notice_months: "1",
+        automatic_renewal: "true",
+        automatic_renewal_term_months: "12",
+        price_options_json: matchingOptions,
+      }),
+    );
+    expect(parsed.bindingMonths).toBe(12);
+    expect(parsed.noticeMonths).toBe(1);
+    expect(parsed.automaticRenewal).toBe(true);
+    expect(parsed.automaticRenewalTermMonths).toBe(12);
+  });
+
   it("requires a positive discount period whenever a discount is entered", () => {
     expect(() => parseAdminContractForm(baseForm({ discount_value: "50" }))).toThrow(
       /rabattperiod/i,

@@ -1845,6 +1845,38 @@ function dateIsActive(
   return (!validFrom || validFrom <= today) && (!validTo || validTo >= today);
 }
 
+function publicationDefaultCommercialTerms(offer: PublicContractOffer) {
+  const snapshot = objectValue(offer.pricing_snapshot);
+  const bindingMonths =
+    offer.binding_months ?? numberOrNull(snapshot.binding_months) ?? 0;
+  const noticeMonths =
+    offer.notice_months ?? numberOrNull(snapshot.notice_months) ?? 0;
+  const autoRenewEnabled =
+    offer.automatic_renewal === true || snapshot.automatic_renewal === true;
+  const renewalTermMonths = autoRenewEnabled
+    ? numberOrNull(snapshot.automatic_renewal_term_months) ??
+      (bindingMonths > 0 ? bindingMonths : null)
+    : null;
+  return {
+    bindingMonths,
+    noticeMonths,
+    autoRenewEnabled,
+    renewalTermMonths,
+  };
+}
+
+function priceOptionMatchesPublicationDefaults(
+  option: PublicContractPriceOption,
+  defaults: ReturnType<typeof publicationDefaultCommercialTerms>,
+) {
+  return (
+    option.binding_months === defaults.bindingMonths &&
+    option.notice_months === defaults.noticeMonths &&
+    option.auto_renew_enabled === defaults.autoRenewEnabled &&
+    option.renewal_term_months === defaults.renewalTermMonths
+  );
+}
+
 async function loadPublishedPriceOptions(
   companyId: string,
   offers: PublicContractOffer[],
@@ -2097,6 +2129,50 @@ async function loadPublishedPriceOptions(
     }
 
     if (validOptions.length > 0) {
+      const publicationDefaults = publicationDefaultCommercialTerms(offer);
+      const defaultOption = validOptions.find((option) => option.is_default);
+      if (defaultOption && !priceOptionMatchesPublicationDefaults(defaultOption, publicationDefaults)) {
+        if (validOptions.length === 1) {
+          // Compatibility repair for historical single-option publications.
+          // The publication-level defaults were already immutable and customer
+          // visible; normalize the only selectable option to those exact terms
+          // before it reaches quote/signature logic. New saves are rejected by
+          // the admin parser if these values diverge.
+          const index = validOptions.indexOf(defaultOption);
+          if (publicationDefaults.autoRenewEnabled && publicationDefaults.renewalTermMonths === null) {
+            diagnostics.push({
+              code: "price_option_default_contract_terms_incomplete",
+              severity: "blocker",
+              offer_reference: offerReference,
+              price_option_reference: defaultOption.price_option_reference,
+              price_area: null,
+            });
+          } else {
+            validOptions[index] = {
+              ...defaultOption,
+              binding_months: publicationDefaults.bindingMonths,
+              notice_months: publicationDefaults.noticeMonths,
+              auto_renew_enabled: publicationDefaults.autoRenewEnabled,
+              renewal_term_months: publicationDefaults.renewalTermMonths,
+            };
+            diagnostics.push({
+              code: "price_option_default_contract_terms_normalized",
+              severity: "warning",
+              offer_reference: offerReference,
+              price_option_reference: defaultOption.price_option_reference,
+              price_area: null,
+            });
+          }
+        } else {
+          diagnostics.push({
+            code: "price_option_default_contract_terms_mismatch",
+            severity: "blocker",
+            offer_reference: offerReference,
+            price_option_reference: defaultOption.price_option_reference,
+            price_area: null,
+          });
+        }
+      }
       const defaults = validOptions.filter((option) => option.is_default);
       if (defaults.length === 0) {
         diagnostics.push({
@@ -2134,6 +2210,8 @@ async function loadPublishedPriceOptions(
           "price_option_default_missing",
           "price_option_default_duplicate",
           "price_option_selection_policy_inconsistent",
+          "price_option_default_contract_terms_mismatch",
+          "price_option_default_contract_terms_incomplete",
         ].includes(item.code),
     );
     byPublication.set(publicationId, {

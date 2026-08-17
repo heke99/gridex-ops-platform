@@ -439,8 +439,10 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
           spotMarkupOrePerKwh: input.publicOffer.spot_markup_ore_per_kwh,
           fixedPriceOrePerKwh: input.publicOffer.fixed_price_ore_per_kwh,
           variableFeeOrePerKwh: input.publicOffer.variable_fee_ore_per_kwh,
-          bindingMonths: input.publicOffer.binding_months ?? null,
-          noticeMonths: input.publicOffer.notice_months ?? null,
+          bindingMonths: input.contract.binding_months ?? null,
+          noticeMonths: input.contract.notice_months ?? null,
+          autoRenewEnabled: input.contract.auto_renew_enabled === true,
+          autoRenewTermMonths: input.contract.auto_renew_term_months ?? null,
           legalVersions: input.legalVersions.map((version) => ({
             id: version.id,
             type: version.type,
@@ -462,6 +464,12 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
       signed_at: input.contract.signed_at,
       signature_snapshot_sha256:
         input.contract.signature_snapshot_sha256 ?? null,
+      quote_reference: input.contract.quote_reference ?? null,
+      price_option_reference: input.contract.price_option_reference ?? null,
+      binding_months: input.contract.binding_months ?? null,
+      notice_months: input.contract.notice_months ?? null,
+      auto_renew_enabled: input.contract.auto_renew_enabled === true,
+      auto_renew_term_months: input.contract.auto_renew_term_months ?? null,
       legal_version_ids: input.legalVersions.map((version) => version.id),
       contract_publication_version_id:
         input.publicOffer?.contract_publication_version_id ?? null,
@@ -533,6 +541,11 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
           public_contract_offer_id: input.publicOffer?.id ?? null,
           signature_snapshot_sha256:
             input.contract?.signature_snapshot_sha256 ?? null,
+          price_option_reference: input.contract?.price_option_reference ?? null,
+          binding_months: input.contract?.binding_months ?? null,
+          notice_months: input.contract?.notice_months ?? null,
+          auto_renew_enabled: input.contract?.auto_renew_enabled === true,
+          auto_renew_term_months: input.contract?.auto_renew_term_months ?? null,
           tenant_communication_snapshot_sha256: company.snapshotSha256,
           contract_publication_version_id:
             input.publicOffer?.contract_publication_version_id ?? null,
@@ -718,6 +731,12 @@ export type WebsiteContractCreateResult = {
   withdrawal_deadline_at?: string | null;
   public_contract_offer_id?: string | null;
   offer_reference?: string | null;
+  quote_reference?: string | null;
+  price_option_reference?: string | null;
+  binding_months?: number | null;
+  notice_months?: number | null;
+  auto_renew_enabled?: boolean | null;
+  auto_renew_term_months?: number | null;
   energy_direction?: "consumption" | "production";
   signature_snapshot_sha256?: string | null;
   contract_number: string | null;
@@ -730,7 +749,13 @@ export function selectedOfferFields(
   offer: PublicContractOffer,
   contract: ApplicationInput["contract"],
   priceArea?: string | null,
+  priceOptionReference?: string | null,
 ) {
+  const selectedPriceOption = priceOptionReference
+    ? offer.price_options?.find(
+        (option) => option.price_option_reference === priceOptionReference,
+      ) ?? null
+    : offer.price_options?.find((option) => option.is_default) ?? null;
   const selectedAreaFixedPrice = fixedPriceOreForArea(
     offer.pricing_snapshot,
     priceArea,
@@ -781,6 +806,16 @@ export function selectedOfferFields(
       offer.terms_version ?? clean(contract?.terms_version) ?? null,
     productCode: offer.product_code ?? clean(contract?.product_code) ?? null,
     billingModel: offer.billing_model ?? null,
+    priceOptionReference:
+      selectedPriceOption?.price_option_reference ?? priceOptionReference ?? null,
+    bindingMonths:
+      selectedPriceOption?.binding_months ?? offer.binding_months ?? 0,
+    noticeMonths:
+      selectedPriceOption?.notice_months ?? offer.notice_months ?? 0,
+    autoRenewEnabled:
+      selectedPriceOption?.auto_renew_enabled ?? (offer.automatic_renewal === true),
+    autoRenewTermMonths:
+      selectedPriceOption?.renewal_term_months ?? null,
   };
 }
 
@@ -805,7 +840,7 @@ export function websiteLegalVersionsSnapshot(
 function websiteSignatureSnapshot(input: {
   companyId: string;
   customerId: string;
-  contractId: string;
+  contract: WebsiteContractCreateResult;
   applicationId: string;
   publicOffer: PublicContractOffer;
   offerReference: string;
@@ -818,8 +853,14 @@ function websiteSignatureSnapshot(input: {
     schema: "gridex_website_contract_signature_v2",
     company_id: input.companyId,
     customer_id: input.customerId,
-    contract_id: input.contractId,
+    contract_id: input.contract.id,
     application_id: input.applicationId,
+    quote_reference: input.contract.quote_reference ?? null,
+    price_option_reference: input.contract.price_option_reference ?? null,
+    binding_months: input.contract.binding_months ?? null,
+    notice_months: input.contract.notice_months ?? null,
+    auto_renew_enabled: input.contract.auto_renew_enabled === true,
+    auto_renew_term_months: input.contract.auto_renew_term_months ?? null,
     public_contract_offer_id: input.publicOffer.id,
     offer_reference: input.offerReference,
     contract_publication_version_id:
@@ -885,7 +926,7 @@ export async function finalizeWebsiteContractSignature(input: {
   const snapshot = websiteSignatureSnapshot({
     companyId: input.companyId,
     customerId: input.customerId,
-    contractId: input.contract.id,
+    contract: input.contract,
     applicationId: input.applicationId,
     publicOffer: input.publicOffer,
     offerReference: input.offerReference,

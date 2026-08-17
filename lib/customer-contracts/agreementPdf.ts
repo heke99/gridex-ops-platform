@@ -40,6 +40,8 @@ export type AgreementPdfInput = {
   variableFeeOrePerKwh?: number | null
   bindingMonths?: number | null
   noticeMonths?: number | null
+  autoRenewEnabled?: boolean | null
+  autoRenewTermMonths?: number | null
   legalVersions: AgreementPdfLegalVersion[]
   signatureSnapshotSha256?: string | null
 }
@@ -158,6 +160,11 @@ function agreementLines(input: AgreementPdfInput) {
     `Ångerfrist till: ${formatDateTime(input.withdrawalDeadline)}`,
     `Bindningstid: ${input.bindingMonths ?? 0} månader`,
     `Uppsägningstid: ${input.noticeMonths ?? 0} månader`,
+    `Automatisk förlängning: ${
+      input.autoRenewEnabled
+        ? `Ja${input.autoRenewTermMonths ? `, ${input.autoRenewTermMonths} månader` : ''}`
+        : 'Nej'
+    }`,
     '',
     'PRISVILLKOR',
     ...(priceLines.length > 0 ? priceLines : ['Pris enligt bifogat publicerat erbjudande och accepterad prisversion.']),

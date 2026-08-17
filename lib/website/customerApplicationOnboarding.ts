@@ -37,11 +37,26 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
 }) {
   const companyId = input.client.company_id;
   const customer = input.body.customer;
+  const selectedQuoteOptionReference =
+    input.websiteQuote?.price_option_reference ?? null;
   const selected = selectedOfferFields(
     input.publicOffer,
     input.body.contract,
     input.readiness.priceArea,
+    selectedQuoteOptionReference,
   );
+  if (
+    selectedQuoteOptionReference &&
+    selected.priceOptionReference !== selectedQuoteOptionReference
+  ) {
+    throw new WebsiteApplicationError({
+      message: "Offertens prisalternativ finns inte i den låsta publiceringen.",
+      status: 409,
+      code: "quote_price_option_publication_mismatch",
+      field: "quote_reference",
+      stage: "contract_create",
+    });
+  }
   if (!isUuid(selected.pricePlanId) || !isUuid(selected.pricePlanVersionId)) {
     throw new WebsiteApplicationError({
       message: "Det publicerade avtalet saknar verifierad prisplanskoppling.",
@@ -321,8 +336,13 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
       fixed_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
       green_fee_mode: selected.greenFeeMode,
       green_fee_value: selected.greenFeeValue,
-      binding_months: input.body.contract?.binding_months ?? null,
-      notice_months: input.body.contract?.notice_months ?? null,
+      // Commercial terms are derived server-side from the exact published
+      // price option bound to the immutable quote. Browser values are never
+      // authoritative for signed contract lifecycle terms.
+      binding_months: selected.bindingMonths,
+      notice_months: selected.noticeMonths,
+      auto_renew_enabled: selected.autoRenewEnabled,
+      auto_renew_term_months: selected.autoRenewTermMonths,
       terms_version: selected.termsVersion,
       agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
       metadata: {
@@ -341,6 +361,10 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
         selected_price_area: input.readiness.priceArea,
         price_option_reference:
           input.websiteQuote?.price_option_reference ?? null,
+        binding_months: selected.bindingMonths,
+        notice_months: selected.noticeMonths,
+        auto_renew_enabled: selected.autoRenewEnabled,
+        auto_renew_term_months: selected.autoRenewTermMonths,
         area_price_reference:
           input.websiteQuote?.area_price_reference ?? null,
         invoice_delivery_method:
@@ -566,7 +590,7 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
   const contractRow = result.contract_id
     ? await supabaseService
         .from("customer_contracts")
-        .select("id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,public_contract_offer_id,offer_reference,signature_snapshot_sha256,contract_number,price_plan_id,price_plan_version_id,contract_price_snapshot_id")
+        .select("id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,public_contract_offer_id,offer_reference,quote_reference,price_option_reference,binding_months,notice_months,auto_renew_enabled,auto_renew_term_months,signature_snapshot_sha256,contract_number,price_plan_id,price_plan_version_id,contract_price_snapshot_id")
         .eq("company_id", companyId)
         .eq("id", result.contract_id)
         .single()

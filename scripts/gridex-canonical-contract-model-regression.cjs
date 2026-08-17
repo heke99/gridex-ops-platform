@@ -12,7 +12,13 @@ const migration = [
   ),
 ].join("\n");
 const publicContracts = read("lib/website/publicContracts.ts");
-const application = read("lib/website/customerApplications.ts");
+const application = [
+  read("lib/website/customerApplications.ts"),
+  read("lib/website/customerApplicationProcess.ts"),
+  read("lib/website/customerApplicationLegal.ts"),
+  read("lib/website/customerApplicationCommunication.ts"),
+  read("lib/website/customerApplicationOnboarding.ts"),
+].join("\n");
 
 const requiredTables = [
   "contract_products",
