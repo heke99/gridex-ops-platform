@@ -1,0 +1,34 @@
+name: Agent full checkout certificate
+
+on:
+  push:
+    branches:
+      - audit/website-contract-e2e-20260817
+
+permissions:
+  contents: read
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Full non-mutating production certificate
+        run: node scripts/gridex-full-production-e2e.cjs --mode=full
+      - name: Upload certificate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-checkout-full-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: warn
+          retention-days: 2
