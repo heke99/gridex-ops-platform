@@ -34,6 +34,21 @@ jobs:
             git add scripts/gridex-contract-go-live-regression.cjs
             git cherry-pick --continue
           fi
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('__tests__/contract-admin-schema.test.ts')
+          s = p.read_text()
+          needle = '    invoice_fee_sek: "0",\n'
+          replacement = needle + '    default_notice_months: "1",\n'
+          if '    default_notice_months: "1",\n' not in s.split('const values = {', 1)[1].split('price_options_json:', 1)[0]:
+              if needle not in s:
+                  raise SystemExit('baseForm invoice fee fixture not found')
+              s = s.replace(needle, replacement, 1)
+              p.write_text(s)
+              git = __import__('subprocess')
+              git.run(['git','add',str(p)], check=True)
+              git.run(['git','commit','-m','test: align canonical contract lifecycle fixture'], check=True)
+          PY
       - run: npm ci
       - name: Targeted commercial and checkout regression
         run: |
