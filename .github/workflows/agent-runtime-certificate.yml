@@ -1,0 +1,50 @@
+name: Agent staging runtime certificate
+
+on:
+  push:
+    branches:
+      - audit/website-contract-e2e-20260817
+
+permissions:
+  contents: read
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_E2E_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      GRIDEX_E2E_ACTOR_USER_ID: ${{ secrets.GRIDEX_E2E_ACTOR_USER_ID }}
+      GRIDEX_E2E_TARGET: staging
+      GRIDEX_E2E_CONFIRM_STAGING: 'YES'
+      GRIDEX_E2E_ALLOW_MUTATION: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Require isolated staging configuration
+        shell: bash
+        run: |
+          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required secret: $name" >&2
+              exit 1
+            fi
+          done
+      - name: Run fresh-tenant runtime certificate
+        run: node scripts/gridex-full-production-e2e.cjs --mode=runtime
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-agent-runtime-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: warn
+          retention-days: 1
