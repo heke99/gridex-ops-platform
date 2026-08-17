@@ -18,6 +18,9 @@ const DEFAULT_RESOLUTION_TTL_HOURS = 24
 const DEFAULT_GEODATA_MAX_AGE_DAYS = 30
 const MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE = 0.8
 const MAX_POSTAL_CANDIDATES = 100
+const PAPILITE_DEFAULT_URL = 'https://api.papapi.se/lite/'
+const PAPILITE_POSTAL_CENTROID_CONFIDENCE = 0.7
+const PAPILITE_POSTAL_CACHE_TTL_DAYS = 90
 
 type Coordinates = {
   addressKey: string
@@ -157,8 +160,6 @@ function addressAttempts(input: EnergyResolverInput) {
     attempts.push({ street, streetNumber, key })
   }
 
-  // Provider-specific normalised form first, exact input second for providers
-  // which accept a full address in one field.
   add(parsed.streetName, parsed.streetNumber)
   add(parsed.originalStreet, clean(input.streetNumber))
   return attempts
@@ -168,16 +169,30 @@ function addressKey(input: EnergyResolverInput): string | null {
   return addressAttempts(input)[0]?.key ?? null
 }
 
+function postalCentroidKey(postalCode: string, country: string): string {
+  return `postal_centroid|${country.toUpperCase()}|${postalCode}`
+}
+
 function lookupKey(input: EnergyResolverInput): string {
+  const postalCode = normalizePostalCode(input.postalCode)
+  const country = (clean(input.country) ?? 'SE').toUpperCase()
+  const postalKey = postalCode
+    ? `postal:${country}:${postalCode}:${normalizeCity(input.city) ?? ''}`
+    : ''
   return [
     normaliseGridAreaCode(input.gridAreaCode) ?? '',
-    addressKey(input) ?? '',
+    addressKey(input) ?? postalKey,
     clean(input.facilityId) ?? '',
     clean(input.meteringPointId) ?? '',
   ].join('|')
 }
 
+function papiliteConfigured(): boolean {
+  return Boolean(clean(process.env.PAPILITE_API_KEY))
+}
+
 function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>): EnergyResolverResult {
+  const papiliteReady = papiliteConfigured()
   return {
     gridAreaCode: null,
     gridAreaName: null,
@@ -197,11 +212,11 @@ function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>
     conflictCode: null,
     diagnostics: {
       addressAttempts: [],
-      geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
-      providerStatus: process.env.PAPILITE_GEOCODE_URL ? 'not_attempted' : 'not_configured',
+      geocodeProvider: 'papilite',
+      geocodeStatus: papiliteReady ? 'no_match' : 'missing_api_key',
+      providerStatus: papiliteReady ? 'not_attempted' : 'not_configured',
       providerHttpStatus: null,
-      providerErrorCode: null,
+      providerErrorCode: papiliteReady ? null : 'missing_api_key',
       coordinateReferenceSystem: null,
       polygonStatus: 'not_attempted',
       mappingStatus: 'not_applicable',
@@ -309,8 +324,8 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: null,
-      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
-      providerStatus: process.env.PAPILITE_GEOCODE_URL ? 'not_attempted' : 'not_configured',
+      geocodeStatus: 'not_configured',
+      providerStatus: 'not_attempted',
       providerHttpStatus: null,
       providerErrorCode: null,
       coordinateReferenceSystem: null,
@@ -338,6 +353,8 @@ async function cachedAddressCoordinates(input: EnergyResolverInput): Promise<Coo
     throw error
   }
   if (!data) return null
+  const raw = isRecord(data.raw_payload) ? data.raw_payload : {}
+  if (raw.coordinate_scope === 'postal_centroid' || clean(data.provider) === 'papilite_postal_centroid') return null
   return {
     addressKey: clean(data.address_key) ?? keys[0],
     latitude: numberOrNull(data.latitude),
@@ -345,7 +362,7 @@ async function cachedAddressCoordinates(input: EnergyResolverInput): Promise<Coo
     sweref99X: numberOrNull(data.sweref99_x),
     sweref99Y: numberOrNull(data.sweref99_y),
     confidence: numberOrNull(data.confidence) ?? 0.7,
-    raw: isRecord(data.raw_payload) ? data.raw_payload : {},
+    raw,
   }
 }
 
@@ -402,8 +419,6 @@ function coordinatesFromCandidate(candidate: Record<string, unknown>) {
   let sweref99X = numberFromRecords(records, ['sweref99_x', 'sweref_x', 'swerefX', 'x_3006'])
   let sweref99Y = numberFromRecords(records, ['sweref99_y', 'sweref_y', 'swerefY', 'y_3006'])
 
-  // GeoJSON positions are always longitude, latitude. Raw x/y fields are only
-  // accepted when the provider explicitly declares SWEREF99 TM (EPSG:3006).
   if ((latitude === null || longitude === null) && Array.isArray(geometryCoordinates) && geometryCoordinates.length >= 2) {
     longitude = longitude ?? numberOrNull(geometryCoordinates[0])
     latitude = latitude ?? numberOrNull(geometryCoordinates[1])
@@ -416,132 +431,214 @@ function coordinatesFromCandidate(candidate: Record<string, unknown>) {
   return { latitude, longitude, sweref99X, sweref99Y }
 }
 
-async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup> {
-  const url = clean(process.env.PAPILITE_GEOCODE_URL)
-  const attempts = addressAttempts(input)
+async function lookupPapilitePostalCentroid(input: EnergyResolverInput): Promise<GeocodeLookup> {
+  const postalCode = normalizePostalCode(input.postalCode)
+  const country = (clean(input.country) ?? 'SE').toUpperCase()
+  const apiKey = clean(process.env.PAPILITE_API_KEY)
+  const baseUrl = clean(process.env.PAPILITE_GEOCODE_URL) ?? PAPILITE_DEFAULT_URL
   const diagnostics: EnergyResolverDiagnostics = {
     addressAttempts: [],
-    geocodeProvider: url ? 'papilite' : null,
-    geocodeStatus: url ? 'no_match' : 'not_configured',
-    providerStatus: url ? 'not_attempted' : 'not_configured',
+    geocodeProvider: 'papilite',
+    geocodeStatus: apiKey ? 'no_match' : 'missing_api_key',
+    providerStatus: 'not_attempted',
     providerHttpStatus: null,
-    providerErrorCode: url ? null : 'missing_base_url',
+    providerErrorCode: apiKey ? null : 'missing_api_key',
     coordinateReferenceSystem: null,
     polygonStatus: 'not_attempted',
     mappingStatus: 'not_applicable',
   }
-  if (!url || attempts.length === 0 || !hasFullAddress(input)) {
-    return { coordinates: null, warnings: [url ? 'address_not_complete_for_geocoding' : 'papilite_not_configured'], diagnostics: { ...diagnostics, geocodeStatus: url ? 'no_match' : 'not_configured', providerStatus: url ? 'not_attempted' : 'not_configured', providerErrorCode: url ? 'address_not_complete' : 'missing_base_url' } }
-  }
-
-  for (const attempt of attempts) {
-    const endpoint = new URL(url)
-    endpoint.searchParams.set('street', attempt.street)
-    if (attempt.streetNumber) endpoint.searchParams.set('street_number', attempt.streetNumber)
-    endpoint.searchParams.set('postal_code', normalizePostalCode(input.postalCode) ?? '')
-    endpoint.searchParams.set('city', clean(input.city) ?? '')
-    endpoint.searchParams.set('country', clean(input.country) ?? 'SE')
-
-    const headers: Record<string, string> = { accept: 'application/json' }
-    if (process.env.PAPILITE_API_KEY) headers.authorization = `Bearer ${process.env.PAPILITE_API_KEY}`
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS)
-    try {
-      const response = await fetch(endpoint.toString(), {
-        headers,
-        cache: 'no-store',
-        redirect: 'error',
-        signal: controller.signal,
-      })
-      diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: response.ok ? 'response_received' : 'http_error', httpStatus: response.status })
-      if (!response.ok) {
-        diagnostics.geocodeHttpStatus = response.status
-        diagnostics.providerHttpStatus = response.status
-        diagnostics.providerStatus = 'http_error'
-        diagnostics.providerErrorCode = `http_${response.status}`
-        diagnostics.geocodeStatus = response.status === 401 || response.status === 403 ? 'unauthorized' : response.status === 429 ? 'rate_limited' : 'provider_unavailable'
-        continue
-      }
-      const payload = await response.json().catch(() => null) as unknown
-      diagnostics.geocodeHttpStatus = response.status
-      diagnostics.providerHttpStatus = response.status
-      diagnostics.providerStatus = 'success'
-      diagnostics.geocodeResponseShape = Array.isArray(payload)
-        ? 'array'
-        : payload && typeof payload === 'object'
-          ? `object:${Object.keys(payload as Record<string, unknown>).sort().slice(0, 8).join(',')}`
-          : typeof payload
-      const candidate = candidateFromPayload(payload)
-      if (!candidate) {
-        diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'no_match' })
-        diagnostics.geocodeStatus = 'no_match'
-        continue
-      }
-
-      const { latitude, longitude, sweref99X, sweref99Y } = coordinatesFromCandidate(candidate)
-      if ((sweref99X === null || sweref99Y === null) && (latitude === null || longitude === null)) {
-        diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'coordinates_missing' })
-        diagnostics.geocodeStatus = 'invalid_response'
-        continue
-      }
-
-      const coordinates: Coordinates = {
-        addressKey: attempt.key,
-        latitude,
-        longitude,
-        sweref99X,
-        sweref99Y,
-        confidence: numberOrNull(candidate.confidence) ?? 0.78,
-        raw: isRecord(payload) ? payload : { payload },
-      }
-      const row = {
-        address_key: attempt.key,
-        street: attempt.street,
-        postal_code: normalizePostalCode(input.postalCode),
-        city: clean(input.city),
-        country: clean(input.country) ?? 'SE',
-        latitude,
-        longitude,
-        sweref99_x: sweref99X,
-        sweref99_y: sweref99Y,
-        provider: 'papilite',
-        confidence: coordinates.confidence,
-        raw_payload: coordinates.raw,
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-      const cache = await supabaseService.from('platform_address_lookup_cache').upsert(row, { onConflict: 'address_key' })
-      const warnings = cache.error && !missingSchema(cache.error) ? ['address_cache_write_failed'] : []
-      diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'matched' })
-      diagnostics.geocodeStatus = 'success'
-      diagnostics.coordinateReferenceSystem = sweref99X !== null && sweref99Y !== null ? 'EPSG:3006' : 'EPSG:4326'
-      return { coordinates, warnings, diagnostics }
-    } catch (error) {
-      const outcome = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'provider_unavailable'
-      diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome })
-      diagnostics.geocodeStatus = outcome === 'timeout' ? 'provider_unavailable' : 'provider_unavailable'
-      diagnostics.providerStatus = outcome
-      diagnostics.providerErrorCode = outcome
-    } finally {
-      clearTimeout(timeout)
+  if (!postalCode) {
+    return {
+      coordinates: null,
+      warnings: ['postal_code_invalid_for_papilite'],
+      diagnostics: { ...diagnostics, geocodeStatus: 'no_match', providerErrorCode: 'postal_code_invalid' },
     }
   }
 
-  const status = diagnostics.geocodeStatus
-  const warning = status === 'unauthorized'
-    ? 'papilite_unauthorized'
-    : status === 'rate_limited'
-      ? 'papilite_rate_limited'
-      : status === 'provider_unavailable' && diagnostics.providerErrorCode === 'timeout'
-        ? 'papilite_timeout'
-        : status === 'provider_unavailable'
-          ? 'papilite_unavailable'
-          : status === 'invalid_response'
-            ? 'papilite_invalid_response'
-            : 'papilite_no_result'
-  return { coordinates: null, warnings: [warning], diagnostics }
-}
+  const cacheKey = postalCentroidKey(postalCode, country)
+  const cached = await supabaseService
+    .from('platform_address_lookup_cache')
+    .select('*')
+    .eq('address_key', cacheKey)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+    .maybeSingle()
+  if (cached.error && !missingSchema(cached.error)) throw cached.error
+  if (cached.data) {
+    const raw = isRecord(cached.data.raw_payload) ? cached.data.raw_payload : {}
+    if (raw.coordinate_scope === 'postal_centroid' || clean(cached.data.provider) === 'papilite_postal_centroid') {
+      const latitude = numberOrNull(cached.data.latitude)
+      const longitude = numberOrNull(cached.data.longitude)
+      if (latitude !== null && longitude !== null) {
+        return {
+          coordinates: {
+            addressKey: cacheKey,
+            latitude,
+            longitude,
+            sweref99X: null,
+            sweref99Y: null,
+            confidence: Math.min(PAPILITE_POSTAL_CENTROID_CONFIDENCE, numberOrNull(cached.data.confidence) ?? PAPILITE_POSTAL_CENTROID_CONFIDENCE),
+            raw,
+          },
+          warnings: ['postal_centroid_not_facility_location'],
+          diagnostics: {
+            ...diagnostics,
+            geocodeStatus: 'success',
+            providerStatus: 'cache_hit',
+            providerErrorCode: null,
+            coordinateReferenceSystem: 'EPSG:4326',
+          },
+        }
+      }
+    }
+  }
 
+  if (!apiKey) {
+    return { coordinates: null, warnings: ['papilite_missing_api_key'], diagnostics }
+  }
+
+  let endpoint: URL
+  try {
+    endpoint = new URL(baseUrl)
+  } catch {
+    return {
+      coordinates: null,
+      warnings: ['papilite_invalid_base_url'],
+      diagnostics: { ...diagnostics, geocodeStatus: 'provider_unavailable', providerStatus: 'failed', providerErrorCode: 'invalid_base_url' },
+    }
+  }
+  endpoint.searchParams.set('query', postalCode)
+  endpoint.searchParams.set('format', 'json')
+  endpoint.searchParams.set('country', country.toLowerCase())
+  endpoint.searchParams.set('apikey', apiKey)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS)
+  try {
+    const response = await fetch(endpoint.toString(), {
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+      redirect: 'error',
+      signal: controller.signal,
+    })
+    diagnostics.geocodeHttpStatus = response.status
+    diagnostics.providerHttpStatus = response.status
+    if (!response.ok) {
+      diagnostics.providerStatus = 'http_error'
+      diagnostics.providerErrorCode = `http_${response.status}`
+      diagnostics.geocodeStatus = response.status === 401 || response.status === 403
+        ? 'unauthorized'
+        : response.status === 429
+          ? 'rate_limited'
+          : 'provider_unavailable'
+      const warning = diagnostics.geocodeStatus === 'unauthorized'
+        ? 'papilite_unauthorized'
+        : diagnostics.geocodeStatus === 'rate_limited'
+          ? 'papilite_rate_limited'
+          : 'papilite_unavailable'
+      return { coordinates: null, warnings: [warning], diagnostics }
+    }
+
+    const payload = await response.json().catch(() => null) as unknown
+    diagnostics.geocodeResponseShape = Array.isArray(payload)
+      ? 'array'
+      : payload && typeof payload === 'object'
+        ? `object:${Object.keys(payload as Record<string, unknown>).sort().slice(0, 8).join(',')}`
+        : typeof payload
+    const candidate = candidateFromPayload(payload)
+    if (!candidate) {
+      return {
+        coordinates: null,
+        warnings: ['papilite_no_result'],
+        diagnostics: { ...diagnostics, geocodeStatus: 'no_match', providerStatus: 'success', providerErrorCode: 'no_result' },
+      }
+    }
+
+    const records = coordinateRecords(candidate)
+    const candidatePostal = normalizePostalCode(firstFromRecord(records[0] ?? {}, ['postal_code', 'postcode', 'zip_code', 'zip']))
+      ?? normalizePostalCode(records.map((record) => firstFromRecord(record, ['postal_code', 'postcode', 'zip_code', 'zip'])).find(Boolean))
+    if (candidatePostal && candidatePostal !== postalCode) {
+      return {
+        coordinates: null,
+        warnings: ['papilite_postal_code_mismatch'],
+        diagnostics: { ...diagnostics, geocodeStatus: 'invalid_response', providerStatus: 'success', providerErrorCode: 'postal_code_mismatch' },
+      }
+    }
+
+    const { latitude, longitude } = coordinatesFromCandidate(candidate)
+    if (latitude === null || longitude === null) {
+      return {
+        coordinates: null,
+        warnings: ['papilite_invalid_response'],
+        diagnostics: { ...diagnostics, geocodeStatus: 'invalid_response', providerStatus: 'success', providerErrorCode: 'coordinates_missing' },
+      }
+    }
+
+    const city = clean(firstFromRecord(records[0] ?? {}, ['city', 'postort', 'postal_town']))
+      ?? clean(records.map((record) => firstFromRecord(record, ['city', 'postort', 'postal_town'])).find(Boolean))
+      ?? clean(input.city)
+    const raw = {
+      coordinate_scope: 'postal_centroid',
+      provider: 'papilite',
+      provider_payload: payload,
+    }
+    const coordinates: Coordinates = {
+      addressKey: cacheKey,
+      latitude,
+      longitude,
+      sweref99X: null,
+      sweref99Y: null,
+      confidence: PAPILITE_POSTAL_CENTROID_CONFIDENCE,
+      raw,
+    }
+    const cache = await supabaseService
+      .from('platform_address_lookup_cache')
+      .upsert({
+        address_key: cacheKey,
+        street: null,
+        postal_code: postalCode,
+        city,
+        country,
+        latitude,
+        longitude,
+        sweref99_x: null,
+        sweref99_y: null,
+        provider: 'papilite_postal_centroid',
+        confidence: PAPILITE_POSTAL_CENTROID_CONFIDENCE,
+        raw_payload: raw,
+        expires_at: new Date(Date.now() + PAPILITE_POSTAL_CACHE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'address_key' })
+    const warnings = [
+      'postal_centroid_not_facility_location',
+      ...(cache.error && !missingSchema(cache.error) ? ['postal_centroid_cache_write_failed'] : []),
+    ]
+    return {
+      coordinates,
+      warnings,
+      diagnostics: {
+        ...diagnostics,
+        geocodeStatus: 'success',
+        providerStatus: 'success',
+        providerErrorCode: null,
+        coordinateReferenceSystem: 'EPSG:4326',
+      },
+    }
+  } catch (error) {
+    const timeoutError = error instanceof Error && error.name === 'AbortError'
+    return {
+      coordinates: null,
+      warnings: [timeoutError ? 'papilite_timeout' : 'papilite_unavailable'],
+      diagnostics: {
+        ...diagnostics,
+        geocodeStatus: 'provider_unavailable',
+        providerStatus: timeoutError ? 'timeout' : 'failed',
+        providerErrorCode: timeoutError ? 'timeout' : 'provider_unavailable',
+      },
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
 
 async function currentGeodataVersion(): Promise<{ version: string | null; stale: boolean }> {
   const maxAgeDaysRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
@@ -619,7 +716,7 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
         }),
     resolutionStatus: status,
     confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
-    sourceChain: ['address', 'papilite/cache', 'svk_arcgis_polygon', 'platform_grid_areas'],
+    sourceChain: ['address', 'address_cache', 'svk_arcgis_polygon', 'platform_grid_areas'],
     automationAllowed: status === 'grid_area_master_validated' && !mappingMissing && !geodata.stale,
     geodataVersion: geodata.version,
     nextRequiredAction: mappingMissing
@@ -637,9 +734,9 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
     ],
     diagnostics: {
       addressAttempts: [],
-      geocodeProvider: 'papilite',
+      geocodeProvider: 'cache',
       geocodeStatus: 'success',
-      providerStatus: 'success',
+      providerStatus: 'cache_hit',
       providerHttpStatus: null,
       providerErrorCode: null,
       coordinateReferenceSystem,
@@ -655,6 +752,102 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
     }
   }
   return resolved
+}
+
+async function priceAreaFromPostalCentroid(
+  input: EnergyResolverInput,
+  lookup: GeocodeLookup,
+): Promise<EnergyResolverResult | null> {
+  const coordinates = lookup.coordinates
+  if (!coordinates || coordinates.longitude === null || coordinates.latitude === null) return null
+
+  const response = await supabaseService.rpc('gridex_lonlat_to_grid_area', {
+    p_longitude: coordinates.longitude,
+    p_latitude: coordinates.latitude,
+  })
+  if (response.error) {
+    if (missingSchema(response.error)) requireResolverSchema('gridex_lonlat_to_grid_area', response.error)
+    throw response.error
+  }
+  const row = Array.isArray(response.data) ? response.data[0] : response.data
+  const geodata = await currentGeodataVersion()
+  if (!isRecord(row)) {
+    return result(input, {
+      resolutionStatus: 'postal_suggested',
+      confidence: coordinates.confidence,
+      sourceChain: ['postal_code', lookup.diagnostics.providerStatus === 'cache_hit' ? 'postal_centroid_cache' : 'papilite', 'postal_centroid', 'polygon_no_match'],
+      automationAllowed: false,
+      nextRequiredAction: 'Postnumrets centroid kunde inte kopplas till ett elområde. Komplettera eller verifiera platsen manuellt.',
+      warnings: [...lookup.warnings, 'postal_centroid_price_area_unresolved'],
+      diagnostics: { ...lookup.diagnostics, polygonStatus: 'no_match', mappingStatus: 'not_applicable' },
+    })
+  }
+
+  const priceArea = normalisePriceArea(row.price_area)
+  const confidence = Math.min(
+    PAPILITE_POSTAL_CENTROID_CONFIDENCE,
+    coordinates.confidence,
+    Math.max(0, numberOrNull(row.confidence) ?? PAPILITE_POSTAL_CENTROID_CONFIDENCE),
+  )
+  const evidence = {
+    postal_code: normalizePostalCode(input.postalCode),
+    coordinate_scope: 'postal_centroid',
+    provider: 'papilite',
+    coordinate_reference_system: 'EPSG:4326',
+    geodata_version: geodata.version,
+    geodata_stale: geodata.stale,
+  }
+  const sourceChain = [
+    'postal_code',
+    lookup.diagnostics.providerStatus === 'cache_hit' ? 'platform_address_lookup_cache' : 'papilite',
+    'postal_centroid',
+    'svk_arcgis_polygon',
+    'price_area_only',
+  ]
+
+  return result(input, {
+    priceArea,
+    priceAreaAssurance: !priceArea || geodata.stale
+      ? unresolvedPriceAreaAssurance({
+          priceArea,
+          confidence,
+          source: 'postal_centroid',
+          sourceVersion: geodata.version,
+          candidateCount: priceArea ? 1 : 0,
+          uniquePriceAreaCount: priceArea ? 1 : 0,
+          evidence,
+        })
+      : {
+          status: 'estimated',
+          priceArea,
+          confidence,
+          source: 'postal_centroid',
+          candidateCount: 1,
+          uniquePriceAreaCount: 1,
+          sourceVersion: geodata.version,
+          evidence,
+        },
+    resolutionStatus: 'postal_suggested',
+    confidence,
+    sourceChain,
+    automationAllowed: false,
+    geodataVersion: geodata.version,
+    nextRequiredAction: priceArea && !geodata.stale
+      ? 'Elområdet är uppskattat från postnumrets centroid. Verifiera nätområde och nätägare via anläggningsdata eller manuell verifiering innan Ediel skickas.'
+      : 'Elområdet kunde inte verifieras från postnumrets centroid. Komplettera platsdata eller uppdatera verifierad geodata.',
+    warnings: [
+      ...lookup.warnings,
+      'postal_centroid_not_facility_location',
+      ...(geodata.stale ? ['svk_geodata_stale_or_unverified'] : []),
+      ...(!priceArea ? ['postal_centroid_price_area_unresolved'] : []),
+    ],
+    diagnostics: {
+      ...lookup.diagnostics,
+      coordinateReferenceSystem: 'EPSG:4326',
+      polygonStatus: isRecord(row) ? 'matched' : 'no_match',
+      mappingStatus: 'not_applicable',
+    },
+  })
 }
 
 async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResolverResult | null> {
@@ -717,8 +910,6 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
       gridAreaCode,
       rowPriceArea,
       masterPriceArea,
-      // Canonical grid-area masterdata wins when available, but any mismatch is
-      // still an explicit conflict and therefore cannot become pricing-ready.
       priceArea: masterPriceArea ?? rowPriceArea,
       mappingConflict,
       confidence: Math.max(0, Math.min(1, numberOrNull(row.confidence) ?? 0)),
@@ -787,8 +978,8 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
       ],
       diagnostics: {
         addressAttempts: [],
-        geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-        geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
+        geocodeProvider: 'papilite',
+        geocodeStatus: papiliteConfigured() ? 'no_match' : 'missing_api_key',
         providerStatus: 'not_attempted',
         providerHttpStatus: null,
         providerErrorCode: mappingConflictCount > 0 ? 'postal_mapping_master_conflict' : 'postal_price_area_ambiguous',
@@ -850,8 +1041,8 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
     warnings,
     diagnostics: {
       addressAttempts: [],
-      geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
+      geocodeProvider: 'papilite',
+      geocodeStatus: papiliteConfigured() ? 'no_match' : 'missing_api_key',
       providerStatus: 'not_attempted',
       providerHttpStatus: null,
       providerErrorCode: assuranceReady ? 'postal_price_area_consensus_used' : 'postal_price_area_unresolved',
@@ -860,6 +1051,13 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
       mappingStatus: 'not_applicable',
     },
   })
+}
+
+function priceAreaCanMaterialize(resolved: EnergyResolverResult): boolean {
+  if (!resolved.priceArea || resolved.priceAreaAssurance.uniquePriceAreaCount !== 1) return false
+  if (resolved.priceAreaAssurance.status === 'verified') return true
+  return resolved.priceAreaAssurance.status === 'estimated'
+    && resolved.priceAreaAssurance.confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE
 }
 
 async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
@@ -875,7 +1073,7 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     customer_application_id: clean(input.customerApplicationId),
     grid_owner_id: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridOwnerId),
     grid_area_code: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaCode),
-    grid_area_name: clean(resolved.gridAreaName),
+    grid_area_name: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaName),
     grid_owner_name: resolved.resolutionStatus === 'postal_suggested' ? clean(resolved.suggestedGridOwnerName) : clean(resolved.gridOwnerName),
     price_area: resolved.priceArea,
     price_area_assurance_status: resolved.priceAreaAssurance.status,
@@ -928,7 +1126,8 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     const protectedManualVerification = ['manual_verified', 'facility_verified'].includes(currentStatus)
     const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridOwnerId)
     const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaCode)
-    const resolvedPriceAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null : resolved.priceArea
+    const currentPriceAreaCode = normalisePriceArea(currentRow?.price_area_code)
+    const resolvedPriceAreaCode = priceAreaCanMaterialize(resolved) ? resolved.priceArea : currentPriceAreaCode
     const fullyVerifiedResolution = Boolean(
       resolved.automationAllowed &&
       resolvedGridOwnerId &&
@@ -937,10 +1136,6 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
       resolved.gridOwnerVerificationStatus === 'verified',
     )
 
-    // Address commits invalidate derived grid context in the database. Once a
-    // new resolver result exists it is the source of truth; stale values must
-    // never win merely because they are non-null. A manually verified row is
-    // preserved only when the new result is not fully verified.
     if (!protectedManualVerification || fullyVerifiedResolution) {
       const siteUpdate: Record<string, unknown> = {
         grid_owner_id: resolvedGridOwnerId,
@@ -949,11 +1144,13 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
         resolution_id: data.id,
         resolution_status: resolved.resolutionStatus,
         resolution_confidence: resolved.confidence,
-        latitude: resolved.coordinates?.latitude ?? null,
-        longitude: resolved.coordinates?.longitude ?? null,
-        sweref99_x: resolved.coordinates?.sweref99X ?? null,
-        sweref99_y: resolved.coordinates?.sweref99Y ?? null,
         updated_at: now,
+      }
+      if (resolved.coordinates) {
+        siteUpdate.latitude = resolved.coordinates.latitude ?? null
+        siteUpdate.longitude = resolved.coordinates.longitude ?? null
+        siteUpdate.sweref99_x = resolved.coordinates.sweref99X ?? null
+        siteUpdate.sweref99_y = resolved.coordinates.sweref99Y ?? null
       }
       const siteResult = await supabaseService
         .from('customer_sites')
@@ -1004,26 +1201,23 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
 
     if (hasFullAddress(input)) {
       const cached = await cachedAddressCoordinates(input)
-      const geocode = cached
-        ? {
-            coordinates: cached,
-            warnings: [] as string[],
-            diagnostics: {
-              addressAttempts: [],
-              geocodeProvider: 'cache',
-              geocodeStatus: 'success',
-              providerStatus: 'cache_hit',
-              providerHttpStatus: null,
-              providerErrorCode: null,
-              coordinateReferenceSystem: cached.sweref99X !== null && cached.sweref99Y !== null ? 'EPSG:3006' as const : 'EPSG:4326' as const,
-              polygonStatus: 'not_attempted' as const,
-              mappingStatus: 'not_applicable' as const,
-            },
-          }
-        : await lookupPapilite(input)
-      warnings.push(...geocode.warnings)
-      if (geocode.coordinates) {
-        const polygon = await pointToGridArea(input, geocode.coordinates)
+      if (cached) {
+        const geocode: GeocodeLookup = {
+          coordinates: cached,
+          warnings: [],
+          diagnostics: {
+            addressAttempts: [],
+            geocodeProvider: 'cache',
+            geocodeStatus: 'success',
+            providerStatus: 'cache_hit',
+            providerHttpStatus: null,
+            providerErrorCode: null,
+            coordinateReferenceSystem: cached.sweref99X !== null && cached.sweref99Y !== null ? 'EPSG:3006' : 'EPSG:4326',
+            polygonStatus: 'not_attempted',
+            mappingStatus: 'not_applicable',
+          },
+        }
+        const polygon = await pointToGridArea(input, cached)
         if (polygon) {
           if (explicitCode && polygon.gridAreaCode && explicitCode !== normaliseGridAreaCode(polygon.gridAreaCode)) {
             return saveResolution(input, {
@@ -1044,41 +1238,9 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
             diagnostics: { ...geocode.diagnostics, ...polygon.diagnostics, polygonStatus: 'matched' },
           })
         }
-        warnings.push(geocode.coordinates.sweref99X === null && geocode.coordinates.longitude !== null ? 'polygon_wgs84_transform_unavailable_or_no_match' : 'polygon_no_match')
-        const postalFallback = await postalSuggestion(input)
-        if (postalFallback?.priceAreaAssurance.status === 'estimated' && postalFallback.priceArea) {
-          return saveResolution(input, {
-            ...postalFallback,
-            coordinates: {
-              latitude: geocode.coordinates.latitude,
-              longitude: geocode.coordinates.longitude,
-              sweref99X: geocode.coordinates.sweref99X,
-              sweref99Y: geocode.coordinates.sweref99Y,
-            },
-            sourceChain: [
-              'address',
-              cached ? 'address_cache' : 'papilite',
-              'polygon_no_match',
-              ...postalFallback.sourceChain,
-            ],
-            warnings: [...warnings, ...postalFallback.warnings, 'postal_price_area_fallback_used'],
-            diagnostics: { ...geocode.diagnostics, ...postalFallback.diagnostics, polygonStatus: 'no_match' },
-          })
-        }
-        return saveResolution(input, result(input, {
-          resolutionStatus: 'address_resolved',
-          confidence: Math.max(0.55, geocode.coordinates.confidence),
-          sourceChain: ['address', cached ? 'address_cache' : 'papilite'],
-          nextRequiredAction: 'Adressen hittades men kunde inte kopplas till ett verifierat nätområde. Granska geodata eller nätområdesmasterdata.',
-          coordinates: {
-            latitude: geocode.coordinates.latitude,
-            longitude: geocode.coordinates.longitude,
-            sweref99X: geocode.coordinates.sweref99X,
-            sweref99Y: geocode.coordinates.sweref99Y,
-          },
-          warnings,
-          diagnostics: { ...geocode.diagnostics, polygonStatus: 'no_match' },
-        }))
+        warnings.push(cached.sweref99X === null && cached.longitude !== null ? 'polygon_wgs84_transform_unavailable_or_no_match' : 'polygon_no_match')
+      } else {
+        warnings.push('exact_address_cache_miss')
       }
     }
 
@@ -1102,13 +1264,20 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     const postal = await postalSuggestion(input)
     if (postal) return saveResolution(input, { ...postal, warnings: [...postal.warnings, ...warnings] })
 
+    const centroidLookup = await lookupPapilitePostalCentroid(input)
+    warnings.push(...centroidLookup.warnings)
+    if (centroidLookup.coordinates) {
+      const centroid = await priceAreaFromPostalCentroid(input, centroidLookup)
+      if (centroid) return saveResolution(input, { ...centroid, warnings: [...centroid.warnings, ...warnings] })
+    }
+
     return saveResolution(input, result(input, {
       resolutionStatus: explicitCode || hasFullAddress(input) ? 'needs_review' : 'postal_suggested',
       confidence: 0,
       sourceChain: ['input'],
       nextRequiredAction: explicitCode || hasFullAddress(input)
         ? 'Nätområde kunde inte verifieras från adressen. Granska adressmatchning, geodata och masterdata innan något skickas.'
-        : 'Komplettera full adress för automatisk nätområdesmatchning.',
+        : 'Komplettera full adress eller verifiera postnumret manuellt för att fastställa nätområde.',
       warnings: [...warnings, 'no_energy_resolution_candidate'],
     }))
   } catch (error) {
@@ -1124,8 +1293,8 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
       warnings: [...warnings, schemaResource ? `resolver_schema_missing:${schemaResource}` : code ? `resolver_database_error_${code}` : 'resolver_unexpected_error'],
       diagnostics: {
         addressAttempts: [],
-        geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-        geocodeStatus: schemaResource ? 'provider_unavailable' : 'provider_unavailable',
+        geocodeProvider: 'papilite',
+        geocodeStatus: 'provider_unavailable',
         providerStatus: schemaResource ? 'schema_missing' : 'failed',
         providerHttpStatus: null,
         providerErrorCode: schemaResource ? `schema_missing:${schemaResource}` : (code ?? 'resolver_failed'),
@@ -1134,8 +1303,6 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
         mappingStatus: 'not_applicable',
       },
     })
-    // A missing result table must never be reported as absent business data.
-    // Avoid a second failing write when the schema itself is unavailable.
     return schemaResource ? failed : saveResolution(input, failed).catch(() => failed)
   }
 }
@@ -1146,12 +1313,20 @@ export async function publicPriceAreaByPostalCode(postalCodeRaw: string | null) 
     return { postalCode: postalCodeRaw, priceArea: null, confidence: 0, disclaimer: 'Ange ett svenskt postnummer.' }
   }
 
-  const suggestion = await postalSuggestion({ postalCode })
+  let suggestion = await postalSuggestion({ postalCode })
+  if (!suggestion) {
+    const centroidLookup = await lookupPapilitePostalCentroid({ postalCode })
+    if (centroidLookup.coordinates) {
+      suggestion = await priceAreaFromPostalCentroid({ postalCode }, centroidLookup)
+    }
+  }
   return {
     postalCode,
     priceArea: suggestion?.priceArea ?? null,
     confidence: suggestion?.confidence ?? 0,
-    disclaimer: 'Prisområde från postnummer är preliminärt. Nätområdeskod och nätägare verifieras först via full adress, geodata och masterdata i OPS.',
+    disclaimer: suggestion?.priceAreaAssurance.source === 'postal_centroid'
+      ? 'Prisområdet är uppskattat från postnumrets geografiska centroid. Nätområde och nätägare verifieras separat och centroiden används aldrig som anläggningsposition.'
+      : 'Prisområde från postnummer är preliminärt. Nätområdeskod och nätägare verifieras först via verifierad geodata, anläggningsdata och masterdata i OPS.',
   }
 }
 

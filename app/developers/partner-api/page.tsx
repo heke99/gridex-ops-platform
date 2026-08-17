@@ -186,7 +186,7 @@ const webhookRequest = `POST /webhook/subscription
 }`
 
 const endpointRows = [
-  ['GET', '/location', 'Resolve price area, grid area and grid owner'],
+  ['GET', '/location', 'Resolve price area and independently verified grid context'],
   ['GET', '/price/current', 'Get current verified market electricity price'],
   ['POST', '/price', 'Calculate customer price with the Gridex pricing engine'],
   ['POST', '/contract', 'Create contract, customer and site together'],
@@ -266,16 +266,17 @@ export default function PartnerApiDocumentationPage() {
           <Section id="location-pricing" title="1. Location & Pricing">
             <p className="leading-7 text-slate-700">
               Gridex uses one shared location resolver for these endpoints and for site/contract registration. A postal code can be enough
-              when it maps unambiguously to one electricity price area. If a postal code crosses conflicting areas, Gridex returns
-              <code>location_ambiguous</code> instead of guessing and asks for street address and city.
+              to determine an electricity price area for pricing. If postcode evidence conflicts across price areas, Gridex returns
+              <code>location_ambiguous</code> instead of guessing. Grid area and grid owner are only treated as verified from independent
+              facility, master-data or other approved evidence; a postcode centroid is never sufficient for Ediel automation.
             </p>
 
             <h3 className="text-lg font-semibold text-slate-950">1.1 Resolve Location</h3>
             <CopyCodeBlock code={locationRequest} language="text" />
             <CopyCodeBlock code={locationResponse} language="json" />
             <p className="text-sm leading-6 text-slate-600">
-              A postcode-only result can be sufficient for pricing while the grid owner is still marked as suggested rather than verified.
-              Contract switching continues to use Gridex&apos;s stricter facility and grid-owner verification rules.
+              A postcode-only result can be sufficient for indicative pricing while grid area and grid owner remain unverified or absent.
+              Contract switching and facility/metering requests continue to use Gridex&apos;s stricter facility, grid-owner and Ediel-route verification rules.
             </p>
 
             <h3 className="text-lg font-semibold text-slate-950">1.2 Current Market Price</h3>
@@ -295,7 +296,7 @@ export default function PartnerApiDocumentationPage() {
           <Section id="registration" title="2. Registration">
             <p className="leading-7 text-slate-700">
               Use <code>POST /contract</code> for the normal combined flow. Use the individual endpoints only when your backend creates the resources in separate steps.
-              Site and contract creation automatically run the same location resolver used by <code>/location</code> and pricing, so Gridex can persist resolved electricity-area information without asking the partner for internal IDs.
+              Site and contract creation automatically run the same location resolver used by <code>/location</code> and pricing, so Gridex can persist sufficiently trusted electricity-area information without asking the partner for internal IDs.
             </p>
 
             <h3 className="text-lg font-semibold text-slate-950">2.1 Create Contract</h3>
