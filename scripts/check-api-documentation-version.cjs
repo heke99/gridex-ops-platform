@@ -103,7 +103,8 @@ for (const marker of [
   'Partner API Reference',
   'Registration, Data Retrieval & Webhooks',
   '/api/partner/v1/openapi.json',
-  'Gridex configures the company, permissions and published electricity offer behind the API key',
+  'Gridex determines the company from the API key and resolves the electricity area',
+  'published electricity offer server-side',
 ]) {
   if (!partnerGuide.includes(marker)) failures.push(`Partner developer guide is missing marker: ${marker}`)
 }
