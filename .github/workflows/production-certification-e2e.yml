@@ -11,12 +11,17 @@ on:
         options:
           - preflight
           - tenant-bootstrap
+          - live-customer-preflight
       confirm_production:
         description: Type PRODUCTION to confirm the real production target
         required: true
         type: string
       confirm_synthetic_tenant:
         description: For tenant-bootstrap only, type CREATE_SYNTHETIC_TENANT
+        required: false
+        type: string
+      confirm_live_customer:
+        description: For live-customer-preflight only, type AUTHORIZED_LIVE_CUSTOMER
         required: false
         type: string
 
@@ -43,6 +48,10 @@ jobs:
       GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
       GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
       GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
+      GRIDEX_E2E_CUSTOMER_ADDRESS: ${{ secrets.GRIDEX_E2E_CUSTOMER_ADDRESS }}
+      GRIDEX_E2E_CUSTOMER_POSTAL_CODE: ${{ secrets.GRIDEX_E2E_CUSTOMER_POSTAL_CODE }}
+      GRIDEX_E2E_CUSTOMER_CITY: ${{ secrets.GRIDEX_E2E_CUSTOMER_CITY }}
+      GRIDEX_E2E_CUSTOMER_ANNUAL_KWH: ${{ secrets.GRIDEX_E2E_CUSTOMER_ANNUAL_KWH }}
       GRIDEX_E2E_RUN_ID: prod-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Reject non-explicit production execution
@@ -59,6 +68,12 @@ jobs:
             tenant-bootstrap)
               if [[ "${{ inputs.confirm_synthetic_tenant }}" != "CREATE_SYNTHETIC_TENANT" ]]; then
                 echo "tenant-bootstrap requires confirm_synthetic_tenant=CREATE_SYNTHETIC_TENANT." >&2
+                exit 1
+              fi
+              ;;
+            live-customer-preflight)
+              if [[ "${{ inputs.confirm_live_customer }}" != "AUTHORIZED_LIVE_CUSTOMER" ]]; then
+                echo "live-customer-preflight requires confirm_live_customer=AUTHORIZED_LIVE_CUSTOMER." >&2
                 exit 1
               fi
               ;;
@@ -80,6 +95,14 @@ jobs:
           )
           if [[ "${{ inputs.mode }}" == "tenant-bootstrap" ]]; then
             required+=(GRIDEX_E2E_TENANT_ADMIN_EMAIL GRIDEX_E2E_TENANT_ADMIN_PASSWORD)
+          fi
+          if [[ "${{ inputs.mode }}" == "live-customer-preflight" ]]; then
+            required+=(
+              GRIDEX_E2E_CUSTOMER_ADDRESS
+              GRIDEX_E2E_CUSTOMER_POSTAL_CODE
+              GRIDEX_E2E_CUSTOMER_CITY
+              GRIDEX_E2E_CUSTOMER_ANNUAL_KWH
+            )
           fi
           missing=0
           for name in "${required[@]}"; do
@@ -122,6 +145,13 @@ jobs:
         run: |
           mkdir -p e2e-artifacts
           npx playwright test e2e/production/tenant-bootstrap.spec.mjs \
+            --config=playwright.production-certification.config.mjs
+
+      - name: Verify authorized live customer quote without submitting contract
+        if: inputs.mode == 'live-customer-preflight'
+        run: |
+          mkdir -p e2e-artifacts
+          npx playwright test e2e/production/live-customer-preflight.spec.mjs \
             --config=playwright.production-certification.config.mjs
 
       - name: Upload sanitized certification evidence
