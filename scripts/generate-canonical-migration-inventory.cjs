@@ -7,8 +7,22 @@ const root = process.cwd()
 const migrationsDirectory = path.join(root, 'supabase', 'migrations')
 const outputDirectory = path.join(root, 'artifacts')
 const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
+const verifiedTailPath = path.join(root, 'scripts', 'migration-history-verified-tail.json')
 const historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))
-const registeredChecksums = historyManifest.files ?? {}
+const verifiedTail = fs.existsSync(verifiedTailPath)
+  ? JSON.parse(fs.readFileSync(verifiedTailPath, 'utf8'))
+  : { files: {} }
+
+const baselineChecksums = historyManifest.files ?? {}
+const tailChecksums = verifiedTail.files ?? {}
+for (const [filename, checksum] of Object.entries(tailChecksums)) {
+  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {
+    throw new Error(
+      `Verified migration tail conflicts with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} tail=${checksum}`,
+    )
+  }
+}
+const registeredChecksums = { ...baselineChecksums, ...tailChecksums }
 
 function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex')
@@ -59,6 +73,10 @@ const duplicateVersions = [...versionCounts]
 const result = {
   generated_at: new Date().toISOString(),
   source: 'repository/supabase/migrations',
+  checksum_sources: [
+    path.relative(root, historyManifestPath),
+    ...(Object.keys(tailChecksums).length > 0 ? [path.relative(root, verifiedTailPath)] : []),
+  ],
   verification_state: 'LOCAL_INVENTORY_ONLY',
   warning:
     'Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.',
@@ -97,7 +115,7 @@ if (unregistered.length > 0) {
     const expected = registeredChecksums[item.filename]
     console.error(`- ${item.filename}: expected=${expected ?? '<missing>'} current=${item.checksum}`)
   }
-  console.error('Do not update migration-history-manifest.json until the historical change has been verified as intentional and its schema effect has been reviewed.')
+  console.error('Register only verified forward migrations in migration-history-verified-tail.json. Never rewrite a historical baseline checksum to silence this gate.')
   process.exit(1)
 }
 console.log(
