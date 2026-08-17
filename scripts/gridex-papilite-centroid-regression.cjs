@@ -2,6 +2,7 @@
 const fs = require('node:fs')
 
 const resolver = fs.readFileSync('lib/energy/resolver.ts', 'utf8')
+const binding = fs.readFileSync('lib/energy/resolutionBinding.ts', 'utf8')
 const migration = fs.readFileSync('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql', 'utf8')
 
 function assert(condition, message) {
@@ -30,6 +31,8 @@ assert(resolver.includes("resolved.priceAreaAssurance.status === 'estimated'"), 
 assert(resolver.includes('resolved.priceAreaAssurance.confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE'), 'estimated price area must meet confidence floor')
 assert(/resolvedGridOwnerId\s*=\s*resolved\.resolutionStatus === 'postal_suggested' \? null/.test(resolver), 'postal suggestion never materializes grid owner')
 assert(/resolvedGridAreaCode\s*=\s*resolved\.resolutionStatus === 'postal_suggested' \? null/.test(resolver), 'postal suggestion never materializes grid area')
+assert(binding.includes("normalized === 'postal_centroid'"), 'resolution binding preserves postal-centroid provenance')
+assert(binding.includes('const MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE = 0.8'), 'binding keeps estimated price-area confidence floor at 0.8')
 assert(migration.includes("not in ('facility_verified', 'manual_verified')"), 'global mapping learns only from verified sites')
 assert(!migration.includes('company_id'), 'global mapping contains no tenant ID')
 assert(!migration.includes('customer_id'), 'global mapping contains no customer ID')
