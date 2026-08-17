@@ -5,7 +5,7 @@ import { PARTNER_API_BASE_URL, PARTNER_API_VERSION } from '@/lib/partner-api/ope
 
 export const metadata: Metadata = {
   title: 'Partner API v1 | Gridex Developers',
-  description: 'Simple Partner API for registration, data retrieval and webhooks.',
+  description: 'Simple Partner API for location, pricing, registration, data retrieval and webhooks.',
 }
 
 export const revalidate = 3600
@@ -16,6 +16,66 @@ const Section = ({ id, title, children }: { id: string; title: string; children:
     {children}
   </section>
 )
+
+const locationRequest = `GET /location?postal_code=11122&address=Exempelgatan%201&city=Stockholm`
+
+const locationResponse = `{
+  "location": {
+    "postal_code": "11122",
+    "city": "Stockholm",
+    "status": "resolved",
+    "price_area": "SE3",
+    "grid_area": {
+      "code": "...",
+      "name": "...",
+      "verified": true
+    },
+    "grid_owner": {
+      "name": "...",
+      "verified": true
+    },
+    "requires_address": false,
+    "required_fields": []
+  }
+}`
+
+const currentPriceRequest = `GET /price/current?postal_code=11122&address=Exempelgatan%201&city=Stockholm`
+
+const quoteRequest = `POST /price
+
+{
+  "postal_code": "11122",
+  "address": "Exempelgatan 1",
+  "city": "Stockholm",
+  "annual_consumption_kwh": 3500,
+  "customer_type": "PRIVATE"
+}`
+
+const quoteResponse = `{
+  "quote_reference": "quote_...",
+  "valid_until": "...",
+  "location": {
+    "postal_code": "11122",
+    "status": "resolved",
+    "price_area": "SE3"
+  },
+  "offer": {
+    "name": "Gridex Månad",
+    "code": "...",
+    "contract_type": "..."
+  },
+  "customer_price": {
+    "estimated_sek_per_kwh_inc_vat": 0.79,
+    "currency": "SEK",
+    "unit": "kWh"
+  },
+  "estimated_cost": {
+    "monthly_inc_vat": "<calculated by Gridex pricing engine>",
+    "annual_inc_vat": "<calculated by Gridex pricing engine>",
+    "currency": "SEK"
+  },
+  "price_components": []
+}`
 
 const createContract = `POST /contract
 
@@ -126,6 +186,9 @@ const webhookRequest = `POST /webhook/subscription
 }`
 
 const endpointRows = [
+  ['GET', '/location', 'Resolve price area, grid area and grid owner'],
+  ['GET', '/price/current', 'Get current verified market electricity price'],
+  ['POST', '/price', 'Calculate customer price with the Gridex pricing engine'],
   ['POST', '/contract', 'Create contract, customer and site together'],
   ['POST', '/customer', 'Create customer'],
   ['POST', '/customer/{customer_id}/site', 'Create site'],
@@ -160,6 +223,7 @@ export default function PartnerApiDocumentationPage() {
         <aside className="hidden lg:block">
           <nav className="sticky top-8 space-y-2 text-sm text-slate-600">
             <a className="block hover:text-slate-950" href="#start">Start</a>
+            <a className="block hover:text-slate-950" href="#location-pricing">Location & pricing</a>
             <a className="block hover:text-slate-950" href="#registration">Registration</a>
             <a className="block hover:text-slate-950" href="#data">Data retrieval</a>
             <a className="block hover:text-slate-950" href="#webhooks">Webhooks</a>
@@ -171,7 +235,7 @@ export default function PartnerApiDocumentationPage() {
           <header className="space-y-4">
             <div className="text-sm font-medium text-slate-500">Gridex Developers · v{PARTNER_API_VERSION}</div>
             <h1 className="text-4xl font-semibold tracking-tight text-slate-950">Partner API Reference</h1>
-            <p className="max-w-3xl text-lg leading-8 text-slate-600">Registration, Data Retrieval & Webhooks.</p>
+            <p className="max-w-3xl text-lg leading-8 text-slate-600">Location, Pricing, Registration, Data Retrieval & Webhooks.</p>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <strong>Base URL:</strong> <code>{PARTNER_API_BASE_URL}</code>
               <br />
@@ -186,22 +250,55 @@ export default function PartnerApiDocumentationPage() {
               Do not put the key in a browser or mobile app.
             </p>
             <p className="leading-7 text-slate-700">
-              Gridex configures the company, permissions and published electricity offer behind the API key.
-              Your integration does not send company IDs, tenant IDs, product configuration or market-system settings.
-              If the company has one published API offer it is selected automatically; if several are available Gridex binds a default offer to the credential internally.
+              Send business information only. Gridex determines the company from the API key and resolves the electricity area,
+              grid owner, market-price source and published electricity offer server-side. Do not send company IDs, tenant IDs,
+              grid-owner IDs, price-area IDs, product IDs, offer references or other database identifiers.
             </p>
             <p className="leading-7 text-slate-700">
-              All POST requests require an <code>Idempotency-Key</code>. Reuse the same key only when retrying the same request.
+              If the company has one published API offer it is selected automatically; if several are available Gridex binds a default offer to the credential internally.
               Returned <code>entity_id</code> values are opaque public IDs; they are not database IDs.
+            </p>
+            <p className="leading-7 text-slate-700">
+              Registration POST requests require an <code>Idempotency-Key</code>. Reuse the same key only when retrying the same request.
             </p>
           </Section>
 
-          <Section id="registration" title="1. Registration">
+          <Section id="location-pricing" title="1. Location & Pricing">
             <p className="leading-7 text-slate-700">
-              Use <code>POST /contract</code> for the normal combined flow. Use the individual endpoints only when your backend creates the resources in separate steps.
+              Gridex uses one shared location resolver for these endpoints and for site/contract registration. A postal code can be enough
+              when it maps unambiguously to one electricity price area. If a postal code crosses conflicting areas, Gridex returns
+              <code>location_ambiguous</code> instead of guessing and asks for street address and city.
             </p>
 
-            <h3 className="text-lg font-semibold text-slate-950">1.1 Create Contract</h3>
+            <h3 className="text-lg font-semibold text-slate-950">1.1 Resolve Location</h3>
+            <CopyCodeBlock code={locationRequest} language="text" />
+            <CopyCodeBlock code={locationResponse} language="json" />
+            <p className="text-sm leading-6 text-slate-600">
+              A postcode-only result can be sufficient for pricing while the grid owner is still marked as suggested rather than verified.
+              Contract switching continues to use Gridex&apos;s stricter facility and grid-owner verification rules.
+            </p>
+
+            <h3 className="text-lg font-semibold text-slate-950">1.2 Current Market Price</h3>
+            <CopyCodeBlock code={currentPriceRequest} language="text" />
+            <p className="text-sm leading-6 text-slate-600">
+              This returns the current verified market interval from the same market-price source used by Gridex internally. It does not include supplier, grid or tax fees unless explicitly stated in the response.
+            </p>
+
+            <h3 className="text-lg font-semibold text-slate-950">1.3 Calculate Customer Price</h3>
+            <CopyCodeBlock code={quoteRequest} language="json" />
+            <CopyCodeBlock code={quoteResponse} language="json" />
+            <p className="text-sm leading-6 text-slate-600">
+              The quote is calculated by the same Gridex pricing engine used by Ops. The response exposes the calculated totals and price components; the partner does not select internal price plans or publication records.
+            </p>
+          </Section>
+
+          <Section id="registration" title="2. Registration">
+            <p className="leading-7 text-slate-700">
+              Use <code>POST /contract</code> for the normal combined flow. Use the individual endpoints only when your backend creates the resources in separate steps.
+              Site and contract creation automatically run the same location resolver used by <code>/location</code> and pricing, so Gridex can persist resolved electricity-area information without asking the partner for internal IDs.
+            </p>
+
+            <h3 className="text-lg font-semibold text-slate-950">2.1 Create Contract</h3>
             <CopyCodeBlock code={createContract} language="json" />
             <h4 className="font-semibold text-slate-950">Response</h4>
             <CopyCodeBlock code={createContractResponse} language="json" />
@@ -211,15 +308,15 @@ export default function PartnerApiDocumentationPage() {
               Power-of-attorney file uploads are PDF-only and limited to 5 MB.
             </div>
 
-            <h3 className="text-lg font-semibold text-slate-950">1.2 Create Customer</h3>
+            <h3 className="text-lg font-semibold text-slate-950">2.2 Create Customer</h3>
             <CopyCodeBlock code={createCustomer} language="json" />
             <CopyCodeBlock code={`{\n  "entity_id": "customer_..."\n}`} language="json" />
 
-            <h3 className="text-lg font-semibold text-slate-950">1.3 Create Site</h3>
+            <h3 className="text-lg font-semibold text-slate-950">2.3 Create Site</h3>
             <CopyCodeBlock code={createSite} language="json" />
             <CopyCodeBlock code={`{\n  "entity_id": "site_..."\n}`} language="json" />
 
-            <h3 className="text-lg font-semibold text-slate-950">1.4 Upload Power of Attorney</h3>
+            <h3 className="text-lg font-semibold text-slate-950">2.4 Upload Power of Attorney</h3>
             <CopyCodeBlock code={createPoa} language="json" />
             <CopyCodeBlock code={`{\n  "entity_id": "poa_..."\n}`} language="json" />
 
@@ -228,33 +325,33 @@ export default function PartnerApiDocumentationPage() {
             </p>
           </Section>
 
-          <Section id="data" title="2. Data Retrieval">
-            <h3 className="text-lg font-semibold text-slate-950">2.1 Contract State</h3>
+          <Section id="data" title="3. Data Retrieval">
+            <h3 className="text-lg font-semibold text-slate-950">3.1 Contract State</h3>
             <CopyCodeBlock code={`GET /contract/{contract_id}/state\n\n{\n  "entity_id": "contract_...",\n  "state": "active"\n}`} language="json" />
 
-            <h3 className="text-lg font-semibold text-slate-950">2.2 Customer</h3>
+            <h3 className="text-lg font-semibold text-slate-950">3.2 Customer</h3>
             <CopyCodeBlock code="GET /customer/{customer_id}" language="text" />
 
-            <h3 className="text-lg font-semibold text-slate-950">2.3 Site</h3>
+            <h3 className="text-lg font-semibold text-slate-950">3.3 Site</h3>
             <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}" language="text" />
 
-            <h3 className="text-lg font-semibold text-slate-950">2.4 Power of Attorney</h3>
+            <h3 className="text-lg font-semibold text-slate-950">3.4 Power of Attorney</h3>
             <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}/powerofattorney" language="text" />
 
-            <h3 className="text-lg font-semibold text-slate-950">2.5 Invoices</h3>
+            <h3 className="text-lg font-semibold text-slate-950">3.5 Invoices</h3>
             <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}/invoice?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD" language="text" />
             <CopyCodeBlock code={invoiceResponse} language="json" />
             <p className="text-sm leading-6 text-slate-600">
               from_date and to_date are optional for invoice lists. Use <code>GET /invoice/{'{invoice_id}'}</code> for one invoice and <code>GET /invoice/{'{invoice_id}'}/pdf</code> for its PDF as base64.
             </p>
 
-            <h3 className="text-lg font-semibold text-slate-950">2.6 Consumption / Production Measurements</h3>
+            <h3 className="text-lg font-semibold text-slate-950">3.6 Consumption / Production Measurements</h3>
             <CopyCodeBlock code="GET /customer/{customer_id}/site/{site_id}/measurement?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD&resolution=1h" language="text" />
             <CopyCodeBlock code={measurementResponse} language="json" />
             <p className="text-sm leading-6 text-slate-600">Resolution is <code>15m</code> or <code>1h</code>.</p>
           </Section>
 
-          <Section id="webhooks" title="3. Webhook Subscriptions">
+          <Section id="webhooks" title="4. Webhook Subscriptions">
             <p className="leading-7 text-slate-700">
               A webhook is a change signal. Verify the Gridex HMAC-SHA256 signature and then call the relevant GET endpoint to retrieve current data.
             </p>
@@ -266,11 +363,11 @@ export default function PartnerApiDocumentationPage() {
               ))}
             </div>
             <p className="text-sm leading-6 text-slate-600">
-              target_url must be a public HTTPS endpoint. Private, loopback and link-local destinations are blocked. The signing secret is stored in Vault and is never returned by the API.
+              target_url must be a public HTTPS endpoint. Private, loopback and link-local destinations are blocked. The signing secret is stored securely and is never returned by the API.
             </p>
           </Section>
 
-          <Section id="summary" title="4. Endpoint Summary">
+          <Section id="summary" title="5. Endpoint Summary">
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead className="bg-slate-50 text-slate-700">
