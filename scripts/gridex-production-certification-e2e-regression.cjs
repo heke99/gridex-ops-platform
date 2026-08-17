@@ -24,6 +24,7 @@ const workflow = read('.github/workflows/production-certification-e2e.yml')
 const config = read('playwright.production-certification.config.mjs')
 const preflight = read('e2e/production/preflight.spec.mjs')
 const tenantBootstrap = read('e2e/production/tenant-bootstrap.spec.mjs')
+const liveCustomerPreflight = read('e2e/production/live-customer-preflight.spec.mjs')
 const evidence = read('e2e/production/helpers/evidence.mjs')
 
 requireText(workflow, 'workflow_dispatch:', 'production workflow must be manual-only')
@@ -32,6 +33,7 @@ rejectText(workflow, 'push:', 'production workflow must never run on pushes')
 rejectText(workflow, 'schedule:', 'production workflow must never run on a schedule')
 requireText(workflow, 'confirm_production', 'production workflow confirmation gate')
 requireText(workflow, 'CREATE_SYNTHETIC_TENANT', 'synthetic tenant mutation confirmation gate')
+requireText(workflow, 'AUTHORIZED_LIVE_CUSTOMER', 'live customer authorization gate')
 requireText(workflow, 'https://app.gridex.se', 'production OPS target pin')
 requireText(workflow, 'https://gridex.se', 'Gridex tenant website target pin')
 requireText(workflow, 'environment: production-e2e', 'production GitHub Environment boundary')
@@ -56,20 +58,44 @@ requireText(tenantBootstrap, "waiting_for: 'tenant_admin_invitation_email_verifi
 requireText(tenantBootstrap, 'tenant_admin_email_fingerprint', 'tenant admin PII-safe fingerprint evidence')
 rejectText(tenantBootstrap, 'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER', 'tenant bootstrap must not load customer PII')
 
+requireText(liveCustomerPreflight, "mode: 'live-customer-preflight'", 'live customer quote preflight evidence')
+requireText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_ADDRESS', 'live quote needs real address secret')
+requireText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_POSTAL_CODE', 'live quote needs real postal-code secret')
+requireText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_CITY', 'live quote needs real city secret')
+requireText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_ANNUAL_KWH', 'live quote needs real annual consumption secret')
+requireText(liveCustomerPreflight, 'contract_submission_attempted: false', 'live quote must stop before contract submission')
+requireText(liveCustomerPreflight, 'customer_account_created: false', 'live quote must stop before customer account creation')
+requireText(liveCustomerPreflight, 'market_outbound_attempted: false', 'live quote must stop before market outbound')
+requireText(liveCustomerPreflight, 'address_fingerprint', 'live quote evidence must fingerprint address')
+rejectText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER', 'quote preflight must not load person number')
+rejectText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_EMAIL', 'quote preflight must not load customer email')
+rejectText(liveCustomerPreflight, 'GRIDEX_E2E_CUSTOMER_PHONE', 'quote preflight must not load customer phone')
+
 requireText(evidence, "createHash('sha256')", 'evidence fingerprint implementation')
 requireText(evidence, "mode: 0o600", 'local evidence file permissions')
 
-const liveCustomerSecrets = [
+// Only the minimum location/consumption fixture needed for a quote may enter the
+// current workflow. Identity, contact, legal and facility secrets remain blocked
+// until the separately gated real-contract phase is implemented.
+const forbiddenLiveContractSecrets = [
   'GRIDEX_E2E_CUSTOMER_NAME',
   'GRIDEX_E2E_CUSTOMER_EMAIL',
   'GRIDEX_E2E_CUSTOMER_PHONE',
   'GRIDEX_E2E_CUSTOMER_PERSON_NUMBER',
+  'GRIDEX_E2E_CUSTOMER_FACILITY_ID',
+  'GRIDEX_E2E_CUSTOMER_PORTAL_PASSWORD',
+]
+for (const secret of forbiddenLiveContractSecrets) {
+  rejectText(workflow, secret, 'real-contract/customer identity secrets must stay outside quote preflight workflow')
+}
+
+for (const allowedSecret of [
   'GRIDEX_E2E_CUSTOMER_ADDRESS',
   'GRIDEX_E2E_CUSTOMER_POSTAL_CODE',
-  'GRIDEX_E2E_CUSTOMER_FACILITY_ID',
-]
-for (const secret of liveCustomerSecrets) {
-  rejectText(workflow, secret, 'live-customer PII must not be exposed before live-customer mode exists')
+  'GRIDEX_E2E_CUSTOMER_CITY',
+  'GRIDEX_E2E_CUSTOMER_ANNUAL_KWH',
+]) {
+  requireText(workflow, allowedSecret, 'authorized quote preflight secret wiring')
 }
 
 console.log('Gridex production certification E2E safety regression passed.')
