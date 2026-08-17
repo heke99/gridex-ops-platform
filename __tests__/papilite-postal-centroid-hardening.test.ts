@@ -18,20 +18,25 @@ describe('Papilite postal centroid hardening', () => {
   })
 
   it('keeps postcode coordinates separate from exact address cache', () => {
-    expect(resolver).toContain("postal_centroid|")
+    expect(resolver).toContain('postal_centroid|')
     expect(resolver).toContain("provider: 'papilite_postal_centroid'")
     expect(resolver).toContain("coordinate_scope: 'postal_centroid'")
     expect(resolver).toContain("raw.coordinate_scope === 'postal_centroid'")
+    expect(resolver).toContain("clean(data.provider) === 'papilite_postal_centroid'")
   })
 
   it('never promotes Papilite centroid to Ediel-capable grid-owner verification', () => {
     expect(resolver).toContain("resolutionStatus: 'postal_suggested'")
     expect(resolver).toContain('automationAllowed: false')
-    expect(resolver).toContain('papilite_postal_centroid_not_facility_verification')
+    expect(resolver).toContain('postal_centroid_not_facility_location')
+    expect(resolver).toContain("'price_area_only'")
   })
 
-  it('materializes safe price area to a tenant site without materializing suggested grid owner', () => {
-    expect(resolver).toContain('const resolvedPriceAreaCode = resolved.priceAreaAssurance.status === \'verified\' || resolved.priceAreaAssurance.status === \'estimated\'')
+  it('materializes only safe price area while leaving suggested grid context unbound', () => {
+    expect(resolver).toContain('function priceAreaCanMaterialize')
+    expect(resolver).toContain("resolved.priceAreaAssurance.status === 'verified'")
+    expect(resolver).toContain("resolved.priceAreaAssurance.status === 'estimated'")
+    expect(resolver).toContain('resolved.priceAreaAssurance.confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE')
     expect(resolver).toContain("const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null")
     expect(resolver).toContain("const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null")
   })
