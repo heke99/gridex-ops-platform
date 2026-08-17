@@ -46,12 +46,23 @@ assert.ok(
   migration.includes("status in ('active','signed','current')"),
   "tenant close must detect active customer contracts",
 );
+
+// Integration authentication is now one atomic database policy call rather
+// than a separate companies read followed by client auth. Verify that the API
+// boundary delegates tenant lifecycle to that canonical RPC and fail-closes
+// its returned tenant status through the central mapper.
 assert.ok(
-  apiAuth.includes(".from('companies')") &&
+  apiAuth.includes("authenticate_integration_request_v1") &&
+    apiAuth.includes("tenant_status") &&
     apiAuth.includes("tenantApiAccessError") &&
     apiAuth.includes("tenant_paused") &&
-    apiAuth.includes("tenant_closed"),
-  "integration auth must centrally verify tenant lifecycle",
+    apiAuth.includes("tenant_closed") &&
+    apiAuth.includes("tenant_status_unavailable"),
+  "integration auth must atomically and centrally verify tenant lifecycle",
+);
+assert.ok(
+  !apiAuth.includes(".from('companies')"),
+  "integration auth must not reintroduce a non-atomic competing tenant-status read",
 );
 assert.ok(
   contractActions.includes('"gridex_close_contract_product"') &&
