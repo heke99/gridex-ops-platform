@@ -10,7 +10,12 @@ const assert = (condition, message) => { if (!condition) failures.push(message) 
 const sha256 = (file) => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')
 
 const runtime = read('lib/platform/schemaReadiness.ts')
-assert(runtime.includes("gridex_runtime_schema_capabilities_v3"), 'runtime must read the v3 capability view')
+// The database still owns the versioned v3 capability implementation, while
+// application runtime reads the stable compatibility view. Keeping those two
+// assertions separate lets the implementation evolve without silently moving
+// the production traffic gate back to legacy platform_schema_state.
+assert(runtime.includes("PLATFORM_RUNTIME_CAPABILITY_VIEW = 'platform_runtime_readiness'"), 'runtime must read the stable platform_runtime_readiness compatibility view')
+assert(runtime.includes('PLATFORM_RUNTIME_CAPABILITY_VIEW'), 'runtime must route capability reads through the canonical view constant')
 assert(!runtime.includes(".from('platform_schema_state')"), 'runtime must not gate traffic from legacy platform_schema_state')
 assert(runtime.includes('PLATFORM_RUNTIME_FINGERPRINT_POLICY'), 'runtime must describe the fingerprint evidence policy')
 assert(runtime.includes('evaluatePlatformSchemaReadiness'), 'runtime must evaluate the capability result through one canonical helper')
