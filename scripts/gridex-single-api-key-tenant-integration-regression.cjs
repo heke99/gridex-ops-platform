@@ -63,8 +63,16 @@ excludes('lib/integrations/tenantContext.ts', 'website_checkout_ready: missingWe
 includes('lib/integrations/tenantContext.ts', 'loadTenantWebsiteFlowReadiness')
 includes('app/admin/platform/api-clients/actions.ts', 'reconcileAndPersistTenantWebsiteClientReadiness')
 excludes('app/admin/platform/api-clients/actions.ts', 'launch_ready: missingRecommendedScopes.length === 0')
-includes('app/developers/customer-portal-api/page.tsx', '"tenant_id_environment_required": false')
-includes('app/developers/customer-portal-api/page.tsx', '"company_id_environment_required": false')
+
+// The public developer URL intentionally serves the canonical Partner API now.
+// Legacy website/customer-portal OpenAPI remains available for compatibility,
+// but the public guide must not resurrect tenant/company configuration fields.
+includes('app/developers/customer-portal-api/page.tsx', "import PartnerApiDocumentationPage from '../partner-api/page'")
+includes('app/developers/customer-portal-api/page.tsx', '<PartnerApiDocumentationPage />')
+includes('lib/partner-api/openApi.ts', "PARTNER_API_BASE_URL = 'https://app.gridex.se/api/partner/v1'")
+includes('lib/partner-api/openApi.ts', 'Gridex configures the company, API credential, permissions and default published offer outside the API.')
+excludes('lib/partner-api/openApi.ts', 'tenant_id_environment_required')
+excludes('lib/partner-api/openApi.ts', 'company_id_environment_required')
 includes('lib/integrations/openApiResponse.ts', "'Access-Control-Allow-Origin': '*'")
 includes('lib/integrations/websiteApiContract.ts', 'quote_reference: QuoteReference | string')
 includes('lib/integrations/websiteApiContract.ts', 'resolution_id: string')
@@ -106,24 +114,13 @@ for (const rel of [
   includes(rel, 'https://app.gridex.se/api/v1')
   includes(rel, 'https://app.gridex.se/api/v1/openapi/website-integration-v1.json')
 }
-includes('app/developers/customer-portal-api/page.tsx', 'GRIDEX_API_KEY')
-includes('app/developers/customer-portal-api/page.tsx', 'WEBSITE_INTEGRATION_BASE_URL')
-includes('app/developers/customer-portal-api/page.tsx', 'WEBSITE_INTEGRATION_OPENAPI_URL')
 
-const developerPage = read('app/developers/customer-portal-api/page.tsx')
-const appExampleStart = developerPage.indexOf('const applicationExample = `')
-const appExampleEnd = developerPage.indexOf('`\n\n// Identity aliases', appExampleStart)
-assert(appExampleStart >= 0 && appExampleEnd > appExampleStart, 'Developer application example not found')
-const appExample = developerPage.slice(appExampleStart, appExampleEnd)
-for (const field of ['"offer_reference":', '"quote_reference":', '"resolution_id":']) {
-  assert(appExample.includes(field), `Developer application example missing top-level ${field}`)
-}
-const contractStart = appExample.indexOf('"contract": {')
-const contractEnd = appExample.indexOf('},', contractStart)
-const contractExample = appExample.slice(contractStart, contractEnd)
-for (const field of ['offer_reference', 'quote_reference', 'resolution_id']) {
-  assert(!contractExample.includes(field), `Developer contract example must not contain ${field}`)
-}
+// Partner API documentation owns the current public onboarding contract. It
+// must remain backend-to-backend and keep tenant selection behind the API key.
+includes('app/developers/partner-api/page.tsx', 'PARTNER_API_BASE_URL')
+includes('app/developers/partner-api/page.tsx', 'PARTNER_API_VERSION')
+excludes('app/developers/partner-api/page.tsx', 'GRIDEX_TENANT_ID')
+excludes('app/developers/partner-api/page.tsx', 'GRIDEX_EXPECTED_COMPANY_ID')
 
 for (const scope of [
   'integration_context.read',
