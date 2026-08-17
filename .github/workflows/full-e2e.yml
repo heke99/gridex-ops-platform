@@ -46,8 +46,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify executable PROJECT_E2E P0 contract
+        run: node scripts/gridex-p0-executor.cjs
       - name: Run tenant-wide smoke certificate
         run: node scripts/gridex-full-production-e2e.cjs --mode=smoke
+      - name: Build sanitized AI verification handoff
+        if: always()
+        run: node scripts/gridex-ai-verification-handoff.cjs
       - name: Upload E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,6 +61,64 @@ jobs:
           path: e2e-artifacts/
           if-no-files-found: error
           retention-days: 14
+
+  coverage:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run Vitest V8 coverage
+        run: npm run test:coverage
+      - name: Enforce measured coverage ratchet when baseline exists
+        shell: bash
+        run: |
+          if [[ -f config/coverage-baseline.json ]]; then
+            node scripts/check-coverage-ratchet.cjs
+          else
+            echo '::notice::Coverage baseline not committed yet; this run is the baseline measurement pass.'
+          fi
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-coverage-${{ github.run_id }}
+          path: |
+            coverage/coverage-summary.json
+            coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 30
+
+  pr-certificate:
+    if: always() && github.event_name == 'pull_request'
+    needs: [smoke, coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require deterministic PR gates to execute and pass
+        shell: bash
+        env:
+          SMOKE_RESULT: ${{ needs.smoke.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p e2e-artifacts
+          verdict=RED
+          if [[ "$SMOKE_RESULT" == success && "$COVERAGE_RESULT" == success ]]; then verdict=GREEN; fi
+          printf '{"schema_version":1,"smoke":"%s","coverage":"%s","verdict":"%s"}\n' "$SMOKE_RESULT" "$COVERAGE_RESULT" "$verdict" > e2e-artifacts/pr-release-certificate.json
+          [[ "$SMOKE_RESULT" == success ]] || { echo "Smoke did not pass: $SMOKE_RESULT" >&2; exit 1; }
+          [[ "$COVERAGE_RESULT" == success ]] || { echo "Coverage did not pass: $COVERAGE_RESULT" >&2; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-pr-release-certificate-${{ github.run_id }}
+          path: e2e-artifacts/pr-release-certificate.json
+          if-no-files-found: error
+          retention-days: 30
 
   full:
     if: >-
@@ -73,8 +136,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify executable PROJECT_E2E P0 contract
+        run: node scripts/gridex-p0-executor.cjs
       - name: Run full production release certificate
         run: node scripts/gridex-full-production-e2e.cjs --mode=full
+      - name: Build sanitized AI verification handoff
+        if: always()
+        run: node scripts/gridex-ai-verification-handoff.cjs
       - name: Upload full E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -107,32 +175,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - id: staging-secrets
-        name: Verify isolated staging configuration
+      - name: Require isolated staging configuration
         shell: bash
         run: |
-          missing=0
+          set -euo pipefail
           for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID; do
-            if [[ -z "${!name}" ]]; then
-              echo "Missing required secret: $name"
-              missing=1
-            fi
+            [[ -n "${!name:-}" ]] || { echo "Missing required staging secret: $name" >&2; exit 1; }
           done
-          if [[ "$missing" -eq 1 ]]; then
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              echo "Manual runtime E2E requires all staging secrets." >&2
-              exit 1
-            fi
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Nightly runtime tenant E2E skipped because isolated staging secrets are not configured."
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          fi
       - name: Run fresh-tenant runtime certificate
-        if: steps.staging-secrets.outputs.enabled == 'true'
         run: node scripts/gridex-full-production-e2e.cjs --mode=runtime
+      - name: Build sanitized AI verification handoff
+        if: always()
+        run: node scripts/gridex-ai-verification-handoff.cjs
       - name: Upload runtime E2E evidence
-        if: always() && steps.staging-secrets.outputs.enabled == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gridex-e2e-runtime-${{ github.run_id }}
@@ -168,35 +224,51 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - id: real-fixture
-        name: Verify protected real-customer fixture
+      - name: Require protected real-customer staging fixture
         shell: bash
         run: |
-          missing=0
+          set -euo pipefail
           for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_REAL_COMPANY_ID GRIDEX_E2E_REAL_CUSTOMER_ID; do
-            if [[ -z "${!name}" ]]; then
-              echo "Missing required secret: $name"
-              missing=1
-            fi
+            [[ -n "${!name:-}" ]] || { echo "Missing required protected staging fixture: $name" >&2; exit 1; }
           done
-          if [[ "$missing" -eq 1 ]]; then
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              echo "Manual real-customer E2E requires the protected staging fixture secrets." >&2
-              exit 1
-            fi
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Nightly real-customer E2E skipped because protected fixture secrets are not configured."
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          fi
       - name: Run persistent real-customer certificate
-        if: steps.real-fixture.outputs.enabled == 'true'
         run: node scripts/gridex-full-production-e2e.cjs --mode=real
+      - name: Build sanitized AI verification handoff
+        if: always()
+        run: node scripts/gridex-ai-verification-handoff.cjs
       - name: Upload real-customer E2E evidence
-        if: always() && steps.real-fixture.outputs.enabled == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gridex-e2e-real-customer-${{ github.run_id }}
           path: e2e-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  nightly-release-certificate:
+    if: always() && github.event_name == 'schedule'
+    needs: [full, runtime-staging, real-customer-staging]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all nightly release gates to execute and pass
+        shell: bash
+        env:
+          FULL_RESULT: ${{ needs.full.result }}
+          RUNTIME_RESULT: ${{ needs.runtime-staging.result }}
+          REAL_RESULT: ${{ needs.real-customer-staging.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p e2e-artifacts
+          verdict=RED
+          if [[ "$FULL_RESULT" == success && "$RUNTIME_RESULT" == success && "$REAL_RESULT" == success ]]; then verdict=GREEN; fi
+          printf '{"schema_version":1,"full":"%s","runtime_staging":"%s","protected_customer_staging":"%s","verdict":"%s"}\n' "$FULL_RESULT" "$RUNTIME_RESULT" "$REAL_RESULT" "$verdict" > e2e-artifacts/nightly-release-certificate.json
+          [[ "$FULL_RESULT" == success ]] || { echo "full did not pass: $FULL_RESULT" >&2; exit 1; }
+          [[ "$RUNTIME_RESULT" == success ]] || { echo "runtime-staging did not pass: $RUNTIME_RESULT" >&2; exit 1; }
+          [[ "$REAL_RESULT" == success ]] || { echo "real-customer-staging did not pass: $REAL_RESULT" >&2; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-nightly-release-certificate-${{ github.run_id }}
+          path: e2e-artifacts/nightly-release-certificate.json
           if-no-files-found: error
           retention-days: 30
