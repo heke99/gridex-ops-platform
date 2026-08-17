@@ -29,6 +29,11 @@ function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
 }
 
+function checksumDiagnostics(value) {
+  const text = String(value ?? '')
+  return `len=${Buffer.byteLength(text, 'utf8')},hex=${Buffer.from(text, 'utf8').toString('hex')}`
+}
+
 const byVersion = new Map()
 for (const name of actualNames) {
   const source = fs.readFileSync(path.join(directory, name), 'utf8')
@@ -66,7 +71,11 @@ for (const name of actualNames) {
     failures.push(`Migration is missing from checksum manifest: ${name} (sha256=${actual})`)
     continue
   }
-  if (actual !== expected) failures.push(`Migration checksum changed: ${name} (expected=${expected}, actual=${actual})`)
+  if (actual !== expected) {
+    failures.push(
+      `Migration checksum changed: ${name} (expected=${expected}, actual=${actual}; expected_${checksumDiagnostics(expected)}; actual_${checksumDiagnostics(actual)})`,
+    )
+  }
 }
 
 for (const name of Object.keys(expectedFiles)) {
