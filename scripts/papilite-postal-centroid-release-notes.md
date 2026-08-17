@@ -1,0 +1,1 @@
+Papilite postcode lookup is now treated as postcode-centroid enrichment only. It may estimate price area but cannot verify a grid owner, grid area, facility, or Ediel automation route. Verified facility/manual site data continues to teach the global tenant-neutral postcode mapping. The canonical Gridex pricing and billing engines remain unchanged.
