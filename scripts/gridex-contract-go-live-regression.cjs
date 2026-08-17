@@ -226,16 +226,23 @@ includesAll(page, [
   "Arkivering är terminal och irreversibel",
 ], "explicit lifecycle, preview and version comparison UX");
 includesAll(channelControl, [
-  "Styr försäljningskanaler",
-  "Aktivera intern försäljning",
-  "Pausa intern försäljning",
+  "Styr hemsidepublicering",
   "Publicera på hemsidan",
   "Avpublicera från hemsida",
-  "Publicera via API",
-  "Avpublicera från API",
   "publishContractChannelAction",
   "unpublishContractChannelAction",
-], "canonical per-channel lifecycle UX");
+  "API-åtkomst och API-klientbehörigheter hanteras separat",
+], "canonical website publication UX");
+check(!channelControl.includes('value="internal"'), "website publication control does not duplicate internal lifecycle");
+check(!channelControl.includes('value="api"'), "API access is not exposed as a manual contract publication toggle");
+includesAll(page, [
+  "updateTenantContractChannelAction",
+  'channel: "internal"',
+  'channel: "website"',
+  '<option value="active">Aktiv</option>',
+  '<option value="paused">Pausad</option>',
+  '<option value="ended">Avslutad</option>',
+], "tenant assignment channel lifecycle UX");
 includesAll(deleteControl, [
   "Radera permanent",
   "Arkivera och dölj",

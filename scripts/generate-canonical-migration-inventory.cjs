@@ -7,22 +7,44 @@ const root = process.cwd()
 const migrationsDirectory = path.join(root, 'supabase', 'migrations')
 const outputDirectory = path.join(root, 'artifacts')
 const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
+const additionsManifestPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
 const verifiedTailPath = path.join(root, 'scripts', 'migration-history-verified-tail.json')
 const historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))
+const additionsManifest = fs.existsSync(additionsManifestPath)
+  ? JSON.parse(fs.readFileSync(additionsManifestPath, 'utf8'))
+  : { files: {} }
 const verifiedTail = fs.existsSync(verifiedTailPath)
   ? JSON.parse(fs.readFileSync(verifiedTailPath, 'utf8'))
   : { files: {} }
 
 const baselineChecksums = historyManifest.files ?? {}
+const additionsChecksums = additionsManifest.files ?? {}
 const tailChecksums = verifiedTail.files ?? {}
+
+for (const [filename, checksum] of Object.entries(additionsChecksums)) {
+  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {
+    throw new Error(
+      `Migration additions conflict with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} additions=${checksum}`,
+    )
+  }
+}
 for (const [filename, checksum] of Object.entries(tailChecksums)) {
   if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {
     throw new Error(
       `Verified migration tail conflicts with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} tail=${checksum}`,
     )
   }
+  if (additionsChecksums[filename] && additionsChecksums[filename] !== checksum) {
+    throw new Error(
+      `Verified migration tail conflicts with additions manifest for ${filename}: additions=${additionsChecksums[filename]} tail=${checksum}`,
+    )
+  }
 }
-const registeredChecksums = { ...baselineChecksums, ...tailChecksums }
+const registeredChecksums = {
+  ...baselineChecksums,
+  ...additionsChecksums,
+  ...tailChecksums,
+}
 
 function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex')
@@ -75,6 +97,9 @@ const result = {
   source: 'repository/supabase/migrations',
   checksum_sources: [
     path.relative(root, historyManifestPath),
+    ...(Object.keys(additionsChecksums).length > 0
+      ? [path.relative(root, additionsManifestPath)]
+      : []),
     ...(Object.keys(tailChecksums).length > 0 ? [path.relative(root, verifiedTailPath)] : []),
   ],
   verification_state: 'LOCAL_INVENTORY_ONLY',

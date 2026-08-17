@@ -179,24 +179,26 @@ includesAll(channelPublication, [
   "contract_channel_post_commit_verification_failed",
   "contract_channel_unpublish_verification_failed",
 ], "canonical channel service rejects false success and verifies committed state");
+includesAll(page, [
+  "updateTenantContractChannelAction",
+  'channel: "internal"',
+  'channel: "website"',
+  '<option value="active">Aktiv</option>',
+  '<option value="paused">Pausad</option>',
+  '<option value="ended">Avslutad</option>',
+  "website_publication_allowed",
+  "removable_system_dependencies",
+], "admin UI supports canonical tenant assignment channel lifecycle");
 includesAll(channelControl, [
   "publishContractChannelAction",
   "unpublishContractChannelAction",
-  'channel: "internal"',
-  'channel: "website"',
-  'channel: "api"',
-  "Aktivera intern försäljning",
-  "Pausa intern försäljning",
+  "Styr hemsidepublicering",
   "Publicera på hemsidan",
   "Avpublicera från hemsida",
-  "Publicera via API",
-  "Avpublicera från API",
-], "canonical admin channel control supports each sales channel independently");
-includesAll(page, [
-  "website_publication_allowed",
-  "removable_system_dependencies",
-  "ContractChannelControl",
-], "admin UI retains tenant assignment, dependency evidence and reachable per-channel lifecycle controls");
+  "API-åtkomst och API-klientbehörigheter hanteras separat",
+], "dedicated publication control exposes website publication only");
+check(!channelControl.includes('value="internal"'), "dedicated website control does not duplicate internal lifecycle");
+check(!channelControl.includes('value="api"'), "dedicated website control does not expose API as a manual publication channel");
 includesAll(tenantControls, [
   "listTenantContractProducts",
   "previewContractDelete",
