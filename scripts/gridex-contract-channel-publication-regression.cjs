@@ -22,6 +22,9 @@ const migration = read(
 );
 const adminActions = read("app/admin/contracts/actions.ts");
 const adminPage = read("app/admin/contracts/page.tsx");
+const channelControl = read(
+  "components/admin/contracts/ContractChannelControl.tsx",
+);
 const twoStepMigration = read("supabase/migrations/20260804093500_contract_publication_two_step_invoice_fee_repair.sql");
 const rpcSecurityMigration = read("supabase/migrations/20260815210353_restrict_recent_security_definer_rpcs.sql");
 const successorOrderMigration = read("supabase/migrations/20260815220000_contract_publication_successor_transition_order.sql");
@@ -162,8 +165,11 @@ check(
 );
 check(
   /Kontrollera readiness och gör internt/.test(adminPage) &&
-    /Publicera på hemsidan/.test(adminPage) &&
-    !/Publicera i API/.test(adminPage) &&
+    /Publicera på hemsidan/.test(channelControl) &&
+    /name="channel" value="website"/.test(channelControl) &&
+    !/name="channel" value="internal"/.test(channelControl) &&
+    !/name="channel" value="api"/.test(channelControl) &&
+    !/Publicera (?:i|via) API/.test(channelControl) &&
     !/Ge hemsidebehörighet/.test(adminPage) &&
     /Publicera på hemsidan/.test(companyControls),
   "admin publication UX exposes only internal readiness and website publication",

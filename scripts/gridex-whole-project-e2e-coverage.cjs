@@ -127,12 +127,42 @@ for (const file of [...new Set(nodeFilesReferenced)]) {
   if (!fs.existsSync(path.join(root, file))) issues.push(`Stale E2E reference: node step file does not exist: ${file}`)
 }
 
+const openSourceToolingScript = 'scripts/gridex-open-source-e2e-tooling-regression.cjs'
+const requiredOpenSourceFiles = [
+  openSourceToolingScript,
+  '.github/workflows/browser-quality-e2e.yml',
+  'playwright.config.mjs',
+  'e2e/browser/public.spec.mjs',
+  'e2e/browser/authenticated.spec.mjs',
+  'e2e/k6/platform-smoke.js',
+  'scripts/install-browser-e2e-tooling.sh',
+]
+for (const file of requiredOpenSourceFiles) {
+  if (!fs.existsSync(path.join(root, file))) {
+    issues.push(`Missing required open-source E2E layer file: ${file}`)
+  }
+}
+if (fs.existsSync(path.join(root, openSourceToolingScript))) {
+  const toolingCheck = spawnSync(process.execPath, [openSourceToolingScript], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 4 * 1024 * 1024,
+  })
+  if (toolingCheck.status !== 0) {
+    const detail = String(toolingCheck.stderr || toolingCheck.stdout || '').trim()
+    issues.push(`Open-source E2E tooling contract failed${detail ? `: ${detail}` : '.'}`)
+  }
+}
+
 const changed = gitChangedFiles()
 const criticalChanges = changed.files.filter((file) =>
   file.startsWith('app/api/') ||
   file.startsWith('supabase/migrations/') ||
   file.startsWith('lib/') ||
   file.startsWith('scripts/gridex-') ||
+  file.startsWith('e2e/') ||
+  file.startsWith('.github/workflows/') ||
+  file === 'playwright.config.mjs' ||
   file === 'package.json'
 )
 
@@ -145,7 +175,7 @@ if (newNamespaceChanges.length > 0) {
 }
 
 const report = {
-  schema_version: 1,
+  schema_version: 2,
   generated_at: new Date().toISOString(),
   status: issues.length === 0 ? 'passed' : 'failed',
   inventory: {
@@ -153,6 +183,7 @@ const report = {
     api_routes: apiRoutes.length,
     api_namespaces: apiNamespaces,
     migrations: migrationFiles.length,
+    open_source_e2e_files: requiredOpenSourceFiles.length,
   },
   classification: {
     allowed_api_namespaces: [...allowedApiNamespaces].sort(),
@@ -161,6 +192,7 @@ const report = {
   references: {
     npm_scripts_checked: [...new Set(npmScriptsReferenced)].length,
     node_files_checked: [...new Set(nodeFilesReferenced)].length,
+    open_source_e2e_contract: openSourceToolingScript,
   },
   diff: {
     available: changed.available,
@@ -181,5 +213,5 @@ if (issues.length > 0) {
   process.exit(1)
 }
 
-console.log(`Gridex whole-project E2E coverage passed: ${apiRoutes.length} API routes across ${apiNamespaces.length} classified namespaces, ${migrationFiles.length} migrations, ${report.references.npm_scripts_checked} npm E2E scripts and ${report.references.node_files_checked} node E2E files are wired.`)
+console.log(`Gridex whole-project E2E coverage passed: ${apiRoutes.length} API routes across ${apiNamespaces.length} classified namespaces, ${migrationFiles.length} migrations, ${report.references.npm_scripts_checked} npm E2E scripts, ${report.references.node_files_checked} node E2E files and the pinned open-source browser/performance/security layer are wired.`)
 if (!changed.available) console.log('Git diff inventory was unavailable in this checkout; static whole-repository coverage still passed.')
