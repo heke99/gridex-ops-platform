@@ -1,0 +1,84 @@
+name: Post 161 release gate sync
+
+on:
+  push:
+    branches:
+      - fix/post-161-main-release-gates-20260817
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.repository == 'heke99/gridex-ops-platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Patch release-gate contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement target, found {count}")
+              p.write_text(text.replace(old, new, 1))
+
+          inventory = 'scripts/generate-canonical-migration-inventory.cjs'
+          replace_once(
+              inventory,
+              "const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')\nconst verifiedTailPath = path.join(root, 'scripts', 'migration-history-verified-tail.json')\nconst historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))\nconst verifiedTail = fs.existsSync(verifiedTailPath)\n  ? JSON.parse(fs.readFileSync(verifiedTailPath, 'utf8'))\n  : { files: {} }\n\nconst baselineChecksums = historyManifest.files ?? {}\nconst tailChecksums = verifiedTail.files ?? {}\nfor (const [filename, checksum] of Object.entries(tailChecksums)) {\n  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {\n    throw new Error(\n      `Verified migration tail conflicts with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} tail=${checksum}`,\n    )\n  }\n}\nconst registeredChecksums = { ...baselineChecksums, ...tailChecksums }",
+              "const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')\nconst additionsManifestPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')\nconst verifiedTailPath = path.join(root, 'scripts', 'migration-history-verified-tail.json')\nconst historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))\nconst additionsManifest = fs.existsSync(additionsManifestPath)\n  ? JSON.parse(fs.readFileSync(additionsManifestPath, 'utf8'))\n  : { files: {} }\nconst verifiedTail = fs.existsSync(verifiedTailPath)\n  ? JSON.parse(fs.readFileSync(verifiedTailPath, 'utf8'))\n  : { files: {} }\n\nconst baselineChecksums = historyManifest.files ?? {}\nconst additionsChecksums = additionsManifest.files ?? {}\nconst tailChecksums = verifiedTail.files ?? {}\n\nfor (const [filename, checksum] of Object.entries(additionsChecksums)) {\n  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {\n    throw new Error(\n      `Migration additions conflict with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} additions=${checksum}`,\n    )\n  }\n}\nfor (const [filename, checksum] of Object.entries(tailChecksums)) {\n  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {\n    throw new Error(\n      `Verified migration tail conflicts with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} tail=${checksum}`,\n    )\n  }\n  if (additionsChecksums[filename] && additionsChecksums[filename] !== checksum) {\n    throw new Error(\n      `Verified migration tail conflicts with additions manifest for ${filename}: additions=${additionsChecksums[filename]} tail=${checksum}`,\n    )\n  }\n}\nconst registeredChecksums = {\n  ...baselineChecksums,\n  ...additionsChecksums,\n  ...tailChecksums,\n}"
+          )
+          replace_once(
+              inventory,
+              "  checksum_sources: [\n    path.relative(root, historyManifestPath),\n    ...(Object.keys(tailChecksums).length > 0 ? [path.relative(root, verifiedTailPath)] : []),\n  ],",
+              "  checksum_sources: [\n    path.relative(root, historyManifestPath),\n    ...(Object.keys(additionsChecksums).length > 0\n      ? [path.relative(root, additionsManifestPath)]\n      : []),\n    ...(Object.keys(tailChecksums).length > 0 ? [path.relative(root, verifiedTailPath)] : []),\n  ],"
+          )
+
+          lifecycle = 'scripts/gridex-contract-lifecycle-repair-regression.cjs'
+          replace_once(
+              lifecycle,
+              "includesAll(channelControl, [\n  \"publishContractChannelAction\",\n  \"unpublishContractChannelAction\",\n  'channel: \"internal\"',\n  'channel: \"website\"',\n  'channel: \"api\"',\n  \"Aktivera intern försäljning\",\n  \"Pausa intern försäljning\",\n  \"Publicera på hemsidan\",\n  \"Avpublicera från hemsida\",\n  \"Publicera via API\",\n  \"Avpublicera från API\",\n], \"canonical admin channel control supports each sales channel independently\");\nincludesAll(page, [\n  \"website_publication_allowed\",\n  \"removable_system_dependencies\",\n  \"ContractChannelControl\",\n], \"admin UI retains tenant assignment, dependency evidence and reachable per-channel lifecycle controls\");",
+              "includesAll(page, [\n  \"updateTenantContractChannelAction\",\n  'channel: \"internal\"',\n  'channel: \"website\"',\n  '<option value=\"active\">Aktiv</option>',\n  '<option value=\"paused\">Pausad</option>',\n  '<option value=\"ended\">Avslutad</option>',\n  \"website_publication_allowed\",\n  \"removable_system_dependencies\",\n], \"admin UI supports canonical tenant assignment channel lifecycle\");\nincludesAll(channelControl, [\n  \"publishContractChannelAction\",\n  \"unpublishContractChannelAction\",\n  \"Styr hemsidepublicering\",\n  \"Publicera på hemsidan\",\n  \"Avpublicera från hemsida\",\n  \"API-åtkomst och API-klientbehörigheter hanteras separat\",\n], \"dedicated publication control exposes website publication only\");\ncheck(!channelControl.includes('value=\"internal\"'), \"dedicated website control does not duplicate internal lifecycle\");\ncheck(!channelControl.includes('value=\"api\"'), \"dedicated website control does not expose API as a manual publication channel\");"
+          )
+
+          go_live = 'scripts/gridex-contract-go-live-regression.cjs'
+          replace_once(
+              go_live,
+              "includesAll(channelControl, [\n  \"Styr försäljningskanaler\",\n  \"Aktivera intern försäljning\",\n  \"Pausa intern försäljning\",\n  \"Publicera på hemsidan\",\n  \"Avpublicera från hemsida\",\n  \"Publicera via API\",\n  \"Avpublicera från API\",\n  \"publishContractChannelAction\",\n  \"unpublishContractChannelAction\",\n], \"canonical per-channel lifecycle UX\");",
+              "includesAll(channelControl, [\n  \"Styr hemsidepublicering\",\n  \"Publicera på hemsidan\",\n  \"Avpublicera från hemsida\",\n  \"publishContractChannelAction\",\n  \"unpublishContractChannelAction\",\n  \"API-åtkomst och API-klientbehörigheter hanteras separat\",\n], \"canonical website publication UX\");\ncheck(!channelControl.includes('value=\"internal\"'), \"website publication control does not duplicate internal lifecycle\");\ncheck(!channelControl.includes('value=\"api\"'), \"API access is not exposed as a manual contract publication toggle\");\nincludesAll(page, [\n  \"updateTenantContractChannelAction\",\n  'channel: \"internal\"',\n  'channel: \"website\"',\n  '<option value=\"active\">Aktiv</option>',\n  '<option value=\"paused\">Pausad</option>',\n  '<option value=\"ended\">Avslutad</option>',\n], \"tenant assignment channel lifecycle UX\");"
+          )
+          PY
+      - name: Verify targeted release gates
+        run: |
+          set -euo pipefail
+          node scripts/generate-canonical-migration-inventory.cjs
+          node scripts/check-production-migration-readiness.cjs
+          node scripts/gridex-contract-lifecycle-repair-regression.cjs
+          node scripts/gridex-contract-go-live-regression.cjs
+      - name: Commit remediation
+        run: |
+          set -euo pipefail
+          git config user.name "gridex-ci"
+          git config user.email "gridex-ci@users.noreply.github.com"
+          git add scripts/generate-canonical-migration-inventory.cjs scripts/gridex-contract-lifecycle-repair-regression.cjs scripts/gridex-contract-go-live-regression.cjs
+          if git diff --cached --quiet; then
+            echo "No remediation diff to commit."
+            exit 0
+          fi
+          git commit -m "fix(ci): restore production release gate parity"
+          git push origin HEAD:fix/post-161-main-release-gates-20260817
