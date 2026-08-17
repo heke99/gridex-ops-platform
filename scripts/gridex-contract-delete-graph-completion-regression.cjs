@@ -155,23 +155,30 @@ assert(
     governance.includes("safeCount('customer_contracts'"),
   "company overview must count offer products, published offers and customer contracts separately",
 );
+
+// Legacy website auth errors remain contractual in the immutable website API
+// and its integration guide. The public customer-portal developer URL now
+// delegates to Partner API and must not be forced to duplicate legacy docs.
 for (const code of [
   "missing_api_token",
   "invalid_api_token",
   "api_scope_missing",
 ]) {
   assert(
-    developerPage.includes(code) &&
-      websiteOpenApi.includes(code) &&
-      integrationGuide.includes(code),
-    `runtime auth code ${code} must be documented consistently`,
+    websiteOpenApi.includes(code) && integrationGuide.includes(code),
+    `legacy website auth code ${code} must remain documented consistently`,
   );
 }
 assert(
-  developerPage.includes("resolution.data.capabilities.pricing_ready") &&
-    developerPage.includes("resolution.data.capabilities.quote_ready") &&
+  developerPage.includes("PartnerApiDocumentationPage") &&
+    developerPage.includes("../partner-api/page"),
+  "legacy developer URL must delegate to canonical Partner API documentation",
+);
+assert(
+  integrationGuide.includes("pricing_ready") &&
+    integrationGuide.includes("quote_ready") &&
     integrationGuide.includes("postal_suggested"),
-  "resolver examples must gate price and quote calls on purpose-specific capabilities",
+  "legacy resolver integration guide must gate pricing and quote calls on purpose-specific capabilities",
 );
 assert(
   databaseLifecycleTest.includes(
