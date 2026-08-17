@@ -101,6 +101,7 @@ type ResolutionPurpose = 'pricing' | 'quote' | 'facility_lookup' | 'switch_creat
 
 const MIN_VERIFIED_PRICE_ASSURANCE_CONFIDENCE = 0.75
 const MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE = 0.8
+const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -205,7 +206,10 @@ function priceAreaEvidenceAccepted(assurance: PriceAreaAssurance): boolean {
     return assurance.confidence >= MIN_VERIFIED_PRICE_ASSURANCE_CONFIDENCE
   }
   if (assurance.status === 'estimated') {
-    return assurance.confidence >= MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE
+    const minimum = assurance.source === 'postal_centroid'
+      ? MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE
+      : MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE
+    return assurance.confidence >= minimum
   }
   return false
 }
