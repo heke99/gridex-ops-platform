@@ -5,6 +5,7 @@ const resolver = fs.readFileSync('lib/energy/resolver.ts', 'utf8')
 const binding = fs.readFileSync('lib/energy/resolutionBinding.ts', 'utf8')
 const business = fs.readFileSync('lib/partner-api/business.ts', 'utf8')
 const migration = fs.readFileSync('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql', 'utf8')
+const materializationGuard = fs.readFileSync('supabase/migrations/20260817124500_site_resolution_materialization_guard.sql', 'utf8')
 
 function assert(condition, message) {
   if (!condition) {
@@ -42,5 +43,14 @@ assert(migration.includes("not in ('facility_verified', 'manual_verified')"), 'g
 assert(!migration.includes('company_id'), 'global mapping contains no tenant ID')
 assert(!migration.includes('customer_id'), 'global mapping contains no customer ID')
 assert(!migration.includes('customer_site_id'), 'global mapping contains no site ID')
+assert(materializationGuard.includes("v_resolution.price_area_assurance_status = 'verified'"), 'database guard accepts verified price-area materialization')
+assert(materializationGuard.includes("v_resolution.price_area_assurance_status = 'estimated'"), 'database guard handles estimated price-area materialization explicitly')
+assert(materializationGuard.includes('v_resolution.price_area_assurance_confidence >= 0.8'), 'database guard keeps persistent estimated price-area floor at 0.8')
+assert(materializationGuard.includes("lower(coalesce(v_resolution.resolution_status, '')) = 'postal_suggested'"), 'database guard identifies postal suggestions')
+assert(materializationGuard.includes('new.grid_owner_id := null'), 'database guard clears unsafe/stale grid owner')
+assert(materializationGuard.includes('new.grid_area_code := null'), 'database guard clears unsafe/stale grid area')
+assert(materializationGuard.includes('else null\n  end;'), 'database guard clears unsafe/stale price area')
+assert(materializationGuard.includes("v_resolution.result_snapshot->'coordinates'"), 'database guard sources exact coordinates from bound canonical resolution only')
+assert(materializationGuard.includes("customer_site_id = new.id"), 'database guard prevents cross-site resolution binding')
 
 if (process.exitCode) process.exit(process.exitCode)
