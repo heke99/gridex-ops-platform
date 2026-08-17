@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTransport'
+import { handleBusinessPartnerApi } from '@/lib/partner-api/business'
 import { handleCanonicalPartnerApi } from '@/lib/partner-api/canonical'
 import { handlePartnerApi } from '@/lib/partner-api/core'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
@@ -79,6 +80,9 @@ async function dispatch(
   const { path } = await context.params
   const targetRejection = await preflightWebhookTarget(request, path)
   if (targetRejection) return targetRejection
+
+  const business = await handleBusinessPartnerApi(request, method, path)
+  if (business) return business
 
   const simple = await handleSimplePartnerApi(request, method, path)
   if (simple) return simple
