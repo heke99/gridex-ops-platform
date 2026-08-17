@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentContractVersion } = require('./lib/current-api-contract.cjs')
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -13,7 +13,7 @@ const publicationMigration = read(
   "supabase/migrations/20260730220000_canonical_price_option_publication_api_completion.sql",
 );
 const quote = read("lib/pricing/offerQuote.ts");
-const onboarding = read("lib/website/customerApplications.ts");
+const onboarding = read("lib/website/customerApplicationOnboarding.ts");
 const billing = read("lib/billing/underlayEngine.ts");
 const internalCustomer = read(
   "components/admin/customers/contracts/actions.ts",
