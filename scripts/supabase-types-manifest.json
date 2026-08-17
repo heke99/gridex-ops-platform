@@ -4,5 +4,5 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "24daddeab90583b25230c541b6bed9d36321d657f0b2af9b1d3e53a0e24320d7",
-  "latest_migration": "20260817083859_partner_postal_grid_materialization.sql"
+  "latest_migration": "20260817094125_papilite_verified_postal_learning.sql"
 }
