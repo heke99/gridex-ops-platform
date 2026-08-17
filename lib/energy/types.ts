@@ -8,6 +8,7 @@ export type PriceAreaAssuranceSource =
   | 'address_polygon'
   | 'postal_city_consensus'
   | 'postal_consensus'
+  | 'postal_centroid'
   | null
 
 export type PriceAreaAssurance = {
