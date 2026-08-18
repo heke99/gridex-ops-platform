@@ -4,6 +4,7 @@ import {
 } from './emailTemplates'
 
 const SUPPORTED_VARIABLES = new Set<string>(EMAIL_TEMPLATE_VARIABLES)
+const BALANCED_PLACEHOLDER = /\{\{([^{}]*)\}\}/g
 
 export type EmailTemplateVariables = Record<
   string,
@@ -25,8 +26,8 @@ function stripHtml(value: string) {
 
 export function extractEmailTemplateVariables(value: string): string[] {
   const variables = new Set<string>()
-  for (const match of value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)) {
-    variables.add(match[1])
+  for (const match of value.matchAll(BALANCED_PLACEHOLDER)) {
+    variables.add(match[1].trim())
   }
   return [...variables]
 }
@@ -41,8 +42,9 @@ export function validateEmailTemplateVariableContract(
   ])
   const unknown = [...referenced].filter((key) => !SUPPORTED_VARIABLES.has(key))
   if (unknown.length > 0) {
+    const labels = unknown.map((key) => key || '<empty>')
     throw new Error(
-      `email_template_unknown_variables:${template.template_key}:${unknown.join(',')}`,
+      `email_template_unknown_variables:${template.template_key}:${labels.join(',')}`,
     )
   }
   return [...referenced]
@@ -55,10 +57,13 @@ function renderValue(
   templateKey: string,
 ) {
   return value.replace(
-    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
-    (_match, key: string) => {
+    BALANCED_PLACEHOLDER,
+    (_match, rawKey: string) => {
+      const key = rawKey.trim()
       if (!SUPPORTED_VARIABLES.has(key)) {
-        throw new Error(`email_template_unknown_variable:${templateKey}:${key}`)
+        throw new Error(
+          `email_template_unknown_variable:${templateKey}:${key || '<empty>'}`,
+        )
       }
       const raw = variables[key]
       if (raw === null || raw === undefined || String(raw).trim() === '') {
