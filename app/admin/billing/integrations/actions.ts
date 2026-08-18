@@ -28,15 +28,15 @@ async function requireScopedBillingCompany() {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
   const scope = await getOperationalCompanyScope(user.id)
-  if (!scope?.companyId) {
+  const companyId = scope?.companyId
+  if (!companyId) {
     throw new Error('Välj ett elhandelsbolag innan fakturaintegrationen testas.')
   }
-  return { context, user, scope }
+  return { context, user, scope, companyId }
 }
 
 export async function testCapwayConnectionAction(): Promise<void> {
-  const { context, scope } = await requireScopedBillingCompany()
-  const companyId = scope.companyId
+  const { context, companyId } = await requireScopedBillingCompany()
   const testedAt = new Date().toISOString()
 
   try {
@@ -167,8 +167,7 @@ export async function testCapwayConnectionAction(): Promise<void> {
 // Operator action for the previously dead-ended needs_review provider events:
 // re-runs matching/processing for events that may have become resolvable.
 export async function reprocessInvoiceProviderEventsAction(): Promise<void> {
-  const { context, scope } = await requireScopedBillingCompany()
-  const companyId = scope.companyId
+  const { context, companyId } = await requireScopedBillingCompany()
 
   const result = await retryReviewableInvoiceProviderEvents({
     companyId,
