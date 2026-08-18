@@ -3,6 +3,6 @@
   "generated_at": "2026-08-17T20:15:44.875Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "e64cf50bbcf388b84d2ff03780295aa3dab44c4985303ca9d2ddb5b7bbf01382",
-  "latest_migration": "20260818124500_internal_pricing_and_event_truth.sql"
+  "sha256": "e64cf50bbcf388b84d2ff03780295aa3dab44c4985309ca9d2ddb5b7bbf01382",
+  "latest_migration": "20260818150000_internal_helper_schema_convergence.sql"
 }
