@@ -80,6 +80,7 @@
     "20260818165847_canonical_online_signature_v1.sql": "5318b670aa11dcea504e0e7e8d6a9e40859637355ac8cbfd214f1e2da5ad0ebb",
     "20260818170119_canonical_online_signature_internal_create_hotfix.sql": "22c12c95e9bde92b77937dcb6568cde1a8b639512b8cce8a9f2d714c8d94d251",
     "20260818170213_contract_signature_date_semantics.sql": "8964fe7fab2961137115adddeaa974a86fc760fd3c313d02286eb228587ee32d",
-    "20260818170828_signed_contract_document_hash_binding.sql": "04950bc18fb528b72a448b51028ec865c25af0e2d40ad12942ba03f6a8201a52"
+    "20260818170828_signed_contract_document_hash_binding.sql": "04950bc18fb528b72a448b51028ec865c25af0e2d40ad12942ba03f6a8201a52",
+    "20260818173236_online_signature_tenant_email_readiness.sql": "774261dfc2494a75eb5f939c4706501be750e0470ea09488224913e7577cae89"
   }
 }
