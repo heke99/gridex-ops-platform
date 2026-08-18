@@ -1,30 +1,14 @@
-import type { CompanyEmailTemplate } from './emailTemplates'
+import {
+  EMAIL_TEMPLATE_VARIABLES,
+  type CompanyEmailTemplate,
+} from './emailTemplates'
 
-const SUPPORTED_VARIABLES = new Set([
-  'customer_name',
-  'first_name',
-  'last_name',
-  'customer_email',
-  'customer_phone',
-  'customer_number',
-  'company_name',
-  'contract_name',
-  'contract_number',
-  'contract_type',
-  'signed_at',
-  'offer_reference',
-  'price_summary',
-  'legal_versions_summary',
-  'agreement_pdf_note',
-  'start_date',
-  'facility_id',
-  'metering_point_id',
-  'support_email',
-  'cancellation_deadline',
-  'portal_url',
-])
+const SUPPORTED_VARIABLES = new Set<string>(EMAIL_TEMPLATE_VARIABLES)
 
-export type EmailTemplateVariables = Record<string, string | number | null | undefined>
+export type EmailTemplateVariables = Record<
+  string,
+  string | number | null | undefined
+>
 
 function escapeHtml(value: string) {
   return value
@@ -39,20 +23,77 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-function renderValue(value: string, variables: EmailTemplateVariables, html: boolean) {
-  return value.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key: string) => {
-    if (!SUPPORTED_VARIABLES.has(key)) return ''
-    const raw = variables[key]
-    const text = raw === null || raw === undefined ? '' : String(raw)
-    return html ? escapeHtml(text) : text
-  })
+export function extractEmailTemplateVariables(value: string): string[] {
+  const variables = new Set<string>()
+  for (const match of value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)) {
+    variables.add(match[1])
+  }
+  return [...variables]
 }
 
-export function renderEmailTemplate(template: CompanyEmailTemplate, variables: EmailTemplateVariables) {
-  const subject = renderValue(template.subject, variables, false)
-  const html = renderValue(template.body_html, variables, true)
+export function validateEmailTemplateVariableContract(
+  template: Pick<CompanyEmailTemplate, 'template_key' | 'subject' | 'body_html' | 'body_text'>,
+) {
+  const referenced = new Set([
+    ...extractEmailTemplateVariables(template.subject),
+    ...extractEmailTemplateVariables(template.body_html),
+    ...extractEmailTemplateVariables(template.body_text ?? ''),
+  ])
+  const unknown = [...referenced].filter((key) => !SUPPORTED_VARIABLES.has(key))
+  if (unknown.length > 0) {
+    throw new Error(
+      `email_template_unknown_variables:${template.template_key}:${unknown.join(',')}`,
+    )
+  }
+  return [...referenced]
+}
+
+function renderValue(
+  value: string,
+  variables: EmailTemplateVariables,
+  html: boolean,
+  templateKey: string,
+) {
+  return value.replace(
+    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
+    (_match, key: string) => {
+      if (!SUPPORTED_VARIABLES.has(key)) {
+        throw new Error(`email_template_unknown_variable:${templateKey}:${key}`)
+      }
+      const raw = variables[key]
+      if (raw === null || raw === undefined || String(raw).trim() === '') {
+        throw new Error(`email_template_required_variable_missing:${templateKey}:${key}`)
+      }
+      const text = String(raw)
+      return html ? escapeHtml(text) : text
+    },
+  )
+}
+
+export function renderEmailTemplate(
+  template: CompanyEmailTemplate,
+  variables: EmailTemplateVariables,
+) {
+  validateEmailTemplateVariableContract(template)
+  const subject = renderValue(
+    template.subject,
+    variables,
+    false,
+    template.template_key,
+  )
+  const html = renderValue(
+    template.body_html,
+    variables,
+    true,
+    template.template_key,
+  )
   const text = template.body_text
-    ? renderValue(template.body_text, variables, false)
+    ? renderValue(
+        template.body_text,
+        variables,
+        false,
+        template.template_key,
+      )
     : stripHtml(html)
 
   return { subject, html, text }
