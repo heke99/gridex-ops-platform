@@ -45,7 +45,7 @@
     "20260813210500_ediel_utilts_field_511_products_25_a_3.sql": "188b18da215227f35463ebcb432ef5f8b0064681a2d87b764b3653656a82e6b9",
     "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql": "55e2e5e6bd04554fdc693bcdeb8942b2a96c4be0c5acfbcb035325987cf88a94",
     "20260813230000_runtime_readiness_dependency_resilience_v1.sql": "63b6099df1e28139d0a3e82011f582fa11c9e46d20db1aa3a2d43932050e8a0e",
-    "20260814125600_tenant_website_go_live_hardening.sql": "f5da6189c3f571da2c62b9cf0126fcb1c0459902d89e40e717ac68845c220432",
+    "20260814125600_tenant_website_go_live_hardening.sql": "f5da6189c9459902d62b9cf0126fcb1c0459902d89e40e717ac68845c220432",
     "20260814133500_tenant_website_activation_guard.sql": "daca4ef904c77b1559de08a2ee91fd485d9a46ebd8e42ec062c99f6aad50361a",
     "20260814162500_tenant_rls_lifecycle_hardening.sql": "e2eee5be4e4c795380782248683bfd32b682a66b2e2882a1fd241c9acc7498b2",
     "20260814170000_tenant_website_receipt_ready_binding.sql": "da7fb4f73c2ebb1a9492888621b8754c296e2c4bf399582d9a33c7c2158793c5",
@@ -74,6 +74,7 @@
     "20260817124500_site_resolution_materialization_guard.sql": "f709935b848dc6f4bd1cd6383def91e2d5411de05c5f491f9273878f2a568429",
     "20260817210500_fix_canonical_provision_company_request_hash.sql": "6f145037c73cc03524beff2ad77919392d6ed80e12d25b7e1fe57b76ede33aeb",
     "20260818121500_master_production_remediation_p0.sql": "16e91ef52b4f24cfc4cf45576f48fef8ce488a5f517535eea391739e924feae5",
-    "20260818124500_internal_pricing_and_event_truth.sql": "8375766cc04a3a14c21d899f25794a8756cf1da94dbd98fd119f81d97cdf7a17"
+    "20260818124500_internal_pricing_and_event_truth.sql": "8375766cc04a3a14c21d899f25794a8756cf1da94dbd98fd119f81d97cdf7a17",
+    "20260818150000_internal_helper_schema_convergence.sql": "de106045f214adabd485f5fa00b5fb132809c57f52a00b12522af19028641002"
   }
 }
