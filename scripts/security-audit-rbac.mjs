@@ -211,6 +211,14 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/agreements/grid-owners/page.tsx",
   "app/admin/billing/import/actions.ts",
   "app/admin/billing/import/page.tsx",
+  // Reviewed 2026-08-18: billing integration access is permission-gated and
+  // company-scoped before the service client is used. Signature/customer pages
+  // likewise resolve the operational company and assert entity tenant scope
+  // before any service-role read/write; mutations have their own write guard.
+  "app/admin/billing/integrations/actions.ts",
+  "app/admin/customers/[id]/contracts/[contractId]/signature/actions.ts",
+  "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx",
+  "app/admin/customers/[id]/layout.tsx",
   "app/admin/customers/duplicates/actions.ts",
   "app/admin/platform/actor-testing/actions.ts",
   "app/admin/platform/go-live/[companyId]/route-wizard/actions.ts",
