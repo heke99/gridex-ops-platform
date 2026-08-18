@@ -65,6 +65,18 @@ describe('email template variable contract', () => {
     ).toThrow(/email_template_unknown_variables/)
   })
 
+  it.each([
+    '{{customer-name}}',
+    '{{customer.name}}',
+    '{{ }}',
+  ])('fails closed for unsupported placeholder syntax: %s', (placeholder) => {
+    expect(() =>
+      validateEmailTemplateVariableContract(
+        template('contract.test', placeholder),
+      ),
+    ).toThrow(/email_template_unknown_variables/)
+  })
+
   it('fails closed when a referenced required variable is missing', () => {
     expect(() =>
       renderEmailTemplate(
