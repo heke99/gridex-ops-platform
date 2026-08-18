@@ -45,7 +45,7 @@ export async function archiveSignedCustomerContractPdf(input: {
   companyId: string;
   customerContractId: string;
   pdfBuffer: Buffer;
-  mimeType?: string;
+  mimeType?: string | null;
   documentSha256?: string;
   generatedAt?: string;
   generationSnapshot: Record<string, unknown>;
