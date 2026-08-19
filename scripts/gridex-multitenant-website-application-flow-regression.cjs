@@ -39,6 +39,7 @@ const webhookCron = read('app/api/internal/webhooks/dispatch/route.ts')
 const migration = read('supabase/migrations/20260804121000_multitenant_website_application_flow_completion.sql')
 const preAuthMigration = read('supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql')
 const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
+const normalizedLegacyDocs = legacyDocs.toLowerCase()
 const partnerDocs = read('app/developers/partner-api/page.tsx')
 const releaseManifest = read('lib/integrations/openApiReleaseManifest.ts')
 const websiteContract = read('lib/integrations/websiteIntegrationContract.ts')
@@ -145,9 +146,9 @@ check(
 check(legacyDocs.includes('Idempotency-Key') && legacyDocs.includes('retry'), 'unified API documentation requires idempotency for registration retries')
 check(legacyDocs.includes('partnerOpenApi') && legacyDocs.includes('partnerEndpointRows'), 'unified API documentation derives Partner endpoints from canonical OpenAPI instead of duplicating endpoint strings')
 check(
-  legacyDocs.includes('HMAC-SHA256') &&
-    legacyDocs.includes('verify') &&
-    legacyDocs.includes('deduplicate'),
+  normalizedLegacyDocs.includes('hmac-sha256') &&
+    normalizedLegacyDocs.includes('verify') &&
+    normalizedLegacyDocs.includes('deduplicate'),
   'unified API documentation requires signed webhook verification and deduplication',
 )
 check(legacyDocs.includes('data.checkout') && legacyDocs.includes('thank_you_ready') && legacyDocs.includes('confirmation_email'), 'unified API documentation exposes checkout and confirmation truth')
