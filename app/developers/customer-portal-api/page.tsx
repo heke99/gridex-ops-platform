@@ -149,6 +149,46 @@ Authorization: Bearer $GRIDEX_API_KEY
   }
 }`
 
+const partnerContractExample = `POST ${PARTNER_API_BASE_URL}/contract
+Authorization: Bearer $GRIDEX_API_KEY
+Idempotency-Key: partner_contract_01J...
+Content-Type: application/json
+
+{
+  "customer": {
+    "first_name": "Anna",
+    "last_name": "Andersson",
+    "soc_id": "19900101-1234",
+    "customer_type": "PRIVATE",
+    "email": "anna@example.se"
+  },
+  "site": {
+    "address": "Exempelgatan 1",
+    "zip_code": "11122",
+    "city": "Stockholm",
+    "country": "SE",
+    "site_electricity_type": "CONSUMPTION"
+  },
+  "power_of_attorney": {
+    "poa_type": "WEB",
+    "transaction_type": "SWITCH",
+    "file_base64": "<pdf_base64>",
+    "file_extension": "pdf"
+  }
+}`
+
+const partnerWebhookSubscriptionExample = `POST ${PARTNER_API_BASE_URL}/webhook/subscription
+Authorization: Bearer $GRIDEX_API_KEY
+Idempotency-Key: partner_webhook_01J...
+Content-Type: application/json
+
+{
+  "webhook_event": "CONTRACT_STATUS_CHANGE",
+  "target_url": "https://tenant.example.com/webhooks/gridex",
+  "notification_email": "integration@example.se",
+  "signing_secret": "<at-least-32-random-characters>"
+}`
+
 const webhookExample = `POST https://tenant.example.com/webhooks/gridex
 X-Gridex-Timestamp: 1787130000
 X-Gridex-Signature: sha256=<hmac_sha256>
@@ -293,7 +333,17 @@ export default function CustomerPortalApiDocumentationPage() {
           <Section id="partner-api" title="6. Partner API">
             <p className="leading-7 text-slate-700">
               Partner API är den enklare backend-to-backend-ytan för leverantörer eller externa system som vill registrera avtal,
-              hämta kund/site/faktura/mätdata och prenumerera på förändringar. Gridex konfigurerar tenant och default publicerat erbjudande utanför API:t.
+              hämta kund/site/faktura/mätdata och prenumerera på förändringar. Gridex konfigurerar bolag, API-credential, permissions
+              och vilket publicerat standarderbjudande som gäller utanför API:t. Partnern skickar alltså affärsdata — inte interna tenant-,
+              produkt- eller offer-ID:n. Returnerade <code>entity_id</code> är opaka publika referenser.
+            </p>
+            <h3 className="text-lg font-semibold text-slate-950">Registrera kund + site + avtal i ett anrop</h3>
+            <CopyCodeBlock code={partnerContractExample} language="json" />
+            <h3 className="text-lg font-semibold text-slate-950">Prenumerera på förändringar</h3>
+            <CopyCodeBlock code={partnerWebhookSubscriptionExample} language="json" />
+            <p className="text-sm leading-6 text-slate-600">
+              <code>signing_secret</code> används för HMAC-SHA256-verifiering av inkommande Gridex-webhooks. Tenantens receiver ska
+              kontrollera signaturen och deduplicera leveranser innan eventet används som signal för att hämta aktuell state.
             </p>
             <EndpointTable rows={partnerEndpointRows} />
           </Section>
