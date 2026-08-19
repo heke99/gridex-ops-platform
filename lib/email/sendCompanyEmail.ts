@@ -41,7 +41,6 @@ function defaultEmailIdempotencyKey(input: SendCompanyEmailInput) {
     .join(':')
 }
 
-
 function metadataString(metadata: Record<string, unknown> | undefined, key: string) {
   const value = metadata?.[key]
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -140,16 +139,12 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       ...traceFields,
       errorMessage: message,
       idempotencyKey,
-      metadata: {
-        ...(input.metadata ?? {}),
-        blocked_reason: 'missing_or_blocked_sender',
-      },
+      metadata: { ...(input.metadata ?? {}), blocked_reason: 'missing_or_blocked_sender' },
     })
     return { ok: false, log, senderMode: 'missing_sender', error: message }
   }
 
   const allowed = await isEventRuleEnabled(input.companyId, input.eventKey, input.templateKey)
-
   if (!allowed) {
     const log = await writeLog({
       companyId: input.companyId,
@@ -171,10 +166,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       ...traceFields,
       errorMessage: 'Automatiskt utskick är avstängt.',
       idempotencyKey,
-      metadata: {
-        ...(input.metadata ?? {}),
-        blocked_reason: 'email_event_rule_disabled',
-      },
+      metadata: { ...(input.metadata ?? {}), blocked_reason: 'email_event_rule_disabled' },
     })
     return { ok: false, skipped: true, log, senderMode: sender.mode }
   }
@@ -202,15 +194,45 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       ...traceFields,
       errorMessage: message,
       idempotencyKey,
+      metadata: { ...(input.metadata ?? {}), blocked_reason: 'missing_or_inactive_template' },
+    })
+    return { ok: false, log, senderMode: sender.mode, error: message }
+  }
+
+  let rendered: ReturnType<typeof renderEmailTemplate>
+  try {
+    rendered = renderEmailTemplate(template, input.variables ?? {}, { eventKey: input.eventKey })
+  } catch (error) {
+    const message = cleanError(error)
+    const log = await writeLog({
+      companyId: input.companyId,
+      customerId: input.customerId ?? null,
+      siteId: input.siteId ?? null,
+      meteringPointId: input.meteringPointId ?? null,
+      eventKey: input.eventKey ?? null,
+      templateKey: input.templateKey,
+      recipientEmail: input.to,
+      senderEmail: sender.senderEmail,
+      replyToEmail: sender.replyTo ?? null,
+      subject: null,
+      senderMode: sender.mode,
+      fromName: sender.fromName ?? null,
+      domainVerifiedAt: sender.domainVerifiedAt ?? null,
+      status: 'failed',
+      provider: 'resend',
+      createdBy: input.createdBy ?? null,
+      ...traceFields,
+      errorMessage: message,
+      idempotencyKey,
       metadata: {
         ...(input.metadata ?? {}),
-        blocked_reason: 'missing_or_inactive_template',
+        blocked_reason: 'email_template_contract_failed',
+        variable_keys: Object.keys(input.variables ?? {}).sort(),
       },
     })
     return { ok: false, log, senderMode: sender.mode, error: message }
   }
 
-  const rendered = renderEmailTemplate(template, input.variables ?? {})
   const templateSnapshot = {
     template_id: template.id,
     template_key: template.template_key,
@@ -253,18 +275,10 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
         domain_verified_at: sender.domainVerifiedAt ?? null,
       },
       template_snapshot: templateSnapshot,
-      rendered_snapshot: {
-        subject: rendered.subject,
-        html: rendered.html,
-        text: rendered.text,
-      },
+      rendered_snapshot: { subject: rendered.subject, html: rendered.html, text: rendered.text },
     },
   })
-  // Queue the email for asynchronous delivery. This ensures that the
-  // customer intake does not fail if the mail provider is unavailable. The
-  // communication log remains in status `queued` until a background worker
-  // updates it. Any errors encountered when enqueuing should cause the
-  // function to fail so that the caller can handle them accordingly.
+
   try {
     await enqueueTenantEmail({
       companyId: input.companyId,
@@ -288,7 +302,6 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       delayMinutes: input.delayMinutes ?? 0,
       attachments: input.attachments ?? [],
     })
-    // In this model we do not mark the communication as sent immediately.
     return { ok: true, log, senderMode: sender.mode }
   } catch (error) {
     console.warn('[email] enqueueTenantEmail failed', error)
