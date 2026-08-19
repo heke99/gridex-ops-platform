@@ -19,13 +19,14 @@ const migration = read(
 )
 const contractSource = read('lib/integrations/websiteIntegrationContract.ts')
 const guide = read('docs/external-website-api-integration-guide.md')
+const developerPage = read('app/developers/customer-portal-api/page.tsx')
 const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 const quoteOperation = openapi.paths?.['/api/v1/website/quote']?.post
 
 expectIncludes(
   route,
   'companyId: auth.context.companyId',
-  'quote route tenant scope',
+  'quote route internal organization scope',
 )
 expectIncludes(route, 'apiClientId: auth.client.id', 'quote route API client scope')
 expectIncludes(route, 'route: QUOTE_ROUTE', 'quote route namespace scope')
@@ -57,7 +58,7 @@ expectIncludes(
 expectIncludes(
   migration,
   'unique(company_id, api_client_id, route, idempotency_key)',
-  'database tenant/client/route uniqueness',
+  'database organization/client/route uniqueness',
 )
 
 if (!quoteOperation) {
@@ -78,12 +79,13 @@ if (!quoteOperation) {
     failures.push('OpenAPI: Idempotency-Key maxLength must be 200')
   }
   const scope = quoteOperation['x-idempotency-scope'] ?? []
-  for (const requiredScope of [
-    'company_id',
-    'api_client_id',
-    'route',
-    'idempotency_key',
-  ]) {
+  if (scope.includes('company_id') || scope.some((item) => /tenant/i.test(String(item)))) {
+    failures.push('OpenAPI: idempotency scope leaks internal database/tenant terminology')
+  }
+  if (!scope.some((item) => /organization/i.test(String(item)))) {
+    failures.push('OpenAPI: idempotency scope must describe the authenticated organization boundary')
+  }
+  for (const requiredScope of ['api_client_id', 'route', 'idempotency_key']) {
     if (!scope.includes(requiredScope)) {
       failures.push(`OpenAPI: missing idempotency scope ${requiredScope}`)
     }
@@ -150,21 +152,36 @@ if (!/^\d{4}-\d{2}-\d{2}\.\d+$/.test(currentVersion)) {
 
 expectIncludes(
   guide,
-  'Idempotency-Key: required',
-  'integration guide quote header',
+  'stable idempotency keys',
+  'integration guide idempotency responsibility',
 )
 expectIncludes(
   guide,
-  'Quote-idempotensen är isolerad per tenant, API-klient och route.',
-  'integration guide tenant isolation',
+  'The API credential determines the organization and permissions.',
+  'integration guide organization isolation',
 )
+expectIncludes(
+  developerPage,
+  '<code>Idempotency-Key</code>',
+  'canonical developer guide idempotency header',
+)
+expectIncludes(
+  developerPage,
+  'Gridex identifies the correct organization from the credential',
+  'canonical developer guide organization isolation',
+)
+for (const forbiddenPublicTerm of ['company_id', 'tenant_reference']) {
+  if (guide.includes(forbiddenPublicTerm)) {
+    failures.push(`Integration guide leaks internal field ${forbiddenPublicTerm}`)
+  }
+}
 
 for (const forbidden of [
   'b3ad1bf6-fa45-41a6-8054-2e0862e82aca',
   'bf2f3755-4a84-446a-b361-b6aa7149c39a',
 ]) {
   if (route.includes(forbidden) || helper.includes(forbidden)) {
-    failures.push(`Runtime contains hard-coded tenant/client UUID: ${forbidden}`)
+    failures.push(`Runtime contains hard-coded organization/client UUID: ${forbidden}`)
   }
 }
 
@@ -175,5 +192,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Quote idempotency multitenant regression passed for ${currentVersion}: runtime, database, immutable OpenAPI release and guide are tenant/API-client/route scoped.`,
+  `Quote idempotency multitenant regression passed for ${currentVersion}: internal database uniqueness, public organization boundary, immutable OpenAPI release and canonical developer guide are aligned.`,
 )
