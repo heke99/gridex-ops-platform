@@ -34,11 +34,11 @@
     },
     {
       "path": "/api/internal/webhooks/dispatch",
-      "schedule": "*\/5 * * * *"
+      "schedule": "0-55/5 * * * *"
     },
     {
       "path": "/api/internal/customer-operations/cron",
-      "schedule": "*\/5 * * * *"
+      "schedule": "1-56/5 * * * *"
     },
     {
       "path": "/api/internal/system/health",
@@ -78,7 +78,7 @@
     },
     {
       "path": "/api/cron/reconciliation/end-to-end",
-      "schedule": "30 5 * * * *"
+      "schedule": "30 5 * * *"
     },
     {
       "path": "/api/internal/tenant-provisioning/cron",
