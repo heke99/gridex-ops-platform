@@ -26,10 +26,10 @@ export function CopyCodeBlock({ children, code }: CopyCodeBlockProps) {
 
   const label =
     state === 'copied'
-      ? 'Kopierat'
+      ? 'Copied'
       : state === 'failed'
-        ? 'Kunde inte kopiera'
-        : 'Kopiera'
+        ? 'Copy failed'
+        : 'Copy'
 
   return (
     <div className="relative">
@@ -37,15 +37,15 @@ export function CopyCodeBlock({ children, code }: CopyCodeBlockProps) {
         type="button"
         onClick={copy}
         className="absolute right-3 top-3 rounded-lg border border-slate-600 bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-100 outline-none transition hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-emerald-400"
-        aria-label="Kopiera kodexempel"
+        aria-label="Copy code example"
       >
         {label}
       </button>
       <span className="sr-only" aria-live="polite">
         {state === 'copied'
-          ? 'Kodexemplet har kopierats.'
+          ? 'The code example has been copied.'
           : state === 'failed'
-            ? 'Kodexemplet kunde inte kopieras.'
+            ? 'The code example could not be copied.'
             : ''}
       </span>
       <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 pr-32 text-xs leading-6 text-slate-100">
