@@ -83,6 +83,8 @@
     "20260818170828_signed_contract_document_hash_binding.sql": "04950bc18fb528b72a448b51028ec865c25af0e2d40ad12942ba03f6a8201a52",
     "20260818173236_online_signature_tenant_email_readiness.sql": "774261dfc2494a75eb5f939c4706501be750e0470ea09488224913e7577cae89",
     "20260819070622_pr164_review_remediation_v2.sql": "d9b63125c2275041a7e19ae943a493fac4033e1a63611139ea7d7acb5f645d87",
-    "20260819112000_tenant_api_checkout_delivery_performance.sql": "15d5fb56f21f384c4208cb8252f419a04ae1e7e18ec1ec730b35709512e81b5a"
+    "20260819112000_tenant_api_checkout_delivery_performance.sql": "15d5fb56f21f384c4208cb8252f419a04ae1e7e18ec1ec730b35709512e81b5a",
+    "20260819111204_email_event_contract_and_certificate_refresh_hardening.sql": "b3a53a26f147125877e6debfb9cb86a593f11460502336a1dced2b15099bd38c",
+    "20260819111612_email_dispatch_readiness_variable_contract.sql": "42f2302552bcf2e5b21454f16a1dc1bc5ebbafb28b4030850865639debead22c"
   }
 }
