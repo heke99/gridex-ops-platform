@@ -1,8 +1,8 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-19T08:19:05.839Z",
+  "generated_at": "2026-08-19T11:20:00.000Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "d3dd489c88cfe9d3e6dba6f4700b85abb2619e926fed947907fa9fdcd974eee1",
-  "latest_migration": "20260819070622_pr164_review_remediation_v2.sql"
+  "latest_migration": "20260819112000_tenant_api_checkout_delivery_performance.sql"
 }

@@ -6,7 +6,7 @@
  * production API base URL and request-field placement are part of the V1
  * contract and must never be controlled by tenant environment flags.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-14.1' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-19.1' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -27,9 +27,9 @@ export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] 
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
 
 export const API_COMPATIBILITY_CLASSIFICATION = {
-  release: 'additive-public-boundary-and-tenant-remediation',
-  website: 'additive-public-boundary-and-tenant-remediation',
-  customerPortal: 'additive-public-boundary-and-tenant-remediation',
+  release: 'backward-compatible',
+  website: 'backward-compatible',
+  customerPortal: 'backward-compatible',
 } as const
 export type CompatibilityClassification =
   (typeof API_COMPATIBILITY_CLASSIFICATION)[keyof typeof API_COMPATIBILITY_CLASSIFICATION]

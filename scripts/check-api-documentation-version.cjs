@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const legacyExpected = '2026-08-14.1'
+const legacyExpected = '2026-08-19.1'
 const partnerExpected = '2026-08-17.1'
 const legacyFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
@@ -47,14 +47,11 @@ const webhookDispatch = fs.readFileSync('lib/integrations/webhooks.ts', 'utf8')
 if (!partnerOpenApi.includes(partnerExpected)) {
   failures.push(`lib/partner-api/openApi.ts does not expose Partner API version ${partnerExpected}`)
 }
-if (!partnerGuide.includes('PARTNER_API_VERSION')) {
-  failures.push('Partner developer guide must render the canonical PARTNER_API_VERSION source')
+if (!partnerGuide.includes("redirect('/developers/customer-portal-api#partner-api')")) {
+  failures.push('The legacy Partner developer route must redirect to the unified API page')
 }
-if (!partnerGuide.includes('v{PARTNER_API_VERSION}')) {
-  failures.push('Partner developer guide must visibly render the canonical Partner API version')
-}
-if (!customerPortalDeveloperRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'")) {
-  failures.push('The /developers/customer-portal-api route must render the canonical Partner API guide')
+if (!customerPortalDeveloperRoute.includes('PARTNER_API_VERSION') || !customerPortalDeveloperRoute.includes('partnerOpenApi')) {
+  failures.push('The unified API page must render Partner API version and endpoints from canonical sources')
 }
 
 for (const marker of [
@@ -100,19 +97,21 @@ for (const event of [
 }
 
 for (const marker of [
-  'Partner API Reference',
-  'Registration, Data Retrieval & Webhooks',
+  'Gridex API',
+  'Teckna på hemsidan',
+  'Tack-sida och avtalsbekräftelse',
+  'Mina sidor / Customer Portal API',
+  'Partner API',
+  'Webhooks till tenant',
+  'data.checkout',
+  'thank_you_ready',
+  'tenant_email_outbox+communication_logs',
   '/api/partner/v1/openapi.json',
-  'Gridex determines the company from the API key and resolves the electricity area',
-  'published electricity offer server-side',
 ]) {
-  if (!partnerGuide.includes(marker)) failures.push(`Partner developer guide is missing marker: ${marker}`)
+  if (!customerPortalDeveloperRoute.includes(marker)) failures.push(`Unified API developer page is missing marker: ${marker}`)
 }
-if (partnerGuide.includes('tenant_reference')) {
-  failures.push('Canonical Partner developer guide must not expose tenant_reference')
-}
-if (partnerGuide.includes('offer_reference')) {
-  failures.push('Canonical Partner developer guide must not require partners to select internal offers')
+if (!partnerGuide.includes("redirect('/developers/customer-portal-api#partner-api')")) {
+  failures.push('Legacy Partner developer guide must only redirect to the unified API page')
 }
 
 if (!webhookTransport.includes("url.protocol !== 'https:'") || !webhookTransport.includes('pinned.address')) {
@@ -150,4 +149,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log(`API documentation parity OK (legacy ${legacyExpected}; simple Partner API ${partnerExpected}).`)
+console.log(`API documentation parity OK (Gridex API ${legacyExpected}; Partner API ${partnerExpected}).`)

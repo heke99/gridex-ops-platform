@@ -93,7 +93,7 @@ for (const field of schema?.required ?? []) {
 }
 
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-14.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-19.1.json', 'utf8'),
 )
 const { validateResponse } = require('./lib/openapi-schema-validator.cjs')
 failures.push(...validateResponse(website, '/api/v1/website/public-contracts', publicContractsExample))
@@ -104,13 +104,17 @@ if (JSON.stringify(documentedPublicContractsExample) !== JSON.stringify(publicCo
   failures.push('Published public-contracts example must be generated from the production-like fixture.')
 }
 
-const partnerDocumentationPage = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
-const customerPortalRoute = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const partnerRedirectPage = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
+const partnerDocumentationPage = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const customerPortalRoute = partnerDocumentationPage
 const legacyWebsiteGuide = fs.readFileSync('docs/external-website-api-integration-guide.md', 'utf8')
 
 for (const requiredTerm of [
-  'Partner API Reference',
-  'Registration, Data Retrieval & Webhooks',
+  'Gridex API',
+  'Partner API',
+  'Tack-sida och avtalsbekräftelse',
+  'thank_you_ready',
+  'tenant_email_outbox+communication_logs',
   'Authorization: Bearer',
   'Idempotency-Key',
   '/contract/{contract_id}/state',
@@ -131,11 +135,11 @@ if (
 ) {
   failures.push('Partner developer guide must state that company/product configuration remains Gridex-managed.')
 }
-if (!customerPortalRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'")) {
-  failures.push('Customer Portal developer URL must render the canonical Partner API guide.')
+if (!partnerRedirectPage.includes("redirect('/developers/customer-portal-api#partner-api')")) {
+  failures.push('Legacy Partner developer URL must redirect to the unified API guide.')
 }
-if (!customerPortalRoute.includes('<PartnerApiDocumentationPage />')) {
-  failures.push('Customer Portal developer URL does not render PartnerApiDocumentationPage.')
+if (!customerPortalRoute.includes('partnerOpenApi') || !customerPortalRoute.includes('PUBLIC_API_ENDPOINT_ROWS')) {
+  failures.push('Unified API guide must derive endpoint tables from canonical registries.')
 }
 
 const sensitiveDocumentationPatterns = [

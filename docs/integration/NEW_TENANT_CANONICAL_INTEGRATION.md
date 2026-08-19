@@ -1,6 +1,6 @@
 # Canonical integration for a new tenant
 
-Contract release: `2026-08-14.1`
+Contract release: `2026-08-19.1`
 
 ## 1. Receive one server-side credential
 

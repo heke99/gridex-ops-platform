@@ -2,13 +2,13 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-14.1'
+const version = '2026-08-19.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
 const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-14.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-19.1.json', 'utf8'),
 )
 
 const string = { type: 'string' }
@@ -18,8 +18,8 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-10.1'
-const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', priorVersion, version]
+const priorVersion = '2026-08-14.1'
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -2071,6 +2071,33 @@ const publicReferenceSchema = {
   type: ['string', 'null'],
   pattern: '^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$',
 }
+const checkoutAgreementStatus = closedObject({
+  status: nullableString,
+  contract_number: nullableString,
+  signed_at: nullableString,
+  withdrawal_deadline_at: nullableString,
+  signature_snapshot_sha256: nullableString,
+}, ['status', 'contract_number', 'signed_at', 'withdrawal_deadline_at', 'signature_snapshot_sha256'])
+const checkoutConfirmationEmailStatus = closedObject({
+  expected: { type: 'boolean' },
+  status: { type: 'string', enum: ['not_expected', 'pending', 'queued', 'sent', 'delivered', 'failed'] },
+}, ['expected', 'status'])
+website.components.schemas.WebsiteCheckoutResult = closedObject({
+  outcome: { type: 'string', enum: ['agreement_signed', 'customer_action_required', 'application_received'] },
+  thank_you_ready: { type: 'boolean' },
+  page_state: { type: 'string', enum: ['success', 'success_action_required', 'action_required', 'processing'] },
+  customer_action_required: { type: 'boolean' },
+  application: closedObject({
+    application_number: nullableString,
+    status: nullableString,
+  }, ['application_number', 'status']),
+  agreement: checkoutAgreementStatus,
+  confirmation_email: checkoutConfirmationEmailStatus,
+  status_path: nullableString,
+}, [
+  'outcome', 'thank_you_ready', 'page_state', 'customer_action_required',
+  'application', 'agreement', 'confirmation_email', 'status_path',
+])
 const websiteApplicationData = website.components.schemas.WebsiteCustomerApplicationData
 for (const internalField of [
   'customer_id', 'application_id', 'customer_site_id', 'metering_point_id',
@@ -2089,6 +2116,7 @@ Object.assign(websiteApplicationData.properties, {
   facility_reference: publicReferenceSchema,
   metering_point_reference: publicReferenceSchema,
   contract_reference: publicReferenceSchema,
+  checkout: { $ref: '#/components/schemas/WebsiteCheckoutResult' },
   supplier_switch: closedObject({
     request_reference: publicReferenceSchema,
     status: { type: 'string', enum: ['created', 'not_created'] },
@@ -2101,6 +2129,7 @@ Object.assign(websiteApplicationData.properties, {
 websiteApplicationData.required = Array.from(new Set([
   ...(websiteApplicationData.required ?? []),
   'application_number',
+  'checkout',
   'supplier_switch',
 ]))
 website.components.schemas.WebsiteCustomerApplicationResponse = envelope({
@@ -2115,7 +2144,7 @@ setResponse(
 )
 if (website.paths['/api/v1/website/customer-applications']?.post) {
   website.paths['/api/v1/website/customer-applications'].post.description =
-    'Scope: website_applications.write. Idempotency-Key krävs. Tenant härleds enbart från API-nyckeln. auth_user_id och customer_portal_user_id krävs som samma verifierade UUID. OPS committar canonical kund, kundnummer, site/mätpunkt, avtal, juridik, portalidentitet, workflow och ett beständigt customer_application_continuation-jobb. status=accepted betyder att denna beständiga commit är klar; e-post, anläggningsuppslag, leverantörsbyte och webhooks fortsätter asynkront och följs via statusendpointen.'
+    'Scope: website_applications.write. Idempotency-Key krävs. Tenant härleds enbart från API-nyckeln. auth_user_id och customer_portal_user_id krävs som samma verifierade UUID. OPS committar canonical kund, kundnummer, site/mätpunkt, avtal, juridik, portalidentitet, workflow och ett beständigt customer_application_continuation-jobb. data.checkout är tenantens enda maskinläsbara sanning för tack-sidan: thank_you_ready=true betyder att avtalet faktiskt är signerat och kan visas som tecknat. confirmation_email.status visar separat om avtalsbekräftelsen är pending, queued, sent, delivered eller failed. E-post, anläggningsuppslag, leverantörsbyte och webhooks fortsätter asynkront och följs via statusendpointen.'
 }
 if (website.paths['/api/v1/website/customer-applications/{application_id}']) {
   website.paths['/api/v1/website/customer-applications/{application_number}'] =
@@ -2149,7 +2178,7 @@ const applicationCommunicationEntry = closedObject({
 }, ['event_type', 'status'])
 const applicationCommunicationStatus = closedObject({
   pending: { type: 'boolean' },
-  source_of_truth: { type: 'string', const: 'communication_logs' },
+  source_of_truth: { type: 'string', const: 'tenant_email_outbox+communication_logs' },
   triggered: { type: 'array', items: applicationCommunicationEntry },
   queued: { type: 'array', items: applicationCommunicationEntry },
   sent: { type: 'array', items: applicationCommunicationEntry },
@@ -2171,7 +2200,11 @@ const canonicalApplicationStatusProperties = {
   status: { type: 'string', enum: ['processing', 'accepted', 'needs_customer_information', 'rejected', 'failed', 'completed'] },
   stage: string,
   customer_number: nullableString,
+  contract_number: nullableString,
   contract_status: nullableString,
+  signed_at: nullableString,
+  withdrawal_deadline_at: nullableString,
+  signature_snapshot_sha256: nullableString,
   supplier_switch_status: string,
   supply_status: nullableString,
   requested_start_date: nullableString,
@@ -2181,12 +2214,13 @@ const canonicalApplicationStatusProperties = {
   blocking_reason: nullableString,
   automation: applicationAutomationStatus,
   communication: applicationCommunicationStatus,
+  checkout: { $ref: '#/components/schemas/WebsiteCheckoutResult' },
   webhook: applicationWebhookStatus,
   updated_at: nullableString,
 }
 const canonicalApplicationStatusRequired = [
   'application_number', 'status', 'stage', 'supplier_switch_status',
-  'missing_customer_action', 'automation', 'communication', 'webhook',
+  'missing_customer_action', 'automation', 'communication', 'checkout', 'webhook',
 ]
 if (website.components.schemas.CustomerApplicationStatus) {
   website.components.schemas.CustomerApplicationStatus = closedObject(

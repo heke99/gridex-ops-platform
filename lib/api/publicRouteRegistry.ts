@@ -54,6 +54,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-08-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-14.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-14.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-14.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-14.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-19.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI för release 2026-08-19.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-08-19.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI för release 2026-08-19.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för kundportalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verifiera opak tenantreferens för den autentiserade API-nyckeln.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Canonical feed för avtal som tenant har publicerat till API-kanalen.', rateLimitClass: 'read' },
