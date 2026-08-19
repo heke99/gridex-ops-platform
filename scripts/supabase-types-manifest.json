@@ -4,5 +4,5 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "e64cf50bbcf388b84d2ff03780295aa3dab44c4985303ca9d2ddb5b7bbf01382",
-  "latest_migration": "20260818150000_internal_helper_schema_convergence.sql"
+  "latest_migration": "20260819070622_pr164_review_remediation_v2.sql"
 }
