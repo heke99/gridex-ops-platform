@@ -7,9 +7,16 @@ on:
     paths:
       - scripts/apply-public-api-boundary-remediation.cjs
       - .github/workflows/public-api-professionalization-temp.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
+
+concurrency:
+  group: public-api-professionalization-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   apply-and-verify:
