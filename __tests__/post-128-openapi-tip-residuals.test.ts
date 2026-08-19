@@ -31,7 +31,7 @@ describe('post-#128 OpenAPI tip residuals', () => {
 
   it('uses the verified publication instant for contract release 2026-08-19.1', () => {
     expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-19.1')
-    expect(OPENAPI_RELEASED_AT).toBe('2026-08-14T18:26:00.000Z')
+    expect(OPENAPI_RELEASED_AT).toBe('2026-08-19T09:20:00.000Z')
     const source = readFileSync('lib/integrations/openApiReleaseManifest.ts', 'utf8')
     expect(source).not.toContain("OPENAPI_RELEASED_AT = '2026-08-10T")
   })
