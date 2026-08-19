@@ -93,7 +93,7 @@ for (const field of schema?.required ?? []) {
 }
 
 const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-14.1.json', 'utf8'),
+  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-19.1.json', 'utf8'),
 )
 const { validateResponse } = require('./lib/openapi-schema-validator.cjs')
 failures.push(...validateResponse(website, '/api/v1/website/public-contracts', publicContractsExample))
@@ -104,38 +104,52 @@ if (JSON.stringify(documentedPublicContractsExample) !== JSON.stringify(publicCo
   failures.push('Published public-contracts example must be generated from the production-like fixture.')
 }
 
-const partnerDocumentationPage = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
-const customerPortalRoute = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const partnerRedirectPage = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
+const partnerDocumentationPage = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const partnerOpenApiSource = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')
+const customerPortalRoute = partnerDocumentationPage
 const legacyWebsiteGuide = fs.readFileSync('docs/external-website-api-integration-guide.md', 'utf8')
 
 for (const requiredTerm of [
-  'Partner API Reference',
-  'Registration, Data Retrieval & Webhooks',
+  'Gridex API',
+  'Partner API',
+  'Tack-sida och avtalsbekräftelse',
+  'thank_you_ready',
+  'tenant_email_outbox+communication_logs',
   'Authorization: Bearer',
   'Idempotency-Key',
+  'HMAC-SHA256',
+  'signing_secret',
+  'partnerOpenApi',
+]) {
+  if (!partnerDocumentationPage.includes(requiredTerm)) {
+    failures.push(`Unified API developer guide is missing ${requiredTerm}.`)
+  }
+}
+for (const requiredPartnerContractTerm of [
   '/contract/{contract_id}/state',
   '/customer/{customer_id}/site/{site_id}/invoice',
   '/customer/{customer_id}/site/{site_id}/measurement',
   '/webhook/subscription',
-  'HMAC-SHA256',
   'signing_secret',
+  'HMAC-SHA256',
 ]) {
-  if (!partnerDocumentationPage.includes(requiredTerm)) {
-    failures.push(`Partner developer guide is missing ${requiredTerm}.`)
+  if (!partnerOpenApiSource.includes(requiredPartnerContractTerm)) {
+    failures.push(`Canonical Partner OpenAPI source is missing ${requiredPartnerContractTerm}.`)
   }
 }
 if (
-  !partnerDocumentationPage.includes('Gridex determines the company from the API key') ||
-  !partnerDocumentationPage.includes('published electricity offer server-side') ||
-  !partnerDocumentationPage.includes('product IDs')
+  !partnerOpenApiSource.includes('Gridex configures the company, API credential, permissions and default published offer outside the API.') ||
+  !partnerDocumentationPage.includes('Gridex konfigurerar bolag, API-credential, permissions') ||
+  !partnerDocumentationPage.includes('inte interna tenant-')
 ) {
-  failures.push('Partner developer guide must state that company/product configuration remains Gridex-managed.')
+  failures.push('Unified Partner guide must state that company/product/offer configuration remains Gridex-managed.')
 }
-if (!customerPortalRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'")) {
-  failures.push('Customer Portal developer URL must render the canonical Partner API guide.')
+if (!partnerRedirectPage.includes("redirect('/developers/customer-portal-api#partner-api')")) {
+  failures.push('Legacy Partner developer URL must redirect to the unified API guide.')
 }
-if (!customerPortalRoute.includes('<PartnerApiDocumentationPage />')) {
-  failures.push('Customer Portal developer URL does not render PartnerApiDocumentationPage.')
+if (!customerPortalRoute.includes('partnerOpenApi') || !customerPortalRoute.includes('PUBLIC_API_ENDPOINT_ROWS')) {
+  failures.push('Unified API guide must derive endpoint tables from canonical registries.')
 }
 
 const sensitiveDocumentationPatterns = [
@@ -158,14 +172,15 @@ for (const [label, pattern] of sensitiveDocumentationPatterns) {
   }
 }
 
-if (partnerDocumentationPage.includes('company_id') || partnerDocumentationPage.includes('tenant_id')) {
-  failures.push('Canonical Partner developer guide must not expose company_id or tenant_id selection fields.')
-}
-if (partnerDocumentationPage.includes('tenant_reference')) {
-  failures.push('Canonical Partner developer guide must not expose tenant_reference.')
-}
-if (partnerDocumentationPage.includes('offer_reference')) {
-  failures.push('Canonical Partner developer guide must not require partners to select internal offer configuration.')
+for (const forbiddenPartnerInput of [
+  "company_id: {",
+  "tenant_id: {",
+  "tenant_reference: {",
+  "offer_reference: {",
+]) {
+  if (partnerOpenApiSource.includes(forbiddenPartnerInput)) {
+    failures.push(`Canonical Partner OpenAPI must not expose internal selector ${forbiddenPartnerInput.slice(0, -3)}.`)
+  }
 }
 
 for (const requiredLegacyTerm of [
@@ -193,4 +208,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log('API documentation examples OK (simple Partner guide + legacy Website OpenAPI/guide).')
+console.log('API documentation examples OK (unified human guide + canonical Website/Partner sources).')

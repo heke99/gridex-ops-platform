@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { buildTenantCheckoutResult } from '@/lib/website/publicCheckoutResult'
 
 type JsonRecord = Record<string, unknown>
 type QueryResult<T> = { data: T | null; error: { code?: string; message?: string } | null }
@@ -345,7 +346,7 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     loadCorrelatedSwitch(application),
     loadCorrelatedSupply(application),
     application.contract_id
-      ? supabaseService.from('customer_contracts').select('status,updated_at').eq('company_id', input.companyId).eq('id', application.contract_id).maybeSingle()
+      ? supabaseService.from('customer_contracts').select('status,contract_number,signed_at,withdrawal_deadline_at,signature_snapshot_sha256,updated_at').eq('company_id', input.companyId).eq('id', application.contract_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     workflow?.id
       ? supabaseService.from('customer_operation_jobs').select('status,attempts,max_attempts,run_after,completed_at,last_error_code,last_error_message,last_error,updated_at').eq('company_id', input.companyId).eq('workflow_id', workflow.id).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -402,13 +403,32 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
   })
   const jobError = clean(job?.last_error_message) ?? clean(job?.last_error) ?? clean(job?.last_error_code)
   const workflowFailure = clean(workflow?.failure_code)
+  const communication = summarizeCommunication(communicationLogs, outbox)
+  const checkout = buildTenantCheckoutResult({
+    applicationNumber: application.application_number,
+    applicationStatus: externalStatus,
+    contractNumber: contract.contract_number,
+    contractStatus: contract.status,
+    signedAt: contract.signed_at,
+    withdrawalDeadlineAt: contract.withdrawal_deadline_at,
+    signatureSnapshotSha256: contract.signature_snapshot_sha256,
+    canSendAgreementConfirmation: ['signed', 'active'].includes(clean(contract.status) ?? ''),
+    communication,
+    automationStatus: clean(job?.status),
+    missingCustomerAction: externalStatus === 'needs_customer_information',
+    nextStep: clean(workflow?.next_action) ?? clean(application.next_step),
+  })
 
   return {
     application_number: application.application_number,
     status: externalStatus,
     stage: workflowState ?? clean(job?.status) ?? clean(application.status) ?? 'processing',
     customer_number: clean(application.customer_number) ?? clean(response.customer_number),
+    contract_number: clean(contract.contract_number),
     contract_status: clean(contract.status),
+    signed_at: clean(contract.signed_at),
+    withdrawal_deadline_at: clean(contract.withdrawal_deadline_at),
+    signature_snapshot_sha256: clean(contract.signature_snapshot_sha256),
     supplier_switch_status: supplierSwitchStatus,
     supply_status: supplyStatus,
     requested_start_date: clean(switchRow?.requested_start_date),
@@ -424,7 +444,8 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
       completed_at: clean(job?.completed_at),
       last_error: jobError,
     },
-    communication: summarizeCommunication(communicationLogs, outbox),
+    communication,
+    checkout,
     webhook: summarizeWebhook(webhookDeliveries, webhookFanoutJobs, domainEvents.length > 0),
     updated_at: newest(
       workflow?.updated_at,

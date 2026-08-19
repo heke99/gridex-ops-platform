@@ -20,6 +20,9 @@ describe('Partner API developer route stays supplier-facing', () => {
       expect(layout).not.toContain(internalTerm)
       expect(page).not.toContain(internalTerm)
     }
-    expect(page).toContain("import PartnerApiDocumentationPage from '../partner-api/page'")
+    expect(page).toContain("from '@/lib/partner-api/openApi'")
+    expect(page).toContain('partnerOpenApi')
+    expect(page).toContain('Tack-sida och avtalsbekräftelse')
+    expect(page).toContain('thank_you_ready')
   })
 })

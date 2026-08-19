@@ -123,32 +123,32 @@ check(preAuthMigration.includes('alter column portal_identity_required set defau
 check(migration.includes('gridex_project_terminal_application_continuation') && migration.includes('event_outbox_webhook_fanout_due_idx'), 'database adds terminal projection safety and webhook fan-out index')
 check(migration.includes('canonical_readiness_revalidation_required') && migration.includes("profile_key = 'tenant_website'"), 'migration invalidates historical scopes-only launch flags')
 
-// The historical customer-portal developer URL must expose the exact same
-// supplier-facing canonical Partner API guide without reintroducing old API docs.
+// One canonical human-facing API page now covers Website API, Customer Portal,
+// Partner API and webhooks. The old Partner URL is redirect-only to avoid docs drift.
 check(
-  legacyDocs.includes("import PartnerApiDocumentationPage from '../partner-api/page'") &&
-    legacyDocs.includes('<PartnerApiDocumentationPage />'),
-  'legacy customer-portal API URL serves the canonical Partner API guide',
+  legacyDocs.includes('Gridex API') &&
+    legacyDocs.includes("from '@/lib/partner-api/openApi'") &&
+    legacyDocs.includes('PUBLIC_API_ENDPOINT_ROWS'),
+  'customer-portal API URL is the single canonical human API guide',
 )
-check(partnerDocs.includes('Partner API Reference') && partnerDocs.includes('PARTNER_API_BASE_URL') && partnerDocs.includes('/api/partner/v1/openapi.json'), 'Partner API documentation exposes the canonical v1 base URL and OpenAPI contract')
-check(partnerDocs.includes('The API is server-to-server') && partnerDocs.includes('Authorization: Bearer') && partnerDocs.includes('Do not put the key in a browser or mobile app'), 'Partner API documentation makes server-side authentication and key handling explicit')
-check(partnerDocs.includes('Do not send company IDs, tenant IDs') && partnerDocs.includes('opaque public IDs; they are not database IDs'), 'Partner API documentation keeps tenant and database identifiers server-side')
-check(partnerDocs.includes('Registration POST requests require an') && partnerDocs.includes('Idempotency-Key') && partnerDocs.includes('retrying the same request'), 'Partner API documentation requires idempotency for registration retries')
-for (const endpoint of ['POST /contract', 'POST /customer', 'POST /customer/{customer_id}/site', 'GET /contract/{contract_id}/state', 'POST /webhook/subscription']) {
-  check(partnerDocs.includes(endpoint), `Partner API documentation exposes ${endpoint}`)
-}
-check(partnerDocs.includes('HMAC-SHA256') && partnerDocs.includes('target_url must be a public HTTPS endpoint'), 'Partner API webhook documentation requires signature verification and public HTTPS delivery')
-check(partnerDocs.includes('CONTRACT_STATUS_CHANGE'), 'Partner API documentation exposes the canonical contract status-change webhook signal')
+check(partnerDocs.includes("redirect('/developers/customer-portal-api#partner-api')"), 'legacy Partner API documentation redirects to the unified guide')
+check(legacyDocs.includes('PARTNER_API_BASE_URL') && legacyDocs.includes('/api/partner/v1/openapi.json'), 'unified API documentation exposes the Partner v1 base URL and OpenAPI contract')
+check(legacyDocs.includes('server-to-server') && legacyDocs.includes('Authorization: Bearer') && legacyDocs.includes('GRIDEX_API_KEY'), 'unified API documentation makes server-side authentication and key handling explicit')
+check(legacyDocs.includes('company_id') && legacyDocs.includes('interna UUID'), 'unified API documentation keeps tenant and database identifiers server-side')
+check(legacyDocs.includes('Idempotency-Key') && legacyDocs.includes('retry'), 'unified API documentation requires idempotency for registration retries')
+check(legacyDocs.includes('partnerOpenApi') && legacyDocs.includes('partnerEndpointRows'), 'unified API documentation derives Partner endpoints from canonical OpenAPI instead of duplicating endpoint strings')
+check(legacyDocs.includes('HMAC-SHA256') && legacyDocs.includes('Webhooks till tenant'), 'unified API documentation requires signed webhook verification')
+check(legacyDocs.includes('data.checkout') && legacyDocs.includes('thank_you_ready') && legacyDocs.includes('confirmation_email'), 'unified API documentation exposes tenant checkout and confirmation truth')
 
 check(portalPreAuthRelease.includes('breaking-client-update-required-for-portal-identity') && portalPreAuthRelease.includes('breaking-request-requirement'), 'historical portal pre-auth release preserves its breaking classification')
-check(releaseManifest.includes('API_COMPATIBILITY_CLASSIFICATION') && websiteContract.includes('additive-public-boundary-and-tenant-remediation'), 'legacy website release manifest keeps the single canonical remediation compatibility classification')
+check(releaseManifest.includes('API_COMPATIBILITY_CLASSIFICATION') && websiteContract.includes("release: 'backward-compatible'"), 'current website release is explicitly backward-compatible')
 check(websiteOpenApi.info.version === currentContractVersion, `website OpenAPI version is ${currentContractVersion}`)
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'legacy website OpenAPI publishes customer-application and supplier-switch webhook callbacks')
 check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), `immutable ${currentContractVersion} website OpenAPI release matches the current published legacy contract`)
 const request = websiteOpenApi.components.schemas.CustomerApplicationRequest
 check(request.required.includes('auth_user_id') && request.required.includes('customer_portal_user_id'), 'legacy website OpenAPI requires both portal identity fields')
 const statusSchema = websiteOpenApi.components.schemas.WebsiteCustomerApplicationStatusData
-for (const property of ['automation', 'communication', 'webhook']) {
+for (const property of ['automation', 'communication', 'checkout', 'webhook']) {
   check(Boolean(statusSchema.properties[property]), `legacy website OpenAPI status includes ${property}`)
 }
 check(![readiness, provisioning, status, resolver, applicationProcess, applicationPersistence, applicationCommunication].some((source) => /tenant_60de87|b3ad1bf6-fa45|gridex\.se\/mina-sidor/i.test(source)), 'canonical flow contains no Gridex tenant ID or domain special case')

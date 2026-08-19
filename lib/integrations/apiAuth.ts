@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import type { NextRequest } from 'next/server'
+import { after, type NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
@@ -485,23 +485,36 @@ export async function logIntegrationApiRequest(input: {
   // integration-database outage into a slow public endpoint.
   if (!input.client && input.statusCode === 401) return
 
-  const route = input.request.nextUrl.pathname
+  const payload = {
+    company_id: input.client?.company_id ?? null,
+    api_client_id: input.client?.id ?? null,
+    request_id: input.request.headers.get('x-request-id'),
+    method: input.request.method,
+    route: input.request.nextUrl.pathname,
+    status_code: input.statusCode,
+    duration_ms: Math.max(0, Date.now() - input.startedAt),
+    ip_address: requestIp(input.request),
+    user_agent: input.request.headers.get('user-agent'),
+    idempotency_key: input.request.headers.get('idempotency-key'),
+    error_code: input.errorCode ?? null,
+    metadata: input.metadata ?? {},
+  }
 
-  await supabaseService
-    .from('integration_api_requests')
-    .insert({
-      company_id: input.client?.company_id ?? null,
-      api_client_id: input.client?.id ?? null,
-      request_id: input.request.headers.get('x-request-id'),
-      method: input.request.method,
-      route,
-      status_code: input.statusCode,
-      duration_ms: Math.max(0, Date.now() - input.startedAt),
-      ip_address: requestIp(input.request),
-      user_agent: input.request.headers.get('user-agent'),
-      idempotency_key: input.request.headers.get('idempotency-key'),
-      error_code: input.errorCode ?? null,
-      metadata: input.metadata ?? {},
-    })
-    .then(() => null)
+  const persist = async () => {
+    await supabaseService
+      .from('integration_api_requests')
+      .insert(payload)
+      .then(() => null)
+  }
+
+  // API audit/telemetry is secondary to the tenant response. Next.js after()
+  // keeps the serverless invocation alive while the write completes, without
+  // adding the PostgREST insert latency to every public API request. If this
+  // helper is invoked outside a request context (for example a direct unit
+  // test), fall back to the previous awaited persistence semantics.
+  try {
+    after(persist)
+  } catch {
+    await persist()
+  }
 }

@@ -113,16 +113,9 @@ type FanoutJobRow = {
 
 async function ensureWebhookFanoutJob(event: DomainEventRow) {
   const destinationKey = 'webhook_fanout_v1'
-  const existing = await supabaseService
-    .from('event_outbox')
-    .select('id')
-    .eq('domain_event_id', event.id)
-    .eq('destination_type', 'webhook')
-    .eq('destination_key', destinationKey)
-    .maybeSingle()
-  if (existing.error) throw existing.error
-  if (existing.data?.id) return String(existing.data.id)
-
+  // The outbox already has a uniqueness invariant for one destination per
+  // domain event. Insert optimistically and treat 23505 as the idempotent
+  // replay path instead of paying for a read-before-write round trip.
   const { data, error } = await supabaseService
     .from('event_outbox')
     .insert({

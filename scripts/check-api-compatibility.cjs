@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const version = '2026-08-14.1'
+const version = '2026-08-19.1'
 const website = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
@@ -100,6 +100,13 @@ assert(
   moveOutSchema?.properties?.facility_reference,
   'move-out facility_reference is missing',
 )
+
+const websiteCheckout = website.components.schemas.WebsiteCheckoutResult
+assert(websiteCheckout?.additionalProperties === false, 'website checkout result is not closed')
+assert(websiteCheckout?.required?.includes('thank_you_ready'), 'website checkout result is missing thank_you_ready')
+assert(websiteCheckout?.required?.includes('confirmation_email'), 'website checkout result is missing confirmation_email')
+const websiteApplicationResponse = website.components.schemas.WebsiteCustomerApplicationData
+assert(websiteApplicationResponse?.properties?.checkout, 'website application response is missing checkout truth')
 
 const websiteApplication =
   website.components.schemas.CustomerApplicationRequest

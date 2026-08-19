@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-08-14.1`.
+Dokumentationsversion: `2026-08-19.1`.
 
 ## Tenantkonfiguration
 
