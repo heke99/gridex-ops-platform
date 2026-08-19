@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const legacyExpected = '2026-08-19.1'
+const legacyExpected = '2026-08-19.2'
 const partnerExpected = '2026-08-17.1'
 const legacyFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
@@ -98,17 +98,21 @@ for (const event of [
 
 for (const marker of [
   'Gridex API',
-  'Teckna på hemsidan',
-  'Tack-sida och avtalsbekräftelse',
-  'Mina sidor / Customer Portal API',
+  'Responsibilities',
+  'Gridex platform',
+  'Your integration',
+  'Website checkout',
+  'Customer Portal API',
   'Partner API',
-  'Webhooks till tenant',
+  'Webhooks',
   'data.checkout',
   'thank_you_ready',
-  'tenant_email_outbox+communication_logs',
   '/api/partner/v1/openapi.json',
 ]) {
   if (!customerPortalDeveloperRoute.includes(marker)) failures.push(`Unified API developer page is missing marker: ${marker}`)
+}
+for (const forbidden of ['Mina sidor', 'Tack-sida', 'Webhooks till tenant', 'tenant_email_outbox+communication_logs']) {
+  if (customerPortalDeveloperRoute.includes(forbidden)) failures.push(`Unified API developer page still contains legacy marker: ${forbidden}`)
 }
 if (!partnerGuide.includes("redirect('/developers/customer-portal-api#partner-api')")) {
   failures.push('Legacy Partner developer guide must only redirect to the unified API page')

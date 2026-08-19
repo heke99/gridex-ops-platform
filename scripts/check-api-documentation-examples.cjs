@@ -92,37 +92,49 @@ for (const field of schema?.required ?? []) {
   if (!(field in (schema.properties ?? {}))) failures.push(`MarketReference required field ${field} has no property schema.`)
 }
 
-const publicContractsExample = JSON.parse(
-  fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-19.1.json', 'utf8'),
-)
-const { validateResponse } = require('./lib/openapi-schema-validator.cjs')
-failures.push(...validateResponse(website, '/api/v1/website/public-contracts', publicContractsExample))
-const documentedPublicContractsExample =
-  website.paths?.['/api/v1/website/public-contracts']?.get?.responses?.['200']
-    ?.content?.['application/json']?.example
-if (JSON.stringify(documentedPublicContractsExample) !== JSON.stringify(publicContractsExample)) {
-  failures.push('Published public-contracts example must be generated from the production-like fixture.')
+const currentVersion = String(website.info?.version ?? '')
+const publicContractsFixturePath = `docs/fixtures/public-contracts-response-${currentVersion}.json`
+if (!fs.existsSync(publicContractsFixturePath)) {
+  failures.push(`Production-like public-contracts fixture is missing for ${currentVersion}.`)
+} else {
+  const publicContractsExample = JSON.parse(fs.readFileSync(publicContractsFixturePath, 'utf8'))
+  const { validateResponse } = require('./lib/openapi-schema-validator.cjs')
+  failures.push(...validateResponse(website, '/api/v1/website/public-contracts', publicContractsExample))
+  const documentedPublicContractsExample =
+    website.paths?.['/api/v1/website/public-contracts']?.get?.responses?.['200']
+      ?.content?.['application/json']?.example
+  if (JSON.stringify(documentedPublicContractsExample) !== JSON.stringify(publicContractsExample)) {
+    failures.push('Published public-contracts example must be generated from the current production-like fixture.')
+  }
+  if (!publicContractsExample?.meta?.organization_reference) {
+    failures.push('Current public-contracts fixture must expose organization_reference.')
+  }
+  if (Object.prototype.hasOwnProperty.call(publicContractsExample?.meta ?? {}, 'tenant_reference')) {
+    failures.push('Current public-contracts fixture must not expose tenant_reference.')
+  }
+  if (publicContractsExample?.meta?.contract_schema_version !== currentVersion) {
+    failures.push('Current public-contracts fixture contract_schema_version must match info.version.')
+  }
 }
 
 const partnerRedirectPage = fs.readFileSync('app/developers/partner-api/page.tsx', 'utf8')
-const partnerDocumentationPage = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
+const developerPage = fs.readFileSync('app/developers/customer-portal-api/page.tsx', 'utf8')
 const partnerOpenApiSource = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')
-const customerPortalRoute = partnerDocumentationPage
 const legacyWebsiteGuide = fs.readFileSync('docs/external-website-api-integration-guide.md', 'utf8')
 
 for (const requiredTerm of [
   'Gridex API',
   'Partner API',
-  'Tack-sida och avtalsbekräftelse',
   'thank_you_ready',
-  'tenant_email_outbox+communication_logs',
+  'confirmation_email',
+  'Agreement state and message-delivery state are separate',
   'Authorization: Bearer',
   'Idempotency-Key',
   'HMAC-SHA256',
   'signing_secret',
   'partnerOpenApi',
 ]) {
-  if (!partnerDocumentationPage.includes(requiredTerm)) {
+  if (!developerPage.includes(requiredTerm)) {
     failures.push(`Unified API developer guide is missing ${requiredTerm}.`)
   }
 }
@@ -140,33 +152,28 @@ for (const requiredPartnerContractTerm of [
 }
 if (
   !partnerOpenApiSource.includes('Gridex configures the company, API credential, permissions and default published offer outside the API.') ||
-  !partnerDocumentationPage.includes('Gridex konfigurerar bolag, API-credential, permissions') ||
-  !partnerDocumentationPage.includes('inte interna tenant-')
+  !developerPage.includes('Gridex manages the account configuration and product mapping outside the API') ||
+  !developerPage.includes('the partner sends business data and uses the public references returned in responses')
 ) {
-  failures.push('Unified Partner guide must state that company/product/offer configuration remains Gridex-managed.')
+  failures.push('Unified Partner guide must state that account/product configuration remains Gridex-managed and integrations send business data only.')
 }
 if (!partnerRedirectPage.includes("redirect('/developers/customer-portal-api#partner-api')")) {
   failures.push('Legacy Partner developer URL must redirect to the unified API guide.')
 }
-if (!customerPortalRoute.includes('partnerOpenApi') || !customerPortalRoute.includes('PUBLIC_API_ENDPOINT_ROWS')) {
+if (!developerPage.includes('partnerOpenApi') || !developerPage.includes('PUBLIC_API_ENDPOINT_ROWS')) {
   failures.push('Unified API guide must derive endpoint tables from canonical registries.')
 }
 
 const sensitiveDocumentationPatterns = [
   ['personal email address', /heke99@live\.se/i],
-  ['tenant-specific GRIDEX-WEB external id', /GRIDEX-WEB-[A-Z0-9-]+/],
+  ['organization-specific GRIDEX-WEB external id', /GRIDEX-WEB-[A-Z0-9-]+/],
   ['personal customer name', /Hekmat Hourani/i],
-  ['tenant-specific auth placeholder', /gridex-web-supabase-session-user-id/i],
+  ['organization-specific auth placeholder', /gridex-web-supabase-session-user-id/i],
 ]
-for (const [label, pattern] of [
-  ...sensitiveDocumentationPatterns,
-  ['production-looking DX customer number', /DX-[0-9]{4,}/],
-]) {
-  if (pattern.test(partnerDocumentationPage)) {
-    failures.push(`Canonical Partner documentation contains ${label}; examples must remain tenant-neutral.`)
-  }
-}
 for (const [label, pattern] of sensitiveDocumentationPatterns) {
+  if (pattern.test(developerPage)) {
+    failures.push(`Canonical API documentation contains ${label}; examples must remain organization-neutral.`)
+  }
   if (pattern.test(legacyWebsiteGuide)) {
     failures.push(`Legacy Website integration documentation contains ${label}; examples must remain synthetic.`)
   }
@@ -184,13 +191,18 @@ for (const forbiddenPartnerInput of [
 }
 
 for (const requiredLegacyTerm of [
-  'powerOfAttorney',
-  'textVersionId',
-  'next_step',
-  'automatic_processing',
+  `/developers/customer-portal-api`,
+  `/api/v1/openapi/website-integration-v1.json`,
+  `Current contract: **${currentVersion}**`,
+  'The API credential determines the organization and permissions.',
 ]) {
   if (!legacyWebsiteGuide.includes(requiredLegacyTerm)) {
-    failures.push(`Legacy Website API guide is missing ${requiredLegacyTerm}.`)
+    failures.push(`Legacy Website API pointer is missing ${requiredLegacyTerm}.`)
+  }
+}
+for (const forbiddenLegacyTerm of ['tenant_reference', 'company_id', 'tenant_email_outbox']) {
+  if (legacyWebsiteGuide.includes(forbiddenLegacyTerm)) {
+    failures.push(`Legacy Website API pointer leaks internal term ${forbiddenLegacyTerm}.`)
   }
 }
 
@@ -208,4 +220,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log('API documentation examples OK (unified human guide + canonical Website/Partner sources).')
+console.log(`API documentation examples OK (${currentVersion}; unified human guide + canonical Website/Partner sources).`)

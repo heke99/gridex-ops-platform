@@ -1137,11 +1137,11 @@ export function publicContractResponse(offer: PublicContractOffer) {
       visibility: websiteVisibility,
       price_areas: offer.price_areas ?? [],
       vat_rate: vatRate,
-      market_price_responsibility: offer.contract_type === "fixed" ? "not_applicable" : "ops_quote",
+      market_price_responsibility: offer.contract_type === "fixed" ? "not_applicable" : "gridex_quote",
       calculation_contract: {
         includes_all_applicable_components: true,
         hidden_components_must_be_calculated: true,
-        market_price_supplied_by_ops: offer.contract_type !== "fixed",
+        market_price_supplied_by_gridex: offer.contract_type !== "fixed",
       },
       interval_resolution: clean(offer.pricing_snapshot?.interval_resolution),
       energy_direction: energyDirection,
@@ -1193,8 +1193,8 @@ export function publicContractResponse(offer: PublicContractOffer) {
       portfolio_price: portfolioPrice,
       portfolio_monthly_prices: portfolioMonthlyPrices,
       portfolio_method: portfolioMethod,
-      // OPS does not expose internally sourced market indications to tenant
-      // websites. Tenants source the public market value used by calculators.
+      // Gridex does not expose internal market indications through the public contract feed.
+      // Customer-facing calculators use the documented Gridex market-price and quote endpoints.
       portfolio_indications: [],
       portfolio_management_fee: portfolioManagementComponent
           ? {
@@ -1259,11 +1259,11 @@ export function publicContractResponse(offer: PublicContractOffer) {
       summary_price_components: summaryComponents,
       website_visibility: websiteVisibility,
       market_price_responsibility:
-        offer.contract_type === "fixed" ? "not_applicable" : "ops_quote",
+        offer.contract_type === "fixed" ? "not_applicable" : "gridex_quote",
       calculation_contract: {
         includes_all_applicable_components: true,
         hidden_components_must_be_calculated: true,
-        market_price_supplied_by_ops: offer.contract_type !== "fixed",
+        market_price_supplied_by_gridex: offer.contract_type !== "fixed",
       },
       portfolio_method: portfolioMethod,
       portfolio_monthly_prices: portfolioMonthlyPrices,

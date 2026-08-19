@@ -29,7 +29,8 @@ const reconciliation = read('lib/website/customerApplicationReconciliation.ts')
 const cron = read('app/api/internal/customer-operations/cron/route.ts')
 const emailEvents = read('lib/email/emailEvents.ts')
 const emailTemplates = read('lib/email/emailTemplates.ts')
-const docs = read('docs/external-website-api-integration-guide.md')
+const developerDocs = read('app/developers/customer-portal-api/page.tsx')
+const legacyDocs = read('docs/external-website-api-integration-guide.md')
 const openapi = fs.readFileSync(path.join(root, 'docs/openapi/website-integration-v1.json'), 'utf8')
 const lifecycle = read('lib/customer-notifications/notificationOrchestrator.ts')
 
@@ -79,9 +80,24 @@ expect(continuation.includes('power_of_attorney_required_notification_not_queued
 expect(exists('app/admin/website-applications/[id]/page.tsx') && read('app/admin/website-applications/[id]/page.tsx').includes('Workflowhändelser'), 'admin application view exposes workflow transitions and jobs')
 expect(read('app/admin/website-applications/actions.ts').includes('requeueWebsiteApplicationContinuationAction'), 'admin can safely requeue the canonical continuation row')
 
-expect(docs.includes('powerOfAttorney') && docs.includes('facility_information_lookup'), 'tenant guide documents structured externally-sendable POA')
-expect(docs.includes('/api/v1/website/customer-applications/{application_number}'), 'tenant guide documents the application status endpoint')
-expect(openapi.includes('CustomerApplicationStatus') && openapi.includes('/api/v1/website/customer-applications/{application_number}'), 'OpenAPI exposes the tenant-scoped status endpoint')
+expect(
+  developerDocs.includes('powerOfAttorney') &&
+    developerDocs.includes('facility_information_lookup') &&
+    developerDocs.includes('textVersionId'),
+  'canonical developer guide documents structured externally-sendable POA',
+)
+expect(
+  developerDocs.includes('/website/customer-applications/APP-2026-000123') &&
+    developerDocs.includes('application_number') &&
+    developerDocs.includes('Status and lifecycle'),
+  'canonical developer guide documents the application status endpoint',
+)
+expect(
+  legacyDocs.includes('/developers/customer-portal-api') &&
+    !legacyDocs.includes('tenant_email_outbox'),
+  'legacy website guide delegates details to the canonical public guide without internal queue terminology',
+)
+expect(openapi.includes('CustomerApplicationStatus') && openapi.includes('/api/v1/website/customer-applications/{application_number}'), 'OpenAPI exposes the organization-scoped status endpoint')
 expect(exists('app/api/v1/website/customer-applications/[applicationId]/route.ts') && read('lib/website/customerApplicationStatus.ts').includes(".eq('application_number', input.applicationNumber)"), 'status endpoint route exists')
 expect(exists('lib/website/customerApplicationWorkflowBridge.ts'), 'downstream facility/Ediel outcomes correlate back to the original workflow')
 

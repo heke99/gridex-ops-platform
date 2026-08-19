@@ -16,13 +16,19 @@ describe('Partner API developer route stays supplier-facing', () => {
       'api_client_not_launch_ready',
       'integration_receipt_not_verified',
       'integration_capability_not_ready',
+      'company_id',
+      'tenant_reference',
+      'tenant_email_outbox',
     ]) {
       expect(layout).not.toContain(internalTerm)
       expect(page).not.toContain(internalTerm)
     }
     expect(page).toContain("from '@/lib/partner-api/openApi'")
     expect(page).toContain('partnerOpenApi')
-    expect(page).toContain('Tack-sida och avtalsbekräftelse')
+    expect(page).toContain('Successful checkout response')
+    expect(page).toContain('data.checkout')
     expect(page).toContain('thank_you_ready')
+    expect(page).toContain('Gridex platform')
+    expect(page).toContain('Your integration')
   })
 })

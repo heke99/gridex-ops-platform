@@ -246,7 +246,7 @@ if (integrationContextSchema?.additionalProperties === true) {
 const publicContextCapabilities = [
   'website_checkout_ready',
   'customer_portal_ready',
-  'complete_tenant_website_ready',
+  'complete_integration_ready',
   'required_website_scopes',
   'missing_website_scopes',
   'required_customer_portal_scopes',

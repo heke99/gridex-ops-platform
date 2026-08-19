@@ -8,6 +8,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import { postPublicWebhook } from '@/lib/integrations/publicWebhookTransport'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
+import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 
 type WebhookSubscriptionRow = {
   id: string
@@ -99,7 +100,7 @@ type WebhookEventProjection = {
 }
 
 export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProjection>> = Object.freeze({
-  'contracts.publication.changed': { dataKeys: ['channel', 'publication_revision', 'reason', 'tenant_reference', 'timestamp'] },
+  'contracts.publication.changed': { dataKeys: ['channel', 'publication_revision', 'reason', 'timestamp'] },
   'contract.closed': { dataKeys: ['contract_reference', 'offer_reference', 'reason'] },
   'contract.application_received': { dataKeys: ['application_number', 'status', 'offer_reference'] },
   'contract.created': { dataKeys: ['contract_reference', 'application_number', 'offer_reference', 'status'] },
@@ -164,6 +165,8 @@ export function buildPublicWebhookPayload(
   event: DomainEventRow,
   tenantReference: string,
 ) {
+  const organizationReference = publicOrganizationReference(tenantReference)
+  if (!organizationReference) throw new Error('webhook_public_organization_reference_unavailable')
   const sourceData = event.payload ?? {}
   const data = projectWebhookData(event.event_type, sourceData)
   const customerNumber = publicText(sourceData, 'customer_number')
@@ -186,7 +189,7 @@ export function buildPublicWebhookPayload(
     event_id: opaqueReference('event', tenantReference, event.id),
     event_type: event.event_type,
     created_at: event.occurred_at,
-    tenant_reference: tenantReference,
+    organization_reference: organizationReference,
     environment: eventEnvironment(sourceData),
     aggregate: {
       type: event.aggregate_type,
@@ -254,7 +257,7 @@ function isCanonicalStoredPayload(
     typeof payload.event_id === 'string' &&
     payload.event_id.startsWith('event_') &&
     typeof payload.event_type === 'string' &&
-    typeof payload.tenant_reference === 'string' &&
+    typeof payload.organization_reference === 'string' &&
     typeof payload.contract_schema_version === 'string' &&
     typeof aggregate?.reference === 'string' &&
     payload.id === undefined &&
@@ -591,14 +594,14 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
 
     try {
       const storedPayload = await publicPayloadForDelivery(delivery)
-      const tenantReference = String(storedPayload.tenant_reference ?? '')
-      if (!tenantReference) throw new Error('webhook_tenant_reference_missing')
+      const organizationReference = String(storedPayload.organization_reference ?? '')
+      if (!organizationReference) throw new Error('webhook_organization_reference_missing')
       const publicPayload = isPartnerSubscription(subscription)
         ? partnerWebhookPayload(storedPayload)
         : storedPayload
       publicDeliveryId = opaqueReference(
         'delivery',
-        tenantReference,
+        organizationReference,
         delivery.id,
       )
       const body = JSON.stringify({

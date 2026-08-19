@@ -45,7 +45,7 @@ describe('canonical public API release', () => {
     )
   })
 
-  it('aligns legacy Website API OpenAPI, runtime and database on mandatory pre-authentication', () => {
+  it('aligns the public Website API guide, runtime and database on mandatory pre-authentication', () => {
     const legacyGuide = readFileSync(
       'docs/external-website-api-integration-guide.md',
       'utf8',
@@ -63,8 +63,13 @@ describe('canonical public API release', () => {
     expect(application.required).toEqual(
       expect.arrayContaining(['auth_user_id', 'customer_portal_user_id']),
     )
-    expect(legacyGuide).toContain('Frontend får aldrig anropa OPS direkt med API-nyckel')
-    expect(legacyGuide).toContain('API-nyckeln avgör tenant, bolag och scopes')
+    expect(legacyGuide).toContain('The canonical human-readable documentation is served at')
+    expect(legacyGuide).toContain('The API credential determines the organization and permissions.')
+    expect(legacyGuide).toContain('**Gridex platform** owns published electricity offers')
+    expect(legacyGuide).toContain('**Your integration** owns the customer experience')
+    expect(legacyGuide).not.toMatch(/\btenant\b/i)
+    expect(legacyGuide).not.toMatch(/\bOPS\b/)
+    expect(legacyGuide).not.toContain('company_id')
     expect(runtime).toContain('portal_auth_identity_required')
     expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)
     expect(migration).toContain('alter column portal_identity_required set default true')

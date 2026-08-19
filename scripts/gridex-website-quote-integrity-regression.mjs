@@ -34,7 +34,7 @@ const finalize = fs.readFileSync(
   new URL('./finalize-openapi-release.cjs', import.meta.url),
   'utf8',
 )
-assert.match(finalize, /const version = '2026-08-19.1'/)
+assert.match(finalize, /const version = '2026-08-19.2'/)
 assert.match(finalize, /quoteData.properties.offer = permissiveObject/)
 assert.match(finalize, /["']offer["']/)
 assert.ok(
@@ -42,7 +42,7 @@ assert.ok(
   'finalize must re-normalize contract versions after late example assignment',
 )
 
-const version = '2026-08-19.1'
+const version = '2026-08-19.2'
 const versionFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
   'scripts/check-api-compatibility.cjs',
@@ -56,7 +56,7 @@ for (const relative of versionFiles) {
 }
 assert.ok(
   fs.existsSync(
-    new URL('../docs/fixtures/public-contracts-response-2026-08-19.1.json', import.meta.url),
+    new URL('../docs/fixtures/public-contracts-response-2026-08-19.2.json', import.meta.url),
   ),
   'current public-contract fixture is missing',
 )
@@ -146,26 +146,29 @@ for (const field of [
   )
 }
 
-// The immutable 2026-08-19.1 website contract remains the compatibility
+// The immutable 2026-08-19.2 website contract remains the compatibility
 // source above. The public legacy developer URL now intentionally delegates to
 // the simpler canonical Partner API guide, so it must not embed a second copy
 // of the legacy contract schema/version.
-const legacyDeveloperRoute = fs.readFileSync(
+const developerRoute = fs.readFileSync(
   new URL('../app/developers/customer-portal-api/page.tsx', import.meta.url),
   'utf8',
 )
-assert.ok(
-  legacyDeveloperRoute.includes("import PartnerApiDocumentationPage from '../partner-api/page'"),
-  'legacy customer-portal developer URL must delegate to the canonical Partner API guide',
-)
-assert.ok(
-  legacyDeveloperRoute.includes('<PartnerApiDocumentationPage />'),
-  'legacy developer route must render the canonical Partner API guide',
-)
-assert.ok(
-  !legacyDeveloperRoute.includes('"contract_schema_version": "2026-08-05.1"'),
-  'legacy developer route must not pin stale contract schema versions',
-)
+for (const marker of [
+  'Gridex API',
+  'Responsibilities',
+  'Gridex platform',
+  'Your integration',
+  'Website checkout',
+  'Customer Portal API',
+  'Partner API',
+  'Webhooks',
+]) {
+  assert.ok(developerRoute.includes(marker), `developer route is missing professional marker: ${marker}`)
+}
+for (const forbidden of ['Mina sidor', 'Tack-sida', 'Webhooks till tenant', 'tenant_email_outbox+communication_logs']) {
+  assert.ok(!developerRoute.includes(forbidden), `developer route still contains legacy marker: ${forbidden}`)
+}
 
 // Create may accept mixed-case price_area that matches a resolution case-
 // insensitively; validate must not reject those quotes, and new creates must

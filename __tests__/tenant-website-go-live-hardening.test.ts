@@ -180,28 +180,35 @@ describe('tenant website canonical go-live hardening', () => {
     expect(lifecycleResumeGuard).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
   })
 
-  it('keeps tenant setup generic and free from the previously leaked concrete examples', () => {
+  it('keeps public customer-portal setup professional and free from leaked concrete examples', () => {
     for (const forbidden of [
       'heke99@live.se',
       'DX-100023',
       'GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f',
       'Hekmat Hourani',
+      'tenant-customer-001234',
+      'company_id',
+      'tenant_reference',
     ]) {
       expect(docs).not.toContain(forbidden)
     }
-    expect(docs).toContain('GRIDEX_API_KEY')
-    expect(docs).toContain('customer@example.com')
-    expect(docs).toContain('tenant-customer-001234')
-    expect(docs).toContain('aldrig skicka ett fritt `company_id`')
+    expect(docs).toContain('2026-08-19.2')
+    expect(docs).toContain('/developers/customer-portal-api#customer-portal')
+    expect(docs).toContain('/api/v1/openapi/customer-portal-v1.json')
+    expect(docs).toContain('server-to-server')
+    expect(docs).toContain('organization')
+    expect(docs).toContain('verified linked customer identity')
+    expect(docs).toContain('Internal database identifiers are not part of the public integration contract')
   })
 
-  it('documents every readiness denial emitted by normal atomic authentication', () => {
+  it('keeps internal readiness denials private while preserving fail-closed authentication', () => {
     for (const code of [
       'api_client_not_launch_ready',
       'integration_receipt_not_verified',
       'integration_capability_not_ready',
     ]) {
-      expect(docs).toContain(code)
+      expect(migration).toContain(code)
+      expect(docs).not.toContain(code)
     }
   })
 })

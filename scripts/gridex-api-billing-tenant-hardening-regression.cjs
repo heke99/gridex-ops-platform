@@ -24,31 +24,44 @@ assert.ok(projectionStart >= 0 && projectionEnd > projectionStart)
 const projection = tenantContext.slice(projectionStart, projectionEnd)
 assert.match(integrationContextRoute, /projectPublicExternalTenantContext\(/)
 for (const internalField of [
-  'portal_identity_required',
-  'portal_url',
-  'webhook_delivery_ready',
-  'status_delivery_modes',
-  'blockers',
-  'warnings',
-  'checks',
+  'portal_identity_required:',
+  'portal_url:',
+  'webhook_delivery_ready:',
+  'status_delivery_modes:',
+  'blockers:',
+  'warnings:',
+  'checks:',
+  'tenant_reference:',
+  'complete_tenant_website_ready:',
 ]) {
   assert.doesNotMatch(
     projection,
-    new RegExp(`${internalField}\\s*:`),
+    new RegExp(internalField.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     `public integration context leaks ${internalField}`,
   )
 }
+assert.match(tenantContext, /complete_tenant_website_ready:\s*boolean/)
+assert.match(
+  projection,
+  /complete_integration_ready:\s*context\.capabilities\.complete_tenant_website_ready/,
+)
+assert.match(
+  projection,
+  /organization_reference:\s*organizationReference/,
+)
 
 const website = JSON.parse(
   read('docs/openapi/website-integration-v1.json'),
 )
 assert.equal(website.info.version, currentContractVersion)
-const capabilitySchema =
-  website.components.schemas.IntegrationContext.properties.capabilities
+const integrationContextSchema = website.components.schemas.IntegrationContext
+assert.ok(integrationContextSchema.properties.organization_reference)
+assert.ok(!integrationContextSchema.properties.tenant_reference)
+const capabilitySchema = integrationContextSchema.properties.capabilities
 for (const field of [
   'website_checkout_ready',
   'customer_portal_ready',
-  'complete_tenant_website_ready',
+  'complete_integration_ready',
   'required_website_scopes',
   'missing_website_scopes',
   'required_customer_portal_scopes',
@@ -58,6 +71,21 @@ for (const field of [
 ]) {
   assert.ok(capabilitySchema.properties[field], `OpenAPI missing ${field}`)
   assert.match(projection, new RegExp(`${field}\\s*:`))
+}
+for (const internalField of [
+  'complete_tenant_website_ready',
+  'portal_identity_required',
+  'portal_url',
+  'webhook_delivery_ready',
+  'status_delivery_modes',
+  'blockers',
+  'warnings',
+  'checks',
+]) {
+  assert.ok(
+    !capabilitySchema.properties[internalField],
+    `OpenAPI leaks internal capability ${internalField}`,
+  )
 }
 
 const partnerInvoices = read('lib/customer-portal/partnerInvoices.ts')

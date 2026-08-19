@@ -28,7 +28,7 @@ describe('public contract API query contract', () => {
     expect(() => parsePublicContractsQuery(request('?debug=1'))).toThrow(PublicContractsQueryError)
   })
 
-  it('matches only the exact tenant/channel ETag token', () => {
+  it('matches only the exact organization/channel ETag token', () => {
     expect(ifNoneMatchMatches(request('', { 'if-none-match': '"other", "contracts-abc"' }), '"contracts-abc"')).toBe(true)
     expect(ifNoneMatchMatches(request('', { 'if-none-match': '"other"' }), '"contracts-abc"')).toBe(false)
   })
@@ -41,10 +41,10 @@ describe('public contract API query contract', () => {
 
   it('changes ETag whenever the actual contract representation changes', () => {
     const base = {
-      tenantReference: 'tenant_public',
+      organizationReference: 'organization_xxxxxxxxxxxxxxxxxxxx',
       channel: 'website' as const,
       customerType: 'private' as const,
-      contractSchemaVersion: '2026-08-03.1',
+      contractSchemaVersion: '2026-08-19.2',
       contracts: [{ offer_reference: 'offer_1', monthly_fee: 49 }],
       feedState: 'contracts_present' as const,
       emptyFeedAuthorization: null,

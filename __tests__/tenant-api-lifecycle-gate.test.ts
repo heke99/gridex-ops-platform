@@ -7,12 +7,12 @@ describe("central tenant API lifecycle gate", () => {
   });
 
   it.each([
-    ["onboarding", "tenant_not_operationally_ready", 403],
-    ["paused", "tenant_paused", 423],
-    ["suspended", "tenant_suspended", 403],
-    ["closed", "tenant_closed", 410],
-    ["archived", "tenant_inactive", 410],
-    ["pending_deletion", "tenant_inactive", 410],
+    ["onboarding", "organization_not_operationally_ready", 403],
+    ["paused", "organization_paused", 423],
+    ["suspended", "organization_suspended", 403],
+    ["closed", "organization_closed", 410],
+    ["archived", "organization_inactive", 410],
+    ["pending_deletion", "organization_inactive", 410],
   ])("blocks %s tenants with a stable public error", (status, code, httpStatus) => {
     expect(tenantApiAccessError(status)).toMatchObject({
       code,
@@ -22,7 +22,7 @@ describe("central tenant API lifecycle gate", () => {
 
   it("fails closed when tenant status cannot be classified", () => {
     expect(tenantApiAccessError(undefined)).toMatchObject({
-      code: "tenant_status_unavailable",
+      code: "organization_status_unavailable",
       status: 503,
     });
   });

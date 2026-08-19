@@ -23,6 +23,7 @@ import {
 import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publicationDto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
+import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -118,6 +119,8 @@ export async function GET(request: NextRequest) {
       loadExternalTenantContext(auth.client),
     ])
     currentTenantReference = tenant.tenant_reference
+    const organizationReference = publicOrganizationReference(tenant.tenant_reference)
+    if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     const headers = responseHeaders({
       limit: auth.rateLimit.limit,
       remaining: auth.rateLimit.remaining,
@@ -161,7 +164,7 @@ export async function GET(request: NextRequest) {
         console.error('[public-contracts] rejected malformed publication', {
           requestId: currentRequestId,
           companyId: auth.context.companyId,
-          tenantReference: tenant.tenant_reference,
+          organizationReference,
           apiClientId: auth.client.id,
           channel: 'website',
           offerReference,
@@ -241,7 +244,7 @@ export async function GET(request: NextRequest) {
       data,
       contracts: data,
       meta: {
-        tenant_reference: tenant.tenant_reference,
+        organization_reference: organizationReference,
         api_version: 'v1',
         channel: 'website',
         count: data.length,
@@ -256,7 +259,7 @@ export async function GET(request: NextRequest) {
       request_id: currentRequestId,
     }
     const representationEtag = buildPublicContractRepresentationEtag({
-      tenantReference: tenant.tenant_reference,
+      organizationReference,
       channel: 'website',
       customerType: query.customerType,
       contractSchemaVersion: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,

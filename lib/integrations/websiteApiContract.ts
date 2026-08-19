@@ -1,7 +1,7 @@
 import type { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import type { ExternalCustomerType } from '@/lib/customers/externalCustomerType'
 
-export type TenantReference = `tenant_${string}`
+export type OrganizationReference = `organization_${string}`
 export type QuoteReference = `quote_${string}`
 export type OfferReference = `offer_${string}`
 export type PublicationChannel = 'website' | 'api'
@@ -58,7 +58,7 @@ export type WebsitePublicContractPricing = {
   markup?: Record<string, unknown> | null
   variable_fee?: Record<string, unknown> | null
   vat_rate: number | null
-  market_price_responsibility: 'ops_quote' | 'not_applicable'
+  market_price_responsibility: 'gridex_quote' | 'not_applicable'
   calculation_components: WebsitePricingComponent[]
   components: WebsitePricingComponent[]
   display_components: WebsitePricingComponent[]
@@ -66,7 +66,7 @@ export type WebsitePublicContractPricing = {
   calculation_contract: {
     includes_all_applicable_components: true
     hidden_components_must_be_calculated: true
-    market_price_supplied_by_ops: boolean
+    market_price_supplied_by_gridex: boolean
   }
 }
 
@@ -84,7 +84,7 @@ export type WebsitePublicContract = {
 }
 
 export type ExternalApiMeta = {
-  tenant_reference: TenantReference
+  organization_reference: OrganizationReference
   api_version: 'v1'
   channel?: PublicationChannel
   publication_revision?: number
@@ -372,7 +372,7 @@ export type ContractsPublicationChangedWebhook = {
   delivery_id: string
   event_type: 'contracts.publication.changed'
   created_at: string
-  tenant_reference: TenantReference
+  organization_reference: OrganizationReference
   aggregate: {
     type: 'contract_publication'
     reference: string

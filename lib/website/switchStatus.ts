@@ -33,7 +33,7 @@ export async function loadWebsiteSwitchStatus(input: { companyId: string; applic
     .maybeSingle()
   if (applicationError) throw applicationError
   if (!application) {
-    throw new WebsiteSwitchStatusError({ message: 'Kundansökan hittades inte för denna tenant.', code: 'application_not_found', status: 404 })
+    throw new WebsiteSwitchStatusError({ message: 'The application could not be found.', code: 'application_not_found', status: 404 })
   }
 
   const responsePayload = (application.response_payload ?? {}) as Record<string, unknown>

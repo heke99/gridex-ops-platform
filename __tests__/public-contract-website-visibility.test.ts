@@ -204,9 +204,9 @@ describe("public contract calculation and website visibility", () => {
     expect(response.pricing.calculation_contract).toEqual({
       includes_all_applicable_components: true,
       hidden_components_must_be_calculated: true,
-      market_price_supplied_by_ops: true,
+      market_price_supplied_by_gridex: true,
     });
-    expect(response.pricing.market_price_responsibility).toBe("ops_quote");
+    expect(response.pricing.market_price_responsibility).toBe("gridex_quote");
   });
 
   it("always exposes and displays fixed price for fixed agreements", () => {
@@ -258,7 +258,7 @@ describe("public contract calculation and website visibility", () => {
     expect(response.pricing.market_price_responsibility).toBe(
       "not_applicable",
     );
-    expect(response.pricing.calculation_contract.market_price_supplied_by_ops).toBe(
+    expect(response.pricing.calculation_contract.market_price_supplied_by_gridex).toBe(
       false,
     );
   });
@@ -420,6 +420,8 @@ describe("public contract calculation and website visibility", () => {
       "portfolio_id",
       "provider-secret",
       "internal-source-id",
+      "market_price_supplied_by_ops",
+      "ops_quote",
     ]) {
       expect(serialized).not.toContain(forbidden);
     }
