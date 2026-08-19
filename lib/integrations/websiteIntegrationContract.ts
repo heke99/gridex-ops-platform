@@ -26,10 +26,16 @@ export const CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIG
 export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] as const
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
 
+/**
+ * 2026-08-19.2 intentionally replaces legacy public partition terminology
+ * with organization-facing fields. The active Gridex website does not consume
+ * the removed metadata aliases, but generic clients upgrading from .1 must
+ * adopt the .2 public field names.
+ */
 export const API_COMPATIBILITY_CLASSIFICATION = {
-  release: 'backward-compatible',
-  website: 'backward-compatible',
-  customerPortal: 'backward-compatible',
+  release: 'breaking-client-update-required',
+  website: 'breaking-client-update-required',
+  customerPortal: 'breaking-client-update-required',
 } as const
 export type CompatibilityClassification =
   (typeof API_COMPATIBILITY_CLASSIFICATION)[keyof typeof API_COMPATIBILITY_CLASSIFICATION]
