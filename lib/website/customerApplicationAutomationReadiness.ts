@@ -1,6 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { DEFAULT_EMAIL_EVENT_RULES } from '@/lib/email/emailEvents'
-import { DEFAULT_EMAIL_TEMPLATES } from '@/lib/email/emailTemplates'
+import { DEFAULT_EMAIL_TEMPLATES, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
+import { renderEmailTemplate } from '@/lib/email/templateRenderer'
+import { sampleEmailVariablesForEvent } from '@/lib/email/eventVariableContracts'
 import { validateAutomationUserConfig } from '@/lib/customer-operations/automationConfig'
 
 export type CustomerApplicationAutomationReadiness = {
@@ -29,11 +31,31 @@ const MANDATORY_EMAIL_KEYS = new Set([
   'switch.action_required',
 ])
 
+function templateRenderCheck(
+  templatesByKey: Map<string, CompanyEmailTemplate>,
+  keys: string[],
+): { ok: boolean; failures: string[] } {
+  const failures: string[] = []
+  for (const key of keys) {
+    const template = templatesByKey.get(key)
+    if (!template || template.is_active === false) {
+      failures.push(`${key}:missing_or_inactive`)
+      continue
+    }
+    try {
+      renderEmailTemplate(template, sampleEmailVariablesForEvent(key), { eventKey: key })
+    } catch (error) {
+      failures.push(`${key}:${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  return { ok: failures.length === 0, failures }
+}
+
 export async function evaluateCustomerApplicationAutomationReadiness(companyId: string): Promise<CustomerApplicationAutomationReadiness> {
   const [automationUser, sender, templates, rules, manualMailbox, contacts] = await Promise.all([
     validateAutomationUserConfig(),
     supabaseService.from('company_email_settings').select('id').eq('company_id', companyId).in('verification_status', ['verified', 'completed', 'active']).limit(1),
-    supabaseService.from('company_email_templates').select('template_key,is_active').eq('company_id', companyId).eq('language', 'sv'),
+    supabaseService.from('company_email_templates').select('id,company_id,template_key,name,subject,body_html,body_text,language,is_active,created_at,updated_at').eq('company_id', companyId).eq('language', 'sv'),
     supabaseService.from('email_event_rules').select('event_key,template_key,enabled,is_active').eq('company_id', companyId),
     supabaseService.from('manual_communication_mailboxes').select('id,company_id').eq('environment', 'production').eq('is_active', true).eq('is_verified', true).or(`company_id.is.null,company_id.eq.${companyId}`).limit(1),
     supabaseService.from('grid_owner_contact_channels').select('id').eq('channel_type', 'email').eq('is_enabled', true).or(`company_id.is.null,company_id.eq.${companyId}`).limit(1),
@@ -43,14 +65,17 @@ export async function evaluateCustomerApplicationAutomationReadiness(companyId: 
     if (result.error && !schemaMissing(result.error)) throw result.error
   }
 
-  const templateRows = (templates.data ?? []) as Array<{ template_key: string; is_active: boolean | null }>
+  const templateRows = (templates.data ?? []) as CompanyEmailTemplate[]
   const ruleRows = (rules.data ?? []) as Array<{ event_key: string; template_key: string; enabled: boolean; is_active: boolean | null }>
   const activeTemplateKeys = new Set(templateRows.filter((row) => row.is_active !== false).map((row) => row.template_key))
   const activeRulePairs = new Set(ruleRows.filter((row) => row.enabled === true && row.is_active !== false).map((row) => `${row.event_key}:${row.template_key}`))
+  const templatesByKey = new Map(templateRows.map((row) => [row.template_key, row]))
   const requiredTemplateKeys = DEFAULT_EMAIL_TEMPLATES.filter((row) => MANDATORY_EMAIL_KEYS.has(row.template_key)).map((row) => row.template_key)
   const requiredRulePairs = DEFAULT_EMAIL_EVENT_RULES.filter((row) => MANDATORY_EMAIL_KEYS.has(row.event_key)).map((row) => `${row.event_key}:${row.template_key}`)
   const optionalTemplateKeys = DEFAULT_EMAIL_TEMPLATES.filter((row) => !MANDATORY_EMAIL_KEYS.has(row.template_key)).map((row) => row.template_key)
   const optionalRulePairs = DEFAULT_EMAIL_EVENT_RULES.filter((row) => !MANDATORY_EMAIL_KEYS.has(row.event_key)).map((row) => `${row.event_key}:${row.template_key}`)
+  const requiredRender = templateRenderCheck(templatesByKey, requiredTemplateKeys)
+  const optionalRender = templateRenderCheck(templatesByKey, optionalTemplateKeys)
 
   const checks = {
     automation_user_configured: validUuid(process.env.GRIDEX_AUTOMATION_USER_ID),
@@ -59,8 +84,10 @@ export async function evaluateCustomerApplicationAutomationReadiness(companyId: 
     verified_customer_email_sender: Boolean(sender.data?.length),
     required_email_templates_active: requiredTemplateKeys.every((key) => activeTemplateKeys.has(key)),
     required_email_rules_active: requiredRulePairs.every((key) => activeRulePairs.has(key)),
+    required_email_templates_renderable: requiredRender.ok,
     optional_email_templates_active: optionalTemplateKeys.every((key) => activeTemplateKeys.has(key)),
     optional_email_rules_active: optionalRulePairs.every((key) => activeRulePairs.has(key)),
+    optional_email_templates_renderable: optionalRender.ok,
     manual_operations_mailbox_ready: Boolean(manualMailbox.data?.length),
     grid_owner_email_contacts_available: Boolean(contacts.data?.length),
   }
@@ -73,8 +100,10 @@ export async function evaluateCustomerApplicationAutomationReadiness(companyId: 
   if (!checks.verified_customer_email_sender) blockers.push('Verifierad avsändaridentitet för obligatoriska kundmail saknas.')
   if (!checks.required_email_templates_active) blockers.push('En eller flera obligatoriska kundmailmallar saknas eller är inaktiva.')
   if (!checks.required_email_rules_active) blockers.push('En eller flera obligatoriska kundmailregler saknas eller är inaktiva.')
+  if (!checks.required_email_templates_renderable) blockers.push(`En eller flera obligatoriska kundmailmallar bryter mot eventets variabelkontrakt: ${requiredRender.failures.join(' | ')}`)
   if (!checks.optional_email_templates_active) warnings.push('En eller flera valfria statusmailmallar saknas eller är inaktiva.')
   if (!checks.optional_email_rules_active) warnings.push('En eller flera valfria statusmailregler saknas eller är inaktiva.')
+  if (!checks.optional_email_templates_renderable) warnings.push(`En eller flera valfria statusmailmallar kan inte renderas mot eventets variabelkontrakt: ${optionalRender.failures.join(' | ')}`)
   if (!checks.manual_operations_mailbox_ready) blockers.push('Verifierad production-mailbox för manuell nätägarkommunikation saknas.')
   if (!checks.grid_owner_email_contacts_available) warnings.push('Ingen aktiv nätägarkontakt via e-post hittades; berörda nätområden kommer kräva manuell granskning.')
 

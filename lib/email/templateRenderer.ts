@@ -1,7 +1,11 @@
+import type { CompanyEmailTemplate } from './emailTemplates'
 import {
   EMAIL_TEMPLATE_VARIABLES,
-  type CompanyEmailTemplate,
-} from './emailTemplates'
+  emailEventAvailableVariables,
+  emailEventRequiredVariables,
+  getEmailEventVariableContract,
+  type EmailTemplateVariable,
+} from './eventVariableContracts'
 
 const SUPPORTED_VARIABLES = new Set<string>(EMAIL_TEMPLATE_VARIABLES)
 const BALANCED_PLACEHOLDER = /\{\{([^{}]*)\}\}/g
@@ -34,6 +38,7 @@ export function extractEmailTemplateVariables(value: string): string[] {
 
 export function validateEmailTemplateVariableContract(
   template: Pick<CompanyEmailTemplate, 'template_key' | 'subject' | 'body_html' | 'body_text'>,
+  eventKey?: string | null,
 ) {
   const referenced = new Set([
     ...extractEmailTemplateVariables(template.subject),
@@ -47,6 +52,21 @@ export function validateEmailTemplateVariableContract(
       `email_template_unknown_variables:${template.template_key}:${labels.join(',')}`,
     )
   }
+
+  const contractKey = eventKey ?? template.template_key
+  const contract = getEmailEventVariableContract(contractKey)
+  if (contract) {
+    const available = emailEventAvailableVariables(contractKey)
+    const unavailable = [...referenced].filter(
+      (key) => !available.has(key as EmailTemplateVariable),
+    )
+    if (unavailable.length > 0) {
+      throw new Error(
+        `email_template_variables_unavailable_for_event:${contract.eventKey}:${unavailable.join(',')}`,
+      )
+    }
+  }
+
   return [...referenced]
 }
 
@@ -55,7 +75,12 @@ function renderValue(
   variables: EmailTemplateVariables,
   html: boolean,
   templateKey: string,
+  eventKey?: string | null,
 ) {
+  const contractKey = eventKey ?? templateKey
+  const contract = getEmailEventVariableContract(contractKey)
+  const required = contract ? emailEventRequiredVariables(contractKey) : null
+
   return value.replace(
     BALANCED_PLACEHOLDER,
     (_match, rawKey: string) => {
@@ -65,10 +90,15 @@ function renderValue(
           `email_template_unknown_variable:${templateKey}:${key || '<empty>'}`,
         )
       }
+
       const raw = variables[key]
       if (raw === null || raw === undefined || String(raw).trim() === '') {
-        throw new Error(`email_template_required_variable_missing:${templateKey}:${key}`)
+        if (required?.has(key as EmailTemplateVariable) || !contract) {
+          throw new Error(`email_template_required_variable_missing:${templateKey}:${key}`)
+        }
+        return ''
       }
+
       const text = String(raw)
       return html ? escapeHtml(text) : text
     },
@@ -78,19 +108,22 @@ function renderValue(
 export function renderEmailTemplate(
   template: CompanyEmailTemplate,
   variables: EmailTemplateVariables,
+  options: { eventKey?: string | null } = {},
 ) {
-  validateEmailTemplateVariableContract(template)
+  validateEmailTemplateVariableContract(template, options.eventKey)
   const subject = renderValue(
     template.subject,
     variables,
     false,
     template.template_key,
+    options.eventKey,
   )
   const html = renderValue(
     template.body_html,
     variables,
     true,
     template.template_key,
+    options.eventKey,
   )
   const text = template.body_text
     ? renderValue(
@@ -98,6 +131,7 @@ export function renderEmailTemplate(
         variables,
         false,
         template.template_key,
+        options.eventKey,
       )
     : stripHtml(html)
 
