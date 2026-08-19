@@ -1,12 +1,12 @@
 /**
- * Canonical public contract for a tenant website integration.
+ * Canonical public contract for website and customer-portal integrations.
  *
- * A production tenant must only configure one server-side secret:
- * `GRIDEX_API_KEY`. Tenant/company identity is derived from that key. The
- * production API base URL and request-field placement are part of the V1
- * contract and must never be controlled by tenant environment flags.
+ * A production integration configures one server-side credential:
+ * `GRIDEX_API_KEY`. Gridex derives the organization and permissions from that
+ * credential. Internal database identifiers are never part of the public V1
+ * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-19.1' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-19.2' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
