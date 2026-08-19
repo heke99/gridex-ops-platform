@@ -23,6 +23,10 @@ const omittedPublicSchemaNames = new Set([
 function publicString(value) {
   if (exactStringRenames.has(value)) return exactStringRenames.get(value)
   return value
+    .replace(/tenant_reference/gi, 'organization_reference')
+    .replace(/complete_tenant_website_ready/gi, 'complete_integration_ready')
+    .replace(/market_price_supplied_by_ops/gi, 'market_price_supplied_by_gridex')
+    .replace(/ops_quote/gi, 'gridex_quote')
     .replace(/\btenantens\b/gi, "the organization's")
     .replace(/\btenanters\b/gi, 'organizations')
     .replace(/\btenantbundet\b/gi, 'organization-scoped')
@@ -46,7 +50,7 @@ function transform(value) {
   const output = {}
   for (const [key, child] of Object.entries(value)) {
     if (omittedPublicSchemaNames.has(key)) continue
-    const renamedKey = exactStringRenames.get(key) ?? key.replace(/tenant/gi, 'organization')
+    const renamedKey = exactStringRenames.get(key) ?? publicString(key)
     output[renamedKey] = transform(child)
   }
   return output
