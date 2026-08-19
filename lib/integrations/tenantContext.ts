@@ -1,6 +1,9 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { type IntegrationApiClient } from '@/lib/integrations/apiAuth'
-import { publicReference } from '@/lib/integrations/publicReferences'
+import {
+  publicOrganizationReference,
+  publicReference,
+} from '@/lib/integrations/publicReferences'
 import { loadTenantWebsiteFlowReadiness, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
@@ -17,9 +20,9 @@ import {
 export class ExternalTenantContextError extends Error {
   readonly status: number
   readonly code:
-    | 'TENANT_NOT_FOUND'
-    | 'EXTERNAL_TENANT_REFERENCE_MISSING'
-    | 'TENANT_NOT_OPERATIONALLY_READY'
+    | 'ORGANIZATION_NOT_FOUND'
+    | 'INTEGRATION_CONFIGURATION_INCOMPLETE'
+    | 'ORGANIZATION_NOT_OPERATIONALLY_READY'
 
   constructor(input: {
     status: number
@@ -33,6 +36,7 @@ export class ExternalTenantContextError extends Error {
   }
 }
 
+/** Internal integration context. Internal partition terminology never crosses the public projection. */
 export type ExternalTenantContext = {
   tenant_reference: string
   api_client_reference: string
@@ -76,76 +80,76 @@ export type ExternalTenantContext = {
 /**
  * Public projection for GET /api/v1/integration/context.
  *
- * The readiness service intentionally carries internal diagnostics such as
- * blockers, warnings, checks and portal routing details. Those fields are not
- * part of the immutable 2026-08-04.3 IntegrationContext schema and must never
- * leak into the external response. Keeping the projection explicit prevents
- * runtime/OpenAPI drift from becoming a downstream pricing failure.
+ * Internal partition identifiers, database identifiers, readiness diagnostics,
+ * routing details and implementation-specific flags are deliberately omitted.
  */
 export type PublicExternalTenantContext = {
-  tenant_reference: ExternalTenantContext['tenant_reference']
+  organization_reference: string
   api_client_reference: ExternalTenantContext['api_client_reference']
   api_version: ExternalTenantContext['api_version']
   contract_version: ExternalTenantContext['contract_version']
   authoritative_identity: ExternalTenantContext['authoritative_identity']
-  configuration: ExternalTenantContext['configuration']
-  capabilities: Pick<
-    ExternalTenantContext['capabilities'],
-    | 'website_checkout_ready'
-    | 'customer_portal_ready'
-    | 'complete_tenant_website_ready'
-    | 'required_website_scopes'
-    | 'missing_website_scopes'
-    | 'required_customer_portal_scopes'
-    | 'missing_customer_portal_scopes'
-    | 'recommended_scopes'
-    | 'missing_recommended_scopes'
-  >
+  configuration: {
+    required_environment_variables: ExternalTenantContext['configuration']['required_environment_variables']
+    api_base_url: ExternalTenantContext['configuration']['api_base_url']
+    authentication: ExternalTenantContext['configuration']['authentication']
+    openapi_url: ExternalTenantContext['configuration']['openapi_url']
+    customer_portal_openapi_url: ExternalTenantContext['configuration']['customer_portal_openapi_url']
+    application_reference_location: ExternalTenantContext['configuration']['application_reference_location']
+  }
+  capabilities: {
+    website_checkout_ready: boolean
+    customer_portal_ready: boolean
+    complete_integration_ready: boolean
+    required_website_scopes: string[]
+    missing_website_scopes: string[]
+    required_customer_portal_scopes: string[]
+    missing_customer_portal_scopes: string[]
+    recommended_scopes: string[]
+    missing_recommended_scopes: string[]
+  }
 }
 
 export function projectPublicExternalTenantContext(
   context: ExternalTenantContext,
 ): PublicExternalTenantContext {
+  const organizationReference = publicOrganizationReference(context.tenant_reference)
+  if (!organizationReference) {
+    throw new ExternalTenantContextError({
+      status: 409,
+      code: 'INTEGRATION_CONFIGURATION_INCOMPLETE',
+      message: 'The integration configuration is incomplete.',
+    })
+  }
+
   return {
-    tenant_reference: context.tenant_reference,
+    organization_reference: organizationReference,
     api_client_reference: context.api_client_reference,
     api_version: context.api_version,
     contract_version: context.contract_version,
     authoritative_identity: context.authoritative_identity,
     configuration: {
-      required_environment_variables:
-        context.configuration.required_environment_variables,
+      required_environment_variables: context.configuration.required_environment_variables,
       api_base_url: context.configuration.api_base_url,
       authentication: {
         header: context.configuration.authentication.header,
         scheme: context.configuration.authentication.scheme,
-        server_side_only:
-          context.configuration.authentication.server_side_only,
+        server_side_only: context.configuration.authentication.server_side_only,
       },
       openapi_url: context.configuration.openapi_url,
-      customer_portal_openapi_url:
-        context.configuration.customer_portal_openapi_url,
-      application_reference_location:
-        context.configuration.application_reference_location,
-      tenant_id_environment_required:
-        context.configuration.tenant_id_environment_required,
-      company_id_environment_required:
-        context.configuration.company_id_environment_required,
+      customer_portal_openapi_url: context.configuration.customer_portal_openapi_url,
+      application_reference_location: context.configuration.application_reference_location,
     },
     capabilities: {
       website_checkout_ready: context.capabilities.website_checkout_ready,
       customer_portal_ready: context.capabilities.customer_portal_ready,
-      complete_tenant_website_ready:
-        context.capabilities.complete_tenant_website_ready,
+      complete_integration_ready: context.capabilities.complete_tenant_website_ready,
       required_website_scopes: context.capabilities.required_website_scopes,
       missing_website_scopes: context.capabilities.missing_website_scopes,
-      required_customer_portal_scopes:
-        context.capabilities.required_customer_portal_scopes,
-      missing_customer_portal_scopes:
-        context.capabilities.missing_customer_portal_scopes,
+      required_customer_portal_scopes: context.capabilities.required_customer_portal_scopes,
+      missing_customer_portal_scopes: context.capabilities.missing_customer_portal_scopes,
       recommended_scopes: context.capabilities.recommended_scopes,
-      missing_recommended_scopes:
-        context.capabilities.missing_recommended_scopes,
+      missing_recommended_scopes: context.capabilities.missing_recommended_scopes,
     },
   }
 }
@@ -161,8 +165,8 @@ export async function loadExternalTenantReference(companyId: string): Promise<st
     if (error.code === 'PGRST116') {
       throw new ExternalTenantContextError({
         status: 404,
-        code: 'TENANT_NOT_FOUND',
-        message: 'Tenantbolaget kunde inte hittas.',
+        code: 'ORGANIZATION_NOT_FOUND',
+        message: 'The organization associated with this API credential could not be found.',
       })
     }
     throw error
@@ -170,16 +174,16 @@ export async function loadExternalTenantReference(companyId: string): Promise<st
   if (String(data?.status ?? '') !== 'active') {
     throw new ExternalTenantContextError({
       status: 409,
-      code: 'TENANT_NOT_OPERATIONALLY_READY',
-      message: 'Tenantbolaget är inte operationellt aktivt.',
+      code: 'ORGANIZATION_NOT_OPERATIONALLY_READY',
+      message: 'The organization associated with this API credential is not currently active.',
     })
   }
   const tenantReference = String(data?.external_tenant_reference ?? '').trim()
   if (!tenantReference) {
     throw new ExternalTenantContextError({
       status: 409,
-      code: 'EXTERNAL_TENANT_REFERENCE_MISSING',
-      message: 'Tenantens externa referens saknas.',
+      code: 'INTEGRATION_CONFIGURATION_INCOMPLETE',
+      message: 'The integration configuration is incomplete.',
     })
   }
   return tenantReference
