@@ -1,4 +1,5 @@
 import { publicReference } from '@/lib/integrations/publicReferences'
+import { buildTenantCheckoutResult } from '@/lib/website/publicCheckoutResult'
 
 const PUBLIC_SCALAR_FIELDS = [
   'customer_number',
@@ -162,6 +163,19 @@ export function publicWebsiteCustomerApplicationData(
   const communication = publicCommunication(input.communication)
   if (communication) output.communication = communication
   output.supplier_switch = publicSupplierSwitch(input, companyId)
+  output.checkout = buildTenantCheckoutResult({
+    applicationNumber: input.application_number,
+    applicationStatus: input.status,
+    contractNumber: input.contract_number,
+    contractStatus: input.contract_status,
+    signedAt: input.signed_at,
+    withdrawalDeadlineAt: input.withdrawal_deadline_at,
+    signatureSnapshotSha256: input.signature_snapshot_sha256,
+    canSendAgreementConfirmation: input.can_send_agreement_confirmation,
+    communication,
+    missingFields: input.missing_fields,
+    nextStep: nextAction?.code ?? input.next_step,
+  })
 
   if (text(input.power_of_attorney_id)) {
     output.power_of_attorney = { status: 'signed' }
