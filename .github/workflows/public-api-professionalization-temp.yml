@@ -8,6 +8,7 @@ on:
       - scripts/apply-public-api-boundary-remediation.cjs
       - scripts/apply-public-api-release-sync.cjs
       - scripts/apply-public-api-doc-copy-sync.cjs
+      - scripts/apply-public-api-type-sync.cjs
       - .github/workflows/public-api-professionalization-temp.yml
   pull_request:
     branches:
@@ -41,6 +42,8 @@ jobs:
         run: node scripts/apply-public-api-release-sync.cjs
       - name: Synchronize developer guide copy
         run: node scripts/apply-public-api-doc-copy-sync.cjs
+      - name: Synchronize public API type call-sites
+        run: node scripts/apply-public-api-type-sync.cjs
       - name: Install dependencies
         run: npm ci
       - name: Finalize current OpenAPI contract
@@ -68,6 +71,7 @@ jobs:
           rm scripts/apply-public-api-boundary-remediation.cjs
           rm scripts/apply-public-api-release-sync.cjs
           rm scripts/apply-public-api-doc-copy-sync.cjs
+          rm scripts/apply-public-api-type-sync.cjs
           rm .github/workflows/public-api-professionalization-temp.yml
       - name: Commit generated and verified remediation
         run: |
