@@ -25,7 +25,7 @@ permissions:
 
 concurrency:
   group: gridex-browser-quality-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
@@ -37,6 +37,9 @@ jobs:
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'public' || inputs.mode == 'all'))
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble-amd64@sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9
+      options: --user 1001
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -49,8 +52,8 @@ jobs:
         run: node scripts/gridex-p0-executor.cjs
       - name: Verify open-source E2E wiring
         run: node scripts/gridex-open-source-e2e-tooling-regression.cjs
-      - name: Install pinned Playwright and axe-core tooling
-        run: bash scripts/install-browser-e2e-tooling.sh
+      - name: Verify pinned Playwright runtime
+        run: npx playwright --version
       - name: Run public browser and accessibility E2E
         run: |
           mkdir -p e2e-artifacts
@@ -72,6 +75,9 @@ jobs:
       (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble-amd64@sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9
+      options: --user 1001
     timeout-minutes: 30
     env:
       GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
@@ -95,8 +101,8 @@ jobs:
         run: node scripts/gridex-p0-executor.cjs
       - name: Verify open-source E2E wiring
         run: node scripts/gridex-open-source-e2e-tooling-regression.cjs
-      - name: Install pinned Playwright and axe-core tooling
-        run: bash scripts/install-browser-e2e-tooling.sh
+      - name: Verify pinned Playwright runtime
+        run: npx playwright --version
       - name: Run staging browser E2E
         run: |
           mkdir -p e2e-artifacts
