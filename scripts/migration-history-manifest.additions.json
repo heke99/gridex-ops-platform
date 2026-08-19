@@ -7,7 +7,7 @@
     "20260806151106_gridex_aud_001_customer_document_storage_isolation.sql": "0d51528c3d7dcb8e2bd2c92cb8d83eea9212438232d25bb5422158be43d46d16",
     "20260806152004_gridex_aud_001_storage_helper_private_schema.sql": "ae8274a9a37a1ecf672ae1257ee225619fbc48369aaf929af5f07f63e8241d5f",
     "20260808214500_grid_owner_direct_actor_join_performance.sql": "c5b1eb1c23f6423845ac3b93053d997c9244112dd7d2376183b0e550ed9bfd43",
-    "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37d69b37adcc3",
+    "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37adcc3",
     "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
     "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
@@ -81,6 +81,7 @@
     "20260818170119_canonical_online_signature_internal_create_hotfix.sql": "22c12c95e9bde92b77937dcb6568cde1a8b639512b8cce8a9f2d714c8d94d251",
     "20260818170213_contract_signature_date_semantics.sql": "8964fe7fab2961137115adddeaa974a86fc760fd3c313d02286eb228587ee32d",
     "20260818170828_signed_contract_document_hash_binding.sql": "04950bc18fb528b72a448b51028ec865c25af0e2d40ad12942ba03f6a8201a52",
-    "20260818173236_online_signature_tenant_email_readiness.sql": "774261dfc2494a75eb5f939c4706501be750e0470ea09488224913e7577cae89"
+    "20260818173236_online_signature_tenant_email_readiness.sql": "774261dfc2494a75eb5f939c4706501be750e0470ea09488224913e7577cae89",
+    "20260819070622_pr164_review_remediation_v2.sql": "d9b63125c2275041a7e19ae943a493fac4033e1a63611139ea7d7acb5f645d87"
   }
 }
