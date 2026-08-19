@@ -76,7 +76,7 @@
     "ops:final-contract-regression": "node scripts/ops-final-contract-regression.cjs",
     "ops:integration": "node scripts/ops-final-db-integration.cjs",
     "api:error-boundaries": "node scripts/check-api-error-boundaries.cjs",
-    "api:finalize": "node scripts/finalize-openapi-release.cjs",
+    "api:finalize": "node scripts/finalize-openapi-release.cjs && node scripts/professionalize-openapi-contract.cjs",
     "api:materialize": "node scripts/materialize-openapi-release.cjs",
     "api:compatibility": "node scripts/check-api-compatibility.cjs",
     "api:release:verify": "node scripts/verify-openapi-release.cjs",

@@ -23,7 +23,7 @@ export class PublicContractsQueryError extends Error {
 
 function oneValue(request: NextRequest, name: string): string | null {
   const values = request.nextUrl.searchParams.getAll(name)
-  if (values.length > 1) throw new PublicContractsQueryError(name, `${name} får bara anges en gång.`)
+  if (values.length > 1) throw new PublicContractsQueryError(name, `${name} may only be specified once.`)
   return values[0]?.trim() || null
 }
 
@@ -36,16 +36,16 @@ export function parsePublicContractsQuery(request: NextRequest): PublicContracts
   const rawCustomerType = oneValue(request, 'customer_type')
   const normalizedCustomerType = normalizeExternalCustomerType(rawCustomerType)
   if (!normalizedCustomerType.ok) {
-    throw new PublicContractsQueryError('customer_type', 'customer_type måste vara private eller business. company accepteras tillfälligt som deprecated alias för business.')
+    throw new PublicContractsQueryError('customer_type', 'customer_type must be private or business. company is temporarily accepted as a deprecated alias for business.')
   }
   const customerType = normalizedCustomerType.value
   const channel = oneValue(request, 'channel') ?? 'website'
   if (channel !== 'website') {
-    throw new PublicContractsQueryError('channel', 'Den publika website-endpointen accepterar endast channel=website.')
+    throw new PublicContractsQueryError('channel', 'The public website endpoint only accepts channel=website.')
   }
   const diagnosticsValue = oneValue(request, 'diagnostics')
   if (diagnosticsValue !== null && !['0', '1', 'false', 'true'].includes(diagnosticsValue)) {
-    throw new PublicContractsQueryError('diagnostics', 'diagnostics måste vara 0, 1, false eller true.')
+    throw new PublicContractsQueryError('diagnostics', 'diagnostics must be 0, 1, false or true.')
   }
   return {
     customerType,
@@ -73,7 +73,7 @@ export function canonicalJson(value: unknown): string {
 }
 
 export function buildPublicContractRepresentationEtag(input: {
-  tenantReference: string
+  organizationReference: string
   channel: 'website' | 'api'
   customerType: 'private' | 'business' | null
   contractSchemaVersion: string
@@ -83,7 +83,7 @@ export function buildPublicContractRepresentationEtag(input: {
   diagnostics?: unknown
 }): string {
   const representation = canonicalJson({
-    tenant_reference: input.tenantReference,
+    organization_reference: input.organizationReference,
     channel: input.channel,
     customer_type: input.customerType,
     contract_schema_version: input.contractSchemaVersion,

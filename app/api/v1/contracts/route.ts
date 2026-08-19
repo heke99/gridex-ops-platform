@@ -6,6 +6,7 @@ import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerT
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
+import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { supabaseService } from '@/lib/supabase/service'
 import { ifNoneMatchMatches, loadPublicationRevision } from '@/lib/website/publicContractApi'
 import {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
   for (const key of request.nextUrl.searchParams.keys()) {
     if (!supported.has(key)) {
       return customerPortalJson(
-        { error: { code: 'invalid_query_parameter', message: `Query-parametern ${key} stöds inte.`, field: key, request_id: requestId } },
+        { error: { code: 'invalid_query_parameter', message: `Query parameter ${key} is not supported.`, field: key, request_id: requestId } },
         { status: 400, headers: contractHeaders(requestId) },
       )
     }
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
   const values = request.nextUrl.searchParams.getAll('customer_type')
   if (values.length > 1) {
     return customerPortalJson(
-      { error: { code: 'invalid_query_parameter', message: 'customer_type får bara anges en gång.', field: 'customer_type', request_id: requestId } },
+      { error: { code: 'invalid_query_parameter', message: 'customer_type may only be specified once.', field: 'customer_type', request_id: requestId } },
       { status: 400, headers: contractHeaders(requestId) },
     )
   }
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       {
         error: {
           code: 'invalid_query_parameter',
-          message: 'customer_type måste vara private eller business. company är ett tillfälligt deprecated alias.',
+          message: 'customer_type must be private or business. company is a temporary deprecated alias.',
           field: 'customer_type',
           request_id: requestId,
         },
@@ -99,6 +100,9 @@ export async function GET(request: NextRequest) {
       loadPublicationRevision(auth.context.companyId, 'api'),
       loadExternalTenantContext(auth.client),
     ])
+    const organizationReference = publicOrganizationReference(tenant.tenant_reference)
+    if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
+
     const headers = {
       'Cache-Control': 'private, max-age=0, must-revalidate',
       ETag: revision.etag,
@@ -192,7 +196,7 @@ export async function GET(request: NextRequest) {
         contracts,
         meta: {
           count: contracts.length,
-          tenant_reference: tenant.tenant_reference,
+          organization_reference: organizationReference,
           api_version: 'v1',
           contract_schema_version: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
           channel: 'api',

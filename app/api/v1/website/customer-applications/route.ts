@@ -45,26 +45,37 @@ function readField(value: unknown, field: string): unknown {
 //   { error: { code, message, stage, field, request_id, action? }, ... }
 // Legacy flat keys (code, error_stage, field, hint, details) are preserved
 // alongside the nested object for backward compatibility.
+function publicApplicationErrorCode(value: unknown): string {
+  const code = typeof value === 'string' && value.trim() ? value.trim() : 'website_application_error'
+  return code.startsWith('tenant_') ? code.replace(/^tenant_/, 'organization_') : code
+}
+
+function publicApplicationMessage(code: string): string {
+  if (code.includes('idempotency')) return 'The request could not be completed with the supplied Idempotency-Key.'
+  if (code.includes('quote')) return 'The authoritative quote could not be validated for this application.'
+  if (code.includes('legal') || code.includes('acceptance')) return 'The legal acceptance evidence could not be validated.'
+  if (code.includes('power_of_attorney')) return 'The power-of-attorney evidence could not be validated.'
+  if (code.includes('portal_auth')) return 'The verified customer identity could not be validated.'
+  if (code.includes('organization') || code.includes('integration')) return 'The integration is not currently ready to accept this request.'
+  if (code.includes('payload') || code.includes('json') || code.includes('validation') || code.includes('required') || code.includes('invalid')) return 'The customer application could not be validated.'
+  return 'The customer application could not be processed.'
+}
+
 function buildErrorBody(body: Record<string, unknown>, requestId: string) {
-  const message = typeof body.error === 'string'
-    ? body.error
-    : typeof body.message === 'string'
-      ? body.message
-      : 'Begäran kunde inte behandlas.'
+  const code = publicApplicationErrorCode(body.code)
   const stage = (readField(body, 'error_stage') as string | null)
     ?? (readField(body, 'stage') as string | null)
     ?? null
   return canonicalApiError({
-    code: (body.code as string | undefined) ?? 'website_application_error',
-    message,
+    code,
+    message: publicApplicationMessage(code),
     requestId,
     correlationId: typeof body.correlation_id === 'string' ? body.correlation_id : requestId,
     field: (body.field as string | null | undefined) ?? null,
-    blockers: body.blockers ?? body.blocking_reasons,
-    details: body.details ?? null,
-    stage,
-    action: readField(body, 'action') as string | null,
-    hint: (body.hint as string | null | undefined) ?? null,
+    blockers: [],
+    details: null,
+    stage: stage === 'tenant_readiness' ? 'integration_readiness' : stage,
+    hint: null,
     retryable: body.retryable === true,
   })
 }
@@ -92,8 +103,8 @@ export async function POST(request: NextRequest) {
       const schemaBlocked = readiness.blockers.some((blocker) => blocker.component === 'database')
       const readinessStatus = schemaBlocked ? 503 : 409
       const readinessCode = schemaBlocked
-        ? 'tenant_website_schema_not_ready'
-        : 'tenant_website_not_ready'
+        ? 'integration_schema_not_ready'
+        : 'integration_not_ready'
       await logIntegrationApiRequest({
         client: auth.client,
         request,
@@ -108,10 +119,10 @@ export async function POST(request: NextRequest) {
       return customerPortalJson(
         buildErrorBody({
           error: schemaBlocked
-            ? 'Databasschemat för tenantens webbansökningsflöde är inte synkroniserat.'
-            : 'Tenantens webbansökningsflöde är inte produktionsklart.',
+            ? 'The integration schema is not ready.'
+            : 'The integration is not ready for production checkout.',
           code: readinessCode,
-          error_stage: 'tenant_readiness',
+          error_stage: 'integration_readiness',
           blockers: readiness.blockers,
           details: {
             portal_identity_required: readiness.portal_identity_required,
@@ -120,8 +131,8 @@ export async function POST(request: NextRequest) {
           },
           retryable: true,
           hint: schemaBlocked
-            ? 'Kör de senaste OPS-migrationerna innan applikationskoden aktiveras.'
-            : 'Åtgärda readiness-blockers i OPS och kör tenantprovisioneringen igen.',
+            ? 'Contact Gridex support if this condition persists.'
+            : 'Complete the required integration setup before retrying.',
         }, requestId),
         { status: readinessStatus },
       )
@@ -134,8 +145,8 @@ export async function POST(request: NextRequest) {
       return customerPortalJson(
         buildErrorBody({
           error: parsed.code === 'payload_too_large'
-            ? 'Förfrågans innehåll är för stort.'
-            : 'Ogiltig JSON i förfrågan.',
+            ? 'The request payload is too large.'
+            : 'The request body contains invalid JSON.',
           code: parsed.code,
           error_stage: 'validation',
         }, requestId),
@@ -228,7 +239,7 @@ export async function POST(request: NextRequest) {
     })
     return customerPortalJson(
       buildErrorBody({
-        error: 'Kundansökan kunde inte behandlas just nu.',
+        error: 'The customer application could not be processed at this time.',
         code: 'website_application_failed',
         error_stage: 'internal_error',
       }, requestId),

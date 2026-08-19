@@ -26,7 +26,7 @@ const ALLOWED_QUERY_PARAMETERS = new Set([
 function singleQueryValue(request: NextRequest, name: string): string | null {
   const values = request.nextUrl.searchParams.getAll(name)
   if (values.length > 1) {
-    throw new ApiInputError(`${name} får bara anges en gång.`, 'duplicate_query_parameter', 400, name)
+    throw new ApiInputError(`${name} may only be specified once.`, 'duplicate_query_parameter', 400, name)
   }
   const value = values[0]?.trim() ?? ''
   return value || null
@@ -35,11 +35,11 @@ function singleQueryValue(request: NextRequest, name: string): string | null {
 function parseLimit(value: string | null): number {
   if (!value) return 100
   if (!/^\d+$/.test(value)) {
-    throw new ApiInputError('limit måste vara ett heltal mellan 1 och 100.', 'invalid_limit', 400, 'limit')
+    throw new ApiInputError('limit must be an integer between 1 and 100.', 'invalid_limit', 400, 'limit')
   }
   const parsed = Number.parseInt(value, 10)
   if (parsed < 1 || parsed > 100) {
-    throw new ApiInputError('limit måste vara ett heltal mellan 1 och 100.', 'invalid_limit', 400, 'limit')
+    throw new ApiInputError('limit must be an integer between 1 and 100.', 'invalid_limit', 400, 'limit')
   }
   return parsed
 }
@@ -47,16 +47,16 @@ function parseLimit(value: string | null): number {
 function validateQuery(request: NextRequest) {
   for (const key of request.nextUrl.searchParams.keys()) {
     if (!ALLOWED_QUERY_PARAMETERS.has(key)) {
-      throw new ApiInputError(`Okänd query-parameter: ${key}.`, 'unknown_query_parameter', 400, key)
+      throw new ApiInputError(`Unknown query parameter: ${key}.`, 'unknown_query_parameter', 400, key)
     }
   }
   const eventType = singleQueryValue(request, 'event_type')
   if (eventType && !/^customer\.[a-z0-9_]+$/.test(eventType)) {
-    throw new ApiInputError('event_type har ogiltigt format.', 'invalid_event_type', 422, 'event_type')
+    throw new ApiInputError('event_type has an invalid format.', 'invalid_event_type', 422, 'event_type')
   }
   const before = singleQueryValue(request, 'before')
   if (before && !Number.isFinite(new Date(before).getTime())) {
-    throw new ApiInputError('before måste vara en giltig ISO-tidpunkt.', 'invalid_cursor', 400, 'before')
+    throw new ApiInputError('before must be a valid ISO timestamp.', 'invalid_cursor', 400, 'before')
   }
   return {
     eventType,
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
     const code = controlled ? error.code : 'events_read_failed'
-    const message = controlled ? error.message : 'Händelser kunde inte hämtas just nu.'
+    const message = controlled ? error.message : 'Events are temporarily unavailable.'
     console.error('[events-read] failed', { requestId, error })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
     return customerPortalJson(canonicalApiError({
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     const parsed = parseCustomerEventPayload(body)
     if (!parsed.success) {
       throw new ApiInputError(
-        parsed.error.issues[0]?.message ?? 'Ogiltigt kundevent.',
+        parsed.error.issues[0]?.message ?? 'Invalid customer event.',
         'validation_error',
         422,
         parsed.error.issues[0]?.path.join('.') || null,
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     }
     if (isSupportEvent(parsed.data.event_type)) {
       throw new ApiInputError(
-        'Supporthantering ligger utanför Gridex Ops API.',
+        'Support-case management is outside the Gridex public API.',
         'support_out_of_scope',
         422,
         'event_type',
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
     const code = controlled ? error.code : 'customer_event_failed'
-    const message = controlled ? error.message : 'Kundeventet kunde inte behandlas just nu.'
+    const message = controlled ? error.message : 'The customer event could not be processed at this time.'
     console.error('[events-write] failed', { requestId, error })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
     return customerPortalJson(canonicalApiError({

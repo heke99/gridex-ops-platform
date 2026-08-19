@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
+import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { diagnosePublicContractOffers } from '@/lib/website/publicContracts'
 import { loadPublicationRevision } from '@/lib/website/publicContractApi'
@@ -25,11 +26,13 @@ export async function GET(request: NextRequest) {
       loadPublicationRevision(auth.context.companyId, 'api'),
       loadExternalTenantContext(auth.client),
     ])
+    const organizationReference = publicOrganizationReference(tenant.tenant_reference)
+    if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId, channel: 'api', result_count: publication.total } })
     return customerPortalJson({
       data: publication.offers,
       diagnostics: { publication, source_of_truth: 'canonical_public_contract_diagnostics_v' },
-      meta: { count: publication.total, tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'api', publication_revision: revision.revision },
+      meta: { count: publication.total, organization_reference: organizationReference, api_version: 'v1', channel: 'api', publication_revision: revision.revision },
       request_id: requestId,
     }, { status: 200, headers: { ETag: revision.etag, 'Cache-Control': 'no-store' } })
   } catch (error) {

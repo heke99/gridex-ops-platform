@@ -396,6 +396,9 @@ export default function CustomerPortalApiDocumentationPage() {
               The legal references, hashes and versions in this example are placeholders. In production, copy the exact values returned by the legal-bundle endpoint. Do not generate or modify them locally.
             </p>
             <h3 className="text-lg font-semibold text-slate-950">Successful checkout response</h3>
+            <p className="leading-7 text-slate-700">
+              The immediate customer-facing checkout result is returned in <code>data.checkout</code>. Use that object for the post-submit UI instead of deriving success from internal processing states.
+            </p>
             <CopyCodeBlock code={checkoutResponse} language="json" />
             <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-700">
               <strong>UI rule:</strong> show the final signed-agreement success state only when <code>checkout.thank_you_ready === true</code>.

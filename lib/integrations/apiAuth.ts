@@ -198,46 +198,12 @@ export function tenantApiAccessError(status: string | null | undefined): {
   message: string
 } | null {
   if (status === 'active') return null
-  if (status === 'onboarding') {
-    return {
-      status: 403,
-      code: 'tenant_not_operationally_ready',
-      message: 'Tenantens onboarding är inte klar.',
-    }
-  }
-  if (status === 'paused') {
-    return {
-      status: 423,
-      code: 'tenant_paused',
-      message: 'Tenantens API-åtkomst är pausad.',
-    }
-  }
-  if (status === 'closed') {
-    return {
-      status: 410,
-      code: 'tenant_closed',
-      message: 'Tenantens konto är stängt.',
-    }
-  }
-  if (status === 'suspended') {
-    return {
-      status: 403,
-      code: 'tenant_suspended',
-      message: 'Tenantens konto är avstängt.',
-    }
-  }
-  if (status === 'archived' || status === 'pending_deletion' || status === 'deleted_test_only') {
-    return {
-      status: 410,
-      code: 'tenant_inactive',
-      message: 'Tenantens konto är inte aktivt.',
-    }
-  }
-  return {
-    status: 503,
-    code: 'tenant_status_unavailable',
-    message: 'Tenantens driftstatus kunde inte verifieras.',
-  }
+  if (status === 'onboarding') return { status: 403, code: 'organization_not_operationally_ready', message: 'The organization is not ready for production API access.' }
+  if (status === 'paused') return { status: 423, code: 'organization_paused', message: 'API access for the organization is paused.' }
+  if (status === 'closed') return { status: 410, code: 'organization_closed', message: 'The organization account is closed.' }
+  if (status === 'suspended') return { status: 403, code: 'organization_suspended', message: 'API access for the organization is suspended.' }
+  if (status === 'archived' || status === 'pending_deletion' || status === 'deleted_test_only') return { status: 410, code: 'organization_inactive', message: 'The organization is not active.' }
+  return { status: 503, code: 'organization_status_unavailable', message: 'The organization status could not be verified.' }
 }
 
 function retryAfterSeconds(resetAt: string | null): number {
@@ -354,14 +320,14 @@ async function resolveIntegrationApiAccess(
   if (!credential.ok) return publicError({
     status: 401,
     code: credential.malformedAuthorization ? 'malformed_authorization' : 'missing_api_token',
-    message: credential.malformedAuthorization ? 'Authorization-headern har ogiltigt Bearer-format.' : 'API-token saknas.',
+    message: credential.malformedAuthorization ? 'Authorization must use the Bearer token format.' : 'API token is missing.',
   })
   const token = credential.token
 
   try {
     await assertPlatformSchemaReady()
   } catch {
-    return publicError({ status: 503, code: 'platform_schema_not_ready', message: 'API:t är tillfälligt avstängt tills databasschemat är verifierat.' })
+    return publicError({ status: 503, code: 'platform_schema_not_ready', message: 'The API is temporarily unavailable while the platform schema is being verified.' })
   }
 
   const keyPrefix = token.slice(0, 12)
@@ -381,10 +347,10 @@ async function resolveIntegrationApiAccess(
     p_window_seconds: 60,
   })
   if (error) {
-    return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API-åtkomst och trafikskydd kunde inte verifieras atomiskt.' })
+    return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API access and traffic protection could not be verified.' })
   }
   const row = (Array.isArray(data) ? data[0] : data) as AuthenticationRpcRow | null
-  if (!row) return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API-autentiseringen returnerade inget verifierbart resultat.' })
+  if (!row) return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API authentication returned no verifiable result.' })
 
   const client = row.client_id && row.company_id ? {
     id: row.client_id,
@@ -410,17 +376,20 @@ async function resolveIntegrationApiAccess(
   }
 
   if (row.auth_outcome !== 'allowed' || !client) {
-    const code = row.error_code ?? 'api_auth_unavailable'
-    const status = authenticationStatus(code, row.tenant_status)
+    const internalCode = row.error_code ?? 'api_auth_unavailable'
+    const code = internalCode.startsWith('tenant_')
+      ? internalCode.replace(/^tenant_/, 'organization_')
+      : internalCode
+    const status = authenticationStatus(internalCode, row.tenant_status)
     const message = code === 'rate_limited'
-      ? 'API-klientens trafikgräns har överskridits (kostnadsjusterad).'
+      ? 'The API client rate limit has been exceeded.'
       : code === 'api_rate_limiter_unavailable'
-        ? 'API:ts trafikskydd kunde inte verifieras.'
+        ? 'API traffic protection could not be verified.'
       : code === 'invalid_api_token'
-        ? 'API-token är ogiltig.'
+        ? 'The API token is invalid.'
         : code === 'api_scope_missing'
-          ? 'API-klienten saknar scope.'
-          : 'API-åtkomsten nekades av den atomiska autentiseringspolicyn.'
+          ? 'The API client does not have the required scope.'
+          : 'API access was denied by the authentication policy.'
     if (code === 'rate_limited' && client) {
       await recordRateLimitEvent(client, request, rateLimit.count, rateLimit.resetAt).catch(() => undefined)
     }

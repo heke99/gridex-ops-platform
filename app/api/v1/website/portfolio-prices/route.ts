@@ -141,8 +141,8 @@ export async function GET(request: NextRequest) {
         offer_reference: offerReference,
         method: pricing.portfolio_method ?? null,
         historical_final_prices: historical,
-        market_price_responsibility: "ops_quote",
-        calculator_market_price_supplied_by_ops: true,
+        market_price_responsibility: "gridex_quote",
+        calculator_market_price_supplied_by_gridex: true,
         final_billing_rule: "locked_settlement_only",
       },
     });

@@ -4,6 +4,7 @@ import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/int
 import { diagnosePublicContractOffers } from '@/lib/website/publicContracts'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
+import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { loadPublicationRevision, parsePublicContractsQuery, PublicContractsQueryError, requestId } from '@/lib/website/publicContractApi'
 
 export const runtime = 'nodejs'
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
     const canonicalGraphConsistent = publication.offers.every(
       (offer) => offer.graph?.canonical_graph_consistent === true,
     )
+    const organizationReference = publicOrganizationReference(tenant.tenant_reference)
+    if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: currentRequestId } })
     return customerPortalJson({
       data: [],
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
           canonical_graph_consistent: canonicalGraphConsistent,
         },
       },
-      meta: { count: publication.total, tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'website', publication_revision: revision.revision },
+      meta: { count: publication.total, organization_reference: organizationReference, api_version: 'v1', channel: 'website', publication_revision: revision.revision },
       request_id: currentRequestId,
     }, { status: 200, headers: { ETag: revision.etag, 'Cache-Control': 'no-store' } })
   } catch (error) {
