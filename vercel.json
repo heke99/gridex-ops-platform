@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/internal/email/outbox/process",
-      "schedule": "* * * * *"
+      "schedule": "2-57/5 * * * *"
     },
     {
       "path": "/api/internal/manual-email/outbox/process",
@@ -34,11 +34,11 @@
     },
     {
       "path": "/api/internal/webhooks/dispatch",
-      "schedule": "* * * * *"
+      "schedule": "*\/5 * * * *"
     },
     {
       "path": "/api/internal/customer-operations/cron",
-      "schedule": "* * * * *"
+      "schedule": "*\/5 * * * *"
     },
     {
       "path": "/api/internal/system/health",
