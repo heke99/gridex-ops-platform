@@ -8,6 +8,12 @@ const SPEC_FILES = [
   'docs/openapi/customer-portal-v1.json',
 ]
 
+const ORGANIZATION_REFERENCE_SCHEMA = {
+  type: 'string',
+  pattern: '^organization_[A-Za-z0-9_-]{20,64}$',
+  description: 'Stable opaque public reference for the organization associated with the authenticated API credential.',
+}
+
 const exactStringRenames = new Map([
   ['tenant_reference', 'organization_reference'],
   ['complete_tenant_website_ready', 'complete_integration_ready'],
@@ -56,6 +62,24 @@ function transform(value) {
   return output
 }
 
+function normalizeOrganizationReferenceSchemas(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) normalizeOrganizationReferenceSchemas(item)
+    return
+  }
+  if (!value || typeof value !== 'object') return
+
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'organization_reference' && child && typeof child === 'object' && !Array.isArray(child)) {
+      Object.assign(child, ORGANIZATION_REFERENCE_SCHEMA)
+      delete child.const
+      delete child.enum
+      continue
+    }
+    normalizeOrganizationReferenceSchemas(child)
+  }
+}
+
 function normalizedPath(path) {
   return path
     .replace(/\[[^\]]+\]/g, '{}')
@@ -86,6 +110,7 @@ const descriptions = registryDescriptions()
 for (const file of SPEC_FILES) {
   const original = JSON.parse(fs.readFileSync(file, 'utf8'))
   const document = transform(original)
+  normalizeOrganizationReferenceSchemas(document)
 
   document.info = document.info ?? {}
   document.info.version = VERSION
@@ -113,13 +138,6 @@ for (const file of SPEC_FILES) {
   }
 
   const integrationContext = document.components?.schemas?.IntegrationContext
-  if (integrationContext?.properties?.organization_reference) {
-    integrationContext.properties.organization_reference = {
-      type: 'string',
-      pattern: '^organization_[A-Za-z0-9_-]{20,64}$',
-      description: 'Stable opaque public reference for the organization associated with the authenticated API credential.',
-    }
-  }
   if (integrationContext?.properties?.capabilities?.properties?.complete_integration_ready) {
     integrationContext.properties.capabilities.properties.complete_integration_ready.description =
       'True when the configured website checkout and customer portal capabilities are ready for production use.'
