@@ -39,13 +39,18 @@ vi.mock('@/lib/supabase/service', () => ({
                 return lease
               },
               gte() { return lease },
-              limit() {
-                return Promise.resolve({
+              limit() { return lease },
+              then<TResult1 = unknown, TResult2 = never>(
+                onfulfilled?: ((value: { data: Array<Record<string, unknown>>; error: typeof state.leaseError }) => TResult1 | PromiseLike<TResult1>) | null,
+                onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+              ) {
+                const result = {
                   data: actorId && state.liveLeaseActorIds.has(actorId)
                     ? [{ id: `lease:${actorId}` }]
                     : [],
                   error: state.leaseError,
-                })
+                }
+                return Promise.resolve(result).then(onfulfilled ?? undefined, onrejected ?? undefined)
               },
             }
             return lease
