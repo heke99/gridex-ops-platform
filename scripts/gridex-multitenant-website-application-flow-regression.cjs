@@ -154,7 +154,11 @@ check(
 check(legacyDocs.includes('data.checkout') && legacyDocs.includes('thank_you_ready') && legacyDocs.includes('confirmation_email'), 'unified API documentation exposes checkout and confirmation truth')
 
 check(portalPreAuthRelease.includes('breaking-client-update-required-for-portal-identity') && portalPreAuthRelease.includes('breaking-request-requirement'), 'historical portal pre-auth release preserves its breaking classification')
-check(releaseManifest.includes('API_COMPATIBILITY_CLASSIFICATION') && websiteContract.includes("release: 'backward-compatible'"), 'current website release is explicitly backward-compatible')
+check(
+  releaseManifest.includes('API_COMPATIBILITY_CLASSIFICATION') &&
+    websiteContract.includes("release: 'breaking-client-update-required'"),
+  'current website release explicitly requires client migration for renamed public fields',
+)
 check(websiteOpenApi.info.version === currentContractVersion, `website OpenAPI version is ${currentContractVersion}`)
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'website OpenAPI publishes customer-application and supplier-switch webhook callbacks')
 check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), `immutable ${currentContractVersion} website OpenAPI release matches the current published contract`)
