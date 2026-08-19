@@ -200,18 +200,18 @@ describe('public contract publication graph repair', () => {
     )
   })
 
-  it('returns explicit tenant and schema error classifications', () => {
+  it('returns explicit organization and schema error classifications', () => {
     expect(
       classifyPublicContractsError(
         new ExternalTenantContextError({
           status: 409,
-          code: 'EXTERNAL_TENANT_REFERENCE_MISSING',
-          message: 'Tenantens externa referens saknas.',
+          code: 'INTEGRATION_CONFIGURATION_INCOMPLETE',
+          message: 'The integration configuration is incomplete.',
         }),
       ),
     ).toMatchObject({
       status: 409,
-      code: 'EXTERNAL_TENANT_REFERENCE_MISSING',
+      code: 'INTEGRATION_CONFIGURATION_INCOMPLETE',
     })
     expect(
       classifyPublicContractsError({
