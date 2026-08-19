@@ -198,7 +198,7 @@ describe('tenant website canonical go-live hardening', () => {
     expect(docs).toContain('server-to-server')
     expect(docs).toContain('organization')
     expect(docs).toContain('verified linked customer identity')
-    expect(docs).toContain('Internal database identifiers are not part of the public contract')
+    expect(docs).toContain('Internal database identifiers are not part of the public integration contract')
   })
 
   it('keeps internal readiness denials private while preserving fail-closed authentication', () => {
