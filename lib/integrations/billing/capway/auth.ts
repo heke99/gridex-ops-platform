@@ -1,8 +1,17 @@
 import { supabaseService } from '@/lib/supabase/service'
-import type { CapwayConnectionConfig, CapwayEnvironment, CapwayTokenResponse } from '@/lib/integrations/billing/capway/types'
+import type {
+  CapwayAuthMode,
+  CapwayConnectionConfig,
+  CapwayEnvironment,
+  CapwayTokenResponse,
+} from '@/lib/integrations/billing/capway/types'
 
-// Required default env names: CAPWAY_APTIC_TEST_TOKEN_URL, CAPWAY_APTIC_TEST_BASE_URL, CAPWAY_APTIC_TEST_CLIENT_ID, CAPWAY_APTIC_TEST_CLIENT_SECRET.
-// Production equivalents: CAPWAY_APTIC_PROD_TOKEN_URL, CAPWAY_APTIC_PROD_BASE_URL, CAPWAY_APTIC_PROD_CLIENT_ID, CAPWAY_APTIC_PROD_CLIENT_SECRET.
+// Default OAuth2 env names:
+// CAPWAY_APTIC_TEST_TOKEN_URL, CAPWAY_APTIC_TEST_BASE_URL,
+// CAPWAY_APTIC_TEST_CLIENT_ID, CAPWAY_APTIC_TEST_CLIENT_SECRET.
+// Production equivalents use CAPWAY_APTIC_PROD_*.
+// API-key connections use CAPWAY_APTIC_<ENV>_API_KEY and must explicitly
+// configure settings.api_key_header; we do not guess provider header names.
 
 type CachedToken = {
   accessToken: string
@@ -30,72 +39,142 @@ function defaultEnvPrefix(environment: CapwayEnvironment): string {
 
 function missingRelation(error: unknown): boolean {
   const maybe = error as { code?: string; message?: string } | null
-  return Boolean(maybe && (maybe.code === '42P01' || maybe.code === 'PGRST205' || /does not exist|schema cache/i.test(maybe.message ?? '')))
+  return Boolean(
+    maybe &&
+      (maybe.code === '42P01' ||
+        maybe.code === 'PGRST205' ||
+        /does not exist|schema cache/i.test(maybe.message ?? '')),
+  )
+}
+
+function normalizeAuthMode(value: unknown): CapwayAuthMode {
+  return stringValue(value)?.toLowerCase() === 'apikey' ? 'apikey' : 'oauth2'
 }
 
 export async function resolveCapwayConnectionConfig(input: {
   companyId: string
   environment?: CapwayEnvironment
+  allowIncompleteStatus?: boolean
 }): Promise<CapwayConnectionConfig> {
   const environment = input.environment ?? 'test'
   let settings: Record<string, unknown> = {}
   let secretReference: Record<string, unknown> = {}
+  let connectionStatus: string | null = null
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('billing_provider_connections')
     .select('*')
     .eq('company_id', input.companyId)
     .eq('provider', 'capway_aptic')
     .eq('environment', environment)
-    .in('status', ['ready', 'active'])
     .order('updated_at', { ascending: false })
     .limit(1)
-    .maybeSingle()
+
+  if (!input.allowIncompleteStatus) {
+    query = query.in('status', ['ready', 'active'])
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error && !missingRelation(error)) throw error
   if (data) {
     const row = data as Record<string, unknown>
+    connectionStatus = stringValue(row.status)
     settings = isObject(row.settings) ? row.settings : {}
     secretReference = isObject(row.secret_reference) ? row.secret_reference : {}
   }
 
+  if (
+    data &&
+    !input.allowIncompleteStatus &&
+    connectionStatus &&
+    !['ready', 'active'].includes(connectionStatus)
+  ) {
+    throw new Error(`Capway/Aptic-kopplingen är ${connectionStatus} och får inte användas för export.`)
+  }
+
   const prefix = defaultEnvPrefix(environment)
-  const tokenUrl = stringValue(settings.token_url) ?? envSecret(stringValue(secretReference.token_url_env)) ?? process.env[`${prefix}_TOKEN_URL`]
-  const baseUrl = stringValue(settings.base_url) ?? envSecret(stringValue(secretReference.base_url_env)) ?? process.env[`${prefix}_BASE_URL`]
-  const clientId = envSecret(stringValue(secretReference.client_id_env)) ?? process.env[`${prefix}_CLIENT_ID`]
-  const clientSecret = envSecret(stringValue(secretReference.client_secret_env)) ?? process.env[`${prefix}_CLIENT_SECRET`]
+  const authMode = normalizeAuthMode(settings.auth_mode)
+  const baseUrl =
+    stringValue(settings.base_url) ??
+    envSecret(stringValue(secretReference.base_url_env)) ??
+    process.env[`${prefix}_BASE_URL`]
 
-  const missing = [
-    !tokenUrl ? 'token_url' : null,
-    !baseUrl ? 'base_url' : null,
-    !clientId ? 'client_id' : null,
-    !clientSecret ? 'client_secret' : null,
-  ].filter(Boolean)
+  const tokenUrl =
+    stringValue(settings.token_url) ??
+    envSecret(stringValue(secretReference.token_url_env)) ??
+    process.env[`${prefix}_TOKEN_URL`] ??
+    null
+  const clientId =
+    envSecret(stringValue(secretReference.client_id_env)) ??
+    process.env[`${prefix}_CLIENT_ID`] ??
+    null
+  const clientSecret =
+    envSecret(stringValue(secretReference.client_secret_env)) ??
+    process.env[`${prefix}_CLIENT_SECRET`] ??
+    null
+  const apiKey =
+    envSecret(stringValue(secretReference.api_key_env)) ??
+    process.env[`${prefix}_API_KEY`] ??
+    null
+  const apiKeyHeader = stringValue(settings.api_key_header)
 
-  if (missing.length > 0) {
-    throw new Error(`Capway/Aptic är inte färdigkonfigurerad (${missing.join(', ')} saknas).`)
+  const missing = [!baseUrl ? 'base_url' : null]
+  if (authMode === 'oauth2') {
+    missing.push(
+      !tokenUrl ? 'token_url' : null,
+      !clientId ? 'client_id' : null,
+      !clientSecret ? 'client_secret' : null,
+    )
+  } else {
+    missing.push(!apiKey ? 'api_key' : null, !apiKeyHeader ? 'api_key_header' : null)
+  }
+  const missingFields = missing.filter((value): value is string => Boolean(value))
+
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Capway/Aptic är inte färdigkonfigurerad (${missingFields.join(', ')} saknas).`,
+    )
   }
 
   return {
     companyId: input.companyId,
     environment,
     provider: 'capway_aptic',
-    tokenUrl: tokenUrl!,
     baseUrl: baseUrl!.replace(/\/+$/, ''),
-    clientId: clientId!,
-    clientSecret: clientSecret!,
+    authMode,
+    tokenUrl,
+    clientId,
+    clientSecret,
+    apiKey,
+    apiKeyHeader,
     defaultService: stringValue(settings.default_service) ?? 'Invoicing',
     defaultPaymentCode: stringValue(settings.default_payment_code),
     defaultPrintCode: stringValue(settings.default_print_code),
     defaultFormCode: stringValue(settings.default_form_code),
-    defaultPaymentProductCode: stringValue(settings.default_payment_product_code) ?? 'INVOICE',
-    defaultPreferredChannel: stringValue(settings.default_preferred_channel) ?? 'Email',
-    defaultFinancingMode: (stringValue(settings.default_financing_mode) as CapwayConnectionConfig['defaultFinancingMode']) ?? 'invoice_service',
+    defaultPaymentProductCode:
+      stringValue(settings.default_payment_product_code) ?? 'INVOICE',
+    defaultPreferredChannel:
+      stringValue(settings.default_preferred_channel) ?? 'Email',
+    defaultFinancingMode:
+      (stringValue(settings.default_financing_mode) as CapwayConnectionConfig['defaultFinancingMode']) ??
+      'invoice_service',
     rawSettings: settings,
   }
 }
 
-export async function getCapwayAccessToken(config: CapwayConnectionConfig): Promise<string> {
+export async function getCapwayAccessToken(
+  config: CapwayConnectionConfig,
+): Promise<string> {
+  if (config.authMode !== 'oauth2') {
+    throw new Error('Capway OAuth-token begärdes för en API-key-konfiguration.')
+  }
+  if (!config.tokenUrl || !config.clientId || !config.clientSecret) {
+    throw new Error(
+      'Capway/Aptic är inte färdigkonfigurerad (OAuth token_url/client_id/client_secret saknas).',
+    )
+  }
+
   const cacheKey = `${config.companyId}:${config.environment}`
   const cached = tokenCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now() + 60_000) return cached.accessToken
@@ -106,14 +185,22 @@ export async function getCapwayAccessToken(config: CapwayConnectionConfig): Prom
   body.set('client_secret', config.clientSecret)
   const scope = stringValue(config.rawSettings?.scope)
   if (scope) body.set('scope', scope)
+  const audience = stringValue(config.rawSettings?.audience)
+  if (audience) body.set('audience', audience)
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(new Error('Capway token timeout')), 15_000)
+  const timeout = setTimeout(
+    () => controller.abort(new Error('Capway token timeout')),
+    15_000,
+  )
   let response: Response
   try {
     response = await fetch(config.tokenUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
       body,
       cache: 'no-store',
       signal: controller.signal,
@@ -122,13 +209,21 @@ export async function getCapwayAccessToken(config: CapwayConnectionConfig): Prom
     clearTimeout(timeout)
   }
 
-  const payload = await response.json().catch(() => ({})) as Partial<CapwayTokenResponse> & { error?: string; error_description?: string }
+  const payload = (await response.json().catch(() => ({}))) as Partial<CapwayTokenResponse> & {
+    error?: string
+    error_description?: string
+  }
   if (!response.ok || !payload.access_token) {
-    throw new Error(`Capway token kunde inte hämtas (${response.status}): ${payload.error_description ?? payload.error ?? 'okänt fel'}`)
+    throw new Error(
+      `Capway token kunde inte hämtas (${response.status}): ${payload.error_description ?? payload.error ?? 'okänt fel'}`,
+    )
   }
 
   const expiresIn = typeof payload.expires_in === 'number' ? payload.expires_in : 3300
-  tokenCache.set(cacheKey, { accessToken: payload.access_token, expiresAt: Date.now() + expiresIn * 1000 })
+  tokenCache.set(cacheKey, {
+    accessToken: payload.access_token,
+    expiresAt: Date.now() + expiresIn * 1000,
+  })
   return payload.access_token
 }
 

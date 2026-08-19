@@ -75,10 +75,12 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Install PostgreSQL client
+      - name: Verify preinstalled PostgreSQL client
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          set -euo pipefail
+          command -v psql
+          psql --version
       - name: Clean empty-database replay and verify generated types
         shell: bash
         run: |
@@ -86,6 +88,7 @@ jobs:
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
           supabase gen types typescript --local > rem002-database.types.ts
           # Typegen emits non-null Returns for nullable SQL columns on the
           # field-511 resolver; apply the same durable override used on tip.

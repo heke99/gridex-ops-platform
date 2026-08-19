@@ -6,14 +6,19 @@ export type CapwayFinancingMode =
   | 'factoring_with_recourse'
   | 'manual'
 
+export type CapwayAuthMode = 'oauth2' | 'apikey'
+
 export type CapwayConnectionConfig = {
   companyId: string
   environment: CapwayEnvironment
   provider: 'capway_aptic'
   baseUrl: string
-  tokenUrl: string
-  clientId: string
-  clientSecret: string
+  authMode: CapwayAuthMode
+  tokenUrl?: string | null
+  clientId?: string | null
+  clientSecret?: string | null
+  apiKey?: string | null
+  apiKeyHeader?: string | null
   defaultService: string
   defaultPaymentCode?: string | null
   defaultPrintCode?: string | null
@@ -101,6 +106,7 @@ export type CapwayPutInvoice = {
   deliverySystemCode?: string | null
   paymentReference?: string | null
   service?: string | null
+  tryComplementExisting?: boolean | null
   claimantName?: string | null
   purchasable?: 0 | 1 | 2
   purchaseFee?: string | null
@@ -117,12 +123,36 @@ export type CapwayPutInvoice = {
   fees?: unknown[]
   extraFields?: Array<{ name: string; unique?: boolean; value: string[] }>
   note?: Array<{ noteText: string; systemCode?: string; important?: boolean }>
+  document?: Array<{
+    note?: string | null
+    documentType?: string | null
+    loggedAt?: string | null
+    originalFileName?: string | null
+    searchValue?: string | null
+    externalLink?: string | null
+    important?: boolean | null
+    fileDataBase64?: string | null
+  }>
 }
 
 export type CapwayPutInvoiceResult = {
   invoiceGuids?: string[] | null
   impStockId?: number | null
+  reconciled?: boolean
   [key: string]: unknown
+}
+
+export type CapwayInvoiceListResult = {
+  count?: number | null
+  skip?: number | null
+  total?: number | null
+  value?: Array<{
+    invoiceGuid?: string | null
+    invoiceNumber?: string | null
+    clientReferenceNumber?: string | null
+    customerNumber?: string | null
+    [key: string]: unknown
+  }> | null
 }
 
 export type CapwayPurchaseRequest = {
