@@ -20,35 +20,37 @@ vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from(table: string) {
       if (table === 'ediel_certificate_refresh_jobs') {
-        let mode: 'reclaim' | 'lease' = 'lease'
-        let actorId: string | null = null
-        const builder: Record<string, unknown> = {}
-        builder.update = () => {
-          mode = 'reclaim'
-          return builder
+        return {
+          update() {
+            const reclaim = {
+              eq() { return reclaim },
+              lt() { return reclaim },
+              select() {
+                return Promise.resolve({ data: state.reclaimRows, error: state.reclaimError })
+              },
+            }
+            return reclaim
+          },
+          select() {
+            let actorId: string | null = null
+            const lease = {
+              eq(column: string, value: unknown) {
+                if (column === 'platform_market_actor_id') actorId = String(value)
+                return lease
+              },
+              gte() { return lease },
+              limit() {
+                return Promise.resolve({
+                  data: actorId && state.liveLeaseActorIds.has(actorId)
+                    ? [{ id: `lease:${actorId}` }]
+                    : [],
+                  error: state.leaseError,
+                })
+              },
+            }
+            return lease
+          },
         }
-        builder.select = () => builder
-        builder.eq = (column: string, value: unknown) => {
-          if (column === 'platform_market_actor_id') actorId = String(value)
-          return builder
-        }
-        builder.lt = () => builder
-        builder.gte = () => builder
-        builder.limit = () => {
-          if (mode === 'lease') {
-            return Promise.resolve({
-              data: actorId && state.liveLeaseActorIds.has(actorId) ? [{ id: `lease:${actorId}` }] : [],
-              error: state.leaseError,
-            })
-          }
-          return builder
-        }
-        // reclaim terminates at select(), but lease uses select() mid-chain.
-        builder.then = (resolve: (value: unknown) => unknown) => {
-          if (mode === 'reclaim') return Promise.resolve({ data: state.reclaimRows, error: state.reclaimError }).then(resolve)
-          return Promise.resolve({ data: [], error: null }).then(resolve)
-        }
-        return builder
       }
 
       if (table === 'ediel_blocked_grid_owner_certificate_refresh_candidates_v') {
