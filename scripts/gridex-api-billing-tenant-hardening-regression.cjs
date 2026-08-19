@@ -24,14 +24,14 @@ assert.ok(projectionStart >= 0 && projectionEnd > projectionStart)
 const projection = tenantContext.slice(projectionStart, projectionEnd)
 assert.match(integrationContextRoute, /projectPublicExternalTenantContext\(/)
 for (const internalField of [
-  'portal_identity_required',
-  'portal_url',
-  'webhook_delivery_ready',
-  'status_delivery_modes',
-  'blockers',
-  'warnings',
-  'checks',
-  'tenant_reference',
+  'portal_identity_required:',
+  'portal_url:',
+  'webhook_delivery_ready:',
+  'status_delivery_modes:',
+  'blockers:',
+  'warnings:',
+  'checks:',
+  'tenant_reference:',
   'complete_tenant_website_ready:',
 ]) {
   assert.doesNotMatch(
@@ -45,13 +45,19 @@ assert.match(
   projection,
   /complete_integration_ready:\s*context\.capabilities\.complete_tenant_website_ready/,
 )
+assert.match(
+  projection,
+  /organization_reference:\s*organizationReference/,
+)
 
 const website = JSON.parse(
   read('docs/openapi/website-integration-v1.json'),
 )
 assert.equal(website.info.version, currentContractVersion)
-const capabilitySchema =
-  website.components.schemas.IntegrationContext.properties.capabilities
+const integrationContextSchema = website.components.schemas.IntegrationContext
+assert.ok(integrationContextSchema.properties.organization_reference)
+assert.ok(!integrationContextSchema.properties.tenant_reference)
+const capabilitySchema = integrationContextSchema.properties.capabilities
 for (const field of [
   'website_checkout_ready',
   'customer_portal_ready',
