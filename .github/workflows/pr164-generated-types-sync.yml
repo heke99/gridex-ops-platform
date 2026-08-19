@@ -1,0 +1,65 @@
+name: PR164 generated types sync
+
+on:
+  push:
+    branches:
+      - codex/master-production-remediation-20260818
+    paths:
+      - .github/workflows/pr164-generated-types-sync.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/master-production-remediation-20260818
+          fetch-depth: 0
+      - name: Download exact clean-replay artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gridex-rem-002-clean-replay
+          path: .pr164-generated-types
+          github-token: ${{ github.token }}
+          repository: heke99/gridex-ops-platform
+          run-id: 32228623042
+      - name: Verify and sync generated types
+        shell: bash
+        run: |
+          set -euo pipefail
+          GENERATED=.pr164-generated-types/rem002-database.types.ts
+          test -s "$GENERATED"
+          HASH="$(sha256sum "$GENERATED" | awk '{print $1}')"
+          EXPECTED=d3dd489c88cfe9d3e6dba6f4700b85abb2619e926fed947907fa9fdcd974eee1
+          if [[ "$HASH" != "$EXPECTED" ]]; then
+            echo "Refusing unexpected generated types artifact hash: $HASH" >&2
+            exit 1
+          fi
+          cp "$GENERATED" supabase/database.types.ts
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'scripts/supabase-types-manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          manifest.sha256 = 'd3dd489c88cfe9d3e6dba6f4700b85abb2619e926fed947907fa9fdcd974eee1';
+          manifest.generated_at = new Date().toISOString();
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+          rm -f .github/workflows/pr164-generated-types-sync.yml
+          rm -rf .pr164-generated-types
+          git diff --check
+      - name: Commit deterministic generated output
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json .github/workflows/pr164-generated-types-sync.yml
+          git diff --cached --exit-code && { echo 'Nothing to sync'; exit 0; } || true
+          git commit -m 'chore(db): sync generated Supabase types'
+          git push origin HEAD:codex/master-production-remediation-20260818
