@@ -75,10 +75,12 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Install PostgreSQL client
+      - name: Verify preinstalled PostgreSQL client
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          set -euo pipefail
+          command -v psql
+          psql --version
       - name: Clean empty-database replay and verify generated types
         shell: bash
         run: |
