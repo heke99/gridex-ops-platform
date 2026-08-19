@@ -15,6 +15,11 @@ const exactStringRenames = new Map([
   ['ops_quote', 'gridex_quote'],
 ])
 
+const omittedPublicSchemaNames = new Set([
+  'tenant_id_environment_required',
+  'company_id_environment_required',
+])
+
 function publicString(value) {
   if (exactStringRenames.has(value)) return exactStringRenames.get(value)
   return value
@@ -30,16 +35,17 @@ function publicString(value) {
 }
 
 function transform(value) {
-  if (Array.isArray(value)) return value.map(transform)
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => !(typeof item === 'string' && omittedPublicSchemaNames.has(item)))
+      .map(transform)
+  }
   if (typeof value === 'string') return publicString(value)
   if (!value || typeof value !== 'object') return value
 
   const output = {}
   for (const [key, child] of Object.entries(value)) {
-    if (
-      key === 'tenant_id_environment_required' ||
-      key === 'company_id_environment_required'
-    ) continue
+    if (omittedPublicSchemaNames.has(key)) continue
     const renamedKey = exactStringRenames.get(key) ?? key.replace(/tenant/gi, 'organization')
     output[renamedKey] = transform(child)
   }
