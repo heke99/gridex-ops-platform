@@ -12,4 +12,6 @@ The canonical human-readable documentation is served at `/developers/customer-po
 
 Do not send internal database identifiers. The API credential determines the organization and permissions.
 
+For migrations from older integration guides, the canonical developer page documents the structured POA fields `powerOfAttorney`, `textVersionId` and `externally_sendable`, transitional identity aliases such as `personal_identity_number` and `organisationsnummer`, and asynchronous result fields `next_step`, `next_action` and `automatic_processing`. Their definitions and examples live only in the canonical developer guide and OpenAPI contract.
+
 For troubleshooting, record the `request_id` returned by Gridex together with your own correlation identifier. Do not log API credentials, identity numbers or other unnecessary personal data.
