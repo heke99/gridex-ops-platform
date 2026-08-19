@@ -7,6 +7,10 @@ import type { CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import { DEFAULT_EMAIL_TEMPLATES } from '@/lib/email/emailTemplates'
 import {
   EMAIL_EVENT_VARIABLE_CONTRACTS,
+  EMAIL_TEMPLATE_VARIABLES,
+  emailEventAvailableVariables,
+  emailEventRequiredVariables,
+  getEmailEventVariableContract,
   sampleEmailVariablesForEvent,
 } from '@/lib/email/eventVariableContracts'
 
@@ -127,6 +131,14 @@ describe('email template variable contract', () => {
         { eventKey: contract.eventKey },
       )).not.toThrow()
     }
+  })
+
+  it('falls back safely for unknown or missing event contracts', () => {
+    expect(getEmailEventVariableContract(null)).toBeNull()
+    expect(getEmailEventVariableContract('unknown.event')).toBeNull()
+    expect(emailEventRequiredVariables('unknown.event').size).toBe(0)
+    expect(emailEventAvailableVariables('unknown.event').size).toBe(EMAIL_TEMPLATE_VARIABLES.length)
+    expect(sampleEmailVariablesForEvent('unknown.event').customer_name).toBe('Test Kund')
   })
 
   it('fails closed for unknown placeholders', () => {
