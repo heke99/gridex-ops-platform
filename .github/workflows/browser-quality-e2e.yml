@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: gridex-browser-quality-${{ github.workflow }}-${{ github.ref }}
+  group: gridex-browser-quality-v2-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
