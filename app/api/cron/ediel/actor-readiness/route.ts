@@ -1,4 +1,4 @@
-// This cron route is used to trigger the actor readiness process, which checks if actors are ready to send messages based on their certificates and other criteria.
+// This cron route triggers actor readiness and the durable certificate refresh recovery path.
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
@@ -36,7 +36,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const operations = await import('@/lib/ediel/operations/actorAutoReadiness')
-    const result = mode === 'certificates'
+    const certificateRecovery = mode === 'full' || mode === 'certificates'
+      ? await import('@/lib/ediel/certificates/scheduledRefreshRecovery')
+          .then((module) => module.runScheduledCertificateRefreshRecovery({ limit: 50 }))
+      : null
+
+    const readinessResult = mode === 'certificates'
       ? await operations.refreshActorCertificateStatuses('certificate_refresh')
       : mode === 'apply'
         ? await operations.applyActorAutoSendReadiness()
@@ -44,7 +49,14 @@ export async function POST(request: NextRequest) {
           ? await operations.refreshRouteProfileProductionReadiness()
           : await operations.runFullActorAutoReadiness()
 
-    return NextResponse.json({ ok: true, mode, result })
+    return NextResponse.json({
+      ok: true,
+      mode,
+      result: {
+        certificate_refresh_recovery: certificateRecovery,
+        actor_readiness: readinessResult,
+      },
+    })
   } catch (error) {
     return internalApiError({ context: 'actor-readiness-cron', error, code: 'actor_readiness_failed', message: 'Aktörsreadiness kunde inte köras.' })
   }
