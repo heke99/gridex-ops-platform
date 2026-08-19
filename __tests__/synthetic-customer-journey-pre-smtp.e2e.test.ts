@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { ApplicationSchema } from '@/lib/website/customerApplicationSchemas'
-import { contractLegalMailEvidenceReady } from '@/lib/website/customerApplicationLegal'
+import { contractLegalMailEvidenceReady } from '@/lib/website/contractLegalMailEvidence'
 import { buildAgreementPdfAttachment } from '@/lib/customer-contracts/agreementPdf'
 import { DEFAULT_EMAIL_TEMPLATES, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import {
@@ -197,9 +197,6 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     }, new Date(acceptedAt))
     expect(certificate.isUsableForSmime).toBe(true)
 
-    // This certificate intentionally stops before any SMTP/provider call.
-    // The production transport must resolve/validate the recipient certificate
-    // before the send function appears in the execution source.
     const transportSource = readFileSync('lib/ediel/transport/index.ts', 'utf8')
     const resolverUse = transportSource.indexOf('await resolveOutboundRecipientCertificate')
     const smtpUse = transportSource.indexOf('sendEdielEmail(', resolverUse)
