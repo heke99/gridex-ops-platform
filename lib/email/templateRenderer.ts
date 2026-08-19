@@ -4,6 +4,7 @@ import {
   emailEventAvailableVariables,
   emailEventRequiredVariables,
   getEmailEventVariableContract,
+  type EmailTemplateVariable,
 } from './eventVariableContracts'
 
 const SUPPORTED_VARIABLES = new Set<string>(EMAIL_TEMPLATE_VARIABLES)
@@ -57,7 +58,7 @@ export function validateEmailTemplateVariableContract(
   if (contract) {
     const available = emailEventAvailableVariables(contractKey)
     const unavailable = [...referenced].filter(
-      (key) => !available.has(key as never),
+      (key) => !available.has(key as EmailTemplateVariable),
     )
     if (unavailable.length > 0) {
       throw new Error(
@@ -92,7 +93,7 @@ function renderValue(
 
       const raw = variables[key]
       if (raw === null || raw === undefined || String(raw).trim() === '') {
-        if (required?.has(key as never) || !contract) {
+        if (required?.has(key as EmailTemplateVariable) || !contract) {
           throw new Error(`email_template_required_variable_missing:${templateKey}:${key}`)
         }
         return ''
