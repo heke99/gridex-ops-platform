@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { supabaseService } from '@/lib/supabase/service'
+import { getCompanyProductionStatus } from '@/lib/tenant/companyProductionStatus'
 
 function tenantStatusCopy(status: string | null) {
   switch ((status ?? '').toLowerCase()) {
@@ -27,22 +27,10 @@ export default async function CompanyStatusLayout({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { data: company } = await supabaseService
-    .from('companies')
-    .select('id,name,status,lifecycle_status,ediel_production_status,ediel_production_enabled,live_ediel_enabled,live_approved_at')
-    .eq('id', id)
-    .maybeSingle()
-
+  const company = await getCompanyProductionStatus(id)
   if (!company) return children
 
-  const tenantStatus = tenantStatusCopy(company.lifecycle_status ?? company.status)
-  const productionState = String(company.ediel_production_status ?? '').toLowerCase()
-  const productionApproved = Boolean(
-    company.ediel_production_enabled === true
-      && company.live_ediel_enabled === true
-      && productionState === 'live'
-      && company.live_approved_at,
-  )
+  const tenantStatus = tenantStatusCopy(company.tenantStatus)
 
   return (
     <>
@@ -53,12 +41,12 @@ export default async function CompanyStatusLayout({
           </span>
           <span
             className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${
-              productionApproved
+              company.productionApproved
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                 : 'border-slate-300 bg-slate-100 text-slate-700'
             }`}
           >
-            Produktion · {productionApproved ? 'Godkänd' : 'Ej godkänd'}
+            Produktion · {company.productionApproved ? 'Godkänd' : 'Ej godkänd'}
           </span>
           <span className="text-xs font-semibold text-slate-500">
             Tenantstatus styr åtkomst och arbete i OPS. Produktionsgodkännande styr live Ediel och externa produktionsflöden.
