@@ -1,4 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { EMAIL_TEMPLATE_VARIABLES } from './eventVariableContracts'
+import { validateEmailTemplateVariableContract } from './templateRenderer'
+
+export { EMAIL_TEMPLATE_VARIABLES }
 
 export type CompanyEmailTemplate = {
   id: string
@@ -29,34 +33,6 @@ type TemplateInput = {
   language?: string
   isActive?: boolean
 }
-
-export const EMAIL_TEMPLATE_VARIABLES = [
-  'customer_name',
-  'first_name',
-  'last_name',
-  'customer_email',
-  'customer_phone',
-  'customer_number',
-  'company_name',
-  'contract_name',
-  'contract_number',
-  'contract_type',
-  'signed_at',
-  'offer_reference',
-  'price_summary',
-  'legal_versions_summary',
-  'agreement_pdf_note',
-  'start_date',
-  'facility_id',
-  'metering_point_id',
-  'support_email',
-  'cancellation_deadline',
-  'portal_url',
-  'required_information',
-  'review_reason',
-  'completion_deadline',
-  'power_of_attorney_url',
-]
 
 export const DEFAULT_EMAIL_TEMPLATES = [
   {
@@ -98,8 +74,8 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     template_key: 'switch.action_required',
     name: 'Leverantörsbyte kräver åtgärd',
     subject: 'Vi behöver komplettera ditt leverantörsbyte',
-    body_html: '<p>Hej {{customer_name}},</p><p>Leverantörsbytet kunde inte slutföras automatiskt. Vi behöver kontrollera eller komplettera uppgifter innan bytet kan fortsätta.</p><p>Kontakta oss på {{support_email}} om du har frågor.</p>',
-    body_text: 'Hej {{customer_name}}, leverantörsbytet kunde inte slutföras automatiskt. Vi behöver kontrollera eller komplettera uppgifter innan bytet kan fortsätta.',
+    body_html: '<p>Hej {{customer_name}},</p><p>{{case_message}}</p><p>Kontakta oss på {{support_email}} eller öppna {{portal_url}} om du behöver komplettera uppgifter.</p>',
+    body_text: 'Hej {{customer_name}}, {{case_message}} Kontakta {{support_email}} eller öppna {{portal_url}} för att komplettera uppgifter.',
   },
   {
     template_key: 'contract.power_of_attorney_required',
@@ -147,8 +123,8 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     template_key: 'customer.welcome_active',
     name: 'Välkommen som aktiv kund',
     subject: 'Välkommen som kund hos {{company_name}}',
-    body_html: '<p>Hej {{customer_name}},</p><p>Välkommen som aktiv kund hos {{company_name}}.</p><p>Ditt kundnummer är {{customer_number}}.</p><p>Du kan nå oss på {{support_email}}.</p>',
-    body_text: 'Hej {{customer_name}}, välkommen som aktiv kund hos {{company_name}}. Ditt kundnummer är {{customer_number}}.',
+    body_html: '<p>Hej {{first_name}},</p><p>Välkommen som aktiv kund hos {{company_name}}.</p><p>Ditt kundnummer är {{customer_number}}.</p><p>Du hittar dina uppgifter i kundportalen: {{portal_url}}</p><p>Du kan nå oss på {{support_email}}.</p>',
+    body_text: 'Hej {{first_name}}, välkommen som aktiv kund hos {{company_name}}. Ditt kundnummer är {{customer_number}}. Kundportal: {{portal_url}}.',
   },
 ]
 
@@ -216,6 +192,13 @@ export async function upsertCompanyEmailTemplate(companyId: string, templateKey:
     updated_at: new Date().toISOString(),
   }
 
+  validateEmailTemplateVariableContract({
+    template_key: payload.template_key,
+    subject: payload.subject,
+    body_html: payload.body_html,
+    body_text: payload.body_text,
+  }, templateKey)
+
   const { data, error } = await supabaseService
     .from('company_email_templates')
     .upsert(payload, { onConflict: 'company_id,template_key,language' })
@@ -252,6 +235,10 @@ export async function seedDefaultEmailTemplates(companyId: string): Promise<Emai
       updated_at: now,
     }))
 
+  for (const template of missingRows) {
+    validateEmailTemplateVariableContract(template, template.template_key)
+  }
+
   if (missingRows.length > 0) {
     const { error } = await supabaseService
       .from('company_email_templates')
@@ -259,8 +246,6 @@ export async function seedDefaultEmailTemplates(companyId: string): Promise<Emai
     if (error && error.code !== '23505') throw error
   }
 
-  // Seeding is create-only. Existing inactive or customised templates are an
-  // explicit tenant choice and may only be changed via admin/reset actions.
   return {
     checked: DEFAULT_EMAIL_TEMPLATES.length,
     created: missingRows.length,
