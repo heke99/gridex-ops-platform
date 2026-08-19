@@ -11,3 +11,5 @@ The canonical human-readable documentation is served at `/developers/customer-po
 **Your integration** owns the customer experience, verified end-customer identity, customer and site input, server-side API calls, exact display of Gridex pricing/legal evidence, stable idempotency keys, persistence of public application references, and webhook signature verification/deduplication.
 
 Do not send internal database identifiers. The API credential determines the organization and permissions.
+
+For troubleshooting, record the `request_id` returned by Gridex together with your own correlation identifier. Do not log API credentials, identity numbers or other unnecessary personal data.
