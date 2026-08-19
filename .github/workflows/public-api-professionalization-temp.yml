@@ -1,0 +1,61 @@
+name: Public API professionalization temp
+
+on:
+  push:
+    branches:
+      - agent/professional-public-api-docs-20260819
+    paths:
+      - scripts/apply-public-api-boundary-remediation.cjs
+      - .github/workflows/public-api-professionalization-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/professional-public-api-docs-20260819
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply source boundary remediation
+        run: node scripts/apply-public-api-boundary-remediation.cjs
+      - name: Install dependencies
+        run: npm ci
+      - name: Finalize current OpenAPI contract
+        run: npm run api:finalize
+      - name: Materialize immutable OpenAPI release
+        run: npm run api:materialize
+      - name: Verify API runtime parity
+        run: npm run api:runtime:parity
+      - name: Verify API release
+        run: npm run api:release:verify
+      - name: Verify API compatibility
+        run: npm run api:compatibility
+      - name: Typecheck application
+        run: npm run typecheck
+      - name: Targeted API tests
+        run: npx vitest run __tests__/api-canonical-release.test.ts __tests__/public-contract-route-openapi-regression.test.ts __tests__/public-contract-api-hardening.test.ts
+      - name: Remove one-shot remediation files
+        run: |
+          rm scripts/apply-public-api-boundary-remediation.cjs
+          rm .github/workflows/public-api-professionalization-temp.yml
+      - name: Commit generated and verified remediation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: professionalize public API contract and boundary"
+          git push origin HEAD:agent/professional-public-api-docs-20260819
