@@ -15,9 +15,9 @@ type ErrorRecord = {
 
 type PublicContractFailureCode =
   | PublicContractErrorCode
-  | 'TENANT_NOT_FOUND'
-  | 'EXTERNAL_TENANT_REFERENCE_MISSING'
-  | 'TENANT_NOT_OPERATIONALLY_READY'
+  | 'ORGANIZATION_NOT_FOUND'
+  | 'INTEGRATION_CONFIGURATION_INCOMPLETE'
+  | 'ORGANIZATION_NOT_OPERATIONALLY_READY'
   | 'PUBLICATION_GRAPH_INCOMPLETE'
   | 'PUBLIC_CONTRACT_FEED_INCONSISTENT'
   | 'PUBLIC_CONTRACT_SCHEMA_OUTDATED'
@@ -57,8 +57,8 @@ export function classifyPublicContractsError(
       status: infrastructureFailure ? 503 : 409,
       code: error.code,
       message: infrastructureFailure
-        ? 'Public contracts-kontraktets version eller schemaevidens är inkonsekvent.'
-        : 'Publiceringssnapshoten är ofullständig eller inkonsekvent och exponeras inte.',
+        ? 'The public contract schema or release evidence is inconsistent.'
+        : 'The published contract snapshot is incomplete or inconsistent and cannot be returned.',
       databaseCode: null,
       path: error.path,
     }
@@ -70,8 +70,7 @@ export function classifyPublicContractsError(
     return {
       status: 503,
       code: 'PUBLIC_CONTRACT_FEED_INCONSISTENT',
-      message:
-        'Det kanoniska avtalsflödet är tillfälligt inkonsekvent. Ingen partiell lista returneras.',
+      message: 'The published contract feed is temporarily inconsistent. No partial result is returned.',
       databaseCode: null,
       path: errorPath,
     }
@@ -98,7 +97,7 @@ export function classifyPublicContractsError(
     return {
       status: 503,
       code: 'PUBLIC_CONTRACT_SCHEMA_OUTDATED',
-      message: 'Public contracts-schemat är inte uppdaterat.',
+      message: 'The public contract schema is not up to date.',
       databaseCode,
       path: errorPath,
     }
@@ -113,7 +112,7 @@ export function classifyPublicContractsError(
             ? 503
             : 409,
         code,
-        message: 'Publiceringssnapshoten är ofullständig eller inkonsekvent och exponeras inte.',
+        message: 'The published contract snapshot is incomplete or inconsistent and cannot be returned.',
         databaseCode,
         path: errorPath,
       }
@@ -128,7 +127,7 @@ export function classifyPublicContractsError(
     return {
       status: 409,
       code: 'PUBLICATION_GRAPH_INCOMPLETE',
-      message: 'Publiceringsgrafen är ofullständig och exponeras inte.',
+      message: 'The published contract configuration is incomplete and cannot be returned.',
       databaseCode,
       path: errorPath,
     }
@@ -147,7 +146,7 @@ export function classifyPublicContractsError(
     return {
       status: 503,
       code: 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE',
-      message: 'Publicerade avtal är tillfälligt otillgängliga.',
+      message: 'Published contracts are temporarily unavailable.',
       databaseCode,
       path: errorPath,
     }
@@ -156,7 +155,7 @@ export function classifyPublicContractsError(
   return {
     status: 500,
     code: 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE',
-    message: 'Publicerade avtal kunde inte hämtas.',
+    message: 'Published contracts could not be retrieved.',
     databaseCode,
     path: errorPath,
   }
