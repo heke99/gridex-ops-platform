@@ -23,12 +23,6 @@
       }
     ],
     "paths": {
-      "@/lib/pricing/commercialModel": [
-        "./lib/pricing/commercialModelCanonical.ts"
-      ],
-      "@/lib/pricing/websiteQuotes": [
-        "./lib/pricing/websiteQuotesCanonical.ts"
-      ],
       "@/*": [
         "./*"
       ]
