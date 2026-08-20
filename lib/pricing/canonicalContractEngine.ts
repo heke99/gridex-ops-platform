@@ -68,5 +68,5 @@ export function normalizeWebsiteQuotePersistenceInput<T extends {
       pricing: canonicalPricingNode(quoteSnapshot.pricing),
       pricing_snapshot: canonicalPricingNode(quoteSnapshot.pricing_snapshot),
     },
-  };
+  } as T;
 }
