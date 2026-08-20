@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { PriceArea, PriceComponent } from "@/lib/pricing/types";
+import { normalizePublishedCommercialSnapshot } from "@/lib/pricing/canonicalContractEngine";
 
 export const CONTRACT_TYPES = [
   "fixed",
@@ -478,12 +479,13 @@ function asRecord(value: unknown): Record<string, unknown> {
 export function commercialModelFromSnapshot(
   snapshot: Record<string, unknown> | null | undefined,
 ): CanonicalCommercialModel | null {
-  const rawOptions = Array.isArray(snapshot?.price_options)
-    ? snapshot.price_options
+  const canonicalSnapshot = normalizePublishedCommercialSnapshot(snapshot);
+  const rawOptions = Array.isArray(canonicalSnapshot.price_options)
+    ? canonicalSnapshot.price_options
     : [];
   const defaultReference =
-    typeof snapshot?.default_price_option_reference === "string"
-      ? snapshot.default_price_option_reference
+    typeof canonicalSnapshot.default_price_option_reference === "string"
+      ? canonicalSnapshot.default_price_option_reference
       : null;
   const normalizedOptions = rawOptions.map((value) => {
     const option = asRecord(value);
@@ -495,7 +497,7 @@ export function commercialModelFromSnapshot(
     return {
       ...option,
       customer_type:
-        option.customer_type ?? snapshot?.customer_type ?? "both",
+        option.customer_type ?? canonicalSnapshot.customer_type ?? "both",
       default:
         option.default ??
         metadata.is_default ??
@@ -510,15 +512,16 @@ export function commercialModelFromSnapshot(
   });
   const parsed = commercialModelSchema.safeParse({
     schema_version:
-      snapshot?.snapshot_schema ?? snapshot?.schema_version ?? "",
+      canonicalSnapshot.snapshot_schema ??
+      canonicalSnapshot.schema_version ??
+      "",
     price_options: normalizedOptions,
-    components:
-      snapshot?.commercial_components ??
-      snapshot?.price_components ??
-      snapshot?.price_components_snapshot ??
-      [],
+    // Legacy price_components are immutable billing rows, not selectable
+    // commercial components. Only explicit commercial_components participate.
+    components: canonicalSnapshot.commercial_components ?? [],
     invoice_delivery_methods:
-      snapshot?.invoice_delivery_methods ?? ["email", "e_invoice", "paper"],
+      canonicalSnapshot.invoice_delivery_methods ??
+      ["email", "e_invoice", "paper"],
   });
   if (!parsed.success) return null;
   return {
