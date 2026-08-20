@@ -244,6 +244,41 @@ describe('public website quote projection', () => {
     expect(() => assertPublicResponsePayload(replay)).not.toThrow()
   })
 
+  it('repairs PR172-era cached public quote responses during idempotency replay', () => {
+    const legacyData = projectPublicWebsiteQuoteData(internalQuote())
+    const legacyMarketReference = {
+      ...(legacyData.market_reference as Record<string, unknown>),
+    }
+    delete legacyMarketReference.price_ex_vat_sek_per_kwh
+    delete legacyMarketReference.price_ex_vat_ore_per_kwh
+    delete legacyData.pricing
+    legacyData.price_per_kwh_ore = 106.1
+    legacyData.market_reference = legacyMarketReference
+
+    const replay = projectPublicWebsiteQuoteEnvelope({
+      data: legacyData,
+      request_id: '2bd20af7-a2a1-4ef2-a148-32227db3ec6a',
+    }, 'fallback') as SuccessEnvelope
+
+    expect(replay.request_id).toBe('2bd20af7-a2a1-4ef2-a148-32227db3ec6a')
+    expect(replay.data).not.toHaveProperty('price_per_kwh_ore')
+    expect(replay.data.pricing).toEqual({ price_per_kwh_ore: 106.1 })
+    expect(replay.data.market_reference).toMatchObject({
+      price_sek_per_kwh: 1,
+      price_ore_per_kwh: 100,
+      price_ex_vat_sek_per_kwh: 0.8,
+      price_ex_vat_ore_per_kwh: 80,
+      includes_vat: true,
+    })
+
+    const marketReferenceSchema = checkedInWebsiteOpenApi().components?.schemas?.MarketReference
+    const marketReference = replay.data.market_reference as Record<string, unknown>
+    for (const field of marketReferenceSchema?.required ?? []) {
+      expect(marketReference, `replayed market_reference missing required OpenAPI field ${field}`).toHaveProperty(field)
+    }
+    expect(() => assertPublicResponsePayload(replay)).not.toThrow()
+  })
+
   it('replays cached canonical business errors exactly instead of quote-projecting them', () => {
     const errorEnvelope = {
       error: {
