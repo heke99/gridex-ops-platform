@@ -42,6 +42,7 @@ type CompanyReadinessRow = {
   customer_portal_url?: string | null
   website?: string | null
   branding?: JsonRecord | null
+  metadata?: JsonRecord | null
   portal_url_schema_ready: boolean
 }
 
@@ -57,6 +58,7 @@ export type TenantWebsiteFlowReadiness = {
   customer_portal_ready: boolean
   complete_tenant_website_ready: boolean
   portal_identity_required: true
+  portal_identity_submission_mode: 'pre_auth_required' | 'post_auth_allowed'
   portal_url: string | null
   status_delivery_modes: Array<'polling' | 'webhook'>
   webhook_delivery_ready: boolean
@@ -156,7 +158,7 @@ async function loadReadinessView(companyId: string): Promise<ReadinessViewRow | 
 async function loadCompany(companyId: string): Promise<CompanyReadinessRow | null> {
   const primary = await supabaseService
     .from('companies')
-    .select('id,status,external_tenant_reference,customer_portal_url,website,branding')
+    .select('id,status,external_tenant_reference,customer_portal_url,website,branding,metadata')
     .eq('id', companyId)
     .maybeSingle()
   if (!primary.error) {
@@ -168,7 +170,7 @@ async function loadCompany(companyId: string): Promise<CompanyReadinessRow | nul
 
   const fallback = await supabaseService
     .from('companies')
-    .select('id,status,external_tenant_reference,website,branding')
+    .select('id,status,external_tenant_reference,website,branding,metadata')
     .eq('id', companyId)
     .maybeSingle()
   if (fallback.error) throw fallback.error
@@ -243,6 +245,11 @@ export async function loadTenantWebsiteFlowReadiness(input: {
   const blockers: TenantWebsiteReadinessBlocker[] = []
   const warnings: TenantWebsiteReadinessBlocker[] = []
   const branding = jsonRecord(company?.branding)
+  const tenantMetadata = jsonRecord(company?.metadata)
+  const portalIdentitySubmissionMode =
+    clean(tenantMetadata.website_portal_identity_mode)?.toLowerCase() === 'post_auth_allowed'
+      ? 'post_auth_allowed'
+      : 'pre_auth_required'
   const canonicalPortalUrl = normalizePortalUrl(company?.customer_portal_url)
   const portalUrl = canonicalPortalUrl ?? normalizePortalUrl(branding.customer_portal_url)
 
@@ -405,6 +412,7 @@ export async function loadTenantWebsiteFlowReadiness(input: {
     customer_portal_ready: customerPortalReady,
     complete_tenant_website_ready: completeReady,
     portal_identity_required: true,
+    portal_identity_submission_mode: portalIdentitySubmissionMode,
     portal_url: portalUrl,
     status_delivery_modes: webhookCount > 0 ? ['polling', 'webhook'] : ['polling'],
     webhook_delivery_ready:
@@ -523,6 +531,7 @@ export async function reconcileTenantWebsiteCapabilities(input: {
         source: 'tenant_website_flow_readiness_v1',
         api_client_id: input.client.id,
         portal_identity_required: true,
+        portal_identity_submission_mode: preliminary.portal_identity_submission_mode,
         status_delivery_modes: preliminary.status_delivery_modes,
       },
       last_verified_at: now,
@@ -555,6 +564,7 @@ export async function reconcileTenantWebsiteCapabilities(input: {
           source: 'tenant_website_flow_readiness_v1',
           api_client_id: input.client.id,
           portal_identity_required: true,
+          portal_identity_submission_mode: finalReadiness.portal_identity_submission_mode,
           status_delivery_modes: finalReadiness.status_delivery_modes,
         },
         last_verified_at: now,
