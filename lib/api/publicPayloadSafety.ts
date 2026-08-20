@@ -22,6 +22,10 @@ const PUBLIC_ID_FIELD_ALLOWLIST = new Set([
   'external_customer_id',
   'facility_id',
   'metering_point_id',
+  // Canonical tenant-bound website energy-resolution handle. The website API
+  // contract intentionally returns this value and requires the same handle for
+  // current-market-price, quote and quote-validation operations.
+  'resolution_id',
   'auth_user_id',
   'customer_portal_user_id',
   'external_account_id',
