@@ -164,6 +164,12 @@ grant execute on function public.gridex_validate_website_application_portal_iden
 
 -- Defense in depth: critical website/portal relationships are tenant-bound in
 -- the database, not only by application query filters.
+-- api_client_id existed in the deployed portal schema before this release but
+-- was missing from the canonical clean-replay foundation. Make the release
+-- migration self-contained so a fresh database reaches the same tenant model.
+alter table public.customer_portal_identities
+  add column if not exists api_client_id uuid;
+
 create unique index if not exists integration_api_clients_company_id_id_uidx
   on public.integration_api_clients(company_id, id);
 create unique index if not exists customer_portal_identities_company_id_id_uidx
