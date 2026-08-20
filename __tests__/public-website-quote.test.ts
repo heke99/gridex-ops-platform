@@ -105,10 +105,32 @@ function internalQuote() {
     market_reference: {
       provider: 'nordpool',
       price_area: 'SE3',
-      reference_type: 'monthly_average',
+      reference_type: 'preview',
       reference_period: '2026-09',
+      price_sek_per_kwh: 1,
       price_ore_per_kwh: 100,
+      price_ex_vat_sek_per_kwh: 0.8,
+      price_ex_vat_ore_per_kwh: 80,
+      requested_days: 30,
+      included_days: 30,
+      period_start: '2026-09-01',
+      period_end: '2026-09-30',
       as_of: '2026-08-20T16:00:00.000Z',
+      source_as_of: '2026-08-20T15:55:00.000Z',
+      generated_at: '2026-08-20T16:00:00.000Z',
+      stale_after: '2026-08-20T17:00:00.000Z',
+      effective_stale_at: '2026-08-20T17:00:00.000Z',
+      source_currency: 'SEK',
+      source_checksum: 'market-public-checksum',
+      source_resolution: 'monthly',
+      unit: 'sek_per_kwh',
+      includes_vat: true,
+      includes_supplier_fees: false,
+      includes_grid_fees: false,
+      is_indicative: true,
+      is_stale: false,
+      fallback_used: false,
+      fallback_reason: null,
       internal_market_id: INTERNAL_UUID,
     },
     market_sources: [{
@@ -145,18 +167,26 @@ describe('public website quote projection', () => {
     expect(() => assertPublicResponsePayload({ data: projected })).not.toThrow()
     expect(projected.quote_reference).toBe('quote_public_projection_1234567890')
     expect(projected.offer_reference).toBe('offer_public_projection_1234567890')
-    expect(projected.price_per_kwh_ore).toBe(106.1)
+    expect(projected).not.toHaveProperty('price_per_kwh_ore')
+    expect(projected.pricing).toEqual({ price_per_kwh_ore: 106.1 })
+    expect(projected.market_reference).toMatchObject({
+      reference_type: 'preview',
+      price_ex_vat_sek_per_kwh: 0.8,
+      price_ex_vat_ore_per_kwh: 80,
+      source_currency: 'SEK',
+      source_resolution: 'monthly',
+    })
     expect(projected.offer).toMatchObject({
       offer_reference: 'offer_public_projection_1234567890',
       name: 'Gridex Månad',
       contract_type: 'variable_monthly',
     })
     expect(projected).not.toHaveProperty('resolution')
-    expect(projected).not.toHaveProperty('pricing')
     expect(projected).not.toHaveProperty('pricing_snapshot')
     expect(projected).not.toHaveProperty('resolved_base_components')
     expect(projected).not.toHaveProperty('resolved_price_components')
     expect(projected.offer).not.toHaveProperty('id')
+    expect(projected.market_reference).not.toHaveProperty('internal_market_id')
     expect((projected.lines as Record<string, unknown>[])[0]).not.toHaveProperty('metadata')
   })
 
@@ -168,6 +198,8 @@ describe('public website quote projection', () => {
 
     expect(replay.request_id).toBe('9a634b1b-2b45-4fd3-82df-3eef1ccfa056')
     expect(replay.data.quote_reference).toBe('quote_public_projection_1234567890')
+    expect(replay.data).not.toHaveProperty('price_per_kwh_ore')
+    expect(replay.data.pricing).toEqual({ price_per_kwh_ore: 106.1 })
     expect(() => assertPublicResponsePayload(replay)).not.toThrow()
   })
 
