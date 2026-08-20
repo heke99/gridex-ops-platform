@@ -6,6 +6,7 @@
 // health surfacing, customer-card role gating.
 const fs = require('node:fs')
 const path = require('node:path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = process.cwd()
 let failures = 0
@@ -13,7 +14,7 @@ let failures = 0
 // static assertions below are structural, so quotes are normalized for
 // .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(rel) {
-  const source = fs.readFileSync(path.join(root, rel), 'utf8')
+  const source = readSourceFamily(root, rel)
   return /\.(ts|tsx)$/.test(rel) ? source.replace(/"/g, "'") : source
 }
 function exists(rel) {

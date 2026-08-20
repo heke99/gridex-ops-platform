@@ -2,9 +2,10 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 function read(file) {
-  return fs.readFileSync(path.join(process.cwd(), file), 'utf8')
+  return readSourceFamily(process.cwd(), file)
 }
 
 let failures = 0

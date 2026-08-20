@@ -1,9 +1,10 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = path.resolve(__dirname, '..')
 let failures = 0
-function read(file) { return fs.readFileSync(path.join(root, file), 'utf8') }
+function read(file) { return readSourceFamily(root, file) }
 function ok(condition, message) {
   if (condition) console.log(`PASS ${message}`)
   else { failures += 1; console.error(`FAIL ${message}`) }
