@@ -8,6 +8,11 @@ import {
 
 const INTERNAL_UUID = '8d63cc83-5fcf-4e98-9a7a-7b415f89c012'
 
+type SuccessEnvelope = {
+  request_id: string
+  data: Record<string, unknown>
+}
+
 function internalQuote() {
   return {
     quote_reference: 'quote_public_projection_1234567890',
@@ -159,19 +164,44 @@ describe('public website quote projection', () => {
     const replay = projectPublicWebsiteQuoteEnvelope({
       data: internalQuote(),
       request_id: '9a634b1b-2b45-4fd3-82df-3eef1ccfa056',
-    }, 'c7e08f25-03c2-4bd9-a971-2f50e40a27a5')
+    }, 'c7e08f25-03c2-4bd9-a971-2f50e40a27a5') as SuccessEnvelope
 
     expect(replay.request_id).toBe('9a634b1b-2b45-4fd3-82df-3eef1ccfa056')
     expect(replay.data.quote_reference).toBe('quote_public_projection_1234567890')
     expect(() => assertPublicResponsePayload(replay)).not.toThrow()
   })
 
+  it('replays cached canonical business errors exactly instead of quote-projecting them', () => {
+    const errorEnvelope = {
+      error: {
+        code: 'invalid_quote_input',
+        message: 'annual_consumption_kwh är ogiltigt.',
+        retryable: false,
+      },
+      request_id: '58b2dd63-ae65-4ca9-b8c2-bd3c3f808714',
+    }
+
+    const replay = projectPublicWebsiteQuoteEnvelope(errorEnvelope, 'fallback')
+    expect(replay).toEqual(errorEnvelope)
+    expect(() => assertPublicResponsePayload(replay)).not.toThrow()
+  })
+
+  it('rejects an incomplete public commercial selection before response storage', () => {
+    const incomplete = {
+      ...internalQuote(),
+      price_option_reference: null,
+    }
+    expect(() => projectPublicWebsiteQuoteData(incomplete)).toThrowError(
+      expect.objectContaining({ code: 'website_quote_public_projection_failed' }),
+    )
+  })
+
   it('is deterministic for idempotency storage and replay', () => {
     const first = projectPublicWebsiteQuoteEnvelope(
       { data: internalQuote(), request_id: '9a634b1b-2b45-4fd3-82df-3eef1ccfa056' },
       'fallback',
-    )
-    const replay = projectPublicWebsiteQuoteEnvelope(first, 'different-request-id')
+    ) as SuccessEnvelope
+    const replay = projectPublicWebsiteQuoteEnvelope(first, 'different-request-id') as SuccessEnvelope
     expect(replay).toEqual(first)
   })
 })
