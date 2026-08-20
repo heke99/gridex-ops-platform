@@ -30,7 +30,12 @@ export async function processWebsiteCustomerApplication(input: {
   rawBody: unknown;
   idempotencyKey?: string | null;
   requestAudit?: RequestAuditMetadata;
+  portalIdentitySubmissionMode?: "pre_auth_required" | "post_auth_allowed";
 }) {
+  const portalIdentitySubmissionMode =
+    input.portalIdentitySubmissionMode === "post_auth_allowed"
+      ? "post_auth_allowed"
+      : "pre_auth_required";
   const idempotencyKey = input.idempotencyKey?.trim() ?? null;
   const idempotencyValidation = validateIdempotencyKey(idempotencyKey);
   if (idempotencyValidation) return failureResponse(idempotencyValidation);
@@ -136,28 +141,54 @@ export async function processWebsiteCustomerApplication(input: {
   }
   const authUserId = clean(body.auth_user_id);
   const customerPortalUserId = clean(body.customer_portal_user_id);
-  if (!authUserId || !customerPortalUserId) {
+  const hasAuthUserId = Boolean(authUserId);
+  const hasCustomerPortalUserId = Boolean(customerPortalUserId);
+
+  if (hasAuthUserId !== hasCustomerPortalUserId) {
     return failureResponse(
       new WebsiteApplicationError({
         message:
-          "auth_user_id och customer_portal_user_id krävs och ska komma från samma verifierade serversession i tenantens Mina sidor.",
+          "auth_user_id och customer_portal_user_id måste skickas tillsammans eller utelämnas tillsammans.",
         status: 422,
-        code: "portal_auth_identity_required",
+        code: "portal_auth_identity_mismatch",
         field: "customer_portal_user_id",
         stage: "validation",
-        hint: "Skapa eller verifiera användaren i tenantens egen auth innan webbansökan skickas.",
+        hint:
+          "Skicka båda från samma verifierade serversession, eller utelämna båda när tenantens checkout tillåter post-auth onboarding.",
       }),
     );
   }
+
   if (
-    authUserId !== customerPortalUserId ||
-    !isUuid(authUserId) ||
-    !isUuid(customerPortalUserId)
+    !authUserId &&
+    !customerPortalUserId &&
+    portalIdentitySubmissionMode === "pre_auth_required"
   ) {
     return failureResponse(
       new WebsiteApplicationError({
         message:
-          "auth_user_id och customer_portal_user_id måste vara samma UUID från den verifierade serversessionen.",
+          "Tenantens checkout-policy kräver verifierad portalidentitet före kundansökan.",
+        status: 422,
+        code: "portal_auth_identity_required",
+        field: "customer_portal_user_id",
+        stage: "validation",
+        hint:
+          "Skicka auth_user_id och customer_portal_user_id från samma verifierade serversession, eller aktivera post_auth_allowed för tenantens checkout-policy.",
+      }),
+    );
+  }
+
+  if (
+    authUserId &&
+    customerPortalUserId &&
+    (authUserId !== customerPortalUserId ||
+      !isUuid(authUserId) ||
+      !isUuid(customerPortalUserId))
+  ) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "auth_user_id och customer_portal_user_id måste vara samma giltiga UUID från den verifierade serversessionen.",
         status: 422,
         code: "portal_auth_identity_mismatch",
         field: "customer_portal_user_id",
@@ -943,28 +974,23 @@ export async function processWebsiteCustomerApplication(input: {
       clean(body.auth_user_id) ??
       clean(body.web_auth_user_id) ??
       clean(body.external_account_id);
-    if (!portalUserId) {
-      throw new WebsiteApplicationError({
-        message: "Mina sidor-identiteten saknas efter validering.",
-        status: 500,
-        code: "portal_auth_identity_missing_after_validation",
-        stage: "portal_user_link",
-        details: { retryable: false },
-      });
-    }
-    const portalLink = await stage("portal_user_link", () =>
-      ensureCustomerPortalUserLink({
-        client: input.client,
-        customerId: resolvedCustomerResult.customer.id,
-        userId: portalUserId,
-        email: normalizedEmail(body.customer.email),
-        externalCustomerId,
-        customerNumber,
-        identityId: identity.id,
-        matchMethod: "website_application_auth_user",
-      }),
-    );
-    if (!portalLink?.accountId || !portalLink.identityId) {
+
+    const portalLink = portalUserId
+      ? await stage("portal_user_link", () =>
+          ensureCustomerPortalUserLink({
+            client: input.client,
+            customerId: resolvedCustomerResult.customer.id,
+            userId: portalUserId,
+            email: normalizedEmail(body.customer.email),
+            externalCustomerId,
+            customerNumber,
+            identityId: identity.id,
+            matchMethod: "website_application_auth_user",
+          }),
+        )
+      : null;
+
+    if (portalUserId && (!portalLink?.accountId || !portalLink.identityId)) {
       throw new WebsiteApplicationError({
         message: "Kundens Mina sidor-koppling kunde inte verifieras efter att kundgrafen skapades.",
         status: 503,
@@ -975,6 +1001,18 @@ export async function processWebsiteCustomerApplication(input: {
       });
     }
 
+    if (!portalUserId && portalIdentitySubmissionMode === "pre_auth_required") {
+      throw new WebsiteApplicationError({
+        message: "Portalidentiteten saknas trots tenantens pre-auth-policy.",
+        status: 500,
+        code: "portal_auth_identity_missing_after_validation",
+        stage: "portal_user_link",
+        details: { retryable: false },
+      });
+    }
+
+    const effectivePortalIdentityId = portalLink?.identityId ?? identity.id;
+
     const applicationStatus = readiness.status;
 
     const responsePayload: Record<string, unknown> = {
@@ -983,7 +1021,10 @@ export async function processWebsiteCustomerApplication(input: {
       application_number: applicationNumber,
       external_customer_id: externalCustomerId,
       external_customer_reference: externalCustomerId,
-      portal_identity_id: identity.id,
+      portal_identity_id: effectivePortalIdentityId,
+      portal_identity_submission_mode: portalIdentitySubmissionMode,
+      customer_portal_linked: Boolean(portalLink?.accountId && portalLink.identityId),
+      customer_portal_link_pending: !portalLink,
       customer_site_id: site?.id ?? null,
       site_id: site?.id ?? null,
       metering_point_id: meteringPoint?.id ?? null,
@@ -1310,6 +1351,9 @@ export async function processWebsiteCustomerApplication(input: {
           legal_versions: legalAcceptanceVersions,
           legal_acceptance_ids: legalAcceptanceIds,
           agreement_confirmation_eligible: agreementConfirmationEligible,
+          portal_identity_submission_mode: portalIdentitySubmissionMode,
+          portal_identity_id: effectivePortalIdentityId,
+          customer_portal_linked: Boolean(portalLink?.accountId && portalLink.identityId),
           requested_start_date:
             readiness.requestedStartDate ??
             contract?.starts_at ??

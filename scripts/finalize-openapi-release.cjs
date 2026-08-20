@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-20.1'
+const version = '2026-08-20.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -19,7 +19,7 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-19.2'
+const priorVersion = '2026-08-20.1'
 const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
@@ -361,14 +361,18 @@ application.required = Array.from(new Set([
   'invoice_delivery_method',
   'selected_component_references',
   'site_count',
-  'auth_user_id',
-  'customer_portal_user_id',
-]))
+])).filter((field) => !['auth_user_id', 'customer_portal_user_id'].includes(field))
 application.dependentRequired = {
   ...(application.dependentRequired ?? {}),
   auth_user_id: ['customer_portal_user_id'],
   customer_portal_user_id: ['auth_user_id'],
 }
+application.description =
+  'Customer application for one authenticated tenant API client. auth_user_id and customer_portal_user_id are optional as a pair when the tenant policy is post_auth_allowed; when either is supplied both must be the same verified UUID.'
+application.properties.auth_user_id.description =
+  'Optional verified tenant-portal auth UUID. Must be supplied together with customer_portal_user_id and must match it.'
+application.properties.customer_portal_user_id.description =
+  'Optional verified tenant-portal user UUID. Must be supplied together with auth_user_id and must match it.'
 const stableReference = {
   type: 'string',
   pattern: '^[a-z0-9][a-z0-9_-]{2,99}$',

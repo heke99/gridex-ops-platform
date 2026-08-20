@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
       rawBody: body,
       idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,
       requestAudit: requestAudit(request, requestId),
+      portalIdentitySubmissionMode: readiness.portal_identity_submission_mode,
     })
 
     const applicationMetadata = {
