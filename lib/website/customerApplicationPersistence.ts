@@ -653,32 +653,49 @@ export async function resumeCommittedIdempotentApplication(input: {
   const meteringPointId = input.existing.metering_point_id ?? clean(response.metering_point_id);
   const contractId = input.existing.contract_id ?? clean(response.contract_id);
   const portalUserId = clean(input.body.customer_portal_user_id) ?? clean(input.body.auth_user_id);
-  if (!customerId || !customerNumber || !contractId || !portalUserId) return null;
+  if (!customerId || !customerNumber || !contractId) return null;
   if (expectsSiteOrMetering(input.body) && !siteId) return null;
 
-  const identity = await upsertPortalIdentity({
-    client: input.client,
-    customerId,
-    externalCustomerId: input.externalCustomerId,
-    externalAccountId: portalUserId,
-    authUserId: portalUserId,
-    customerPortalUserId: portalUserId,
-    customerNumber,
-    email: normalizedEmail(input.body.customer.email),
-    applicationId: input.existing.id,
-  });
-  const portalLink = await ensureCustomerPortalUserLink({
-    client: input.client,
-    customerId,
-    userId: portalUserId,
-    email: normalizedEmail(input.body.customer.email),
-    externalCustomerId: input.externalCustomerId,
-    customerNumber,
-    identityId: identity.id,
-    matchMethod: "website_application_idempotent_resume",
-  });
-  if (!portalLink?.accountId || !portalLink.identityId) {
-    throw new Error("customer_portal_link_not_ready_for_resume");
+  let portalIdentityId = clean(response.portal_identity_id);
+  if (portalUserId) {
+    const identity = await upsertPortalIdentity({
+      client: input.client,
+      customerId,
+      externalCustomerId: input.externalCustomerId,
+      externalAccountId: portalUserId,
+      authUserId: portalUserId,
+      customerPortalUserId: portalUserId,
+      customerNumber,
+      email: normalizedEmail(input.body.customer.email),
+      applicationId: input.existing.id,
+    });
+    const portalLink = await ensureCustomerPortalUserLink({
+      client: input.client,
+      customerId,
+      userId: portalUserId,
+      email: normalizedEmail(input.body.customer.email),
+      externalCustomerId: input.externalCustomerId,
+      customerNumber,
+      identityId: identity.id,
+      matchMethod: "website_application_idempotent_resume",
+    });
+    if (!portalLink?.accountId || !portalLink.identityId) {
+      throw new Error("customer_portal_link_not_ready_for_resume");
+    }
+    portalIdentityId = portalLink.identityId;
+  } else if (!portalIdentityId) {
+    const identity = await upsertPortalIdentity({
+      client: input.client,
+      customerId,
+      externalCustomerId: input.externalCustomerId,
+      customerNumber,
+      email: normalizedEmail(input.body.customer.email),
+      applicationId: input.existing.id,
+    });
+    portalIdentityId = identity.id;
+  }
+  if (!portalIdentityId) {
+    throw new Error("customer_portal_identity_not_ready_for_resume");
   }
 
   const workflow = await commitApplicationProvisioning({
@@ -717,7 +734,8 @@ export async function resumeCommittedIdempotentApplication(input: {
     customer_site_id: siteId,
     metering_point_id: meteringPointId,
     contract_id: contractId,
-    portal_identity_id: portalLink.identityId,
+    portal_identity_id: portalIdentityId,
+    portal_identity_status: portalUserId ? "linked" : "pending_auth",
     workflow_id: workflow.workflowId,
     continuation_job_id: workflow.continuationJobId,
     workflow_state: "canonical_data_committed",

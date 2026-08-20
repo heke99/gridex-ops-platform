@@ -45,7 +45,7 @@ describe('canonical public API release', () => {
     )
   })
 
-  it('aligns the public Website API guide, runtime and database on mandatory pre-authentication', () => {
+  it('aligns the public Website API guide, runtime and database on tenant-scoped portal authentication', () => {
     const legacyGuide = readFileSync(
       'docs/external-website-api-integration-guide.md',
       'utf8',
@@ -58,11 +58,16 @@ describe('canonical public API release', () => {
       'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',
       'utf8',
     )
+    const postAuthMigration = readFileSync(
+      'supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql',
+      'utf8',
+    )
     const application = websiteOpenApi.components.schemas.CustomerApplicationRequest
 
-    expect(application.required).toEqual(
-      expect.arrayContaining(['auth_user_id', 'customer_portal_user_id']),
-    )
+    expect(application.required ?? []).not.toContain('auth_user_id')
+    expect(application.required ?? []).not.toContain('customer_portal_user_id')
+    expect(application.dependentRequired?.auth_user_id).toContain('customer_portal_user_id')
+    expect(application.dependentRequired?.customer_portal_user_id).toContain('auth_user_id')
     expect(legacyGuide).toContain('The canonical human-readable documentation is served at')
     expect(legacyGuide).toContain('The API credential determines the organization and permissions.')
     expect(legacyGuide).toContain('**Gridex platform** owns published electricity offers')
@@ -71,9 +76,14 @@ describe('canonical public API release', () => {
     expect(legacyGuide).not.toMatch(/\bOPS\b/)
     expect(legacyGuide).not.toContain('company_id')
     expect(runtime).toContain('portal_auth_identity_required')
+    expect(runtime).toContain('portalIdentitySubmissionMode')
+    expect(runtime).toContain('post_auth_allowed')
     expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)
     expect(migration).toContain('alter column portal_identity_required set default true')
     expect(migration).toContain("tg_op = 'INSERT'")
+    expect(postAuthMigration).toContain('website_portal_identity_mode')
+    expect(postAuthMigration).toContain('post_auth_allowed')
+    expect(postAuthMigration).toContain('pre_auth_required')
   })
 
   it('publishes document-bound legal acceptance and paired portal identity', () => {

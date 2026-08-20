@@ -20129,6 +20129,34 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "customer_portal_accounts_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_accounts_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_accounts_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_portal_accounts_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
             foreignKeyName: "customer_portal_accounts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -20856,6 +20884,7 @@ export type Database = {
       }
       customer_portal_identities: {
         Row: {
+          api_client_id: string | null
           auth_user_id: string | null
           company_id: string
           created_at: string
@@ -20880,6 +20909,7 @@ export type Database = {
           verified_identifier_hash: string | null
         }
         Insert: {
+          api_client_id?: string | null
           auth_user_id?: string | null
           company_id: string
           created_at?: string
@@ -20904,6 +20934,7 @@ export type Database = {
           verified_identifier_hash?: string | null
         }
         Update: {
+          api_client_id?: string | null
           auth_user_id?: string | null
           company_id?: string
           created_at?: string
@@ -20928,6 +20959,55 @@ export type Database = {
           verified_identifier_hash?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_portal_identities_company_api_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_api_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_api_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
           {
             foreignKeyName: "customer_portal_identities_company_id_fkey"
             columns: ["company_id"]
@@ -61067,6 +61147,7 @@ export type Database = {
           payload: Json
           payload_hash: string | null
           portal_identity_required: boolean
+          portal_identity_submission_mode: string
           price_area_code: string | null
           price_book_id: string | null
           price_plan_id: string | null
@@ -61143,6 +61224,7 @@ export type Database = {
           payload?: Json
           payload_hash?: string | null
           portal_identity_required?: boolean
+          portal_identity_submission_mode?: string
           price_area_code?: string | null
           price_book_id?: string | null
           price_plan_id?: string | null
@@ -61219,6 +61301,7 @@ export type Database = {
           payload?: Json
           payload_hash?: string | null
           portal_identity_required?: boolean
+          portal_identity_submission_mode?: string
           price_area_code?: string | null
           price_book_id?: string | null
           price_plan_id?: string | null
@@ -61270,6 +61353,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_legacy_api_key_sunset_v"
             referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_api_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_api_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_api_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_contract_fkey"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_lifecycle_readiness_v"
+            referencedColumns: ["company_id", "customer_contract_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_contract_fkey"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contracts"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_contract_fkey"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_billing_launch_readiness_v"
+            referencedColumns: ["company_id", "contract_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_contract_fkey"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
           },
           {
             foreignKeyName: "website_customer_applications_company_id_fkey"
@@ -61354,6 +61514,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_metering_point_fkey"
+            columns: ["company_id", "metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_metering_point_fkey"
+            columns: ["company_id", "metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_site_fkey"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_site_fkey"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_site_fkey"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "site_id"]
           },
           {
             foreignKeyName: "website_customer_applications_contract_id_fkey"

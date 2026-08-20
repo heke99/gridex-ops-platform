@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
           blockers: readiness.blockers,
           details: {
             portal_identity_required: readiness.portal_identity_required,
+            portal_identity_submission_mode: readiness.portal_identity_submission_mode,
             status_delivery_modes: readiness.status_delivery_modes,
             warnings: readiness.warnings,
           },
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
       rawBody: body,
       idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,
       requestAudit: requestAudit(request, requestId),
+      portalIdentitySubmissionMode: readiness.portal_identity_submission_mode,
     })
 
     const applicationMetadata = {

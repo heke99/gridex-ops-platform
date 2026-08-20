@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 
-const VERSION = '2026-08-20.1'
+const VERSION = '2026-08-20.2'
 const SPEC_FILES = [
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',
