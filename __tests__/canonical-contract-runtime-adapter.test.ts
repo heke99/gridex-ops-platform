@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   commercialModelFromSnapshot,
+  resolveCommercialSelection,
   type ContractPriceOption,
 } from "@/lib/pricing/commercialModel";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
@@ -135,6 +136,100 @@ describe("canonical contract runtime adapter", () => {
       ]);
     });
   }
+
+  it("adapts a legacy published monthly offer before selection", () => {
+    const model = commercialModelFromSnapshot({
+      schema_version: 5,
+      contract_type: "variable_monthly",
+      customer_type: "both",
+      price_options: [optionFor("variable_monthly")],
+      price_components: [
+        {
+          component_code: "monthly_fee",
+          name: "Månadsavgift",
+          amount: 49,
+          unit: "sek_month",
+        },
+      ],
+    });
+
+    expect(model).not.toBeNull();
+    const selection = resolveCommercialSelection({
+      model: model!,
+      contractType: "variable_monthly",
+      priceOptionReference: null,
+      priceArea: "SE3",
+      customerType: "private",
+      invoiceDeliveryMethod: "email",
+      selectedComponentReferences: [],
+      annualConsumptionKwh: 12_000,
+      siteCount: 1,
+      startDate: "2026-09-01",
+      salesChannel: "website",
+    });
+    expect(selection.priceOption.price_option_reference).toBe(
+      "canonical_variable_monthly",
+    );
+  });
+
+  it("preserves an explicit verified price option for a canonical offer", () => {
+    const model = commercialModelFromSnapshot({
+      snapshot_schema: CANONICAL_CONTRACT_PRICING_SCHEMA,
+      schema_version: CANONICAL_CONTRACT_PRICING_SCHEMA,
+      contract_type: "variable_monthly",
+      customer_type: "both",
+      price_options: [optionFor("variable_monthly")],
+      commercial_components: [],
+      invoice_delivery_methods: ["email"],
+    });
+
+    expect(model).not.toBeNull();
+    const selection = resolveCommercialSelection({
+      model: model!,
+      contractType: "variable_monthly",
+      priceOptionReference: "canonical_variable_monthly",
+      priceArea: "SE3",
+      customerType: "private",
+      invoiceDeliveryMethod: "email",
+      selectedComponentReferences: [],
+      annualConsumptionKwh: 12_000,
+      siteCount: 1,
+      startDate: "2026-09-01",
+      salesChannel: "website",
+    });
+    expect(selection.priceOption.price_option_reference).toBe(
+      "canonical_variable_monthly",
+    );
+  });
+
+  it("rejects an explicit unknown price option instead of falling back", () => {
+    const model = commercialModelFromSnapshot({
+      schema_version: 5,
+      contract_type: "variable_monthly",
+      customer_type: "both",
+      price_options: [optionFor("variable_monthly")],
+    });
+
+    expect(model).not.toBeNull();
+    try {
+      resolveCommercialSelection({
+        model: model!,
+        contractType: "variable_monthly",
+        priceOptionReference: "explicit_missing_option",
+        priceArea: "SE3",
+        customerType: "private",
+        invoiceDeliveryMethod: "email",
+        selectedComponentReferences: [],
+        annualConsumptionKwh: 12_000,
+        siteCount: 1,
+        startDate: "2026-09-01",
+        salesChannel: "website",
+      });
+      throw new Error("expected explicit option to be rejected");
+    } catch (error) {
+      expect(error).toMatchObject({ code: "price_option_not_found" });
+    }
+  });
 
   it("keeps fixed pricing area-bound and 100 percent fixed", () => {
     const normalized = normalizedPricingFor("fixed");

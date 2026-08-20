@@ -23,6 +23,8 @@ jobs:
       - run: node scripts/gridex-ops-health-regression.cjs
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
+      - name: Canonical quote runtime regression matrix
+        run: npx vitest run __tests__/canonical-contract-runtime-adapter.test.ts __tests__/contract-commercial-selection.test.ts __tests__/website-quote-persistence-invariant.test.ts
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
       - run: node scripts/gridex-partner-api-business-contract-regression.cjs
       - run: node scripts/gridex-papilite-centroid-regression.cjs

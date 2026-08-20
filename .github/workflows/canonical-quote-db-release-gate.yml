@@ -1,0 +1,60 @@
+name: Canonical quote DB release gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_gate:
+        description: Type GRIDEX_OPS_QUOTE_GATE to run the transactional DB gate
+        required: true
+        type: string
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: ${{ secrets.GRIDEX_OPS_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL_NON_POOLING || secrets.POSTGRES_URL }}
+
+jobs:
+  quote-db-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-e2e
+    steps:
+      - name: Require explicit manual confirmation when dispatched
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.confirm_gate }}" == "GRIDEX_OPS_QUOTE_GATE" ]] || {
+            echo 'confirm_gate must be GRIDEX_OPS_QUOTE_GATE' >&2
+            exit 1
+          }
+
+      - name: Require database credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${DATABASE_URL:-}" ]] || {
+            echo 'Missing GRIDEX_OPS_DATABASE_URL/DATABASE_URL/SUPABASE_DB_URL/POSTGRES_URL secret.' >&2
+            exit 1
+          }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+
+      - name: Insert, read, validate and rollback real quote rows
+        run: node scripts/run-tenant-sql.mjs scripts/sql/gridex-quote-release-gate.sql

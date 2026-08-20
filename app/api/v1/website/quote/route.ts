@@ -14,6 +14,7 @@ import {
   IntegrationWriteIdempotencyError,
 } from '@/lib/integrations/writeIdempotency'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
+import { WebsiteQuoteValidationError } from '@/lib/pricing/websiteQuotes'
 import { canonicalApiError } from '@/lib/api/apiError'
 import {
   INVOICE_DELIVERY_METHODS,
@@ -343,7 +344,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (error instanceof OfferQuoteError) {
+    if (
+      error instanceof OfferQuoteError ||
+      error instanceof WebsiteQuoteValidationError
+    ) {
       const responseBody = errorBody({
         code: error.code,
         message: error.message,
