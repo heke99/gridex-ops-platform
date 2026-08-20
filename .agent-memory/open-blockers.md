@@ -1,7 +1,8 @@
 # Open blockers
 
-Updated: 2026-08-15
+Updated: 2026-08-20
 
-1. Hosted CI and clean empty-database replay have not yet run on the final PR #149 commit.
-2. Merge and Vercel production deployment verification must wait for all hosted checks to pass.
-3. Official external TGT/AGT portal certificates and counterparty evidence remain external inputs; the application does not invent them.
+1. No production Supabase project is visible; production migration parity is unverified and production promotion is blocked.
+2. Authenticated resolver/end-to-end smoke and k6 execution require the hosted preview plus the configured scoped test credentials.
+3. Auth uses an absolute 10-connection allocation; production-project capacity configuration is unverified.
+4. Production load testing remains forbidden; smoke/load/spike/ETag/soak are staging/preview only.

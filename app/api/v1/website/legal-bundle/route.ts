@@ -9,7 +9,7 @@ import {
   buildWebsiteLegalBundle,
   WebsiteLegalBundleError,
 } from '@/lib/website/publicContracts'
-import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
 import { canonicalApiError } from '@/lib/api/apiError'
 
 export const runtime = 'nodejs'
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       startedAt,
       metadata: { offer_reference: offerReference, complete: bundle.complete, missing_types: bundle.missing_types },
     })
-    await logUsageEvent({
+    await scheduleUsageEvent({
       companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       entityType: 'api_client',

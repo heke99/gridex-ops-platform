@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  after: vi.fn(),
   from: vi.fn(),
   usageInsert: vi.fn(),
   failureInsert: vi.fn(),
   auditInsert: vi.fn(),
+}))
+
+vi.mock('next/server', () => ({
+  after: mocks.after,
 }))
 
 vi.mock('@/lib/supabase/service', () => ({
@@ -16,6 +21,7 @@ vi.mock('@/lib/supabase/service', () => ({
 import {
   logAdminActionAndUsage,
   logUsageEvent,
+  scheduleUsageEvent,
 } from '@/lib/audit/actionLogger'
 import { userActorUuid } from '@/lib/ediel/intent/intentEngine'
 import {
@@ -28,6 +34,7 @@ beforeEach(() => {
   mocks.usageInsert.mockResolvedValue({ error: null })
   mocks.failureInsert.mockResolvedValue({ error: null })
   mocks.auditInsert.mockResolvedValue({ error: null })
+  mocks.after.mockImplementation(() => undefined)
   mocks.from.mockImplementation((table: string) => {
     if (table === 'platform_usage_events') {
       return { insert: mocks.usageInsert }
@@ -43,6 +50,37 @@ beforeEach(() => {
 })
 
 describe('platform usage telemetry boundary', () => {
+  it('schedules secondary telemetry after the response boundary', async () => {
+    await scheduleUsageEvent({
+      companyId: 'b3ad1bf6-fa45-41a6-8054-2e0862e82aca',
+      entityType: 'website_contract_feed',
+      eventKey: 'api.website_public_contracts.read',
+      source: 'website_api',
+    })
+
+    expect(mocks.after).toHaveBeenCalledOnce()
+    expect(mocks.usageInsert).not.toHaveBeenCalled()
+
+    const callback = mocks.after.mock.calls[0]?.[0]
+    expect(callback).toBeTypeOf('function')
+    await callback()
+
+    expect(mocks.usageInsert).toHaveBeenCalledOnce()
+  })
+
+  it('persists telemetry directly outside a Next.js request context', async () => {
+    mocks.after.mockImplementation(() => {
+      throw new Error('after called outside request scope')
+    })
+
+    await scheduleUsageEvent({
+      entityType: 'website_contract_feed',
+      eventKey: 'api.website_public_contracts.read',
+    })
+
+    expect(mocks.usageInsert).toHaveBeenCalledOnce()
+  })
+
   it('accepts stable text resource references without owning business success', async () => {
     const result = await logUsageEvent({
       companyId: 'b3ad1bf6-fa45-41a6-8054-2e0862e82aca',

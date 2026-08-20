@@ -2,6 +2,7 @@ name: Gridex browser and quality E2E
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   schedule:
@@ -73,7 +74,10 @@ jobs:
   browser-staging:
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+       github.event.label.name == 'staging-e2e-approved' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.60.0-noble-amd64@sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9
@@ -124,13 +128,17 @@ jobs:
   k6-staging-load:
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+       github.event.label.name == 'staging-e2e-approved' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       GRIDEX_E2E_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
       GRIDEX_E2E_K6_READ_ROUTES: ${{ vars.GRIDEX_E2E_K6_READ_ROUTES }}
       GRIDEX_E2E_K6_BEARER_TOKEN: ${{ secrets.GRIDEX_E2E_K6_BEARER_TOKEN }}
+      GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE: ${{ vars.GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE }}
     steps:
       - uses: actions/checkout@v4
       - name: Require k6 staging target
@@ -138,6 +146,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ -n "$GRIDEX_E2E_BASE_URL" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for staging performance certification.' >&2; exit 1; }
+          [[ -n "$GRIDEX_E2E_K6_BEARER_TOKEN" ]] || { echo 'GRIDEX_E2E_K6_BEARER_TOKEN is required for authenticated staging performance certification.' >&2; exit 1; }
       - name: Run pinned k6 smoke load and spike thresholds
         shell: bash
         run: |
@@ -151,6 +160,12 @@ jobs:
               -v "$PWD:/work" -w /work grafana/k6:2.1.0 \
               run "e2e/k6/${profile}.js" | tee "e2e-artifacts/${profile}.log"
           done
+          docker run --rm \
+            -e GRIDEX_E2E_BASE_URL="$GRIDEX_E2E_BASE_URL" \
+            -e GRIDEX_E2E_K6_BEARER_TOKEN="$GRIDEX_E2E_K6_BEARER_TOKEN" \
+            -e GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE="$GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE" \
+            -v "$PWD:/work" -w /work grafana/k6:2.1.0 \
+            run e2e/k6/public-contract-cache.js | tee e2e-artifacts/public-contract-cache.log
       - name: Upload k6 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -163,7 +178,10 @@ jobs:
   k6-staging-soak:
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '17 4 * * 0') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'soak' || inputs.mode == 'all'))
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'soak' || inputs.mode == 'all')) ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+       github.event.label.name == 'staging-e2e-approved' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -202,7 +220,10 @@ jobs:
   zap-staging-baseline:
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
+      (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+       github.event.label.name == 'staging-e2e-approved' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -227,7 +248,10 @@ jobs:
     if: >-
       always() && (
         (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||
-        (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all'))
+        (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) ||
+        (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+         github.event.label.name == 'staging-e2e-approved' &&
+         github.event.pull_request.head.repo.full_name == github.repository)
       )
     needs: [browser-staging, k6-staging-load, zap-staging-baseline]
     runs-on: ubuntu-latest

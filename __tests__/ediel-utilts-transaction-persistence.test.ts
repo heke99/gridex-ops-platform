@@ -1,6 +1,6 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+
+import { readModuleFamily } from '@/__tests__/helpers/read-module-family'
 
 import { getUtiltsAckTransactionTargets } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -55,12 +55,9 @@ describe('UTILTS transaction persistence payload', () => {
   })
 
   it('tenant match builder synthesizes the same null-id fallback used by persistence/ACK', () => {
-    const source = fs.readFileSync(
-      path.join(process.cwd(), 'lib/ediel/flows/utiltsDataRequest.ts'),
-      'utf8',
-    )
+    const source = readModuleFamily('lib/ediel/flows/utiltsDataRequest.ts')
     const matchBuilder = source.match(
-      /async function matchUtiltsTransactionsForTenant[\s\S]*?^async function /m,
+      /(?:export )?async function matchUtiltsTransactionsForTenant[\s\S]*?^(?:export )?async function /m,
     )?.[0]
     expect(matchBuilder).toBeTruthy()
     expect(matchBuilder).toMatch(

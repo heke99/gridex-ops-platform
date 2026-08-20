@@ -192,7 +192,7 @@ describe('tenant website canonical go-live hardening', () => {
     ]) {
       expect(docs).not.toContain(forbidden)
     }
-    expect(docs).toContain('2026-08-19.2')
+    expect(docs).toContain('2026-08-20.1')
     expect(docs).toContain('/developers/customer-portal-api#customer-portal')
     expect(docs).toContain('/api/v1/openapi/customer-portal-v1.json')
     expect(docs).toContain('server-to-server')

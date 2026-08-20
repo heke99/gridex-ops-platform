@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs')
 const path = require('path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/"/g, "'")
+const read = (file) => readSourceFamily(root, file).replace(/"/g, "'")
 const exists = (file) => fs.existsSync(path.join(root, file))
 let failures = 0
 function expect(condition, message) {

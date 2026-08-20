@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   currentIntegrationApiResponseContext: vi.fn(() => ({
     rateLimit: { limit: 100, count: 1, remaining: 99, resetAt: null },
   })),
-  logUsageEvent: vi.fn(async () => undefined),
+  scheduleUsageEvent: vi.fn(async () => undefined),
   listPublicContractOffers: vi.fn(),
   diagnosePublicContractOffers: vi.fn(),
   publicContractResponse: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock('@/lib/integrations/tenantContext', () => ({
 }))
 
 vi.mock('@/lib/audit/actionLogger', () => ({
-  logUsageEvent: mocks.logUsageEvent,
+  scheduleUsageEvent: mocks.scheduleUsageEvent,
 }))
 
 vi.mock('@/lib/website/publicContracts', async (importOriginal) => {

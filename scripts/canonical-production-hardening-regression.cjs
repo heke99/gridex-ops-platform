@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = path.resolve(__dirname, '..')
 const failures = []
-const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
+const read = (relative) => readSourceFamily(root, relative)
 const exists = (relative) => fs.existsSync(path.join(root, relative))
 const assert = (condition, message) => { if (!condition) failures.push(message) }
 

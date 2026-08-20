@@ -90,6 +90,7 @@ async function loadSignedPowersOfAttorney(context: PortalCustomerContext): Promi
     'id,company_id,customer_id,site_id,scope,status,signed_at,reference,created_at',
   ]
 
+  // query-loop-budget: bounded-schema-fallback max=3
   for (const select of selects) {
     const { data, error } = await supabaseService
       .from('powers_of_attorney')

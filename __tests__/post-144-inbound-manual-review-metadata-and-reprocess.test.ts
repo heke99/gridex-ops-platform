@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readModuleFamily } from '@/__tests__/helpers/read-module-family'
 
-const poller = readFileSync('lib/inbound-mail/edielMailboxPoller.ts', 'utf8')
+const poller = readModuleFamily('lib/inbound-mail/edielMailboxPoller.ts')
 const actions = readFileSync('app/admin/inbound-mail/actions.ts', 'utf8')
 const detailPage = readFileSync('app/admin/inbound-mail/[id]/page.tsx', 'utf8')
 const architectureMigration = readFileSync(

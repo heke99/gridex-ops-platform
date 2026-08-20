@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type AdminActionLogInput = {
@@ -229,5 +230,24 @@ export async function logUsageEvent(
       errorCode: normalized.code,
       errorMessage: normalized.message,
     }
+  }
+}
+
+/**
+ * Defers secondary API telemetry until after the response has been produced.
+ * The fallback keeps scripts and tests outside a Next.js request context
+ * deterministic without changing the fail-open telemetry contract.
+ */
+export async function scheduleUsageEvent(
+  input: UsageEventInput,
+): Promise<void> {
+  const persist = async () => {
+    await logUsageEvent(input)
+  }
+
+  try {
+    after(persist)
+  } catch {
+    await persist()
   }
 }

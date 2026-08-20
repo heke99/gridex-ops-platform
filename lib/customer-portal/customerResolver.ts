@@ -117,6 +117,7 @@ function hasStrongFirstLinkFactors(identifiers: CustomerPortalIdentifiers, resol
 }
 
 async function fetchCustomer(companyId: string, customerId: string): Promise<Record<string, unknown> | null> {
+  // query-loop-budget: bounded-schema-fallback max=3
   for (const select of [CUSTOMER_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]) {
     const customer = await supabaseService
       .from('customers')
@@ -231,6 +232,7 @@ async function linkedByExternal(companyId: string, externalCustomerId: string): 
 
 async function customerByField(companyId: string, field: 'external_customer_id' | 'customer_number' | 'email', value: string, method: string): Promise<ResolvedPortalCustomer | null> {
   const selects = [CUSTOMER_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]
+  // query-loop-budget: bounded-schema-fallback max=3
   for (const select of selects) {
     const result = await supabaseService
       .from('customers')
@@ -271,6 +273,7 @@ async function selectPortalAccountsByUser(companyId: string, userId: string): Pr
     { field: 'external_account_id', select: ACCOUNT_SELECT },
   ]
 
+  // query-loop-budget: bounded-schema-fallback max=4
   for (const lookup of lookups) {
     const account = await supabaseService
       .from('customer_portal_accounts')
@@ -439,6 +442,7 @@ function activeIdentity(row: Record<string, unknown>): boolean {
 }
 
 async function selectPortalIdentities(companyId: string, field: 'external_customer_id' | 'email', value: string, limit: number): Promise<Record<string, unknown>[]> {
+  // query-loop-budget: bounded-schema-fallback max=2
   for (const select of [IDENTITY_SELECT, IDENTITY_FALLBACK_SELECT]) {
     const result = await supabaseService
       .from('customer_portal_identities')
@@ -460,7 +464,9 @@ async function selectPortalIdentitiesByUser(companyId: string, userId: string): 
     ? ['auth_user_id', 'customer_portal_user_id', 'external_account_id'] as const
     : ['external_account_id'] as const
 
+  // query-loop-budget: bounded-schema-fallback max=6
   for (const field of fields) {
+    // query-loop-budget: bounded-schema-fallback max=2
     for (const select of [IDENTITY_SELECT, IDENTITY_FALLBACK_SELECT]) {
       const result = await supabaseService
         .from('customer_portal_identities')

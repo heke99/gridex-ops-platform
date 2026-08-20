@@ -38,10 +38,30 @@ export async function reconcileCustomerApplicationContinuationJobs(input: { limi
     throw error
   }
 
+  const workflowRows = (workflows ?? []) as JsonRecord[]
+  const workflowIds = workflowRows
+    .map((workflow) => clean(workflow.id))
+    .filter((workflowId): workflowId is string => Boolean(workflowId))
+  const jobsByWorkflowId = new Map<string, JsonRecord>()
+  if (workflowIds.length > 0) {
+    const { data: jobs, error: jobsError } = await supabaseService
+      .from('customer_operation_jobs')
+      .select('id,workflow_id,status,attempts,max_attempts')
+      .in('workflow_id', workflowIds)
+      .eq('job_type', 'customer_application_continuation')
+    if (jobsError && !missingSchema(jobsError)) throw jobsError
+    for (const job of (jobs ?? []) as JsonRecord[]) {
+      const workflowId = clean(job.workflow_id)
+      if (workflowId && !jobsByWorkflowId.has(workflowId)) {
+        jobsByWorkflowId.set(workflowId, job)
+      }
+    }
+  }
+
   let created = 0
   let requeued = 0
   let skipped = 0
-  for (const workflow of (workflows ?? []) as JsonRecord[]) {
+  for (const workflow of workflowRows) {
     const workflowId = clean(workflow.id)
     const companyId = clean(workflow.company_id)
     const customerId = clean(workflow.customer_id)
@@ -52,14 +72,7 @@ export async function reconcileCustomerApplicationContinuationJobs(input: { limi
       continue
     }
 
-    const { data: job, error: jobError } = await supabaseService
-      .from('customer_operation_jobs')
-      .select('id,status,attempts,max_attempts')
-      .eq('company_id', companyId)
-      .eq('workflow_id', workflowId)
-      .eq('job_type', 'customer_application_continuation')
-      .maybeSingle()
-    if (jobError && !missingSchema(jobError)) throw jobError
+    const job = jobsByWorkflowId.get(workflowId)
 
     if (!job) {
       const { data: inserted, error: insertError } = await supabaseService

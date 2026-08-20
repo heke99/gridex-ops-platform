@@ -1,11 +1,11 @@
 # Current task
 
-Updated: 2026-08-15
+Updated: 2026-08-20
 
-Status: `CLEAN_REPLAY_TYPES_LOCK_VERIFIED_LOCALLY`
+Status: `MASTERPLAN_PR_169_HOSTED_STAGING_VERIFICATION`
 
-Active work item: complete PR #149 for explicit Ediel role identity, generated Supabase contract locking, Gridex El production/API/contract readiness, hosted clean replay, merge, Vercel deployment, and post-deploy verification.
+Active work item: finish hosted CI/Vercel preview verification and execute the non-destructive authenticated E2E/load matrix for draft PR #169.
 
 ## Exact next action
 
-Publish the exact clean-replay-generated Supabase types and normalized deterministic hash to PR `#149`, require all hosted jobs to pass, then apply the service-role RPC restriction, merge, and verify the production deployment plus non-destructive API/contract smoke checks.
+Publish the tested same-repository staging-label gate, add `staging-e2e-approved` to PR #169, and retain browser/k6 smoke-load-spike-ETag-soak/ZAP evidence. Do not promote while the OPS production Supabase project remains unidentified.

@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { ApplicationSchema } from '@/lib/website/customerApplicationSchemas'
 import { contractLegalMailEvidenceReady } from '@/lib/website/contractLegalMailEvidence'
@@ -11,6 +10,7 @@ import {
 import { renderEmailTemplate } from '@/lib/email/templateRenderer'
 import { buildZ03Segments } from '@/lib/ediel/prodat/z03'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
+import { readModuleFamily } from '@/__tests__/helpers/read-module-family'
 
 function canonicalTemplate(templateKey: string): CompanyEmailTemplate {
   const row = DEFAULT_EMAIL_TEMPLATES.find((item) => item.template_key === templateKey)
@@ -197,7 +197,7 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     }, new Date(acceptedAt))
     expect(certificate.isUsableForSmime).toBe(true)
 
-    const transportSource = readFileSync('lib/ediel/transport/index.ts', 'utf8')
+    const transportSource = readModuleFamily('lib/ediel/transport/index.ts')
     const resolverUse = transportSource.indexOf('await resolveOutboundRecipientCertificate')
     const smtpUse = transportSource.indexOf('sendEdielEmail(', resolverUse)
     expect(resolverUse).toBeGreaterThan(-1)

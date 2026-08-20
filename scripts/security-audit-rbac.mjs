@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import sourceFamily from "./lib/read-source-family.cjs";
+
+const { readSourceFamily } = sourceFamily;
 
 const root = process.cwd();
 const failures = [];
 const warnings = [];
 
 function read(rel) {
-  return fs.readFileSync(path.join(root, rel), "utf8");
+  return readSourceFamily(root, rel);
 }
 
 function exists(rel) {
@@ -306,11 +309,21 @@ function walk(dir) {
 }
 walk(path.join(root, "app"));
 
+const reviewOwnerPath = (rel) => rel.replace(/\.part-\d+(?=\.(?:ts|tsx)$)/, "");
+const isReviewedServiceClientFile = (rel) =>
+  reviewedServiceClientFiles.has(rel) ||
+  reviewedServiceClientFiles.has(reviewOwnerPath(rel));
+
 const unreviewedServiceClientFiles = serviceClientFiles
-  .filter((rel) => !reviewedServiceClientFiles.has(rel))
+  .filter((rel) => !isReviewedServiceClientFile(rel))
   .sort((a, b) => a.localeCompare(b));
 const removedReviewedServiceClientFiles = [...reviewedServiceClientFiles]
-  .filter((rel) => !serviceClientFiles.includes(rel))
+  .filter(
+    (rel) =>
+      !serviceClientFiles.some(
+        (serviceClientFile) => reviewOwnerPath(serviceClientFile) === rel,
+      ),
+  )
   .sort((a, b) => a.localeCompare(b));
 
 if (unreviewedServiceClientFiles.length > 0) {

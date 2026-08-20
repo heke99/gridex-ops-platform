@@ -51,7 +51,7 @@ export async function createInvoiceExportRun(input: {
   const provider = input.provider ?? 'capway_aptic'
   const environment = input.environment ?? 'test'
   const readiness = await evaluateBillingMonthInvoiceReadiness({ companyId: input.companyId, billingMonth: input.billingMonth })
-  if (readiness.status !== 'ready') {
+  if (readiness.readyUnderlayCount === 0) {
     throw new Error(`Fakturaperioden är inte exportklar: ${readiness.issues.map((issue) => issue.message).join(' ')}`)
   }
   const runIdempotencyKey = [
@@ -91,7 +91,7 @@ export async function createInvoiceExportRun(input: {
       .select('id,billing_underlay_id,customer_id,total_ex_vat,vat_amount,total_inc_vat,status,billing_period_start,billing_period_end')
       .eq('company_id', input.companyId)
       .in('billing_underlay_id', ids)
-      .in('status', ['success', 'locked'])
+      .eq('status', 'locked')
       .order('billing_underlay_id', { ascending: true })
       .order('created_at', { ascending: false })
     if (pricingResult.error) throw pricingResult.error
@@ -105,7 +105,7 @@ export async function createInvoiceExportRun(input: {
   }
   for (const underlayId of readyUnderlayIds) {
     const runs = byUnderlay.get(underlayId) ?? []
-    if (runs.length !== 1) throw new Error(`Fakturaunderlag ${underlayId} måste ha exakt en låst eller lyckad prisberäkning.`)
+    if (runs.length !== 1) throw new Error(`Fakturaunderlag ${underlayId} måste ha exakt en låst prisberäkning.`)
   }
 
   const underlaysById = new Map<string, Record<string, unknown>>()

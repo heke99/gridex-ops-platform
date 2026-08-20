@@ -1,0 +1,18 @@
+{
+  "browserBundle": {
+    "maximumIndividualChunkBytes": 230000,
+    "routeBudgets": {
+      "app/admin/customers/[id]": 210000,
+      "app/admin/customers/intake": 120000,
+      "app/admin/contracts": 120000
+    }
+  },
+  "stagingSlo": {
+    "smoke": { "maximumFailureRate": 0.01, "p95Milliseconds": 1500, "p99Milliseconds": 3000 },
+    "load": { "maximumFailureRate": 0.005, "p95Milliseconds": 1500, "p99Milliseconds": 3000 },
+    "spike": { "maximumFailureRate": 0.01, "p95Milliseconds": 2000, "p99Milliseconds": 4000 },
+    "soak": { "maximumFailureRate": 0.005, "p95Milliseconds": 1500, "p99Milliseconds": 3000 },
+    "etagFull": { "maximumFailureRate": 0.005, "p95Milliseconds": 1500, "p99Milliseconds": 3000 },
+    "etag304": { "maximumFailureRate": 0.005, "p95Milliseconds": 750, "p99Milliseconds": 1500 }
+  }
+}

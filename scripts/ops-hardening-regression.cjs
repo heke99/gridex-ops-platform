@@ -1,8 +1,9 @@
 const fs = require('fs')
 const path = require('path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 function read(relative) {
-  return fs.readFileSync(path.join(process.cwd(), relative), 'utf8')
+  return readSourceFamily(process.cwd(), relative)
 }
 function assertIncludes(relative, token) {
   if (!read(relative).includes(token)) throw new Error(`${relative} is missing ${token}`)

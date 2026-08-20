@@ -14,13 +14,14 @@
 
 const fs = require('fs')
 const path = require('path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = process.cwd()
 // TypeScript sources are formatter-dependent (single vs double quotes); the
 // static assertions below are structural, so quotes are normalized for
 // .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 const read = (file) => {
-  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  const source = readSourceFamily(root, file)
   return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
 }
 const exists = (file) => fs.existsSync(path.join(root, file))

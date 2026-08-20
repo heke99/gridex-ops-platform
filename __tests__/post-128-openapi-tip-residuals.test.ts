@@ -29,9 +29,9 @@ describe('post-#128 OpenAPI tip residuals', () => {
     }
   })
 
-  it('uses the verified publication instant for contract release 2026-08-19.2', () => {
-    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-19.2')
-    expect(OPENAPI_RELEASED_AT).toBe('2026-08-19T09:20:00.000Z')
+  it('uses the verified publication instant for contract release 2026-08-20.1', () => {
+    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-20.1')
+    expect(OPENAPI_RELEASED_AT).toBe('2026-08-20T11:38:24.000Z')
     const source = readFileSync('lib/integrations/openApiReleaseManifest.ts', 'utf8')
     expect(source).not.toContain("OPENAPI_RELEASED_AT = '2026-08-10T")
   })

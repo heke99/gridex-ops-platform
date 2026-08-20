@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readModuleFamily } from '@/__tests__/helpers/read-module-family'
 
 const residualMigration = readFileSync('supabase/migrations/20260814190000_inbound_manual_review_status_and_binding.sql', 'utf8')
 const actions = readFileSync('app/admin/inbound-mail/actions.ts', 'utf8')
 const form = readFileSync('app/admin/inbound-mail/[id]/InboundManualReviewForm.tsx', 'utf8')
-const poller = readFileSync('lib/inbound-mail/edielMailboxPoller.ts', 'utf8')
+const poller = readModuleFamily('lib/inbound-mail/edielMailboxPoller.ts')
 
 describe('post-#139 inbound manual review residuals', () => {
   it('uses canonical inbound job terminal status done, not completed', () => {

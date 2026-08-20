@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-19.2' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-20.1' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -27,10 +27,9 @@ export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] 
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
 
 /**
- * 2026-08-19.2 intentionally replaces legacy public partition terminology
- * with organization-facing fields. The active Gridex website does not consume
- * the removed metadata aliases, but generic clients upgrading from .1 must
- * adopt the .2 public field names.
+ * 2026-08-20.1 makes notification writes use the same opaque, tenant-bound
+ * notification references returned by notification reads. Internal UUIDs are
+ * no longer accepted or returned by that operation.
  */
 export const API_COMPATIBILITY_CLASSIFICATION = {
   release: 'breaking-client-update-required',

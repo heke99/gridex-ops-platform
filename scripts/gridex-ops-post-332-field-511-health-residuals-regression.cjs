@@ -7,6 +7,7 @@
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = path.resolve(__dirname, '..')
 const failures = []
@@ -18,7 +19,7 @@ const check = (condition, message) => {
 const read = (relativePath) => {
   const absolute = path.join(root, relativePath)
   check(fs.existsSync(absolute), `missing required file: ${relativePath}`)
-  return fs.existsSync(absolute) ? fs.readFileSync(absolute, 'utf8') : ''
+  return fs.existsSync(absolute) ? readSourceFamily(root, relativePath) : ''
 }
 
 const field511Migration =

@@ -391,3 +391,32 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Hosted clean replay on PR #149 exposed that the verified live-schema helper `canonical_current_ediel_engine_schema_version()` was present as a bootstrap artifact but absent from the replay plan. Declared it as hash-bound verified-live-schema evidence and interleaved it after `20260815002945` and before its first consumer `20260815003554`. Static provenance and the full migration/type contract check pass locally.
 - The next hosted replay reached `20260815095427` and exposed the second omitted source prerequisite: `ediel_test_runs.environment_type`, originally defined by a checksum-pinned migration whose replay is replaced by a narrower enum foundation. Added a minimal hash-bound derived artifact at the exact chronological boundary; static provenance and migration/type contracts pass locally.
 - Hosted replay then completed the entire empty-database history, verified the CLI ledger and schema fingerprint, and produced the authoritative generated TypeScript contract. Replaced `supabase/database.types.ts` with that artifact, normalized typegen EOF deterministically in the existing override script, and locked hash `d39755f6e8a9de374e494faaab9e5519bdd3c199577d985b761dcd85324b130a`; all TypeScript targets and migration/type checks pass locally.
+
+## 2026-08-20 — production masterplan P0 execution
+
+- Audited repository main, Vercel production deployment/telemetry, and Supabase development schema against the 50-section production masterplan.
+- Removed invented billing provider defaults, enabled per-underlay readiness, required locked pricing in runtime and database, and made the settlement cron lock imported months.
+- Replaced the notification UUID write boundary with tenant-bound opaque public references and released immutable OpenAPI `2026-08-20.1`.
+- Applied and verified the locked-pricing trigger in `gridex-ops-dev`; trigger is security invoker and not executable by anon/authenticated roles.
+- Local typecheck, 697 tests, OpenAPI gates, migration integrity, dependency audit, and production build pass. Publication, production database parity, authenticated smoke, and timeout remediation remain blocked.
+
+## 2026-08-20 — production masterplan P1/P2 continuation
+
+- Moved best-effort website API usage telemetry behind Next.js `after` with a deterministic non-request fallback; the historical usage insert timeout can no longer hold a successful external response open.
+- Proved the current live public-contract fingerprint is an O(1) revision lookup (6.693 ms warm, no disk/temp I/O) and classified the older 19-timeout cluster as remediated/non-reproducing on the current deployment.
+- Added an authenticated k6 full-feed plus ETag/304 profile with independent p95/p99 thresholds; live execution remains staging-credential gated.
+- Added a 1,800-line source ratchet: 19 grandfathered files cannot grow and new large source files fail the gate.
+- Re-triaged 16 security and 1,100 performance advisor notices. Service-only no-policy tables and the authenticated definer allowlist are intentional; there are no exact duplicate public indexes, so no blind DDL was applied.
+- Repaired the `2026-08-20.1` fixture-generation residual and replaced stale public-contract `tenant_reference` schema metadata with `organization_reference` before rematerializing the local immutable release draft.
+- Verification passes: 98 files / 699 tests, both TypeScript targets, API docs/parity/release bytes, migration integrity, P0/advisor/E2E/large-file regressions, and full Next.js production build.
+## 2026-08-20 — masterplan P1/P2 continuation and publication authorization
+
+- Received explicit authorization for staging k6 smoke/load/spike/ETag/soak, all 19 legacy-file splits, production-parity/E2E/performance work, and Git stage/commit/push/deploy flow.
+- Split every grandfathered source file behind stable public facades; zero app/lib/script files exceed 1,800 lines.
+- Preserved Next.js server-action semantics with local async facade wrappers and verified the production build.
+- Batched portal-claim candidate reads and continuation-reconciliation job reads; added an AST N+1 gate with only explicit bounded schema/pagination exceptions.
+- Added checked browser-bundle and k6 SLO budgets to the OPS CI workflow.
+- Re-ran local CI: 98/98 Vitest files and 699/699 tests, app/script/test typecheck, lint with zero errors, API/migration/security gates and production build pass.
+- Supabase connector still exposes only `gridex-ops-dev` for OPS; no unrelated project was treated as production.
+- Published byte-identical tree `b59d1a8322ee11590ae9663ceb7aadeb05b36751` as draft PR #169 (remote commit `d8d54e78f2499eac85f2ddb7f77b298c4b307704`).
+- Added a maintainer-label trigger restricted to same-repository PRs so the authorized staging browser/k6/ZAP matrix can consume repository secrets without exposing them locally.

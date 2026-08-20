@@ -55,7 +55,7 @@ const failures = [
     ['website intake must enforce tenant readiness', 'loadTenantWebsiteFlowReadiness'],
     ['payload must be bound to authenticated tenant context', 'bindPayloadToTenant'],
     ['website intake must support idempotency keys', "request.headers.get('idempotency-key')"],
-    ['website intake must record usage', 'logUsageEvent'],
+    ['website intake must schedule usage telemetry off the response-critical path', 'scheduleUsageEvent'],
   ]),
 ]
 

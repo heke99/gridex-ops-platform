@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readModuleFamily } from '@/__tests__/helpers/read-module-family'
 
-const poller = readFileSync('lib/inbound-mail/edielMailboxPoller.ts', 'utf8')
+const poller = readModuleFamily('lib/inbound-mail/edielMailboxPoller.ts')
 const reopenMigration = readFileSync(
   'supabase/migrations/20260814193000_inbound_manual_review_reopen_after_requeue.sql',
   'utf8',

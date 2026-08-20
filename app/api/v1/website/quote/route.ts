@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import {
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
         idempotency_replayed: false,
       },
     })
-    await logUsageEvent({
+    await scheduleUsageEvent({
       companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       entityType: 'website_contract_quote',
