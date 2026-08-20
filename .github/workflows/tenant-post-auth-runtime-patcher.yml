@@ -9,105 +9,29 @@ permissions:
   contents: write
 
 jobs:
-  patch-and-verify:
-    if: ${{ !contains(github.event.head_commit.message, '[tenant-post-auth-runtime-patched]') }}
+  cutover:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: fix/tenant-scoped-post-auth-applications-20260820
-
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-
-      - name: Patch tenant-scoped post-auth runtime
+      - run: node scripts/tenant-post-auth-runtime-cutover.mjs
+      - name: Persist tenant-scoped post-auth runtime
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-
-          process_path = Path('lib/website/customerApplicationProcess.ts')
-          text = process_path.read_text()
-
-          old_sig = '''export async function processWebsiteCustomerApplication(input: {\n  client: IntegrationApiClient;\n  rawBody: unknown;\n  idempotencyKey?: string | null;\n  requestAudit?: RequestAuditMetadata;\n}) {\n  const idempotencyKey = input.idempotencyKey?.trim() ?? null;'''
-          new_sig = '''export async function processWebsiteCustomerApplication(input: {\n  client: IntegrationApiClient;\n  rawBody: unknown;\n  idempotencyKey?: string | null;\n  requestAudit?: RequestAuditMetadata;\n  portalIdentitySubmissionMode?: "pre_auth_required" | "post_auth_allowed";\n}) {\n  const portalIdentitySubmissionMode =\n    input.portalIdentitySubmissionMode === "post_auth_allowed"\n      ? "post_auth_allowed"\n      : "pre_auth_required";\n  const idempotencyKey = input.idempotencyKey?.trim() ?? null;'''
-          assert old_sig in text, 'process signature anchor missing'
-          text = text.replace(old_sig, new_sig, 1)
-
-          early_pattern = re.compile(r'''  const authUserId = clean\(body\.auth_user_id\);\n  const customerPortalUserId = clean\(body\.customer_portal_user_id\);\n  if \(!authUserId \|\| !customerPortalUserId\) \{.*?\n  \}\n  if \(\n    authUserId !== customerPortalUserId \|\|\n    !isUuid\(authUserId\) \|\|\n    !isUuid\(customerPortalUserId\)\n  \) \{.*?\n  \}\n''', re.S)
-          early_replacement = '''  const authUserId = clean(body.auth_user_id);\n  const customerPortalUserId = clean(body.customer_portal_user_id);\n  const hasAuthUserId = Boolean(authUserId);\n  const hasCustomerPortalUserId = Boolean(customerPortalUserId);\n\n  if (hasAuthUserId !== hasCustomerPortalUserId) {\n    return failureResponse(\n      new WebsiteApplicationError({\n        message:\n          "auth_user_id och customer_portal_user_id måste skickas tillsammans eller utelämnas tillsammans.",\n        status: 422,\n        code: "portal_auth_identity_mismatch",\n        field: "customer_portal_user_id",\n        stage: "validation",\n        hint:\n          "Skicka båda från samma verifierade serversession, eller utelämna båda när tenantens checkout tillåter post-auth onboarding.",\n      }),\n    );\n  }\n\n  if (\n    !authUserId &&\n    !customerPortalUserId &&\n    portalIdentitySubmissionMode === "pre_auth_required"\n  ) {\n    return failureResponse(\n      new WebsiteApplicationError({\n        message:\n          "Tenantens checkout-policy kräver verifierad portalidentitet före kundansökan.",\n        status: 422,\n        code: "portal_auth_identity_required",\n        field: "customer_portal_user_id",\n        stage: "validation",\n        hint:\n          "Skicka auth_user_id och customer_portal_user_id från samma verifierade serversession, eller aktivera post_auth_allowed för tenantens checkout-policy.",\n      }),\n    );\n  }\n\n  if (\n    authUserId &&\n    customerPortalUserId &&\n    (authUserId !== customerPortalUserId ||\n      !isUuid(authUserId) ||\n      !isUuid(customerPortalUserId))\n  ) {\n    return failureResponse(\n      new WebsiteApplicationError({\n        message:\n          "auth_user_id och customer_portal_user_id måste vara samma giltiga UUID från den verifierade serversessionen.",\n        status: 422,\n        code: "portal_auth_identity_mismatch",\n        field: "customer_portal_user_id",\n        stage: "validation",\n      }),\n    );\n  }\n'''
-          text, count = early_pattern.subn(early_replacement, text, count=1)
-          assert count == 1, f'early portal validation replacement count={count}'
-
-          portal_pattern = re.compile(r'''    const portalUserId =\n      clean\(body\.customer_portal_user_id\) \?\?\n      clean\(body\.auth_user_id\) \?\?\n      clean\(body\.web_auth_user_id\) \?\?\n      clean\(body\.external_account_id\);\n    if \(!portalUserId\) \{.*?\n    \}\n    const portalLink = await stage\("portal_user_link", \(\) =>\n      ensureCustomerPortalUserLink\(\{.*?\n      \}\),\n    \);\n    if \(!portalLink\?\.accountId \|\| !portalLink\.identityId\) \{.*?\n    \}\n''', re.S)
-          portal_replacement = '''    const portalUserId =\n      clean(body.customer_portal_user_id) ??\n      clean(body.auth_user_id) ??\n      clean(body.web_auth_user_id) ??\n      clean(body.external_account_id);\n\n    const portalLink = portalUserId\n      ? await stage("portal_user_link", () =>\n          ensureCustomerPortalUserLink({\n            client: input.client,\n            customerId: resolvedCustomerResult.customer.id,\n            userId: portalUserId,\n            email: normalizedEmail(body.customer.email),\n            externalCustomerId,\n            customerNumber,\n            identityId: identity.id,\n            matchMethod: "website_application_auth_user",\n          }),\n        )\n      : null;\n\n    if (portalUserId && (!portalLink?.accountId || !portalLink.identityId)) {\n      throw new WebsiteApplicationError({\n        message: "Kundens Mina sidor-koppling kunde inte verifieras efter att kundgrafen skapades.",\n        status: 503,\n        code: "customer_portal_link_not_ready",\n        stage: "portal_user_link",\n        details: { retryable: true },\n        hint: "Kontrollera customer_portal_accounts, customer_portal_identities och kör om fortsättningssteget.",\n      });\n    }\n\n    if (!portalUserId && portalIdentitySubmissionMode === "pre_auth_required") {\n      throw new WebsiteApplicationError({\n        message: "Portalidentiteten saknas trots tenantens pre-auth-policy.",\n        status: 500,\n        code: "portal_auth_identity_missing_after_validation",\n        stage: "portal_user_link",\n        details: { retryable: false },\n      });\n    }\n\n    const effectivePortalIdentityId = portalLink?.identityId ?? identity.id;\n'''
-          text, count = portal_pattern.subn(portal_replacement, text, count=1)
-          assert count == 1, f'portal link replacement count={count}'
-
-          old_resp = '''      portal_identity_id: identity.id,\n      customer_site_id: site?.id ?? null,'''
-          new_resp = '''      portal_identity_id: effectivePortalIdentityId,\n      portal_identity_submission_mode: portalIdentitySubmissionMode,\n      customer_portal_linked: Boolean(portalLink?.accountId && portalLink.identityId),\n      customer_portal_link_pending: !portalLink,\n      customer_site_id: site?.id ?? null,'''
-          assert old_resp in text, 'response portal identity anchor missing'
-          text = text.replace(old_resp, new_resp, 1)
-
-          old_snapshot = '''          agreement_confirmation_eligible: agreementConfirmationEligible,\n          requested_start_date:'''
-          new_snapshot = '''          agreement_confirmation_eligible: agreementConfirmationEligible,\n          portal_identity_submission_mode: portalIdentitySubmissionMode,\n          portal_identity_id: effectivePortalIdentityId,\n          customer_portal_linked: Boolean(portalLink?.accountId && portalLink.identityId),\n          requested_start_date:'''
-          assert old_snapshot in text, 'workflow snapshot anchor missing'
-          text = text.replace(old_snapshot, new_snapshot, 1)
-          process_path.write_text(text)
-
-          route_path = Path('app/api/v1/website/customer-applications/route.ts')
-          route = route_path.read_text()
-          old_route = '''      idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,\n      requestAudit: requestAudit(request, requestId),\n    })'''
-          new_route = '''      idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,\n      requestAudit: requestAudit(request, requestId),\n      portalIdentitySubmissionMode: readiness.portal_identity_submission_mode,\n    })'''
-          assert old_route in route, 'route process call anchor missing'
-          route_path.write_text(route.replace(old_route, new_route, 1))
-
-          openapi_path = Path('scripts/finalize-openapi-release.cjs')
-          openapi = openapi_path.read_text()
-          openapi = openapi.replace("const version = '2026-08-20.1'", "const version = '2026-08-20.2'", 1)
-          openapi = openapi.replace("const priorVersion = '2026-08-19.2'", "const priorVersion = '2026-08-20.1'", 1)
-          old_required = '''  'site_count',\n  'auth_user_id',\n  'customer_portal_user_id',\n]))'''
-          new_required = '''  'site_count',\n])).filter((field) => !['auth_user_id', 'customer_portal_user_id'].includes(field))'''
-          assert old_required in openapi, 'OpenAPI required identity anchor missing'
-          openapi = openapi.replace(old_required, new_required, 1)
-          old_desc = '''application.dependentRequired = {\n  ...(application.dependentRequired ?? {}),\n  auth_user_id: ['customer_portal_user_id'],\n  customer_portal_user_id: ['auth_user_id'],\n}'''
-          new_desc = '''application.dependentRequired = {\n  ...(application.dependentRequired ?? {}),\n  auth_user_id: ['customer_portal_user_id'],\n  customer_portal_user_id: ['auth_user_id'],\n}\napplication.description =\n  'Customer application for one authenticated tenant API client. auth_user_id and customer_portal_user_id are optional as a pair when the tenant policy is post_auth_allowed; when either is supplied both must be the same verified UUID.'\napplication.properties.auth_user_id.description =\n  'Optional verified tenant-portal auth UUID. Must be supplied together with customer_portal_user_id and must match it.'\napplication.properties.customer_portal_user_id.description =\n  'Optional verified tenant-portal user UUID. Must be supplied together with auth_user_id and must match it.' '''
-          assert old_desc in openapi, 'OpenAPI dependentRequired anchor missing'
-          openapi_path.write_text(openapi.replace(old_desc, new_desc, 1))
-          PY
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Materialize API contract
-        run: npm run api:finalize
-
-      - name: Verify TypeScript and API contract
-        run: |
-          npm run typecheck
-          npm run api:compatibility
-          npm run api:release:verify
-
-      - name: Commit verified runtime fix
-        run: |
-          git config user.name "gridex-checkout-bot"
-          git config user.email "actions@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No post-auth runtime drift remains."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
             lib/website/customerApplicationProcess.ts \
             app/api/v1/website/customer-applications/route.ts \
-            scripts/finalize-openapi-release.cjs \
-            docs/openapi/website-integration-v1.json \
-            docs/openapi/customer-portal-v1.json \
-            docs/openapi/releases \
-            artifacts 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "No runtime changes to commit"
-            exit 0
-          fi
-          git commit -m "Complete tenant-scoped post-auth checkout runtime [tenant-post-auth-runtime-patched]"
+            scripts/finalize-openapi-release.cjs
+          git commit -m "fix(checkout): apply tenant-scoped post-auth runtime"
           git push origin HEAD:fix/tenant-scoped-post-auth-applications-20260820
-
-# trigger-after-install
