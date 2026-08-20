@@ -33,6 +33,36 @@ jobs:
         run: |
           set -euo pipefail
           exec > >(tee clean-replay.log) 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          migration = Path('supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql')
+          source = migration.read_text()
+          anchor = """-- Defense in depth: critical website/portal relationships are tenant-bound in
+          -- the database, not only by application query filters.
+          create unique index if not exists integration_api_clients_company_id_id_uidx"""
+          replacement = """-- Defense in depth: critical website/portal relationships are tenant-bound in
+          -- the database, not only by application query filters.
+          -- api_client_id existed in the deployed portal schema before this release but
+          -- was missing from the canonical clean-replay foundation. Make the release
+          -- migration self-contained so a fresh database reaches the same tenant model.
+          alter table public.customer_portal_identities
+            add column if not exists api_client_id uuid;
+
+          create unique index if not exists integration_api_clients_company_id_id_uidx"""
+          if replacement not in source:
+              if anchor not in source:
+                  raise SystemExit('portal identity provenance anchor missing')
+              migration.write_text(source.replace(anchor, replacement))
+
+          digest = hashlib.sha256(migration.read_bytes()).hexdigest()
+          manifest_path = Path('scripts/migration-history-manifest.additions.json')
+          manifest = json.loads(manifest_path.read_text())
+          manifest.setdefault('files', {})[migration.name] = digest
+          manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
+          print(f'post_auth_migration_sha256={digest}')
+          PY
           source scripts/gridex-aud-003-clean-replay.sh
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
@@ -112,10 +142,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
+            supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql \
+            scripts/migration-history-manifest.additions.json \
             supabase/database.types.ts \
             scripts/supabase-types-manifest.json \
             __tests__/api-canonical-release.test.ts \
             __tests__/post-128-openapi-tip-residuals.test.ts \
             __tests__/tenant-website-go-live-hardening.test.ts
-          git commit -m "fix(checkout): align generated schema and release tests"
+          git commit -m "fix(checkout): align canonical schema and release tests"
           git push origin HEAD:fix/tenant-scoped-post-auth-applications-20260820
