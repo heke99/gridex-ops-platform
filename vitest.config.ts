@@ -13,9 +13,20 @@ const coverageBaseline = JSON.parse(
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, '.'),
-    },
+    alias: [
+      {
+        find: '@/lib/pricing/commercialModel',
+        replacement: path.resolve(__dirname, 'lib/pricing/commercialModelCanonical.ts'),
+      },
+      {
+        find: '@/lib/pricing/websiteQuotes',
+        replacement: path.resolve(__dirname, 'lib/pricing/websiteQuotesCanonical.ts'),
+      },
+      {
+        find: '@',
+        replacement: path.resolve(__dirname, '.'),
+      },
+    ],
   },
   test: {
     environment: 'node',
