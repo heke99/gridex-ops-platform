@@ -171,7 +171,7 @@ describe('canonical public API release', () => {
     expect(portalPaths['/api/v1/events'].post.requestBody.content['application/json'].schema)
       .toEqual({ $ref: '#/components/schemas/CustomerEventRequest' })
     expect(customerPortalOpenApi.components.schemas.CustomerNotificationReadRequest.required)
-      .toContain('notification_ids')
+      .toContain('notification_references')
   })
 
   it('uses one closed canonical error contract and preserves explicit cache policy', async () => {

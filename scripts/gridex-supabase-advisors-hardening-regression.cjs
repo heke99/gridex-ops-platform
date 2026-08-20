@@ -42,6 +42,7 @@ const migrationA = read('supabase/migrations/20260709160000_advisor_function_sea
 const migrationB = read('supabase/migrations/20260709161000_advisor_function_execute_revokes.sql')
 const migrationC = read('supabase/migrations/20260709162000_advisor_security_invoker_views.sql')
 const migrationD = read('supabase/migrations/20260709163000_advisor_rls_no_policy_hardening.sql')
+const accountClosureMigration = read('supabase/migrations/20260811080000_remaining_masterpoint_convergence.sql')
 const report = read('docs/security/supabase-advisors-hardening.md')
 const envChecklist = read('docs/env-production-checklist.md')
 const batch = [migrationA, migrationB, migrationC, migrationD].join('\n')
@@ -149,6 +150,13 @@ expect(
   rlsHelpers.every((fn) => report.includes(fn.replace('()', '()'))) &&
     /accepted with this/.test(report),
   'report documents the RLS-helper exceptions as accepted findings'
+)
+expect(
+  /auth\.uid\(\) is distinct from target_user_id/.test(accountClosureMigration) &&
+    /membership_role[\s\S]*?owner/.test(accountClosureMigration) &&
+    /delete from auth\.sessions where user_id = \$1/.test(accountClosureMigration) &&
+    /grant execute on function public\.anonymize_user_account\(uuid\) to authenticated/.test(accountClosureMigration),
+  'effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking'
 )
 
 // 3. views ---------------------------------------------------------------------------

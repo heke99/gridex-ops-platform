@@ -9,6 +9,24 @@ Status: implemented 2026-07-09 against project `gridex-ops-dev`
 
 Regression: `npm run gridex:supabase-advisors-hardening-regression`.
 
+## Re-triage 2026-08-20
+
+The current live development project reports 16 security findings: three
+`rls_enabled_no_policy` INFO notices and thirteen
+`authenticated_security_definer_function_executable` WARN notices. Catalog
+verification confirms that none of the thirteen functions is executable by
+`anon`, every function has a pinned `search_path`, and the three policy-free
+tables have no `anon`/`authenticated` grants. They are classified as accepted,
+intentional API/RBAC boundaries below; they are not candidates for bulk revoke.
+
+The current performance advisor reports 1,099 `unused_index` INFO notices and
+one `auth_db_connections_absolute` INFO notice. There are no byte-identical
+duplicate public indexes in the live catalog. “Never observed used” is not
+enough evidence to remove an index, so removal requires a representative
+observation window, workload/query evidence and a forward migration. Auth is
+configured for at most ten database connections; use percentage allocation
+before expecting an instance resize to increase Auth throughput.
+
 ## Architecture facts the remediation relies on
 
 Verified in this repository before any SQL was changed:
@@ -118,7 +136,8 @@ None of these have any user-context `.rpc()` caller in the repository; all are
 invoked by backend/service-role code, other SECURITY DEFINER SQL, triggers
 (EXECUTE is not checked for the DML user at trigger fire time), or migrations:
 
-`anonymize_user_account(uuid)`, `check_email_exists(text)`,
+`anonymize_user_account(uuid)` (historical July classification; superseded by
+the self-service closure contract in C3), `check_email_exists(text)`,
 `complete_core_onboarding(uuid)`, `select_onboarding_start_path(uuid, text)`,
 `gridex_actor_readiness_backfill(text)`,
 `gridex_apply_actor_auto_send_readiness(uuid)`,
@@ -170,11 +189,42 @@ expose no table data and mutate nothing. `anon` + PUBLIC EXECUTE revoked.
 - `gridex_user_company_ids()`
 - `gridex_current_user_context()`
 
-The remaining `authenticated_security_definer_function_executable` WARN
-findings for exactly these five functions are **accepted with this
-justification**; everything else must stay revoked.
+At the July checkpoint, the remaining
+`authenticated_security_definer_function_executable` WARN findings for exactly
+these five functions were **accepted with this justification**. Later explicit
+authenticated APIs/helpers are classified in C3; everything else stays
+revoked.
+
+### C3. Current authenticated definer allowlist (2026-08-20)
+
+The live allowlist contains thirteen signatures and no anonymous grants:
+
+- caller-bound context/session/RBAC helpers:
+  `canonical_authenticated_tenant_context(uuid)`,
+  `gridex_can_read_company(uuid)`, `gridex_can_write_company(uuid)`,
+  `gridex_current_user_context()`, `gridex_is_current_session_allowed()`,
+  `gridex_portfolio_actor_has_permission(uuid,text,uuid,uuid)`,
+  `gridex_user_can_manage_company(uuid)`, `gridex_user_company_ids()`, and
+  `gridex_user_is_platform_admin()`;
+- authenticated readiness/legal reads:
+  `gridex_contract_platform_readiness(uuid)` and both overloads of
+  `gridex_required_legal_modules(...)`;
+- self-service account closure: `anonymize_user_account(uuid)`. The effective
+  2026-08-11 definition rejects any target other than `auth.uid()`, blocks an
+  active company owner until transfer/archive, removes authorization state and
+  revokes existing sessions before disabling the profile.
+
+Any change to this allowlist requires caller inventory, negative cross-tenant
+tests, pinned `search_path`, no anonymous grant and an updated live catalog
+snapshot.
 
 ## D. `rls_enabled_no_policy` (22 tables — classified)
+
+Current live residuals are only `customer_contract_signature_requests`,
+`dependency_circuit_state`, and `platform_runtime_readiness`. All three are
+service-managed tables with RLS enabled, zero policies, no grants to `anon` or
+`authenticated`, and explicit service-role access. Deny-by-default is the
+intended posture.
 
 ### G1. Service-only (21 tables — intentionally NO policies)
 
@@ -264,7 +314,8 @@ where n.nspname = 'public'
   and (has_function_privilege('anon', p.oid, 'execute')
        or has_function_privilege('authenticated', p.oid, 'execute'))
 order by 1, 2;
--- Expected: only the five documented RLS helpers, authenticated only.
+-- Expected on 2026-08-20: only the thirteen signatures documented in C3,
+-- authenticated only; anon_can_execute must be false for every row.
 ```
 
 ### K4. RLS enabled with no policies (expected: only the documented G1 set)

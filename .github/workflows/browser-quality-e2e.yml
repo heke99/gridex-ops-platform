@@ -131,6 +131,7 @@ jobs:
       GRIDEX_E2E_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
       GRIDEX_E2E_K6_READ_ROUTES: ${{ vars.GRIDEX_E2E_K6_READ_ROUTES }}
       GRIDEX_E2E_K6_BEARER_TOKEN: ${{ secrets.GRIDEX_E2E_K6_BEARER_TOKEN }}
+      GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE: ${{ vars.GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE }}
     steps:
       - uses: actions/checkout@v4
       - name: Require k6 staging target
@@ -138,6 +139,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ -n "$GRIDEX_E2E_BASE_URL" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for staging performance certification.' >&2; exit 1; }
+          [[ -n "$GRIDEX_E2E_K6_BEARER_TOKEN" ]] || { echo 'GRIDEX_E2E_K6_BEARER_TOKEN is required for authenticated staging performance certification.' >&2; exit 1; }
       - name: Run pinned k6 smoke load and spike thresholds
         shell: bash
         run: |
@@ -151,6 +153,12 @@ jobs:
               -v "$PWD:/work" -w /work grafana/k6:2.1.0 \
               run "e2e/k6/${profile}.js" | tee "e2e-artifacts/${profile}.log"
           done
+          docker run --rm \
+            -e GRIDEX_E2E_BASE_URL="$GRIDEX_E2E_BASE_URL" \
+            -e GRIDEX_E2E_K6_BEARER_TOKEN="$GRIDEX_E2E_K6_BEARER_TOKEN" \
+            -e GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE="$GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE" \
+            -v "$PWD:/work" -w /work grafana/k6:2.1.0 \
+            run e2e/k6/public-contract-cache.js | tee e2e-artifacts/public-contract-cache.log
       - name: Upload k6 evidence
         if: always()
         uses: actions/upload-artifact@v4

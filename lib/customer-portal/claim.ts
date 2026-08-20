@@ -20,6 +20,7 @@ type CustomerCandidate = {
 
 type CustomerContactCandidate = {
   id: string
+  company_id: string
   customer_id: string
   name: string | null
   email: string | null
@@ -28,6 +29,7 @@ type CustomerContactCandidate = {
 
 type CustomerSiteCandidate = {
   id: string
+  company_id: string
   customer_id: string
   facility_id: string | null
   site_name: string | null
@@ -180,42 +182,39 @@ function personalNumbersMatch(input: string, customer: CustomerCandidate): boole
   return false
 }
 
-async function findMatchingInstallation(params: {
-  customerId: string
-  companyId?: string | null
-  installationId: string
-}): Promise<{
+type InstallationMatch = {
   ok: boolean
   site: CustomerSiteCandidate | null
   meteringPoint: MeteringPointCandidate | null
-}> {
+}
+
+async function findMatchingInstallations(params: {
+  customers: CustomerCandidate[]
+  installationId: string
+}): Promise<Map<string, InstallationMatch>> {
   const variants = installationVariants(params.installationId)
-  if (variants.length === 0) return { ok: false, site: null, meteringPoint: null }
+  const customerIds = params.customers.map((customer) => customer.id)
+  const companyIds = params.customers
+    .map((customer) => customer.company_id)
+    .filter((companyId): companyId is string => Boolean(companyId))
+  const empty = new Map(
+    customerIds.map((customerId) => [
+      customerId,
+      { ok: false, site: null, meteringPoint: null } satisfies InstallationMatch,
+    ]),
+  )
+  if (variants.length === 0 || customerIds.length === 0 || companyIds.length === 0) return empty
 
   const { data: sites, error: siteError } = await supabaseService
     .from('customer_sites')
-    .select('id,customer_id,facility_id,site_name,street,postal_code,city')
-    .eq('customer_id', params.customerId)
-    .eq('company_id', params.companyId ?? '')
-    .in('facility_id', variants)
-    .limit(1)
+    .select('id,company_id,customer_id,facility_id,site_name,street,postal_code,city')
+    .in('customer_id', customerIds)
+    .in('company_id', companyIds)
 
   if (siteError) throw siteError
-
-  const site = ((sites ?? []) as CustomerSiteCandidate[])[0] ?? null
-  if (site) return { ok: true, site, meteringPoint: null }
-
-  const { data: allSites, error: allSitesError } = await supabaseService
-    .from('customer_sites')
-    .select('id,customer_id,facility_id,site_name,street,postal_code,city')
-    .eq('customer_id', params.customerId)
-    .eq('company_id', params.companyId ?? '')
-
-  if (allSitesError) throw allSitesError
-
-  const siteRows = (allSites ?? []) as CustomerSiteCandidate[]
+  const siteRows = (sites ?? []) as CustomerSiteCandidate[]
   const siteIds = siteRows.map((row) => row.id)
-  if (siteIds.length === 0) return { ok: false, site: null, meteringPoint: null }
+  if (siteIds.length === 0) return empty
 
   const { data: points, error: pointError } = await supabaseService
     .from('metering_points')
@@ -225,12 +224,36 @@ async function findMatchingInstallation(params: {
     .limit(1)
 
   if (pointError) throw pointError
-
-  const meteringPoint = ((points ?? []) as MeteringPointCandidate[])[0] ?? null
-  if (!meteringPoint) return { ok: false, site: null, meteringPoint: null }
-
-  const owningSite = siteRows.find((row) => row.id === meteringPoint.site_id) ?? null
-  return { ok: true, site: owningSite, meteringPoint }
+  const pointsBySiteId = new Map(
+    ((points ?? []) as MeteringPointCandidate[])
+      .filter((point) => point.site_id)
+      .map((point) => [String(point.site_id), point]),
+  )
+  const matches = new Map<string, InstallationMatch>()
+  for (const customer of params.customers) {
+    const customerSites = siteRows.filter(
+      (site) => site.customer_id === customer.id && site.company_id === customer.company_id,
+    )
+    const facilitySite = customerSites.find((site) =>
+      variants.includes(String(site.facility_id ?? '').trim()),
+    )
+    if (facilitySite) {
+      matches.set(customer.id, { ok: true, site: facilitySite, meteringPoint: null })
+      continue
+    }
+    const meteringPoint = customerSites
+      .map((site) => pointsBySiteId.get(site.id))
+      .find((point): point is MeteringPointCandidate => Boolean(point)) ?? null
+    const owningSite = meteringPoint
+      ? customerSites.find((site) => site.id === meteringPoint.site_id) ?? null
+      : null
+    matches.set(customer.id, {
+      ok: Boolean(meteringPoint && owningSite),
+      site: owningSite,
+      meteringPoint,
+    })
+  }
+  return matches
 }
 
 async function insertClaim(params: {
@@ -393,7 +416,7 @@ export async function claimPortalCustomerAction(
     emailMatched: boolean
     nameMatched: boolean
     personalNumberMatched: boolean
-    installationMatch: Awaited<ReturnType<typeof findMatchingInstallation>>
+    installationMatch: InstallationMatch
     matchSnapshot: Record<string, unknown>
   }
 
@@ -402,16 +425,31 @@ export async function claimPortalCustomerAction(
   // an arbitrary first row. Linking requires exactly one full match.
   const evaluations: CandidateEvaluation[] = []
 
+  const candidateIds = rows.map((customer) => customer.id)
+  const candidateCompanyIds = rows
+    .map((customer) => customer.company_id)
+    .filter((companyId): companyId is string => Boolean(companyId))
+  const { data: contactsData, error: contactsError } = await supabaseService
+    .from('customer_contacts')
+    .select('id,company_id,customer_id,name,email,is_primary')
+    .in('customer_id', candidateIds)
+    .in('company_id', candidateCompanyIds)
+  if (contactsError) throw contactsError
+  const contactsByCustomerId = new Map<string, CustomerContactCandidate[]>()
+  for (const contact of (contactsData ?? []) as CustomerContactCandidate[]) {
+    const contacts = contactsByCustomerId.get(contact.customer_id) ?? []
+    contacts.push(contact)
+    contactsByCustomerId.set(contact.customer_id, contacts)
+  }
+  const installationMatches = await findMatchingInstallations({
+    customers: rows,
+    installationId,
+  })
+
   for (const customer of rows) {
-    const { data: contactsData, error: contactsError } = await supabaseService
-      .from('customer_contacts')
-      .select('id,customer_id,name,email,is_primary')
-      .eq('customer_id', customer.id)
-      .eq('company_id', customer.company_id ?? '')
-
-    if (contactsError) throw contactsError
-
-    const contacts = (contactsData ?? []) as CustomerContactCandidate[]
+    const contacts = (contactsByCustomerId.get(customer.id) ?? []).filter(
+      (contact) => contact.company_id === customer.company_id,
+    )
 
     const emailMatched = emailsMatch({
       authEmail,
@@ -427,11 +465,11 @@ export async function claimPortalCustomerAction(
       contacts,
     })
     const personalNumberMatched = personalNumbersMatch(personalNumber, customer)
-    const installationMatch = await findMatchingInstallation({
-      customerId: customer.id,
-      companyId: customer.company_id,
-      installationId,
-    })
+    const installationMatch = installationMatches.get(customer.id) ?? {
+      ok: false,
+      site: null,
+      meteringPoint: null,
+    }
 
     evaluations.push({
       customer,

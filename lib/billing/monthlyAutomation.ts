@@ -107,7 +107,7 @@ async function listBillingAutomationCompanies(companyId?: string | null): Promis
   if (companyId) {
     const response = await supabaseService
       .from('companies')
-      .select('id,status,is_active,billing_automation_enabled,invoice_export_enabled,invoice_export_target_system,invoice_export_format')
+      .select('id,status,is_active,billing_automation_enabled,invoice_export_enabled,invoice_export_target_system,invoice_export_format,billing_provider_environment')
       .eq('id', companyId)
       .maybeSingle()
     if (response.error) throw response.error
@@ -120,7 +120,7 @@ async function listBillingAutomationCompanies(companyId?: string | null): Promis
   for (let from = 0; ; from += pageSize) {
     const response = await supabaseService
       .from('companies')
-      .select('id,status,is_active,billing_automation_enabled,invoice_export_enabled,invoice_export_target_system,invoice_export_format')
+      .select('id,status,is_active,billing_automation_enabled,invoice_export_enabled,invoice_export_target_system,invoice_export_format,billing_provider_environment')
       .eq('billing_automation_enabled', true)
       .eq('is_active', true)
       .eq('status', 'active')
@@ -143,8 +143,6 @@ export async function runMonthlyBillingAutomationForCompany(input: {
   companyId: string
   billingMonth?: string | null
   actorUserId?: string | null
-  targetSystem?: string | null
-  exportFormat?: string | null
   sendToPartner?: boolean
   companyConfig?: JsonRecord | null
 }): Promise<MonthlyBillingAutomationCompanyResult> {
@@ -153,8 +151,13 @@ export async function runMonthlyBillingAutomationForCompany(input: {
   const actorUserId = text(input.actorUserId) ?? text(process.env.GRIDEX_AUTOMATION_USER_ID)
   const company = input.companyConfig ?? (await listBillingAutomationCompanies(input.companyId))[0]
   validateCompany(company, input.sendToPartner === true)
-  const targetSystem = text(input.targetSystem) ?? text(company.invoice_export_target_system) ?? 'capway_aptic'
-  const exportFormat = text(input.exportFormat) ?? text(company.invoice_export_format) ?? 'json'
+  const targetSystem = text(company.invoice_export_target_system)
+  if (!targetSystem) throw new Error('Tenant saknar canonical fakturaexportprovider.')
+  const providerEnvironment = text(company.billing_provider_environment)
+  if (!providerEnvironment || !['test', 'production'].includes(providerEnvironment)) {
+    throw new Error('Tenant saknar canonical fakturaprovidermiljö.')
+  }
+  const exportFormat = text(company.invoice_export_format) ?? 'json'
   const lockKey = `billing-monthly:${input.companyId}:${periodMonth}`
 
   return withAutomationLock({
@@ -188,42 +191,16 @@ export async function runMonthlyBillingAutomationForCompany(input: {
         if (targetSystem !== 'capway_aptic') {
           throw new Error(`Fakturaexportprovidern ${targetSystem} saknar canonical invoice_export_items-adapter.`)
         }
-        if (underlayResult.needsReview > 0) {
-          const status: MonthlyBillingAutomationStatus = 'completed_with_blockers'
-          await updateAutomationRun({
-            automationRunId,
-            companyId: input.companyId,
-            actorUserId,
-            status,
-            totalUnderlays: underlayResult.underlays,
-            totalBlocked: underlayResult.needsReview,
-            totalExported: 0,
-            exportConfirmed: false,
-            metadata: { ...metadataBase, underlayResult, exportRunId: null, sent: null },
-          })
-          return {
-            companyId: input.companyId,
-            billingMonth: periodMonth,
-            status,
-            automationRunId,
-            underlayResult,
-            exportRunId: null,
-            queued: 0,
-            blocked: underlayResult.needsReview,
-            skipped: 0,
-            sent: null,
-          }
-        }
         const exportRun = await createInvoiceExportRun({
           companyId: input.companyId,
           actorUserId,
           billingMonth: periodMonth,
           provider: 'capway_aptic',
-          environment: process.env.NODE_ENV === 'production' ? 'production' : 'test',
+          environment: providerEnvironment as 'test' | 'production',
         })
         const queuedResult = {
           queued: exportRun.itemCount,
-          blocked: 0,
+          blocked: exportRun.readiness.underlayCount - exportRun.readiness.readyUnderlayCount,
           skipped: exportRun.skippedAlreadyExported,
         }
 
@@ -287,8 +264,6 @@ export async function runMonthlyBillingAutomation(input: {
   companyId?: string | null
   billingMonth?: string | null
   actorUserId?: string | null
-  targetSystem?: string | null
-  exportFormat?: string | null
   sendToPartner?: boolean
 } = {}) {
   await assertPlatformSchemaReady()
@@ -301,8 +276,6 @@ export async function runMonthlyBillingAutomation(input: {
       companyId,
       billingMonth: input.billingMonth,
       actorUserId: input.actorUserId,
-      targetSystem: input.targetSystem,
-      exportFormat: input.exportFormat,
       sendToPartner: input.sendToPartner,
       companyConfig: company,
     }))

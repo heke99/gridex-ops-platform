@@ -65,7 +65,10 @@ jobs:
       - run: npm run api:compatibility
       - run: npm run api:release:verify
       - run: npm run security:rbac
+      - run: npm run quality:large-file-budget
+      - run: npm run quality:performance
       - run: npm run build
+      - run: npm run quality:bundle-budget
 
   clean-migration-replay:
     runs-on: ubuntu-latest

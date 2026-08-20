@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { ensureSpotPricesForBillingMonth, normalizeSpotAutoImportAreas, normalizeSpotAutoImportMonth } from '@/lib/pricing/spot/spotImportScheduler'
+import { lockSpotSettlementMonth } from '@/lib/pricing/spot/settlementLocker'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,11 +42,19 @@ export async function POST(request: NextRequest) {
     const billingMonth = normalizeSpotAutoImportMonth(request.nextUrl.searchParams.get('billing_month') ?? request.nextUrl.searchParams.get('billingMonth'))
     const priceAreas = normalizeSpotAutoImportAreas(request.nextUrl.searchParams.get('price_areas') ?? request.nextUrl.searchParams.get('priceAreas'))
     const result = await ensureSpotPricesForBillingMonth({ billingMonth, priceAreas, force: parseForce(request), reason: 'cron' })
+    const settlements = []
+    for (const priceArea of priceAreas) {
+      settlements.push(await lockSpotSettlementMonth({
+        priceArea,
+        billingMonth,
+        reason: 'monthly_settlement_cron',
+      }))
+    }
     return NextResponse.json({
       ok: true,
-      mode: 'settlement_verification',
-      settlement_locked: false,
-      message: 'Perioden importeras och verifieras. Låsning kräver separat explicit settlement-operation.',
+      mode: 'settlement_lock',
+      settlement_locked: true,
+      settlements,
       result,
     })
   } catch (error) {

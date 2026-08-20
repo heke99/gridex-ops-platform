@@ -8,7 +8,7 @@ import {
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 import { processWebsiteCustomerApplication } from '@/lib/website/customerApplications'
-import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustomerApplication'
 import { canonicalApiError } from '@/lib/api/apiError'
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       errorCode: result.ok ? null : String(result.body.error ?? 'website_application_error'),
       metadata: applicationMetadata,
     })
-    await logUsageEvent({
+    await scheduleUsageEvent({
       companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       customerId: readStringField(result.ok ? result.body.data : null, 'customer_id'),

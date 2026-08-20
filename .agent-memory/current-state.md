@@ -1,24 +1,20 @@
 # Current state
 
-Updated: 2026-08-15
+Updated: 2026-08-20
 
-## PR #149 production closure
-
-- Active branch: `fix/e2e-ediel-approval-20260815`.
-- Gridex El production identity remains Ediel ID `21660`; system-test supplier ID `92825` is not treated as a tenant supplier identity.
-- Supabase TypeScript contract is pinned to migration `20260815170500_contract_publication_channel_readiness.sql` with SHA-256 `f81787066197c7be1c1021bdf7ee6f7e6e97491ab3bdfd672b40a3029ef9d1e7`.
-- AGT/TGT runtime requires an explicit canonical supplier or ESCO role plus message family, setup package, and environment type. Legacy implicit AGT defaults and unscoped runtime selection are removed.
-- Supplier/ESCO role isolation and canonical production-approval regressions are locked. Refactored website/onboarding regressions inspect the active split runtime modules.
-- API rate-limiter infrastructure failures map to HTTP 503; real quota exhaustion remains HTTP 429.
-- Newly introduced privileged restoration/integrity RPCs are restricted to `service_role` after the Supabase security advisor review.
-- Temporary CI migration diagnostics were restored to the normal workflow.
-
-## Verification
-
-- Local `verify` workflow command chain: PASS.
-- Local `quality-release-gates` command chain: PASS before the final small regression-harness/API status corrections; full final replay is next.
-- Full Vitest at that checkpoint: 87 files / 623 tests PASS.
-- Targeted tenant/Ediel/contracts/API tests: PASS.
-- Production build: PASS.
-- Production dependency audit: 0 vulnerabilities.
-- Hosted clean migration replay: pending the next pushed security commit.
+- Active branch: `codex/gridex-production-masterplan-20260820`, based on main `22d2b4834577ad96b31c4373832a0507397c65e3`.
+- Billing requires configured provider/environment and supports per-underlay readiness.
+- Invoice export requires exact locked pricing in runtime and via a forward-only database trigger.
+- Spot settlement cron imports and locks each requested price-area month.
+- Customer notification writes use opaque tenant-bound public references, never raw notification UUIDs.
+- Public API release `2026-08-20.1` is materialized locally.
+- External website API usage telemetry is deferred with Next.js `after` and cannot hold successful responses open.
+- Current live public-contract fingerprint is O(1); warm development `EXPLAIN` measured 6.693 ms with no disk/temp I/O.
+- Supabase advisor residuals are classified; no exact duplicate indexes or exposed service-only tables were found.
+- An authenticated k6 ETag/304 profile is wired for staging execution.
+- All 19 legacy monoliths are split behind stable facades; the 1,800-line ratchet has zero grandfathered files.
+- Portal claim and continuation reconciliation reads are batched; the public-path N+1 gate reports zero unapproved awaited reads inside loops.
+- Browser bundle budgets pass (largest chunk 222,348 bytes) and k6 smoke/load/spike/soak/ETag SLOs share one checked contract.
+- Supabase development migration `invoice_export_locked_pricing_guard` is applied and verified.
+- Full local verification: 98 test files / 699 tests, typecheck, API docs/release, migration integrity, dependency audit, advisor/tooling regressions, and production build pass.
+- Git publication is explicitly authorized. Production database parity, hosted authenticated smoke, and staging load execution remain gated on the PR preview and connected credentials.

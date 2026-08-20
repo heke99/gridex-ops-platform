@@ -146,11 +146,12 @@ check(
 )
 
 const notificationRequest = portal.components.schemas.CustomerNotificationReadRequest
-check(notificationRequest?.required?.includes('notification_ids'), 'notification read request has one canonical notification_ids field')
-check(notificationRoute.includes('payload.notification_ids'), 'notification runtime reads the documented notification_ids field')
+check(notificationRequest?.required?.includes('notification_references'), 'notification read request has one canonical notification_references field')
+check(notificationRoute.includes('payload.notification_references'), 'notification runtime reads the documented notification_references field')
 check(notificationRoute.includes('executeIdempotentPortalWrite'), 'notification write requires durable tenant-bound idempotency')
 check(
-  notificationRoute.includes('data: {\n              data: data ?? []') &&
+  notificationRoute.includes('notification_references: references') &&
+    !notificationRoute.includes('data: data ?? []') &&
     portal.components.schemas.CustomerNotificationReadData?.required?.includes('updated_count'),
   'notification runtime response matches the operation-specific OpenAPI data object',
 )

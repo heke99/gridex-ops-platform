@@ -32,8 +32,6 @@ async function run(request: NextRequest) {
     const result = await runMonthlyBillingAutomation({
       companyId: clean(request.nextUrl.searchParams.get('company_id')),
       billingMonth: clean(request.nextUrl.searchParams.get('billing_month')) ?? clean(request.nextUrl.searchParams.get('month')),
-      targetSystem: clean(request.nextUrl.searchParams.get('target_system')) ?? 'billing_partner',
-      exportFormat: clean(request.nextUrl.searchParams.get('export_format')) ?? 'json',
       sendToPartner: booleanParam(request.nextUrl.searchParams.get('send_to_partner')),
     })
     return NextResponse.json(result)

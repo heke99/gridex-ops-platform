@@ -57,7 +57,7 @@ includes('scripts/canonical-energy-flow-backfill.sql', ['never', 'canonical_ener
 includes('scripts/canonical-energy-flow-readiness.sql', ['begin transaction read only', 'quotes_without_canonical_resolution', 'stuck_spot_import_jobs'], 'Readiness-SQL ska vara read-only och täcka blockerare')
 
 includes('app/api/cron/pricing/spot-prices/route.ts', ['mode: \'preview\'', 'previousStockholmCalendarDate', 'importSpotPricesForDay'], 'Previewcron ska vara separat och importera senaste kompletta svenska dygn')
-includes('app/api/cron/pricing/spot-settlement/route.ts', ['settlement_verification', 'settlement_locked: false'], 'Settlementcron ska verifiera men inte automatiskt låsa')
+includes('app/api/cron/pricing/spot-settlement/route.ts', ['lockSpotSettlementMonth', "mode: 'settlement_lock'", 'settlement_locked: true'], 'Settlementcron ska verifiera och låsa canonical månadssummering före billing')
 includes('app/api/internal/platform/grid-areas/import/cron/route.ts', ['ENERGY_GEODATA_MAX_AGE_DAYS', 'geodata_missing_or_stale'], 'SVK-cron ska starta ny import när verifierad geodata är gammal')
 includes('lib/energy/svkGeometryImport.ts', ['gridex_stage_energy_geodata_feature', 'gridex_promote_energy_geodata_version', 'geodataVersion'], 'SVK-sidor ska staginglagras och publiceras som en verifierad version')
 includes('supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql', ['energy_geodata_features_staging', 'geodata_version_id', 'gridex_promote_energy_geodata_version', 'is_active=false'], 'Geodata promotion ska byta aktiv polygonversion atomiskt och inaktivera borttagna features')

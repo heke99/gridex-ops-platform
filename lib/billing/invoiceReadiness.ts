@@ -372,22 +372,31 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     issues.push({ code: 'no_underlays', message: 'Inga faktureringsunderlag finns för perioden.', severity: 'blocked' })
   }
 
+  const blockedUnderlayIds = new Set<string>()
+  if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
+    for (const row of underlays) blockedUnderlayIds.add(String(row.id))
+  }
+
   const blockedUnderlays = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready')
+  for (const row of blockedUnderlays) blockedUnderlayIds.add(String(row.id))
   if (blockedUnderlays.length > 0) {
     issues.push({ code: 'blocked_underlays', message: `${blockedUnderlays.length} faktureringsunderlag kräver granskning.`, severity: 'blocked' })
   }
 
   const missingPricing = underlays.filter((row) => row.calculated_total_sek_inc_vat === null || row.calculated_total_sek_inc_vat === undefined)
+  for (const row of missingPricing) blockedUnderlayIds.add(String(row.id))
   if (missingPricing.length > 0) {
     issues.push({ code: 'missing_pricing', message: `${missingPricing.length} underlag saknar prisberäkning.`, severity: 'blocked' })
   }
 
   const missingSnapshot = underlays.filter((row) => !row.contract_id || (!row.pricing_snapshot_id && !row.contract_price_snapshot_id))
+  for (const row of missingSnapshot) blockedUnderlayIds.add(String(row.id))
   if (missingSnapshot.length > 0) {
     issues.push({ code: 'missing_contract_or_snapshot', message: `${missingSnapshot.length} underlag saknar avtal eller prissnapshot.`, severity: 'blocked' })
   }
 
   const incompleteCoverage = underlays.filter((row) => Number(row.missing_values_count ?? 0) > 0)
+  for (const row of incompleteCoverage) blockedUnderlayIds.add(String(row.id))
   if (incompleteCoverage.length > 0) {
     issues.push({ code: 'incomplete_metering_coverage', message: `${incompleteCoverage.length} underlag har mätvärdesluckor.`, severity: 'blocked' })
   }
@@ -654,6 +663,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       externalBlockers: [...providerBlockers, ...snapshotBlockers, ...areaBlockers],
     })
     for (const blocker of readiness.blockers) {
+      blockedUnderlayIds.add(underlayId)
       issues.push({ code: blocker.code, message: `${blocker.message} (underlag ${underlayId})`, severity: 'blocked' })
     }
     for (const warning of readiness.warnings) {
@@ -686,6 +696,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       ? underlay.billing_configuration_snapshot_sha256
       : null
     if (storedHash && storedHash !== configurationHash) {
+      blockedUnderlayIds.add(underlayId)
       issues.push({
         code: 'billing_configuration_changed_after_snapshot',
         message: `Faktureringskonfigurationen har ändrats efter att underlag ${underlayId} låstes. Skapa en ny revision.`,
@@ -731,6 +742,14 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       allowEstimatedValues: allowEstimated,
     })
     for (const issue of meteringCompleteness.issues) {
+      if (issue.severity === 'blocked') {
+        for (const underlay of underlays) {
+          const meteringPointId = typeof underlay.metering_point_id === 'string' ? underlay.metering_point_id : null
+          if (!issue.meteringPointId || issue.meteringPointId === meteringPointId) {
+            blockedUnderlayIds.add(String(underlay.id))
+          }
+        }
+      }
       issues.push({
         code: issue.code,
         message: issue.meteringPointId ? `${issue.message} (mätpunkt ${issue.meteringPointId})` : issue.message,
@@ -745,30 +764,46 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     return sum + (Number.isFinite(value) ? value : 0)
   }, 0)
 
-  const status: InvoiceReadinessStatus = issues.some((issue) => issue.severity === 'blocked') ? 'blocked' : 'ready'
+  const readyUnderlayIds = underlays
+    .filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !blockedUnderlayIds.has(String(row.id)))
+    .map((row) => String(row.id))
+  const status: InvoiceReadinessStatus = blockedUnderlayIds.size > 0 || underlays.length === 0 ? 'blocked' : 'ready'
 
   if (underlays.length > 0) {
-    const update = await supabaseService
-      .from('billing_underlays')
-      .update({
-        invoice_readiness_status: status === 'ready' ? 'ready_for_invoice' : 'blocked',
-        invoice_readiness_issues: issues,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', input.companyId)
-      .eq('underlay_year', year)
-      .eq('underlay_month', month)
-      .select('id')
-    if (update.error) throw update.error
-    if ((update.data ?? []).length !== underlays.length) throw new Error('Fakturaunderlagets readiness kunde inte uppdateras fullständigt.')
+    const blockedIds = underlays.map((row) => String(row.id)).filter((id) => !readyUnderlayIds.includes(id))
+    if (blockedIds.length > 0) {
+      const update = await supabaseService
+        .from('billing_underlays')
+        .update({
+          invoice_readiness_status: 'blocked',
+          invoice_readiness_issues: issues,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('company_id', input.companyId)
+        .in('id', blockedIds)
+        .select('id')
+      if (update.error) throw update.error
+      if ((update.data ?? []).length !== blockedIds.length) throw new Error('Blockerade fakturaunderlags readiness kunde inte uppdateras fullständigt.')
+    }
+
+    if (readyUnderlayIds.length > 0) {
+      const readyUpdate = await supabaseService
+        .from('billing_underlays')
+        .update({ invoice_readiness_status: 'ready_for_invoice', invoice_readiness_issues: [], updated_at: new Date().toISOString() })
+        .eq('company_id', input.companyId)
+        .in('id', readyUnderlayIds)
+        .select('id')
+      if (readyUpdate.error) throw readyUpdate.error
+      if ((readyUpdate.data ?? []).length !== readyUnderlayIds.length) throw new Error('Exportklara fakturaunderlags readiness kunde inte uppdateras fullständigt.')
+    }
   }
 
   return {
     billingMonth,
     status,
     underlayCount: underlays.length,
-    readyUnderlayCount: underlays.length - blockedUnderlays.length,
-    readyUnderlayIds: underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready').map((row) => String(row.id)),
+    readyUnderlayCount: readyUnderlayIds.length,
+    readyUnderlayIds,
     pricedUnderlayCount: underlays.length - missingPricing.length,
     totalKwh,
     meteringCompleteness,

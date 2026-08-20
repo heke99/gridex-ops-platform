@@ -8,7 +8,7 @@ import {
   publicContractResponse,
   PublicContractFeedConsistencyError,
 } from '@/lib/website/publicContracts'
-import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import {
@@ -301,7 +301,7 @@ export async function GET(request: NextRequest) {
         representation_etag: responseEtag,
       },
     })
-    await logUsageEvent({
+    await scheduleUsageEvent({
       companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       entityType: 'api_client',
