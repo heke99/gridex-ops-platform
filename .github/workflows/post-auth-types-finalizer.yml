@@ -2,11 +2,9 @@ name: post-auth-types-finalizer
 
 on:
   push:
-    branches:
-      - fix/tenant-scoped-post-auth-applications-20260820
+    branches: [fix/tenant-scoped-post-auth-applications-20260820]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: write
@@ -28,11 +26,11 @@ jobs:
         with:
           version: 2.101.0
       - run: npm ci
-      - name: Regenerate canonical Supabase types from clean replay
+
+      - name: Align canonical migration provenance and release assertions
         shell: bash
         run: |
           set -euo pipefail
-          exec > >(tee clean-replay.log) 2>&1
           python3 - <<'PY'
           from pathlib import Path
           import hashlib, json
@@ -62,7 +60,51 @@ jobs:
           manifest.setdefault('files', {})[migration.name] = digest
           manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
           print(f'post_auth_migration_sha256={digest}')
+
+          replay = Path('scripts/gridex-aud-003-clean-replay.sh')
+          replay_source = replay.read_text()
+          old_fp = '6e5fb2829e716dafa979890ca52d206c8fdf78de8685a0a90eb81522fc9abbe0'
+          new_fp = 'a594bb02a06a96d6b1ba3d8233c066a7cae57c1984ca96272515d6498a514164'
+          if new_fp not in replay_source:
+              if old_fp not in replay_source:
+                  raise SystemExit('clean replay fingerprint anchor missing')
+              replay.write_text(replay_source.replace(old_fp, new_fp, 1))
+
+          p = Path('__tests__/api-canonical-release.test.ts')
+          s = p.read_text()
+          s = s.replace(
+              "it('aligns the public Website API guide, runtime and database on mandatory pre-authentication', () => {",
+              "it('aligns the public Website API guide, runtime and database on tenant-scoped portal authentication', () => {",
+          )
+          old = """    const migration = readFileSync(\n      'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',\n      'utf8',\n    )\n    const application = websiteOpenApi.components.schemas.CustomerApplicationRequest\n\n    expect(application.required).toEqual(\n      expect.arrayContaining(['auth_user_id', 'customer_portal_user_id']),\n    )"""
+          new = """    const migration = readFileSync(\n      'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',\n      'utf8',\n    )\n    const postAuthMigration = readFileSync(\n      'supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql',\n      'utf8',\n    )\n    const application = websiteOpenApi.components.schemas.CustomerApplicationRequest\n\n    expect(application.required ?? []).not.toContain('auth_user_id')\n    expect(application.required ?? []).not.toContain('customer_portal_user_id')\n    expect(application.dependentRequired?.auth_user_id).toContain('customer_portal_user_id')\n    expect(application.dependentRequired?.customer_portal_user_id).toContain('auth_user_id')"""
+          if new not in s:
+              if old not in s:
+                  raise SystemExit('api canonical request assertion anchor missing')
+              s = s.replace(old, new)
+          old2 = """    expect(runtime).toContain('portal_auth_identity_required')\n    expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)\n    expect(migration).toContain('alter column portal_identity_required set default true')\n    expect(migration).toContain(\"tg_op = 'INSERT'\")"""
+          new2 = """    expect(runtime).toContain('portal_auth_identity_required')\n    expect(runtime).toContain('portalIdentitySubmissionMode')\n    expect(runtime).toContain('post_auth_allowed')\n    expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)\n    expect(migration).toContain('alter column portal_identity_required set default true')\n    expect(migration).toContain(\"tg_op = 'INSERT'\")\n    expect(postAuthMigration).toContain('website_portal_identity_mode')\n    expect(postAuthMigration).toContain('post_auth_allowed')\n    expect(postAuthMigration).toContain('pre_auth_required')"""
+          if new2 not in s:
+              if old2 not in s:
+                  raise SystemExit('api canonical runtime assertion anchor missing')
+              s = s.replace(old2, new2)
+          p.write_text(s)
+
+          p = Path('__tests__/post-128-openapi-tip-residuals.test.ts')
+          s = p.read_text().replace('contract release 2026-08-20.1', 'contract release 2026-08-20.2')
+          s = s.replace("expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-20.1')", "expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-20.2')")
+          p.write_text(s)
+
+          p = Path('__tests__/tenant-website-go-live-hardening.test.ts')
+          s = p.read_text().replace("expect(docs).toContain('2026-08-20.1')", "expect(docs).toContain('2026-08-20.2')")
+          p.write_text(s)
           PY
+
+      - name: Clean replay and regenerate canonical Supabase types
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
@@ -81,6 +123,7 @@ jobs:
           fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
           console.log(`generated_types_sha256=${hash}`)
           NODE
+
       - name: Upload clean replay diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -89,65 +132,32 @@ jobs:
           path: clean-replay.log
           if-no-files-found: warn
           retention-days: 3
-      - name: Align canonical release tests with tenant-scoped post-auth contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
 
-          p = Path('__tests__/api-canonical-release.test.ts')
-          s = p.read_text()
-          s = s.replace(
-              "it('aligns the public Website API guide, runtime and database on mandatory pre-authentication', () => {",
-              "it('aligns the public Website API guide, runtime and database on tenant-scoped portal authentication', () => {",
-          )
-          anchor = """    const migration = readFileSync(\n      'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',\n      'utf8',\n    )\n    const application = websiteOpenApi.components.schemas.CustomerApplicationRequest\n\n    expect(application.required).toEqual(\n      expect.arrayContaining(['auth_user_id', 'customer_portal_user_id']),\n    )"""
-          replacement = """    const migration = readFileSync(\n      'supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql',\n      'utf8',\n    )\n    const postAuthMigration = readFileSync(\n      'supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql',\n      'utf8',\n    )\n    const application = websiteOpenApi.components.schemas.CustomerApplicationRequest\n\n    expect(application.required ?? []).not.toContain('auth_user_id')\n    expect(application.required ?? []).not.toContain('customer_portal_user_id')\n    expect(application.dependentRequired?.auth_user_id).toContain('customer_portal_user_id')\n    expect(application.dependentRequired?.customer_portal_user_id).toContain('auth_user_id')"""
-          if anchor not in s:
-              raise SystemExit('api canonical pre-auth assertion anchor missing')
-          s = s.replace(anchor, replacement)
-          runtime_anchor = """    expect(runtime).toContain('portal_auth_identity_required')\n    expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)\n    expect(migration).toContain('alter column portal_identity_required set default true')\n    expect(migration).toContain(\"tg_op = 'INSERT'\")"""
-          runtime_replacement = """    expect(runtime).toContain('portal_auth_identity_required')\n    expect(runtime).toContain('portalIdentitySubmissionMode')\n    expect(runtime).toContain('post_auth_allowed')\n    expect((runtime.match(/portal_identity_required: true/g) ?? []).length).toBeGreaterThanOrEqual(2)\n    expect(migration).toContain('alter column portal_identity_required set default true')\n    expect(migration).toContain(\"tg_op = 'INSERT'\")\n    expect(postAuthMigration).toContain('website_portal_identity_mode')\n    expect(postAuthMigration).toContain('post_auth_allowed')\n    expect(postAuthMigration).toContain('pre_auth_required')"""
-          if runtime_anchor not in s:
-              raise SystemExit('api canonical runtime assertion anchor missing')
-          p.write_text(s.replace(runtime_anchor, runtime_replacement))
-
-          p = Path('__tests__/post-128-openapi-tip-residuals.test.ts')
-          s = p.read_text()
-          s = s.replace('contract release 2026-08-20.1', 'contract release 2026-08-20.2')
-          s = s.replace("expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-20.1')", "expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-08-20.2')")
-          p.write_text(s)
-
-          p = Path('__tests__/tenant-website-go-live-hardening.test.ts')
-          s = p.read_text()
-          old = "expect(docs).toContain('2026-08-20.1')"
-          if old not in s:
-              raise SystemExit('tenant docs version assertion anchor missing')
-          p.write_text(s.replace(old, "expect(docs).toContain('2026-08-20.2')"))
-          PY
-      - name: Verify regenerated schema and corrected release tests
+      - name: Verify canonical schema and release
         run: |
           npm run db:migrations:check
           npx vitest run __tests__/api-canonical-release.test.ts __tests__/post-128-openapi-tip-residuals.test.ts __tests__/tenant-website-go-live-hardening.test.ts
           npm run typecheck
-      - name: Persist verified artifacts
+
+      - name: Persist verified canonical artifacts
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet; then
-            echo "No generated type or test drift remains."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
             supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql \
             scripts/migration-history-manifest.additions.json \
+            scripts/gridex-aud-003-clean-replay.sh \
             supabase/database.types.ts \
             scripts/supabase-types-manifest.json \
             __tests__/api-canonical-release.test.ts \
             __tests__/post-128-openapi-tip-residuals.test.ts \
             __tests__/tenant-website-go-live-hardening.test.ts
+          if git diff --cached --quiet; then
+            echo 'No canonical drift remains.'
+            exit 0
+          fi
           git commit -m "fix(checkout): align canonical schema and release tests"
+          git pull --rebase origin fix/tenant-scoped-post-auth-applications-20260820
           git push origin HEAD:fix/tenant-scoped-post-auth-applications-20260820
