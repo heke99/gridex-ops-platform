@@ -243,9 +243,21 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
   const estimate = publicEstimate(source.estimate)
   const selectedAreaPrice = publicSelectedAreaPrice(source.selected_area_price)
   const computedPricePerKwhOre = pricePerKwhOre(source, lines)
+  const priceOptionReference = text(source.price_option_reference)
   const invoiceDeliveryMethod = text(source.invoice_delivery_method)
+  const siteCount = finite(source.site_count)
 
-  if (!quoteReference || !offerReference || !validUntil || !text(input.resolution_id) || !invoiceDeliveryMethod) {
+  if (
+    !quoteReference ||
+    !offerReference ||
+    !validUntil ||
+    !text(input.resolution_id) ||
+    !priceOptionReference ||
+    !invoiceDeliveryMethod ||
+    siteCount === null ||
+    !Number.isInteger(siteCount) ||
+    siteCount < 1
+  ) {
     throw new PublicWebsiteQuoteProjectionError('Quote-underlaget saknar obligatoriska publika fält.')
   }
 
@@ -284,13 +296,13 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
     assumptions: strings(source.assumptions),
     pricing_snapshot_schema_version: text(source.pricing_snapshot_schema_version) ?? undefined,
     snapshot_schema: text(source.snapshot_schema) ?? undefined,
-    price_option_reference: text(source.price_option_reference),
+    price_option_reference: priceOptionReference,
     area_price_reference: text(source.area_price_reference),
     invoice_delivery_method: invoiceDeliveryMethod,
     selected_component_references: strings(source.selected_component_references),
     mandatory_component_references: strings(source.mandatory_component_references),
     conditional_component_references: strings(source.conditional_component_references),
-    site_count: finite(source.site_count),
+    site_count: siteCount,
   })
 
   assertPublicResponsePayload(projected, '$.data')
@@ -300,8 +312,18 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
 export function projectPublicWebsiteQuoteEnvelope(
   value: unknown,
   fallbackRequestId: string,
-): PublicWebsiteQuoteEnvelope {
+): PublicWebsiteQuoteEnvelope | JsonRecord {
   const root = record(value)
+
+  // Write-idempotency also stores canonical 4xx business responses. Those are
+  // already public API envelopes and must replay byte-for-shape rather than be
+  // treated as successful quote snapshots. This branch also preserves the
+  // original request_id from the completed operation.
+  if (root && !record(root.data) && record(root.error)) {
+    assertPublicResponsePayload(root)
+    return root
+  }
+
   const source = root && record(root.data) ? root.data : value
   const requestId = text(root?.request_id) ?? fallbackRequestId
   const envelope = {
