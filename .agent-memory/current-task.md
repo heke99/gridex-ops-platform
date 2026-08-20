@@ -2,10 +2,10 @@
 
 Updated: 2026-08-20
 
-Status: `MASTERPLAN_P0_P1_P2_LOCAL_GREEN_PUBLICATION_AUTHORIZED`
+Status: `MASTERPLAN_PR_169_HOSTED_STAGING_VERIFICATION`
 
-Active work item: publish the locally green production masterplan branch, verify hosted CI/Vercel preview, and execute the non-destructive authenticated E2E/load matrix.
+Active work item: finish hosted CI/Vercel preview verification and execute the non-destructive authenticated E2E/load matrix for draft PR #169.
 
 ## Exact next action
 
-Stage the exact authorized scope, commit, push and create one draft PR. Then verify hosted CI/Vercel preview and execute authenticated non-destructive smoke plus k6 smoke/load/spike/ETag/soak. Do not promote while the OPS production Supabase project remains unidentified.
+Publish the tested same-repository staging-label gate, add `staging-e2e-approved` to PR #169, and retain browser/k6 smoke-load-spike-ETag-soak/ZAP evidence. Do not promote while the OPS production Supabase project remains unidentified.

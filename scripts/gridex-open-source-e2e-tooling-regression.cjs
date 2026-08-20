@@ -55,6 +55,9 @@ if (issues.length === 0) {
     [workflow, 'GRIDEX_E2E_BROWSER_BASE_URL', 'Staging browser target is not wired.'],
     [workflow, 'GRIDEX_E2E_BROWSER_EMAIL', 'Staging browser account email is not wired.'],
     [workflow, 'GRIDEX_E2E_BROWSER_PASSWORD', 'Staging browser account password is not wired.'],
+    [workflow, 'types: [opened, synchronize, reopened, labeled]', 'Pull-request label events cannot authorize the staging matrix.'],
+    [workflow, "github.event.label.name == 'staging-e2e-approved'", 'Maintainer-approved staging label gate is missing.'],
+    [workflow, 'github.event.pull_request.head.repo.full_name == github.repository', 'Staging label gate is not restricted to same-repository pull requests.'],
     [config, "trace: 'retain-on-failure'", 'Playwright traces are not retained on failure.'],
     [config, "screenshot: 'only-on-failure'", 'Playwright failure screenshots are not enabled.'],
     [config, "video: 'retain-on-failure'", 'Playwright failure videos are not enabled.'],
@@ -72,6 +75,12 @@ if (issues.length === 0) {
 
   for (const [source, token, message] of requiredTokens) {
     if (!source.includes(token)) issues.push(message)
+  }
+
+  const approvedLabelGateCount = workflow.split("github.event.label.name == 'staging-e2e-approved'").length - 1
+  const sameRepositoryGateCount = workflow.split('github.event.pull_request.head.repo.full_name == github.repository').length - 1
+  if (approvedLabelGateCount < 5 || sameRepositoryGateCount < 5) {
+    issues.push('Every staging browser, load, soak, ZAP and certificate job must share the approved same-repository label gate.')
   }
 
   const productionSafety = spawnSync(

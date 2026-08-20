@@ -418,3 +418,5 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Added checked browser-bundle and k6 SLO budgets to the OPS CI workflow.
 - Re-ran local CI: 98/98 Vitest files and 699/699 tests, app/script/test typecheck, lint with zero errors, API/migration/security gates and production build pass.
 - Supabase connector still exposes only `gridex-ops-dev` for OPS; no unrelated project was treated as production.
+- Published byte-identical tree `b59d1a8322ee11590ae9663ceb7aadeb05b36751` as draft PR #169 (remote commit `d8d54e78f2499eac85f2ddb7f77b298c4b307704`).
+- Added a maintainer-label trigger restricted to same-repository PRs so the authorized staging browser/k6/ZAP matrix can consume repository secrets without exposing them locally.

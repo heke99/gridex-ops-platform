@@ -1,13 +1,13 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-20T13:04:41Z",
+  "updated_at": "2026-08-20T13:23:00Z",
   "branch": "codex/gridex-production-masterplan-20260820",
   "active_phase": "MASTERPLAN_PUBLICATION_AND_HOSTED_VERIFICATION",
   "active_task": "Production masterplan correctness and performance hardening",
-  "status": "LOCAL_GREEN_PUBLICATION_AUTHORIZED",
+  "status": "PR_169_HOSTED_VERIFICATION_RUNNING",
   "base_main_sha": "22d2b4834577ad96b31c4373832a0507397c65e3",
-  "head_sha": "working_tree",
-  "pr": null,
+  "head_sha": "d8d54e78f2499eac85f2ddb7f77b298c4b307704",
+  "pr": 169,
   "verification": {
     "app_typecheck": "PASS",
     "vitest": "PASS_98_FILES_699_TESTS",
@@ -24,5 +24,5 @@
     "performance_slo_contract": "PASS_SMOKE_LOAD_SPIKE_SOAK_ETAG",
     "k6_etag_profile": "PASS_STATIC_LIVE_STAGING_PENDING"
   },
-  "resume_from": "Stage exact scope, commit, push, create draft PR, then hosted CI/Vercel preview, authenticated smoke and staging k6; keep production promotion blocked until OPS production Supabase parity is possible"
+  "resume_from": "Publish the staging-label gate follow-up, label PR #169, retain authenticated browser/k6/ZAP evidence, verify Vercel preview, and keep production promotion blocked until OPS production Supabase parity is possible"
 }

@@ -5,7 +5,7 @@ Scope: GitHub repository, Vercel production telemetry/deployment metadata, Supab
 
 ## Executive result
 
-The audited P0 correctness path is repaired locally and the database invariant is live in the development project. The P1/P2 pass removes blocking usage telemetry from external response paths, profiles the public-contract fingerprint, classifies current Supabase advisors, splits every one of the 19 grandfathered source files below 1,800 lines, removes two verified N+1 read patterns, and adds enforceable bundle/SLO/N+1 gates. Publication is authorized but not yet performed at this checkpoint. Hosted authenticated E2E and k6 execution await the branch preview and its scoped staging credential; production Supabase parity remains blocked because no OPS production project is exposed by the connector.
+The audited P0 correctness path is repaired and the database invariant is live in the development project. The P1/P2 pass removes blocking usage telemetry from external response paths, profiles the public-contract fingerprint, classifies current Supabase advisors, splits every one of the 19 grandfathered source files below 1,800 lines, removes two verified N+1 read patterns, and adds enforceable bundle/SLO/N+1 gates. The byte-identical tested tree is published in draft PR #169. Hosted CI is running, and a same-repository maintainer label gate allows the approved staging browser/k6/ZAP matrix to use repository secrets without exposing them locally. Production Supabase parity remains blocked because no OPS production project is exposed by the connector.
 
 ## Skill routing
 
@@ -49,7 +49,7 @@ Activated: repository baseline/quality playbook, refactor, test-driven developme
 
 | Priority | Blocker | Required closure |
 |---|---|---|
-| P0 | Application diff is not yet published at this checkpoint | Stage explicit scope, commit, push, open draft PR and verify hosted gates |
+| P0 | Draft PR #169 is published but hosted CI/staging certification is not yet complete | Require green hosted gates and retain their evidence before merge |
 | P0 | No production Supabase project was visible | Identify production project and run parity/dry-run before any production migration |
 | P0 | Authenticated resolver and end-to-end customer journey not smoke-tested after the live fix | Provide/use approved tenant test credentials and run non-destructive end-to-end smoke tests |
 | P1 | Invoice detail filesystem parameter remains `[id]` although runtime resolves an opaque invoice reference | Rename route segment and tests without changing the public path contract |
@@ -106,4 +106,4 @@ Vercel seven-day telemetry showed one resolver rejection on an older deployment,
 
 ## Go-live decision
 
-`NO-GO` for production promotion at this checkpoint. Local correctness, refactor, performance, security, contract and build gates are green. GitHub publication is authorized and is the next action, but production promotion still requires a green hosted preview/CI, authenticated smoke/load evidence, and positive identification/parity verification of the OPS production Supabase project.
+`NO-GO` for production promotion at this checkpoint. Local correctness, refactor, performance, security, contract and build gates are green, and draft PR #169 is published. Production promotion still requires green hosted CI/preview, authenticated smoke/load evidence, and positive identification/parity verification of the OPS production Supabase project.

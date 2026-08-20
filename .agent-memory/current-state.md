@@ -17,4 +17,6 @@ Updated: 2026-08-20
 - Browser bundle budgets pass (largest chunk 222,348 bytes) and k6 smoke/load/spike/soak/ETag SLOs share one checked contract.
 - Supabase development migration `invoice_export_locked_pricing_guard` is applied and verified.
 - Full local verification: 98 test files / 699 tests, typecheck, API docs/release, migration integrity, dependency audit, advisor/tooling regressions, and production build pass.
-- Git publication is explicitly authorized. Production database parity, hosted authenticated smoke, and staging load execution remain gated on the PR preview and connected credentials.
+- Draft PR #169 is published from the byte-identical tested tree; GitHub Actions is running.
+- A same-repository `staging-e2e-approved` label gate authorizes browser, k6 smoke/load/spike/ETag/soak and ZAP jobs without exposing repository secrets locally.
+- Production database parity and production promotion remain blocked until the OPS production Supabase project is identified and hosted staging evidence is green.
