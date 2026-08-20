@@ -4,17 +4,21 @@ on:
   push:
     branches:
       - fix/canonical-contract-pricing-engine-20260820
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   patch-and-verify:
-    if: ${{ !contains(github.event.head_commit.message, '[canonical-engine-applied]') }}
+    if: ${{ github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[canonical-engine-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: fix/canonical-contract-pricing-engine-20260820
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
@@ -157,8 +161,6 @@ describe("central canonical contract pricing engine", () => {
           schema_version: 5,
           contract_type: contractType,
           customer_type: "both",
-          // Old standard fee rows are deliberately not treated as selectable
-          // commercial components by the canonical adapter.
           price_components: [
             {
               component_code: "monthly_fee",
