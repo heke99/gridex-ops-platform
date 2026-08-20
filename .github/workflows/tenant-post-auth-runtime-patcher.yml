@@ -54,6 +54,7 @@ jobs:
             scripts/check-api-documentation-version.cjs \
             scripts/check-api-compatibility.cjs \
             scripts/verify-openapi-release.cjs \
+            scripts/gridex-multitenant-website-application-flow-regression.cjs \
             docs/external-website-api-integration-guide.md \
             docs/gridex-customer-portal-api.md \
             docs/single-api-key-tenant-integration.md \
