@@ -14,6 +14,10 @@ import {
   IntegrationWriteIdempotencyError,
 } from '@/lib/integrations/writeIdempotency'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
+import {
+  projectPublicWebsiteQuoteEnvelope,
+  PublicWebsiteQuoteProjectionError,
+} from '@/lib/pricing/publicWebsiteQuote'
 import { WebsiteQuoteValidationError } from '@/lib/pricing/websiteQuotes'
 import { canonicalApiError } from '@/lib/api/apiError'
 import {
@@ -232,6 +236,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (claim.outcome === 'replay') {
+      const responseBody = projectPublicWebsiteQuoteEnvelope(
+        claim.responseBody,
+        requestId,
+      )
       await logIntegrationApiRequest({
         client: auth.client,
         request,
@@ -243,7 +251,7 @@ export async function POST(request: NextRequest) {
           idempotency_record_id: claim.recordId,
         },
       })
-      return customerPortalJson(claim.responseBody, {
+      return customerPortalJson(responseBody, {
         status: claim.statusCode,
         headers: {
           'Cache-Control': 'no-store',
@@ -272,7 +280,10 @@ export async function POST(request: NextRequest) {
       siteCount: quoteInput.site_count,
     })
 
-    const responseBody = { data: result, request_id: requestId }
+    const responseBody = projectPublicWebsiteQuoteEnvelope(
+      { data: result, request_id: requestId },
+      requestId,
+    )
     await completeIntegrationWriteIdempotency({
       recordId: idempotencyRecordId,
       companyId: auth.context.companyId,
@@ -342,6 +353,36 @@ export async function POST(request: NextRequest) {
           headers: { 'Cache-Control': 'no-store' },
         },
       )
+    }
+
+    if (error instanceof PublicWebsiteQuoteProjectionError) {
+      const responseBody = errorBody({
+        code: error.code,
+        message: 'Prisquote skapades men kunde inte projiceras till det publika API-kontraktet.',
+        requestId,
+        retryable: false,
+      })
+      await completeIntegrationWriteIdempotency({
+        recordId: idempotencyRecordId,
+        companyId: auth.context.companyId,
+        statusCode: error.status,
+        responseBody,
+      })
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: error.status,
+        startedAt,
+        errorCode: error.code,
+        metadata: {
+          request_id: requestId,
+          idempotency_record_id: idempotencyRecordId,
+        },
+      })
+      return customerPortalJson(responseBody, {
+        status: error.status,
+        headers: { 'Cache-Control': 'no-store' },
+      })
     }
 
     if (
