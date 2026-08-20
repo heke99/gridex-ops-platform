@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { deriveEnergyResolutionReadiness } from '@/lib/energy/resolutionBinding'
-import { resolveEnergyContext } from '@/lib/energy/resolver'
+import { resolveWebsiteEnergyContext } from '@/lib/energy/websiteResolutionCache'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import {
   logIntegrationApiRequest,
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         correlation_id: requestId,
       }, { status: 400 })
     }
-    const resolution = await resolveEnergyContext({
+    const resolution = await resolveWebsiteEnergyContext({
       companyId: auth.context.companyId,
       street: text(body, 'street'),
       streetNumber: text(body, 'street_number'),
@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
         resolution_id: resolution.resolutionId ?? null,
         resolution_status: resolution.resolutionStatus,
         price_area: resolution.priceArea,
+        resolution_cache_hit: resolution.diagnostics?.providerStatus === 'resolution_cache_hit',
       },
     })
     return customerPortalJson(
