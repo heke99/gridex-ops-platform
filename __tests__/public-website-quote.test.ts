@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
@@ -11,6 +13,24 @@ const INTERNAL_UUID = '8d63cc83-5fcf-4e98-9a7a-7b415f89c012'
 type SuccessEnvelope = {
   request_id: string
   data: Record<string, unknown>
+}
+
+type OpenApiSchema = {
+  properties?: Record<string, OpenApiSchema>
+  required?: string[]
+  additionalProperties?: boolean
+}
+
+type OpenApiDocument = {
+  components?: {
+    schemas?: Record<string, OpenApiSchema>
+  }
+}
+
+function checkedInWebsiteOpenApi(): OpenApiDocument {
+  return JSON.parse(
+    readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
+  ) as OpenApiDocument
 }
 
 function internalQuote() {
@@ -188,6 +208,27 @@ describe('public website quote projection', () => {
     expect(projected.offer).not.toHaveProperty('id')
     expect(projected.market_reference).not.toHaveProperty('internal_market_id')
     expect((projected.lines as Record<string, unknown>[])[0]).not.toHaveProperty('metadata')
+  })
+
+  it('keeps every projected top-level field inside the checked-in WebsiteQuoteData contract', () => {
+    const projected = projectPublicWebsiteQuoteData(internalQuote())
+    const schemas = checkedInWebsiteOpenApi().components?.schemas ?? {}
+    const quoteSchema = schemas.WebsiteQuoteData
+    const marketReferenceSchema = schemas.MarketReference
+
+    expect(quoteSchema?.additionalProperties).toBe(false)
+    expect(quoteSchema?.properties).toHaveProperty('pricing')
+    expect(quoteSchema?.properties).not.toHaveProperty('price_per_kwh_ore')
+
+    const allowedTopLevel = new Set(Object.keys(quoteSchema?.properties ?? {}))
+    expect(Object.keys(projected).filter((key) => !allowedTopLevel.has(key))).toEqual([])
+
+    const marketReference = projected.market_reference as Record<string, unknown>
+    for (const field of marketReferenceSchema?.required ?? []) {
+      expect(marketReference, `market_reference missing required OpenAPI field ${field}`).toHaveProperty(field)
+    }
+    expect(marketReference).toHaveProperty('price_ex_vat_sek_per_kwh')
+    expect(marketReference).toHaveProperty('price_ex_vat_ore_per_kwh')
   })
 
   it('projects a legacy unsafe cached idempotency response without recalculating a quote', () => {
