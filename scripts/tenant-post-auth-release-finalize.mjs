@@ -53,6 +53,29 @@ await replaceRequired(
   "const legacyExpected = '2026-08-20.2'",
   'documentation contract expectation',
 )
+await replaceRequired(
+  'scripts/check-api-compatibility.cjs',
+  "const version = '2026-08-20.1'",
+  "const version = '2026-08-20.2'",
+  'API compatibility release version',
+)
+await replaceRequired(
+  'scripts/verify-openapi-release.cjs',
+  "const version = '2026-08-20.1'",
+  "const version = '2026-08-20.2'",
+  'OpenAPI release verifier version',
+)
+
+const registryPath = 'lib/api/publicRouteRegistry.ts'
+let registry = await readFile(registryPath, 'utf8')
+const registryAnchor = `  { method: 'GET', path: '/api/v1/openapi/2026-08-20.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-08-20.1.', rateLimitClass: 'read' },`
+const registryAddition = `${registryAnchor}\n  { method: 'GET', path: '/api/v1/openapi/2026-08-20.2/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-08-20.2.', rateLimitClass: 'read' },\n  { method: 'GET', path: '/api/v1/openapi/2026-08-20.2/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-08-20.2.', rateLimitClass: 'read' },`
+if (!registry.includes(registryAnchor)) throw new Error('public route registry release anchor missing')
+if (!registry.includes('/api/v1/openapi/2026-08-20.2/website-integration-v1.json')) {
+  registry = registry.replace(registryAnchor, registryAddition)
+  await writeFile(registryPath, registry)
+  console.log('registered immutable OpenAPI 2026-08-20.2 routes')
+}
 
 for (const path of [
   'docs/external-website-api-integration-guide.md',
