@@ -31,12 +31,13 @@ jobs:
         run: |
           npm run api:finalize
           npm run api:materialize
-      - name: Verify contract, tenant isolation and TypeScript
+      - name: Verify contract, tenant isolation, migrations and TypeScript
         run: |
           npm run api:compatibility
           npm run api:release:verify
           node scripts/check-api-documentation-version.cjs
           node scripts/gridex-multitenant-website-application-flow-regression.cjs
+          npm run db:migrations:integrity
           npm run typecheck
       - name: Persist verified post-auth release
         run: |
@@ -55,6 +56,7 @@ jobs:
             scripts/check-api-compatibility.cjs \
             scripts/verify-openapi-release.cjs \
             scripts/gridex-multitenant-website-application-flow-regression.cjs \
+            scripts/migration-history-manifest.additions.json \
             docs/external-website-api-integration-guide.md \
             docs/gridex-customer-portal-api.md \
             docs/single-api-key-tenant-integration.md \
@@ -64,4 +66,5 @@ jobs:
             docs/openapi/releases/2026-08-20.2 \
             app/api/v1/openapi/2026-08-20.2
           git commit -m "fix(checkout): finalize tenant post-auth API release"
+          git pull --rebase origin fix/tenant-scoped-post-auth-applications-20260820
           git push origin HEAD:fix/tenant-scoped-post-auth-applications-20260820
