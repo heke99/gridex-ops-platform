@@ -6,9 +6,20 @@ const projectRoot = path.resolve(__dirname, '..')
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': projectRoot,
-    },
+    alias: [
+      {
+        find: '@/lib/pricing/commercialModel',
+        replacement: path.join(projectRoot, 'lib/pricing/commercialModelCanonical.ts'),
+      },
+      {
+        find: '@/lib/pricing/websiteQuotes',
+        replacement: path.join(projectRoot, 'lib/pricing/websiteQuotesCanonical.ts'),
+      },
+      {
+        find: '@',
+        replacement: projectRoot,
+      },
+    ],
   },
   test: {
     environment: 'node',
