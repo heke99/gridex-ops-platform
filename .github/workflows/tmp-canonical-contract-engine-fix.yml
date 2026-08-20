@@ -1,0 +1,263 @@
+name: Temporary canonical contract engine fix
+
+on:
+  push:
+    branches:
+      - fix/canonical-contract-pricing-engine-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[canonical-engine-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply central canonical pricing patch
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"Expected block not found in {path}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          commercial = "lib/pricing/commercialModel.ts"
+          replace(
+              commercial,
+              'export const CONTRACT_TYPES = [',
+              'export const CANONICAL_CONTRACT_PRICING_SCHEMA = "gridex_contract_pricing_v6_selection" as const;\n\nexport const CONTRACT_TYPES = [',
+          )
+          replace(
+              commercial,
+              '    schema_version: z.literal("gridex_contract_pricing_v6_selection"),',
+              '    schema_version: z.literal(CANONICAL_CONTRACT_PRICING_SCHEMA),',
+          )
+          replace(
+              commercial,
+              'export function commercialModelFromSnapshot(\n  snapshot: Record<string, unknown> | null | undefined,\n): CanonicalCommercialModel | null {',
+              '''export function canonicalCommercialModelFromPublishedSnapshot(input: {\n  snapshot: Record<string, unknown> | null | undefined;\n  priceOptions: ContractPriceOption[];\n}): CanonicalCommercialModel | null {\n  const source = input.snapshot ?? {};\n  return commercialModelFromSnapshot({\n    ...source,\n    snapshot_schema: CANONICAL_CONTRACT_PRICING_SCHEMA,\n    schema_version: CANONICAL_CONTRACT_PRICING_SCHEMA,\n    price_options: input.priceOptions,\n    commercial_components: Array.isArray(source.commercial_components)\n      ? source.commercial_components\n      : [],\n    invoice_delivery_methods:\n      Array.isArray(source.invoice_delivery_methods) &&\n      source.invoice_delivery_methods.length > 0\n        ? source.invoice_delivery_methods\n        : ["email", "e_invoice", "paper"],\n  });\n}\n\nexport function commercialModelFromSnapshot(\n  snapshot: Record<string, unknown> | null | undefined,\n): CanonicalCommercialModel | null {''',
+          )
+
+          offer = "lib/pricing/offerQuote.ts"
+          replace(
+              offer,
+              '  CommercialSelectionError,\n  CONTRACT_TYPES,\n  commercialModelFromSnapshot,\n  mergeFrozenPriceComponentsWithCommercialSelection,',
+              '  CANONICAL_CONTRACT_PRICING_SCHEMA,\n  CommercialSelectionError,\n  CONTRACT_TYPES,\n  canonicalCommercialModelFromPublishedSnapshot,\n  mergeFrozenPriceComponentsWithCommercialSelection,',
+          )
+          replace(
+              offer,
+              '''  const commercialModel = commercialModelFromSnapshot(\n    canonicalPriceOptions?.length\n      ? { ...offerPricingSnapshot, price_options: canonicalPriceOptions }\n      : offerPricingSnapshot,\n  );\n  if (\n    canonicalSnapshotSchema(offerPricingSnapshot) ===\n      "gridex_contract_pricing_v6_selection" &&\n    !commercialModel\n  ) {''',
+              '''  const commercialModel = canonicalPriceOptions?.length\n    ? canonicalCommercialModelFromPublishedSnapshot({\n        snapshot: offerPricingSnapshot,\n        priceOptions: canonicalPriceOptions,\n      })\n    : null;\n  if (!commercialModel) {''',
+          )
+          replace(
+              offer,
+              '  const snapshotSchema = canonicalSnapshotSchema(exactSnapshot);\n  const pricingInterval = quotePricingInterval(offer.contract_type, exactSnapshot);\n  const pricingSnapshot = {\n    ...exactSnapshot,\n    snapshot_schema: snapshotSchema,',
+              '''  const snapshotSchema = CANONICAL_CONTRACT_PRICING_SCHEMA;\n  const pricingInterval = quotePricingInterval(offer.contract_type, exactSnapshot);\n  const pricingSnapshot = {\n    ...exactSnapshot,\n    snapshot_schema: snapshotSchema,\n    schema_version: snapshotSchema,\n    price_options: commercialModel.price_options,\n    commercial_components: commercialModel.components,\n    invoice_delivery_methods: commercialModel.invoice_delivery_methods,''',
+          )
+
+          admin = "app/admin/contracts/actions.ts"
+          replace(
+              admin,
+              'import { commercialComponentAsPriceComponent } from "@/lib/pricing/commercialModel";',
+              'import {\n  CANONICAL_CONTRACT_PRICING_SCHEMA,\n  commercialComponentAsPriceComponent,\n} from "@/lib/pricing/commercialModel";',
+          )
+          replace(
+              admin,
+              '    snapshot_schema: "gridex_contract_pricing_v6_selection",\n    schema_version: "gridex_contract_pricing_v6_selection",',
+              '    snapshot_schema: CANONICAL_CONTRACT_PRICING_SCHEMA,\n    schema_version: CANONICAL_CONTRACT_PRICING_SCHEMA,',
+          )
+
+          engine = "lib/pricing/engine.ts"
+          replace(
+              engine,
+              'import { buildProductionSettlement } from "@/lib/pricing/productionSettlement";',
+              'import { buildProductionSettlement } from "@/lib/pricing/productionSettlement";\nimport { CANONICAL_CONTRACT_PRICING_SCHEMA } from "@/lib/pricing/commercialModel";',
+          )
+          replace(
+              engine,
+              '      schemaVersion === "gridex_contract_pricing_v6_selection" &&',
+              '      schemaVersion === CANONICAL_CONTRACT_PRICING_SCHEMA &&',
+          )
+
+          Path("__tests__/canonical-contract-pricing-engine.test.ts").write_text(r'''import { describe, expect, it } from "vitest";
+
+import {
+  CANONICAL_CONTRACT_PRICING_SCHEMA,
+  canonicalCommercialModelFromPublishedSnapshot,
+  type ContractPriceOption,
+} from "@/lib/pricing/commercialModel";
+
+const TYPES = [
+  "fixed",
+  "variable_monthly",
+  "variable_hourly",
+  "variable_quarterly",
+  "portfolio",
+  "mixed",
+] as const;
+
+function optionFor(contractType: (typeof TYPES)[number]): ContractPriceOption {
+  return {
+    price_option_reference: `canonical_${contractType}`,
+    option_code: `option_${contractType}`,
+    customer_name: `Test ${contractType}`,
+    internal_description: null,
+    contract_type: contractType,
+    customer_type: "both",
+    binding_months: contractType === "fixed" ? 12 : 0,
+    notice_months: 1,
+    auto_renew_enabled: false,
+    renewal_term_months: null,
+    default: true,
+    selection_required: false,
+    valid_from: null,
+    valid_to: null,
+    earliest_start_date: null,
+    latest_start_date: null,
+    status: "active",
+    sort_order: 0,
+    version_number: 1,
+    area_prices:
+      contractType === "fixed"
+        ? [
+            {
+              price_row_reference: "area_se4_test",
+              price_area: "SE4",
+              amount: 145,
+              unit: "ore_per_kwh",
+              vat_treatment: "standard",
+              valid_from: null,
+              valid_to: null,
+              metadata: {},
+            },
+          ]
+        : [],
+    metadata: {},
+  };
+}
+
+describe("central canonical contract pricing engine", () => {
+  for (const contractType of TYPES) {
+    it(`normalizes ${contractType} from legacy storage into one quote model`, () => {
+      const model = canonicalCommercialModelFromPublishedSnapshot({
+        snapshot: {
+          schema_version: 5,
+          contract_type: contractType,
+          customer_type: "both",
+          // Old standard fee rows are deliberately not treated as selectable
+          // commercial components by the canonical adapter.
+          price_components: [
+            {
+              component_code: "monthly_fee",
+              name: "Månadsavgift",
+              amount: 49,
+              unit: "sek_month",
+            },
+          ],
+        },
+        priceOptions: [optionFor(contractType)],
+      });
+
+      expect(model).not.toBeNull();
+      expect(model?.schema_version).toBe(CANONICAL_CONTRACT_PRICING_SCHEMA);
+      expect(model?.price_options).toHaveLength(1);
+      expect(model?.price_options[0]?.contract_type).toBe(contractType);
+      expect(model?.price_options[0]?.default).toBe(true);
+      expect(model?.components).toEqual([]);
+      expect(model?.invoice_delivery_methods).toEqual([
+        "email",
+        "e_invoice",
+        "paper",
+      ]);
+    });
+  }
+
+  it("preserves strict selectable components when they already exist", () => {
+    const component = {
+      component_reference: "optional_green_plus",
+      component_code: "optional_green_plus",
+      internal_name: "Green plus",
+      customer_name: "Green plus",
+      internal_description: null,
+      customer_description: null,
+      component_type: "optional_green_plus",
+      amount: 3,
+      unit: "ore_per_kwh",
+      calculation_type: "per_kwh",
+      calculation_base: null,
+      vat_treatment: "standard",
+      selection_policy: "customer_optional",
+      default_selected: false,
+      customer_can_deselect: true,
+      admin_must_select: false,
+      informational_only: false,
+      lifecycle: "consumption_based",
+      periodization_rule: "none",
+      invoice_line_name: "Green plus",
+      accounting_classification: "energy_fee",
+      sort_order: 10,
+      valid_from: null,
+      valid_to: null,
+      conditions: {
+        contract_types: [],
+        price_option_references: [],
+        price_areas: [],
+        customer_types: [],
+        invoice_delivery_methods: [],
+        sales_channels: [],
+        minimum_site_count: null,
+        maximum_site_count: null,
+        minimum_annual_consumption_kwh: null,
+        maximum_annual_consumption_kwh: null,
+        valid_from: null,
+        valid_to: null,
+      },
+      website_published: true,
+      metadata: {},
+    } as const;
+
+    const model = canonicalCommercialModelFromPublishedSnapshot({
+      snapshot: {
+        snapshot_schema: CANONICAL_CONTRACT_PRICING_SCHEMA,
+        commercial_components: [component],
+        invoice_delivery_methods: ["email"],
+      },
+      priceOptions: [optionFor("variable_hourly")],
+    });
+
+    expect(model?.components).toHaveLength(1);
+    expect(model?.components[0]?.component_reference).toBe("optional_green_plus");
+  });
+});
+''')
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Run canonical pricing regressions
+        run: npx vitest run __tests__/canonical-contract-pricing-engine.test.ts __tests__/offer-quote-public-option-adapter.test.ts __tests__/contract-commercial-selection.test.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+      - name: Commit verified patch
+        shell: bash
+        run: |
+          git rm .github/workflows/tmp-canonical-contract-engine-fix.yml
+          git config user.name "gridex-ci"
+          git config user.email "gridex-ci@users.noreply.github.com"
+          git add lib/pricing/commercialModel.ts lib/pricing/offerQuote.ts lib/pricing/engine.ts app/admin/contracts/actions.ts __tests__/canonical-contract-pricing-engine.test.ts
+          git commit -m "fix: centralize canonical contract pricing [canonical-engine-applied]"
+          git push origin HEAD:fix/canonical-contract-pricing-engine-20260820
