@@ -8,6 +8,10 @@ import {
   canonicalQuoteGridAreaCode,
   canonicalQuoteTimestamptz,
 } from '@/lib/pricing/quoteIntegrity'
+import {
+  CANONICAL_CONTRACT_PRICING_SCHEMA,
+  normalizeWebsiteQuotePersistenceInput,
+} from '@/lib/pricing/canonicalContractEngine'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -74,6 +78,113 @@ export class WebsiteQuoteValidationError extends Error {
     this.status = input.status ?? 422
     this.field = input.field ?? 'quote_reference'
     this.details = input.details
+  }
+}
+
+export function assertWebsiteQuotePersistenceInvariant(input: {
+  pricingSnapshotSchemaVersion: string
+  quoteSnapshot: Record<string, unknown>
+  priceOptionReference?: string | null
+  invoiceDeliveryMethod?: string | null
+  resolvedBaseComponents?: unknown[]
+  resolvedPriceComponents?: unknown[]
+}): void {
+  const priceOptionReference =
+    typeof input.priceOptionReference === 'string'
+      ? input.priceOptionReference.trim()
+      : ''
+  if (!priceOptionReference) {
+    throw new WebsiteQuoteValidationError({
+      message: 'price_option_reference saknas i den lösta kommersiella quoten.',
+      code: 'missing_price_option_reference',
+      status: 422,
+      field: 'price_option_reference',
+    })
+  }
+
+  const invoiceDeliveryMethod =
+    typeof input.invoiceDeliveryMethod === 'string'
+      ? input.invoiceDeliveryMethod.trim()
+      : ''
+  if (!invoiceDeliveryMethod) {
+    throw new WebsiteQuoteValidationError({
+      message: 'invoice_delivery_method saknas i den lösta kommersiella quoten.',
+      code: 'missing_invoice_delivery_method',
+      status: 422,
+      field: 'invoice_delivery_method',
+    })
+  }
+
+  const quoteSnapshotSchema =
+    typeof input.quoteSnapshot.snapshot_schema === 'string'
+      ? input.quoteSnapshot.snapshot_schema
+      : typeof input.quoteSnapshot.pricing_snapshot_schema_version === 'string'
+        ? input.quoteSnapshot.pricing_snapshot_schema_version
+        : null
+  if (
+    input.pricingSnapshotSchemaVersion !== CANONICAL_CONTRACT_PRICING_SCHEMA ||
+    quoteSnapshotSchema !== CANONICAL_CONTRACT_PRICING_SCHEMA
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Quote-underlaget använder inte canonical pricing schema.',
+      code: 'invalid_pricing_schema',
+      status: 422,
+      field: 'pricing_snapshot_schema_version',
+      details: {
+        expected: CANONICAL_CONTRACT_PRICING_SCHEMA,
+        actual: input.pricingSnapshotSchemaVersion,
+        quote_snapshot_schema: quoteSnapshotSchema,
+      },
+    })
+  }
+
+  if (!Array.isArray(input.resolvedBaseComponents)) {
+    throw new WebsiteQuoteValidationError({
+      message: 'resolved_base_components måste vara en array före quote-INSERT.',
+      code: 'invalid_resolved_base_components',
+      status: 422,
+      field: 'resolved_base_components',
+    })
+  }
+  if (!Array.isArray(input.resolvedPriceComponents)) {
+    throw new WebsiteQuoteValidationError({
+      message: 'resolved_price_components måste vara en array före quote-INSERT.',
+      code: 'invalid_resolved_price_components',
+      status: 422,
+      field: 'resolved_price_components',
+    })
+  }
+
+  const snapshotPriceOptionReference =
+    typeof input.quoteSnapshot.price_option_reference === 'string'
+      ? input.quoteSnapshot.price_option_reference.trim()
+      : null
+  if (
+    snapshotPriceOptionReference &&
+    snapshotPriceOptionReference !== priceOptionReference
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Explicit price_option_reference motsäger quote-snapshoten.',
+      code: 'price_option_reference_mismatch',
+      status: 409,
+      field: 'price_option_reference',
+    })
+  }
+
+  const snapshotInvoiceDeliveryMethod =
+    typeof input.quoteSnapshot.invoice_delivery_method === 'string'
+      ? input.quoteSnapshot.invoice_delivery_method.trim()
+      : null
+  if (
+    snapshotInvoiceDeliveryMethod &&
+    snapshotInvoiceDeliveryMethod !== invoiceDeliveryMethod
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'invoice_delivery_method motsäger quote-snapshoten.',
+      code: 'invoice_delivery_method_mismatch',
+      status: 409,
+      field: 'invoice_delivery_method',
+    })
   }
 }
 
@@ -242,122 +353,125 @@ export async function persistWebsiteQuote(input: {
   resolvedPriceComponents?: unknown[]
   siteCount?: number
 }): Promise<{ quoteReference: string; validUntil: string }> {
+  const canonicalInput = normalizeWebsiteQuotePersistenceInput(input)
+  assertWebsiteQuotePersistenceInvariant(canonicalInput)
+
   const quoteReference = newQuoteReference()
   const validUntil = new Date(Date.now() + quoteLifetimeMinutes() * 60_000).toISOString()
   const immutableQuoteHash = quoteHash(quoteIntegrityPayloadForVersion(
     'v3_commercial_selection',
     {
     quoteReference,
-    companyId: input.client.company_id,
-    offerReference: input.offerReference,
-    contractProductId: input.offer.contract_product_id,
-    contractProductVersionId: input.offer.contract_product_version_id,
-    contractPublicationVersionId: input.offer.contract_publication_version_id,
-    pricePlanId: input.offer.price_plan_id,
-    pricePlanVersionId: input.offer.price_plan_version_id,
-    priceBookId: input.offer.price_book_id,
-    legalBundleVersionId: input.offer.legal_bundle_version_id,
-    energyDirection: input.offer.energy_direction,
-    customerType: input.customerType,
-    priceArea: input.priceArea.trim().toUpperCase(),
-    gridAreaCode: canonicalQuoteGridAreaCode(input.gridAreaCode),
-    postalCode: input.postalCode,
-    annualConsumptionKwh: input.annualConsumptionKwh,
-    startDate: input.startDate,
-    energyResolutionId: input.resolutionId,
-    resolutionSnapshot: input.resolutionSnapshot,
-    resolverVersion: input.resolverVersion,
-    geodataVersion: input.geodataVersion,
-    marketReference: input.marketReference,
-    marketDataTimestamp: input.marketDataTimestamp,
-    marketSources: input.marketSources,
-    assumptions: input.assumptions,
-    pricingSnapshotSchemaVersion: input.pricingSnapshotSchemaVersion,
-    priceOptionReference: input.priceOptionReference,
-    areaPriceReference: input.areaPriceReference,
-    invoiceDeliveryMethod: input.invoiceDeliveryMethod,
-    selectedComponentReferences: input.selectedComponentReferences,
-    mandatoryComponentReferences: input.mandatoryComponentReferences,
-    conditionalComponentReferences: input.conditionalComponentReferences,
-    resolvedBaseComponents: input.resolvedBaseComponents,
-    resolvedPriceComponents: input.resolvedPriceComponents,
-    siteCount: input.siteCount,
-    quoteSnapshot: input.quoteSnapshot,
+    companyId: canonicalInput.client.company_id,
+    offerReference: canonicalInput.offerReference,
+    contractProductId: canonicalInput.offer.contract_product_id,
+    contractProductVersionId: canonicalInput.offer.contract_product_version_id,
+    contractPublicationVersionId: canonicalInput.offer.contract_publication_version_id,
+    pricePlanId: canonicalInput.offer.price_plan_id,
+    pricePlanVersionId: canonicalInput.offer.price_plan_version_id,
+    priceBookId: canonicalInput.offer.price_book_id,
+    legalBundleVersionId: canonicalInput.offer.legal_bundle_version_id,
+    energyDirection: canonicalInput.offer.energy_direction,
+    customerType: canonicalInput.customerType,
+    priceArea: canonicalInput.priceArea.trim().toUpperCase(),
+    gridAreaCode: canonicalQuoteGridAreaCode(canonicalInput.gridAreaCode),
+    postalCode: canonicalInput.postalCode,
+    annualConsumptionKwh: canonicalInput.annualConsumptionKwh,
+    startDate: canonicalInput.startDate,
+    energyResolutionId: canonicalInput.resolutionId,
+    resolutionSnapshot: canonicalInput.resolutionSnapshot,
+    resolverVersion: canonicalInput.resolverVersion,
+    geodataVersion: canonicalInput.geodataVersion,
+    marketReference: canonicalInput.marketReference,
+    marketDataTimestamp: canonicalInput.marketDataTimestamp,
+    marketSources: canonicalInput.marketSources,
+    assumptions: canonicalInput.assumptions,
+    pricingSnapshotSchemaVersion: canonicalInput.pricingSnapshotSchemaVersion,
+    priceOptionReference: canonicalInput.priceOptionReference,
+    areaPriceReference: canonicalInput.areaPriceReference,
+    invoiceDeliveryMethod: canonicalInput.invoiceDeliveryMethod,
+    selectedComponentReferences: canonicalInput.selectedComponentReferences,
+    mandatoryComponentReferences: canonicalInput.mandatoryComponentReferences,
+    conditionalComponentReferences: canonicalInput.conditionalComponentReferences,
+    resolvedBaseComponents: canonicalInput.resolvedBaseComponents,
+    resolvedPriceComponents: canonicalInput.resolvedPriceComponents,
+    siteCount: canonicalInput.siteCount,
+    quoteSnapshot: canonicalInput.quoteSnapshot,
     validUntil,
     },
   ))
   const { data: inserted, error } = await supabaseService.from('website_contract_quotes').insert({
-    company_id: input.client.company_id,
-    api_client_id: input.client.id,
+    company_id: canonicalInput.client.company_id,
+    api_client_id: canonicalInput.client.id,
     quote_reference: quoteReference,
-    offer_reference: input.offerReference,
-    contract_product_id: input.offer.contract_product_id ?? null,
-    contract_product_version_id: input.offer.contract_product_version_id ?? null,
-    contract_publication_version_id: input.offer.contract_publication_version_id ?? null,
-    price_plan_id: input.offer.price_plan_id ?? null,
-    price_plan_version_id: input.offer.price_plan_version_id ?? null,
-    price_book_id: input.offer.price_book_id ?? null,
-    legal_bundle_version_id: input.offer.legal_bundle_version_id ?? null,
-    energy_direction: input.offer.energy_direction,
-    customer_type: input.customerType,
-    price_area: input.priceArea.trim().toUpperCase(),
-    grid_area_code: canonicalQuoteGridAreaCode(input.gridAreaCode),
-    energy_resolution_id: input.resolutionId ?? null,
-    resolution_snapshot: input.resolutionSnapshot ?? {},
-    resolver_version: input.resolverVersion ?? null,
-    geodata_version: input.geodataVersion ?? null,
-    market_reference: input.marketReference ?? {},
+    offer_reference: canonicalInput.offerReference,
+    contract_product_id: canonicalInput.offer.contract_product_id ?? null,
+    contract_product_version_id: canonicalInput.offer.contract_product_version_id ?? null,
+    contract_publication_version_id: canonicalInput.offer.contract_publication_version_id ?? null,
+    price_plan_id: canonicalInput.offer.price_plan_id ?? null,
+    price_plan_version_id: canonicalInput.offer.price_plan_version_id ?? null,
+    price_book_id: canonicalInput.offer.price_book_id ?? null,
+    legal_bundle_version_id: canonicalInput.offer.legal_bundle_version_id ?? null,
+    energy_direction: canonicalInput.offer.energy_direction,
+    customer_type: canonicalInput.customerType,
+    price_area: canonicalInput.priceArea.trim().toUpperCase(),
+    grid_area_code: canonicalQuoteGridAreaCode(canonicalInput.gridAreaCode),
+    energy_resolution_id: canonicalInput.resolutionId ?? null,
+    resolution_snapshot: canonicalInput.resolutionSnapshot ?? {},
+    resolver_version: canonicalInput.resolverVersion ?? null,
+    geodata_version: canonicalInput.geodataVersion ?? null,
+    market_reference: canonicalInput.marketReference ?? {},
     quote_hash: immutableQuoteHash,
     quote_hash_version: 'v3_commercial_selection',
-    resolution_binding_status: input.resolutionBindingStatus ?? 'legacy_unverified',
-    postal_code: input.postalCode ?? null,
-    annual_consumption_kwh: input.annualConsumptionKwh,
-    start_date: input.startDate,
-    market_data_timestamp: input.marketDataTimestamp ?? null,
-    market_sources: input.marketSources ?? [],
-    assumptions: input.assumptions ?? [],
-    pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
-    price_option_reference: input.priceOptionReference ?? null,
-    area_price_reference: input.areaPriceReference ?? null,
-    invoice_delivery_method: input.invoiceDeliveryMethod ?? null,
+    resolution_binding_status: canonicalInput.resolutionBindingStatus ?? 'legacy_unverified',
+    postal_code: canonicalInput.postalCode ?? null,
+    annual_consumption_kwh: canonicalInput.annualConsumptionKwh,
+    start_date: canonicalInput.startDate,
+    market_data_timestamp: canonicalInput.marketDataTimestamp ?? null,
+    market_sources: canonicalInput.marketSources ?? [],
+    assumptions: canonicalInput.assumptions ?? [],
+    pricing_snapshot_schema_version: canonicalInput.pricingSnapshotSchemaVersion,
+    price_option_reference: canonicalInput.priceOptionReference ?? null,
+    area_price_reference: canonicalInput.areaPriceReference ?? null,
+    invoice_delivery_method: canonicalInput.invoiceDeliveryMethod ?? null,
     selected_component_references:
-      input.selectedComponentReferences ?? [],
+      canonicalInput.selectedComponentReferences ?? [],
     mandatory_component_references:
-      input.mandatoryComponentReferences ?? [],
+      canonicalInput.mandatoryComponentReferences ?? [],
     conditional_component_references:
-      input.conditionalComponentReferences ?? [],
-    resolved_base_components: input.resolvedBaseComponents ?? [],
-    resolved_price_components: input.resolvedPriceComponents ?? [],
-    site_count: input.siteCount ?? 1,
-    quote_snapshot: input.quoteSnapshot,
+      canonicalInput.conditionalComponentReferences ?? [],
+    resolved_base_components: canonicalInput.resolvedBaseComponents ?? [],
+    resolved_price_components: canonicalInput.resolvedPriceComponents ?? [],
+    site_count: canonicalInput.siteCount ?? 1,
+    quote_snapshot: canonicalInput.quoteSnapshot,
     valid_until: validUntil,
     status: 'active',
   }).select('id').single()
   if (error) throw error
   await recordCanonicalEnergyEvent({
     eventType: 'quote.created',
-    companyId: input.client.company_id,
-    resolutionId: input.resolutionId ?? null,
+    companyId: canonicalInput.client.company_id,
+    resolutionId: canonicalInput.resolutionId ?? null,
     quoteId: inserted?.id ? String(inserted.id) : null,
-    correlationId: input.client.id,
+    correlationId: canonicalInput.client.id,
     source: 'website_quote_api',
     actorType: 'api_client',
-    actorId: input.client.id,
+    actorId: canonicalInput.client.id,
     payload: {
       quote_reference: quoteReference,
-      offer_reference: input.offerReference,
-      price_area: input.priceArea.trim().toUpperCase(),
+      offer_reference: canonicalInput.offerReference,
+      price_area: canonicalInput.priceArea.trim().toUpperCase(),
       valid_until: validUntil,
       quote_hash: immutableQuoteHash,
-      market_reference: input.marketReference ?? {},
-      contract_product_id: input.offer.contract_product_id ?? null,
-      contract_product_version_id: input.offer.contract_product_version_id ?? null,
-      contract_publication_version_id: input.offer.contract_publication_version_id ?? null,
-      price_plan_id: input.offer.price_plan_id ?? null,
-      price_plan_version_id: input.offer.price_plan_version_id ?? null,
-      price_book_id: input.offer.price_book_id ?? null,
-      legal_bundle_version_id: input.offer.legal_bundle_version_id ?? null,
-      energy_direction: input.offer.energy_direction,
+      market_reference: canonicalInput.marketReference ?? {},
+      contract_product_id: canonicalInput.offer.contract_product_id ?? null,
+      contract_product_version_id: canonicalInput.offer.contract_product_version_id ?? null,
+      contract_publication_version_id: canonicalInput.offer.contract_publication_version_id ?? null,
+      price_plan_id: canonicalInput.offer.price_plan_id ?? null,
+      price_plan_version_id: canonicalInput.offer.price_plan_version_id ?? null,
+      price_book_id: canonicalInput.offer.price_book_id ?? null,
+      legal_bundle_version_id: canonicalInput.offer.legal_bundle_version_id ?? null,
+      energy_direction: canonicalInput.offer.energy_direction,
     },
   })
   return { quoteReference, validUntil }
