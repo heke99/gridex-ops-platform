@@ -32,6 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
@@ -50,6 +51,14 @@ jobs:
           fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
           console.log(`generated_types_sha256=${hash}`)
           NODE
+      - name: Upload clean replay diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-auth-clean-replay-${{ github.run_id }}
+          path: clean-replay.log
+          if-no-files-found: warn
+          retention-days: 3
       - name: Align canonical release tests with tenant-scoped post-auth contract
         shell: bash
         run: |
