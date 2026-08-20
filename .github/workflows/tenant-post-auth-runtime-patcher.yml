@@ -49,8 +49,11 @@ jobs:
           git add -- \
             lib/website/customerApplicationProcess.ts \
             lib/integrations/websiteIntegrationContract.ts \
+            lib/api/publicRouteRegistry.ts \
             scripts/professionalize-openapi-contract.cjs \
             scripts/check-api-documentation-version.cjs \
+            scripts/check-api-compatibility.cjs \
+            scripts/verify-openapi-release.cjs \
             docs/external-website-api-integration-guide.md \
             docs/gridex-customer-portal-api.md \
             docs/single-api-key-tenant-integration.md \
