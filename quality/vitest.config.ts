@@ -8,14 +8,6 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@/lib/pricing/commercialModel',
-        replacement: path.join(projectRoot, 'lib/pricing/commercialModelCanonical.ts'),
-      },
-      {
-        find: '@/lib/pricing/websiteQuotes',
-        replacement: path.join(projectRoot, 'lib/pricing/websiteQuotesCanonical.ts'),
-      },
-      {
         find: '@',
         replacement: projectRoot,
       },
