@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/tenant-scoped-post-auth-applications-20260820
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
