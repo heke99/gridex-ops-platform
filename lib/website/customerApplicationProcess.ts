@@ -954,26 +954,21 @@ export async function processWebsiteCustomerApplication(input: {
         externalAccountId:
           clean(body.external_account_id) ??
           clean(body.customer_portal_user_id) ??
-          clean(body.auth_user_id) ??
-          clean(body.web_auth_user_id),
+          clean(body.auth_user_id),
         authUserId:
-          clean(body.auth_user_id) ??
-          clean(body.web_auth_user_id) ??
-          clean(body.customer_portal_user_id),
+          clean(body.auth_user_id) ?? clean(body.customer_portal_user_id),
         customerPortalUserId:
-          clean(body.customer_portal_user_id) ??
-          clean(body.auth_user_id) ??
-          clean(body.web_auth_user_id),
+          clean(body.customer_portal_user_id) ?? clean(body.auth_user_id),
         customerNumber,
         email: normalizedEmail(body.customer.email),
+        applicationId: applicationRowId,
       }),
     );
 
+    // Only the verified portal/auth UUID pair may create direct portal access.
+    // external_account_id is a business reference, never authentication proof.
     const portalUserId =
-      clean(body.customer_portal_user_id) ??
-      clean(body.auth_user_id) ??
-      clean(body.web_auth_user_id) ??
-      clean(body.external_account_id);
+      clean(body.customer_portal_user_id) ?? clean(body.auth_user_id);
 
     const portalLink = portalUserId
       ? await stage("portal_user_link", () =>

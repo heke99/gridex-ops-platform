@@ -39,6 +39,7 @@ const webhooks = read('lib/integrations/webhooks.ts')
 const webhookCron = read('app/api/internal/webhooks/dispatch/route.ts')
 const migration = read('supabase/migrations/20260804121000_multitenant_website_application_flow_completion.sql')
 const preAuthMigration = read('supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql')
+const postAuthMigration = read('supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql')
 const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
 const normalizedLegacyDocs = legacyDocs.toLowerCase()
 const partnerDocs = read('app/developers/partner-api/page.tsx')
@@ -50,6 +51,11 @@ const releasedWebsiteOpenApi = JSON.parse(read(currentReleasePath('website-integ
 
 check(route.includes('loadTenantWebsiteFlowReadiness') && route.includes('integration_not_ready'), 'website application route fails closed on canonical integration readiness')
 check(route.includes('integration_schema_not_ready') && route.includes('readinessStatus = schemaBlocked ? 503 : 409'), 'website application route returns 503 for database readiness drift')
+check(
+  readiness.includes('portal_identity_submission_mode') &&
+    route.includes('portalIdentitySubmissionMode: readiness.portal_identity_submission_mode'),
+  'authenticated tenant readiness is the runtime source for portal identity submission mode',
+)
 for (const operation of ['api_client.execute', 'contract_channel.sell', 'customer_automation.execute', 'facility_lookup.execute', 'email.send']) {
   check(readiness.includes(operation), `tenant readiness enforces operation policy ${operation}`)
 }
@@ -88,7 +94,13 @@ check(provisioning.includes('visible_contract_count') && provisioning.includes('
 check(apiClientActions.includes('reconcileAndPersistTenantWebsiteClientReadiness') && !apiClientActions.includes('launch_ready: missingRecommendedScopes.length === 0'), 'API client status and permission changes re-run canonical readiness')
 
 check(applicationFacade.includes('customerApplicationProcess') && applicationFacade.includes('customerApplicationRepair'), 'customerApplications facade delegates to bounded source-of-truth modules')
-check(applicationProcess.includes('portal_auth_identity_required') && applicationProcess.includes('portal_auth_identity_mismatch'), 'website application requires the same verified portal/auth UUID')
+check(
+  applicationProcess.includes('portalIdentitySubmissionMode') &&
+    applicationProcess.includes('portal_auth_identity_required') &&
+    applicationProcess.includes('portal_auth_identity_mismatch') &&
+    applicationProcess.includes('post_auth_allowed'),
+  'website application enforces verified portal UUID pairs according to tenant submission mode',
+)
 check((applicationPersistence.match(/portal_identity_required: true/g) ?? []).length >= 2, 'reservation and committed application rows both persist portal identity enforcement')
 check(!applicationCommunication.includes('getBaseAppUrl() + "/login"') && !applicationCommunication.includes("getBaseAppUrl() + '/login'"), 'customer mail never falls back to the global OPS login')
 check(applicationCommunication.includes('strictPortalUrl(data?.customer_portal_url)') && applicationCommunication.includes('strictPortalUrl(branding.customer_portal_url)'), 'customer mail resolves only a tenant-owned HTTPS portal URL')
@@ -122,6 +134,14 @@ check(applicationWorkflow.includes('transition-RPC saknas') && !applicationWorkf
 
 check(migration.includes('customer_portal_url') && migration.includes('portal_identity_required'), 'database stores tenant portal URL and enforces portal identity requirement')
 check(preAuthMigration.includes('alter column portal_identity_required set default true') && preAuthMigration.includes("tg_op = 'INSERT'") && preAuthMigration.includes('portal_auth_identity_downgrade_forbidden'), 'database makes pre-auth mandatory for all new legacy website rows and prevents canonical downgrade')
+check(
+  postAuthMigration.includes('portal_identity_submission_mode') &&
+    postAuthMigration.includes("website_portal_identity_mode") &&
+    postAuthMigration.includes("post_auth_allowed") &&
+    postAuthMigration.includes("pre_auth_required") &&
+    postAuthMigration.includes('website_customer_applications_company_api_client_fkey'),
+  'database freezes per-tenant portal submission mode and enforces company-scoped application references',
+)
 check(migration.includes('gridex_project_terminal_application_continuation') && migration.includes('event_outbox_webhook_fanout_due_idx'), 'database adds terminal projection safety and webhook fan-out index')
 check(migration.includes('canonical_readiness_revalidation_required') && migration.includes("profile_key = 'tenant_website'"), 'migration invalidates historical scopes-only launch flags')
 
@@ -164,7 +184,13 @@ check(websiteOpenApi.info.version === currentContractVersion, `website OpenAPI v
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'website OpenAPI publishes customer-application and supplier-switch webhook callbacks')
 check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), `immutable ${currentContractVersion} website OpenAPI release matches the current published contract`)
 const request = websiteOpenApi.components.schemas.CustomerApplicationRequest
-check(request.required.includes('auth_user_id') && request.required.includes('customer_portal_user_id'), 'website OpenAPI requires both portal identity fields')
+check(
+  !request.required.includes('auth_user_id') &&
+    !request.required.includes('customer_portal_user_id') &&
+    request.dependentRequired?.auth_user_id?.includes('customer_portal_user_id') &&
+    request.dependentRequired?.customer_portal_user_id?.includes('auth_user_id'),
+  'website OpenAPI allows post-auth omission but requires portal identity fields as a complete pair',
+)
 const statusSchema = websiteOpenApi.components.schemas.WebsiteCustomerApplicationStatusData
 for (const property of ['automation', 'communication', 'checkout', 'webhook']) {
   check(Boolean(statusSchema.properties[property]), `website OpenAPI status includes ${property}`)

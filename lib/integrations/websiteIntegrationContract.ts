@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-20.1' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-20.2' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -27,7 +27,7 @@ export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] 
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
 
 /**
- * 2026-08-20.1 makes notification writes use the same opaque, tenant-bound
+ * 2026-08-20.2 makes notification writes use the same opaque, tenant-bound
  * notification references returned by notification reads. Internal UUIDs are
  * no longer accepted or returned by that operation.
  */

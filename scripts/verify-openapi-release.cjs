@@ -3,7 +3,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
-const version = '2026-08-20.1'
+const version = '2026-08-20.2'
 const specifications = [
   {
     key: 'website',
