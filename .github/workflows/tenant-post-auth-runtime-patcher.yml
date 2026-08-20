@@ -109,3 +109,5 @@ jobs:
           fi
           git commit -m "Complete tenant-scoped post-auth checkout runtime [tenant-post-auth-runtime-patched]"
           git push origin HEAD:fix/tenant-scoped-post-auth-applications-20260820
+
+# trigger-after-install
