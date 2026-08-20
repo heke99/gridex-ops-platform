@@ -1,0 +1,714 @@
+name: One-shot canonical quote runtime repair
+
+on:
+  push:
+    branches:
+      - fix/canonical-quote-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL_NON_POOLING || secrets.POSTGRES_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/canonical-quote-runtime
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply canonical quote runtime repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          root = Path('.')
+
+          def read(path):
+              return (root / path).read_text()
+
+          def write(path, text):
+              target = root / path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(text)
+
+          # 1) commercialModel.ts is the canonical runtime adapter + selector.
+          path = 'lib/pricing/commercialModel.ts'
+          text = read(path)
+          import_line = 'import type { PriceArea, PriceComponent } from "@/lib/pricing/types";\n'
+          canonical_import = (
+              'import { normalizePublishedCommercialSnapshot } from "@/lib/pricing/canonicalContractEngine";\n'
+          )
+          if canonical_import not in text:
+              text = text.replace(import_line, import_line + canonical_import)
+
+          function_pattern = re.compile(
+              r'export function commercialModelFromSnapshot\([\s\S]*?\n}\n\nfunction frozenComponentReference',
+              re.MULTILINE,
+          )
+          replacement = '''export function commercialModelFromSnapshot(
+            snapshot: Record<string, unknown> | null | undefined,
+          ): CanonicalCommercialModel | null {
+            const canonicalSnapshot = normalizePublishedCommercialSnapshot(snapshot);
+            const rawOptions = Array.isArray(canonicalSnapshot.price_options)
+              ? canonicalSnapshot.price_options
+              : [];
+            const defaultReference =
+              typeof canonicalSnapshot.default_price_option_reference === "string"
+                ? canonicalSnapshot.default_price_option_reference
+                : null;
+            const normalizedOptions = rawOptions.map((value) => {
+              const option = asRecord(value);
+              const metadata = asRecord(option.metadata);
+              const reference =
+                typeof option.price_option_reference === "string"
+                  ? option.price_option_reference
+                  : "";
+              return {
+                ...option,
+                customer_type:
+                  option.customer_type ?? canonicalSnapshot.customer_type ?? "both",
+                default:
+                  option.default ??
+                  metadata.is_default ??
+                  (defaultReference
+                    ? reference === defaultReference
+                    : rawOptions.length === 1),
+                selection_required:
+                  option.selection_required ??
+                  metadata.selection_required ??
+                  rawOptions.length > 1,
+              };
+            });
+            const parsed = commercialModelSchema.safeParse({
+              schema_version:
+                canonicalSnapshot.snapshot_schema ??
+                canonicalSnapshot.schema_version ??
+                "",
+              price_options: normalizedOptions,
+              // Legacy price_components are immutable billing rows. Only explicit
+              // commercial_components participate in quote/customer selection.
+              commercial_components: undefined,
+              components: canonicalSnapshot.commercial_components ?? [],
+              invoice_delivery_methods:
+                canonicalSnapshot.invoice_delivery_methods ??
+                ["email", "e_invoice", "paper"],
+            });
+            if (!parsed.success) return null;
+            return {
+              ...parsed.data,
+              // Contract-wide standard fees are frozen in the canonical price snapshot.
+              // They must not re-enter the selectable component model, otherwise a quote
+              // or customer contract can either lose them or calculate them twice.
+              components: parsed.data.components.filter(
+                (component) =>
+                  !isReservedStandardComponentCode(component.component_code),
+              ),
+            };
+          }
+
+          function frozenComponentReference'''
+          match = function_pattern.search(text)
+          if not match:
+              raise SystemExit('commercialModelFromSnapshot block not found')
+          text = function_pattern.sub(replacement, text, count=1)
+          # Remove the accidental helper-only key if this repair is re-run from a partially patched tree.
+          text = text.replace('              commercial_components: undefined,\n', '')
+          write(path, text)
+
+          # 2) websiteQuotes.ts performs its own canonicalization and fail-fast invariants.
+          path = 'lib/pricing/websiteQuotes.ts'
+          text = read(path)
+          canonical_import = """import {
+            CANONICAL_CONTRACT_PRICING_SCHEMA,
+            normalizeWebsiteQuotePersistenceInput,
+          } from '@/lib/pricing/canonicalContractEngine'
+          """
+          anchor = """import {
+            canonicalQuoteGridAreaCode,
+            canonicalQuoteTimestamptz,
+          } from '@/lib/pricing/quoteIntegrity'
+          """
+          if canonical_import not in text:
+              if anchor not in text:
+                  raise SystemExit('websiteQuotes import anchor not found')
+              text = text.replace(anchor, anchor + canonical_import)
+
+          invariant = '''export function assertWebsiteQuotePersistenceInvariant(input: {
+            pricingSnapshotSchemaVersion: string
+            quoteSnapshot: Record<string, unknown>
+            priceOptionReference?: string | null
+            invoiceDeliveryMethod?: string | null
+            resolvedBaseComponents?: unknown[]
+            resolvedPriceComponents?: unknown[]
+          }): void {
+            const priceOptionReference =
+              typeof input.priceOptionReference === 'string'
+                ? input.priceOptionReference.trim()
+                : ''
+            if (!priceOptionReference) {
+              throw new WebsiteQuoteValidationError({
+                message: 'price_option_reference saknas i den lösta kommersiella quoten.',
+                code: 'missing_price_option_reference',
+                status: 422,
+                field: 'price_option_reference',
+              })
+            }
+
+            const invoiceDeliveryMethod =
+              typeof input.invoiceDeliveryMethod === 'string'
+                ? input.invoiceDeliveryMethod.trim()
+                : ''
+            if (!invoiceDeliveryMethod) {
+              throw new WebsiteQuoteValidationError({
+                message: 'invoice_delivery_method saknas i den lösta kommersiella quoten.',
+                code: 'missing_invoice_delivery_method',
+                status: 422,
+                field: 'invoice_delivery_method',
+              })
+            }
+
+            const quoteSnapshotSchema =
+              typeof input.quoteSnapshot.snapshot_schema === 'string'
+                ? input.quoteSnapshot.snapshot_schema
+                : typeof input.quoteSnapshot.pricing_snapshot_schema_version === 'string'
+                  ? input.quoteSnapshot.pricing_snapshot_schema_version
+                  : null
+            if (
+              input.pricingSnapshotSchemaVersion !== CANONICAL_CONTRACT_PRICING_SCHEMA ||
+              quoteSnapshotSchema !== CANONICAL_CONTRACT_PRICING_SCHEMA
+            ) {
+              throw new WebsiteQuoteValidationError({
+                message: 'Quote-underlaget använder inte canonical pricing schema.',
+                code: 'invalid_pricing_schema',
+                status: 422,
+                field: 'pricing_snapshot_schema_version',
+                details: {
+                  expected: CANONICAL_CONTRACT_PRICING_SCHEMA,
+                  actual: input.pricingSnapshotSchemaVersion,
+                  quote_snapshot_schema: quoteSnapshotSchema,
+                },
+              })
+            }
+
+            if (!Array.isArray(input.resolvedBaseComponents)) {
+              throw new WebsiteQuoteValidationError({
+                message: 'resolved_base_components måste vara en array före quote-INSERT.',
+                code: 'invalid_resolved_base_components',
+                status: 422,
+                field: 'resolved_base_components',
+              })
+            }
+            if (!Array.isArray(input.resolvedPriceComponents)) {
+              throw new WebsiteQuoteValidationError({
+                message: 'resolved_price_components måste vara en array före quote-INSERT.',
+                code: 'invalid_resolved_price_components',
+                status: 422,
+                field: 'resolved_price_components',
+              })
+            }
+
+            const snapshotPriceOptionReference =
+              typeof input.quoteSnapshot.price_option_reference === 'string'
+                ? input.quoteSnapshot.price_option_reference.trim()
+                : null
+            if (
+              snapshotPriceOptionReference &&
+              snapshotPriceOptionReference !== priceOptionReference
+            ) {
+              throw new WebsiteQuoteValidationError({
+                message: 'Explicit price_option_reference motsäger quote-snapshoten.',
+                code: 'price_option_reference_mismatch',
+                status: 409,
+                field: 'price_option_reference',
+              })
+            }
+
+            const snapshotInvoiceDeliveryMethod =
+              typeof input.quoteSnapshot.invoice_delivery_method === 'string'
+                ? input.quoteSnapshot.invoice_delivery_method.trim()
+                : null
+            if (
+              snapshotInvoiceDeliveryMethod &&
+              snapshotInvoiceDeliveryMethod !== invoiceDeliveryMethod
+            ) {
+              throw new WebsiteQuoteValidationError({
+                message: 'invoice_delivery_method motsäger quote-snapshoten.',
+                code: 'invoice_delivery_method_mismatch',
+                status: 409,
+                field: 'invoice_delivery_method',
+              })
+            }
+          }
+
+          '''
+          persist_anchor = 'export async function persistWebsiteQuote(input: {'
+          if 'export function assertWebsiteQuotePersistenceInvariant' not in text:
+              if persist_anchor not in text:
+                  raise SystemExit('persistWebsiteQuote anchor not found')
+              text = text.replace(persist_anchor, invariant + persist_anchor)
+
+          start = text.index(persist_anchor)
+          end = text.index('\nfunction sameNumber', start)
+          section = text[start:end]
+          if 'const canonicalInput = normalizeWebsiteQuotePersistenceInput(input)' not in section:
+              section = section.replace('input.', 'canonicalInput.')
+              body_anchor = '}): Promise<{ quoteReference: string; validUntil: string }> {\n'
+              if body_anchor not in section:
+                  raise SystemExit('persistWebsiteQuote body anchor not found')
+              section = section.replace(
+                  body_anchor,
+                  body_anchor
+                  + '  const canonicalInput = normalizeWebsiteQuotePersistenceInput(input)\n'
+                  + '  assertWebsiteQuotePersistenceInvariant(canonicalInput)\n',
+                  1,
+              )
+          text = text[:start] + section + text[end:]
+          write(path, text)
+
+          # 3) Remove TypeScript/Vitest compatibility alias routing.
+          tsconfig_path = root / 'tsconfig.json'
+          tsconfig = json.loads(tsconfig_path.read_text())
+          paths = tsconfig.get('compilerOptions', {}).get('paths', {})
+          paths.pop('@/lib/pricing/commercialModel', None)
+          paths.pop('@/lib/pricing/websiteQuotes', None)
+          tsconfig_path.write_text(json.dumps(tsconfig, indent=2, ensure_ascii=False) + '\n')
+
+          for path in ['vitest.config.ts', 'quality/vitest.config.ts']:
+              text = read(path)
+              text = re.sub(
+                  r"\s*\{\s*find: ['\"]@/lib/pricing/commercialModel['\"],[\s\S]*?\},\n",
+                  '\n',
+                  text,
+                  count=1,
+              )
+              text = re.sub(
+                  r"\s*\{\s*find: ['\"]@/lib/pricing/websiteQuotes['\"],[\s\S]*?\},\n",
+                  '\n',
+                  text,
+                  count=1,
+              )
+              write(path, text)
+
+          for obsolete in [
+              'lib/pricing/commercialModelCanonical.ts',
+              'lib/pricing/websiteQuotesCanonical.ts',
+          ]:
+              target = root / obsolete
+              if target.exists():
+                  target.unlink()
+
+          # 4) Test matrix: real legacy-monthly adapter + canonical explicit selection.
+          path = '__tests__/canonical-contract-runtime-adapter.test.ts'
+          text = read(path)
+          old_import = '''import {
+            commercialModelFromSnapshot,
+            type ContractPriceOption,
+          } from "@/lib/pricing/commercialModel";'''
+          new_import = '''import {
+            commercialModelFromSnapshot,
+            resolveCommercialSelection,
+            type ContractPriceOption,
+          } from "@/lib/pricing/commercialModel";'''
+          if old_import in text:
+              text = text.replace(old_import, new_import)
+          elif 'resolveCommercialSelection' not in text:
+              raise SystemExit('canonical adapter import shape changed')
+
+          extra_tests = '''
+
+            it("adapts a legacy published monthly offer before selection", () => {
+              const model = commercialModelFromSnapshot({
+                schema_version: 5,
+                contract_type: "variable_monthly",
+                customer_type: "both",
+                price_options: [optionFor("variable_monthly")],
+                price_components: [
+                  {
+                    component_code: "monthly_fee",
+                    name: "Månadsavgift",
+                    amount: 49,
+                    unit: "sek_month",
+                  },
+                ],
+              });
+
+              expect(model).not.toBeNull();
+              const selection = resolveCommercialSelection({
+                model: model!,
+                contractType: "variable_monthly",
+                priceOptionReference: null,
+                priceArea: "SE3",
+                customerType: "private",
+                invoiceDeliveryMethod: "email",
+                selectedComponentReferences: [],
+                annualConsumptionKwh: 12_000,
+                siteCount: 1,
+                startDate: "2026-09-01",
+                salesChannel: "website",
+              });
+              expect(selection.priceOption.price_option_reference).toBe(
+                "canonical_variable_monthly",
+              );
+            });
+
+            it("preserves an explicit verified price option for a canonical offer", () => {
+              const model = commercialModelFromSnapshot({
+                snapshot_schema: CANONICAL_CONTRACT_PRICING_SCHEMA,
+                schema_version: CANONICAL_CONTRACT_PRICING_SCHEMA,
+                contract_type: "variable_monthly",
+                customer_type: "both",
+                price_options: [optionFor("variable_monthly")],
+                commercial_components: [],
+                invoice_delivery_methods: ["email"],
+              });
+
+              expect(model).not.toBeNull();
+              const selection = resolveCommercialSelection({
+                model: model!,
+                contractType: "variable_monthly",
+                priceOptionReference: "canonical_variable_monthly",
+                priceArea: "SE3",
+                customerType: "private",
+                invoiceDeliveryMethod: "email",
+                selectedComponentReferences: [],
+                annualConsumptionKwh: 12_000,
+                siteCount: 1,
+                startDate: "2026-09-01",
+                salesChannel: "website",
+              });
+              expect(selection.priceOption.price_option_reference).toBe(
+                "canonical_variable_monthly",
+              );
+            });
+
+            it("rejects an explicit unknown price option instead of falling back", () => {
+              const model = commercialModelFromSnapshot({
+                schema_version: 5,
+                contract_type: "variable_monthly",
+                customer_type: "both",
+                price_options: [optionFor("variable_monthly")],
+              });
+
+              expect(() =>
+                resolveCommercialSelection({
+                  model: model!,
+                  contractType: "variable_monthly",
+                  priceOptionReference: "explicit_missing_option",
+                  priceArea: "SE3",
+                  customerType: "private",
+                  invoiceDeliveryMethod: "email",
+                  selectedComponentReferences: [],
+                  annualConsumptionKwh: 12_000,
+                  siteCount: 1,
+                  startDate: "2026-09-01",
+                  salesChannel: "website",
+                }),
+              ).toThrow(/saknas eller tillhör inte erbjudandet/i);
+            });
+          '''
+          marker = '\n});\n'
+          if 'adapts a legacy published monthly offer before selection' not in text:
+              pos = text.rfind(marker)
+              if pos < 0:
+                  raise SystemExit('canonical adapter describe terminator not found')
+              text = text[:pos] + extra_tests + text[pos:]
+          write(path, text)
+
+          # 5) Persist-boundary invariant tests.
+          write('__tests__/website-quote-persistence-invariant.test.ts', '''import { describe, expect, it } from "vitest";
+
+import {
+  assertWebsiteQuotePersistenceInvariant,
+} from "@/lib/pricing/websiteQuotes";
+import { CANONICAL_CONTRACT_PRICING_SCHEMA } from "@/lib/pricing/canonicalContractEngine";
+
+function validInput() {
+  return {
+    pricingSnapshotSchemaVersion: CANONICAL_CONTRACT_PRICING_SCHEMA,
+    priceOptionReference: "canonical_variable_monthly",
+    invoiceDeliveryMethod: "email",
+    resolvedBaseComponents: [],
+    resolvedPriceComponents: [],
+    quoteSnapshot: {
+      snapshot_schema: CANONICAL_CONTRACT_PRICING_SCHEMA,
+      pricing_snapshot_schema_version: CANONICAL_CONTRACT_PRICING_SCHEMA,
+      price_option_reference: "canonical_variable_monthly",
+      invoice_delivery_method: "email",
+    },
+  };
+}
+
+describe("website quote persistence invariants", () => {
+  it("accepts a complete canonical v3 quote input", () => {
+    expect(() => assertWebsiteQuotePersistenceInvariant(validInput())).not.toThrow();
+  });
+
+  it("fails before DB insert when price_option_reference is missing", () => {
+    expect(() =>
+      assertWebsiteQuotePersistenceInvariant({
+        ...validInput(),
+        priceOptionReference: null,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "missing_price_option_reference" }));
+  });
+
+  it("fails before DB insert when invoice delivery is missing", () => {
+    expect(() =>
+      assertWebsiteQuotePersistenceInvariant({
+        ...validInput(),
+        invoiceDeliveryMethod: null,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "missing_invoice_delivery_method" }));
+  });
+
+  it("fails with invalid_pricing_schema instead of leaking a 23514", () => {
+    expect(() =>
+      assertWebsiteQuotePersistenceInvariant({
+        ...validInput(),
+        pricingSnapshotSchemaVersion: "gridex_contract_pricing_v5",
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_pricing_schema" }));
+  });
+
+  it("never discards or rewrites an explicit verified price option", () => {
+    expect(() =>
+      assertWebsiteQuotePersistenceInvariant({
+        ...validInput(),
+        priceOptionReference: "explicit_verified_option",
+      }),
+    ).toThrowError(expect.objectContaining({ code: "price_option_reference_mismatch" }));
+  });
+});
+''')
+
+          # 6) DB release gate: insert/read/validate two real publication families, then rollback.
+          write('scripts/sql/gridex-quote-release-gate.sql', r'''\set ON_ERROR_STOP on
+
+begin;
+select txid_current()::text as gate_txid \gset
+
+with ranked_targets as (
+  select
+    o.company_id,
+    o.canonical_offer_reference as offer_reference,
+    o.contract_product_id,
+    o.contract_product_version_id,
+    o.contract_publication_version_id,
+    o.price_plan_id,
+    o.price_plan_version_id,
+    o.price_book_id,
+    o.legal_bundle_version_id,
+    o.energy_direction,
+    o.contract_type,
+    o.canonical_pricing_snapshot,
+    p.id as price_option_id,
+    p.option_reference as price_option_reference,
+    coalesce(a.price_area, (o.price_areas)[1], 'SE3') as price_area,
+    case when o.contract_type='fixed' then a.price_row_reference else null end as area_price_reference,
+    row_number() over (partition by o.contract_type order by o.sort_order, o.public_name) as family_rank
+  from public.canonical_visible_public_contracts_v o
+  join public.contract_price_options p
+    on p.contract_publication_version_id=o.contract_publication_version_id
+   and p.company_id=o.company_id
+   and p.status='active'
+   and p.is_default=true
+  left join lateral (
+    select ap.price_area, ap.price_row_reference
+    from public.contract_price_option_area_prices ap
+    where ap.contract_price_option_id=p.id
+      and ap.company_id=o.company_id
+      and ap.status='active'
+    order by ap.price_area
+    limit 1
+  ) a on true
+  where o.website_available_now=true
+    and o.is_archived=false
+    and o.contract_type in ('variable_monthly','fixed')
+    and (
+      (o.contract_type='variable_monthly'
+       and coalesce(o.canonical_pricing_snapshot->>'snapshot_schema','')
+           <> 'gridex_contract_pricing_v6_selection')
+      or
+      (o.contract_type='fixed'
+       and o.canonical_pricing_snapshot->>'snapshot_schema'
+           = 'gridex_contract_pricing_v6_selection')
+    )
+), targets as (
+  select * from ranked_targets where family_rank=1
+), inserted as (
+  insert into public.website_contract_quotes (
+    company_id, quote_reference, offer_reference,
+    contract_product_id, contract_product_version_id,
+    contract_publication_version_id, price_plan_id, price_plan_version_id,
+    price_book_id, legal_bundle_version_id, energy_direction, customer_type,
+    price_area, resolution_binding_status, annual_consumption_kwh, start_date,
+    market_sources, assumptions, pricing_snapshot_schema_version,
+    price_option_reference, area_price_reference, invoice_delivery_method,
+    selected_component_references, mandatory_component_references,
+    conditional_component_references, site_count, resolved_base_components,
+    resolved_price_components, quote_snapshot, valid_until, status,
+    quote_hash, quote_hash_version
+  )
+  select
+    company_id,
+    'quote_release_gate_' || :'gate_txid' || '_' || contract_type,
+    offer_reference,
+    contract_product_id,
+    contract_product_version_id,
+    contract_publication_version_id,
+    price_plan_id,
+    price_plan_version_id,
+    price_book_id,
+    legal_bundle_version_id,
+    energy_direction,
+    'private',
+    price_area,
+    'legacy_unverified',
+    1000,
+    current_date,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    'gridex_contract_pricing_v6_selection',
+    price_option_reference,
+    area_price_reference,
+    'email',
+    '{}'::text[],
+    '{}'::text[],
+    '{}'::text[],
+    1,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    jsonb_build_object(
+      'snapshot_schema','gridex_contract_pricing_v6_selection',
+      'pricing_snapshot_schema_version','gridex_contract_pricing_v6_selection',
+      'contract_type',contract_type,
+      'source_publication_schema',coalesce(canonical_pricing_snapshot->>'snapshot_schema', canonical_pricing_snapshot->>'schema_version'),
+      'price_option_reference',price_option_reference,
+      'area_price_reference',area_price_reference,
+      'invoice_delivery_method','email'
+    ),
+    now() + interval '5 minutes',
+    'active',
+    repeat('a',64),
+    'v3_commercial_selection'
+  from targets
+  returning *
+)
+select
+  1 / case
+    when count(*) = 2
+     and count(*) filter (where quote_snapshot->>'contract_type'='variable_monthly') = 1
+     and count(*) filter (where quote_snapshot->>'contract_type'='fixed') = 1
+     and bool_and(pricing_snapshot_schema_version='gridex_contract_pricing_v6_selection')
+     and bool_and(price_option_reference is not null)
+     and bool_and(invoice_delivery_method is not null)
+     and bool_and(jsonb_typeof(resolved_base_components)='array')
+     and bool_and(jsonb_typeof(resolved_price_components)='array')
+    then 1 else 0 end as release_gate_invariants
+from inserted;
+
+select
+  quote_reference,
+  offer_reference,
+  quote_snapshot->>'contract_type' as contract_type,
+  quote_snapshot->>'source_publication_schema' as source_publication_schema,
+  pricing_snapshot_schema_version,
+  price_option_reference,
+  area_price_reference,
+  invoice_delivery_method
+from public.website_contract_quotes
+where quote_reference like 'quote_release_gate_' || :'gate_txid' || '%'
+order by quote_reference;
+
+rollback;
+
+select
+  1 / case when count(*)=0 then 1 else 0 end as rollback_verified
+from public.website_contract_quotes
+where quote_reference like 'quote_release_gate_' || :'gate_txid' || '%';
+''')
+
+          # 7) Wire test/release commands into package.json.
+          package_path = root / 'package.json'
+          package = json.loads(package_path.read_text())
+          scripts = package.setdefault('scripts', {})
+          scripts['gridex:canonical-quote-runtime-regression'] = (
+              'vitest run __tests__/canonical-contract-runtime-adapter.test.ts '
+              '__tests__/contract-commercial-selection.test.ts '
+              '__tests__/website-quote-persistence-invariant.test.ts'
+          )
+          scripts['gridex:quote-release-gate'] = (
+              'node scripts/run-tenant-sql.mjs scripts/sql/gridex-quote-release-gate.sql'
+          )
+          package_path.write_text(json.dumps(package, indent=2, ensure_ascii=False) + '\n')
+
+          # 8) Fail the patch itself if compatibility routing survived.
+          for path in ['tsconfig.json', 'vitest.config.ts', 'quality/vitest.config.ts']:
+              text = read(path)
+              if 'commercialModelCanonical' in text or 'websiteQuotesCanonical' in text:
+                  raise SystemExit(f'compatibility alias remains in {path}')
+          for obsolete in [
+              root / 'lib/pricing/commercialModelCanonical.ts',
+              root / 'lib/pricing/websiteQuotesCanonical.ts',
+          ]:
+              if obsolete.exists():
+                  raise SystemExit(f'obsolete canonical wrapper still exists: {obsolete}')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run canonical quote regression matrix
+        run: npm run gridex:canonical-quote-runtime-regression
+
+      - name: Typecheck application
+        run: npm run typecheck
+
+      - name: Install PostgreSQL client for release gate
+        if: env.DATABASE_URL != ''
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run transactional quote DB release gate
+        if: env.DATABASE_URL != ''
+        run: npm run gridex:quote-release-gate
+
+      - name: Require DB release-gate credentials
+        if: env.DATABASE_URL == ''
+        run: |
+          echo 'Missing DATABASE_URL/SUPABASE_DB_URL/POSTGRES_URL secret; quote release gate is mandatory.' >&2
+          exit 1
+
+      - name: Commit repaired runtime
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            lib/pricing/commercialModel.ts \
+            lib/pricing/websiteQuotes.ts \
+            tsconfig.json \
+            vitest.config.ts \
+            quality/vitest.config.ts \
+            __tests__/canonical-contract-runtime-adapter.test.ts \
+            __tests__/website-quote-persistence-invariant.test.ts \
+            scripts/sql/gridex-quote-release-gate.sql \
+            package.json
+          git add -u -- \
+            lib/pricing/commercialModelCanonical.ts \
+            lib/pricing/websiteQuotesCanonical.ts
+          git diff --cached --check
+          git commit -m 'fix: make quote pricing runtime canonical'
+          git push origin HEAD:fix/canonical-quote-runtime
