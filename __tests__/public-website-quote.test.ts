@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
@@ -11,6 +13,24 @@ const INTERNAL_UUID = '8d63cc83-5fcf-4e98-9a7a-7b415f89c012'
 type SuccessEnvelope = {
   request_id: string
   data: Record<string, unknown>
+}
+
+type OpenApiSchema = {
+  properties?: Record<string, OpenApiSchema>
+  required?: string[]
+  additionalProperties?: boolean
+}
+
+type OpenApiDocument = {
+  components?: {
+    schemas?: Record<string, OpenApiSchema>
+  }
+}
+
+function checkedInWebsiteOpenApi(): OpenApiDocument {
+  return JSON.parse(
+    readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
+  ) as OpenApiDocument
 }
 
 function internalQuote() {
@@ -105,10 +125,32 @@ function internalQuote() {
     market_reference: {
       provider: 'nordpool',
       price_area: 'SE3',
-      reference_type: 'monthly_average',
+      reference_type: 'preview',
       reference_period: '2026-09',
+      price_sek_per_kwh: 1,
       price_ore_per_kwh: 100,
+      price_ex_vat_sek_per_kwh: 0.8,
+      price_ex_vat_ore_per_kwh: 80,
+      requested_days: 30,
+      included_days: 30,
+      period_start: '2026-09-01',
+      period_end: '2026-09-30',
       as_of: '2026-08-20T16:00:00.000Z',
+      source_as_of: '2026-08-20T15:55:00.000Z',
+      generated_at: '2026-08-20T16:00:00.000Z',
+      stale_after: '2026-08-20T17:00:00.000Z',
+      effective_stale_at: '2026-08-20T17:00:00.000Z',
+      source_currency: 'SEK',
+      source_checksum: 'market-public-checksum',
+      source_resolution: 'monthly',
+      unit: 'sek_per_kwh',
+      includes_vat: true,
+      includes_supplier_fees: false,
+      includes_grid_fees: false,
+      is_indicative: true,
+      is_stale: false,
+      fallback_used: false,
+      fallback_reason: null,
       internal_market_id: INTERNAL_UUID,
     },
     market_sources: [{
@@ -145,19 +187,48 @@ describe('public website quote projection', () => {
     expect(() => assertPublicResponsePayload({ data: projected })).not.toThrow()
     expect(projected.quote_reference).toBe('quote_public_projection_1234567890')
     expect(projected.offer_reference).toBe('offer_public_projection_1234567890')
-    expect(projected.price_per_kwh_ore).toBe(106.1)
+    expect(projected).not.toHaveProperty('price_per_kwh_ore')
+    expect(projected.pricing).toEqual({ price_per_kwh_ore: 106.1 })
+    expect(projected.market_reference).toMatchObject({
+      reference_type: 'preview',
+      price_ex_vat_sek_per_kwh: 0.8,
+      price_ex_vat_ore_per_kwh: 80,
+      source_currency: 'SEK',
+      source_resolution: 'monthly',
+    })
     expect(projected.offer).toMatchObject({
       offer_reference: 'offer_public_projection_1234567890',
       name: 'Gridex Månad',
       contract_type: 'variable_monthly',
     })
     expect(projected).not.toHaveProperty('resolution')
-    expect(projected).not.toHaveProperty('pricing')
     expect(projected).not.toHaveProperty('pricing_snapshot')
     expect(projected).not.toHaveProperty('resolved_base_components')
     expect(projected).not.toHaveProperty('resolved_price_components')
     expect(projected.offer).not.toHaveProperty('id')
+    expect(projected.market_reference).not.toHaveProperty('internal_market_id')
     expect((projected.lines as Record<string, unknown>[])[0]).not.toHaveProperty('metadata')
+  })
+
+  it('keeps every projected top-level field inside the checked-in WebsiteQuoteData contract', () => {
+    const projected = projectPublicWebsiteQuoteData(internalQuote())
+    const schemas = checkedInWebsiteOpenApi().components?.schemas ?? {}
+    const quoteSchema = schemas.WebsiteQuoteData
+    const marketReferenceSchema = schemas.MarketReference
+
+    expect(quoteSchema?.additionalProperties).toBe(false)
+    expect(quoteSchema?.properties).toHaveProperty('pricing')
+    expect(quoteSchema?.properties).not.toHaveProperty('price_per_kwh_ore')
+
+    const allowedTopLevel = new Set(Object.keys(quoteSchema?.properties ?? {}))
+    expect(Object.keys(projected).filter((key) => !allowedTopLevel.has(key))).toEqual([])
+
+    const marketReference = projected.market_reference as Record<string, unknown>
+    for (const field of marketReferenceSchema?.required ?? []) {
+      expect(marketReference, `market_reference missing required OpenAPI field ${field}`).toHaveProperty(field)
+    }
+    expect(marketReference).toHaveProperty('price_ex_vat_sek_per_kwh')
+    expect(marketReference).toHaveProperty('price_ex_vat_ore_per_kwh')
   })
 
   it('projects a legacy unsafe cached idempotency response without recalculating a quote', () => {
@@ -168,6 +239,8 @@ describe('public website quote projection', () => {
 
     expect(replay.request_id).toBe('9a634b1b-2b45-4fd3-82df-3eef1ccfa056')
     expect(replay.data.quote_reference).toBe('quote_public_projection_1234567890')
+    expect(replay.data).not.toHaveProperty('price_per_kwh_ore')
+    expect(replay.data.pricing).toEqual({ price_per_kwh_ore: 106.1 })
     expect(() => assertPublicResponsePayload(replay)).not.toThrow()
   })
 
