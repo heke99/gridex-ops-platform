@@ -115,3 +115,11 @@ if (!regression.includes('authenticated tenant readiness is the runtime source')
 }
 await writeFile(regressionPath, regression)
 console.log('updated multitenant checkout regression for tenant-scoped post-auth policy')
+
+const migrationManifestPath = 'scripts/migration-history-manifest.additions.json'
+const migrationManifest = JSON.parse(await readFile(migrationManifestPath, 'utf8'))
+migrationManifest.files ??= {}
+migrationManifest.files['20260820213000_tenant_scoped_post_auth_website_applications.sql'] =
+  '0edef5a8341d02aca3f00e9f4a06a2fcd8c130394b41ef425151fcf147c8763b'
+await writeFile(migrationManifestPath, `${JSON.stringify(migrationManifest, null, 2)}\n`)
+console.log('registered post-auth migration checksum')
