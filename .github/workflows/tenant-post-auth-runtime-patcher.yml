@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  cutover:
+  finalize-and-verify:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -20,18 +20,41 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/tenant-post-auth-runtime-cutover.mjs
-      - name: Persist tenant-scoped post-auth runtime
+          cache: npm
+      - run: npm ci
+      - name: Harden runtime and synchronize contract sources
+        run: node scripts/tenant-post-auth-release-finalize.mjs
+      - name: Generate immutable OpenAPI 2026-08-20.2
+        run: |
+          npm run api:finalize
+          npm run api:materialize
+      - name: Verify contract, tenant isolation and TypeScript
+        run: |
+          npm run api:compatibility
+          npm run api:release:verify
+          node scripts/check-api-documentation-version.cjs
+          node scripts/gridex-multitenant-website-application-flow-regression.cjs
+          npm run typecheck
+      - name: Persist verified post-auth release
         run: |
           if git diff --quiet; then
-            echo "No post-auth runtime drift remains."
+            echo "No post-auth release drift remains."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
             lib/website/customerApplicationProcess.ts \
-            app/api/v1/website/customer-applications/route.ts \
-            scripts/finalize-openapi-release.cjs
-          git commit -m "fix(checkout): apply tenant-scoped post-auth runtime"
+            lib/integrations/websiteIntegrationContract.ts \
+            scripts/professionalize-openapi-contract.cjs \
+            scripts/check-api-documentation-version.cjs \
+            docs/external-website-api-integration-guide.md \
+            docs/gridex-customer-portal-api.md \
+            docs/single-api-key-tenant-integration.md \
+            docs/openapi/website-integration-v1.json \
+            docs/openapi/customer-portal-v1.json \
+            docs/fixtures/public-contracts-response-2026-08-20.2.json \
+            docs/openapi/releases/2026-08-20.2 \
+            app/api/v1/openapi/2026-08-20.2
+          git commit -m "fix(checkout): finalize tenant post-auth API release"
           git push origin HEAD:fix/tenant-scoped-post-auth-applications-20260820
