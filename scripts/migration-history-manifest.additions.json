@@ -88,6 +88,6 @@
     "20260819111612_email_dispatch_readiness_variable_contract.sql": "42f2302552bcf2e5b21454f16a1dc1bc5ebbafb28b4030850865639debead22c",
     "20260820113132_invoice_export_locked_pricing_guard.sql": "db0235f01516a707ff055dacf42b3709ff7e083f25112a23f01bbbbf74e741c9",
     "20260820213000_tenant_scoped_post_auth_website_applications.sql": "c85a41ddd3a0088b03173d16498f64542112492993f9ba4bd04af9cb04c5e782",
-    "20260821103000_customer_identity_consistency_and_webhook_readiness.sql": "1e80884801a03032b1cb1dc81a18c3b711c0d06fbab7696eb7afb59c80b3ccdd"
+    "20260821103000_customer_identity_consistency_and_webhook_readiness.sql": "a6e6a9af85b3957fe4fee7cd9c041a6f254f3a266e8f61e7dc6ed548882e6085"
   }
 }
