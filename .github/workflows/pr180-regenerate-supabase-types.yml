@@ -1,9 +1,8 @@
 name: PR180 regenerate Supabase types
 
 on:
-  push:
-    branches:
-      - fix/site-scoped-customer-process-20260821
+  pull_request:
+    branches: [main]
     paths:
       - .github/workflows/pr180-regenerate-supabase-types.yml
 
@@ -12,10 +11,13 @@ permissions:
 
 jobs:
   regenerate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -51,6 +53,8 @@ jobs:
           node scripts/check-supabase-generated-types.cjs
       - name: Commit canonical generated artifacts
         shell: bash
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -61,4 +65,4 @@ jobs:
             exit 0
           fi
           git commit -m "chore(db): regenerate canonical Supabase types"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:"${PR_HEAD_REF}"
