@@ -20,7 +20,7 @@ The contract version remains **2026-08-20.2**. The following fields describe dif
 - `valid_to` on a published price option or area price is the commercial end date of that price definition. `null` means that no commercial end date is configured.
 - `market_reference` in a quote is public checkout/preview evidence. Internal source-row identifiers are intentionally excluded from the public response.
 - For variable and spot products, the final energy charge is calculated from the customer's actual metered consumption and the applicable authoritative market/settlement price for the billing period and configured product resolution, together with the contract's markups, fees, taxes and other applicable pricing components.
-- A tenant must therefore use the quote for checkout display, validation and audit evidence, not as the authoritative market-price input for a later invoice.
+- An integration must therefore use the quote for checkout display, validation and audit evidence, not as the authoritative market-price input for a later invoice.
 
 For migrations from older integration guides, the canonical developer page documents the structured POA fields `powerOfAttorney`, `textVersionId` and `externally_sendable`, transitional identity aliases such as `personal_identity_number` and `organisationsnummer`, and asynchronous result fields `next_step`, `next_action` and `automatic_processing`. Their definitions and examples live only in the canonical developer guide and OpenAPI contract.
 
