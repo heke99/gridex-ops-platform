@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { resolveSwedishProdatCustomerIdentity } from '@/lib/ediel/prodat/customerIdentity'
+import { validateProdatProfile } from '@/lib/ediel/prodat/profiles'
 import {
   normalizeProdatEndUserIdQualifier,
   prodatCustomerNadSegment,
@@ -80,6 +81,39 @@ describe('PRODAT Swedish end-user identity compliance', () => {
     expect(segment).not.toContain('199001011234')
     expect(segment).not.toContain(':SE1:')
     expect(segment).not.toContain(':SE2:')
+  })
+
+  it('blocks identity-required PRODAT profiles when an explicit qualifier is missing', () => {
+    const invalid = validateProdatProfile({
+      code: 'Z03',
+      subtype: 'L',
+      version: '26A',
+      context: {
+        code: 'Z03',
+        customerId: '199001011234',
+        customerName: 'Anna Andersson',
+        meterPointId: '735999999999999999',
+        startDate: '20260825',
+        reasonForTransaction: 'Z22',
+      } as never,
+    })
+    const valid = validateProdatProfile({
+      code: 'Z03',
+      subtype: 'L',
+      version: '26A',
+      context: {
+        code: 'Z03',
+        customerId: '199001011234',
+        customerIdCodeListQualifier: 'SE2',
+        customerName: 'Anna Andersson',
+        meterPointId: '735999999999999999',
+        startDate: '20260825',
+        reasonForTransaction: 'Z22',
+      } as never,
+    })
+
+    expect(invalid.issues.map((issue) => issue.code)).toContain('prodat_customer_identity_qualifier_missing')
+    expect(valid.issues.map((issue) => issue.code)).not.toContain('prodat_customer_identity_qualifier_missing')
   })
 })
 
