@@ -4,5 +4,5 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "0f52c1fc0d5686ed24894870a9b6ea8c2a2ac3188f218b96214f95f3d6eee9a0",
-  "latest_migration": "20260820213000_tenant_scoped_post_auth_website_applications.sql"
+  "latest_migration": "20260821103000_customer_identity_consistency_and_webhook_readiness.sql"
 }

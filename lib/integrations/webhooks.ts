@@ -99,6 +99,21 @@ type WebhookEventProjection = {
   dataKeys: readonly string[]
 }
 
+const CUSTOMER_APPLICATION_LIFECYCLE_KEYS = [
+  'application_number',
+  'status',
+  'workflow_state',
+  'next_step',
+  'reason_code',
+  'event_code',
+  'contract_number',
+] as const
+
+const SUPPLIER_SWITCH_LIFECYCLE_KEYS = [
+  ...CUSTOMER_APPLICATION_LIFECYCLE_KEYS,
+  'supplier_switch_status',
+] as const
+
 export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProjection>> = Object.freeze({
   'contracts.publication.changed': { dataKeys: ['channel', 'publication_revision', 'reason', 'timestamp'] },
   'contract.closed': { dataKeys: ['contract_reference', 'offer_reference', 'reason'] },
@@ -110,16 +125,17 @@ export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProject
   'site.created': { dataKeys: ['site_reference', 'status', 'data_quality_status'] },
   'site.updated': { dataKeys: ['site_reference', 'status', 'data_quality_status'] },
   'power_of_attorney.created': { dataKeys: ['power_of_attorney_reference', 'status', 'scope'] },
-  'customer_application.accepted': { dataKeys: ['application_number', 'status'] },
-  'customer_application.needs_information': { dataKeys: ['application_number', 'status', 'reason'] },
-  'customer_application.status_changed': { dataKeys: ['application_number', 'status', 'previous_status'] },
+  'customer_application.accepted': { dataKeys: CUSTOMER_APPLICATION_LIFECYCLE_KEYS },
+  'customer_application.needs_information': { dataKeys: CUSTOMER_APPLICATION_LIFECYCLE_KEYS },
+  'customer_application.status_changed': { dataKeys: CUSTOMER_APPLICATION_LIFECYCLE_KEYS },
   'invoice.created': { dataKeys: ['invoice_reference', 'invoice_number', 'status', 'due_date'] },
   'invoice.updated': { dataKeys: ['invoice_reference', 'invoice_number', 'status', 'due_date'] },
   'invoice.sent': { dataKeys: ['invoice_reference', 'invoice_number', 'status'] },
   'metering_values.updated': { dataKeys: ['facility_reference', 'period_start', 'period_end', 'resolution'] },
   'quote.created': { dataKeys: ['quote_reference', 'offer_reference', 'price_area', 'expires_at'] },
   'quote.validated': { dataKeys: ['quote_reference', 'offer_reference', 'valid'] },
-  'supplier_switch.status_changed': { dataKeys: ['application_number', 'status', 'previous_status'] },
+  'supplier_switch.status_changed': { dataKeys: SUPPLIER_SWITCH_LIFECYCLE_KEYS },
+  'supplier_switch.updated': { dataKeys: SUPPLIER_SWITCH_LIFECYCLE_KEYS },
   'webhook.test': { dataKeys: ['message', 'test_reference'] },
 })
 
