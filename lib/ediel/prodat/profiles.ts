@@ -1,5 +1,8 @@
 import type { ProdatEngineCode, ProdatEngineProductionContext, ProdatEngineValidationIssue } from '@/lib/ediel/prodat/types'
-import { sanitizeProdatText } from '@/lib/ediel/prodat/render/segments'
+import {
+  normalizeProdatEndUserIdQualifier,
+  sanitizeProdatText,
+} from '@/lib/ediel/prodat/render/segments'
 
 function textValue(value: unknown): string {
   return typeof value === 'string' ? sanitizeProdatText(value) : ''
@@ -104,9 +107,29 @@ export function validateProdatProfile(input: {
       })
     }
   }
-  if (profile.requiresCustomerIdentity && !(sanitizeProdatText(input.context.customerId) && sanitizeProdatText(input.context.customerName))) {
-    issues.push({ severity: 'error', code: 'prodat_customer_identity_missing', title: 'Kundidentitet saknas', description: `${profile.key} kräver både kund-id och kundnamn.` })
+
+  if (profile.requiresCustomerIdentity) {
+    const customerId = sanitizeProdatText(input.context.customerId)
+    const customerName = sanitizeProdatText(input.context.customerName)
+    const customerIdQualifier = normalizeProdatEndUserIdQualifier(input.context.customerIdCodeListQualifier)
+
+    if (!(customerId && customerName)) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_customer_identity_missing',
+        title: 'Kundidentitet saknas',
+        description: `${profile.key} kräver både kund-id och kundnamn.`,
+      })
+    } else if (!customerIdQualifier) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_customer_identity_qualifier_missing',
+        title: 'Kundidentitetens kodlista saknas',
+        description: `${profile.key} kräver en explicit giltig PRODAT-kodlista för kund-id (SE1, SE2 eller 1). Kodlistan får inte härledas från id-längd.`,
+      })
+    }
   }
+
   if (profile.requiresMeterPoint && !sanitizeProdatText(input.context.meterPointId)) {
     issues.push({ severity: 'error', code: 'prodat_metering_point_missing', title: 'Anläggnings-id saknas', description: `${profile.key} kräver ett verkligt anläggnings-id. Placeholder tillåts inte.` })
   }

@@ -19,15 +19,14 @@ export function prodatPartySegment(role: 'FR' | 'DO', edielId: string): string {
   return `NAD+${role}+${sanitizeProdatText(edielId)}:160:SVK+++++++SE`
 }
 
+export type ProdatEndUserIdQualifier = 'SE1' | 'SE2' | '1'
+
 export function normalizeProdatEndUserIdQualifier(
   value: string | null | undefined,
-  customerId: string | null
-): 'SE1' | 'SE2' | '1' {
+): ProdatEndUserIdQualifier | null {
   const normalized = sanitizeProdatText(value).toUpperCase()
   if (normalized === 'SE1' || normalized === 'SE2' || normalized === '1') return normalized
-  if (customerId && /^\d{10}$/.test(customerId)) return 'SE1'
-  if (customerId && /^\d{12}$/.test(customerId)) return 'SE2'
-  return 'SE2'
+  return null
 }
 
 export function prodatCustomerNadSegment(params: {
@@ -40,8 +39,13 @@ export function prodatCustomerNadSegment(params: {
   country?: string | null
 }): string {
   const customerId = sanitizeProdatText(params.customerId)
-  const qualifier = normalizeProdatEndUserIdQualifier(params.customerIdCodeListQualifier, customerId || null)
-  const id = customerId ? `${customerId}:${qualifier}:260` : ''
+  const qualifier = normalizeProdatEndUserIdQualifier(params.customerIdCodeListQualifier)
+  // PRODAT's Swedish end-user code lists SE1 (organisation number), SE2
+  // (personal identity number) and 1 (date of birth) are maintained by Ediel
+  // Nordic Forum. Code-list responsible must therefore be ZZZ, not ebIX/260.
+  // Never infer the qualifier from identifier length: without an explicit
+  // semantic qualifier the legal party id is omitted and preflight can block.
+  const id = customerId && qualifier ? `${customerId}:${qualifier}:ZZZ` : ''
   const name = sanitizeProdatText(params.customerName) || 'KUND'
   const address = sanitizeProdatText(params.address)
   const city = sanitizeProdatText(params.city)
