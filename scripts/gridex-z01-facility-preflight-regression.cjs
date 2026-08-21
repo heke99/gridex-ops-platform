@@ -22,6 +22,13 @@ assert(/grid_owner_data_request_metering_point_id/.test(prereq), 'preflight chec
 assert(/site_facility_id|normalized_facility_id|facility_id/.test(prereq), 'preflight checks facility identifiers')
 assert(/meter_point_id/.test(prereq) && /ediel_reference/.test(prereq), 'preflight checks linked metering point identifiers')
 
+// P0 multi-site invariant: a known site is always part of the database lookup.
+// Missing data on Site B must return [] / a blocker, never Site A rows.
+assert(/if \(siteId\) \{\s*query = query\.or\(`site_id\.eq\.\$\{siteId\},customer_site_id\.eq\.\$\{siteId\}`\);\s*\}/s.test(prereq), 'known site is enforced in the metering-point query')
+assert(!/if \(matched\.length > 0\) return matched;\s*return rows;/s.test(prereq), 'legacy customer-wide cross-site fallback is removed')
+assert(/site_customer_matches/.test(prereq), 'Z01 evidence records the site/customer relationship check')
+assert(/request_site_customer_mismatch/.test(prereq), 'site/customer/request mismatch fails closed with a typed blocker')
+
 const preflightIndex = prodat.indexOf('const z01Prerequisites = await evaluateZ01Prerequisites')
 const preparedIndex = prodat.indexOf("status: \"prepared\"", preflightIndex)
 // Rendering moved into the sanctioned RenderGateway (renderAndQueueCustomerMasterdataZ01):
