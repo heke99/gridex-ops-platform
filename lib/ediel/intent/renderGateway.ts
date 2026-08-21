@@ -21,6 +21,10 @@ import {
   buildFacilityLookupZ01Draft,
   type FacilityLookupZ01RenderRequest,
 } from '@/lib/ediel/intent/renderers/facilityLookupZ01'
+import {
+  buildCustomerMasterdataZ01Draft,
+  type CustomerMasterdataZ01RenderRequest,
+} from '@/lib/ediel/intent/renderers/customerMasterdataZ01'
 import type { EdielIntentBlockingReason, EdielMessageIntent } from '@/lib/ediel/intent/types'
 import { assertProdatZ01Renderable } from '@/lib/ediel/profiles/prodatZ01Guard'
 import { supabaseService } from '@/lib/supabase/service'
@@ -39,8 +43,6 @@ export type RenderGatewayResult =
       blockingReasons: EdielIntentBlockingReason[]
     }
 
-// Hard gate: an intent must be present and validated before any render/queue.
-// This is what guarantees ediel_outbox only ever receives validated intents.
 async function loadValidatedIntent(intentId: string): Promise<
   | { ok: true; intent: EdielMessageIntent }
   | { ok: false; reasons: EdielIntentBlockingReason[] }
@@ -67,14 +69,15 @@ async function loadValidatedIntent(intentId: string): Promise<
   return { ok: true, intent }
 }
 
-// Classifies a thrown render/finalize/queue error into a controlled blocking
-// reason. A throw must never leave an intent stuck at not_rendered/not_queued with
-// empty blocking_reasons; it becomes render_status='failed' + a recorded reason.
 function classifyRenderError(error: unknown): EdielIntentBlockingReason {
   const message = error instanceof Error ? error.message : String(error)
   const lower = message.toLowerCase()
   let code = 'render_failed'
-  if (lower.includes('application reference') || lower.includes('application_reference')) {
+  if (lower.includes('process_variant') || lower.includes('process_type')) {
+    code = 'render_process_variant_blocked'
+  } else if (lower.includes('tenant_mismatch')) {
+    code = 'render_tenant_mismatch'
+  } else if (lower.includes('application reference') || lower.includes('application_reference')) {
     code = 'render_application_reference_error'
   } else if (lower.includes('environment')) {
     code = 'render_environment_not_resolved'
@@ -91,9 +94,6 @@ function classifyRenderError(error: unknown): EdielIntentBlockingReason {
   }
 }
 
-// Reads the site facility_id for the Z01 renderability guard. A missing column
-// or row resolves to "not renderable" (treated as missing identifier), never a
-// throw, so the gateway always returns a controlled business blocker.
 async function ensureProdatZ01FacilityIdentifier(siteId: string | null) {
   if (!siteId) {
     return assertProdatZ01Renderable({ facilityId: null })
@@ -114,12 +114,6 @@ async function ensureProdatZ01FacilityIdentifier(siteId: string | null) {
   }
 }
 
-// Facility lookup PRODAT Z01. Customer operations call this instead of rendering.
-//
-// Controlled-failure guarantee: any thrown error during render/finalize/queue is
-// captured and recorded on the intent (render_status='failed' + blocking_reasons)
-// and returned as a `blocked` result. The gateway never throws an unhandled error
-// that would leave the intent stuck at not_rendered with empty blocking_reasons.
 export async function renderAndQueueFacilityLookupZ01(params: {
   intentId: string
   actorUserId: string
@@ -133,11 +127,6 @@ export async function renderAndQueueFacilityLookupZ01(params: {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
   }
 
-  // Swedish PRODAT requirement: block PRODAT Z01 BEFORE render when
-  // anläggnings-id/facility_id is missing. This is an expected business state,
-  // not a technical render failure: we must not render, must not queue
-  // ediel_outbox, and must not set render_status='failed'. The manual e-mail
-  // information request pipeline is used instead.
   const z01Gate = await ensureProdatZ01FacilityIdentifier(params.request.customer_site_id)
   if (!z01Gate.renderable) {
     const reason: EdielIntentBlockingReason = {
@@ -238,26 +227,10 @@ export async function renderAndQueueFacilityLookupZ01(params: {
   }
 }
 
-// Customer masterdata PRODAT Z01. The business flow
-// (prepareAndQueueProdatZ01FromDataRequest) creates the intent, resolves route
-// context and prerequisites, then calls this gateway instead of rendering
-// inline. Same controlled-failure guarantee as the facility lookup renderer:
-// a blocked/failed render is always recorded on the intent, never a silent
-// throw that leaves not_rendered/not_queued with empty blocking_reasons.
-//
-// Facility gate: customer_masterdata accepts facility id OR metering point
-// identity (the canonical business rule); the intent validation gate already
-// blocked intents missing both, and loadValidatedIntent re-checks it here.
 export async function renderAndQueueCustomerMasterdataZ01(params: {
   intentId: string
   actorUserId: string
-  dataRequest: {
-    id: string
-    customer_id: string
-    site_id: string | null
-    metering_point_id: string | null
-    grid_owner_id: string | null
-  } & Record<string, unknown>
+  dataRequest: CustomerMasterdataZ01RenderRequest & Record<string, unknown>
   gridOwner: Record<string, unknown> | null
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   outboundRequestId: string
@@ -273,19 +246,17 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
   }
 
   try {
-    // Dynamic import at call time: the business flow imports this gateway, so a
-    // static import back into the flow module would create a cycle.
-    const { buildProdatZ01Draft } = await import('@/lib/ediel/flows/prodatCustomerMasterdata')
     const { linkEdielMessage } = await import('@/lib/ediel/db')
 
-    const draft = await buildProdatZ01Draft({
+    const draft = await buildCustomerMasterdataZ01Draft({
       actorUserId: params.actorUserId,
       routeContext: params.routeContext,
-      dataRequest: params.dataRequest as never,
-      gridOwner: params.gridOwner as never,
+      dataRequest: params.dataRequest,
+      gridOwner: params.gridOwner,
       externalReference: params.externalReference,
       transactionReference: params.transactionReference,
       messageVersion: params.messageVersion,
+      operationId: params.operationId,
     })
     draft.intentId = params.intentId
 
@@ -356,6 +327,8 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
         messageFamily: 'PRODAT',
         messageCode: 'Z01',
         messageVersion: params.messageVersion,
+        processVariant: draft.parsedPayload?.prodatVariant ?? null,
+        expectedZ02Variant: draft.parsedPayload?.expectedZ02Variant ?? null,
       },
     })
 
