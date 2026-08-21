@@ -4,6 +4,7 @@ import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { inferEdielFileName } from '@/lib/ediel/classify'
+import { resolveSwedishProdatCustomerIdentity } from '@/lib/ediel/prodat/customerIdentity'
 import { renderProdat } from '@/lib/ediel/prodatEngine'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
@@ -34,33 +35,9 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function sanitize(value: unknown): string {
-  return String(value ?? '')
-    .replace(/[\r\n'+]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 function date102(value?: string | null): string | null {
   const digits = String(value ?? '').replace(/\D/g, '')
   return digits.length >= 8 ? digits.slice(0, 8) : null
-}
-
-function customerIdentity(customer: JsonRecord | null | undefined): {
-  id: string | null
-  qualifier: string | null
-  name: string
-} {
-  const id = sanitize(customer?.personal_number ?? customer?.org_number ?? customer?.customer_number ?? '') || null
-  const name = sanitize(
-    customer?.company_name ??
-      customer?.full_name ??
-      [customer?.first_name, customer?.last_name].filter(Boolean).join(' ') ??
-      customer?.customer_number ??
-      'Kund',
-  ) || 'Kund'
-  const qualifier = customer?.org_number ? '1' : id?.length === 10 ? 'SE1' : id ? 'SE2' : null
-  return { id, qualifier, name }
 }
 
 function meterPointIdentifier(context: Awaited<ReturnType<typeof getCustomerExportContext>>): string | null {
@@ -115,7 +92,13 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     throw new Error(variant.blockerCode ?? 'z01_process_variant_not_resolved')
   }
 
-  const customer = customerIdentity((context.customer ?? null) as unknown as JsonRecord | null)
+  const customer = resolveSwedishProdatCustomerIdentity(
+    (context.customer ?? null) as unknown as JsonRecord | null,
+  )
+  if (!customer.id || !customer.qualifier) {
+    throw new Error('z01_customer_legal_identity_required')
+  }
+
   const meterPointId = meterPointIdentifier(context)
   if (!meterPointId) {
     throw new Error('PRODAT Z01 kan inte byggas utan anläggnings-id/mätpunkt.')
