@@ -10,6 +10,7 @@ describe('public pricing and settlement semantics', () => {
     const projector = read('lib/pricing/publicWebsiteQuote.ts')
     const guide = read('docs/external-website-api-integration-guide.md')
     const developerLayout = read('app/developers/customer-portal-api/layout.tsx')
+    const developerTemplate = read('app/developers/customer-portal-api/template.tsx')
 
     expect(contract).toContain("WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-20.2'")
     expect(apiTypes).toContain('valid_until: string')
@@ -23,5 +24,10 @@ describe('public pricing and settlement semantics', () => {
     expect(guide).toMatch(/actual metered consumption|actual metered/)
     expect(guide).toMatch(/market\/settlement price/)
     expect(developerLayout).toContain('return <>{children}</>')
+    expect(developerTemplate).toContain('Pricing, quote validity and billing')
+    expect(developerTemplate).toContain('valid_until')
+    expect(developerTemplate).toContain('valid_to')
+    expect(developerTemplate).toContain('actual metered consumption')
+    expect(developerTemplate).toContain('market/settlement')
   })
 })
