@@ -40,6 +40,7 @@ const webhookCron = read('app/api/internal/webhooks/dispatch/route.ts')
 const migration = read('supabase/migrations/20260804121000_multitenant_website_application_flow_completion.sql')
 const preAuthMigration = read('supabase/migrations/20260804151500_website_application_pre_auth_contract_alignment.sql')
 const postAuthMigration = read('supabase/migrations/20260820213000_tenant_scoped_post_auth_website_applications.sql')
+const consistencyMigration = read('supabase/migrations/20260821103000_customer_identity_consistency_and_webhook_readiness.sql')
 const legacyDocs = read('app/developers/customer-portal-api/page.tsx')
 const normalizedLegacyDocs = legacyDocs.toLowerCase()
 const partnerDocs = read('app/developers/partner-api/page.tsx')
@@ -126,6 +127,8 @@ check(events.includes('ensureWebhookFanoutJob') && events.includes('processDomai
 check(events.includes('attemptWebhookFanoutFastPath') && events.includes('webhook fan-out deferred to cron') && events.indexOf('await ensureWebhookFanoutJob(event)') < events.indexOf('await attemptWebhookFanoutFastPath(event.id)'), 'durable webhook fan-out survives fast-path errors without failing the business operation')
 check(events.includes('recoverStaleWebhookFanoutJobs') && events.includes('webhook_fanout_recovered_after_stale_processing_lock'), 'crashed webhook fan-out workers are recovered')
 check(webhooks.includes('strict?: boolean') && webhooks.includes("throw new Error('webhook_schema_not_ready')"), 'durable webhook fan-out fails closed on missing schema')
+check(webhooks.includes("'supplier_switch.updated': { dataKeys: SUPPLIER_SWITCH_LIFECYCLE_KEYS }") && webhooks.includes("'customer_application.status_changed': { dataKeys: CUSTOMER_APPLICATION_LIFECYCLE_KEYS }"), 'public webhook registry implements the lifecycle event names already published by the website API contract')
+check(webhooks.includes("'workflow_state'") && webhooks.includes("'next_step'") && webhooks.includes("'reason_code'") && webhooks.includes("'event_code'") && webhooks.includes("'supplier_switch_status'"), 'public webhook projection includes the lifecycle fields promised by the current OpenAPI version')
 check(webhookCron.includes('processDomainEventWebhookFanout'), 'webhook cron resumes fan-out before delivery dispatch')
 check(applicationWorkflow.includes("eventType: 'customer_application.status_changed'") && applicationWorkflow.includes("eventType: 'supplier_switch.updated'"), 'every durable legacy website workflow transition emits the canonical tenant status events')
 check(applicationWorkflow.includes('SWITCH_WORKFLOW_STATES.has(input.state)') && applicationWorkflow.includes('supplier_switch_status: input.state'), 'switch and supply states emit supplier_switch.updated with their actual workflow status')
@@ -142,6 +145,8 @@ check(
     postAuthMigration.includes('website_customer_applications_company_api_client_fkey'),
   'database freezes per-tenant portal submission mode and enforces company-scoped application references',
 )
+check(consistencyMigration.includes('ux_customers_company_org_number') && consistencyMigration.includes('normalized_org_number'), 'database enforces one canonical business customer per normalized organization number and tenant')
+check(consistencyMigration.includes('webhook_subscriptions_company_client_endpoint_uidx'), 'database prevents ambiguous duplicate canonical webhook subscriptions for one API client and endpoint')
 check(migration.includes('gridex_project_terminal_application_continuation') && migration.includes('event_outbox_webhook_fanout_due_idx'), 'database adds terminal projection safety and webhook fan-out index')
 check(migration.includes('canonical_readiness_revalidation_required') && migration.includes("profile_key = 'tenant_website'"), 'migration invalidates historical scopes-only launch flags')
 
