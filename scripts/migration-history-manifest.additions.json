@@ -88,6 +88,14 @@
     "20260819111612_email_dispatch_readiness_variable_contract.sql": "42f2302552bcf2e5b21454f16a1dc1bc5ebbafb28b4030850865639debead22c",
     "20260820113132_invoice_export_locked_pricing_guard.sql": "db0235f01516a707ff055dacf42b3709ff7e083f25112a23f01bbbbf74e741c9",
     "20260820213000_tenant_scoped_post_auth_website_applications.sql": "c85a41ddd3a0088b03173d16498f64542112492993f9ba4bd04af9cb04c5e782",
-    "20260821103000_customer_identity_consistency_and_webhook_readiness.sql": "a6e6a9af85b3957fe4fee7cd9c041a6f254f3a266e8f61e7dc6ed548882e6085"
+    "20260821103000_customer_identity_consistency_and_webhook_readiness.sql": "a6e6a9af85b3957fe4fee7cd9c041a6f254f3a266e8f61e7dc6ed548882e6085",
+    "20260821133000_site_scoped_customer_process_p0.sql": "e7221c4d4b3db893da0db4818205894dfd7c345f6362eadf53b45260c1cc12be",
+    "20260821134500_customer_process_site_summary.sql": "e8a27abc642ffa112a7a1b6eb2d4d0c29906bd5307d01e7bcf8ea17ffd650420",
+    "20260821135500_enforce_site_summary_and_request_idempotency.sql": "81aa470fc8a5ce054714872db128a6e413bd33fd072fdebde2cbcf5afba3355c",
+    "20260821140500_canonical_supplier_switch_prodat_variant.sql": "acd10217443b6d6bd3c2d7860171c2a20d54b99152915cce90be4c7e0e605135",
+    "20260821142000_typed_z02_operation_job_correlation_gate.sql": "3684156c911f658bcf4282607ef68442f1b045886492b29655c3336aa28f4a53",
+    "20260821142500_typed_z02_rff_extractor_hotfix.sql": "24c9fc4e27fcea3b282475ae3e9253a450fca30dc5c56fe8335f70e54259bcff",
+    "20260821144000_grid_owner_request_responsibility_and_template_audit.sql": "a6f37c4e5a567d99d96442f5d4c3959a6fac266c51d2517167697ef1a73acab0",
+    "20260821145500_atomic_correlated_z02_core_apply.sql": "93f06e026ecf17a9a5c8b2bbeff066e99a8421f27a1d988adcbc3f2d9f23dd49"
   }
 }
