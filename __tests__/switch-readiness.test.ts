@@ -115,7 +115,7 @@ function signedPoa(overrides: Partial<PowerOfAttorneyRow> = {}): PowerOfAttorney
   return {
     id: 'poa-1',
     customer_id: 'customer-1',
-    site_id: null,
+    site_id: 'site-1',
     scope: 'supplier_switch',
     status: 'signed',
     signed_at: '2026-04-20T10:00:00Z',
@@ -137,7 +137,7 @@ function signedPoa(overrides: Partial<PowerOfAttorneyRow> = {}): PowerOfAttorney
 // ---------------------------------------------------------------------------
 
 describe('evaluateSiteSwitchReadiness (pure)', () => {
-  it('is ready when POA is signed and the metering point is complete', () => {
+  it('is ready when POA is signed for the exact site and the metering point is complete', () => {
     const result = evaluateSiteSwitchReadiness({
       site: site(),
       meteringPoints: [meteringPoint()],
@@ -165,7 +165,7 @@ describe('evaluateSiteSwitchReadiness (pure)', () => {
     expect(result.issues.map((issue) => issue.code)).toContain(code)
   })
 
-  it('flags an expired POA as not valid', () => {
+  it('flags an expired exact-site POA as not valid', () => {
     const result = evaluateSiteSwitchReadiness({
       site: site(),
       meteringPoints: [meteringPoint()],
@@ -173,6 +173,38 @@ describe('evaluateSiteSwitchReadiness (pure)', () => {
       now: NOW,
     })
     expect(result.issues.map((issue) => issue.code)).toContain('power_of_attorney_not_signed')
+  })
+
+  it('does not use a site-less supplier-switch POA for a site-scoped operation', () => {
+    const result = evaluateSiteSwitchReadiness({
+      site: site(),
+      meteringPoints: [meteringPoint()],
+      powersOfAttorney: [signedPoa({ site_id: null })],
+      now: NOW,
+    })
+
+    expect(result.isReady).toBe(false)
+    expect(result.issues.map((issue) => issue.code)).toContain('power_of_attorney_missing')
+    expect(result.latestPowerOfAttorneyId).toBeNull()
+  })
+
+  it('does not use Site A power of attorney for Site B', () => {
+    const siteB = site({ id: 'site-2', facility_id: '735999000000000002' })
+    const pointB = meteringPoint({
+      id: 'mp-2',
+      site_id: 'site-2',
+      meter_point_id: '735999000000000002',
+    })
+    const result = evaluateSiteSwitchReadiness({
+      site: siteB,
+      meteringPoints: [pointB],
+      powersOfAttorney: [signedPoa({ site_id: 'site-1' })],
+      now: NOW,
+    })
+
+    expect(result.isReady).toBe(false)
+    expect(result.issues.map((issue) => issue.code)).toContain('power_of_attorney_missing')
+    expect(result.latestPowerOfAttorneyId).toBeNull()
   })
 
   it('flags metering_point_missing when the site has no metering points', () => {
@@ -369,11 +401,11 @@ describe('checkSupplierSwitchReadiness (unified gate)', () => {
       covered: false,
       missing: ['current_supplier_contract'],
     })
-    // Healing must have been attempted from the signed POA before blocking.
     expect(collaboratorMocks.verifyAuthorizationScopeCoverage).toHaveBeenCalledWith(
       expect.objectContaining({
         companyId: 'company-1',
         customerId: 'customer-1',
+        siteId: 'site-1',
         required: ['current_supplier_contract'],
         powerOfAttorneyId: 'poa-1',
         healFromPowerOfAttorney: true,
@@ -381,8 +413,18 @@ describe('checkSupplierSwitchReadiness (unified gate)', () => {
     )
   })
 
-  it('skips the scope check (POA blocker already present) when no POA exists', async () => {
+  it('skips the scope check (POA blocker already present) when no exact-site POA exists', async () => {
     dbMocks.listPowersOfAttorneyByCustomerId.mockResolvedValue([])
+
+    const result = await checkSupplierSwitchReadiness(BASE_INPUT)
+
+    expect(result.ready).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('power_of_attorney_missing')
+    expect(collaboratorMocks.verifyAuthorizationScopeCoverage).not.toHaveBeenCalled()
+  })
+
+  it('blocks and skips scope healing when only another site POA exists', async () => {
+    dbMocks.listPowersOfAttorneyByCustomerId.mockResolvedValue([signedPoa({ site_id: 'site-2' })])
 
     const result = await checkSupplierSwitchReadiness(BASE_INPUT)
 
