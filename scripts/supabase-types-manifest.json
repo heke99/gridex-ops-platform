@@ -1,8 +1,8 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-20T20:43:08.926Z",
+  "generated_at": "2026-08-21T15:57:26.933Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "0f52c1fc0d5686ed24894870a9b6ea8c2a2ac3188f218b96214f95f3d6eee9a0",
-  "latest_migration": "20260821103000_customer_identity_consistency_and_webhook_readiness.sql"
+  "sha256": "2c044c8734776fa5ffa981a0db9aaaad1f0e8a3eaec1f6abca89e37f23f1e7e9",
+  "latest_migration": "20260821151000_restrict_site_scoped_z02_definers.sql"
 }

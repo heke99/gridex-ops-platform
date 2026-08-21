@@ -1,16 +1,12 @@
 // lib/email/manualGridOwnerTemplates.ts
 //
-// Versioned Swedish templates for the manual (non-Ediel) grid-owner
-// communication pipeline. These are deliberately NOT Ediel: they are plain
-// business e-mails sent via Resend to a grid owner / current supplier when
-// information is missing, when a power of attorney must be presented, or when a
-// manual exception must be handled.
-//
-// Templates do not expose implementation-specific technical IDs to the
-// recipient beyond the human case reference.
+// Versioned Swedish templates for manual (non-Ediel) business communication.
+// Grid-owner facility data and current-supplier commercial contract data are
+// deliberately separate responsibilities and must never be mixed in one request.
 
 export type ManualEmailTemplateKey =
   | 'facility_information_request'
+  | 'current_supplier_contract_information_request'
   | 'supplier_switch_manual'
   | 'power_of_attorney_request'
   | 'ai_list_request'
@@ -40,11 +36,11 @@ export type ManualEmailTemplateVariables = {
 export const MANUAL_EMAIL_TEMPLATES: Record<ManualEmailTemplateKey, ManualEmailTemplate> = {
   facility_information_request: {
     key: 'facility_information_request',
-    version: '2026-06-26-v1',
+    version: '2026-08-21-v2',
     subject: '[{{case_reference}}] Begäran om anläggningsuppgifter inför leverantörsbyte',
     body: `Hej,
 
-Vi företräder kunden enligt bifogad fullmakt och begär uppgifter för att kunna genomföra leverantörsbyte.
+Vi företräder kunden enligt bifogad fullmakt och begär tekniska anläggningsuppgifter för att kunna genomföra rätt marknadsprocess.
 
 Ärendenummer: {{case_reference}}
 Kundnummer hos oss: {{customer_number}}
@@ -57,13 +53,47 @@ Postnummer/ort: {{postal_code}} {{city}}
 
 Vi önskar få följande uppgifter:
 - Anläggnings-ID
+- Mätpunkts-ID, om separat identifierare används
 - Nätavräkningsområde / områdes-ID
 - Årsenergi
-- Befintligt elhandelsföretag
+- Mätmetod
+- Rapporteringsfrekvens
+- Nuvarande elhandelsföretag, om uppgiften finns tillgänglig hos er
+
+Vi begär inte kommersiella avtalsvillkor från nätägaren. Uppgifter om bindningstid, uppsägningstid, avtalslut eller brytavgift hanteras separat med aktuellt elhandelsföretag när det behövs.
+
+Fullmakt bifogas.
+
+Vänligen besvara detta mejl och behåll ärendenumret i ämnesraden.
+
+Med vänlig hälsning,
+{{ops_sender_name}} på uppdrag av {{tenant_company_name}}`,
+  },
+  current_supplier_contract_information_request: {
+    key: 'current_supplier_contract_information_request',
+    version: '2026-08-21-v1',
+    subject: '[{{case_reference}}] Begäran om avtalsuppgifter för nuvarande elleverans',
+    body: `Hej,
+
+Vi företräder kunden enligt bifogad fullmakt och behöver verifiera kundens nuvarande elhandelsavtal inför ett planerat leverantörsbyte.
+
+Ärendenummer: {{case_reference}}
+Kundnummer hos oss: {{customer_number}}
+
+Kund:
+Namn: {{customer_name}}
+Person-/organisationsnummer: {{customer_identity}}
+Anläggningsadress: {{site_address}}
+Postnummer/ort: {{postal_code}} {{city}}
+
+Vi önskar få följande avtalsuppgifter:
+- Avtalsstatus
+- Avtalets slutdatum
+- Bindningstid, om sådan finns
 - Uppsägningstid
-- Slutdatum för befintligt elprisavtal
-- Mätmetod / rapporteringsfrekvens om tillgängligt
-- Övriga uppgifter som behövs inför leverantörsbyte
+- Eventuell brytavgift eller annan kostnad vid förtida avslut
+
+Vi begär inte nätägarens tekniska anläggnings- eller mätpunktsdata i detta ärende.
 
 Fullmakt bifogas.
 

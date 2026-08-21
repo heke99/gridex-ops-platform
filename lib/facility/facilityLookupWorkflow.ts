@@ -1,6 +1,5 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
-import { upsertFacilityMeteringPoint } from '@/lib/facility/facilityMeteringPointSync'
 import { emitCustomerProcessEvent, emitFacilityLookupCompletedEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { evaluateAndRunNextCustomerStep } from '@/lib/customer-operations/customerProcessNextStepEngine'
 
@@ -22,6 +21,21 @@ type FacilityLookupRequestRow = JsonRecord & {
   received_payload?: JsonRecord | null
 }
 
+type AtomicFacilityCompletion = {
+  ok: boolean
+  code?: string | null
+  alreadyCompleted?: boolean
+  requestId: string
+  customerId: string
+  customerSiteId: string
+  meteringPointRecordId?: string | null
+  operationId?: string | null
+  facilityId?: string | null
+  meteringPointExternalId?: string | null
+  gridAreaCode?: string | null
+  priceAreaCode?: string | null
+}
+
 export type FacilityLookupSource = 'manual' | 'ediel_inbound' | 'system'
 
 export type MarkFacilityLookupSentManuallyInput = {
@@ -38,6 +52,7 @@ export type CompleteFacilityLookupInput = {
   actorUserId?: string | null
   source: FacilityLookupSource
   edielMessageId?: string | null
+  sourcePartyGridOwnerId?: string | null
   facilityId?: string | null
   meteringPointId?: string | null
   gridAreaCode?: string | null
@@ -66,6 +81,24 @@ function normalizePriceArea(value: unknown): 'SE1' | 'SE2' | 'SE3' | 'SE4' | nul
   return area === 'SE1' || area === 'SE2' || area === 'SE3' || area === 'SE4' ? area : null
 }
 
+function atomicResult(value: unknown): AtomicFacilityCompletion {
+  const row = asRecord(value)
+  return {
+    ok: row.ok === true,
+    code: text(row.code),
+    alreadyCompleted: row.alreadyCompleted === true,
+    requestId: text(row.requestId) ?? '',
+    customerId: text(row.customerId) ?? '',
+    customerSiteId: text(row.customerSiteId) ?? '',
+    meteringPointRecordId: text(row.meteringPointRecordId),
+    operationId: text(row.operationId),
+    facilityId: text(row.facilityId),
+    meteringPointExternalId: text(row.meteringPointExternalId),
+    gridAreaCode: text(row.gridAreaCode),
+    priceAreaCode: text(row.priceAreaCode),
+  }
+}
+
 // Both facility lookup channels use the same completion workflow:
 // 'facility_lookup' (Ediel/PRODAT Z01) and 'facility_identifier_lookup'
 // (default manual grid-owner e-mail pipeline).
@@ -91,54 +124,14 @@ async function loadFacilityRequest(companyId: string, requestId: string): Promis
   return row
 }
 
-async function updateCustomerSite(input: {
-  companyId: string
-  customerSiteId: string
-  actorUserId?: string | null
-  facilityId: string | null
-  meteringPointId: string | null
-  gridAreaCode: string | null
-  priceAreaCode: string | null
-}) {
-  const now = new Date().toISOString()
-  const payload: JsonRecord = {
-    facility_id: input.facilityId ?? undefined,
-    normalized_facility_id: input.facilityId ?? input.meteringPointId ?? undefined,
-    grid_area_code: input.gridAreaCode ?? undefined,
-    price_area_code: input.priceAreaCode ?? undefined,
-    bidding_zone_code: input.priceAreaCode ?? undefined,
-    facility_data_status: 'verified',
-    facility_data_verified_at: now,
-    resolution_status: 'facility_verified',
-    updated_at: now,
-    updated_by: input.actorUserId ?? undefined,
-  }
-  const safePayload = Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined))
-  const variants = [
-    safePayload,
-    Object.fromEntries(Object.entries(safePayload).filter(([key]) => key !== 'resolution_status')),
-    Object.fromEntries(Object.entries(safePayload).filter(([key]) => !['normalized_facility_id', 'bidding_zone_code', 'facility_data_status', 'resolution_status'].includes(key))),
-  ]
-  for (const variant of variants) {
-    const { error } = await supabaseService
-      .from('customer_sites')
-      .update(variant)
-      .eq('id', input.customerSiteId)
-      .eq('company_id', input.companyId)
-    if (!error) return
-    if (!isMissingSchema(error)) throw error
-  }
-}
-
 async function updateResolution(input: {
   companyId: string
-  customerSiteId: string | null
+  customerSiteId: string
   resolutionId?: string | null
   actorUserId?: string | null
   priceAreaCode?: string | null
   gridAreaCode?: string | null
 }) {
-  if (!input.customerSiteId) return
   let resolutionId = input.resolutionId ?? null
   if (!resolutionId) {
     const latest = await supabaseService
@@ -153,6 +146,7 @@ async function updateResolution(input: {
     resolutionId = text(latest.data?.id)
   }
   if (!resolutionId) return
+
   const now = new Date().toISOString()
   const assurancePatch = input.priceAreaCode
     ? {
@@ -170,6 +164,7 @@ async function updateResolution(input: {
         },
       }
     : {}
+
   const { error } = await supabaseService
     .from('customer_site_resolution')
     .update({
@@ -200,36 +195,6 @@ async function updateWebsiteApplication(input: {
     })
     .eq('id', applicationId)
     .eq('company_id', input.companyId)
-  if (error && !isMissingSchema(error)) throw error
-}
-
-async function clearFacilityBlockers(input: {
-  companyId: string
-  customerId: string
-  customerSiteId: string | null
-  actorUserId?: string | null
-  facilityId: string | null
-  meteringPointId: string | null
-}) {
-  let query = supabaseService
-    .from('customer_info_requests')
-    .update({
-      blocker_code: null,
-      blocker_reason: null,
-      blocker_details: {},
-      route_resolution_status: 'facility_identifier_received',
-      next_required_action: 'Starta leverantörsbyte när readiness är grön.',
-      metering_point_id: input.meteringPointId ?? undefined,
-      status: 'ready_for_switch',
-      updated_at: new Date().toISOString(),
-      updated_by: input.actorUserId ?? undefined,
-    })
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('blocker_code', 'facility_or_metering_point_missing')
-
-  if (input.customerSiteId) query = query.eq('site_id', input.customerSiteId)
-  const { error } = await query
   if (error && !isMissingSchema(error)) throw error
 }
 
@@ -295,146 +260,131 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
     throw new Error('Anläggnings-ID eller mätpunkt måste anges innan begäran kan slutföras.')
   }
 
-  const customerId = text(request.customer_id)
-  const customerSiteId = text(request.customer_site_id)
-  if (!customerId || !customerSiteId) {
-    throw new Error('Anläggningsbegäran saknar kund- eller anläggningskoppling.')
+  // The service client is intentionally narrowed here so the code can use a
+  // newly migrated RPC before generated database types are refreshed in CI.
+  const rpcClient = supabaseService as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
+  }
+  const { data, error } = await rpcClient.rpc('gridex_complete_facility_response', {
+    p_company_id: input.companyId,
+    p_request_id: input.requestId,
+    p_actor_user_id: input.actorUserId ?? null,
+    p_source: input.source,
+    p_ediel_message_id: text(input.edielMessageId),
+    p_facility_id: facilityId,
+    p_metering_point_external_id: meteringPointId,
+    p_grid_area_code: gridAreaCode,
+    p_price_area_code: priceAreaCode,
+    p_source_party_grid_owner_id: text(input.sourcePartyGridOwnerId),
+    p_raw_payload: input.rawPayload ?? {},
+    p_note: text(input.note),
+  })
+  if (error) {
+    throw new Error(`facility_completion_failed:${error.code ?? 'unknown'}:${error.message ?? 'unknown'}`)
   }
 
-  const now = new Date().toISOString()
-  const receivedPayload = {
-    ...asRecord(request.received_payload),
-    source: input.source,
-    ediel_message_id: text(input.edielMessageId),
-    facility_id: facilityId,
-    metering_point_id: meteringPointId,
-    grid_area_code: gridAreaCode,
-    price_area: priceAreaCode,
-    note: text(input.note),
-    raw_payload: input.rawPayload ?? null,
-    completed_at: now,
+  const completion = atomicResult(data)
+  if (!completion.requestId || !completion.customerId || !completion.customerSiteId) {
+    throw new Error('facility_completion_invalid_result')
   }
 
-  const { error } = await supabaseService
-    .from('grid_owner_information_requests')
-    .update({
-      status: 'completed',
-      dispatch_status: 'completed',
-      dispatch_error_code: null,
-      dispatch_error_message: null,
-      received_at: now,
-      completed_at: now,
-      facility_id: facilityId,
-      metering_point_id: meteringPointId,
-      grid_area_code: gridAreaCode ?? undefined,
-      price_area: priceAreaCode ?? undefined,
-      received_payload: receivedPayload,
-      metadata: {
-        ...asRecord(request.metadata),
-        completed_by: input.source,
-        completed_at: now,
-        matched_ediel_message_id: text(input.edielMessageId),
-        next_step_triggered: input.triggerNextStep === false ? 'facility_response_orchestrator' : 'customer_process_next_step_engine',
-      },
-      updated_at: now,
-      updated_by: input.actorUserId ?? null,
+  if (!completion.ok) {
+    await emitCustomerProcessEvent({
+      companyId: input.companyId,
+      customerId: completion.customerId,
+      customerSiteId: completion.customerSiteId,
+      operationId: completion.operationId ?? text(request.operation_id),
+      eventType: 'facility_data.conflict',
+      title: 'Anläggningssvar kräver granskning',
+      message: `Svaret stoppades säkert: ${completion.code ?? 'data_conflict'}.`,
+      actorUserId: input.actorUserId ?? null,
+      status: 'needs_review',
+      severity: 'critical',
+      actionRequired: true,
+      source: 'facility_lookup_workflow',
+      payload: { request_id: input.requestId, code: completion.code ?? 'data_conflict', source: input.source },
+      idempotencyKey: `facility_data.conflict:${input.requestId}:${completion.code ?? 'data_conflict'}`,
     })
-    .eq('id', request.id)
-    .eq('company_id', input.companyId)
-  if (error) throw error
+    return {
+      ok: false,
+      requestId: input.requestId,
+      status: 'needs_review' as const,
+      blockerCode: completion.code ?? 'data_conflict',
+      facilityId: completion.facilityId ?? facilityId,
+      meteringPointId: completion.meteringPointExternalId ?? meteringPointId,
+      meteringPointRecordId: completion.meteringPointRecordId ?? null,
+      customerId: completion.customerId,
+      customerSiteId: completion.customerSiteId,
+      operationId: completion.operationId ?? text(request.operation_id),
+      nextStep: null,
+    }
+  }
 
-  await updateCustomerSite({
-    companyId: input.companyId,
-    customerSiteId,
-    actorUserId: input.actorUserId ?? null,
-    facilityId,
-    meteringPointId,
-    gridAreaCode,
-    priceAreaCode,
-  })
-
-  const meterSync = await upsertFacilityMeteringPoint({
-    companyId: input.companyId,
-    customerId,
-    customerSiteId,
-    gridOwnerId: text(request.grid_owner_id),
-    facilityId,
-    meteringPointId,
-    gridAreaCode,
-    priceAreaCode,
-    actorUserId: input.actorUserId ?? null,
-    source: input.source,
-    rawPayload: input.rawPayload ?? null,
-  })
-
+  // Ancillary projections are retry-safe. The request/site/metering point and
+  // facility blocker were already committed atomically by the RPC above.
   await Promise.all([
     updateResolution({
       companyId: input.companyId,
-      customerSiteId,
+      customerSiteId: completion.customerSiteId,
       resolutionId: text(request.resolution_id),
       actorUserId: input.actorUserId ?? null,
-      priceAreaCode,
-      gridAreaCode,
+      priceAreaCode: completion.priceAreaCode ?? priceAreaCode,
+      gridAreaCode: completion.gridAreaCode ?? gridAreaCode,
     }),
     updateWebsiteApplication({ companyId: input.companyId, request }),
-    clearFacilityBlockers({
-      companyId: input.companyId,
-      customerId,
-      customerSiteId,
-      actorUserId: input.actorUserId ?? null,
-      facilityId,
-      meteringPointId: meterSync.id ?? meteringPointId,
-    }),
   ])
 
   await emitFacilityLookupCompletedEvent({
     companyId: input.companyId,
-    customerId,
-    customerSiteId,
-    meteringPointId: meterSync.id ?? null,
-    operationId: text(request.operation_id),
-    requestId: request.id,
+    customerId: completion.customerId,
+    customerSiteId: completion.customerSiteId,
+    meteringPointId: completion.meteringPointRecordId ?? null,
+    operationId: completion.operationId ?? text(request.operation_id),
+    requestId: input.requestId,
     actorUserId: input.actorUserId ?? null,
     source: input.source,
     payload: {
-      facility_id: facilityId,
-      metering_point_id: meteringPointId,
-      metering_point_record_id: meterSync.id,
-      grid_area_code: gridAreaCode,
-      price_area_code: priceAreaCode,
+      facility_id: completion.facilityId ?? facilityId,
+      metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
+      metering_point_record_id: completion.meteringPointRecordId ?? null,
+      grid_area_code: completion.gridAreaCode ?? gridAreaCode,
+      price_area_code: completion.priceAreaCode ?? priceAreaCode,
       ediel_message_id: text(input.edielMessageId),
+      atomic_completion: true,
+      already_completed: completion.alreadyCompleted === true,
     },
   })
 
   await emitCustomerProcessEvent({
     companyId: input.companyId,
-    customerId,
-    customerSiteId,
-    meteringPointId: meterSync.id ?? null,
-    operationId: text(request.operation_id),
+    customerId: completion.customerId,
+    customerSiteId: completion.customerSiteId,
+    meteringPointId: completion.meteringPointRecordId ?? null,
+    operationId: completion.operationId ?? text(request.operation_id),
     eventType: 'facility_data.verified',
     title: 'Anläggningsuppgifter verifierade',
-    message: 'Anläggnings-ID och/eller mätpunkt har sparats och processen kan fortsätta.',
+    message: 'Anläggnings-ID och/eller mätpunkt har sparats atomärt och processen kan fortsätta.',
     actorUserId: input.actorUserId ?? null,
     status: 'completed',
     severity: 'info',
     source: 'facility_lookup_workflow',
     payload: {
-      request_id: request.id,
+      request_id: input.requestId,
       source: input.source,
-      facility_id: facilityId,
-      metering_point_id: meteringPointId,
+      facility_id: completion.facilityId ?? facilityId,
+      metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
+      atomic_completion: true,
     },
-    idempotencyKey: `facility_data.verified:${request.id}:${facilityId ?? meteringPointId}`,
+    idempotencyKey: `facility_data.verified:${input.requestId}:${completion.facilityId ?? completion.meteringPointExternalId ?? facilityId ?? meteringPointId}`,
   })
 
   let nextStep: Awaited<ReturnType<typeof evaluateAndRunNextCustomerStep>> | null = null
   if (input.triggerNextStep !== false) {
     nextStep = await evaluateAndRunNextCustomerStep({
       companyId: input.companyId,
-      customerId,
-      siteId: customerSiteId,
-      operationId: text(request.operation_id),
+      customerId: completion.customerId,
+      siteId: completion.customerSiteId,
+      operationId: completion.operationId ?? text(request.operation_id),
       trigger: 'facility_data_received',
       actorUserId: input.actorUserId ?? null,
       source: input.source,
@@ -442,18 +392,18 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
   }
 
   revalidatePath('/admin/facility-requests')
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${completion.customerId}`)
 
   return {
     ok: true,
-    requestId: request.id,
+    requestId: input.requestId,
     status: 'completed' as const,
-    facilityId,
-    meteringPointId,
-    meteringPointRecordId: meterSync.id,
-    customerId,
-    customerSiteId,
-    operationId: text(request.operation_id),
+    facilityId: completion.facilityId ?? facilityId,
+    meteringPointId: completion.meteringPointExternalId ?? meteringPointId,
+    meteringPointRecordId: completion.meteringPointRecordId ?? null,
+    customerId: completion.customerId,
+    customerSiteId: completion.customerSiteId,
+    operationId: completion.operationId ?? text(request.operation_id),
     nextStep,
   }
 }

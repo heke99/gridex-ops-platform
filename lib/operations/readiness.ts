@@ -59,18 +59,19 @@ function getRelevantPowerOfAttorney(
   customerSiteId: string,
   powersOfAttorney: PowerOfAttorneyRow[]
 ): PowerOfAttorneyRow | null {
-  const scoped = powersOfAttorney.filter(
-    (poa) => poa.scope === 'supplier_switch'
-  )
+  // Site is an operational identity boundary. A POA for Site A (or a legacy
+  // site-less POA) must never silently authorize Site B. If a future product
+  // supports a true multi-site mandate it needs an explicit, typed scope model;
+  // null site is not such evidence.
+  const exactSite = powersOfAttorney
+    .filter((poa) => poa.scope === 'supplier_switch')
+    .filter((poa) => {
+      const rowSite = poa.site_id ?? poaExtraString(poa, 'customer_site_id')
+      return rowSite === customerSiteId
+    })
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
-  const siteScoped = scoped.filter((poa) => poa.site_id === customerSiteId)
-  const globalScoped = scoped.filter((poa) => poa.site_id === null)
-
-  const ordered = [...siteScoped, ...globalScoped].sort((a, b) =>
-    b.created_at.localeCompare(a.created_at)
-  )
-
-  return ordered[0] ?? null
+  return exactSite[0] ?? null
 }
 
 export function evaluateSiteSwitchReadiness(params: {
@@ -91,7 +92,7 @@ export function evaluateSiteSwitchReadiness(params: {
       code: 'power_of_attorney_missing',
       title: 'Fullmakt saknas',
       description:
-        'Ingen fullmakt för leverantörsbyte finns registrerad för kunden eller anläggningen.',
+        'Ingen site-specifik fullmakt för leverantörsbyte finns registrerad för anläggningen.',
       priority: 'critical',
       taskType: 'power_of_attorney_missing',
     })
@@ -100,7 +101,7 @@ export function evaluateSiteSwitchReadiness(params: {
       code: 'power_of_attorney_not_signed',
       title: 'Fullmakt inte giltig',
       description:
-        'Det finns en fullmakt registrerad, men den är inte signerad eller inte längre giltig.',
+        'Det finns en fullmakt registrerad för anläggningen, men den är inte signerad eller inte längre giltig.',
       priority: 'critical',
       taskType: 'power_of_attorney_not_signed',
     })

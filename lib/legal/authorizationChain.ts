@@ -15,11 +15,9 @@ import {
 //       outbound_requests.authorization_document_id
 //     = ediel_message_intents.payload.authorization_document_id
 //
-// Every intake path (website, manual admin, PDF/upload) must produce the same
-// chain. The website path has its own website-flavored implementation with
-// application metadata (ensureWebsiteAuthorizationChainFromPowerOfAttorney);
-// these helpers give manual/PDF/admin paths the same guarantees. All helpers
-// are safe to rerun.
+// Site-scoped operations must additionally prove that the authorization
+// document belongs to the exact customer_site_id. A customer-wide scope row is
+// never enough evidence for another site.
 
 function missingSchema(error: unknown): boolean {
   const code = String((error as { code?: unknown } | null)?.code ?? '')
@@ -40,19 +38,17 @@ export type EnsureCustomerAuthorizationDocumentInput = {
   metadata?: Record<string, unknown>
 }
 
-/**
- * Finds or creates the customer_authorization_documents row for a power of
- * attorney. Idempotent: reuses the latest existing document bound to the POA.
- */
 export async function ensureCustomerAuthorizationDocument(
   input: EnsureCustomerAuthorizationDocumentInput,
 ): Promise<string | null> {
-  const existing = await supabaseService
+  let existingQuery = supabaseService
     .from('customer_authorization_documents')
-    .select('id')
+    .select('id,site_id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('power_of_attorney_id', input.powerOfAttorneyId)
+  if (input.siteId) existingQuery = existingQuery.eq('site_id', input.siteId)
+  const existing = await existingQuery
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -80,6 +76,7 @@ export async function ensureCustomerAuthorizationDocument(
     metadata: {
       source: input.source ?? 'authorization_chain_helper',
       power_of_attorney_id: input.powerOfAttorneyId,
+      customer_site_id: input.siteId ?? null,
       ...(input.metadata ?? {}),
     },
   }
@@ -120,11 +117,6 @@ export type EnsureAuthorizationScopesInput = {
   evidenceNote?: string | null
 }
 
-/**
- * Ensures active authorization_scopes exist for an authorization document.
- * Idempotent via ensureAuthorizationScopeFromPowerOfAttorney (find-or-create,
- * coverage is derived from immutable signed evidence and never widens).
- */
 export async function ensureAuthorizationScopes(
   input: EnsureAuthorizationScopesInput,
 ): Promise<string | null> {
@@ -168,11 +160,6 @@ export type AuthorizationChainResult = {
   authorizationScopeId: string | null
 }
 
-/**
- * Ensures the full chain POA -> customer_authorization_documents ->
- * authorization_scopes and patches powers_of_attorney.document_id to point at
- * the authorization document. Safe to rerun for the same POA.
- */
 export async function ensureAuthorizationDocumentFromPowerOfAttorney(
   input: EnsureAuthorizationChainInput,
 ): Promise<AuthorizationChainResult> {
@@ -202,15 +189,15 @@ export async function ensureAuthorizationDocumentFromPowerOfAttorney(
       validTo: input.validTo ?? null,
     })
 
-    // Point the POA at its operational authorization document (only fills the
-    // link, never replaces an existing pointer set by another path).
     const poa = await supabaseService
       .from('powers_of_attorney')
-      .select('id,document_id')
+      .select('id,document_id,site_id,customer_site_id')
       .eq('company_id', input.companyId)
       .eq('id', input.powerOfAttorneyId)
       .maybeSingle()
-    if (!poa.error && poa.data && !poa.data.document_id) {
+    const poaSite = poa.data?.customer_site_id ?? poa.data?.site_id ?? null
+    const exactSite = !input.siteId || poaSite === input.siteId
+    if (!poa.error && poa.data && exactSite && !poa.data.document_id) {
       await supabaseService
         .from('powers_of_attorney')
         .update({ document_id: authorizationDocumentId, updated_at: new Date().toISOString() })
@@ -223,20 +210,14 @@ export async function ensureAuthorizationDocumentFromPowerOfAttorney(
   return { authorizationDocumentId, authorizationScopeId }
 }
 
-/**
- * Read-only resolution of the authorization document for a POA. Prefers
- * powers_of_attorney.document_id (when it points at an authorization document),
- * then the latest customer_authorization_documents row bound to the POA.
- * Used by downstream flows (supplier switch, customer info/Z01) so the
- * authorization chain is propagated instead of silently dropped.
- */
 export async function resolveAuthorizationDocumentIdForPowerOfAttorney(input: {
   companyId: string
   powerOfAttorneyId: string
+  siteId?: string | null
 }): Promise<string | null> {
   const poa = await supabaseService
     .from('powers_of_attorney')
-    .select('id,document_id')
+    .select('id,document_id,site_id,customer_site_id')
     .eq('company_id', input.companyId)
     .eq('id', input.powerOfAttorneyId)
     .maybeSingle()
@@ -244,22 +225,28 @@ export async function resolveAuthorizationDocumentIdForPowerOfAttorney(input: {
     if (missingSchema(poa.error)) return null
     throw poa.error
   }
+  const poaSite = poa.data?.customer_site_id ?? poa.data?.site_id ?? null
+  if (input.siteId && poaSite !== input.siteId) return null
+
   const documentId = poa.data?.document_id ? String(poa.data.document_id) : null
   if (documentId) {
-    const doc = await supabaseService
+    let docQuery = supabaseService
       .from('customer_authorization_documents')
       .select('id')
       .eq('company_id', input.companyId)
       .eq('id', documentId)
-      .maybeSingle()
+    if (input.siteId) docQuery = docQuery.eq('site_id', input.siteId)
+    const doc = await docQuery.maybeSingle()
     if (!doc.error && doc.data?.id) return String(doc.data.id)
   }
 
-  const latest = await supabaseService
+  let latestQuery = supabaseService
     .from('customer_authorization_documents')
     .select('id')
     .eq('company_id', input.companyId)
     .eq('power_of_attorney_id', input.powerOfAttorneyId)
+  if (input.siteId) latestQuery = latestQuery.eq('site_id', input.siteId)
+  const latest = await latestQuery
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -294,18 +281,60 @@ export type AuthorizationScopeCoverageResult = {
   schemaAvailable: boolean
 }
 
+async function exactSiteAuthorizationDocumentIds(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  powerOfAttorneyId?: string | null
+}): Promise<{ ids: string[]; schemaAvailable: boolean }> {
+  let query = supabaseService
+    .from('customer_authorization_documents')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('site_id', input.siteId)
+    .in('status', ['active', 'signed'])
+  if (input.powerOfAttorneyId) query = query.eq('power_of_attorney_id', input.powerOfAttorneyId)
+  const result = await query
+  if (result.error) {
+    if (missingSchema(result.error)) return { ids: [], schemaAvailable: false }
+    throw result.error
+  }
+  return {
+    ids: (result.data ?? []).map((row) => String(row.id)).filter(Boolean),
+    schemaAvailable: true,
+  }
+}
+
+async function powerOfAttorneyMatchesSite(input: {
+  companyId: string
+  customerId: string
+  powerOfAttorneyId: string
+  siteId: string
+}): Promise<boolean> {
+  const result = await supabaseService
+    .from('powers_of_attorney')
+    .select('id,site_id,customer_site_id,status,revoked_at')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('id', input.powerOfAttorneyId)
+    .eq('status', 'signed')
+    .is('revoked_at', null)
+    .maybeSingle()
+  if (result.error) {
+    if (missingSchema(result.error)) return false
+    throw result.error
+  }
+  const rowSite = result.data?.customer_site_id ?? result.data?.site_id ?? null
+  return Boolean(result.data && rowSite === input.siteId)
+}
+
 /**
- * Verifies that ACTIVE authorization_scopes rows cover the required
- * operations for the customer. This is the same scope model the customer-info
- * request pipeline enforces (lib/onboarding/infoRequests.ts); the supplier
- * switch gate uses it so an operation requiring a fullmakt can never run when
- * the canonical chain (POA -> customer_authorization_documents ->
- * authorization_scopes) was never materialized.
- *
- * When `healFromPowerOfAttorney` is set and a signed POA id is provided, a
- * missing chain is repaired idempotently first (the exact immutable scope semantics as
- * the website chain: a signed POA grants only what the customer accepted), then
- * re-checked. Fail-closed: a missing schema counts as not covered.
+ * Verify active authorization scope coverage. When siteId is supplied, only
+ * authorization documents explicitly bound to that exact site are eligible.
+ * There is deliberately no fallback to another site or to a site-less legacy
+ * document. A true multi-site mandate must be represented explicitly in the
+ * future schema rather than inferred from null.
  */
 export async function verifyAuthorizationScopeCoverage(input: {
   companyId: string
@@ -320,13 +349,30 @@ export async function verifyAuthorizationScopeCoverage(input: {
     missing: AuthorizationCoverageRequirement[]
     schemaAvailable: boolean
   }> {
-    const { data, error } = await supabaseService
+    let authorizedDocumentIds: string[] | null = null
+    if (input.siteId) {
+      const exact = await exactSiteAuthorizationDocumentIds({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        siteId: input.siteId,
+        powerOfAttorneyId: input.powerOfAttorneyId ?? null,
+      })
+      if (!exact.schemaAvailable) return { missing: [...input.required], schemaAvailable: false }
+      authorizedDocumentIds = exact.ids
+      if (authorizedDocumentIds.length === 0) {
+        return { missing: [...input.required], schemaAvailable: true }
+      }
+    }
+
+    let query = supabaseService
       .from('authorization_scopes')
-      .select('id,status,revoked_at,valid_to,covers_grid_owner_data,covers_current_supplier_contract,covers_metering_data')
+      .select('id,status,revoked_at,valid_to,covers_grid_owner_data,covers_current_supplier_contract,covers_metering_data,authorization_document_id')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .eq('status', 'active')
       .is('revoked_at', null)
+    if (authorizedDocumentIds) query = query.in('authorization_document_id', authorizedDocumentIds)
+    const { data, error } = await query
     if (error) {
       if (missingSchema(error)) return { missing: [...input.required], schemaAvailable: false }
       throw error
@@ -346,6 +392,23 @@ export async function verifyAuthorizationScopeCoverage(input: {
   }
 
   if (input.healFromPowerOfAttorney && input.powerOfAttorneyId && first.schemaAvailable) {
+    if (input.siteId) {
+      const exactPoa = await powerOfAttorneyMatchesSite({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        powerOfAttorneyId: input.powerOfAttorneyId,
+        siteId: input.siteId,
+      })
+      if (!exactPoa) {
+        return {
+          covered: false,
+          missing: first.missing,
+          healed: false,
+          schemaAvailable: true,
+        }
+      }
+    }
+
     const signed = await getSignedPowerOfAttorneyCoverage({
       companyId: input.companyId,
       customerId: input.customerId,
@@ -368,7 +431,7 @@ export async function verifyAuthorizationScopeCoverage(input: {
       source: 'authorization_scope_coverage_heal',
       coverage: signed.coverage,
       signedScopes: signed.signedScopes,
-      metadata: { signedScopes: signed.signedScopes },
+      metadata: { signedScopes: signed.signedScopes, customer_site_id: input.siteId ?? null },
     })
     const second = await loadMissing()
     return {
