@@ -7,6 +7,7 @@ import {
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
+import { projectPublicMarketReference } from '@/lib/pricing/publicMarketReference'
 import {
   validateWebsiteQuote,
   WebsiteQuoteValidationError,
@@ -67,7 +68,6 @@ function stringArray(
   return value.map((entry) => String(entry).trim())
 }
 
-
 async function resolveInternalApplicationId(input: {
   companyId: string
   applicationNumber: string | null
@@ -112,7 +112,6 @@ function responseError(input: {
     retryable: input.retryable ?? retryableErrorCode(input.code),
   })
 }
-
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
@@ -248,12 +247,11 @@ export async function POST(request: NextRequest) {
           valid: true,
           quote_reference: quote.quote_reference,
           offer_reference: quote.offer_reference,
-          valid_until: quote.valid_until,
           status: quote.status,
           resolution_id: quote.energy_resolution_id,
           resolver_version: quote.resolver_version,
           geodata_version: quote.geodata_version,
-          market_reference: quote.market_reference,
+          market_reference: projectPublicMarketReference(quote.market_reference),
           energy_direction: quote.energy_direction,
           selected_area_price: (quote.quote_snapshot as Record<string, unknown>).selected_area_price ?? null,
           price_option_reference: quote.price_option_reference,
