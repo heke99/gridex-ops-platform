@@ -1,3 +1,10 @@
+alter table public.customer_sites
+  add column if not exists is_active boolean
+  generated always as (coalesce(status, 'draft') not in ('inactive','closed')) stored;
+
+comment on column public.customer_sites.is_active is
+  'Compatibility projection derived from canonical customer_sites.status; do not write directly.';
+
 alter table public.customers
   add column if not exists active_sites integer not null default 0,
   add column if not exists pending_sites integer not null default 0,
