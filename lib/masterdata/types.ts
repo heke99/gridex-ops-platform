@@ -141,6 +141,7 @@ export type CustomerSiteRow = {
   customer_id: string;
   site_name: string;
   facility_id: string | null;
+  normalized_facility_id?: string | null;
   site_type: SiteType;
   status: SiteStatus;
   grid_owner_id: string | null;
