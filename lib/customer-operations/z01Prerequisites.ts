@@ -79,51 +79,57 @@ async function maybeSingle(
   return asRecord(data);
 }
 
+/**
+ * Return metering points only from the requested customer site.
+ *
+ * IMPORTANT: when siteId is known this function must NEVER fall back to another
+ * site owned by the same customer. A missing point on Site B is a real blocker;
+ * reusing Site A would make the wrong market object sendable.
+ */
 async function listCandidateMeteringPoints(input: {
   companyId: string;
   customerId: string;
   siteId?: string | null;
 }): Promise<Array<Record<string, unknown>>> {
   const siteId = text(input.siteId);
-  const byCustomer = await supabaseService
+
+  let query = supabaseService
     .from("metering_points")
     .select("*")
     .eq("company_id", input.companyId)
     .eq("customer_id", input.customerId)
     .order("created_at", { ascending: false })
     .limit(50);
-  if (byCustomer.error) {
-    if (!missingSchema(byCustomer.error)) throw byCustomer.error;
-  } else {
-    const rows = ((byCustomer.data ?? []) as unknown[])
-      .map(asRecord)
-      .filter(Boolean) as Array<Record<string, unknown>>;
-    if (!siteId) return rows;
-    const matched = rows.filter(
-      (row) =>
-        text(row.site_id) === siteId ||
-        text(row.customer_site_id) === siteId ||
-        text(row.customerSiteId) === siteId,
-    );
-    if (matched.length > 0) return matched;
-    return rows;
+
+  if (siteId) {
+    query = query.or(`site_id.eq.${siteId},customer_site_id.eq.${siteId}`);
   }
 
-  if (!siteId) return [];
-  const fallback = await supabaseService
-    .from("metering_points")
-    .select("*")
-    .eq("company_id", input.companyId)
-    .or(`site_id.eq.${siteId},customer_site_id.eq.${siteId}`)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (fallback.error) {
-    if (missingSchema(fallback.error)) return [];
-    throw fallback.error;
+  const { data, error } = await query;
+  if (error) {
+    if (missingSchema(error)) return [];
+    throw error;
   }
-  return ((fallback.data ?? []) as unknown[])
+
+  return ((data ?? []) as unknown[])
     .map(asRecord)
     .filter(Boolean) as Array<Record<string, unknown>>;
+}
+
+function identifierBelongsToCandidate(
+  candidate: Record<string, unknown> | null,
+  identifier: string | null,
+): boolean {
+  if (!candidate || !identifier) return false;
+  return [
+    candidate.id,
+    candidate.ediel_reference,
+    candidate.ediel_metering_point_id,
+    candidate.meter_point_id,
+    candidate.metering_point_id,
+    candidate.site_facility_id,
+    candidate.facility_id,
+  ].some((value) => text(value) === identifier);
 }
 
 export async function ensureFacilityLookupForZ01Blocker(input: {
@@ -136,10 +142,26 @@ export async function ensureFacilityLookupForZ01Blocker(input: {
   actorUserId?: string | null;
 }): Promise<Record<string, unknown> | null> {
   const site = input.site ?? {};
+  const siteId = text(site.id);
+  if (!siteId || text(site.customer_id) !== input.customerId) {
+    return {
+      request_id: null,
+      status: "blocked",
+      channel: null,
+      route_id: null,
+      next_step: "review_site_customer_relationship",
+      warnings: ["Anläggningen saknas eller tillhör inte kunden."],
+      source: "z01_prerequisite_blocker",
+      customer_info_request_id: input.customerInfoRequestId ?? null,
+      grid_owner_data_request_id: input.gridOwnerDataRequestId ?? null,
+      outbound_request_id: input.outboundRequestId ?? null,
+    };
+  }
+
   const result = await ensureGridOwnerInformationRequest({
     companyId: input.companyId,
     customerId: input.customerId,
-    customerSiteId: text(site.id),
+    customerSiteId: siteId,
     gridOwnerId: text(site.grid_owner_id) ?? text(site.selected_grid_owner_id),
     gridAreaCode: text(site.grid_area_code) ?? text(site.manual_grid_area_code),
     priceArea: text(site.price_area_code) ?? text(site.bidding_zone_code),
@@ -179,11 +201,24 @@ export async function evaluateZ01Prerequisites(
     gridOwnerDataRequest?.site_id,
   );
   const site = await maybeSingle("customer_sites", siteId, input.companyId);
-  const meteringPoints = await listCandidateMeteringPoints({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId,
-  });
+  const siteCustomerMatches = Boolean(
+    siteId && site && text(site.customer_id) === input.customerId,
+  );
+
+  const customerInfoSite = text(customerInfoRequest?.site_id);
+  const gridOwnerDataSite = text(gridOwnerDataRequest?.site_id);
+  const customerInfoMatchesSite =
+    !customerInfoRequest || !siteId || customerInfoSite === siteId;
+  const gridOwnerDataMatchesSite =
+    !gridOwnerDataRequest || !siteId || gridOwnerDataSite === siteId;
+
+  const meteringPoints = siteCustomerMatches
+    ? await listCandidateMeteringPoints({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        siteId,
+      })
+    : [];
   const firstPoint =
     meteringPoints.find((row) =>
       firstText(
@@ -196,38 +231,50 @@ export async function evaluateZ01Prerequisites(
       ),
     ) ?? null;
 
-  const facilityId = firstText(
-    site?.facility_id,
-    site?.normalized_facility_id,
-    firstPoint?.site_facility_id,
-    firstPoint?.facility_id,
-  );
-  const meteringPointId = firstText(
-    input.meteringPointId,
-    customerInfoRequest?.metering_point_id,
-    gridOwnerDataRequest?.metering_point_id,
-    firstPoint?.ediel_reference,
-    firstPoint?.ediel_metering_point_id,
-    firstPoint?.meter_point_id,
-    firstPoint?.metering_point_id,
-  );
+  const requestedMeteringPointId = text(input.meteringPointId);
+  const facilityId = siteCustomerMatches
+    ? firstText(
+        site?.facility_id,
+        site?.normalized_facility_id,
+        firstPoint?.site_facility_id,
+        firstPoint?.facility_id,
+      )
+    : null;
+  const meteringPointId = siteCustomerMatches
+    ? firstText(
+        identifierBelongsToCandidate(firstPoint, requestedMeteringPointId)
+          ? requestedMeteringPointId
+          : null,
+        customerInfoMatchesSite ? customerInfoRequest?.metering_point_id : null,
+        gridOwnerDataMatchesSite ? gridOwnerDataRequest?.metering_point_id : null,
+        firstPoint?.ediel_reference,
+        firstPoint?.ediel_metering_point_id,
+        firstPoint?.meter_point_id,
+        firstPoint?.metering_point_id,
+      )
+    : null;
 
   const evidence: Record<string, unknown> = {
     source: "z01_prerequisites",
     customer_info_request_id: input.customerInfoRequestId ?? null,
     grid_owner_data_request_id: input.gridOwnerDataRequestId ?? null,
     site_id: siteId,
+    site_customer_matches: siteCustomerMatches,
+    customer_info_request_site_matches: customerInfoMatchesSite,
+    grid_owner_data_request_site_matches: gridOwnerDataMatchesSite,
     customer_info_request_metering_point_id:
-      customerInfoRequest?.metering_point_id ?? null,
+      customerInfoMatchesSite ? customerInfoRequest?.metering_point_id ?? null : null,
     grid_owner_data_request_metering_point_id:
-      gridOwnerDataRequest?.metering_point_id ?? null,
-    site_facility_id: site?.facility_id ?? null,
-    site_normalized_facility_id: site?.normalized_facility_id ?? null,
+      gridOwnerDataMatchesSite ? gridOwnerDataRequest?.metering_point_id ?? null : null,
+    site_facility_id: siteCustomerMatches ? site?.facility_id ?? null : null,
+    site_normalized_facility_id: siteCustomerMatches
+      ? site?.normalized_facility_id ?? null
+      : null,
     metering_points_checked: meteringPoints.length,
     selected_metering_point_record_id: firstPoint?.id ?? null,
   };
 
-  if (facilityId || meteringPointId) {
+  if (siteCustomerMatches && (facilityId || meteringPointId)) {
     return {
       canBuildZ01: true,
       facilityId,
@@ -245,7 +292,7 @@ export async function evaluateZ01Prerequisites(
   }
 
   let facilityLookup: Record<string, unknown> | null = null;
-  if (input.ensureFacilityLookup) {
+  if (input.ensureFacilityLookup && siteCustomerMatches) {
     facilityLookup = await ensureFacilityLookupForZ01Blocker({
       companyId: input.companyId,
       customerId: input.customerId,
@@ -256,18 +303,34 @@ export async function evaluateZ01Prerequisites(
     });
   }
 
+  const relationshipMismatch =
+    Boolean(siteId) &&
+    (!siteCustomerMatches ||
+      !customerInfoMatchesSite ||
+      !gridOwnerDataMatchesSite);
+  const blockerCode = relationshipMismatch
+    ? "request_site_customer_mismatch"
+    : Z01_FACILITY_IDENTIFIER_BLOCKER_CODE;
+  const blockerReason = relationshipMismatch
+    ? "Anläggning, kund eller underliggande informationsbegäran matchar inte exakt. Processen stoppas för manuell granskning."
+    : Z01_FACILITY_IDENTIFIER_BLOCKER_REASON;
+
   return {
     canBuildZ01: false,
     facilityId: null,
     meteringPointId: null,
-    blockerCode: Z01_FACILITY_IDENTIFIER_BLOCKER_CODE,
-    blockerReason: Z01_FACILITY_IDENTIFIER_BLOCKER_REASON,
-    nextRequiredAction: Z01_FACILITY_IDENTIFIER_NEXT_ACTION,
-    routeResolutionStatus: Z01_FACILITY_IDENTIFIER_ROUTE_STATUS,
+    blockerCode,
+    blockerReason,
+    nextRequiredAction: relationshipMismatch
+      ? "Granska tenant-, kund- och anläggningskopplingen innan processen återupptas."
+      : Z01_FACILITY_IDENTIFIER_NEXT_ACTION,
+    routeResolutionStatus: relationshipMismatch
+      ? "site_customer_mismatch"
+      : Z01_FACILITY_IDENTIFIER_ROUTE_STATUS,
     evidence: {
       ...evidence,
       facility_lookup: facilityLookup,
-      blocker_code: Z01_FACILITY_IDENTIFIER_BLOCKER_CODE,
+      blocker_code: blockerCode,
     },
   };
 }
