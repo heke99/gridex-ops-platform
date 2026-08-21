@@ -97,6 +97,7 @@
     "20260821142500_typed_z02_rff_extractor_hotfix.sql": "24c9fc4e27fcea3b282475ae3e9253a450fca30dc5c56fe8335f70e54259bcff",
     "20260821144000_grid_owner_request_responsibility_and_template_audit.sql": "a6f37c4e5a567d99d96442f5d4c3959a6fac266c51d2517167697ef1a73acab0",
     "20260821145500_atomic_correlated_z02_core_apply.sql": "93f06e026ecf17a9a5c8b2bbeff066e99a8421f27a1d988adcbc3f2d9f23dd49",
-    "20260821151000_restrict_site_scoped_z02_definers.sql": "0f1a5a91f3ac11bafa0f6ad5bf19fabd9f198dd48905d5f4842a386546b81900"
+    "20260821151000_restrict_site_scoped_z02_definers.sql": "0f1a5a91f3ac11bafa0f6ad5bf19fabd9f198dd48905d5f4842a386546b81900",
+    "20260821165300_prodat_identity_and_z02_li_compliance.sql": "3fd8ba9493783bcd1ffd5e446a0911fdf9ec306a8054dde99eecbb6701d4d012"
   }
 }
