@@ -50,6 +50,13 @@ jobs:
           manifest.latest_migration = '20260821151000_restrict_site_scoped_z02_definers.sql';
           fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
           NODE
+          # The sourced replay script temporarily replaces supabase/migrations
+          # and restores it from an EXIT trap. The generated-types checker reads
+          # the real migration tail, so restore the canonical tree exactly once
+          # before running that checker. Disable the trap first to prevent a
+          # second cleanup from emptying the directory when this step exits.
+          trap - EXIT
+          cleanup
           node scripts/check-supabase-generated-types.cjs
       - name: Commit canonical generated artifacts
         shell: bash
