@@ -18,11 +18,10 @@ describe('public pricing and settlement semantics', () => {
     expect(projector).toContain('function publicMarketReference')
     expect(projector).not.toContain('spot_price_summary_id')
 
-    for (const source of [guide, developerLayout]) {
-      expect(source).toContain('valid_until')
-      expect(source).toContain('valid_to')
-      expect(source).toMatch(/actual metered consumption|actual metered/)
-      expect(source).toMatch(/market\/settlement price/)
-    }
+    expect(guide).toContain('valid_until')
+    expect(guide).toContain('valid_to')
+    expect(guide).toMatch(/actual metered consumption|actual metered/)
+    expect(guide).toMatch(/market\/settlement price/)
+    expect(developerLayout).toContain('return <>{children}</>')
   })
 })
