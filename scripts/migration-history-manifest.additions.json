@@ -90,7 +90,7 @@
     "20260820213000_tenant_scoped_post_auth_website_applications.sql": "c85a41ddd3a0088b03173d16498f64542112492993f9ba4bd04af9cb04c5e782",
     "20260821103000_customer_identity_consistency_and_webhook_readiness.sql": "a6e6a9af85b3957fe4fee7cd9c041a6f254f3a266e8f61e7dc6ed548882e6085",
     "20260821133000_site_scoped_customer_process_p0.sql": "e7221c4d4b3db893da0db4818205894dfd7c345f6362eadf53b45260c1cc12be",
-    "20260821134500_customer_process_site_summary.sql": "e8a27abc642ffa112a7a1b6eb2d4d0c29906bd5307d01e7bcf8ea17ffd650420",
+    "20260821134500_customer_process_site_summary.sql": "af9977099d39b1e3e987d91560cb6db5e76ca3c528c6ef5c0feef4c8a75c8f36",
     "20260821135500_enforce_site_summary_and_request_idempotency.sql": "81aa470fc8a5ce054714872db128a6e413bd33fd072fdebde2cbcf5afba3355c",
     "20260821140500_canonical_supplier_switch_prodat_variant.sql": "acd10217443b6d6bd3c2d7860171c2a20d54b99152915cce90be4c7e0e605135",
     "20260821142000_typed_z02_operation_job_correlation_gate.sql": "3684156c911f658bcf4282607ef68442f1b045886492b29655c3336aa28f4a53",
