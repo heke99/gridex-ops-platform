@@ -83,9 +83,9 @@
     "20260818170828_signed_contract_document_hash_binding.sql": "04950bc18fb528b72a448b51028ec865c25af0e2d40ad12942ba03f6a8201a52",
     "20260818173236_online_signature_tenant_email_readiness.sql": "774261dfc2494a75eb5f939c4706501be750e0470ea09488224913e7577cae89",
     "20260819070622_pr164_review_remediation_v2.sql": "d9b63125c2275041a7e19ae943a493fac4033e1a63611139ea7d7acb5f645d87",
-    "20260819112000_tenant_api_checkout_delivery_performance.sql": "15d5fb56f21f384c4208cb8252f419a04ae1e7e18ec1ec730b35709512e81b5a",
     "20260819111204_email_event_contract_and_certificate_refresh_hardening.sql": "b3a53a26f147125877e6debfb9cb86a593f11460502336a1dced2b15099bd38c",
     "20260819111612_email_dispatch_readiness_variable_contract.sql": "42f2302552bcf2e5b21454f16a1dc1bc5ebbafb28b4030850865639debead22c",
+    "20260819112000_tenant_api_checkout_delivery_performance.sql": "15d5fb56f21f384c4208cb8252f419a04ae1e7e18ec1ec730b35709512e81b5a",
     "20260820113132_invoice_export_locked_pricing_guard.sql": "db0235f01516a707ff055dacf42b3709ff7e083f25112a23f01bbbbf74e741c9",
     "20260820213000_tenant_scoped_post_auth_website_applications.sql": "c85a41ddd3a0088b03173d16498f64542112492993f9ba4bd04af9cb04c5e782",
     "20260821103000_customer_identity_consistency_and_webhook_readiness.sql": "a6e6a9af85b3957fe4fee7cd9c041a6f254f3a266e8f61e7dc6ed548882e6085",
@@ -102,6 +102,7 @@
     "20260822010000_prodat_26a_semantic_hardening.sql": "c4ea157873b68feed8fb58292d37c3ebb5da3e122918802550b0c6dabc179c5d",
     "20260822011000_supplier_switch_transport_ack_guard.sql": "8f9ba4f2f740f58113b2fa697c14128b9b349a7c123b017d2ace9e990d861c50",
     "20260822011100_supplier_switch_z04_confirmed_alias_guard.sql": "9684ed7490528482b5e471f17166f419048efd3eb531e6bd469820648424afad",
-    "20260822012000_supplier_switch_effective_date_guard.sql": "0b544b81b813588a1324b049891e51ee5dc1036fa6a1c762cb78792ec0c82b85"
+    "20260822012000_supplier_switch_effective_date_guard.sql": "0b544b81b813588a1324b049891e51ee5dc1036fa6a1c762cb78792ec0c82b85",
+    "20260822103821_non_expiring_website_quotes.sql": "0e7999289464d362c232ec811dabc5ea146c4be5c5cf902b3126dd01e43f5a1d"
   }
 }
