@@ -42,7 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/temp-settlement-contract-release.yml scripts/temp-patch-settlement-release.py
+          git rm -f .github/workflows/temp-settlement-contract-release.yml scripts/temp-patch-settlement-release.py
           git add -A
           git commit -m "fix(api): publish satisfiable settlement contract 2026-08-22.2"
           git push origin HEAD:fix/openapi-settlement-contract-20260822
