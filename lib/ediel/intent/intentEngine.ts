@@ -1,16 +1,18 @@
 // lib/ediel/intent/intentEngine.ts
 //
-// EdielMessageIntentEngine (Batch 1). Business processes create intents only.
-// The engine persists intents to ediel_message_intents, enforces idempotency,
-// and runs the pre-render validation gate (required metadata, no-placeholder,
-// Application Reference policy). It never renders or queues EDIFACT/XML.
+// EdielMessageIntentEngine. Business processes create intents only. The engine
+// persists intents, enforces idempotency and runs the pre-render validation
+// gate. It never renders or queues EDIFACT/XML.
 
 import { supabaseService } from '@/lib/supabase/service'
-import {
-  collectPlaceholderViolations,
-} from '@/lib/ediel/intent/noPlaceholderGuard'
+import { collectPlaceholderViolations } from '@/lib/ediel/intent/noPlaceholderGuard'
 import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
-import { resolveProdatSupportStatus } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
+import {
+  getProdatMessageSupport,
+  isProdatCodeSendable,
+  resolveProdatSupportStatus,
+} from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
+import { canonicalEdielActorRole } from '@/lib/ediel/actorRole'
 import { resolveUtiltsSupportStatus } from '@/lib/ediel/utilts/utiltsMessageSupportRegistry'
 import type {
   CreateEdielMessageIntentInput,
@@ -44,14 +46,16 @@ function str(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-/**
- * User provenance columns are UUID-only. System jobs must be represented by a
- * null user ID plus their explicit source/metadata, never by the string
- * sentinel "system".
- */
+/** User provenance columns are UUID-only; system jobs use null + source metadata. */
 export function userActorUuid(value: unknown): string | null {
   const candidate = str(value)
   return candidate && UUID_PATTERN.test(candidate) ? candidate : null
@@ -105,8 +109,24 @@ function mapRowToIntent(row: IntentRow): EdielMessageIntent {
   }
 }
 
-// The pre-render validation gate. Pure function so it can be unit/regression tested
-// without a database.
+function resolveIntentActorRole(
+  input: CreateEdielMessageIntentInput | EdielMessageIntent,
+  routeProfile: { actorRole?: string | null; companyRole?: string | null } | null,
+) {
+  const payload = record(input.payload)
+  // Gridex tenants are electricity suppliers unless a route/profile explicitly
+  // proves the separate ESCO/eligible-party capability. Never infer ESCO from a
+  // message code alone.
+  return canonicalEdielActorRole(
+    routeProfile?.actorRole
+      ?? routeProfile?.companyRole
+      ?? payload?.actorRole
+      ?? payload?.companyRole
+      ?? 'supplier',
+  ) ?? 'supplier'
+}
+
+// Pure pre-render validation gate so it can be regression tested without DB.
 export function evaluateIntentValidation(
   input: CreateEdielMessageIntentInput | EdielMessageIntent,
   options?: {
@@ -147,7 +167,7 @@ export function evaluateIntentValidation(
   checks.no_placeholder_identifiers = placeholderReasons.length === 0
   blockingReasons.push(...placeholderReasons)
 
-  // 3) Application Reference policy (route may declare, not override).
+  // 3) Application Reference policy (route may declare, never override).
   const routeProfile =
     options?.routeProfile ??
     ('routeProfile' in input ? (input as CreateEdielMessageIntentInput).routeProfile : null) ??
@@ -165,20 +185,52 @@ export function evaluateIntentValidation(
   checks.application_reference_policy = appref.ok
   blockingReasons.push(...appref.blockingReasons)
 
-  // 4) Message-code support: unsupported / unknown codes go manual_review,
-  // never a permissive default.
+  // 4) Message-code support + hard direction/actor-role gate.
   const family = String(input.messageFamily).toUpperCase()
   if (family === 'PRODAT') {
     const support = resolveProdatSupportStatus(input.messageCode)
+    const isOutboundIntent = (input.direction ?? 'outbound') === 'outbound'
+    const supportEntry = getProdatMessageSupport(input.messageCode)
     checks.message_code_supported = support !== 'unsupported' && support !== 'manual_review'
+
     if (!checks.message_code_supported) {
       blockingReasons.push({
         code: 'prodat_message_code_unsupported',
-        message: `PRODAT ${input.messageCode} har supportstatus ${support} och kan inte skickas automatiskt (manuell granskning krävs).`,
+        message: `PRODAT ${input.messageCode} har supportstatus ${support} och kan inte behandlas automatiskt.`,
         field: 'messageCode',
         severity: 'block',
         details: { supportStatus: support },
       })
+    }
+
+    if (isOutboundIntent) {
+      const sendable = isProdatCodeSendable(input.messageCode)
+      checks.prodat_outbound_direction = sendable
+      if (!sendable) {
+        blockingReasons.push({
+          code: 'prodat_direction_not_allowed',
+          message: `PRODAT ${input.messageCode} är inte ett outbound-meddelande för Gridex marknadsroll.`,
+          field: 'messageCode',
+          severity: 'block',
+          details: { supportStatus: support, direction: 'outbound' },
+        })
+      }
+
+      const actorRole = resolveIntentActorRole(input, routeProfile)
+      const actorAllowed = Boolean(supportEntry?.allowedSenderRoles.includes(actorRole))
+      checks.prodat_actor_role = actorAllowed
+      if (supportEntry && !actorAllowed) {
+        blockingReasons.push({
+          code: 'prodat_actor_role_not_allowed',
+          message: `PRODAT ${input.messageCode} kräver avsändarroll ${supportEntry.allowedSenderRoles.join('/')} men aktuell roll är ${actorRole}.`,
+          field: 'messageCode',
+          severity: 'block',
+          details: {
+            actorRole,
+            allowedSenderRoles: supportEntry.allowedSenderRoles,
+          },
+        })
+      }
     }
   } else if (family === 'UTILTS') {
     const support = resolveUtiltsSupportStatus(input.messageCode)
@@ -196,7 +248,7 @@ export function evaluateIntentValidation(
     checks.message_code_supported = true
   }
 
-  // 5) Tenant scope present (company_id resolved, not mailbox-only).
+  // 5) Tenant scope present.
   checks.tenant_scope = Boolean(str(input.companyId))
   if (!checks.tenant_scope) {
     blockingReasons.push({
@@ -206,11 +258,8 @@ export function evaluateIntentValidation(
     })
   }
 
-  // 6) HARD FACILITY GUARD (layer 3 of the Z01 chain): customer_masterdata and
-  // supplier_switch intents must carry a facility id or metering point
-  // identity. Without one the intent is BLOCKED (never draft/validated), so no
-  // resume worker can revive it into a render/send. facility_lookup is exempt —
-  // its purpose is to obtain the missing identity.
+  // 6) Hard facility guard. Missing identity uses the separate manual
+  // information-request flow; placeholders can never be rendered.
   const businessProcess = String(input.businessProcess ?? '').toLowerCase()
   if (businessProcess === 'customer_masterdata' || businessProcess === 'supplier_switch') {
     const hasFacilityIdentity = Boolean(str(input.facilityId) || str(input.meteringPointId))
@@ -274,18 +323,12 @@ export async function getEdielMessageIntentById(id: string): Promise<EdielMessag
   return data ? mapRowToIntent(data as IntentRow) : null
 }
 
-// Creates (or returns the idempotent existing) intent and runs the validation gate.
-// The returned intent's validationStatus reflects whether it may proceed to render.
 export async function createEdielMessageIntent(
   input: CreateEdielMessageIntentInput,
 ): Promise<EdielMessageIntent> {
   const validation = evaluateIntentValidation(input)
   const actorUserId = userActorUuid(input.actorUserId)
 
-  // Idempotency: a prior intent with the same business key is reused — but
-  // never blindly. A stale row (e.g. legacy validation_status='draft' or a row
-  // whose inputs have since changed) is re-validated before reuse so a
-  // pre-hardening intent can never slip back into the pipeline unvalidated.
   if (str(input.companyId) && str(input.environment) && str(input.idempotencyKey)) {
     const existing = await findExistingIntent({
       companyId: input.companyId,
@@ -370,7 +413,6 @@ export async function createEdielMessageIntent(
   return mapRowToIntent(data as IntentRow)
 }
 
-// Re-runs the validation gate against a persisted intent before render.
 export async function validateIntentBeforeRender(
   intentId: string,
 ): Promise<{ intent: EdielMessageIntent | null; validation: EdielIntentValidationResult | null }> {

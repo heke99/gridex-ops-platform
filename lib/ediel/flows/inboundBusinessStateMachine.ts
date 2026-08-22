@@ -3,6 +3,7 @@ import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { gridexBusinessMessageLabel } from '@/lib/ediel/businessLabels'
 import { decideProdatLifecycle } from '@/lib/ediel/stateMachines/prodatLifecycle'
+import { applyInboundZ15PermissionState } from '@/lib/ediel/flows/prodatPermissionLifecycle'
 import { enqueueCustomerLifecycleNotification } from '@/lib/customer-notifications/notificationOrchestrator'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
 
@@ -15,12 +16,15 @@ export type InboundBusinessOutcome =
   | 'mandatory_purchase_supply_started'
   | 'supply_termination_requested'
   | 'supply_terminated'
+  | 'supply_continuation_confirmed'
+  | 'masterdata_update_received'
+  | 'meter_change_received'
   | 'permission_requested'
   | 'permission_confirmed'
   | 'permission_rejected'
   | 'permission_ended'
-  | 'supplier_switch_changed'
-  | 'supplier_switch_review_required'
+  | 'permission_continues'
+  | 'unexpected_direction_review'
   | 'metering_values_received'
   | 'business_rejection'
   | 'technical_rejection'
@@ -43,6 +47,7 @@ function text(value: unknown): string | null {
 function dateOnly(value: unknown): string | null {
   const raw = text(value)
   if (!raw) return null
+  if (/^\d{8}$/.test(raw)) return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
   const parsed = new Date(raw)
   if (Number.isNaN(parsed.getTime())) return raw.slice(0, 10)
   return parsed.toISOString().slice(0, 10)
@@ -179,7 +184,7 @@ async function endActiveSupplyPeriod(message: EdielMessageRow): Promise<string> 
   const companyId = message.company_id ?? text(payload.resolved_company_id)
   const customerId = message.customer_id ?? null
   const meteringPointId = message.metering_point_id ?? null
-  const endDate = dateOnly(payload.end_date) ?? dateOnly(payload.endDate) ?? dateOnly(payload.supply_end_date)
+  const endDate = dateOnly(payload.end_date) ?? dateOnly(payload.endDate) ?? dateOnly(payload.supply_end_date) ?? dateOnly(payload.start_date)
   if (!companyId) throw new Error('supply_period_company_required')
   if (!customerId) throw new Error('supply_period_customer_required')
   if (!meteringPointId) throw new Error('supply_period_metering_point_required')
@@ -207,6 +212,79 @@ async function endActiveSupplyPeriod(message: EdielMessageRow): Promise<string> 
   return id
 }
 
+async function continueSupplyPeriodFromZ05C(message: EdielMessageRow): Promise<{ id: string | null; changed: boolean; review: boolean }> {
+  const payload = readPayloadRecord(message)
+  const companyId = message.company_id ?? text(payload.resolved_company_id)
+  const customerId = message.customer_id ?? null
+  const meteringPointId = message.metering_point_id ?? null
+  if (!companyId || !customerId || !meteringPointId) return { id: null, changed: false, review: true }
+
+  const { data, error } = await supabaseService
+    .from('customer_supply_periods')
+    .select('id,status,start_date,end_date')
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .eq('metering_point_id', meteringPointId)
+    .order('start_date', { ascending: false })
+    .limit(3)
+  if (error) throw error
+
+  const rows = (data ?? []) as Array<{ id: string; status?: string | null; start_date?: string | null; end_date?: string | null }>
+  const active = rows.find((row) => !row.end_date && row.status !== 'ended')
+  if (active) return { id: active.id, changed: false, review: false }
+
+  const cancellationDate =
+    dateOnly(payload.end_date)
+    ?? dateOnly(payload.endDate)
+    ?? dateOnly(payload.supply_end_date)
+    ?? dateOnly(payload.start_date)
+    ?? dateOnly(payload.startDate)
+
+  const candidates = rows.filter((row) => row.end_date && (!cancellationDate || row.end_date === cancellationDate))
+  if (candidates.length !== 1) return { id: null, changed: false, review: true }
+
+  const candidate = candidates[0]
+  await strictUpdate('customer_supply_periods', {
+    status: 'active',
+    end_date: null,
+    source_message_id: message.id,
+    updated_at: new Date().toISOString(),
+  }, { id: candidate.id, company_id: companyId })
+  return { id: candidate.id, changed: true, review: false }
+}
+
+async function createReviewCase(input: {
+  message: EdielMessageRow
+  companyId: string
+  switchRequestId?: string | null
+  caseType: string
+  title: string
+  description: string
+  nextAction?: string | null
+  priority?: 'normal' | 'high'
+}) {
+  return strictInsert('customer_cases', {
+    company_id: input.companyId,
+    customer_id: input.message.customer_id ?? null,
+    customer_site_id: input.message.site_id ?? null,
+    supplier_switch_request_id: input.switchRequestId ?? input.message.switch_request_id ?? null,
+    case_type: input.caseType,
+    status: 'open',
+    priority: input.priority ?? 'normal',
+    title: input.title,
+    description: input.description,
+    reason_category: 'ediel_inbound_review',
+    next_action: input.nextAction ?? null,
+    source: 'ediel_inbound_state_machine',
+    metadata: {
+      source_ediel_message_id: input.message.id,
+      message_family: input.message.message_family,
+      message_code: input.message.message_code,
+      payload: readPayloadRecord(input.message),
+    },
+  })
+}
+
 function outcomeForMessage(message: EdielMessageRow): InboundBusinessOutcome {
   const family = String(message.message_family ?? '').toUpperCase()
   const code = String(message.message_code ?? '').toUpperCase()
@@ -226,24 +304,32 @@ function outcomeForMessage(message: EdielMessageRow): InboundBusinessOutcome {
 
 function tenantMessageForOutcome(outcome: InboundBusinessOutcome, message: EdielMessageRow): string {
   if (outcome === 'grid_owner_information_received') return 'Svar från nätägaren mottaget.'
-  if (outcome === 'supplier_switch_accepted') return 'Leverantörsbytet är bekräftat.'
-  if (outcome === 'supplier_switch_cancelled_before_start') return 'Leverantörsbytet har cancellerats och ska inte starta.'
+  if (outcome === 'supplier_switch_accepted') return 'Leverantörsbytet är bekräftat av nätägaren.'
+  if (outcome === 'supplier_switch_cancelled_before_start') return 'Leverantörsbytet har återtagits och ska inte starta.'
   if (outcome === 'assigned_supply_started') return 'Anvisad elleverans har registrerats.'
   if (outcome === 'mandatory_purchase_supply_started') return 'Mottagningspliktig leverans har registrerats.'
-  if (outcome === 'supply_termination_requested') return 'Begäran om hävning av leveransen är mottagen.'
-  if (outcome === 'supply_terminated') return 'Leveransen har avslutats enligt nätägarens bekräftelse.'
-  if (outcome === 'permission_requested') return 'Begäran om mätvärdestillstånd är mottagen.'
-  if (outcome === 'permission_confirmed') return 'Mätvärdestillståndet är bekräftat.'
-  if (outcome === 'permission_rejected') return 'Mätvärdestillståndet har avvisats.'
-  if (outcome === 'permission_ended') return 'Mätvärdestillståndet har avslutats.'
-  if (outcome === 'supplier_switch_completed') return 'Leveransförändringen är mottagen.'
-  if (outcome === 'supplier_switch_review_required') return 'Meddelande om leveransstart/inflyttning mottaget. Granska innan leverantörsbytet markeras klart.'
-  if (outcome === 'supplier_switch_changed') return 'Ändrade anläggningsuppgifter är mottagna och behöver granskas innan masterdata uppdateras.'
+  if (outcome === 'supply_termination_requested') return 'Begäran om att avsluta leveransen är registrerad.'
+  if (outcome === 'supply_terminated') return 'Leveransen upphör enligt nätägarens besked.'
+  if (outcome === 'supply_continuation_confirmed') return 'Leveransen fortsätter. Tidigare avslut har återtagits.'
+  if (outcome === 'masterdata_update_received') return 'Ändrade kund-/anläggningsuppgifter är mottagna och väntar på säker granskning.'
+  if (outcome === 'meter_change_received') return 'Mätarbyte är mottaget och väntar på säker granskning.'
+  if (outcome === 'permission_requested') return 'Begäran om mätvärdesrapportering är registrerad.'
+  if (outcome === 'permission_confirmed') return 'Mätvärdesåtkomsten är godkänd.'
+  if (outcome === 'permission_rejected') return 'Mätvärdesåtkomsten har nekats.'
+  if (outcome === 'permission_ended') return 'Mätvärdesrapporteringen har avslutats.'
+  if (outcome === 'permission_continues') return 'Mätvärdesrapporteringen fortsätter. Tidigare avslut har återtagits.'
+  if (outcome === 'unexpected_direction_review') return 'Ediel-meddelandet har oväntad riktning för Gridex marknadsroll och har stoppats för granskning.'
+  if (['supplier_switch_completed'].includes(outcome)) return 'Leveransförändringen är mottagen.'
   if (outcome === 'metering_values_received') return 'Mätvärden är mottagna och behandlas för fakturering.'
   if (outcome === 'business_rejection') return 'Mottagaren har avvisat meddelandet. Åtgärd krävs.'
   if (outcome === 'technical_rejection') return 'Meddelandet har tekniskt formatfel. Plattformsadministratör behöver granska.'
   if (outcome === 'metering_values_error') return 'Fel i mätvärdesmeddelande. Plattformsadministratör behöver granska.'
-  return gridexBusinessMessageLabel({ family: message.message_family, code: message.message_code }, 'tenant')
+  const lifecycle = decideProdatLifecycle(message)
+  return gridexBusinessMessageLabel({
+    family: message.message_family,
+    code: message.message_code,
+    subtype: lifecycle?.subtype ?? null,
+  }, 'tenant')
 }
 
 export async function applyInboundBusinessStateMachine(input: {
@@ -255,7 +341,16 @@ export async function applyInboundBusinessStateMachine(input: {
 }): Promise<InboundBusinessStateResult> {
   const outcome = outcomeForMessage(input.message)
   const updated: string[] = []
-  const reviewRequired = ['supplier_switch_changed', 'supplier_switch_review_required', 'business_rejection', 'technical_rejection', 'metering_values_error', 'manual_review_required', 'permission_rejected'].includes(outcome)
+  let reviewRequired = [
+    'business_rejection',
+    'technical_rejection',
+    'metering_values_error',
+    'manual_review_required',
+    'permission_rejected',
+    'masterdata_update_received',
+    'meter_change_received',
+    'unexpected_direction_review',
+  ].includes(outcome)
   const tenantMessage = tenantMessageForOutcome(outcome, input.message)
   const companyId = input.message.company_id ?? text(readPayloadRecord(input.message).resolved_company_id) ?? null
   if (!companyId && outcome !== 'ignored') throw new Error('business_state_company_required')
@@ -289,21 +384,28 @@ export async function applyInboundBusinessStateMachine(input: {
   }
 
   if (outcome === 'supplier_switch_accepted' && input.matchedSwitchRequestId) {
+    const payload = readPayloadRecord(input.message)
     if (await strictUpdate('supplier_switch_requests', {
       status: 'accepted',
       external_reference: input.message.external_reference ?? undefined,
+      inbound_z04_message_id: input.message.id,
+      confirmed_start_date:
+        dateOnly(payload.actual_start_date)
+        ?? dateOnly(payload.start_date)
+        ?? dateOnly(payload.startDate)
+        ?? undefined,
       updated_at: new Date().toISOString(),
     }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
+    // Z04 confirms the market change; it does not activate supply before the
+    // effective date. The supply period remains confirmed_by_grid_owner.
     const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
     if (supplyPeriodId) updated.push('customer_supply_periods')
   }
 
   if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
-    if (!input.matchedSwitchRequestId) {
-      throw new Error('regulated_supply_contract_and_switch_required')
-    }
+    if (!input.matchedSwitchRequestId) throw new Error('regulated_supply_contract_and_switch_required')
     const confirmed = await strictUpdate('supplier_switch_requests', {
-      status: 'confirmed',
+      status: 'accepted',
       external_reference: input.message.external_reference ?? undefined,
       inbound_z04_message_id: input.message.id,
       confirmed_start_date:
@@ -334,6 +436,36 @@ export async function applyInboundBusinessStateMachine(input: {
   if (outcome === 'supply_terminated') {
     const supplyPeriodId = await endActiveSupplyPeriod(input.message)
     if (supplyPeriodId) updated.push('customer_supply_periods')
+    if (companyId) {
+      const caseId = await createReviewCase({
+        message: input.message,
+        companyId,
+        switchRequestId: input.matchedSwitchRequestId ?? null,
+        caseType: 'final_metering_and_billing',
+        title: 'Leveransen upphör – slutför mätvärden och fakturering',
+        description: 'Nätägaren har meddelat att leveransen upphör. Säkerställ slutmätvärden och slutfakturering utan att ändra historiska leveransperioder.',
+        nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
+      })
+      if (caseId) updated.push('customer_cases')
+    }
+  }
+
+  if (outcome === 'supply_continuation_confirmed') {
+    const continuation = await continueSupplyPeriodFromZ05C(input.message)
+    if (continuation.changed) updated.push('customer_supply_periods')
+    if (continuation.review && companyId) {
+      reviewRequired = true
+      const caseId = await createReviewCase({
+        message: input.message,
+        companyId,
+        switchRequestId: input.matchedSwitchRequestId ?? null,
+        caseType: 'supply_continuation_review',
+        title: 'Leveransen ska fortsätta – kontroll krävs',
+        description: 'PRODAT Z05C återtar ett tidigare leveransavslut, men systemet kunde inte entydigt identifiera vilken avslutad leveransperiod som ska återöppnas.',
+        nextAction: 'Verifiera leveransperioden och återställ den endast om Z05C refererar till samma avslut.',
+      })
+      if (caseId) updated.push('customer_cases')
+    }
   }
 
   if (outcome === 'supplier_switch_completed' && input.matchedSwitchRequestId) {
@@ -355,49 +487,54 @@ export async function applyInboundBusinessStateMachine(input: {
     )
   }
 
-  if (outcome === 'supplier_switch_review_required' && input.matchedSwitchRequestId) {
-    if (await strictUpdate('supplier_switch_requests', {
-      status: 'manual_followup_required',
-      external_reference: input.message.external_reference ?? undefined,
-      updated_at: new Date().toISOString(),
-    }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-    await strictInsert('customer_cases', {
-      company_id: companyId,
-      customer_id: input.message.customer_id ?? null,
-      customer_site_id: input.message.site_id ?? null,
-      supplier_switch_request_id: input.matchedSwitchRequestId,
-      case_type: 'supplier_switch_review',
-      status: 'open',
-      priority: 'normal',
-      title: 'Leveransstart mottagen – granska leverantörsbytet',
-      description: 'Nätägaren har skickat ett meddelande om leveransstart/inflyttning (PRODAT Z05). Granska och bekräfta att leverantörsbytet ska markeras som klart.',
-      reason_category: 'ediel_inbound_review',
-      next_action: 'Granska meddelandet och bekräfta leveransstart på kundkortet.',
-      source: 'ediel_inbound_state_machine',
-      metadata: { source_ediel_message_id: input.message.id, message_code: 'Z05' },
+  if (outcome === 'permission_ended' || outcome === 'permission_continues') {
+    const permissionResult = await applyInboundZ15PermissionState({
+      actorUserId: input.actorUserId,
+      message: input.message,
     })
+    if (permissionResult.applied) updated.push('metering_permissions')
+    if (!permissionResult.applied) reviewRequired = true
+  }
+
+  if ((outcome === 'masterdata_update_received' || outcome === 'meter_change_received') && companyId) {
+    const caseId = await createReviewCase({
+      message: input.message,
+      companyId,
+      caseType: outcome === 'meter_change_received' ? 'meter_change_review' : 'masterdata_update_review',
+      title: outcome === 'meter_change_received'
+        ? 'Mätarbyte mottaget – granska säker uppdatering'
+        : 'Masterdataändring mottagen – granska säker uppdatering',
+      description: outcome === 'meter_change_received'
+        ? 'PRODAT Z10M mottogs. Nuvarande mätarhistorik får inte skrivas över destruktivt; använd safe-apply/granskning.'
+        : 'PRODAT Z06 mottogs. Uppdatera endast verifierade fält via safe-apply och bevara historik/effective date.',
+      nextAction: 'Granska Ediel safe-apply-förslaget innan masterdata ändras.',
+    })
+    if (caseId) updated.push('customer_cases')
+  }
+
+  if (outcome === 'unexpected_direction_review' && companyId) {
+    const caseId = await createReviewCase({
+      message: input.message,
+      companyId,
+      caseType: 'ediel_unexpected_direction',
+      title: 'Ediel-meddelande med oväntad marknadsriktning',
+      description: 'Meddelandekoden ska normalt origineras av Gridex i den här marknadsrollen och får därför inte automatiskt ändra kund-, leverans- eller tillståndsstatus när den kommer inbound.',
+      nextAction: 'Verifiera avsändarroll, meddelandekod, subtype och route innan någon affärseffekt tillåts.',
+      priority: 'high',
+    })
+    if (caseId) updated.push('customer_cases')
   }
 
   if (outcome === 'business_rejection' || outcome === 'technical_rejection' || outcome === 'metering_values_error') {
-    await strictInsert('customer_cases', {
-      company_id: companyId,
-      customer_id: input.message.customer_id ?? null,
-      customer_site_id: input.message.site_id ?? null,
-      supplier_switch_request_id: input.matchedSwitchRequestId ?? input.message.switch_request_id ?? null,
-      case_type: outcome,
-      status: 'open',
-      priority: outcome === 'technical_rejection' ? 'high' : 'normal',
+    if (!companyId) throw new Error('business_state_company_required')
+    await createReviewCase({
+      message: input.message,
+      companyId,
+      switchRequestId: input.matchedSwitchRequestId ?? null,
+      caseType: outcome,
       title: tenantMessage,
       description: tenantMessage,
-      source: 'inbound_business_state_machine',
-      metadata: {
-        edielMessageId: input.message.id,
-        family: input.message.message_family,
-        code: input.message.message_code,
-        source: input.source ?? null,
-      },
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
+      priority: outcome === 'technical_rejection' ? 'high' : 'normal',
     }).then((id) => { if (id) updated.push('customer_cases') })
   }
 
@@ -425,7 +562,7 @@ export async function applyInboundBusinessStateMachine(input: {
     outcome === 'supplier_switch_accepted' ? 'switch_confirmed'
       : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'completed'
         : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'switch_rejected'
-          : outcome === 'supplier_switch_review_required' || outcome === 'manual_review_required' ? 'manual_review'
+          : outcome === 'manual_review_required' || outcome === 'unexpected_direction_review' ? 'manual_review'
             : null
   if (!supplyActivationCommitted && workflowState && companyId && input.message.customer_id) {
     await transitionCorrelatedCustomerApplicationWorkflow({
@@ -449,7 +586,7 @@ export async function applyInboundBusinessStateMachine(input: {
   const notificationEvent =
     outcome === 'supplier_switch_accepted' ? 'supplier_switch.accepted'
       : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'supply_period.activated'
-        : outcome === 'business_rejection' || outcome === 'technical_rejection' || outcome === 'supplier_switch_review_required' ? 'supplier_switch.rejected'
+        : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'supplier_switch.rejected'
           : null
   if (!supplyActivationCommitted && notificationEvent && companyId && input.message.customer_id) {
     await enqueueCustomerLifecycleNotification({

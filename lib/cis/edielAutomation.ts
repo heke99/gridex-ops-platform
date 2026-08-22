@@ -14,7 +14,7 @@ import {
   getCustomerSiteById,
 } from '@/lib/masterdata/db'
 import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
-import { prepareAndQueueUtiltsE66, prepareAndQueueUtiltsE73 } from '@/lib/ediel/orchestrator'
+import { prepareAndQueueUtiltsE73 } from '@/lib/ediel/orchestrator'
 
 export type EnsureDataRequestOutboundInput = {
   actorUserId: string
@@ -26,6 +26,9 @@ export type EnsureDataRequestOutboundInput = {
 export type QueueUtiltsFromDataRequestInput = {
   actorUserId: string
   dataRequestId: string
+  // E66 is retained in the input union temporarily so legacy callers fail with
+  // a deterministic domain error instead of silently changing behaviour.
+  // A supplier-side data request may only originate E73 here.
   utiltsCode: 'E66' | 'E73'
   communicationRouteId?: string | null
   quantity?: number | null
@@ -138,29 +141,27 @@ export async function ensureAndPrepareUtiltsFromDataRequest(
     throw new Error('Grid owner data request hittades inte')
   }
 
+  // E66 is validated metering data sent by the metering-data responsible actor.
+  // It is not a supplier request. Failing before an outbound row is created is
+  // important: otherwise a wrong business object survives even if rendering is
+  // later blocked.
+  if (input.utiltsCode === 'E66') {
+    throw new Error(
+      'UTILTS E66 är en mätvärdesleverans och får inte skapas som outbound data request från Gridex supplier-flöde. Använd E73 för en legitim begäran om saknade validerade mätvärden när bilateral UTILTS-route är tillåten.',
+    )
+  }
+
   await ensureOutboundForGridOwnerDataRequest({
     actorUserId: input.actorUserId,
     dataRequestId: row.id,
-    requestType: input.utiltsCode === 'E73' ? 'meter_values' : 'billing_underlay',
+    requestType: 'meter_values',
     communicationRouteId: input.communicationRouteId ?? null,
   })
 
-  if (input.utiltsCode === 'E73') {
-    return prepareAndQueueUtiltsE73({
-      actorUserId: input.actorUserId,
-      gridOwnerDataRequestId: row.id,
-      communicationRouteId: input.communicationRouteId ?? null,
-    })
-  }
-
-  return prepareAndQueueUtiltsE66({
+  return prepareAndQueueUtiltsE73({
     actorUserId: input.actorUserId,
     gridOwnerDataRequestId: row.id,
     communicationRouteId: input.communicationRouteId ?? null,
-    quantity: input.quantity ?? null,
-    periodStart: input.periodStart ?? row.requested_period_start,
-    periodEnd: input.periodEnd ?? row.requested_period_end,
-    registrationTime: input.registrationTime ?? null,
   })
 }
 
@@ -281,8 +282,7 @@ export async function buildDataRequestAutomationSnapshot(dataRequestId: string) 
     requestedPeriodStart: row.requested_period_start,
     requestedPeriodEnd: row.requested_period_end,
     siteName: site?.site_name ?? null,
-    meterPointId:
-      meteringPoint?.meter_point_id ?? null,
+    meterPointId: meteringPoint?.meter_point_id ?? null,
     gridOwnerName: gridOwner?.name ?? null,
     outboundMeterValuesId: outboundMeterValues?.id ?? null,
     outboundBillingUnderlayId: outboundBillingUnderlay?.id ?? null,

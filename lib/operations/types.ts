@@ -187,6 +187,8 @@ export type SupplierSwitchRequestRow = {
   price_area_code: string | null;
   validation_snapshot: Record<string, unknown>;
   external_reference: string | null;
+  inbound_z04_message_id?: string | null;
+  confirmed_start_date?: string | null;
   submitted_at: string | null;
   completed_at: string | null;
   failed_at: string | null;

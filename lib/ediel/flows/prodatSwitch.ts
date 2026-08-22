@@ -1,37 +1,21 @@
 // lib/ediel/flows/prodatSwitch.ts
+//
+// Supplier-switch domain flow. A SupplierSwitchRequest may originate PRODAT
+// Z03 only. Grid-owner-originated Z04/Z05/Z06/Z10 are inbound messages, while
+// Z09 and Z13/Z18 require their own masterdata/permission domain entities.
+// Keeping those codes out of this flow prevents a switch row from being reused
+// as a generic EDIFACT payload container.
 
 import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/lib/masterdata/db'
-import {
-  createSupplierSwitchEvent,
-  getSupplierSwitchRequestById,
-} from '@/lib/operations/db'
-import {
-  buildProdatZ03FromSwitch,
-  buildProdatZ04FromSwitch,
-  buildProdatZ05FromSwitch,
-  buildProdatZ06FromSwitch,
-  buildProdatZ09FromSwitch,
-  buildProdatZ10FromSwitch,
-  buildProdatZ13FromSwitch,
-  buildProdatZ14FromSwitch,
-  buildProdatZ15FromSwitch,
-  buildProdatZ18FromSwitch,
-  type ProdatSwitchCode,
-} from '@/lib/ediel/prodat'
+import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
+import { buildProdatZ03FromSwitch } from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from '@/lib/legal/authorizationChain'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
-import type { EdielIntentBusinessProcess } from '@/lib/ediel/intent/types'
-import type { CreateEdielMessageInput } from '@/lib/ediel/types'
+import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import type { EdielEnvironment } from '@/lib/ediel/types'
-import type {
-  CustomerSiteRow,
-  GridOwnerRow,
-  MeteringPointRow,
-} from '@/lib/masterdata/types'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import {
   ensureActorUserId,
   finalizeOutboundDraft,
@@ -41,6 +25,8 @@ import {
 } from '@/lib/ediel/flows/shared'
 import { supabaseService } from '@/lib/supabase/service'
 
+export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10' | 'Z13' | 'Z14' | 'Z15' | 'Z18'
+
 type PrepareProdatSwitchParams = {
   actorUserId: string
   switchRequestId: string
@@ -49,101 +35,47 @@ type PrepareProdatSwitchParams = {
   forceRegenerate?: boolean
 }
 
-type RouteContext = Awaited<ReturnType<typeof resolveDecisionBackedOutboundContext>>
-
-type BuildDraftInput = {
-  actorUserId: string
-  routeContext: RouteContext
-  switchRequest: SupplierSwitchRequestRow
-  site: CustomerSiteRow
-  meteringPoint: MeteringPointRow
-  gridOwner: GridOwnerRow | null
-  externalReference?: string | null
+function stockholmDate(): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 }
 
-function defaultExternalReference(code: ProdatSwitchCode, switchRequestId: string): string {
-  if (code === 'Z03') return `SWITCH-${switchRequestId}`
-  if (code === 'Z04') return `SWITCH-RESP-${switchRequestId}`
-  if (code === 'Z05') return `MOVE-IN-${switchRequestId}`
-  if (code === 'Z06') return `MOVE-IN-RESP-${switchRequestId}`
-  if (code === 'Z09') return `SITE-UPD-${switchRequestId}`
-  if (code === 'Z10') return `SITE-UPD-RESP-${switchRequestId}`
-  if (code === 'Z13') return `METERING-ACCESS-${switchRequestId}`
-  if (code === 'Z14') return `METERING-ACCESS-RESP-${switchRequestId}`
-  if (code === 'Z15') return `METERING-ACCESS-END-${switchRequestId}`
-  return `METERING-ACCESS-END-REQ-${switchRequestId}`
+function normalizeSwitchSubtype(switchRequest: {
+  status?: string | null
+  request_type?: string | null
+  prodat_variant?: string | null
+  prodat_reason?: string | null
+}): 'L' | 'LK' | 'C' {
+  const explicit = String(switchRequest.prodat_variant ?? '').trim().toUpperCase()
+  const reason = String(switchRequest.prodat_reason ?? '').trim().toUpperCase()
+  if (explicit === 'C' || reason === 'Z24' || String(switchRequest.status ?? '').toLowerCase() === 'cancellation_requested') return 'C'
+  if (explicit === 'LK' || reason === 'Z23' || String(switchRequest.request_type ?? '').toLowerCase() === 'move_in') return 'LK'
+  return 'L'
 }
 
-function makeTgtRetryReference(code: ProdatSwitchCode, switchRequestId: string): string {
-  const now = new Date()
-  const compact = now
-    .toISOString()
-    .replace(/[-:TZ.]/g, '')
-    .slice(0, 14)
+function reasonForSubtype(subtype: 'L' | 'LK' | 'C'): 'Z22' | 'Z23' | 'Z24' {
+  if (subtype === 'LK') return 'Z23'
+  if (subtype === 'C') return 'Z24'
+  return 'Z22'
+}
+
+function defaultExternalReference(switchRequestId: string): string {
+  return `SWITCH-${switchRequestId}`
+}
+
+function makeTgtRetryReference(switchRequestId: string): string {
+  const compact = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)
   const random = Math.random().toString(36).slice(2, 7).toUpperCase()
-  return `TGT-${code}-${switchRequestId.slice(0, 8).toUpperCase()}-${compact}-${random}`
-}
-
-function eventMessage(code: ProdatSwitchCode): string {
-  if (code === 'Z03') return 'Ediel PRODAT Z03 förberett från switchärendet via canonical kernel.'
-  if (code === 'Z04') return 'Ediel PRODAT Z04 förberett från switchärendet via canonical kernel.'
-  if (code === 'Z05') return 'Ediel PRODAT Z05 förberett från switchärendet via canonical kernel.'
-  if (code === 'Z06') return 'Ediel PRODAT Z06 förberett från switchärendet via canonical kernel.'
-  if (code === 'Z09') return 'Ediel PRODAT Z09 förberett från switchärendet via canonical kernel.'
-  if (code === 'Z10') return 'Ediel PRODAT Z10 förberett från switchärendet via canonical kernel.'
-  if (code === 'Z13') return 'Ediel PRODAT Z13 för mätvärdesåtkomst förberett via canonical kernel.'
-  if (code === 'Z14') return 'Ediel PRODAT Z14 svar på mätvärdesåtkomst förberett via canonical kernel.'
-  if (code === 'Z15') return 'Ediel PRODAT Z15 avslut av tillstånd förberett via canonical kernel.'
-  return 'Ediel PRODAT Z18 begäran om avslut av rapportering förberett via canonical kernel.'
-}
-
-function routeProcessForCode(code: ProdatSwitchCode): 'supplier_switch' | 'metering_access' {
-  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
-    ? 'metering_access'
-    : 'supplier_switch'
-}
-
-function buildDraftForCode(
-  code: ProdatSwitchCode,
-  input: BuildDraftInput
-): Promise<CreateEdielMessageInput> {
-  const base = {
-    actorUserId: input.actorUserId,
-    senderEdielId: input.routeContext.senderEdielId,
-    senderName: input.routeContext.senderName,
-    receiverEdielId: input.routeContext.receiverEdielId,
-    receiverName: input.routeContext.receiverName,
-    receiverEmail: input.routeContext.receiverEmail,
-    senderSubAddress: input.routeContext.senderSubAddress,
-    receiverSubAddress: input.routeContext.receiverSubAddress,
-    communicationRouteId: input.routeContext.route.id,
-    mailbox: input.routeContext.mailbox,
-    routeDefaultMessageVersion: input.routeContext.defaultMessageVersion,
-    applicationReference: input.routeContext.applicationReference,
-    environment: input.routeContext.environment,
-    switchRequest: input.switchRequest,
-    site: input.site,
-    meteringPoint: input.meteringPoint,
-    gridOwner: input.gridOwner,
-    externalReference: input.externalReference ?? null,
-  }
-
-  if (code === 'Z03') return buildProdatZ03FromSwitch(base)
-  if (code === 'Z04') return buildProdatZ04FromSwitch(base)
-  if (code === 'Z05') return buildProdatZ05FromSwitch(base)
-  if (code === 'Z06') return buildProdatZ06FromSwitch(base)
-  if (code === 'Z09') return buildProdatZ09FromSwitch(base)
-  if (code === 'Z10') return buildProdatZ10FromSwitch(base)
-  if (code === 'Z13') return buildProdatZ13FromSwitch(base)
-  if (code === 'Z14') return buildProdatZ14FromSwitch(base)
-  if (code === 'Z15') return buildProdatZ15FromSwitch(base)
-  return buildProdatZ18FromSwitch(base)
+  return `TGT-Z03-${switchRequestId.slice(0, 8).toUpperCase()}-${compact}-${random}`
 }
 
 async function loadSwitchContext(switchRequestId: string) {
   const supabase = await makeServerClient()
   const switchRequest = await getSupplierSwitchRequestById(supabase, switchRequestId)
-
   if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
@@ -156,56 +88,59 @@ async function loadSwitchContext(switchRequestId: string) {
     ? await getGridOwnerById(supabase, switchRequest.grid_owner_id)
     : null
 
-  return {
-    supabase,
-    switchRequest,
-    site,
-    meteringPoint,
-    gridOwner,
+  return { supabase, switchRequest, site, meteringPoint, gridOwner }
+}
+
+function blockedSwitchFlowCode(code: Exclude<ProdatSwitchCode, 'Z03'>): never {
+  const inboundOnly = ['Z04', 'Z05', 'Z06', 'Z10', 'Z14', 'Z15'].includes(code)
+  if (inboundOnly) {
+    throw new Error(
+      `PRODAT ${code} är inbound för Gridex i aktuell marknadsroll och får inte skapas från ett supplier_switch-ärende.`,
+    )
   }
+  throw new Error(
+    `PRODAT ${code} får inte skapas från ett supplier_switch-ärende. Använd dedikerad ${code === 'Z09' ? 'masterdata' : 'metering_permission'}-process.`,
+  )
 }
 
 export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchParams & {
   messageCode: ProdatSwitchCode
 }) {
+  if (params.messageCode !== 'Z03') return blockedSwitchFlowCode(params.messageCode)
+
   const actorUserId = ensureActorUserId(params.actorUserId)
-  const { supabase, switchRequest, site, meteringPoint, gridOwner } = await loadSwitchContext(
-    params.switchRequestId
-  )
-
+  const { supabase, switchRequest, site, meteringPoint, gridOwner } = await loadSwitchContext(params.switchRequestId)
   const companyId = switchRequest.company_id ?? site.company_id ?? null
-  if (!companyId) {
-    throw new Error(
-      'PRODAT switch stoppades: switchärendet och anläggningen saknar company_id.'
-    )
+  if (!companyId) throw new Error('PRODAT Z03 stoppades: switchärendet och anläggningen saknar company_id.')
+
+  const contractId =
+    switchRequest.customer_contract_id
+    ?? switchRequest.contract_id
+    ?? (typeof switchRequest.metadata?.contract_id === 'string' ? switchRequest.metadata.contract_id : null)
+  if (!contractId) throw new Error('PRODAT Z03 stoppades: switchärendet saknar exakt customer_contract_id.')
+
+  const switchGate = await supabaseService.rpc('gridex_assert_supplier_switch_ready', {
+    p_company_id: companyId,
+    p_contract_id: contractId,
+  })
+  if (switchGate.error) {
+    throw new Error(`PRODAT Z03 stoppades av canonical switch-gate: ${switchGate.error.message}`)
   }
 
-  if (params.messageCode === 'Z03' || params.messageCode === 'Z05') {
-    const contractId =
-      switchRequest.customer_contract_id ??
-      switchRequest.contract_id ??
-      (typeof switchRequest.metadata?.contract_id === 'string'
-        ? switchRequest.metadata.contract_id
-        : null)
-    if (!contractId) {
-      throw new Error(
-        `PRODAT ${params.messageCode} stoppades: switchärendet saknar exakt customer_contract_id.`,
-      )
-    }
-    const gate = await supabaseService.rpc('gridex_assert_supplier_switch_ready', {
-      p_company_id: companyId,
-      p_contract_id: contractId,
-    })
-    if (gate.error) {
-      throw new Error(
-        `PRODAT ${params.messageCode} stoppades av canonical switch-gate: ${gate.error.message}`,
-      )
-    }
-  }
+  const subtype = normalizeSwitchSubtype(switchRequest)
+  const reasonForTransaction = reasonForSubtype(subtype)
+  const canonicalRule = await resolveCanonicalRulePack({
+    family: 'PRODAT',
+    messageCode: 'Z03',
+    transactionSubtype: subtype,
+    direction: 'outbound',
+    businessDate: stockholmDate(),
+    requireBuilder: true,
+    requireStateMachine: true,
+  })
 
-  const routeProcess = routeProcessForCode(params.messageCode)
   const routeContext = await resolveDecisionBackedOutboundContext({
-    requestType: routeProcess,
+    requestType: 'supplier_switch',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
     companyId,
@@ -215,32 +150,31 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     supplierSwitchRequestId: switchRequest.id,
     environment: params.environment ?? 'test',
     messageFamily: 'PRODAT',
-    messageCode: params.messageCode,
+    messageCode: 'Z03',
     messageStandard: 'edifact',
     actorUserId,
     payload: {
       requestType: switchRequest.request_type,
-      cancellation_requested: switchRequest.status === 'cancellation_requested',
-      move_in: switchRequest.request_type === 'move_in',
+      cancellation_requested: subtype === 'C',
+      move_in: subtype === 'LK',
+      transactionSubtype: subtype,
+      reasonForTransaction,
+      canonicalRulePackId: canonicalRule.rulePackId,
+      canonicalProfileId: canonicalRule.messageProfileId,
+      actorRole: 'supplier',
     },
   })
 
-  const forceCreateNewAttempt =
-    Boolean(params.forceRegenerate) && isEdielPortalParty(routeContext.receiverEdielId)
-
+  const forceCreateNewAttempt = Boolean(params.forceRegenerate) && isEdielPortalParty(routeContext.receiverEdielId)
   const externalReference = forceCreateNewAttempt
-    ? makeTgtRetryReference(params.messageCode, switchRequest.id)
-    : switchRequest.external_reference ?? defaultExternalReference(params.messageCode, switchRequest.id)
+    ? makeTgtRetryReference(switchRequest.id)
+    : switchRequest.external_reference ?? defaultExternalReference(switchRequest.id)
 
-  // Propagate the legal authorization chain through the switch outbound and
-  // intent. Older switch rows may predate authorization_document_id, so fall
-  // back to resolving it from the POA.
-  const switchCompanyId = companyId
   const authorizationDocumentId =
-    switchRequest.authorization_document_id ??
-    (switchRequest.power_of_attorney_id && switchCompanyId
+    switchRequest.authorization_document_id
+    ?? (switchRequest.power_of_attorney_id
       ? await resolveAuthorizationDocumentIdForPowerOfAttorney({
-          companyId: switchCompanyId,
+          companyId,
           powerOfAttorneyId: switchRequest.power_of_attorney_id,
         }).catch(() => null)
       : null)
@@ -256,93 +190,113 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     externalReference,
     forceCreateNewAttempt,
     payload: {
-      edielCode: params.messageCode,
-      queuedFrom: `prepare_switch_${params.messageCode.toLowerCase()}`,
+      edielCode: 'Z03',
+      transactionSubtype: subtype,
+      reasonForTransaction,
+      queuedFrom: 'prepare_switch_z03',
       requestType: switchRequest.request_type,
       requestedStartDate: switchRequest.requested_start_date,
       communicationRouteId: routeContext.route.id,
       authorization_document_id: authorizationDocumentId,
       power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
+      canonical_rule_pack_id: canonicalRule.rulePackId,
+      canonical_message_profile_id: canonicalRule.messageProfileId,
       forceRegenerate: Boolean(params.forceRegenerate),
       forceCreateNewAttempt,
     },
   })
 
-  const draft = await buildDraftForCode(params.messageCode, {
+  const draft = await buildProdatZ03FromSwitch({
     actorUserId,
-    routeContext,
+    senderEdielId: routeContext.senderEdielId,
+    senderName: routeContext.senderName,
+    receiverEdielId: routeContext.receiverEdielId,
+    receiverName: routeContext.receiverName,
+    receiverEmail: routeContext.receiverEmail,
+    senderSubAddress: routeContext.senderSubAddress,
+    receiverSubAddress: routeContext.receiverSubAddress,
+    communicationRouteId: routeContext.route.id,
+    mailbox: routeContext.mailbox,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
+    applicationReference: routeContext.applicationReference,
+    environment: routeContext.environment,
     switchRequest,
     site,
     meteringPoint,
     gridOwner,
     externalReference,
   })
-  // Keep the legal chain traceable on the rendered message itself.
+
   draft.parsedPayload = {
     ...(draft.parsedPayload ?? {}),
+    prodatVariant: subtype,
+    reasonForTransaction,
     authorization_document_id: authorizationDocumentId,
     power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
+    canonical_rule_pack_id: canonicalRule.rulePackId,
+    canonical_message_profile_id: canonicalRule.messageProfileId,
+    canonical_profile_key: canonicalRule.profileKey,
   }
 
-  // Mandatory intent in front of rendering. The intent records the validated
-  // business decision and links the resulting message/outbox via intent_id.
-  const businessProcess: EdielIntentBusinessProcess =
-    routeProcess === 'metering_access' ? 'metering_permission' : 'supplier_switch'
-  const meteringPointIdentifier =
-    String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim() || null
+  const meteringPointIdentifier = String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim() || null
+  const siteRecord = site as unknown as Record<string, unknown>
+  const facilityIdentifier = String(siteRecord.normalized_facility_id ?? siteRecord.facility_id ?? '').trim() || null
+
   const intent = await createEdielMessageIntent({
     actorUserId,
     companyId,
     environment: routeContext.environment,
     market: 'electricity',
     messageFamily: 'PRODAT',
-    messageCode: params.messageCode,
-    businessProcess,
+    messageCode: 'Z03',
+    businessProcess: 'supplier_switch',
     direction: 'outbound',
     senderEdielId: routeContext.senderEdielId,
     senderSubaddress: routeContext.senderSubAddress ?? null,
     receiverEdielId: routeContext.receiverEdielId,
     receiverSubaddress: routeContext.receiverSubAddress ?? null,
     applicationReference: routeContext.applicationReference ?? '',
-    // route_profile_id must reference ediel_route_profiles.id — never the
-    // communication route id (different namespace). Missing profile ->
-    // controlled intent blocker rather than a wrong-namespace UUID.
     routeProfileId: routeContext.routeDecision.edielRouteProfileId ?? '',
     communicationRouteId: routeContext.route.id,
     customerId: switchRequest.customer_id,
     customerSiteId: switchRequest.site_id,
     supplierSwitchRequestId: switchRequest.id,
+    facilityId: facilityIdentifier,
     meteringPointId: meteringPointIdentifier,
     gridAreaCode: String(site.grid_area_code ?? gridOwner?.owner_code ?? '').trim() || null,
     requestedEffectiveDate: switchRequest.requested_start_date ?? null,
     interchangeReference: externalReference,
     messageReference: externalReference,
     transactionReference: draft.transactionReference ?? externalReference,
-    idempotencyKey: `prodat-${params.messageCode}:${switchRequest.id}:${externalReference}`,
+    expectedRuleVersion: `${canonicalRule.guideVersion}:r${canonicalRule.guideRevision}`,
+    expectedFieldMatrixVersion: canonicalRule.fieldMatrixVersion,
+    idempotencyKey: `prodat-Z03:${subtype}:${switchRequest.id}:${externalReference}`,
     payload: {
-      edielCode: params.messageCode,
+      edielCode: 'Z03',
+      transactionSubtype: subtype,
+      reasonForTransaction,
       requestType: switchRequest.request_type,
+      actorRole: 'supplier',
       authorization_document_id: authorizationDocumentId,
       power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
+      canonical_rule_pack_id: canonicalRule.rulePackId,
+      canonical_message_profile_id: canonicalRule.messageProfileId,
+      canonical_profile_key: canonicalRule.profileKey,
       forceRegenerate: Boolean(params.forceRegenerate),
     },
   })
   draft.intentId = intent.id
 
-  // The intent is the validated business decision in front of rendering. A
-  // blocked intent (missing route profile, facility identity, application
-  // reference policy, ...) must stop the flow here — rendering/queueing anyway
-  // would produce an outbox send that contradicts the intent status.
   if (intent.validationStatus === 'blocked') {
     const firstBlocker = intent.blockingReasons?.[0]
     throw new Error(
-      `Ediel-intent för ${params.messageCode} blockerades före rendering: ${firstBlocker?.message ?? firstBlocker?.code ?? 'intent-validering misslyckades'}`,
+      `Ediel-intent för Z03 blockerades före rendering: ${firstBlocker?.message ?? firstBlocker?.code ?? 'intent-validering misslyckades'}`,
     )
   }
 
   const message = await finalizeOutboundDraft({
     actorUserId,
-    requestType: routeProcess,
+    requestType: 'supplier_switch',
     routeContext,
     draft,
     outboundRequestId: outbound.id,
@@ -375,12 +329,16 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     externalReference,
     intentId: intent.id,
     payload: {
-      edielCode: params.messageCode,
+      edielCode: 'Z03',
+      transactionSubtype: subtype,
+      reasonForTransaction,
       routeId: routeContext.route.id,
       intentId: intent.id,
       messageFamily: draft.messageFamily,
       messageCode: draft.messageCode,
       messageVersion: draft.messageVersion ?? null,
+      canonical_rule_pack_id: canonicalRule.rulePackId,
+      canonical_message_profile_id: canonicalRule.messageProfileId,
     },
   })
 
@@ -388,13 +346,17 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     switchRequestId: switchRequest.id,
     eventType: 'ediel_prepared',
     eventStatus: 'queued',
-    message: eventMessage(params.messageCode),
+    message: `Ediel PRODAT Z03${subtype} förberett via canonical 26.A rule pack.`,
     payload: {
       edielMessageId: message.id,
       outboundRequestId: outbound.id,
       routeId: routeContext.route.id,
-      edielCode: params.messageCode,
+      edielCode: 'Z03',
+      transactionSubtype: subtype,
+      reasonForTransaction,
       messageVersion: draft.messageVersion ?? null,
+      canonicalRulePackId: canonicalRule.rulePackId,
+      canonicalMessageProfileId: canonicalRule.messageProfileId,
     },
   })
 
@@ -405,38 +367,30 @@ export async function prepareAndQueueEdielZ03(params: PrepareProdatSwitchParams)
   return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z03' })
 }
 
-export async function prepareAndQueueEdielZ04(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z04' })
+export async function prepareAndQueueEdielZ04(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z04')
 }
-
-export async function prepareAndQueueEdielZ05(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z05' })
+export async function prepareAndQueueEdielZ05(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z05')
 }
-
-export async function prepareAndQueueEdielZ06(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z06' })
+export async function prepareAndQueueEdielZ06(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z06')
 }
-
-export async function prepareAndQueueEdielZ09(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z09' })
+export async function prepareAndQueueEdielZ09(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z09')
 }
-
-export async function prepareAndQueueEdielZ10(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z10' })
+export async function prepareAndQueueEdielZ10(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z10')
 }
-
-export async function prepareAndQueueEdielZ13(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z13' })
+export async function prepareAndQueueEdielZ13(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z13')
 }
-
-export async function prepareAndQueueEdielZ14(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z14' })
+export async function prepareAndQueueEdielZ14(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z14')
 }
-
-export async function prepareAndQueueEdielZ15(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z15' })
+export async function prepareAndQueueEdielZ15(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z15')
 }
-
-export async function prepareAndQueueEdielZ18(params: PrepareProdatSwitchParams) {
-  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z18' })
+export async function prepareAndQueueEdielZ18(_params: PrepareProdatSwitchParams) {
+  return blockedSwitchFlowCode('Z18')
 }

@@ -98,6 +98,10 @@
     "20260821144000_grid_owner_request_responsibility_and_template_audit.sql": "a6f37c4e5a567d99d96442f5d4c3959a6fac266c51d2517167697ef1a73acab0",
     "20260821145500_atomic_correlated_z02_core_apply.sql": "93f06e026ecf17a9a5c8b2bbeff066e99a8421f27a1d988adcbc3f2d9f23dd49",
     "20260821151000_restrict_site_scoped_z02_definers.sql": "0f1a5a91f3ac11bafa0f6ad5bf19fabd9f198dd48905d5f4842a386546b81900",
-    "20260821165300_prodat_identity_and_z02_li_compliance.sql": "3fd8ba9493783bcd1ffd5e446a0911fdf9ec306a8054dde99eecbb6701d4d012"
+    "20260821165300_prodat_identity_and_z02_li_compliance.sql": "3fd8ba9493783bcd1ffd5e446a0911fdf9ec306a8054dde99eecbb6701d4d012",
+    "20260822010000_prodat_26a_semantic_hardening.sql": "c4ea157873b68feed8fb58292d37c3ebb5da3e122918802550b0c6dabc179c5d",
+    "20260822011000_supplier_switch_transport_ack_guard.sql": "8f9ba4f2f740f58113b2fa697c14128b9b349a7c123b017d2ace9e990d861c50",
+    "20260822011100_supplier_switch_z04_confirmed_alias_guard.sql": "9684ed7490528482b5e471f17166f419048efd3eb531e6bd469820648424afad",
+    "20260822012000_supplier_switch_effective_date_guard.sql": "0b544b81b813588a1324b049891e51ee5dc1036fa6a1c762cb78792ec0c82b85"
   }
 }

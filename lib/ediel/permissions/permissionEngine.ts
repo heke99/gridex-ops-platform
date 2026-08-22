@@ -20,6 +20,7 @@ export function applyPermissionEvent(params: {
     | 'z15_b80'
     | 'z15_b79'
     | 'z15_e37'
+    | 'z15_c_continues'
 }): EnergyServicePermissionState {
   const targetByEvent: Record<typeof params.event, EnergyServicePermissionState> = {
     z13_prepared: 'z13_prepared',
@@ -36,6 +37,9 @@ export function applyPermissionEvent(params: {
     z15_b80: 'z15_b80_termination',
     z15_b79: 'z15_b79_customer_revocation',
     z15_e37: 'z15_e37_no_grid_contract',
+    // PRODAT Z15C cancels a previously announced termination: reporting
+    // continues, therefore the permission returns to the active state.
+    z15_c_continues: 'active_after_z14v_or_z14vh',
   }
 
   return transitionPermissionState(params.currentState, targetByEvent[params.event])
