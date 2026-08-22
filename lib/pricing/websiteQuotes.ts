@@ -188,11 +188,10 @@ export function assertWebsiteQuotePersistenceInvariant(input: {
   }
 }
 
-function quoteLifetimeMinutes(): number {
-  const configured = Number(process.env.WEBSITE_QUOTE_VALIDITY_MINUTES ?? '15')
-  if (!Number.isFinite(configured)) return 15
-  return Math.min(Math.max(Math.trunc(configured), 5), 120)
-}
+// V1 keeps valid_until on the wire for backwards compatibility and immutable
+// audit hashing. It is not a customer-price expiry. New website quotes use a
+// stable far-future value while business availability is enforced separately.
+export const NON_EXPIRING_WEBSITE_QUOTE_VALID_UNTIL = '9999-12-31T23:59:59.999Z'
 
 function newQuoteReference(): string {
   return `quote_${randomBytes(18).toString('base64url')}`
@@ -357,7 +356,7 @@ export async function persistWebsiteQuote(input: {
   assertWebsiteQuotePersistenceInvariant(canonicalInput)
 
   const quoteReference = newQuoteReference()
-  const validUntil = new Date(Date.now() + quoteLifetimeMinutes() * 60_000).toISOString()
+  const validUntil = NON_EXPIRING_WEBSITE_QUOTE_VALID_UNTIL
   const immutableQuoteHash = quoteHash(quoteIntegrityPayloadForVersion(
     'v3_commercial_selection',
     {
@@ -529,6 +528,9 @@ export async function validateWebsiteQuote(input: {
       canonicalResolution = await loadQuoteEnergyResolution({
         client: input.client,
         resolutionId: input.resolutionId,
+        // The resolution timestamp is freshness metadata for new calculations.
+        // An already-issued immutable quote remains valid after it passes.
+        allowExpired: true,
       })
     } catch (error) {
       if (error instanceof EnergyResolutionBindingError) {
@@ -626,13 +628,16 @@ export async function validateWebsiteQuote(input: {
   if (quote.status === 'revoked') {
     throw new WebsiteQuoteValidationError({ message: 'Quote har återkallats.', code: 'quote_revoked', status: 409 })
   }
-  if (new Date(quote.valid_until).getTime() <= Date.now() || quote.status === 'expired') {
-    await supabaseService
+  // Legacy rows may have been marked expired by the retired technical TTL.
+  // Time alone must never invalidate a customer-visible website price.
+  if (quote.status === 'expired') {
+    const { error: reactivationError } = await supabaseService
       .from('website_contract_quotes')
-      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .update({ status: 'active', updated_at: new Date().toISOString() })
       .eq('id', quote.id)
-      .eq('status', 'active')
-    throw new WebsiteQuoteValidationError({ message: 'Quote har gått ut. Hämta ett nytt pris.', code: 'quote_expired', status: 422 })
+      .eq('status', 'expired')
+    if (reactivationError) throw reactivationError
+    quote.status = 'active'
   }
   if (quote.status === 'consumed' && quote.consumed_application_id !== (input.applicationId ?? null)) {
     throw new WebsiteQuoteValidationError({

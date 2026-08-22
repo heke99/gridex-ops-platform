@@ -21,6 +21,7 @@ import {
   type PublicContractOffer,
 } from "@/lib/website/publicContracts";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
+import { websiteSettlementForContract } from "@/lib/pricing/websiteSettlement";
 import {
   EnergyResolutionBindingError,
   loadQuoteEnergyResolution,
@@ -556,6 +557,10 @@ export async function calculateOfferQuote(input: {
       : frozenPriceComponents;
   const snapshotSchema = canonicalSnapshotSchema(exactSnapshot);
   const pricingInterval = quotePricingInterval(offer.contract_type, exactSnapshot);
+  const settlement = websiteSettlementForContract({
+    contractType: offer.contract_type,
+    pricingInterval,
+  });
   const pricingSnapshot = {
     ...exactSnapshot,
     snapshot_schema: snapshotSchema,
@@ -799,6 +804,7 @@ export async function calculateOfferQuote(input: {
       ? ((offer.pricing_snapshot?.production as Record<string, unknown> | undefined) ?? null)
       : null,
     pricing_interval: pricingInterval,
+    settlement,
     estimate_method: usedSpotFallback || usedPortfolioEstimate
       ? "latest_available_market_indication"
       : pricingInterval === "hourly" || pricingInterval === "quarterly"
@@ -807,7 +813,7 @@ export async function calculateOfferQuote(input: {
     source_period: billingMonth,
     source_window: { start: periodStart, end: periodEnd },
     market_data_timestamp: marketDataTimestamp,
-    is_binding: false,
+    is_binding: settlement.energy_price_locked_at_signup,
     market_sources: marketSources,
     warnings: preview.warnings,
     assumptions,
