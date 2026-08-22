@@ -5,6 +5,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { getCompanyById } from '@/lib/tenant/governance'
+import { getCompanyProductionStatus } from '@/lib/tenant/companyProductionStatus'
 import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
 import { resolveCanonicalCompanyAccessRole } from '@/lib/tenant/companyUserRoles'
 import {
@@ -37,7 +38,6 @@ function optionalText(value: FormDataEntryValue | null): string | null {
 function optionalLegalEmail(value: FormDataEntryValue | null, label: string): string | null {
   return normalizeLegalEmail(normalizeText(value), label) || null
 }
-
 
 function optionalCountryCode(
   value: FormDataEntryValue | null,
@@ -91,7 +91,10 @@ export async function updateCompanySettingsAction(
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
     const admin = await assertCanManageCompany(companyId)
-    const currentCompany = await getCompanyById(companyId)
+    const [currentCompany, productionStatus] = await Promise.all([
+      getCompanyById(companyId),
+      getCompanyProductionStatus(companyId),
+    ])
     if (!currentCompany) return { ok: false, message: 'Bolaget hittades inte.' }
 
     const name = normalizeText(formData.get('name'))
@@ -99,11 +102,7 @@ export async function updateCompanySettingsAction(
 
     const customerNumberPrefix = normalizeCustomerNumberPrefix(formData.get('customer_number_prefix'))
     const requestedOperatingEnvironment = normalizeEnvironment(formData.get('operating_environment'))
-    const isLiveApproved = Boolean(
-      currentCompany.live_ediel_enabled === true &&
-      currentCompany.production_status === 'live' &&
-      currentCompany.live_approved_at
-    )
+    const isLiveApproved = productionStatus?.productionApproved === true
     if (requestedOperatingEnvironment === 'production' && !isLiveApproved) {
       return { ok: false, message: 'Produktion kan bara aktiveras via superadmin go-live efter godkända tester, production route och live-godkännande.' }
     }
