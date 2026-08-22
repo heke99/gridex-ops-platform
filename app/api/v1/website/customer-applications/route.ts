@@ -41,6 +41,37 @@ function readField(value: unknown, field: string): unknown {
   return (value as Record<string, unknown>)[field] ?? null
 }
 
+function checkoutReadinessBlockers(
+  blockers: Array<{ code: string; component: string }>,
+) {
+  return blockers.filter(
+    (blocker) =>
+      blocker.component !== 'portal' &&
+      blocker.component !== 'webhook' &&
+      blocker.code !== 'customer_portal_url_schema_missing',
+  )
+}
+
+function readinessDiagnostics(readiness: {
+  website_checkout_ready: boolean
+  customer_portal_ready: boolean
+  complete_tenant_website_ready: boolean
+  portal_identity_submission_mode: string
+  checks: Record<string, boolean>
+  blockers: Array<{ code: string; component: string }>
+}) {
+  return {
+    website_checkout_ready: readiness.website_checkout_ready,
+    customer_portal_ready: readiness.customer_portal_ready,
+    complete_tenant_website_ready: readiness.complete_tenant_website_ready,
+    portal_identity_submission_mode: readiness.portal_identity_submission_mode,
+    blocker_codes: readiness.blockers.map((blocker) => blocker.code),
+    failed_checks: Object.entries(readiness.checks)
+      .filter(([, ready]) => ready !== true)
+      .map(([check]) => check),
+  }
+}
+
 // Builds the standard JSON error contract:
 //   { error: { code, message, stage, field, request_id, action? }, ... }
 // Legacy flat keys (code, error_stage, field, hint, details) are preserved
@@ -99,12 +130,19 @@ export async function POST(request: NextRequest) {
       companyId: auth.context.companyId,
       client: auth.client,
     })
-    if (!readiness.complete_tenant_website_ready) {
-      const schemaBlocked = readiness.blockers.some((blocker) => blocker.component === 'database')
+    const diagnostics = readinessDiagnostics(readiness)
+    if (!readiness.website_checkout_ready) {
+      const checkoutBlockers = checkoutReadinessBlockers(readiness.blockers)
+      const schemaBlocked = checkoutBlockers.some((blocker) => blocker.component === 'database')
       const readinessStatus = schemaBlocked ? 503 : 409
       const readinessCode = schemaBlocked
         ? 'integration_schema_not_ready'
         : 'integration_not_ready'
+      console.warn('[website-customer-application] checkout readiness blocked', {
+        requestId,
+        ...diagnostics,
+        checkout_blocker_codes: checkoutBlockers.map((blocker) => blocker.code),
+      })
       await logIntegrationApiRequest({
         client: auth.client,
         request,
@@ -113,7 +151,7 @@ export async function POST(request: NextRequest) {
         errorCode: readinessCode,
         metadata: {
           request_id: requestId,
-          blockers: readiness.blockers.map((blocker) => blocker.code),
+          blockers: checkoutBlockers.map((blocker) => blocker.code),
         },
       })
       return customerPortalJson(
@@ -123,7 +161,7 @@ export async function POST(request: NextRequest) {
             : 'The integration is not ready for production checkout.',
           code: readinessCode,
           error_stage: 'integration_readiness',
-          blockers: readiness.blockers,
+          blockers: checkoutBlockers,
           details: {
             portal_identity_required: readiness.portal_identity_required,
             portal_identity_submission_mode: readiness.portal_identity_submission_mode,
@@ -137,6 +175,16 @@ export async function POST(request: NextRequest) {
         }, requestId),
         { status: readinessStatus },
       )
+    }
+
+    // Customer portal readiness is a continuation concern. Anonymous website
+    // checkout must not be rejected merely because the customer's portal can
+    // only be linked or activated after the agreement is accepted.
+    if (!readiness.complete_tenant_website_ready) {
+      console.info('[website-customer-application] checkout ready; portal continuation incomplete', {
+        requestId,
+        ...diagnostics,
+      })
     }
 
     const parsed = await readJsonWithLimit(request)
