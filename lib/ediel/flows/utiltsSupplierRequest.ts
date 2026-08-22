@@ -298,8 +298,22 @@ export async function prepareAndQueueUtiltsE73(params: {
   return message
 }
 
-export async function prepareAndQueueUtiltsE66(): Promise<never> {
+type BlockedSupplierE66Params = {
+  actorUserId: string
+  gridOwnerDataRequestId: string
+  communicationRouteId?: string | null
+  environment?: EdielEnvironment | null
+  quantity?: number | null
+  periodStart?: string | null
+  periodEnd?: string | null
+  registrationTime?: string | null
+}
+
+export async function prepareAndQueueUtiltsE66(
+  _params?: BlockedSupplierE66Params,
+): Promise<Awaited<ReturnType<typeof prepareAndQueueUtiltsE73>>> {
   // E66 is grid-owner-originated validated metering data. Gridex in supplier
-  // role must never originate it from a data-request workflow.
+  // role must never originate it from a data-request workflow. The compatibility
+  // signature keeps legacy call sites compilable while the runtime remains fail-closed.
   throw new Error('utilts_e66_supplier_outbound_not_allowed')
 }
