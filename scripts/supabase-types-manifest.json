@@ -4,5 +4,5 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "2c044c8734776fa5ffa981a0db9aaaad1f0e8a3eaec1f6abca89e37f23f1e7e9",
-  "latest_migration": "20260822130000_utilts_aperak_contrl_central_engine.sql"
+  "latest_migration": "20260822223013_tenant_api_bundle_operation_entitlement.sql"
 }
