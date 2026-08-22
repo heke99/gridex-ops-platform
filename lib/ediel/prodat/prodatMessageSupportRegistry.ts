@@ -104,7 +104,7 @@ function buildEntry(profile: ProdatCanonicalProfile): ProdatMessageSupport {
     requiredFields: requiredFieldsFor(profile),
     allowedSenderRoles: [profile.senderRole],
     allowedReceiverRoles: [profile.receiverRole],
-    hasEngineBuilder,
+    hasEngineBuilder: hasBuilder,
     requiredSegments: requiredProdatSegmentsForCode(profile.messageCode),
   }
 }

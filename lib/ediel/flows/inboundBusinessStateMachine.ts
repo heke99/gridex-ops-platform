@@ -319,7 +319,7 @@ function tenantMessageForOutcome(outcome: InboundBusinessOutcome, message: Ediel
   if (outcome === 'permission_ended') return 'Mätvärdesrapporteringen har avslutats.'
   if (outcome === 'permission_continues') return 'Mätvärdesrapporteringen fortsätter. Tidigare avslut har återtagits.'
   if (outcome === 'unexpected_direction_review') return 'Ediel-meddelandet har oväntad riktning för Gridex marknadsroll och har stoppats för granskning.'
-  if (outcome === 'supplier_switch_completed') return 'Leveransförändringen är mottagen.'
+  if (['supplier_switch_completed'].includes(outcome)) return 'Leveransförändringen är mottagen.'
   if (outcome === 'metering_values_received') return 'Mätvärden är mottagna och behandlas för fakturering.'
   if (outcome === 'business_rejection') return 'Mottagaren har avvisat meddelandet. Åtgärd krävs.'
   if (outcome === 'technical_rejection') return 'Meddelandet har tekniskt formatfel. Plattformsadministratör behöver granska.'
