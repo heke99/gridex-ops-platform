@@ -6,9 +6,9 @@ The canonical human-readable documentation is served at `/developers/customer-po
 
 ## Responsibility boundary
 
-**Gridex platform** owns published electricity offers, organization-scoped pricing configuration, authoritative price-area resolution, immutable checkout quotes, legal-document versions, customer and contract state, supplier-switch processing and final settlement/invoice calculations.
+**Gridex platform** owns published electricity offers, organization-scoped pricing configuration, authoritative price-area resolution, immutable checkout quotes, legal-document versions, customer and contract state, supplier-switch processing, facility-information processing, communication state, and final settlement/invoice calculations.
 
-**Your integration** owns the customer experience, verified end-customer input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys and persistence of public references. The API credential determines the organization and permissions. Never send internal organization identifiers or organization selectors.
+**Your integration** owns the customer experience, verified end-customer identity and input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys, persistence of public references, and webhook signature verification/deduplication. The API credential determines the organization and permissions. Never send internal organization identifiers or organization selectors.
 
 ## Pricing acceptance and settlement
 
@@ -29,4 +29,12 @@ For every non-fixed model, checkout market data is **indicative preview/audit ev
 
 Public `market_reference` contains public pricing evidence only. Internal source-row identifiers are never part of the public contract.
 
-For troubleshooting, record Gridex `request_id` and your correlation identifier. Do not log API credentials or unnecessary personal data.
+## Structured power of attorney and asynchronous processing
+
+When a published agreement requires power of attorney, send the structured `powerOfAttorney` object documented by the canonical developer guide and OpenAPI contract. Bind the acceptance to the authoritative legal text with `textVersionId`; do not send or trust client-authored legal text as the contract source. The resulting public `power_of_attorney` status exposes whether the acceptance is `externally_sendable` and whether completion is still required.
+
+For migration compatibility, identity input may use documented transitional aliases such as `personal_identity_number` and `organisationsnummer`, but integrations should normalize to the canonical public contract and must not infer or submit internal database identifiers.
+
+Application responses are asynchronous where OPS owns downstream work. Persist the public application reference and follow the documented `next_step` and `next_action` values. `automatic_processing` means OPS has accepted responsibility for the continuation; it does not mean every supplier-switch, facility-information, communication, or settlement step has already completed.
+
+For troubleshooting, record Gridex `request_id` and your correlation identifier. Do not log API credentials, identity numbers or other unnecessary personal data.
