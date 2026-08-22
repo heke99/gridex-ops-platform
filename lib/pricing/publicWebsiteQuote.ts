@@ -1,4 +1,5 @@
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
+import { websiteSettlementForContract } from '@/lib/pricing/websiteSettlement'
 
 type JsonRecord = Record<string, unknown>
 
@@ -304,7 +305,14 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
   const priceOptionReference = text(source.price_option_reference)
   const invoiceDeliveryMethod = text(source.invoice_delivery_method)
   const siteCount = finite(source.site_count)
+  const contractType = text(offer.contract_type)
   const settlement = publicSettlement(source.settlement)
+    ?? (contractType
+      ? websiteSettlementForContract({
+          contractType,
+          pricingInterval: text(source.pricing_interval),
+        })
+      : null)
 
   if (
     !quoteReference ||
