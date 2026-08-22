@@ -80,8 +80,8 @@ jobs:
             cp "$LOG" ONE_SHOT_SETTLEMENT_DIAGNOSTIC.log
             rm -f .github/workflows/one-shot-settlement-executor-diagnostic.yml
             git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add ONE_SHOT_SETTLEMENT_DIAGNOSTIC.log .github/workflows/one-shot-settlement-executor-diagnostic.yml
+            git config user.email '41898282+heke99@users.noreply.github.com'
+            git add -A
             git commit -m 'chore: capture settlement patch diagnostic'
             git push origin HEAD:fix/non-expiring-customer-web-prices-20260822
           fi
