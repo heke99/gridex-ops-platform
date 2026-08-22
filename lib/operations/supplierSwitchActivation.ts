@@ -1,5 +1,7 @@
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 
+// Market activation is a business-state transition: transport/application ACK is insufficient.
+// A correlated inbound PRODAT Z04 and a reached Swedish effective date are both mandatory.
 export type SupplierSwitchActivationReadiness = {
   ready: boolean
   code:
