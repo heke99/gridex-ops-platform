@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
+const path = require('node:path')
 
 const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
 const scopeConstants = new Map(
@@ -51,14 +52,14 @@ const failures = []
 const operations = []
 for (const spec of specs) {
   const specOperationIds = []
-  for (const [path, value] of Object.entries(spec.paths ?? {})) {
-    if (!path.startsWith('/api/v1')) continue
+  for (const [specPath, value] of Object.entries(spec.paths ?? {})) {
+    if (!specPath.startsWith('/api/v1')) continue
     for (const method of ['get', 'post']) {
       if (!value[method]) continue
       operations.push({
         method: method.toUpperCase(),
-        path,
-        normalizedPath: path.replace(/\{[^}]+\}/g, '{}'),
+        path: specPath,
+        normalizedPath: specPath.replace(/\{[^}]+\}/g, '{}'),
         scopes: value[method]['x-required-scopes'] ?? [],
         operationId: value[method].operationId,
         scopeMode: value[method]['x-scope-mode'],
@@ -79,10 +80,40 @@ function normalizeScopeMode(value) {
   return String(value ?? 'all').startsWith('any') ? 'any' : 'all'
 }
 
+function immutableOpenApiArtifact(route) {
+  const match = route.runtimePath.match(
+    /^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1)\.json$/,
+  )
+  if (!match) return null
+  return {
+    version: match[1],
+    contractName: match[2],
+    runtimeRoutePath: path.join('app', route.runtimePath.replace(/^\//, ''), 'route.ts'),
+    releaseArtifactPath: path.join('docs', 'openapi', 'releases', match[1], `${match[2]}.json`),
+  }
+}
+
 for (const route of registry) {
   const matches = operations.filter((candidate) =>
     candidate.method === route.method && candidate.normalizedPath === route.normalizedPath)
-  if (!matches.length) failures.push(`Registry route missing in OpenAPI: ${route.method} ${route.path}`)
+  if (!matches.length) {
+    const immutableArtifact = immutableOpenApiArtifact(route)
+    if (immutableArtifact) {
+      if (!fs.existsSync(immutableArtifact.runtimeRoutePath)) {
+        failures.push(
+          `Immutable OpenAPI runtime route missing: ${route.method} ${route.path} (${immutableArtifact.runtimeRoutePath})`,
+        )
+      }
+      if (!fs.existsSync(immutableArtifact.releaseArtifactPath)) {
+        failures.push(
+          `Immutable OpenAPI release artifact missing: ${route.method} ${route.path} (${immutableArtifact.releaseArtifactPath})`,
+        )
+      }
+      continue
+    }
+    failures.push(`Registry route missing in OpenAPI: ${route.method} ${route.path}`)
+    continue
+  }
   for (const operation of matches) {
     for (const field of ['operationId', 'scopeMode', 'rateLimitClass', 'idempotencyRequired', 'cachePolicy', 'publicIdPolicy']) {
       const operationValue = field === 'scopeMode' ? normalizeScopeMode(operation[field]) : operation[field]

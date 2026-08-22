@@ -40,6 +40,14 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
 
     const application = ApplicationSchema.parse({
       offer_reference: 'synthetic-offer-v1',
+      settlement: {
+        model: 'market_hourly',
+        customer_accepts: 'pricing_model',
+        energy_price_locked_at_signup: false,
+        uses_actual_metered_consumption: true,
+        market_data_role: 'indicative_preview_only',
+        settlement_resolution: 'hour',
+      },
       customer: {
         customer_type: 'private',
         first_name: 'Anna',
@@ -107,6 +115,7 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     })
 
     expect(application.customer.first_name).toBe('Anna')
+    expect(application.settlement.model).toBe('market_hourly')
     expect(application.powerOfAttorney?.scope).toContain('supplier_switch')
 
     const legalVersions = [
