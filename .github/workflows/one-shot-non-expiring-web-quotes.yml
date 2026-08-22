@@ -1,0 +1,34 @@
+name: One-shot non-expiring website quotes
+
+on:
+  push:
+    branches:
+      - fix/non-expiring-customer-web-prices-20260822
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/non-expiring-customer-web-prices-20260822
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+      - name: Generate forward-only migration name
+        run: supabase migration new non_expiring_website_quotes
+      - name: Apply source patches
+        run: node scripts/one-shot-non-expiring-web-quotes.cjs
+      - name: Remove one-shot tooling and commit result
+        run: |
+          rm .github/workflows/one-shot-non-expiring-web-quotes.yml
+          rm scripts/one-shot-non-expiring-web-quotes.cjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(pricing): make customer website quotes non-expiring"
+          git push origin HEAD:fix/non-expiring-customer-web-prices-20260822
