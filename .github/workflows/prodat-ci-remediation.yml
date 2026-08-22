@@ -1,0 +1,39 @@
+name: PRODAT CI remediation
+
+on:
+  push:
+    branches:
+      - fix/prodat-26a-semantic-hardening-20260822
+    paths:
+      - .github/workflows/prodat-ci-remediation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/prodat-26a-semantic-hardening-20260822
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: python3 scripts/prodat-ci-remediation.py
+      - run: npm ci
+      - run: npm run db:migrations:integrity
+      - run: npm run db:types:check
+      - run: npm run typecheck:tests
+      - run: npx vitest run __tests__/prodat-26a-semantic-hardening.test.ts __tests__/atomic-supply-activation.test.ts
+      - name: Commit validated remediation
+        shell: bash
+        run: |
+          rm -f .github/workflows/prodat-ci-remediation.yml scripts/prodat-ci-remediation.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(ediel): repair PRODAT release gates"
+          git push origin HEAD:fix/prodat-26a-semantic-hardening-20260822
