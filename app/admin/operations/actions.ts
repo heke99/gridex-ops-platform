@@ -22,10 +22,9 @@ import {
 } from '@/lib/operations/db'
 import {
   getOutboundRequestById,
-  listOutboundRequests,
   resetOutboundRequestForRetry,
 } from '@/lib/cis/db'
-import type { OutboundRequestRow } from '@/lib/cis/types'
+import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 import type {
   CustomerOperationTaskStatus,
   SupplierSwitchRequestRow,
@@ -149,23 +148,6 @@ async function writeSupplierSwitchExecutionAudit(params: {
   }
 }
 
-function findAcknowledgedOutboundForSwitch(params: {
-  request: SupplierSwitchRequestRow
-  outboundRequests: OutboundRequestRow[]
-}): OutboundRequestRow | null {
-  const { request, outboundRequests } = params
-
-  return (
-    outboundRequests.find(
-      (row) =>
-        row.request_type === 'supplier_switch' &&
-        row.source_type === 'supplier_switch_request' &&
-        row.source_id === request.id &&
-        row.status === 'acknowledged'
-    ) ?? null
-  )
-}
-
 function revalidateSupplierSwitchPaths(customerId: string, requestId?: string) {
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
@@ -235,6 +217,15 @@ export async function updateSupplierSwitchStatusFromAdminAction(
 
   if (!requestId) {
     throw new Error('Switch request ID saknas')
+  }
+
+  const current = await getSupplierSwitchRequestById(supabase, requestId)
+  if (!current) throw new Error('Switchärendet hittades inte')
+  if (status === 'accepted' || status === 'completed') {
+    throw new Error('accepted styrs av inbound PRODAT Z04 och completed av leveransstart på bekräftat startdatum.')
+  }
+  if (current.status === 'accepted' || current.status === 'completed') {
+    throw new Error('Ett affärsmässigt bekräftat eller slutfört switchärende får inte backas via generell statusändring.')
   }
 
   const saved = await updateSupplierSwitchRequestStatus(supabase, {
@@ -435,56 +426,30 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
 
-  const [requestsQuery, outboundRequests] = await Promise.all([
-    supabase
-      .from('supplier_switch_requests')
-      .select('*')
-      .eq('status', 'accepted')
-      .order('requested_start_date', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: true }),
-    listOutboundRequests({
-      status: 'all',
-      requestType: 'supplier_switch',
-      channelType: 'all',
-      query: '',
-    }),
-  ])
+  const requestsQuery = await supabase
+    .from('supplier_switch_requests')
+    .select('*')
+    .eq('status', 'accepted')
+    .order('confirmed_start_date', { ascending: true, nullsFirst: false })
+    .order('requested_start_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
-  if (requestsQuery.error) {
-    throw requestsQuery.error
-  }
+  if (requestsQuery.error) throw requestsQuery.error
 
   const switchRequests = (requestsQuery.data ?? []) as SupplierSwitchRequestRow[]
-
-  const readyRequests = switchRequests.filter((request) =>
-    Boolean(
-      findAcknowledgedOutboundForSwitch({
-        request,
-        outboundRequests,
-      })
-    )
+  const readyRequests = switchRequests.filter(
+    (request) => getSupplierSwitchActivationReadiness(request).ready
   )
 
   let completedCount = 0
-  let skippedCount = 0
 
   for (const request of readyRequests) {
-    const outbound = findAcknowledgedOutboundForSwitch({
-      request,
-      outboundRequests,
-    })
-
-    if (!outbound) {
-      skippedCount += 1
-      continue
-    }
-
+    const readiness = getSupplierSwitchActivationReadiness(request)
     const result = await finalizeSupplierSwitchExecution(supabase, {
       requestId: request.id,
       actorUserId: actor.id,
       executionSource: 'bulk_admin_ready_queue',
-      executionNotes:
-        'Bulk-slutföring från ready-to-execute-kön i admin operations.',
+      executionNotes: 'Bulk-aktivering efter inbound PRODAT Z04 och uppnått bekräftat startdatum.',
     })
 
     await writeSupplierSwitchExecutionAudit({
@@ -497,10 +462,11 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
       switchRequestId: result.request.id,
       eventType: 'bulk_execution_completed',
       eventStatus: 'completed',
-      message: 'Switchen slutfördes från bulk-kön för ready-to-execute.',
+      message: 'Leveransen aktiverades från ready-to-execute-kön efter Z04 och uppnått startdatum.',
       payload: {
-        outboundRequestId: outbound.id,
-        outboundStatus: outbound.status,
+        inboundZ04MessageId: request.inbound_z04_message_id ?? null,
+        effectiveStartDate: readiness.effectiveStartDate,
+        marketDate: readiness.marketDate,
         executionSource: 'bulk_admin_ready_queue',
       },
     })
@@ -519,7 +485,8 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
       scannedAcceptedCount: switchRequests.length,
       readyCount: readyRequests.length,
       completedCount,
-      skippedCount,
+      blockedCount: switchRequests.length - readyRequests.length,
+      readinessRule: 'inbound_z04_plus_effective_start_date',
     },
   })
 
@@ -544,10 +511,15 @@ export async function retryOutboundFromSwitchDetailAction(
     throw new Error('switch_request_id, outbound_request_id och customer_id krävs')
   }
 
-  const outboundRequest = await getOutboundRequestById(outboundRequestId)
+  const [outboundRequest, switchRequest] = await Promise.all([
+    getOutboundRequestById(outboundRequestId),
+    getSupplierSwitchRequestById(supabase, switchRequestId),
+  ])
 
-  if (!outboundRequest) {
-    throw new Error('Outbound request hittades inte')
+  if (!outboundRequest) throw new Error('Outbound request hittades inte')
+  if (!switchRequest) throw new Error('Switchärendet hittades inte')
+  if (switchRequest.status === 'accepted' || switchRequest.status === 'completed') {
+    throw new Error('Outbound får inte återköas genom att backa ett Z04-bekräftat eller slutfört switchärende.')
   }
 
   const reset = await resetOutboundRequestForRetry({

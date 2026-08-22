@@ -405,7 +405,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
   }
 
   for (const request of switchRequests) {
-    if (!['queued', 'submitted', 'accepted'].includes(request.status)) {
+    if (!['queued', 'submitted'].includes(request.status)) {
       continue
     }
 

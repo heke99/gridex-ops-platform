@@ -14,6 +14,7 @@ import {
 import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
 import { activeRulebookRules, processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 import { decideProdatLifecycle, normalizeProdatSubtype } from '@/lib/ediel/stateMachines/prodatLifecycle'
+import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 
 describe('PRODAT 26.A semantic hardening', () => {
   it('locks canonical direction and market roles per message function', () => {
@@ -152,6 +153,13 @@ describe('PRODAT 26.A semantic hardening', () => {
     expect(migration).toContain("upper(coalesce(m.message_code,'')) = 'Z04'")
     expect(migration).toContain("profile.direction = contract.direction")
     expect(migration).toContain('Expected 34 active PRODAT 26.A semantic rows')
+
+    const activationMigration = fs.readFileSync(
+      path.join(process.cwd(), 'supabase/migrations/20260822012000_supplier_switch_effective_date_guard.sql'),
+      'utf8',
+    )
+    expect(activationMigration).toContain('supplier_switch_effective_date_not_reached')
+    expect(activationMigration).toContain("time zone 'Europe/Stockholm'")
   })
 
   it('removes legacy source paths that treated transport ACK as business acceptance', () => {
@@ -168,6 +176,25 @@ describe('PRODAT 26.A semantic hardening', () => {
     expect(prodatSource).not.toContain("if (code === 'Z06') return 'Svar på inflytt/övertagande'")
     expect(prodatSource).not.toContain("if (code === 'Z05') return 'move_in_request'")
     expect(prodatSource).toContain('prodat_outbound_direction_not_allowed')
+  })
+
+
+  it('requires inbound Z04 and reached effective date before supply activation', () => {
+    const base = {
+      status: 'accepted' as const,
+      inbound_z04_message_id: 'z04-message',
+      confirmed_start_date: '2026-08-22',
+      requested_start_date: '2026-08-22',
+    }
+    expect(getSupplierSwitchActivationReadiness(base, new Date('2026-08-22T10:00:00Z')).ready).toBe(true)
+    expect(getSupplierSwitchActivationReadiness({ ...base, inbound_z04_message_id: null }, new Date('2026-08-22T10:00:00Z')).code).toBe('missing_z04_confirmation')
+    expect(getSupplierSwitchActivationReadiness({ ...base, confirmed_start_date: '2026-08-23' }, new Date('2026-08-22T10:00:00Z')).code).toBe('awaiting_effective_start_date')
+
+    const controlActions = fs.readFileSync(path.join(process.cwd(), 'app/admin/operations/control-actions.ts'), 'utf8')
+    const operationsActions = fs.readFileSync(path.join(process.cwd(), 'app/admin/operations/actions.ts'), 'utf8')
+    expect(controlActions).not.toContain("['queued', 'submitted', 'accepted']")
+    expect(operationsActions).toContain('inbound_z04_plus_effective_start_date')
+    expect(operationsActions).not.toContain('findAcknowledgedOutboundForSwitch')
   })
 
 })

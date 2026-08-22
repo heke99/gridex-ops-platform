@@ -130,7 +130,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  <div className="min-h-screen">
  <AdminHeader
  title="Ready to execute"
- subtitle="Dedikerad kö för accepted + acknowledged switchar som väntar på sista interna execution-steget. Här kan du slutföra enskilt eller i bulk."
+ subtitle="Kö för nätägarbekräftade switchar där inbound PRODAT Z04 finns och bekräftat startdatum har uppnåtts."
  userEmail={context.email}
  />
 
@@ -162,7 +162,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  {acceptedButNotReady}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Kräver mer än bara accepted-status, oftast outbound-läge.
+ Väntar normalt på bekräftat startdatum eller kräver granskning av Z04-kopplingen.
  </div>
  </div>
 
@@ -184,7 +184,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  Bulk execution
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Kör detta när du vill slutföra hela kön av acknowledged switchar i ett steg.
+ Aktivera alla switchar där Z04 är korrelerad och bekräftat startdatum är uppnått.
  </p>
  </div>
 
@@ -211,7 +211,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  Ready-to-execute-kö
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Endast switchar där lifecycle nu är redo för intern execution.
+ Endast switchar där nätägaren har bekräftat bytet med Z04 och leveransens startdatum är uppnått.
  </p>
  </div>
 
@@ -327,7 +327,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  <form action={finalizeSupplierSwitchExecutionAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="w-full rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
- Slutför switch nu
+ Aktivera leverans nu
  </button>
  </form>
 

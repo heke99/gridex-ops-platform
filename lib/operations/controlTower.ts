@@ -8,12 +8,15 @@ import type {
   SwitchReadinessResult,
   SupplierSwitchRequestRow,
 } from '@/lib/operations/types'
+import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 
 export type SwitchLifecycleStage =
   | 'blocked'
   | 'queued_for_outbound'
   | 'awaiting_dispatch'
   | 'awaiting_response'
+  | 'awaiting_market_confirmation'
+  | 'awaiting_effective_date'
   | 'ready_to_execute'
   | 'completed'
   | 'failed'
@@ -43,78 +46,58 @@ export function getSwitchLifecycle(params: {
     return {
       stage: 'failed',
       label: 'Misslyckad',
-      reason:
-        request.failure_reason ?? 'Switchärendet har stoppats eller avvisats.',
+      reason: request.failure_reason ?? 'Switchärendet har stoppats eller avvisats.',
     }
   }
 
   if (request.status === 'completed') {
-    return {
-      stage: 'completed',
-      label: 'Klar',
-      reason: 'Switchärendet är slutfört.',
+    return { stage: 'completed', label: 'Klar', reason: 'Leveransen är aktiverad för det bekräftade startdatumet.' }
+  }
+
+  if (request.status === 'accepted') {
+    const activation = getSupplierSwitchActivationReadiness(request)
+    if (activation.ready) {
+      return { stage: 'ready_to_execute', label: 'Redo för leveransstart', reason: activation.reason }
     }
+    if (activation.code === 'awaiting_effective_start_date') {
+      return { stage: 'awaiting_effective_date', label: 'Väntar på startdatum', reason: activation.reason }
+    }
+    return { stage: 'blocked', label: 'Kontroll krävs', reason: activation.reason }
   }
 
   if (readiness && !readiness.isReady) {
-    return {
-      stage: 'blocked',
-      label: 'Blockerad',
-      reason: summarizeReadinessIssues(readiness),
-    }
+    return { stage: 'blocked', label: 'Blockerad', reason: summarizeReadinessIssues(readiness) }
   }
 
   if (!outboundRequest) {
-    return {
-      stage: 'queued_for_outbound',
-      label: 'Redo att köa outbound',
-      reason: 'Ärendet är redo men saknar outbound-request.',
-    }
+    return { stage: 'queued_for_outbound', label: 'Redo att köa Z03', reason: 'Ärendet är redo men saknar outbound PRODAT Z03.' }
   }
 
   if (['queued', 'prepared'].includes(outboundRequest.status)) {
-    return {
-      stage: 'awaiting_dispatch',
-      label: 'Väntar på dispatch',
-      reason: 'Outbound finns men har inte skickats ännu.',
-    }
+    return { stage: 'awaiting_dispatch', label: 'Väntar på dispatch', reason: 'PRODAT Z03 finns men har inte skickats ännu.' }
   }
 
   if (outboundRequest.status === 'sent') {
-    return {
-      stage: 'awaiting_response',
-      label: 'Väntar på svar',
-      reason: 'Outbound är skickad men ännu inte kvitterad.',
-    }
+    return { stage: 'awaiting_response', label: 'Väntar på kvittens', reason: 'PRODAT Z03 är skickad och väntar på transport-/applikationskvittens.' }
   }
 
   if (outboundRequest.status === 'acknowledged') {
     return {
-      stage: 'ready_to_execute',
-      label: 'Kvitterad',
-      reason:
-        'Outbound är kvitterad och väntar på nästa interna steg.',
+      stage: 'awaiting_market_confirmation',
+      label: 'Kvitterad – väntar på Z04',
+      reason: 'Transport/applikation är kvitterad. Leverantörsbytet är inte affärsmässigt bekräftat förrän inbound PRODAT Z04 mottas.',
     }
   }
 
-  if (
-    outboundRequest.status === 'failed' ||
-    outboundRequest.status === 'cancelled'
-  ) {
+  if (outboundRequest.status === 'failed' || outboundRequest.status === 'cancelled') {
     return {
       stage: 'failed',
       label: 'Dispatch-fel',
-      reason:
-        outboundRequest.failure_reason ??
-        'Outbound-requesten stoppades.',
+      reason: outboundRequest.failure_reason ?? 'Outbound-requesten stoppades.',
     }
   }
 
-  return {
-    stage: 'queued_for_outbound',
-    label: 'Oklassificerad',
-    reason: 'Kunde inte fastställa livscykel tydligt.',
-  }
+  return { stage: 'queued_for_outbound', label: 'Oklassificerad', reason: 'Kunde inte fastställa livscykel tydligt.' }
 }
 
 export function explainWhySwitchIsStuck(params: {
@@ -128,43 +111,24 @@ export function explainWhySwitchIsStuck(params: {
     return request.failure_reason ?? 'Switchärendet har felstatus.'
   }
 
+  if (request.status === 'accepted') {
+    return getSupplierSwitchActivationReadiness(request).reason
+  }
+
   if (readiness && !readiness.isReady) {
     return `Readiness blockerar: ${summarizeReadinessIssues(readiness)}`
   }
 
-  if (!outboundRequest) {
-    return 'Switchen saknar outbound-request och har därför inte dispatchats.'
+  if (!outboundRequest) return 'Switchen saknar outbound PRODAT Z03 och har därför inte dispatchats.'
+  if (outboundRequest.channel_type === 'unresolved') return 'Outbound saknar route/kanal och kan inte dispatchas.'
+  if (['queued', 'prepared'].includes(outboundRequest.status)) return 'PRODAT Z03 väntar fortfarande på dispatch.'
+  if (outboundRequest.status === 'sent') return 'PRODAT Z03 är skickad och väntar på transport-/applikationskvittens.'
+  if (outboundRequest.status === 'failed' || outboundRequest.status === 'cancelled') {
+    return outboundRequest.failure_reason ?? 'Outbound-dispatchen misslyckades och behöver retry eller manuell åtgärd.'
   }
-
-  if (outboundRequest.channel_type === 'unresolved') {
-    return 'Outbound saknar route/kanal och kan inte dispatchas.'
+  if (outboundRequest.status === 'acknowledged') {
+    return 'Transport/applikation är kvitterad. Inbound PRODAT Z04 från nätägaren krävs fortfarande innan bytet är affärsmässigt bekräftat.'
   }
-
-  if (['queued', 'prepared'].includes(outboundRequest.status)) {
-    return 'Outbound finns men väntar fortfarande på dispatch.'
-  }
-
-  if (outboundRequest.status === 'sent') {
-    return 'Outbound är skickad och väntar på extern återkoppling eller kvittens.'
-  }
-
-  if (
-    outboundRequest.status === 'failed' ||
-    outboundRequest.status === 'cancelled'
-  ) {
-    return (
-      outboundRequest.failure_reason ??
-      'Outbound-dispatchen misslyckades och behöver retry eller manuell åtgärd.'
-    )
-  }
-
-  if (
-    outboundRequest.status === 'acknowledged' &&
-    request.status !== 'completed'
-  ) {
-    return 'Outbound är kvitterad men switchen är ännu inte slutmarkerad internt.'
-  }
-
   return 'Ingen tydlig blockerare kunde fastställas.'
 }
 

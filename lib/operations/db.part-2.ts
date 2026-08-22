@@ -4,6 +4,7 @@ import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types"
 import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
 import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier"
 import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate"
+import { getSupplierSwitchActivationReadiness } from "@/lib/operations/supplierSwitchActivation"
 import { loadSupplierSwitchPolicy } from "@/lib/operations/supplierSwitchScheduler"
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from "@/lib/legal/authorizationChain"
 import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from "@/lib/operations/switchLifecycleBlocks"
@@ -760,8 +761,13 @@ export async function finalizeSupplierSwitchExecution(
 
   if (requestBefore.status !== "accepted") {
     throw new Error(
-      "Switchärendet måste vara accepted innan det kan slutföras",
+      "Switchärendet måste vara accepted efter inbound PRODAT Z04 innan det kan slutföras",
     );
+  }
+
+  const activationReadiness = getSupplierSwitchActivationReadiness(requestBefore);
+  if (!activationReadiness.ready) {
+    throw new Error(`supplier_switch_activation_blocked:${activationReadiness.code}:${activationReadiness.reason}`);
   }
 
   const siteUpdatePayload = {
@@ -822,7 +828,7 @@ export async function finalizeSupplierSwitchExecution(
     eventStatus: "completed",
     message:
       params.executionSource === "automation_sweep"
-        ? "Switchen slutfördes automatiskt efter kvitterad outbound."
+        ? "Leveransen aktiverades automatiskt efter inbound PRODAT Z04 och uppnått startdatum."
         : params.executionSource === "bulk_admin_ready_queue"
           ? "Switchen slutfördes från bulk-kön för ready-to-execute."
           : "Switchen slutfördes manuellt från operations.",
