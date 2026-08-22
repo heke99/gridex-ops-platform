@@ -8,7 +8,7 @@ The canonical human-readable documentation is served at `/developers/customer-po
 
 **Gridex platform** owns published electricity offers, organization-scoped pricing configuration, authoritative price-area resolution, immutable checkout quotes, legal-document versions, customer and contract state, supplier-switch processing and final settlement/invoice calculations.
 
-**Your integration** owns the customer experience, verified end-customer input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys and persistence of public references. The API credential determines the organization. Never send `company_id`, `tenant_id` or another organization selector.
+**Your integration** owns the customer experience, verified end-customer input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys and persistence of public references. The API credential determines the organization and permissions. Never send internal organization identifiers or organization selectors.
 
 ## Pricing acceptance and settlement
 
@@ -23,7 +23,7 @@ The `settlement` object on a website quote is the canonical interpretation of wh
 
 For every non-fixed model, checkout market data is **indicative preview/audit evidence only** and never becomes the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
 
-`valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does **not** expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, tenant mismatch, integrity mismatch or a commercially unavailable/withdrawn offer can still block submission.
+`valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does **not** expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, organization mismatch, integrity mismatch or a commercially unavailable/withdrawn offer can still block submission.
 
 `valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.
 
