@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
+const path = require('node:path')
 
 const VERSION = '2026-08-22.2'
 const SPEC_FILES = [
@@ -80,8 +81,8 @@ function normalizeOrganizationReferenceSchemas(value) {
   }
 }
 
-function normalizedPath(path) {
-  return path
+function normalizedPath(value) {
+  return value
     .replace(/\[[^\]]+\]/g, '{}')
     .replace(/\{[^}]+\}/g, '{}')
 }
@@ -105,6 +106,72 @@ function titleFromDescription(description) {
   return text.length <= 90 ? text : `${text.slice(0, 87).trimEnd()}...`
 }
 
+function clone(value) {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function publishedOpenApiVersions() {
+  const releasesRoot = 'docs/openapi/releases'
+  if (!fs.existsSync(releasesRoot)) return []
+  return fs.readdirSync(releasesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d{4}-\d{2}-\d{2}\.\d+$/.test(entry.name))
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+}
+
+function immutableOperationId(version, contractName) {
+  const versionToken = version.replace(/[^0-9A-Za-z]/g, '')
+  const documentToken = contractName === 'website-integration-v1'
+    ? 'WebsiteIntegrationV1Json'
+    : 'CustomerPortalV1Json'
+  return `getApiV1Openapi${versionToken}${documentToken}`
+}
+
+function historicalPathItem(template, version, contractName) {
+  const item = clone(template)
+  const operation = item.get
+  if (!operation) return item
+  const label = contractName === 'website-integration-v1'
+    ? 'Website Integration'
+    : 'Customer Portal'
+  operation.summary = `Immutable ${label} OpenAPI release ${version}`
+  operation.description = `Immutable ${label} OpenAPI release ${version}.`
+  operation.operationId = immutableOperationId(version, contractName)
+  operation.security = []
+  operation['x-required-scopes'] = []
+  operation['x-scope-mode'] = 'all'
+  operation['x-rate-limit-class'] = 'read'
+  operation['x-idempotency-required'] = false
+  operation['x-cache-policy'] = 'public-immutable'
+  operation['x-public-id-policy'] = 'none'
+  return item
+}
+
+function ensureHistoricalOpenApiCatalog(document) {
+  const versions = publishedOpenApiVersions()
+  const templates = [
+    {
+      contractName: 'website-integration-v1',
+      currentPath: '/api/v1/openapi/website-integration-v1.json',
+    },
+    {
+      contractName: 'customer-portal-v1',
+      currentPath: '/api/v1/openapi/customer-portal-v1.json',
+    },
+  ]
+  for (const { contractName, currentPath } of templates) {
+    const template = document.paths?.[currentPath]
+    if (!template) continue
+    for (const releaseVersion of versions) {
+      const artifact = path.join('docs', 'openapi', 'releases', releaseVersion, `${contractName}.json`)
+      const route = path.join('app', 'api', 'v1', 'openapi', releaseVersion, `${contractName}.json`, 'route.ts')
+      if (!fs.existsSync(artifact) || !fs.existsSync(route)) continue
+      const catalogPath = `/api/v1/openapi/${releaseVersion}/${contractName}.json`
+      document.paths[catalogPath] = historicalPathItem(template, releaseVersion, contractName)
+    }
+  }
+}
+
 const descriptions = registryDescriptions()
 
 for (const file of SPEC_FILES) {
@@ -125,11 +192,13 @@ for (const file of SPEC_FILES) {
       'Production API for customer portals. Access is organization-scoped by the server-side API credential and customer data is limited to the verified linked customer identity.'
   }
 
-  for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+  ensureHistoricalOpenApiCatalog(document)
+
+  for (const [documentPath, pathItem] of Object.entries(document.paths ?? {})) {
     for (const method of ['get', 'post']) {
       const operation = pathItem?.[method]
       if (!operation) continue
-      const description = descriptions.get(`${method.toUpperCase()}:${normalizedPath(path)}`)
+      const description = descriptions.get(`${method.toUpperCase()}:${normalizedPath(documentPath)}`)
       if (description) {
         operation.summary = titleFromDescription(description)
         operation.description = description
