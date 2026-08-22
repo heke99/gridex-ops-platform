@@ -8,13 +8,13 @@ export default function CustomerPortalApiTemplate({ children }: { children: Reac
         <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-slate-800">
           <h2 className="text-base font-semibold text-slate-950">Pricing, quote validity and billing</h2>
           <p className="mt-2">
-            API contract <strong>{WEBSITE_INTEGRATION_CONTRACT_VERSION}</strong> is unchanged. Quote freshness,
-            commercial price validity and final invoice settlement are separate concepts.
+            API contract <strong>{WEBSITE_INTEGRATION_CONTRACT_VERSION}</strong> is unchanged. Customer-visible website
+            prices do not expire because time passes; commercial availability and final invoice settlement are separate concepts.
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li>
-              <code>valid_until</code> is the checkout quote snapshot lifetime. It is used to validate or renew the
-              quote before submission; it is not an end date for the customer&apos;s electricity price or agreement.
+              <code>valid_until</code> remains in V1 for wire compatibility and immutable audit evidence. Gridex does
+              not use it as a customer-price expiry and an issued website quote is not rejected because that timestamp passes.
             </li>
             <li>
               <code>valid_to</code> on a published price option or area price is the commercial end date of that price

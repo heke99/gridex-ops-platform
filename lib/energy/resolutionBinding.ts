@@ -102,6 +102,7 @@ type ResolutionPurpose = 'pricing' | 'quote' | 'facility_lookup' | 'switch_creat
 const MIN_VERIFIED_PRICE_ASSURANCE_CONFIDENCE = 0.75
 const MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE = 0.8
 const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7
+const NON_EXPIRING_RESOLUTION_COMPATIBILITY_TIMESTAMP = '9999-12-31T23:59:59.999Z'
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -384,6 +385,8 @@ async function loadEnergyResolutionForPurpose(input: {
   resolutionId: string
   purpose: ResolutionPurpose
   now?: Date
+  /** Ignore elapsed freshness only when validating an already-issued immutable quote. */
+  allowExpired?: boolean
 }): Promise<BoundEnergyResolution> {
   const data = await loadResolutionRow(input)
   const now = input.now ?? new Date()
@@ -401,7 +404,9 @@ async function loadEnergyResolutionForPurpose(input: {
     priceAreaUniqueCount: data.price_area_unique_count,
     priceAreaEvidence: data.price_area_evidence,
     conflictCode: data.conflict_code,
-    expiresAt: data.expires_at,
+    expiresAt: input.allowExpired
+      ? NON_EXPIRING_RESOLUTION_COMPATIBILITY_TIMESTAMP
+      : data.expires_at,
     now,
   })
   const capability = {
@@ -450,6 +455,7 @@ export function loadQuoteEnergyResolution(input: {
   client: IntegrationApiClient
   resolutionId: string
   now?: Date
+  allowExpired?: boolean
 }): Promise<BoundEnergyResolution> {
   return loadEnergyResolutionForPurpose({ ...input, purpose: 'quote' })
 }

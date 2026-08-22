@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 const read = (path: string) => readFileSync(path, 'utf8')
 
 describe('public pricing and settlement semantics', () => {
-  it('keeps the current API contract while separating quote TTL from commercial validity', () => {
+  it('keeps the current API contract while making customer website quotes non-expiring', () => {
     const contract = read('lib/integrations/websiteIntegrationContract.ts')
     const apiTypes = read('lib/integrations/websiteApiContract.ts')
     const projector = read('lib/pricing/publicWebsiteQuote.ts')
