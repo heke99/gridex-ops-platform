@@ -153,4 +153,21 @@ describe('PRODAT 26.A semantic hardening', () => {
     expect(migration).toContain("profile.direction = contract.direction")
     expect(migration).toContain('Expected 34 active PRODAT 26.A semantic rows')
   })
+
+  it('removes legacy source paths that treated transport ACK as business acceptance', () => {
+    const cisActions = fs.readFileSync(path.join(process.cwd(), 'app/admin/cis/actions.ts'), 'utf8')
+    const controlActions = fs.readFileSync(path.join(process.cwd(), 'app/admin/operations/control-actions.ts'), 'utf8')
+    const inboundState = fs.readFileSync(path.join(process.cwd(), 'lib/ediel/flows/inboundBusinessStateMachine.ts'), 'utf8')
+    const prodatSource = fs.readFileSync(path.join(process.cwd(), 'lib/ediel/prodat.ts'), 'utf8')
+
+    expect(cisActions).not.toMatch(/outboundRequest\.status === 'acknowledged'[\s\S]{0,500}status: 'accepted'/)
+    expect(controlActions).not.toMatch(/outboundRequest\.status === 'acknowledged'[\s\S]{0,500}status: 'accepted'/)
+    expect(controlActions).not.toContain('finalizeAcceptedSwitchFromAcknowledgedOutbound')
+    expect(inboundState).not.toContain("status: 'confirmed'")
+    expect(prodatSource).not.toContain("if (code === 'Z05') return 'Inflytt/övertagande'")
+    expect(prodatSource).not.toContain("if (code === 'Z06') return 'Svar på inflytt/övertagande'")
+    expect(prodatSource).not.toContain("if (code === 'Z05') return 'move_in_request'")
+    expect(prodatSource).toContain('prodat_outbound_direction_not_allowed')
+  })
+
 })

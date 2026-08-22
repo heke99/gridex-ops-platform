@@ -22,6 +22,7 @@ import {
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
+import { isProdatCodeSendable } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10' | 'Z13' | 'Z14' | 'Z15' | 'Z18'
 
@@ -202,45 +203,45 @@ function inferGridArea(gridOwner?: GridOwnerRow | null): string | null {
 }
 
 function prodatCodeLabel(code: ProdatSwitchCode): string {
-  if (code === 'Z03') return 'Leverantörsbyte'
-  if (code === 'Z04') return 'Svar på leverantörsbyte'
-  if (code === 'Z05') return 'Inflytt/övertagande'
-  if (code === 'Z06') return 'Svar på inflytt/övertagande'
-  if (code === 'Z09') return 'Ändring/anläggningsuppdatering'
-  if (code === 'Z10') return 'Svar på ändring/anläggningsuppdatering'
-  if (code === 'Z13') return 'Begäran om tillgång till mätvärden'
-  if (code === 'Z14') return 'Svar på tillståndsbegäran'
-  if (code === 'Z15') return 'Aktivt tillstånd upphör'
-  return 'Begäran om avslut av rapportering'
+  if (code === 'Z03') return 'Leverantörsbyte / leveransstart'
+  if (code === 'Z04') return 'Nätägarens bekräftelse på leveransförändring'
+  if (code === 'Z05') return 'Information till tidigare leverantör om leveransförändring'
+  if (code === 'Z06') return 'Nätägarens kund-/anläggningsuppdatering'
+  if (code === 'Z09') return 'Leverantörens kund-/anläggningsuppdatering'
+  if (code === 'Z10') return 'Mätaruppgifter från nätägaren'
+  if (code === 'Z13') return 'Begäran om mätvärdesåtkomst'
+  if (code === 'Z14') return 'Nätägarens svar på mätvärdesåtkomst'
+  if (code === 'Z15') return 'Nätägarens ändring av mätvärdesrapportering'
+  return 'Begäran om att avsluta mätvärdesrapportering'
 }
 
 function deriveProcessLabel(code: ProdatSwitchCode): string {
   if (code === 'Z03') return 'supplier_switch_request'
-  if (code === 'Z04') return 'supplier_switch_response'
-  if (code === 'Z05') return 'move_in_request'
-  if (code === 'Z06') return 'move_in_response'
-  if (code === 'Z09') return 'masterdata_update'
-  if (code === 'Z10') return 'masterdata_update_response'
+  if (code === 'Z04') return 'supplier_switch_confirmation'
+  if (code === 'Z05') return 'supply_change_information'
+  if (code === 'Z06') return 'grid_owner_masterdata_update'
+  if (code === 'Z09') return 'supplier_masterdata_update'
+  if (code === 'Z10') return 'meter_masterdata_update'
   if (code === 'Z13') return 'metering_access_request'
-  if (code === 'Z14') return 'metering_access_response'
-  if (code === 'Z15') return 'metering_access_ended'
+  if (code === 'Z14') return 'metering_access_decision'
+  if (code === 'Z15') return 'metering_access_state_change'
   return 'metering_access_end_request'
 }
 
 function isResponseCode(code: ProdatSwitchCode): boolean {
-  return code === 'Z04' || code === 'Z06' || code === 'Z10' || code === 'Z14' || code === 'Z15'
+  return code === 'Z04' || code === 'Z14'
 }
 
 function preferredReferencePrefix(code: ProdatSwitchCode): string {
   if (code === 'Z03') return 'SWITCH'
-  if (code === 'Z04') return 'SWITCH-RESP'
-  if (code === 'Z05') return 'MOVE-IN'
-  if (code === 'Z06') return 'MOVE-IN-RESP'
-  if (code === 'Z09') return 'SITE-UPD'
-  if (code === 'Z10') return 'SITE-UPD-RESP'
+  if (code === 'Z04') return 'SWITCH-CONF'
+  if (code === 'Z05') return 'SUPPLY-INFO'
+  if (code === 'Z06') return 'GRID-MASTERDATA'
+  if (code === 'Z09') return 'SUPPLIER-MASTERDATA'
+  if (code === 'Z10') return 'METER-MASTERDATA'
   if (code === 'Z13') return 'METERING-ACCESS'
-  if (code === 'Z14') return 'METERING-ACCESS-RESP'
-  if (code === 'Z15') return 'METERING-ACCESS-END'
+  if (code === 'Z14') return 'METERING-ACCESS-DECISION'
+  if (code === 'Z15') return 'METERING-ACCESS-STATE'
   return 'METERING-ACCESS-END-REQ'
 }
 
@@ -638,6 +639,10 @@ function buildProdatSwitchOutboundDraft(
   code: ProdatSwitchCode
 ): Promise<CreateEdielMessageInput> {
   return (async () => {
+    if (!isProdatCodeSendable(code)) {
+      throw new Error(`prodat_outbound_direction_not_allowed:${code}`)
+    }
+
     const validation = validateProdatSwitchContext({
       code,
       switchRequest: input.switchRequest,

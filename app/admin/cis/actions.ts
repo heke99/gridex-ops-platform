@@ -220,7 +220,7 @@ async function syncSwitchRequestFromOutbound(params: {
     if (['draft', 'queued', 'submitted'].includes(switchRequest.status)) {
       return updateSupplierSwitchRequestStatus(supabase, {
         requestId: switchRequest.id,
-        status: 'accepted',
+        status: 'submitted',
         externalReference:
           outboundRequest.external_reference ?? switchRequest.external_reference,
       })

@@ -405,7 +405,7 @@ export async function applyInboundBusinessStateMachine(input: {
   if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
     if (!input.matchedSwitchRequestId) throw new Error('regulated_supply_contract_and_switch_required')
     const confirmed = await strictUpdate('supplier_switch_requests', {
-      status: 'confirmed',
+      status: 'accepted',
       external_reference: input.message.external_reference ?? undefined,
       inbound_z04_message_id: input.message.id,
       confirmed_start_date:
