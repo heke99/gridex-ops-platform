@@ -35,6 +35,6 @@ When a published agreement requires power of attorney, send the structured `powe
 
 For migration compatibility, identity input may use documented transitional aliases such as `personal_identity_number` and `organisationsnummer`, but integrations should normalize to the canonical public contract and must not infer or submit internal database identifiers.
 
-Application responses are asynchronous where OPS owns downstream work. Persist the public application reference and follow the documented `next_step` and `next_action` values. `automatic_processing` means OPS has accepted responsibility for the continuation; it does not mean every supplier-switch, facility-information, communication, or settlement step has already completed.
+Application responses are asynchronous where the Gridex platform owns downstream work. Persist the public application reference and follow the documented `next_step` and `next_action` values. `automatic_processing` means the Gridex platform has accepted responsibility for the continuation; it does not mean every supplier-switch, facility-information, communication, or settlement step has already completed.
 
 For troubleshooting, record Gridex `request_id` and your correlation identifier. Do not log API credentials, identity numbers or other unnecessary personal data.
