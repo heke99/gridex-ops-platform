@@ -75,10 +75,21 @@ settlement_schema = """export const WebsiteQuoteSettlementSchema = z.object({
 
 """
 text = text.replace(insert_anchor, settlement_schema + insert_anchor, 1)
-field_anchor = '  quoteReference: OPTIONAL_TEXT,\n'
-if field_anchor not in text:
-    raise SystemExit('quoteReference anchor not found')
-text = text.replace(field_anchor, field_anchor + '  settlement: WebsiteQuoteSettlementSchema,\n', 1)
+application_field_anchor = """  quote_reference: OPTIONAL_TEXT,
+  quoteReference: OPTIONAL_TEXT,
+  price_option_reference: z.string().trim().min(3).max(100).optional(),
+"""
+if application_field_anchor not in text:
+    raise SystemExit('ApplicationSchema quote/price option anchor not found')
+text = text.replace(
+    application_field_anchor,
+    """  quote_reference: OPTIONAL_TEXT,
+  quoteReference: OPTIONAL_TEXT,
+  settlement: WebsiteQuoteSettlementSchema,
+  price_option_reference: z.string().trim().min(3).max(100).optional(),
+""",
+    1,
+)
 schemas.write_text(text)
 
 process = Path('lib/website/customerApplicationProcess.ts')
