@@ -189,6 +189,15 @@ export const LegalAcceptanceSchema = z.object({
   accepted_at: z.string().datetime({ offset: true }),
 }).strict();
 
+export const WebsiteQuoteSettlementSchema = z.object({
+  model: z.enum(['fixed_price', 'market_monthly', 'market_hourly', 'market_quarter_hour', 'portfolio', 'mixed']),
+  customer_accepts: z.enum(['fixed_energy_price', 'pricing_model', 'portfolio_pricing_model', 'mixed_pricing_model']),
+  energy_price_locked_at_signup: z.boolean(),
+  uses_actual_metered_consumption: z.literal(true),
+  market_data_role: z.enum(['not_applicable', 'indicative_preview_only']),
+  settlement_resolution: z.enum(['fixed', 'month', 'hour', 'quarter_hour', 'portfolio_period', 'mixed_components']),
+}).strict();
+
 export const ApplicationSchema = z.object({
   offer_reference: OPTIONAL_TEXT,
   offerReference: OPTIONAL_TEXT,
@@ -228,6 +237,7 @@ export const ApplicationSchema = z.object({
   price_plan_version_id: OPTIONAL_TEXT,
   quote_reference: OPTIONAL_TEXT,
   quoteReference: OPTIONAL_TEXT,
+  settlement: WebsiteQuoteSettlementSchema,
   price_option_reference: z.string().trim().min(3).max(100).optional(),
   invoice_delivery_method: z
     .enum(["email", "e_invoice", "paper", "direct_debit"])

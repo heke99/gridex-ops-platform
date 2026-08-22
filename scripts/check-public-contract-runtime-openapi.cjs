@@ -4,13 +4,13 @@ const {
   validateResponse,
 } = require('./lib/openapi-schema-validator.cjs')
 
-const version = '2026-08-22.1'
+const version = '2026-08-22.2'
 const specification = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
 const fixture = JSON.parse(
   fs.readFileSync(
-    'docs/fixtures/public-contracts-response-2026-08-22.1.json',
+    'docs/fixtures/public-contracts-response-2026-08-22.2.json',
     'utf8',
   ),
 )
