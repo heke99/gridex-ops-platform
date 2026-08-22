@@ -25,29 +25,6 @@ export type TenantOperationDecision = {
   state_version: number
 }
 
-const TENANT_API_BUNDLE_OPERATIONS = new Set<TenantOperation>([
-  'api_client.execute',
-  'contract_channel.sell',
-  'customer_automation.execute',
-  'facility_lookup.execute',
-  'email.send',
-  'webhook.deliver',
-])
-
-async function hasActiveTenantApiBundle(companyId: string): Promise<boolean> {
-  const { data, error } = await supabaseService
-    .from('integration_api_clients')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('status', 'active')
-    .eq('profile_key', 'tenant_website')
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw error
-  return Boolean(data?.id)
-}
-
 function normalizedDecision(
   row: Partial<TenantOperationDecision> | null,
 ): TenantOperationDecision {
@@ -73,28 +50,7 @@ export async function getTenantOperationDecision(
   if (error) throw error
 
   const row = (Array.isArray(data) ? data[0] : data) as Partial<TenantOperationDecision> | null
-  const decision = normalizedDecision(row)
-  if (decision.allowed) return decision
-
-  // A canonical tenant_website API grant is the integration access grant.
-  // Historical per-capability rows must not create a second activation step.
-  // We only bypass stale capability_not_ready rows: tenant lifecycle and
-  // production gates (for example Ediel/live sales) remain fail-closed.
-  if (
-    decision.reason_code === 'capability_not_ready' &&
-    decision.company_status === 'active' &&
-    TENANT_API_BUNDLE_OPERATIONS.has(operation) &&
-    await hasActiveTenantApiBundle(companyId)
-  ) {
-    return {
-      ...decision,
-      allowed: true,
-      reason_code: 'allowed_by_tenant_api_bundle',
-      capability_status: 'api_bundle',
-    }
-  }
-
-  return decision
+  return normalizedDecision(row)
 }
 
 export async function requireTenantOperationAllowed(companyId: string, operation: TenantOperation) {
