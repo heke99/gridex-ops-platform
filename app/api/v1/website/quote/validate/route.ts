@@ -247,6 +247,7 @@ export async function POST(request: NextRequest) {
           valid: true,
           quote_reference: quote.quote_reference,
           offer_reference: quote.offer_reference,
+          valid_until: quote.valid_until,
           status: quote.status,
           resolution_id: quote.energy_resolution_id,
           resolver_version: quote.resolver_version,
