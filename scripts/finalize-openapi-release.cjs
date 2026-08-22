@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-22.1'
+const version = '2026-08-22.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -363,6 +363,8 @@ application.required = Array.from(new Set([
   'site_count',
   'settlement',
 ])).filter((field) => !['auth_user_id', 'customer_portal_user_id'].includes(field))
+application.properties = application.properties ?? {}
+application.properties.settlement = { $ref: '#/components/schemas/WebsiteQuoteSettlement' }
 application.dependentRequired = {
   ...(application.dependentRequired ?? {}),
   auth_user_id: ['customer_portal_user_id'],

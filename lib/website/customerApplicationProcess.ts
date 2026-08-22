@@ -13,6 +13,7 @@ import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflo
 import { commitApplicationProvisioning, failApplicationProvisioning } from "@/lib/website/provisioningSaga";
 import { buildPublicLegalUrl, loadCompanySlugById } from "@/lib/legal/publicLegalDocuments";
 import { validateWebsiteQuote, WebsiteQuoteValidationError, type WebsiteQuoteRecord } from "@/lib/pricing/websiteQuotes";
+import { websiteSettlementForContract, type WebsiteSettlement } from "@/lib/pricing/websiteSettlement";
 import { finalizeWebsiteContractSignature, loadExistingIdentity, upsertPortalIdentity } from "./customerApplicationCommunication";
 import type { WebsiteContractCreateResult } from "./customerApplicationCommunication";
 import { normalizeRawApplication, patchWebsiteSiteCanonicalFields, requestedAnnualConsumption, runEnergyResolution } from "./customerApplicationCore";
@@ -21,9 +22,33 @@ import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
 import { onboardCanonicalWebsiteCustomerGraph } from "./customerApplicationOnboarding";
 import { applicationBusinessConflictError, createApplicationRow, duplicateApplicationError, expectsSiteOrMetering, failureResponse, hasCompleteSiteAndMetering, idempotencyPayloadMismatchError, idempotentFailure, isFailedIdempotentApplication, isRetryableFailedSiteProvisioningApplication, loadConflictingBusinessApplication, loadEquivalentCommittedApplication, loadIdempotentApplication, markApplicationFailed, releaseRetryableFailedIdempotency, reserveWebsiteApplicationIdempotency, resumeCommittedIdempotentApplication, storedApplicationPayloadHash, successResponse } from "./customerApplicationPersistence";
 import { repairMissingPoaOnIdempotentApplication } from "./customerApplicationRepair";
-import { ApplicationSchema, applicationBusinessKeyHash, applicationPayloadHash, normalizeStructuredPoa, structuredPoaIsExternallySendable, validateApplicationDates, validateCanonicalApplicationReferencePlacement, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
+import { ApplicationSchema, WebsiteQuoteSettlementSchema, applicationBusinessKeyHash, applicationPayloadHash, normalizeStructuredPoa, structuredPoaIsExternallySendable, validateApplicationDates, validateCanonicalApplicationReferencePlacement, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
 import { WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WebsiteApplicationError, calculatedEarliestStartDate, clean, controlledBusinessBlockingReason, controlledBusinessErrorCode, controlledBusinessNextStep, controlledBusinessStatus, errorMessage, isControlledBusinessError, isUuid, missingSchema, normalizedEmail, operationalErrorMessage, reviewAuditEvent, schemaRepairStatus, stage, technicalBlockingReason, timelineEvent, updateCustomerIntakeStatus, validationError } from "./customerApplicationShared";
 import type { CustomerRow, RequestAuditMetadata } from "./customerApplicationShared";
+
+function canonicalQuoteSettlement(
+  quote: WebsiteQuoteRecord,
+  offer: PublicContractOffer,
+): WebsiteSettlement {
+  const parsed = WebsiteQuoteSettlementSchema.safeParse(quote.quote_snapshot?.settlement)
+  if (parsed.success) return parsed.data
+  const pricingInterval = typeof quote.quote_snapshot?.pricing_interval === 'string'
+    ? quote.quote_snapshot.pricing_interval
+    : null
+  return websiteSettlementForContract({
+    contractType: offer.contract_type,
+    pricingInterval,
+  })
+}
+
+function sameSettlement(left: WebsiteSettlement, right: WebsiteSettlement): boolean {
+  return left.model === right.model
+    && left.customer_accepts === right.customer_accepts
+    && left.energy_price_locked_at_signup === right.energy_price_locked_at_signup
+    && left.uses_actual_metered_consumption === right.uses_actual_metered_consumption
+    && left.market_data_role === right.market_data_role
+    && left.settlement_resolution === right.settlement_resolution
+}
 
 export async function processWebsiteCustomerApplication(input: {
   client: IntegrationApiClient;
@@ -747,6 +772,25 @@ export async function processWebsiteCustomerApplication(input: {
           siteCount: body.site_count,
           applicationId: applicationRowId,
         });
+        const expectedSettlement = canonicalQuoteSettlement(
+          websiteQuote,
+          publicOffer as PublicContractOffer,
+        );
+        if (!sameSettlement(body.settlement, expectedSettlement)) {
+          throw new WebsiteApplicationError({
+            message: 'settlement motsäger den accepterade canonical quoten.',
+            status: 409,
+            code: 'quote_settlement_mismatch',
+            field: 'settlement',
+            stage: 'quote_validation',
+            hint: 'Skicka settlement exakt som den returnerades av samma quote_reference.',
+            details: {
+              expected_settlement: expectedSettlement,
+              received_settlement: body.settlement,
+              quote_reference: selectedQuoteReference,
+            },
+          });
+        }
       } catch (error) {
         if (error instanceof WebsiteQuoteValidationError) {
           throw new WebsiteApplicationError({

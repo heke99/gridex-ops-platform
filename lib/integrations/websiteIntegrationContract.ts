@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-22.1' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-22.2' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -27,7 +27,7 @@ export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] 
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
 
 /**
- * 2026-08-22.1 makes website settlement semantics explicit: only fixed contracts
+ * 2026-08-22.2 makes website settlement semantics explicit: only fixed contracts
  * lock the energy price at signup. Market monthly/hourly/quarter-hour, portfolio
  * and mixed products accept a pricing model and settle later from actual metered
  * consumption and authoritative period data. valid_until remains compatibility
