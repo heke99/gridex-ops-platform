@@ -159,7 +159,23 @@ describe('admin instruction coverage derives complete canonical scope', () => {
     ])
     expect(rows.every((row) => row.sourceVersion === '25-A-3')).toBe(true)
     expect(rows.every((row) => row.currentVersion === 'E5SE5A')).toBe(true)
-    expect(rows.every((row) => row.status === 'runtime_partial')).toBe(true)
+
+    const readiness = Object.fromEntries(rows.map((row) => [row.code, row.status]))
+    expect(readiness).toMatchObject({
+      E30: 'runtime_partial',
+      E31: 'runtime_ready',
+      E66: 'runtime_ready',
+      E72: 'runtime_partial',
+      E73: 'runtime_ready',
+      E74: 'runtime_partial',
+      S01: 'runtime_partial',
+      S02: 'runtime_ready',
+      S03: 'runtime_ready',
+      S04: 'runtime_partial',
+      S05: 'runtime_ready',
+      S06: 'runtime_partial',
+      S07: 'runtime_partial',
+    })
   })
 })
 
