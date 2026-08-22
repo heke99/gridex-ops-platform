@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website Integration API",
-    "version": "2026-08-20.2",
+    "version": "2026-08-22.1",
     "description": "Production API for electricity retail websites and backend integrations. Gridex owns published offers, authoritative pricing and quotes, legal document versions, customer and contract lifecycle state, and downstream processing. Integrations provide verified customer input and use public references only."
   },
   "servers": [
@@ -304,7 +304,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-20.2"
+                          "const": "2026-08-22.1"
                         },
                         "feed_state": {
                           "type": "string",
@@ -638,7 +638,7 @@
                     "count": 1,
                     "publication_revision": 42,
                     "publication_updated_at": "2026-08-01T00:00:00.000Z",
-                    "contract_schema_version": "2026-08-20.2",
+                    "contract_schema_version": "2026-08-22.1",
                     "deprecated_aliases": [
                       "contracts",
                       "contract_offer_id",
@@ -1136,7 +1136,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-20.2"
+                          "const": "2026-08-22.1"
                         },
                         "feed_state": {
                           "type": "string",
@@ -1474,8 +1474,8 @@
         "tags": [
           "Website pricing"
         ],
-        "summary": "Create an authoritative price quote from a published offer, selected price area, custom...",
-        "description": "Create an authoritative price quote from a published offer, selected price area, customer type, consumption and start date.",
+        "summary": "Create an authoritative checkout quote from a published offer. Fixed products lock the...",
+        "description": "Create an authoritative checkout quote from a published offer. Fixed products lock the energy price; market, portfolio and mixed products return indicative checkout evidence for the accepted pricing model.",
         "x-required-scopes": [
           "website_quotes.write"
         ],
@@ -1553,7 +1553,7 @@
                     }
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-08-20.2"
+                  "contract_schema_version": "2026-08-22.1"
                 }
               }
             },
@@ -1888,8 +1888,8 @@
         "tags": [
           "Website pricing"
         ],
-        "summary": "Validate that a quote still matches the selected offer, customer type, price area, cons...",
-        "description": "Validate that a quote still matches the selected offer, customer type, price area, consumption and start date.",
+        "summary": "Validate the immutable accepted quote and commercial identity. Elapsed wall-clock time...",
+        "description": "Validate the immutable accepted quote and commercial identity. Elapsed wall-clock time alone does not invalidate an issued website quote.",
         "x-required-scopes": [
           "website_quotes.validate"
         ],
@@ -1931,7 +1931,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-20.2"
+                      "const": "2026-08-22.1"
                     }
                   }
                 }
@@ -2573,7 +2573,7 @@
                       "request_id": "ec75aee9-cc8d-45be-afa1-027ba7258a45",
                       "correlation_id": "ec75aee9-cc8d-45be-afa1-027ba7258a45",
                       "retryable": false,
-                      "contract_schema_version": "2026-08-20.2"
+                      "contract_schema_version": "2026-08-22.1"
                     }
                   }
                 }
@@ -3118,7 +3118,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-08-20.2"
+                  "contract_schema_version": "2026-08-22.1"
                 }
               }
             },
@@ -3467,7 +3467,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-20.2"
+                      "const": "2026-08-22.1"
                     }
                   }
                 }
@@ -3937,7 +3937,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-20.2"
+                      "const": "2026-08-22.1"
                     }
                   }
                 }
@@ -4299,7 +4299,7 @@
                         },
                         "contract_schema_version": {
                           "type": "string",
-                          "const": "2026-08-20.2"
+                          "const": "2026-08-22.1"
                         },
                         "feed_state": {
                           "type": "string",
@@ -4912,7 +4912,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-08-20.2"
+                      "const": "2026-08-22.1"
                     }
                   }
                 }
@@ -6866,6 +6866,15 @@
               },
               "Content-Disposition": {
                 "$ref": "#/components/headers/ContentDisposition"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             },
             "content": {
@@ -6900,6 +6909,15 @@
               },
               "Content-Disposition": {
                 "$ref": "#/components/headers/ContentDisposition"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           }
@@ -6942,6 +6960,15 @@
               },
               "Content-Disposition": {
                 "$ref": "#/components/headers/ContentDisposition"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             },
             "content": {
@@ -6976,6 +7003,15 @@
               },
               "Content-Disposition": {
                 "$ref": "#/components/headers/ContentDisposition"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
               }
             }
           }
@@ -7140,6 +7176,158 @@
         "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
+    },
+    "/api/v1/openapi/2026-08-22.1/website-integration-v1.json": {
+      "get": {
+        "summary": "Immutable Website Integration OpenAPI release 2026-08-22.1",
+        "description": "Immutable Website Integration OpenAPI release 2026-08-22.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202608221WebsiteIntegrationV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
+    },
+    "/api/v1/openapi/2026-08-22.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-08-22.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-08-22.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202608221CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
     }
   },
   "components": {
@@ -7226,7 +7414,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -7293,7 +7481,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "configuration": {
             "type": "object",
@@ -8026,7 +8214,8 @@
           "price_option_reference",
           "invoice_delivery_method",
           "selected_component_references",
-          "site_count"
+          "site_count",
+          "settlement"
         ],
         "properties": {
           "external_customer_id": {
@@ -8879,7 +9068,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         }
       },
@@ -9062,7 +9251,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         }
       },
@@ -9783,7 +9972,8 @@
           },
           "valid_until": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Compatibility and immutable audit metadata. An issued customer-visible website quote is not rejected merely because this timestamp passes."
           },
           "status": {
             "type": "string"
@@ -9836,7 +10026,7 @@
           },
           "is_binding": {
             "type": "boolean",
-            "const": false
+            "description": "True only when the energy price itself is fixed at signup. False for monthly market, hourly, quarter-hour, portfolio and mixed products."
           },
           "market_data_timestamp": {
             "type": [
@@ -9924,6 +10114,9 @@
           "offer": {
             "type": "object",
             "additionalProperties": true
+          },
+          "settlement": {
+            "$ref": "#/components/schemas/WebsiteQuoteSettlement"
           }
         },
         "additionalProperties": false
@@ -9951,7 +10144,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         }
       },
@@ -10293,7 +10486,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         },
         "additionalProperties": false
@@ -11078,7 +11271,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         },
         "additionalProperties": false
@@ -11151,7 +11344,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -11384,7 +11577,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -11744,7 +11937,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         }
       },
@@ -12229,23 +12422,23 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "released_at": {
             "type": "string",
@@ -12285,7 +12478,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           },
           "url": {
             "type": "string",
@@ -12593,7 +12786,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -13122,7 +13315,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         }
       },
@@ -13275,7 +13468,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-08-20.2"
+            "const": "2026-08-22.1"
           }
         }
       },
@@ -13596,6 +13789,67 @@
             ]
           }
         }
+      },
+      "WebsiteQuoteSettlement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "customer_accepts",
+          "energy_price_locked_at_signup",
+          "uses_actual_metered_consumption",
+          "market_data_role",
+          "settlement_resolution"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "fixed_price",
+              "market_monthly",
+              "market_hourly",
+              "market_quarter_hour",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "customer_accepts": {
+            "type": "string",
+            "enum": [
+              "fixed_energy_price",
+              "pricing_model",
+              "portfolio_pricing_model",
+              "mixed_pricing_model"
+            ]
+          },
+          "energy_price_locked_at_signup": {
+            "type": "boolean",
+            "description": "True only for a fixed-price product. Market, portfolio and mixed products do not freeze the future energy price at signup."
+          },
+          "uses_actual_metered_consumption": {
+            "type": "boolean",
+            "const": true
+          },
+          "market_data_role": {
+            "type": "string",
+            "enum": [
+              "not_applicable",
+              "indicative_preview_only"
+            ]
+          },
+          "settlement_resolution": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "month",
+              "hour",
+              "quarter_hour",
+              "portfolio_period",
+              "mixed_components"
+            ]
+          }
+        },
+        "description": "How the accepted product is settled. The authenticated API credential determines the organization; no organization selector is accepted here."
       }
     },
     "responses": {
@@ -13827,7 +14081,7 @@
         "description": "Canonical contract version used for this response.",
         "schema": {
           "type": "string",
-          "const": "2026-08-20.2"
+          "const": "2026-08-22.1"
         }
       },
       "RequestId": {
@@ -13905,7 +14159,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-08-20.2",
+  "x-contract-schema-version": "2026-08-22.1",
   "x-gridex-organization-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

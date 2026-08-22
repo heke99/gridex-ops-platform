@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-20.2'
+const version = '2026-08-22.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -19,7 +19,7 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-20.1'
+const priorVersion = '2026-08-20.2'
 const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
@@ -361,6 +361,7 @@ application.required = Array.from(new Set([
   'invoice_delivery_method',
   'selected_component_references',
   'site_count',
+  'settlement',
 ])).filter((field) => !['auth_user_id', 'customer_portal_user_id'].includes(field))
 application.dependentRequired = {
   ...(application.dependentRequired ?? {}),
@@ -1058,6 +1059,28 @@ quoteValidationRequest.required = Array.from(new Set([
   'site_count',
 ]))
 
+website.components.schemas.WebsiteQuoteSettlement = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'model',
+    'customer_accepts',
+    'energy_price_locked_at_signup',
+    'uses_actual_metered_consumption',
+    'market_data_role',
+    'settlement_resolution',
+  ],
+  properties: {
+    model: { type: 'string', enum: ['fixed_price','market_monthly','market_hourly','market_quarter_hour','portfolio','mixed'] },
+    customer_accepts: { type: 'string', enum: ['fixed_energy_price','pricing_model','portfolio_pricing_model','mixed_pricing_model'] },
+    energy_price_locked_at_signup: { type: 'boolean', description: 'True only for a fixed-price product. Market, portfolio and mixed products do not freeze the future energy price at signup.' },
+    uses_actual_metered_consumption: { type: 'boolean', const: true },
+    market_data_role: { type: 'string', enum: ['not_applicable','indicative_preview_only'] },
+    settlement_resolution: { type: 'string', enum: ['fixed','month','hour','quarter_hour','portfolio_period','mixed_components'] },
+  },
+  description: 'How the accepted product is settled. The authenticated API credential determines the organization; no tenant selector is accepted here.',
+}
+
 const quoteData = website.components.schemas.WebsiteQuoteData
 quoteData.additionalProperties = false
 for (const field of [
@@ -1093,10 +1116,14 @@ for (const field of [
   'resolved_base_components',
   'resolved_price_components',
   'pricing_snapshot',
+  'settlement',
 ]) {
   quoteData.properties[field] ??= {}
 }
 quoteData.properties.offer = permissiveObject
+quoteData.properties.settlement = { $ref: '#/components/schemas/WebsiteQuoteSettlement' }
+quoteData.properties.valid_until = { type: 'string', format: 'date-time', description: 'Compatibility and immutable audit metadata. An issued customer-visible website quote is not rejected merely because this timestamp passes.' }
+quoteData.properties.is_binding = { type: 'boolean', description: 'True only when the energy price itself is fixed at signup. False for monthly market, hourly, quarter-hour, portfolio and mixed products.' }
 quoteData.required = Array.from(new Set([
   ...(quoteData.required ?? []),
   'offer',

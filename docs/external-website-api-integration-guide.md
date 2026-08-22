@@ -1,27 +1,32 @@
 # Gridex Website Integration API
 
-Current contract: **2026-08-20.2**
+Current contract: **2026-08-22.1**
 
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable contract is published at `/api/v1/openapi/website-integration-v1.json`.
 
 ## Responsibility boundary
 
-**Gridex platform** owns published electricity offers, authoritative price-area resolution and quotes, legal-document versions, canonical customer and contract state, idempotent processing, supplier-switch and facility-information processing, communication state, final settlement/invoice calculations, and the customer-facing data exposed by enabled services.
+**Gridex platform** owns published electricity offers, organization-scoped pricing configuration, authoritative price-area resolution, immutable checkout quotes, legal-document versions, customer and contract state, supplier-switch processing and final settlement/invoice calculations.
 
-**Your integration** owns the customer experience, verified end-customer identity, customer and site input, server-side API calls, exact display of Gridex pricing/legal evidence, stable idempotency keys, persistence of public application references, and webhook signature verification/deduplication.
+**Your integration** owns the customer experience, verified end-customer input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys and persistence of public references. The API credential determines the organization. Never send `company_id`, `tenant_id` or another organization selector.
 
-Do not send internal database identifiers. The API credential determines the organization and permissions.
+## Pricing acceptance and settlement
 
-## Pricing, quote validity and billing
+The `settlement` object on a website quote is the canonical interpretation of what the customer accepts:
 
-The contract version remains **2026-08-20.2**. The following fields describe different concepts and must not be treated as interchangeable:
+- `fixed_price`: the energy price is locked at signup. The invoice still uses actual metered consumption, so the total amount can vary with kWh.
+- `market_monthly`: the customer accepts the monthly market-price model. Final energy settlement uses actual metered monthly consumption and the authoritative market price for the billing period.
+- `market_hourly`: the customer accepts the hourly market-price model. Final settlement uses actual hourly consumption and the applicable hourly market prices.
+- `market_quarter_hour`: the customer accepts the quarter-hour market-price model. Final settlement uses actual 15-minute consumption and the applicable quarter-hour market prices.
+- `portfolio`: the customer accepts the portfolio pricing model. Final settlement uses the authoritative portfolio settlement for the period and actual metered consumption.
+- `mixed`: the customer accepts the published mixture and its component rules; each component is settled according to its configured source and resolution.
 
-- `valid_until` belongs to a checkout quote snapshot. It defines when that quote must be validated or renewed before submission. It is not the commercial end date of the electricity price and does not lock a variable/spot market price for future invoices.
-- `valid_to` on a published price option or area price is the commercial end date of that price definition. `null` means that no commercial end date is configured.
-- `market_reference` in a quote is public checkout/preview evidence. Internal source-row identifiers are intentionally excluded from the public response.
-- For variable and spot products, the final energy charge is calculated from the customer's actual metered consumption and the applicable authoritative market/settlement price for the billing period and configured product resolution, together with the contract's markups, fees, taxes and other applicable pricing components.
-- An integration must therefore use the quote for checkout display, validation and audit evidence, not as the authoritative market-price input for a later invoice.
+For every non-fixed model, checkout market data is **indicative preview/audit evidence only** and never becomes the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
 
-For migrations from older integration guides, the canonical developer page documents the structured POA fields `powerOfAttorney`, `textVersionId` and `externally_sendable`, transitional identity aliases such as `personal_identity_number` and `organisationsnummer`, and asynchronous result fields `next_step`, `next_action` and `automatic_processing`. Their definitions and examples live only in the canonical developer guide and OpenAPI contract.
+`valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does **not** expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, tenant mismatch, integrity mismatch or a commercially unavailable/withdrawn offer can still block submission.
 
-For troubleshooting, record the `request_id` returned by Gridex together with your own correlation identifier. Do not log API credentials, identity numbers or other unnecessary personal data.
+`valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.
+
+Public `market_reference` contains public pricing evidence only. Internal source-row identifiers are never part of the public contract.
+
+For troubleshooting, record Gridex `request_id` and your correlation identifier. Do not log API credentials or unnecessary personal data.

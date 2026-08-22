@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(path, 'utf8')
-// Release generator migration anchor: 2026-08-20.2
+// Release generator migration anchor: 2026-08-22.1
 
 describe('public pricing and settlement semantics', () => {
   it('keeps the current API contract while making customer website quotes non-expiring', () => {

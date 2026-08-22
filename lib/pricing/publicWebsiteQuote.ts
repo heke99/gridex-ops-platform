@@ -139,6 +139,27 @@ function publicMarketReference(value: unknown): JsonRecord | null {
   return Object.keys(projected).length > 0 ? projected : null
 }
 
+function publicSettlement(value: unknown): JsonRecord | null {
+  const row = record(value)
+  if (!row) return null
+  const model = text(row.model)
+  const customerAccepts = text(row.customer_accepts)
+  const marketDataRole = text(row.market_data_role)
+  const settlementResolution = text(row.settlement_resolution)
+  const energyLocked = typeof row.energy_price_locked_at_signup === 'boolean'
+    ? row.energy_price_locked_at_signup
+    : null
+  if (!model || !customerAccepts || !marketDataRole || !settlementResolution || energyLocked === null || row.uses_actual_metered_consumption !== true) return null
+  return {
+    model,
+    customer_accepts: customerAccepts,
+    energy_price_locked_at_signup: energyLocked,
+    uses_actual_metered_consumption: true,
+    market_data_role: marketDataRole,
+    settlement_resolution: settlementResolution,
+  }
+}
+
 function publicMarketSources(value: unknown): JsonRecord[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((entry) => {
@@ -283,6 +304,7 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
   const priceOptionReference = text(source.price_option_reference)
   const invoiceDeliveryMethod = text(source.invoice_delivery_method)
   const siteCount = finite(source.site_count)
+  const settlement = publicSettlement(source.settlement)
 
   if (
     !quoteReference ||
@@ -292,6 +314,7 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
     !priceOptionReference ||
     !invoiceDeliveryMethod ||
     siteCount === null ||
+    !settlement ||
     !Number.isInteger(siteCount) ||
     siteCount < 1
   ) {
@@ -327,6 +350,7 @@ export function projectPublicWebsiteQuoteData(value: unknown): PublicWebsiteQuot
     is_binding: source.is_binding === true,
     market_data_timestamp: text(source.market_data_timestamp) ?? undefined,
     pricing_interval: text(source.pricing_interval) ?? undefined,
+    settlement,
     estimate_method: text(source.estimate_method) ?? undefined,
     source_period: text(source.source_period) ?? undefined,
     source_window: sourceWindow(source.source_window),

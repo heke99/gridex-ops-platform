@@ -8,7 +8,7 @@ export default function CustomerPortalApiTemplate({ children }: { children: Reac
         <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-slate-800">
           <h2 className="text-base font-semibold text-slate-950">Pricing, quote validity and billing</h2>
           <p className="mt-2">
-            API contract <strong>{WEBSITE_INTEGRATION_CONTRACT_VERSION}</strong> is unchanged. Customer-visible website
+            API contract <strong>{WEBSITE_INTEGRATION_CONTRACT_VERSION}</strong> exposes settlement semantics explicitly. Customer-visible website
             prices do not expire because time passes; commercial availability and final invoice settlement are separate concepts.
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-5">
@@ -21,8 +21,8 @@ export default function CustomerPortalApiTemplate({ children }: { children: Reac
               definition. <code>null</code> means no commercial end date is configured.
             </li>
             <li>
-              For variable and spot products, quote market data is checkout and audit evidence only. It does not freeze
-              the market price used on a future invoice.
+              Only fixed-price products lock the energy price at signup. Monthly market, hourly, quarter-hour, portfolio
+              and mixed products accept the pricing model; quote market data is checkout/audit evidence only.
             </li>
             <li>
               Final energy settlement uses actual metered consumption and the applicable authoritative market/settlement
