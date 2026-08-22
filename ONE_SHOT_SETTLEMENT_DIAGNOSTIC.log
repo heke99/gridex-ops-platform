@@ -1,0 +1,166 @@
+=== apply patch ===
+Settlement contract patch prepared for 2026-08-22.1
+apply_status=0
+=== finalize ===
+
+> gridex-ops-platform@0.1.0 api:finalize
+> node scripts/finalize-openapi-release.cjs && node scripts/professionalize-openapi-contract.cjs
+
+{
+  "version": "2026-08-22.1",
+  "hashes": {
+    "website": "23d4acdf699661c1f3cb0cb06d794a9562870da4acb0752843eca08e18d286d9",
+    "customer_portal": "eadf71e7bcef1afa2ffa86979dd44afb38ce551df3ccb0630ed3af4c83458639"
+  }
+}
+Professional public OpenAPI presentation applied for 2026-08-22.1.
+finalize_status=0
+=== materialize ===
+
+> gridex-ops-platform@0.1.0 api:materialize
+> node scripts/materialize-openapi-release.cjs
+
+OpenAPI release 2026-08-22.1 materialized with immutable JSON and routes.
+materialize_status=0
+=== typecheck ===
+
+> gridex-ops-platform@0.1.0 typecheck
+> node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json
+
+typecheck_status=0
+=== targeted tests ===
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/runner/work/gridex-ops-platform/gridex-ops-platform[39m
+
+ [31m❯[39m __tests__/pricing-settlement-semantics.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 12[2mms[22m[39m
+[31m     [31m×[31m keeps the current API contract while making customer website quotes non-expiring[39m[32m 10[2mms[22m[39m
+ [32m✓[39m __tests__/website-settlement-model.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [31m❯[39m __tests__/non-expiring-website-quotes.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 27[2mms[22m[39m
+[31m     [31m×[31m keeps V1 valid_until as compatibility metadata without elapsed-time rejection[39m[32m 25[2mms[22m[39m
+ [32m✓[39m __tests__/website-quote-validate-contract-parity.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m __tests__/non-expiring-website-quotes.test.ts[2m > [22mnon-expiring customer website quotes[2m > [22mkeeps V1 valid_until as compatibility metadata without elapsed-time rejection
+[31m[1mAssertionError[22m: expected 'import type { ReactNode } from \'reac…' to contain 'does not use it as a customer-price e…'[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- does not use it as a customer-price expiry[39m
+[31m+ import type { ReactNode } from 'react'[39m
+[31m+ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'[39m
+[31m+[39m
+[31m+ export default function CustomerPortalApiTemplate({ children }: { children: ReactNode }) {[39m
+[31m+   return ([39m
+[31m+     <>[39m
+[31m+       <div className="mx-auto max-w-7xl px-5 pt-8 sm:px-8 lg:px-10">[39m
+[31m+         <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-slate-800">[39m
+[31m+           <h2 className="text-base font-semibold text-slate-950">Pricing, quote validity and billing</h2>[39m
+[31m+           <p className="mt-2">[39m
+[31m+             API contract <strong>{WEBSITE_INTEGRATION_CONTRACT_VERSION}</strong> exposes settlement semantics explicitly. Customer-visible website[39m
+[31m+             prices do not expire because time passes; commercial availability and final invoice settlement are separate concepts.[39m
+[31m+           </p>[39m
+[31m+           <ul className="mt-3 list-disc space-y-2 pl-5">[39m
+[31m+             <li>[39m
+[31m+               <code>valid_until</code> remains in V1 for wire compatibility and immutable audit evidence. Gridex does[39m
+[31m+               not use it as a customer-price expiry and an issued website quote is not rejected because that timestamp passes.[39m
+[31m+             </li>[39m
+[31m+             <li>[39m
+[31m+               <code>valid_to</code> on a published price option or area price is the commercial end date of that price[39m
+[31m+               definition. <code>null</code> means no commercial end date is configured.[39m
+[31m+             </li>[39m
+[31m+             <li>[39m
+[31m+               Only fixed-price products lock the energy price at signup. Monthly market, hourly, quarter-hour, portfolio[39m
+[31m+               and mixed products accept the pricing model; quote market data is checkout/audit evidence only.[39m
+[31m+             </li>[39m
+[31m+             <li>[39m
+[31m+               Final energy settlement uses actual metered consumption and the applicable authoritative market/settlement[39m
+[31m+               price for the billing period and product resolution, plus the agreement&apos;s markups, fees, taxes and other[39m
+[31m+               applicable pricing components.[39m
+[31m+             </li>[39m
+[31m+             <li>[39m
+[31m+               Public <code>market_reference</code> data contains only public pricing evidence; internal database identifiers[39m
+[31m+               are not part of the integration contract.[39m
+[31m+             </li>[39m
+[31m+           </ul>[39m
+[31m+         </section>[39m
+[31m+       </div>[39m
+[31m+       {children}[39m
+[31m+     </>[39m
+[31m+   )[39m
+[31m+ }[39m
+[31m+[39m
+
+[36m [2m❯[22m __tests__/non-expiring-website-quotes.test.ts:[2m26:22[22m[39m
+    [90m 24|[39m     [34mexpect[39m(resolution)[33m.[39m[34mtoContain[39m([32m'allowExpired?: boolean'[39m)
+    [90m 25|[39m     [34mexpect[39m(route)[33m.[39m[34mtoContain[39m([32m'valid_until: quote.valid_until'[39m)
+    [90m 26|[39m     expect(template).toContain('does not use it as a customer-price ex…
+    [90m   |[39m                      [31m^[39m
+    [90m 27|[39m     [34mexpect[39m(sql)[33m.[39m[34mtoContain[39m([32m"message = 'website_quote_expired'"[39m)
+    [90m 28|[39m     expect(sql).toContain("execute replace(v_definition, v_expiry_bloc…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/pricing-settlement-semantics.test.ts[2m > [22mpublic pricing and settlement semantics[2m > [22mkeeps the current API contract while making customer website quotes non-expiring
+[31m[1mAssertionError[22m: expected '# Gridex Website Integration API\n\nC…' to match /market\/settlement pr…/settlement price[39m
+
+[32m- Expected:[39m
+/market\/settlement price/
+
+[31m+ Received:[39m
+"# Gridex Website Integration API
+
+Current contract: **2026-08-22.1**
+
+The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable contract is published at `/api/v1/openapi/website-integration-v1.json`.
+
+## Responsibility boundary
+
+**Gridex platform** owns published electricity offers, organization-scoped pricing configuration, authoritative price-area resolution, immutable checkout quotes, legal-document versions, customer and contract state, supplier-switch processing and final settlement/invoice calculations.
+
+**Your integration** owns the customer experience, verified end-customer input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys and persistence of public references. The API credential determines the organization. Never send `company_id`, `tenant_id` or another organization selector.
+
+## Pricing acceptance and settlement
+
+The `settlement` object on a website quote is the canonical interpretation of what the customer accepts:
+
+- `fixed_price`: the energy price is locked at signup. The invoice still uses actual metered consumption, so the total amount can vary with kWh.
+- `market_monthly`: the customer accepts the monthly market-price model. Final energy settlement uses actual metered monthly consumption and the authoritative market price for the billing period.
+- `market_hourly`: the customer accepts the hourly market-price model. Final settlement uses actual hourly consumption and the applicable hourly market prices.
+- `market_quarter_hour`: the customer accepts the quarter-hour market-price model. Final settlement uses actual 15-minute consumption and the applicable quarter-hour market prices.
+- `portfolio`: the customer accepts the portfolio pricing model. Final settlement uses the authoritative portfolio settlement for the period and actual metered consumption.
+- `mixed`: the customer accepts the published mixture and its component rules; each component is settled according to its configured source and resolution.
+
+For every non-fixed model, checkout market data is **indicative preview/audit evidence only** and never becomes the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
+
+`valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does **not** expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, tenant mismatch, integrity mismatch or a commercially unavailable/withdrawn offer can still block submission.
+
+`valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.
+
+Public `market_reference` contains public pricing evidence only. Internal source-row identifiers are never part of the public contract.
+
+For troubleshooting, record Gridex `request_id` and your correlation identifier. Do not log API credentials or unnecessary personal data.
+"
+
+[36m [2m❯[22m __tests__/pricing-settlement-semantics.test.ts:[2m25:19[22m[39m
+    [90m 23|[39m     [34mexpect[39m(guide)[33m.[39m[34mtoContain[39m([32m'valid_to'[39m)
+    [90m 24|[39m     [34mexpect[39m(guide)[33m.[39m[34mtoMatch[39m([36m/actual metered consumption|actual metered/[39m)
+    [90m 25|[39m     [34mexpect[39m(guide)[33m.[39m[34mtoMatch[39m([36m/market\/settlement price/[39m)
+    [90m   |[39m                   [31m^[39m
+    [90m 26|[39m     [34mexpect[39m(developerLayout)[33m.[39m[34mtoContain[39m([32m'return <>{children}</>'[39m)
+    [90m 27|[39m     expect(developerTemplate).toContain('Pricing, quote validity and b…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 11:05:48
+[2m   Duration [22m 457ms[2m (transform 122ms, setup 72ms, import 114ms, tests 55ms, environment 1ms)[22m
+
+
+::error file=/home/runner/work/gridex-ops-platform/gridex-ops-platform/__tests__/non-expiring-website-quotes.test.ts,title=__tests__/non-expiring-website-quotes.test.ts > non-expiring customer website quotes > keeps V1 valid_until as compatibility metadata without elapsed-time rejection,line=26,column=22::AssertionError: expected 'import type { ReactNode } from \'reac…' to contain 'does not use it as a customer-price e…'%0A%0A- Expected%0A+ Received%0A%0A- does not use it as a customer-price expiry%0A+ import type { ReactNode } from 'react'%0A+ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'%0A+%0A+ export default function CustomerPortalApiTemplate({ children }: { children: ReactNode }) {%0A+   return (%0A+     <>%0A+       <div className="mx-auto max-w-7xl px-5 pt-8 sm:px-8 lg:px-10">%0A+         <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-slate-800">%0A+           <h2 className="text-base font-semibold text-slate-950">Pricing, quote validity and billing</h2>%0A+           <p className="mt-2">%0A+             API contract <strong>{WEBSITE_INTEGRATION_CONTRACT_VERSION}</strong> exposes settlement semantics explicitly. Customer-visible website%0A+             prices do not expire because time passes; commercial availability and final invoice settlement are separate concepts.%0A+           </p>%0A+           <ul className="mt-3 list-disc space-y-2 pl-5">%0A+             <li>%0A+               <code>valid_until</code> remains in V1 for wire compatibility and immutable audit evidence. Gridex does%0A+               not use it as a customer-price expiry and an issued website quote is not rejected because that timestamp passes.%0A+             </li>%0A+             <li>%0A+               <code>valid_to</code> on a published price option or area price is the commercial end date of that price%0A+               definition. <code>null</code> means no commercial end date is configured.%0A+             </li>%0A+             <li>%0A+               Only fixed-price products lock the energy price at signup. Monthly market, hourly, quarter-hour, portfolio%0A+               and mixed products accept the pricing model; quote market data is checkout/audit evidence only.%0A+             </li>%0A+             <li>%0A+               Final energy settlement uses actual metered consumption and the applicable authoritative market/settlement%0A+               price for the billing period and product resolution, plus the agreement&apos;s markups, fees, taxes and other%0A+               applicable pricing components.%0A+             </li>%0A+             <li>%0A+               Public <code>market_reference</code> data contains only public pricing evidence; internal database identifiers%0A+               are not part of the integration contract.%0A+             </li>%0A+           </ul>%0A+         </section>%0A+       </div>%0A+       {children}%0A+     </>%0A+   )%0A+ }%0A+%0A%0A ❯ __tests__/non-expiring-website-quotes.test.ts:26:22%0A%0A
+
+::error file=/home/runner/work/gridex-ops-platform/gridex-ops-platform/__tests__/pricing-settlement-semantics.test.ts,title=__tests__/pricing-settlement-semantics.test.ts > public pricing and settlement semantics > keeps the current API contract while making customer website quotes non-expiring,line=25,column=19::AssertionError: expected '# Gridex Website Integration API\n\nC…' to match /market\/settlement pr…/settlement price%0A%0A- Expected:%0A/market\/settlement price/%0A%0A+ Received:%0A"# Gridex Website Integration API%0A%0ACurrent contract: **2026-08-22.1**%0A%0AThe canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable contract is published at `/api/v1/openapi/website-integration-v1.json`.%0A%0A## Responsibility boundary%0A%0A**Gridex platform** owns published electricity offers, organization-scoped pricing configuration, authoritative price-area resolution, immutable checkout quotes, legal-document versions, customer and contract state, supplier-switch processing and final settlement/invoice calculations.%0A%0A**Your integration** owns the customer experience, verified end-customer input, server-side API calls, exact display of pricing/legal evidence, stable idempotency keys and persistence of public references. The API credential determines the organization. Never send `company_id`, `tenant_id` or another organization selector.%0A%0A## Pricing acceptance and settlement%0A%0AThe `settlement` object on a website quote is the canonical interpretation of what the customer accepts:%0A%0A- `fixed_price`: the energy price is locked at signup. The invoice still uses actual metered consumption, so the total amount can vary with kWh.%0A- `market_monthly`: the customer accepts the monthly market-price model. Final energy settlement uses actual metered monthly consumption and the authoritative market price for the billing period.%0A- `market_hourly`: the customer accepts the hourly market-price model. Final settlement uses actual hourly consumption and the applicable hourly market prices.%0A- `market_quarter_hour`: the customer accepts the quarter-hour market-price model. Final settlement uses actual 15-minute consumption and the applicable quarter-hour market prices.%0A- `portfolio`: the customer accepts the portfolio pricing model. Final settlement uses the authoritative portfolio settlement for the period and actual metered consumption.%0A- `mixed`: the customer accepts the published mixture and its component rules; each component is settled according to its configured source and resolution.%0A%0AFor every non-fixed model, checkout market data is **indicative preview/audit evidence only** and never becomes the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.%0A%0A`valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does **not** expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, tenant mismatch, integrity mismatch or a commercially unavailable/withdrawn offer can still block submission.%0A%0A`valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.%0A%0APublic `market_reference` contains public pricing evidence only. Internal source-row identifiers are never part of the public contract.%0A%0AFor troubleshooting, record Gridex `request_id` and your correlation identifier. Do not log API credentials or unnecessary personal data.%0A"%0A%0A ❯ __tests__/pricing-settlement-semantics.test.ts:25:19%0A%0A
+tests_status=1
