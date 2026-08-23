@@ -1,0 +1,66 @@
+name: Refresh Supabase clean replay types temporary
+
+on:
+  push:
+    branches:
+      - fix/supabase-types-clean-replay-drift-20260823
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-types:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Replay canonical migrations and regenerate runtime types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          supabase gen types typescript --local > supabase/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          EXPECTED_HASH="62531f7aba4df59cf3d49ec51cf36bddcabce78de68a6d68b258dae8979ea90c"
+          echo "generated_types_sha256=$GENERATED_HASH"
+          if [[ "$GENERATED_HASH" != "$EXPECTED_HASH" ]]; then
+            echo "Refusing to commit unexpected generated types: $GENERATED_HASH != $EXPECTED_HASH" >&2
+            exit 1
+          fi
+          export GENERATED_HASH
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          if (manifest.sha256 !== process.env.GENERATED_HASH) {
+            manifest.generated_at_utc = new Date().toISOString()
+          }
+          manifest.generated_with = 'supabase-cli-2.101.0-clean-replay'
+          manifest.source = 'clean-replay'
+          manifest.latest_migration = '20260822110000'
+          manifest.sha256 = process.env.GENERATED_HASH
+          fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
+          NODE
+          node scripts/check-supabase-generated-types.cjs
+      - name: Commit regenerated snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- supabase/database.types.ts scripts/supabase-types-manifest.json; then
+            echo "Generated snapshot already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          git commit -m "fix: sync Supabase types with clean replay"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
