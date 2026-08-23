@@ -49,10 +49,20 @@ describe('customer portal identity match-strength vocabulary', () => {
     expect(compatibility).toContain("new.match_strength := 'weak'")
     expect(convergence).toContain("set match_strength = 'weak'")
     expect(convergence).toContain("where match_strength = 'medium'")
-    expect(convergence).toContain("'strong'::text, 'weak'::text, 'manual'::text")
+    expect(convergence).toContain("new.match_strength := 'weak'")
     expect(convergence).toContain(
       'revoke all on function public.gridex_normalize_customer_portal_identity_match_strength()',
     )
-    expect(convergence).not.toMatch(/add constraint[\s\S]*'medium'/i)
+
+    const constraintStart = convergence.indexOf(
+      'add constraint customer_portal_identities_match_strength_check',
+    )
+    const constraintEnd = convergence.indexOf('));', constraintStart)
+    expect(constraintStart).toBeGreaterThanOrEqual(0)
+    expect(constraintEnd).toBeGreaterThan(constraintStart)
+
+    const constraintBlock = convergence.slice(constraintStart, constraintEnd + 3)
+    expect(constraintBlock).toContain("'strong'::text, 'weak'::text, 'manual'::text")
+    expect(constraintBlock).not.toContain("'medium'")
   })
 })
