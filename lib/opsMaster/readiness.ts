@@ -30,6 +30,7 @@ export type CustomerLegalAcceptance = {
   contract_id: string | null;
   contract_application_id: string | null;
   acceptance_type: string;
+  legal_bundle_version_document_id: string | null;
   legal_text_version_id: string | null;
   accepted_at: string;
   accepted_ip?: string | null;
@@ -217,7 +218,7 @@ export async function listCustomerLegalAcceptances(
   const { data, error } = await supabaseService
     .from("customer_legal_acceptances")
     .select(
-      "id,company_id,customer_id,contract_id,contract_application_id,acceptance_type,legal_text_version_id,accepted_at,accepted_ip,accepted_user_agent,source,snapshot,metadata,reason",
+      "id,company_id,customer_id,contract_id,contract_application_id,acceptance_type,legal_bundle_version_document_id,legal_text_version_id,accepted_at,accepted_ip,accepted_user_agent,source,snapshot,metadata,reason",
     )
     .eq("company_id", companyId)
     .eq("customer_id", customerId)
@@ -328,7 +329,10 @@ function normalizeLegalType(value: unknown): string {
 function hasAcceptance(rows: CustomerLegalAcceptance[], type: string): boolean {
   const wanted = normalizeLegalType(type);
   return rows.some((row) => {
-    if (!row.accepted_at || !row.legal_text_version_id) return false;
+    const hasImmutableLegalReference = Boolean(
+      row.legal_bundle_version_document_id || row.legal_text_version_id,
+    );
+    if (!row.accepted_at || !hasImmutableLegalReference) return false;
     if (normalizeLegalType(row.acceptance_type) === wanted) return true;
     const snapshot = jsonObj(row.snapshot);
     const metadata = jsonObj(row.metadata);
@@ -507,4 +511,3 @@ export function evaluateCustomerOpsMasterReadiness(input: {
     blockers, nextAction, siteReadiness,
   };
 }
-
