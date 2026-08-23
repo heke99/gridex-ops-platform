@@ -380,6 +380,47 @@ export async function markApplicationFailed(input: {
   return { id: input.applicationId };
 }
 
+type LoadedIdempotentApplication = {
+  id: string;
+  idempotency_key?: string | null;
+  payload_hash?: string | null;
+  business_key_hash?: string | null;
+  response_payload: Record<string, unknown> | null;
+  payload?: Record<string, unknown> | null;
+  status: string;
+  customer_id: string | null;
+  customer_number: string | null;
+  external_customer_id: string | null;
+  customer_site_id?: string | null;
+  metering_point_id?: string | null;
+  contract_id?: string | null;
+  warnings?: string[] | null;
+  error_stage?: string | null;
+  error_code?: string | null;
+  error_message?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+function hasCanonicalCommittedApplicationEvidence(
+  value: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!value) return false;
+  const communication = isObject(value.communication) ? value.communication : null;
+  return Boolean(
+    clean(value.workflow_state) === "canonical_data_committed" &&
+      clean(value.application_number) &&
+      clean(value.customer_number) &&
+      clean(communication?.source_of_truth) === "communication_logs",
+  );
+}
+
+function hasAcceptedCanonicalReplay(
+  value: Record<string, unknown> | null | undefined,
+): boolean {
+  return clean(value?.status) === "accepted" && hasCanonicalCommittedApplicationEvidence(value);
+}
+
 export async function loadIdempotentApplication(
   companyId: string,
   idempotencyKey: string | null,
@@ -395,27 +436,23 @@ export async function loadIdempotentApplication(
     .maybeSingle();
 
   if (error) throw error;
-  return data as {
-    id: string;
-    idempotency_key?: string | null;
-    payload_hash?: string | null;
-    business_key_hash?: string | null;
-    response_payload: Record<string, unknown> | null;
-    payload?: Record<string, unknown> | null;
-    status: string;
-    customer_id: string | null;
-    customer_number: string | null;
-    external_customer_id: string | null;
-    customer_site_id?: string | null;
-    metering_point_id?: string | null;
-    contract_id?: string | null;
-    warnings?: string[] | null;
-    error_stage?: string | null;
-    error_code?: string | null;
-    error_message?: string | null;
-    created_at?: string | null;
-    updated_at?: string | null;
-  } | null;
+  const row = data as LoadedIdempotentApplication | null;
+  if (!row) return null;
+
+  // The durable continuation hand-off intentionally stores the internal row as
+  // processing while the public POST contract has already been accepted. A
+  // same-key replay must not be mistaken for an in-flight reservation after
+  // canonical_data_committed has been persisted. Project it to a replayable
+  // committed business state for the idempotency decision only; the database
+  // row itself remains unchanged.
+  if (
+    row.status === "processing" &&
+    hasAcceptedCanonicalReplay(row.response_payload)
+  ) {
+    return { ...row, status: "contract_created" };
+  }
+
+  return row;
 }
 
 export function storedApplicationPayloadHash(
@@ -1047,12 +1084,15 @@ export function successResponse(
   data: Record<string, unknown>,
   warnings: string[] = [],
 ) {
+  const publicData = hasCanonicalCommittedApplicationEvidence(data)
+    ? { ...data, status: "accepted" }
+    : data;
   return {
     ok: true as const,
     status: 200,
     body: {
       data: {
-        ...data,
+        ...publicData,
         warnings,
       },
     },
