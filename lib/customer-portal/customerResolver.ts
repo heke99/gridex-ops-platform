@@ -10,6 +10,8 @@ export type CustomerPortalIdentifiers = {
   customerPortalUserId: string | null
 }
 
+export type PortalMatchStrength = 'strong' | 'weak' | 'manual'
+
 export type ResolvedPortalCustomer = {
   id: string | null
   company_id: string
@@ -19,7 +21,7 @@ export type ResolvedPortalCustomer = {
   email: string | null
   auth_user_id: string | null
   customer_portal_user_id: string | null
-  match_strength: string | null
+  match_strength: PortalMatchStrength | null
   match_method: string | null
   provider: string | null
   customer: Record<string, unknown>
@@ -49,6 +51,13 @@ export function isMissingPortalSchemaError(error: unknown): boolean {
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function canonicalPortalMatchStrength(value: unknown): PortalMatchStrength | null {
+  const strength = clean(value)?.toLowerCase() ?? null
+  if (strength === 'medium') return 'weak'
+  if (strength === 'strong' || strength === 'weak' || strength === 'manual') return strength
+  return null
 }
 
 function normalizeEmail(value: unknown): string | null {
@@ -256,7 +265,7 @@ async function customerByField(companyId: string, field: 'external_customer_id' 
       customerNumber: str(rows[0], 'customer_number'),
       email: normalizeEmail(rows[0].email),
       matchMethod: method,
-      matchStrength: field === 'email' ? 'medium' : 'strong',
+      matchStrength: field === 'email' ? 'weak' : 'strong',
       prefetchedCustomer: rows[0],
     })
   }
@@ -341,7 +350,7 @@ async function linkedByEmail(companyId: string, email: string): Promise<Resolved
       customerPortalUserId: str(row, 'customer_portal_user_id'),
       provider: str(row, 'provider') ?? 'customer_portal_identity',
       matchMethod: 'customer_portal_identities.email',
-      matchStrength: 'medium',
+      matchStrength: 'weak',
     })
   }
 
@@ -393,7 +402,7 @@ async function finishResolved(companyId: string, customerId: string, source: {
     email: normalizeEmail(source.email ?? merged.email),
     auth_user_id: source.authUserId ?? userId,
     customer_portal_user_id: source.customerPortalUserId ?? userId,
-    match_strength: source.matchStrength ?? null,
+    match_strength: canonicalPortalMatchStrength(source.matchStrength),
     match_method: source.matchMethod ?? null,
     provider: source.provider ?? null,
     customer: merged,
@@ -431,7 +440,7 @@ async function canonicalIdentityCandidate(
     customerNumber: row.customer_number,
     email: normalizeEmail(row.email),
     matchMethod: 'resolve_portal_customer_identity_v1',
-    matchStrength: highestScore > 1 ? 'strong' : 'medium',
+    matchStrength: highestScore > 1 ? 'strong' : 'weak',
     provider: 'canonical_portal_identity_resolver',
   })
 }
@@ -749,6 +758,7 @@ export async function resolvePortalCustomer(input: {
           id: linked.identityId ?? resolved.id,
           auth_user_id: userId,
           customer_portal_user_id: userId,
+          match_strength: 'strong',
           match_method: linked.matchMethod,
           provider: resolved.provider ?? 'customer_portal_accounts',
         },
