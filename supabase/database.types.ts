@@ -12591,7 +12591,7 @@ export type Database = {
           quote_hash: string | null
           quote_reference: string | null
           selected_component_references: string[]
-          snapshot_hash: string | null
+          snapshot_hash: string
           snapshot_json: Json
           snapshot_quality: string | null
           snapshot_schema_version: string | null
@@ -12630,7 +12630,7 @@ export type Database = {
           quote_hash?: string | null
           quote_reference?: string | null
           selected_component_references?: string[]
-          snapshot_hash?: string | null
+          snapshot_hash: string
           snapshot_json?: Json
           snapshot_quality?: string | null
           snapshot_schema_version?: string | null
@@ -12669,7 +12669,7 @@ export type Database = {
           quote_hash?: string | null
           quote_reference?: string | null
           selected_component_references?: string[]
-          snapshot_hash?: string | null
+          snapshot_hash?: string
           snapshot_json?: Json
           snapshot_quality?: string | null
           snapshot_schema_version?: string | null
