@@ -9,10 +9,9 @@ describe('website legal bundle public reference contract', () => {
       'utf8',
     )
 
-    expect(publicContracts).toContain(
-      'legal_bundle_reference: publicReference(',
+    expect(publicContracts).toMatch(
+      /legal_bundle_reference:\s*legalBundleVersionId\s*\?\s*publicReference\("legal_bundle",\s*input\.companyId,\s*legalBundleVersionId\)\s*:\s*null/,
     )
-    expect(publicContracts).toContain("'legal_bundle'")
     expect(publicContracts).toContain(
       'legal_bundle_version_id: legalBundleVersionId',
     )
