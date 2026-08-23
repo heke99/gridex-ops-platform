@@ -24,7 +24,7 @@ export type CustomerMatchSignal =
   | 'email'
   | 'phone'
 
-export type CustomerMatchStrength = 'strong' | 'medium' | 'weak'
+export type CustomerMatchStrength = 'strong' | 'weak'
 
 export type CustomerMatchOutcome = 'matched' | 'no_match' | 'ambiguous'
 
