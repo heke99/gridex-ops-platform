@@ -35,10 +35,13 @@ jobs:
           const expectedHash = 'dfe64adcb90fcba76c8f480e3be47111282a4e62632db85ffcef9f3419fa3acc';
 
           let text = fs.readFileSync(typesPath, 'utf8');
-          const tableStart = text.indexOf('      contract_price_snapshots: {');
+          const startMarker = '      contract_price_snapshots: {\n';
+          const tableStart = text.indexOf(startMarker);
           if (tableStart < 0) throw new Error('contract_price_snapshots type block not found');
-          const nextTable = text.indexOf('\n      ', tableStart + '      contract_price_snapshots: {'.length);
-          if (nextTable < 0) throw new Error('next table boundary not found');
+          const tailStart = tableStart + startMarker.length;
+          const nextMatch = /\n      [A-Za-z0-9_]+: \{\n/.exec(text.slice(tailStart));
+          if (!nextMatch) throw new Error('next table boundary not found');
+          const nextTable = tailStart + nextMatch.index;
 
           let block = text.slice(tableStart, nextTable);
           const rowOld = '          snapshot_hash: string | null';
@@ -46,7 +49,7 @@ jobs:
           const rowCount = block.split(rowOld).length - 1;
           const optionalCount = block.split(optionalOld).length - 1;
           if (rowCount !== 1 || optionalCount !== 2) {
-            throw new Error(`unexpected snapshot_hash signatures: row=${rowCount}, optional=${optionalCount}`);
+            throw new Error(`unexpected contract_price_snapshots signatures: row=${rowCount}, optional=${optionalCount}`);
           }
 
           block = block.replace(rowOld, '          snapshot_hash: string');
