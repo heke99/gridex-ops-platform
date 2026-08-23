@@ -766,6 +766,9 @@ export function validateIdempotencyKey(
 }
 
 const TOP_LEVEL_PAYLOAD_FIELDS = new Set([
+  // Canonical request keys come directly from the runtime schema so the raw-field
+  // guard cannot drift from the API contract when new canonical fields are added.
+  ...Object.keys(ApplicationSchema.shape),
   "actual_start_date",
   "address",
   "addressLine1",
