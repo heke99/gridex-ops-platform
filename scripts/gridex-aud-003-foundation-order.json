@@ -24,6 +24,8 @@
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
+    "bootstrap/20260521_batch_2b_control_tower_foundation.sql",
+    "bootstrap/20260521_batch_2c_control_tower_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
     "bootstrap/20260528_ediel_test_run_steps_foundation.sql",
