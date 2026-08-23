@@ -28,6 +28,18 @@ describe('derivePowerOfAttorneyLifecycleStatus', () => {
     expect(derivePowerOfAttorneyLifecycleStatus(poa(), { now: NOW })).toBe('valid')
   })
 
+  it('accepts canonical legal bundle document evidence without a legacy legal text id', () => {
+    const canonicalOnly = poa({
+      signed_at: null,
+      accepted_at: null,
+      document_path: null,
+      legal_text_version_id: null,
+      legal_bundle_version_document_id: '85a3e38c-0199-4de1-9a0e-d34d8b0e81a5',
+    })
+    expect(hasLegalPoaAcceptance(canonicalOnly)).toBe(true)
+    expect(derivePowerOfAttorneyLifecycleStatus(canonicalOnly, { now: NOW })).toBe('valid')
+  })
+
   it('returns signed for an accepted POA whose validity has not started yet', () => {
     expect(
       derivePowerOfAttorneyLifecycleStatus(poa({ valid_from: '2026-06-01' }), { now: NOW }),
