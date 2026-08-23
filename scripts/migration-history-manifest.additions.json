@@ -7,7 +7,7 @@
     "20260806151106_gridex_aud_001_customer_document_storage_isolation.sql": "0d51528c3d7dcb8e2bd2c92cb8d83eea9212438232d25bb5422158be43d46d16",
     "20260806152004_gridex_aud_001_storage_helper_private_schema.sql": "ae8274a9a37a1ecf672ae1257ee225619fbc48369aaf929af5f07f63e8241d5f",
     "20260808214500_grid_owner_direct_actor_join_performance.sql": "c5b1eb1c23f6423845ac3b93053d997c9244112dd7d2376183b0e550ed9bfd43",
-    "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37d69b37adcc3",
+    "20260809110000_ops_health_status_qualification.sql": "a84abad61c7c931e93d2aa1298d54d7cd6dc7cefe80455e0fcbaa6120ef9f7",
     "20260809114500_ediel_certificate_status_consistency.sql": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
     "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
     "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
@@ -108,6 +108,8 @@
     "20260822223013_tenant_api_bundle_operation_entitlement.sql": "f688adb455470e429fd7ea1258cbcc357dced30b367dd450ad4a991b9967b7f2",
     "20260822224708_canonical_ediel_production_projection_convergence.sql": "a9330b1bacc86aaad5ec6993b3517e5dd7152158f7b3f588dfff9a4bd8645e75",
     "20260823185028_fix_customer_process_summary_intake_status.sql": "f4ab87439782e875a86d207c5317ee16579603e58feb7e91bb6d05ec79e44d13",
-    "20260823185352_align_customer_contract_quarterly_type.sql": "2df8c0d3495b173828a476dd112a3a0be9a22d41996e31f01e9d335b44541bec"
+    "20260823185352_align_customer_contract_quarterly_type.sql": "2df8c0d3495b173828a476dd112a3a0be9a22d41996e31f01e9d335b44541bec",
+    "20260823201059_normalize_customer_portal_identity_match_strength.sql": "7ebdcad7d33cf0581a54ca806a68e04d1d4c11235b57ef34827cb03b7a4ba349",
+    "20260823201716_canonical_customer_portal_match_strength_convergence.sql": "525a8f3a2587cb4c0375c01caa5868cd84036b635618c5bd048d2dd8f98dd819"
   }
 }
