@@ -42,11 +42,8 @@ jobs:
           const path = 'scripts/supabase-types-manifest.json'
           const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
           if (manifest.sha256 !== process.env.GENERATED_HASH) {
-            manifest.generated_at_utc = new Date().toISOString()
+            manifest.generated_at = new Date().toISOString()
           }
-          manifest.generated_with = 'supabase-cli-2.101.0-clean-replay'
-          manifest.source = 'clean-replay'
-          manifest.latest_migration = '20260822110000'
           manifest.sha256 = process.env.GENERATED_HASH
           fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
           NODE
