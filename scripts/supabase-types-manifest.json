@@ -1,8 +1,8 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-21T15:57:26.933Z",
+  "generated_at": "2026-08-23T14:31:00.843Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "2c044c8734776fa5ffa981a0db9aaaad1f0e8a3eaec1f6abca89e37f23f1e7e9",
+  "sha256": "6253b176ea606d4e241120561f8772378f1413056e9da134d2a1eb940ff06ba2",
   "latest_migration": "20260822224708_canonical_ediel_production_projection_convergence.sql"
 }
