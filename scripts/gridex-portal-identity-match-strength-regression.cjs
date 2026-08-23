@@ -38,9 +38,19 @@ const convergenceMigration = fs.readFileSync(
 );
 assert.match(convergenceMigration, /set match_strength = 'weak'/);
 assert.match(convergenceMigration, /where match_strength = 'medium'/);
-assert.match(convergenceMigration, /'strong'::text, 'weak'::text, 'manual'::text/);
 assert.match(convergenceMigration, /new\.match_strength := 'weak'/);
 assert.match(convergenceMigration, /revoke all on function public\.gridex_normalize_customer_portal_identity_match_strength\(\)/);
-assert.doesNotMatch(convergenceMigration, /add constraint[\s\S]*'medium'/i);
+
+const constraintStart = convergenceMigration.indexOf(
+  "add constraint customer_portal_identities_match_strength_check",
+);
+const constraintEnd = convergenceMigration.indexOf("));", constraintStart);
+assert.ok(
+  constraintStart >= 0 && constraintEnd > constraintStart,
+  "canonical customer_portal_identities match-strength constraint must exist",
+);
+const constraintBlock = convergenceMigration.slice(constraintStart, constraintEnd + 3);
+assert.match(constraintBlock, /'strong'::text, 'weak'::text, 'manual'::text/);
+assert.doesNotMatch(constraintBlock, /'medium'/);
 
 console.log("portal identity match strength end-to-end regression passed");
