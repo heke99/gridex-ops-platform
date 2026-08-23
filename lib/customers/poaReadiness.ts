@@ -37,15 +37,16 @@ export function poaStatusIsAccepted(poa: PoaLike | null | undefined): boolean {
 }
 
 // Legally accepted: an accepted status plus at least one piece of acceptance
-// evidence (accepted_at/signed_at, a legal text version, or an evidence/
-// snapshot payload). This proves the customer agreed, independent of whether
-// the document is ready to be mailed externally.
+// evidence (accepted_at/signed_at, a canonical legal-bundle document, a legacy
+// legal text version, or an evidence/snapshot payload). This proves the customer
+// agreed, independent of whether the document is ready to be mailed externally.
 export function hasLegalPoaAcceptance(poa: PoaLike | null | undefined): boolean {
   if (!poa) return false
   if (!poaStatusIsAccepted(poa)) return false
   return Boolean(
     clean(poa.accepted_at) ||
       clean(poa.signed_at) ||
+      clean(poa.legal_bundle_version_document_id) ||
       clean(poa.legal_text_version_id) ||
       isNonEmptyObject(poa.evidence_payload) ||
       isNonEmptyObject(poa.fullmakt_snapshot),
