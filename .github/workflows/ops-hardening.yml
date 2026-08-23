@@ -3,8 +3,6 @@ on:
   pull_request:
   push:
     branches: [main]
-permissions:
-  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -79,8 +77,6 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -105,28 +101,6 @@ jobs:
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
           MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
           echo "generated_types_sha256=$GENERATED_HASH"
-
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.number }}" == "200" ]]; then
-            if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]] || ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
-              cp rem002-database.types.ts supabase/database.types.ts
-              GENERATED_HASH="$GENERATED_HASH" node <<'NODE'
-          const fs = require('fs');
-          const path = 'scripts/supabase-types-manifest.json';
-          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
-          manifest.sha256 = process.env.GENERATED_HASH;
-          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
-          NODE
-              git config user.name 'gridex-ci'
-              git config user.email 'gridex-ci@users.noreply.github.com'
-              git add supabase/database.types.ts scripts/supabase-types-manifest.json
-              if ! git diff --cached --quiet; then
-                git commit -m 'fix: sync generated Supabase types [pr200-type-sync]'
-                git push origin HEAD:${{ github.event.pull_request.head.ref }}
-              fi
-              MANIFEST_HASH="$GENERATED_HASH"
-            fi
-          fi
-
           if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
             echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
             exit 1
