@@ -106,6 +106,8 @@
     "20260822103821_non_expiring_website_quotes.sql": "0e7999289464d362c232ec811dabc5ea146c4be5c5cf902b3126dd01e43f5a1d",
     "20260822130000_utilts_aperak_contrl_central_engine.sql": "c6ba1caddd5105a83755da68d31184b858107f70ff4eddd0d1a67223abcd5dd0",
     "20260822223013_tenant_api_bundle_operation_entitlement.sql": "f688adb455470e429fd7ea1258cbcc357dced30b367dd450ad4a991b9967b7f2",
-    "20260822224708_canonical_ediel_production_projection_convergence.sql": "a9330b1bacc86aaad5ec6993b3517e5dd7152158f7b3f588dfff9a4bd8645e75"
+    "20260822224708_canonical_ediel_production_projection_convergence.sql": "a9330b1bacc86aaad5ec6993b3517e5dd7152158f7b3f588dfff9a4bd8645e75",
+    "20260823185028_fix_customer_process_summary_intake_status.sql": "f4ab87439782e875a86d207c5317ee16579603e58feb7e91bb6d05ec79e44d13",
+    "20260823185352_align_customer_contract_quarterly_type.sql": "2df8c0d3495b173828a476dd112a3a0be9a22d41996e31f01e9d335b44541bec"
   }
 }
