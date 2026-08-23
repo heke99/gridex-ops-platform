@@ -21,12 +21,26 @@ assert.doesNotMatch(resolver, /\? 'strong' : 'medium'/);
 assert.match(resolver, /match_strength: canonicalPortalMatchStrength\(source\.matchStrength\)/);
 assert.match(resolver, /match_strength: 'strong'/);
 
-const migration = fs.readFileSync(
+const matchingService = fs.readFileSync("lib/customers/matchingService.ts", "utf8");
+assert.match(matchingService, /export type CustomerMatchStrength = 'strong' \| 'weak'/);
+assert.doesNotMatch(matchingService, /CustomerMatchStrength = [^\n]*medium/);
+
+const compatibilityMigration = fs.readFileSync(
   "supabase/migrations/20260823201059_normalize_customer_portal_identity_match_strength.sql",
   "utf8",
 );
-assert.match(migration, /new\.match_strength = 'medium'/);
-assert.match(migration, /new\.match_strength := 'weak'/);
-assert.doesNotMatch(migration, /add constraint[\s\S]*'medium'/i);
+assert.match(compatibilityMigration, /new\.match_strength = 'medium'/);
+assert.match(compatibilityMigration, /new\.match_strength := 'weak'/);
+
+const convergenceMigration = fs.readFileSync(
+  "supabase/migrations/20260823201716_canonical_customer_portal_match_strength_convergence.sql",
+  "utf8",
+);
+assert.match(convergenceMigration, /set match_strength = 'weak'/);
+assert.match(convergenceMigration, /where match_strength = 'medium'/);
+assert.match(convergenceMigration, /'strong'::text, 'weak'::text, 'manual'::text/);
+assert.match(convergenceMigration, /new\.match_strength := 'weak'/);
+assert.match(convergenceMigration, /revoke all on function public\.gridex_normalize_customer_portal_identity_match_strength\(\)/);
+assert.doesNotMatch(convergenceMigration, /add constraint[\s\S]*'medium'/i);
 
 console.log("portal identity match strength end-to-end regression passed");
