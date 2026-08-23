@@ -1,0 +1,66 @@
+name: One-shot website application whitelist repair
+
+on:
+  push:
+    branches:
+      - fix/website-application-schema-whitelist-20260823
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Patch canonical payload field coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          schema_path = Path('lib/website/customerApplicationSchemas.ts')
+          text = schema_path.read_text()
+          needle = 'const TOP_LEVEL_PAYLOAD_FIELDS = new Set([\n'
+          replacement = 'const TOP_LEVEL_PAYLOAD_FIELDS = new Set([\n  // Canonical request keys come directly from the runtime schema so the raw-field\n  // guard cannot drift from the API contract when new canonical fields are added.\n  ...Object.keys(ApplicationSchema.shape),\n'
+          if replacement not in text:
+              if needle not in text:
+                  raise SystemExit('TOP_LEVEL_PAYLOAD_FIELDS declaration not found')
+              text = text.replace(needle, replacement, 1)
+              schema_path.write_text(text)
+
+          test_path = Path('__tests__/website-application-payload-field-contract.test.ts')
+          test_path.write_text('''import { readFileSync } from "node:fs"\nimport { describe, expect, it } from "vitest"\n\nconst read = (path: string) => readFileSync(path, "utf8")\n\ndescribe("website customer application raw payload contract", () => {\n  it("derives canonical top-level field coverage from ApplicationSchema", () => {\n    const schemas = read("lib/website/customerApplicationSchemas.ts")\n    expect(schemas).toContain("...Object.keys(ApplicationSchema.shape),")\n    expect(schemas).toContain("(key) => !TOP_LEVEL_PAYLOAD_FIELDS.has(key)")\n    expect(schemas).toContain('code: "unknown_field"')\n  })\n\n  it("keeps settlement and resolution binding in the published customer application contract", () => {\n    const openApi = JSON.parse(read("docs/openapi/website-integration-v1.json"))\n    const application = openApi.components.schemas.CustomerApplicationRequest\n\n    expect(application.additionalProperties).toBe(false)\n    expect(application.properties).toHaveProperty("settlement")\n    expect(application.properties).toHaveProperty("resolution_id")\n    expect(application.required).toEqual(expect.arrayContaining(["settlement", "resolution_id"]))\n  })\n})\n''')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused contract regressions
+        run: npx vitest run __tests__/website-application-payload-field-contract.test.ts __tests__/website-application-settlement-contract.test.ts __tests__/quote-validation-api-contract.test.ts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Verify API runtime parity
+        run: npm run api:runtime:parity
+
+      - name: Remove one-shot workflow and commit repair
+        shell: bash
+        run: |
+          rm -f .github/workflows/one-shot-fix-website-application-whitelist.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/website/customerApplicationSchemas.ts __tests__/website-application-payload-field-contract.test.ts .github/workflows/one-shot-fix-website-application-whitelist.yml
+          git commit -m "fix: keep website application whitelist aligned with schema"
+          git push origin HEAD:fix/website-application-schema-whitelist-20260823
