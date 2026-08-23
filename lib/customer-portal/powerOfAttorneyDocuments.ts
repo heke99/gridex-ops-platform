@@ -63,6 +63,7 @@ function documentPayload(row: PoaRow, context: PortalCustomerContext) {
       valid_from: text(row.valid_from),
       valid_to: text(row.valid_to),
       valid_until: text(row.valid_until),
+      legal_bundle_version_document_id: text(row.legal_bundle_version_document_id),
       legal_text_version_id: text(row.legal_text_version_id),
       snapshot,
     },
@@ -85,8 +86,8 @@ function documentPayload(row: PoaRow, context: PortalCustomerContext) {
 
 async function loadSignedPowersOfAttorney(context: PortalCustomerContext): Promise<PoaRow[]> {
   const selects = [
-    'id,company_id,customer_id,customer_number,external_customer_id,contract_id,customer_contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,fullmakt_snapshot,metadata,reference,created_at',
-    'id,company_id,customer_id,contract_id,customer_site_id,site_id,scope,status,signed_at,accepted_at,fullmakt_snapshot,metadata,reference,created_at',
+    'id,company_id,customer_id,customer_number,external_customer_id,contract_id,customer_contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_bundle_version_document_id,legal_text_version_id,fullmakt_snapshot,metadata,reference,created_at',
+    'id,company_id,customer_id,contract_id,customer_site_id,site_id,scope,status,signed_at,accepted_at,legal_bundle_version_document_id,legal_text_version_id,fullmakt_snapshot,metadata,reference,created_at',
     'id,company_id,customer_id,site_id,scope,status,signed_at,reference,created_at',
   ]
 
