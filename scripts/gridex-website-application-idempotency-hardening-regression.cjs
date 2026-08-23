@@ -57,6 +57,18 @@ expect(intake.includes("'application_business_in_progress'"), 'same business eve
 expect(intake.includes("'application_business_conflict'"), 'same customer/site/offer/start business event cannot create a parallel application')
 expect(intake.includes('applicationBusinessKeyHash') && intake.includes('business_key_hash'), 'business duplicate policy uses a stable indexed key')
 
+// A durable continuation hand-off intentionally keeps the internal database row
+// in processing while the public POST has already returned accepted. Exact
+// same-key replay must recognize the committed response evidence and return the
+// same public accepted contract instead of a false idempotency_in_progress 409.
+expect(intake.includes('hasCanonicalCommittedApplicationEvidence'), 'durable accepted replay is identified from canonical commit evidence')
+expect(intake.includes('hasAcceptedCanonicalReplay'), 'accepted replay helper distinguishes committed processing from an active reservation')
+expect(intake.includes("row.status === 'processing'"), 'internal processing state is explicitly handled for idempotent replay')
+expect(intake.includes("return { ...row, status: 'contract_created' }"), 'committed processing row is projected to a replayable internal business state')
+expect(intake.includes("? { ...data, status: 'accepted' }"), 'public success replay normalizes canonical committed evidence back to accepted')
+expect(intake.includes("clean(value.workflow_state) === 'canonical_data_committed'"), 'accepted replay requires the durable canonical workflow commit marker')
+expect(intake.includes("clean(communication?.source_of_truth) === 'communication_logs'"), 'accepted replay requires canonical communication source-of-truth evidence')
+
 expect(intake.includes("code: 'requested_start_mode_invalid'"), 'requested_start_mode is enum validated')
 expect(intake.includes("code: 'date_invalid'"), 'calendar dates are validated')
 expect(intake.includes("code: 'timestamp_invalid'"), 'POA acceptedAt timestamp is validated')
