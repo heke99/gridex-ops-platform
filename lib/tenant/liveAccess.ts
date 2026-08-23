@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { isPlatformAdminContext, type GuardResult } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { isCompanyProductionApproved } from '@/lib/tenant/companyProductionStatus'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 
 export type TenantLiveAccess = {
@@ -14,12 +15,18 @@ export type TenantLiveAccess = {
   message: string | null
 }
 
-function isLiveCompany(row: {
+type CanonicalLiveCompanyRow = {
+  id?: string | null
+  name?: string | null
+  ediel_production_status?: string | null
+  ediel_production_enabled?: boolean | null
   live_ediel_enabled?: boolean | null
-  production_status?: string | null
   live_approved_at?: string | null
-} | null): boolean {
-  return Boolean(row?.live_ediel_enabled === true && row?.production_status === 'live' && row?.live_approved_at)
+  live_blocked_reason?: string | null
+}
+
+function isLiveCompany(row: CanonicalLiveCompanyRow | null): boolean {
+  return isCompanyProductionApproved(row ?? {})
 }
 
 export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'>): Promise<TenantLiveAccess> {
@@ -52,7 +59,7 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
 
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id,name,live_ediel_enabled,production_status,live_approved_at,live_blocked_reason')
+    .select('id,name,ediel_production_status,ediel_production_enabled,live_ediel_enabled,live_approved_at,live_blocked_reason')
     .eq('id', scope.companyId)
     .maybeSingle()
 
@@ -73,15 +80,7 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
 
     throw error
   }
-  const row = data as {
-    id: string
-    name: string | null
-    live_ediel_enabled: boolean | null
-    production_status: string | null
-    live_approved_at: string | null
-    live_blocked_reason: string | null
-  } | null
-
+  const row = data as CanonicalLiveCompanyRow | null
   const isLiveApproved = isLiveCompany(row)
 
   return {
@@ -89,7 +88,7 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
     companyName: row?.name ?? scope.companyName,
     canUseLiveEdiel: isLiveApproved,
     isLiveApproved,
-    productionStatus: row?.production_status ?? null,
+    productionStatus: row?.ediel_production_status ?? null,
     liveApprovedAt: row?.live_approved_at ?? null,
     liveBlockedReason: row?.live_blocked_reason ?? null,
     message: isLiveApproved
@@ -109,17 +108,12 @@ export async function assertTenantCanUseLiveEdiel(admin: Pick<GuardResult, 'user
 export async function assertCompanyLiveEdielForOutbound(companyId: string): Promise<void> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id,live_ediel_enabled,production_status,live_approved_at,live_blocked_reason')
+    .select('id,ediel_production_status,ediel_production_enabled,live_ediel_enabled,live_approved_at,live_blocked_reason')
     .eq('id', companyId)
     .maybeSingle()
 
   if (error) throw error
-  const row = data as {
-    live_ediel_enabled?: boolean | null
-    production_status?: string | null
-    live_approved_at?: string | null
-    live_blocked_reason?: string | null
-  } | null
+  const row = data as CanonicalLiveCompanyRow | null
 
   if (!isLiveCompany(row)) {
     throw new Error(row?.live_blocked_reason || 'Live Ediel är inte aktiverat av superadmin för detta bolag. Skicka inte produktionsmeddelanden innan go-live är godkänd.')
