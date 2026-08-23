@@ -536,8 +536,7 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
           tenant_communication_snapshot_sha256: company.snapshotSha256,
           contract_publication_version_id:
             input.publicOffer?.contract_publication_version_id ?? null,
-          price_plan_version_id:
-            input.publicOffer?.price_plan_version_id ?? null,
+          price_plan_version_id: input.publicOffer?.price_plan_version_id ?? null,
           legal_bundle_version_id:
             input.publicOffer?.legal_bundle_version_id ?? null,
           external_customer_id: input.externalCustomerId,
@@ -683,7 +682,7 @@ export async function upsertPortalIdentity(input: {
     match_strength:
       input.applicationId && (input.authUserId || input.customerPortalUserId)
         ? "strong"
-        : "medium",
+        : "weak",
     match_method:
       input.applicationId && (input.authUserId || input.customerPortalUserId)
         ? "verified_portal_and_legal_identity"
