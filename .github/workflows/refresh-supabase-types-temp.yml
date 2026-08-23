@@ -4,19 +4,23 @@ on:
   push:
     branches:
       - fix/supabase-types-clean-replay-drift-20260823
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   refresh-types:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name != 'pull_request' || github.head_ref == 'fix/supabase-types-clean-replay-drift-20260823')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -56,8 +60,9 @@ jobs:
             echo "Generated snapshot already current."
             exit 0
           fi
+          TARGET_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add supabase/database.types.ts scripts/supabase-types-manifest.json
           git commit -m "fix: sync Supabase types with clean replay"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${TARGET_BRANCH}"
