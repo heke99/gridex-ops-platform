@@ -1,0 +1,79 @@
+name: PR200 Type Sync
+
+on:
+  push:
+    branches:
+      - fix/contract-price-snapshot-hash-integrity-20260823
+
+permissions:
+  contents: write
+
+jobs:
+  sync-generated-types:
+    if: ${{ !contains(github.event.head_commit.message, '[pr200-type-sync]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/contract-price-snapshot-hash-integrity-20260823
+          fetch-depth: 0
+
+      - name: Sync generated Supabase types and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+
+          const typesPath = 'supabase/database.types.ts';
+          const manifestPath = 'scripts/supabase-types-manifest.json';
+          const expectedHash = 'dfe64adcb90fcba76c8f480e3be47111282a4e62632db85ffcef9f3419fa3acc';
+
+          let text = fs.readFileSync(typesPath, 'utf8');
+          const tableStart = text.indexOf('      contract_price_snapshots: {');
+          if (tableStart < 0) throw new Error('contract_price_snapshots type block not found');
+          const nextTable = text.indexOf('\n      ', tableStart + '      contract_price_snapshots: {'.length);
+          if (nextTable < 0) throw new Error('next table boundary not found');
+
+          let block = text.slice(tableStart, nextTable);
+          const rowOld = '          snapshot_hash: string | null';
+          const optionalOld = '          snapshot_hash?: string | null';
+          const rowCount = block.split(rowOld).length - 1;
+          const optionalCount = block.split(optionalOld).length - 1;
+          if (rowCount !== 1 || optionalCount !== 2) {
+            throw new Error(`unexpected snapshot_hash signatures: row=${rowCount}, optional=${optionalCount}`);
+          }
+
+          block = block.replace(rowOld, '          snapshot_hash: string');
+          block = block.replace(optionalOld, '          snapshot_hash: string');
+          block = block.replace(optionalOld, '          snapshot_hash?: string');
+          text = text.slice(0, tableStart) + block + text.slice(nextTable);
+          fs.writeFileSync(typesPath, text);
+
+          const actualHash = crypto.createHash('sha256').update(fs.readFileSync(typesPath)).digest('hex');
+          if (actualHash !== expectedHash) {
+            throw new Error(`generated types hash mismatch: expected ${expectedHash}, got ${actualHash}`);
+          }
+
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          manifest.sha256 = expectedHash;
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+
+          git diff --check
+          git diff -- supabase/database.types.ts scripts/supabase-types-manifest.json
+
+      - name: Commit synchronized generated types
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- supabase/database.types.ts scripts/supabase-types-manifest.json; then
+            echo 'Types already synchronized.'
+            exit 0
+          fi
+          git config user.name 'gridex-ci'
+          git config user.email 'gridex-ci@users.noreply.github.com'
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          git commit -m 'fix: sync generated Supabase types [pr200-type-sync]'
+          git push origin HEAD:fix/contract-price-snapshot-hash-integrity-20260823
