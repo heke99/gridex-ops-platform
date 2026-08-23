@@ -1,9 +1,6 @@
 name: Refresh Supabase clean replay types temporary
 
 on:
-  push:
-    branches:
-      - fix/supabase-types-clean-replay-drift-20260823
   pull_request:
     branches:
       - main
@@ -13,14 +10,13 @@ permissions:
 
 jobs:
   refresh-types:
-    if: github.actor != 'github-actions[bot]' && (github.event_name != 'pull_request' || github.head_ref == 'fix/supabase-types-clean-replay-drift-20260823')
+    if: github.actor != 'github-actions[bot]' && github.head_ref == 'fix/supabase-types-clean-replay-drift-20260823'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -31,15 +27,25 @@ jobs:
           source scripts/gridex-aud-003-clean-replay.sh
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
-          supabase gen types typescript --local > supabase/database.types.ts
-          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
-          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
-          EXPECTED_HASH="62531f7aba4df59cf3d49ec51cf36bddcabce78de68a6d68b258dae8979ea90c"
+          supabase gen types typescript --local > /tmp/rem002-database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs /tmp/rem002-database.types.ts
+          GENERATED_HASH="$(sha256sum /tmp/rem002-database.types.ts | awk '{print $1}')"
+          EXPECTED_HASH="6253b176ea606d4e241120561f8772378f1413056e9da134d2a1eb940ff06ba2"
           echo "generated_types_sha256=$GENERATED_HASH"
           if [[ "$GENERATED_HASH" != "$EXPECTED_HASH" ]]; then
             echo "Refusing to commit unexpected generated types: $GENERATED_HASH != $EXPECTED_HASH" >&2
             exit 1
           fi
+          cp /tmp/rem002-database.types.ts /tmp/verified-database.types.ts
+      - name: Commit verified snapshot to PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_BRANCH="$GITHUB_HEAD_REF"
+          git fetch origin "$TARGET_BRANCH"
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+          cp /tmp/verified-database.types.ts supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
           export GENERATED_HASH
           node <<'NODE'
           const fs = require('node:fs')
@@ -52,17 +58,12 @@ jobs:
           fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
           NODE
           node scripts/check-supabase-generated-types.cjs
-      - name: Commit regenerated snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
           if git diff --quiet -- supabase/database.types.ts scripts/supabase-types-manifest.json; then
             echo "Generated snapshot already current."
             exit 0
           fi
-          TARGET_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add supabase/database.types.ts scripts/supabase-types-manifest.json
           git commit -m "fix: sync Supabase types with clean replay"
-          git push origin "HEAD:${TARGET_BRANCH}"
+          git push origin "HEAD:$TARGET_BRANCH"
