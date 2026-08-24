@@ -6,6 +6,7 @@ import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-oper
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
+import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,17 @@ async function run(request: NextRequest) {
         message: automationUserConfig.message,
       })
     }
+
+    // Resolve exact address dependencies BEFORE continuation jobs run. The
+    // resolver is dormant until Lantmäteriet credentials exist. Once enabled,
+    // it stores only address/geodata evidence, maps the exact SWEREF99 point to
+    // the existing SVK polygon master, and wakes the SAME idempotent customer
+    // job when the canonical grid owner is verified. Postal candidates never
+    // become canonical through this path.
+    const exactAddressResolution = await processPendingExactAddressResolutions({
+      limit: Math.min(requestedLimit, 5),
+    })
+
     const customerApplicationReconciliation = await reconcileCustomerApplicationContinuationJobs({
       limit: Math.min(requestedLimit * 2, 100),
     })
@@ -73,6 +85,7 @@ async function run(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       result: {
+        exactAddressResolution,
         customerApplicationReconciliation,
         customerOperations,
         facilityLookupDispatch,
