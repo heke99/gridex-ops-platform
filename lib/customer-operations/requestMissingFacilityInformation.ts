@@ -82,18 +82,46 @@ async function blockForUnverifiedCanonicalGridOwner(input: RequestInput, message
   } as RequestResult
 }
 
+async function hasSiteSpecificVerifiedGridOwner(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  resolutionId: string | null
+  gridOwnerId: string
+}): Promise<boolean> {
+  if (!input.resolutionId) return false
+  const resolution = await supabaseService
+    .from('customer_site_resolution')
+    .select('id,customer_id,customer_site_id,grid_owner_id,resolution_status,automation_allowed')
+    .eq('id', input.resolutionId)
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('customer_site_id', input.siteId)
+    .maybeSingle()
+  if (resolution.error) throw resolution.error
+  const row = resolution.data as JsonRecord | null
+  return Boolean(
+    row?.id
+    && clean(row.grid_owner_id) === input.gridOwnerId
+    && clean(row.resolution_status) === 'manual_verified'
+    && row.automation_allowed === true,
+  )
+}
+
 /**
  * Public facility-information orchestrator.
  *
  * selected_grid_owner_id is only a candidate for review. External communication
  * requires the exact site to carry a canonical grid_owner_id that points to a
- * customer-flow verified grid owner. The database manual-email outbox trigger
- * enforces the same invariant again at the transport boundary.
+ * customer-flow verified grid owner. A technical-only owner may be used only
+ * when the exact customer/site resolution has an explicit manual_verified
+ * record with automation_allowed=true. The database transport trigger enforces
+ * the same invariant again at queue time.
  */
 export async function requestMissingFacilityInformation(input: RequestInput): Promise<RequestResult> {
   const siteResult = await supabaseService
     .from('customer_sites')
-    .select('id,grid_owner_id,selected_grid_owner_id,resolution_status')
+    .select('id,grid_owner_id,selected_grid_owner_id,resolution_status,resolution_id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('id', input.siteId)
@@ -116,11 +144,23 @@ export async function requestMissingFacilityInformation(input: RequestInput): Pr
     .maybeSingle()
   if (ownerResult.error) throw ownerResult.error
   const owner = ownerResult.data as JsonRecord | null
+  const baseOwnerReady = Boolean(
+    owner?.id
+    && owner.verified_for_customer_flow === true
+    && clean(owner.verification_status) === 'verified',
+  )
+  const siteSpecificVerified = baseOwnerReady && owner?.technical_owner_only === true
+    ? await hasSiteSpecificVerifiedGridOwner({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        siteId: input.siteId,
+        resolutionId: clean(siteResult.data.resolution_id),
+        gridOwnerId: canonicalGridOwnerId,
+      })
+    : false
   const ownerReady = Boolean(
-    owner?.id &&
-    owner.verified_for_customer_flow === true &&
-    owner.technical_owner_only !== true &&
-    clean(owner.verification_status) === 'verified',
+    baseOwnerReady
+    && (owner?.technical_owner_only !== true || siteSpecificVerified),
   )
   if (!ownerReady) {
     return blockForUnverifiedCanonicalGridOwner(
