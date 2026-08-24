@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { isSchemaError } from '@/lib/http/apiError'
+import { getSignedPowerOfAttorneyCoverage } from '@/lib/operations/powerOfAttorneyWorkflow'
 
 export type ProvisioningStep =
   | 'application_persisted'
@@ -36,6 +37,50 @@ export async function recordProvisioningStep(input: {
   }
 }
 
+async function canonicalProvisioningSnapshot(input: {
+  companyId: string
+  customerId: string
+  powerOfAttorneyId?: string | null
+  snapshot: Record<string, unknown>
+}) {
+  const powerOfAttorneyId = clean(input.powerOfAttorneyId)
+  if (!powerOfAttorneyId) {
+    return {
+      ...input.snapshot,
+      poa_externally_sendable: false,
+      poa_canonical_verified: false,
+    }
+  }
+
+  const signed = await getSignedPowerOfAttorneyCoverage({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    powerOfAttorneyId,
+  })
+  if (!signed) {
+    return {
+      ...input.snapshot,
+      poa_externally_sendable: false,
+      poa_canonical_verified: false,
+    }
+  }
+
+  // The workflow must trust the immutable canonical POA that was actually
+  // persisted, not a stale pre-commit boolean from the website payload. A
+  // signed supplier-switch scope is sufficient for the external switch flow;
+  // facility_information_lookup additionally covers metering/facility lookup.
+  const supplierSwitchScope = signed.signedScopes.some(
+    (scope) => scope.trim().toLowerCase() === 'supplier_switch',
+  )
+  return {
+    ...input.snapshot,
+    poa_externally_sendable: supplierSwitchScope,
+    poa_canonical_verified: true,
+    poa_signed_scopes: signed.signedScopes,
+    poa_coverage: signed.coverage,
+  }
+}
+
 export async function commitApplicationProvisioning(input: {
   companyId: string
   applicationId: string
@@ -48,6 +93,12 @@ export async function commitApplicationProvisioning(input: {
   snapshot: Record<string, unknown>
 }): Promise<{ operationId: string; state: string; workflowId: string | null; continuationJobId: string | null }> {
   const operationId = randomUUID()
+  const snapshot = await canonicalProvisioningSnapshot({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    powerOfAttorneyId: input.powerOfAttorneyId,
+    snapshot: input.snapshot,
+  })
   const { data, error } = await supabaseService.rpc('gridex_commit_customer_application_provisioning', {
     p_company_id: input.companyId,
     p_customer_application_id: input.applicationId,
@@ -58,7 +109,7 @@ export async function commitApplicationProvisioning(input: {
     p_power_of_attorney_id: clean(input.powerOfAttorneyId),
     p_operation_id: operationId,
     p_state: input.desiredState,
-    p_snapshot: input.snapshot,
+    p_snapshot: snapshot,
   })
   if (error) {
     if (isSchemaError(error)) throw new Error('Kundansökans atomiska commit saknas. Kör den senaste OPS-migrationen innan automation startas.')
