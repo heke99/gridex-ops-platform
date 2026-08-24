@@ -18,7 +18,7 @@ function mustNotInclude(file, needle, why) {
   if (read(file).includes(needle)) failures.push(`Forbidden "${needle}" in ${file} (${why})`)
 }
 
-const rmfi = 'lib/customer-operations/requestMissingFacilityInformation.ts'
+const rmfi = 'lib/customer-operations/requestMissingFacilityInformationCore.ts'
 const outbox = 'lib/email/manualEmailOutbox.ts'
 const parser = 'lib/customer-operations/manualFacilityResponseParser.ts'
 const orchestrator = 'lib/customer-operations/customerIntakeOrchestrator.ts'
