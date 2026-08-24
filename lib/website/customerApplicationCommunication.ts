@@ -6,7 +6,11 @@ import { supabaseService } from "@/lib/supabase/service";
 import { triggerEmailEvent } from "@/lib/email/emailEvents";
 import { legalAcceptanceTypeForModule, type PublicContractOffer } from "@/lib/website/publicContracts";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
-import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
+import {
+  archiveSignedCustomerContractPdf,
+  downloadAndVerifyCustomerContractDocument,
+  type CustomerContractDocumentRow,
+} from "@/lib/customer-contracts/documents";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
 import { buildCustomerLegalAcceptanceEvidence, contractLegalMailEvidenceReady, emailDispatchStatus, emailTriggerSucceeded } from "./customerApplicationLegal";
 import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
@@ -397,7 +401,7 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
     portalUrl: company.portalUrl,
   });
 
-  const agreementAttachment =
+  let agreementAttachment =
     input.contract?.contract_number &&
     input.contract.signed_at &&
     input.publicOffer &&
@@ -454,40 +458,89 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
       : null;
 
   if (agreementAttachment && input.contract?.id) {
-    const pdfBuffer = Buffer.from(agreementAttachment.content, "base64");
-    const documentSha256 = createHash("sha256").update(pdfBuffer).digest("hex");
-    const generationSnapshot = {
-      offer_reference: input.offerReference,
-      contract_number: input.contract.contract_number,
-      signed_at: input.contract.signed_at,
-      signature_snapshot_sha256:
-        input.contract.signature_snapshot_sha256 ?? null,
-      legal_version_ids: input.legalVersions.map((version) => version.id),
-      contract_publication_version_id:
-        input.publicOffer?.contract_publication_version_id ?? null,
-      price_plan_version_id: input.publicOffer?.price_plan_version_id ?? null,
-      legal_bundle_version_id:
-        input.publicOffer?.legal_bundle_version_id ?? null,
-      tenant_communication_snapshot: company.snapshot,
-      tenant_communication_snapshot_sha256: company.snapshotSha256,
-    };
-    await archiveSignedCustomerContractPdf({
-      companyId: input.companyId,
-      customerContractId: input.contract.id,
-      pdfBuffer,
-      mimeType: agreementAttachment.contentType ?? undefined,
-      documentSha256,
-      generationSnapshot,
-    });
-    const { error: contractDocumentError } = await supabaseService
+    const bindingResult = await supabaseService
       .from("customer_contracts")
-      .update({
-        document_sha256: documentSha256,
-        locked_at: input.contract.signed_at ?? new Date().toISOString(),
-      })
+      .select("document_sha256")
       .eq("id", input.contract.id)
-      .eq("company_id", input.companyId);
-    if (contractDocumentError) throw contractDocumentError;
+      .eq("company_id", input.companyId)
+      .maybeSingle();
+    if (bindingResult.error) throw bindingResult.error;
+
+    const boundDocumentSha256 = clean(
+      (bindingResult.data as { document_sha256?: string | null } | null)
+        ?.document_sha256,
+    );
+
+    if (boundDocumentSha256) {
+      const documentResult = await supabaseService
+        .from("customer_contract_documents")
+        .select("*")
+        .eq("company_id", input.companyId)
+        .eq("customer_contract_id", input.contract.id)
+        .eq("document_type", "signed_contract_pdf")
+        .eq("document_sha256", boundDocumentSha256)
+        .not("verified_at", "is", null)
+        .maybeSingle();
+      if (documentResult.error) throw documentResult.error;
+
+      const boundDocument =
+        (documentResult.data as CustomerContractDocumentRow | null) ?? null;
+      if (!boundDocument) {
+        throw new WebsiteApplicationError({
+          message:
+            "Det signerade avtalet är hash-bundet men den verifierade arkiverade PDF-filen saknas.",
+          status: 500,
+          code: "signed_contract_document_binding_missing",
+          field: "contract",
+          stage: "legal_acceptance",
+          hint:
+            "Återskapa inte dokumentet. Återställ den verifierade signed_contract_pdf som matchar avtalets document_sha256.",
+        });
+      }
+
+      const boundPdfBuffer =
+        await downloadAndVerifyCustomerContractDocument(boundDocument);
+      agreementAttachment = {
+        ...agreementAttachment,
+        content: boundPdfBuffer.toString("base64"),
+        contentType: boundDocument.mime_type || agreementAttachment.contentType,
+      };
+    } else {
+      const pdfBuffer = Buffer.from(agreementAttachment.content, "base64");
+      const documentSha256 = createHash("sha256").update(pdfBuffer).digest("hex");
+      const generationSnapshot = {
+        offer_reference: input.offerReference,
+        contract_number: input.contract.contract_number,
+        signed_at: input.contract.signed_at,
+        signature_snapshot_sha256:
+          input.contract.signature_snapshot_sha256 ?? null,
+        legal_version_ids: input.legalVersions.map((version) => version.id),
+        contract_publication_version_id:
+          input.publicOffer?.contract_publication_version_id ?? null,
+        price_plan_version_id: input.publicOffer?.price_plan_version_id ?? null,
+        legal_bundle_version_id:
+          input.publicOffer?.legal_bundle_version_id ?? null,
+        tenant_communication_snapshot: company.snapshot,
+        tenant_communication_snapshot_sha256: company.snapshotSha256,
+      };
+      await archiveSignedCustomerContractPdf({
+        companyId: input.companyId,
+        customerContractId: input.contract.id,
+        pdfBuffer,
+        mimeType: agreementAttachment.contentType ?? undefined,
+        documentSha256,
+        generationSnapshot,
+      });
+      const { error: contractDocumentError } = await supabaseService
+        .from("customer_contracts")
+        .update({
+          document_sha256: documentSha256,
+          locked_at: input.contract.signed_at ?? new Date().toISOString(),
+        })
+        .eq("id", input.contract.id)
+        .eq("company_id", input.companyId);
+      if (contractDocumentError) throw contractDocumentError;
+    }
   }
 
   const legalMailReady = Boolean(
