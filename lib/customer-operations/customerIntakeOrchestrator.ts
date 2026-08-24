@@ -335,7 +335,7 @@ export async function evaluateCustomerIntake(input: {
     const result = decision({
       state: 'needs_grid_owner_resolution',
       nextAction: 'resolve_grid_owner',
-      customerMessage: 'Vi verifierar nätägare och nätområde för anläggningen.',
+      customerMessage: 'Vi hanterar de uppgifter som behövs för att föra ärendet vidare.',
       adminMessage: 'Verifierad nätägare saknas på exakt customer_site_id.',
       blockers: [{ code: 'grid_owner_missing', message: 'Nätägare saknas för anläggningen.', source: 'grid_owner' }],
       warnings: intakeBlockers(context.warnings),
@@ -345,21 +345,11 @@ export async function evaluateCustomerIntake(input: {
     return result
   }
 
-  if (!context.gridOwnerReady) {
-    const blockers = context.blockers.filter((item) => item.source === 'grid_owner')
-    const result = decision({
-      state: 'needs_admin_review',
-      nextAction: 'review_blocker',
-      customerMessage: 'Nätägaren behöver verifieras innan vi kan fortsätta automatiskt.',
-      adminMessage: 'Nätägaren är mappad men inte verifierad för kundflöde.',
-      blockers: intakeBlockers(blockers.length ? blockers : context.blockers),
-      warnings: intakeBlockers(context.warnings),
-      references: referencesBase,
-    })
-    if (input.apply) await persistDecision({ companyId: input.companyId, customerId: input.customerId, siteId, decision: result })
-    return result
-  }
-
+  // Missing facility identity is an information-gathering step, not a supplier
+  // switch. A safely selected provisional grid owner may therefore be used to
+  // route the facility-information request. The request pipeline separately
+  // requires a verified contact channel and valid site-specific POA. Canonical
+  // grid-owner verification remains mandatory below before any switch starts.
   if (!context.facilityReady) {
     if (input.autoEnsureFacilityLookup) {
       const manual = await requestMissingFacilityInformation({
@@ -388,8 +378,8 @@ export async function evaluateCustomerIntake(input: {
               ? 'start_supplier_switch'
               : 'request_facility_data',
         customerMessage: waiting
-          ? 'Vi väntar på anläggningsuppgifter från nätägaren.'
-          : manual.nextAction.message,
+          ? 'Vi hanterar nästa steg och kontaktar dig endast om vi behöver något från dig.'
+          : 'Vi hanterar nästa steg och kontaktar dig endast om vi behöver något från dig.',
         adminMessage: manual.nextAction.message,
         blockers: manual.blockers.map((item) => ({ ...item, source: 'manual_facility_information_request' })),
         warnings: intakeBlockers(context.warnings),
@@ -411,9 +401,27 @@ export async function evaluateCustomerIntake(input: {
         : ['ready_to_send', 'ready_to_send_manual_email', 'manual_email_queued'].includes(requestStatus ?? '')
           ? 'send_facility_lookup'
           : 'request_facility_data',
-      customerMessage: 'Vi behöver hämta anläggningsuppgifter från nätägaren.',
+      customerMessage: 'Vi hanterar nästa steg och kontaktar dig endast om vi behöver något från dig.',
       adminMessage: requestStatus ? 'Nätägarbegäran finns för exakt site. Fortsätt eller invänta svar.' : 'Skapa nätägarbegäran för exakt customer_site_id.',
       blockers: [],
+      warnings: intakeBlockers(context.warnings),
+      references: referencesBase,
+    })
+    if (input.apply) await persistDecision({ companyId: input.companyId, customerId: input.customerId, siteId, decision: result })
+    return result
+  }
+
+  // From this point onward the flow can reach supplier-switch operations. A
+  // provisional routing choice is never sufficient here: the owner must be
+  // canonically verified for customer flow before OPS can create/send a switch.
+  if (!context.gridOwnerReady) {
+    const blockers = context.blockers.filter((item) => item.source === 'grid_owner')
+    const result = decision({
+      state: 'needs_admin_review',
+      nextAction: 'review_blocker',
+      customerMessage: 'Vi hanterar nästa steg och kontaktar dig endast om vi behöver något från dig.',
+      adminMessage: 'Nätägaren är mappad men inte verifierad för kundflöde.',
+      blockers: intakeBlockers(blockers.length ? blockers : context.blockers),
       warnings: intakeBlockers(context.warnings),
       references: referencesBase,
     })
