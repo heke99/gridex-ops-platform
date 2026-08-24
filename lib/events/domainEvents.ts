@@ -51,6 +51,21 @@ async function attemptWebhookFanoutFastPath(eventId: string) {
   }
 }
 
+async function reuseExistingDomainEvent(idempotencyKey: string): Promise<DomainEventRow | null> {
+  const { data, error } = await supabaseService
+    .from('domain_events')
+    .select('*')
+    .eq('idempotency_key', idempotencyKey)
+    .maybeSingle()
+  if (error) throw error
+  const existingEvent = data as DomainEventRow | null
+  if (existingEvent) {
+    await ensureWebhookFanoutJob(existingEvent)
+    await attemptWebhookFanoutFastPath(existingEvent.id)
+  }
+  return existingEvent
+}
+
 export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEventRow | null> {
   const payload = {
     company_id: input.companyId,
@@ -64,6 +79,15 @@ export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEv
     idempotency_key: input.idempotencyKey ?? null,
   }
 
+  // Normal durable replays are expected to reuse the same event. Resolve the
+  // existing row first so a healthy retry does not intentionally generate a
+  // PostgreSQL 23505 error. The insert still handles 23505 below for the rare
+  // concurrent race between this lookup and the write.
+  if (input.idempotencyKey) {
+    const existingEvent = await reuseExistingDomainEvent(input.idempotencyKey)
+    if (existingEvent) return existingEvent
+  }
+
   const { data, error } = await supabaseService
     .from('domain_events')
     .insert(payload)
@@ -72,19 +96,7 @@ export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEv
 
   if (error) {
     if (input.idempotencyKey && error.code === '23505') {
-      const { data: existing, error: existingError } = await supabaseService
-        .from('domain_events')
-        .select('*')
-        .eq('idempotency_key', input.idempotencyKey)
-        .maybeSingle()
-
-      if (existingError) throw existingError
-      const existingEvent = existing as DomainEventRow | null
-      if (existingEvent) {
-        await ensureWebhookFanoutJob(existingEvent)
-        await attemptWebhookFanoutFastPath(existingEvent.id)
-      }
-      return existingEvent
+      return reuseExistingDomainEvent(input.idempotencyKey)
     }
 
     if (isMissingReadinessSchema(error)) {
@@ -113,9 +125,19 @@ type FanoutJobRow = {
 
 async function ensureWebhookFanoutJob(event: DomainEventRow) {
   const destinationKey = 'webhook_fanout_v1'
-  // The outbox already has a uniqueness invariant for one destination per
-  // domain event. Insert optimistically and treat 23505 as the idempotent
-  // replay path instead of paying for a read-before-write round trip.
+  // Replays should reuse the durable fan-out job instead of deliberately
+  // colliding with event_outbox_unique_destination_idx. The insert below still
+  // treats 23505 as a safe concurrent-race outcome.
+  const existing = await supabaseService
+    .from('event_outbox')
+    .select('id')
+    .eq('domain_event_id', event.id)
+    .eq('destination_type', 'webhook')
+    .eq('destination_key', destinationKey)
+    .maybeSingle()
+  if (existing.error) throw existing.error
+  if (existing.data?.id) return String(existing.data.id)
+
   const { data, error } = await supabaseService
     .from('event_outbox')
     .insert({
