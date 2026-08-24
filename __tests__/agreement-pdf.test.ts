@@ -5,7 +5,7 @@ const input = {
   companyName: 'Exempel Energi AB',
   brandName: 'Exempel Energi',
   organizationNumber: '559999-9999',
-  companyAddress: 'Exempelvägen 1, 111 11 Stockholm',
+  companyAddress: 'Exempelvägen 1, Exempelvägen 1, 111 11 Stockholm',
   companySupportEmail: 'kundservice@exempel.se',
   companyPhone: '+46 8 123 45 67',
   companyWebsite: 'https://exempel.se',
@@ -14,7 +14,7 @@ const input = {
   customerNumber: 'DX-100025',
   contractNumber: 'AVT-DX-100025-001',
   contractName: 'Rörligt elpris',
-  contractDescription: 'Ett avtal med komplett fryst bevisinformation.',
+  contractDescription: 'Inköpspris med avtalat påslag.',
   contractType: 'variable_spot',
   signedAt: '2026-07-13T18:00:00.000Z',
   startsAt: '2026-08-01',
@@ -37,18 +37,25 @@ const input = {
 }
 
 describe('agreement PDF', () => {
-  it('creates a valid deterministic PDF envelope with the frozen agreement content', () => {
+  it('renders a compact customer-facing confirmation without internal evidence dumps', () => {
     const pdf = buildAgreementPdfBuffer(input)
     const latin1 = pdf.toString('latin1')
 
     expect(pdf.subarray(0, 8).toString('latin1')).toBe('%PDF-1.4')
     expect(latin1).toContain('AVTALSBEKR')
     expect(latin1).toContain('AVT-DX-100025-001')
-    expect(latin1).toContain('offer_signed_reference')
     expect(latin1).toContain('559999-9999')
-    expect(latin1).toContain('33333333-3333-4333-8333-333333333333')
-    expect(latin1).toContain('Gridex OPS \\344r teknisk plattform')
-    expect(latin1).toContain('Detta \\344r de accepterade villkoren')
+    expect(latin1).toContain('DITT AVTAL')
+    expect(latin1).toContain('ACCEPTERADE VILLKOR OCH DOKUMENT')
+    expect(latin1).toContain('Allm\\344nna villkor')
+    expect(latin1).toContain('Exempelv\\344gen 1, 111 11 Stockholm')
+
+    expect(latin1).not.toContain('Detta \\344r de accepterade villkoren')
+    expect(latin1).not.toContain('offer_signed_reference')
+    expect(latin1).not.toContain('33333333-3333-4333-8333-333333333333')
+    expect(latin1).not.toContain('11111111-1111-4111-8111-111111111111')
+    expect(latin1).not.toContain('Signatursnapshot SHA-256')
+    expect(latin1).not.toContain('BEVISUPPGIFTER')
     expect(latin1.trimEnd().endsWith('%%EOF')).toBe(true)
   })
 
