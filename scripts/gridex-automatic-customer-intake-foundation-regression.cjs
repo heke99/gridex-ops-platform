@@ -29,7 +29,7 @@ assert(/businessApproval\.processRelevant/.test(routeReadiness), 'route profile 
 const facilityAutomation = read('lib/customer-operations/facilityLookupAutomation.ts')
 assert(/ensureFacilityLookupAutomation/.test(facilityAutomation), 'facility lookup automation service exists')
 assert(/requestMissingFacilityInformation/.test(facilityAutomation), 'facility lookup delegates to the manual information orchestrator')
-const manualOrchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
+const manualOrchestrator = read('lib/customer-operations/requestMissingFacilityInformationCore.ts')
 assert(/manual-facility-request:/.test(manualOrchestrator), 'facility lookup uses idempotent grid-owner request creation (deterministic key)')
 assert(/blocked_missing_poa/.test(manualOrchestrator), 'facility lookup blocks without signed power of attorney')
 const edifactDispatch = read('lib/customer-operations/facilityLookupEdifactDispatch.ts')
