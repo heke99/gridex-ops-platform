@@ -111,6 +111,8 @@
     "20260823185352_align_customer_contract_quarterly_type.sql": "2df8c0d3495b173828a476dd112a3a0be9a22d41996e31f01e9d335b44541bec",
     "20260823201059_normalize_customer_portal_identity_match_strength.sql": "7ebdcad7d33cf0581a54ca806a68e04d1d4c11235b57ef34827cb03b7a4ba349",
     "20260823201716_canonical_customer_portal_match_strength_convergence.sql": "525a8f3a2587cb4c0375c01caa5868cd84036b635618c5bd048d2dd8f98dd819",
-    "20260823204821_enforce_contract_price_snapshot_hash_integrity.sql": "599124b195bdae9d02a5835423b3580148b14c6c58a184a913a0ff5d1f4a8119"
+    "20260823204821_enforce_contract_price_snapshot_hash_integrity.sql": "599124b195bdae9d02a5835423b3580148b14c6c58a184a913a0ff5d1f4a8119",
+    "20260824070634_fix_customer_application_workflow_output_ambiguity.sql": "1e39d46dcb478f0216c4d9ca2ffb583c000edaea1379a7a0097fe0969abab7c8",
+    "20260824080448_unique_postal_city_provisional_grid_owner.sql": "6d45152f5fb419d3ca52468312b4986acf96cfe6301dc34f20aaa284c99d6580"
   }
 }
