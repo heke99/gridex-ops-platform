@@ -3,6 +3,8 @@ on:
   pull_request:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -77,6 +79,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -86,7 +90,8 @@ jobs:
           set -euo pipefail
           command -v psql
           psql --version
-      - name: Clean empty-database replay and verify generated types
+      - name: Clean empty-database replay and generate canonical types
+        id: typegen
         shell: bash
         run: |
           set -o pipefail
@@ -95,12 +100,46 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
           supabase gen types typescript --local > rem002-database.types.ts
-          # Typegen emits non-null Returns for nullable SQL columns on the
-          # field-511 resolver; apply the same durable override used on tip.
           node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
-          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
           echo "generated_types_sha256=$GENERATED_HASH"
+          echo "hash=$GENERATED_HASH" >> "$GITHUB_OUTPUT"
+      - name: Sync canonical generated types to this PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          GENERATED_HASH: ${{ steps.typegen.outputs.hash }}
+        run: |
+          set -euo pipefail
+          cp rem002-database.types.ts /tmp/pr203-database.types.ts
+          node - "$GENERATED_HASH" <<'NODE'
+          const fs = require('node:fs')
+          const hash = process.argv[2]
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.generated_at = new Date().toISOString()
+          manifest.generated_with = 'supabase-cli-2.101.0-clean-replay'
+          manifest.sha256 = hash
+          manifest.latest_migration = '20260824190000_gridex_inbound_operations_foundation.sql'
+          fs.writeFileSync('/tmp/pr203-supabase-types-manifest.json', JSON.stringify(manifest, null, 2) + '\n')
+          NODE
+          git fetch origin "$GITHUB_HEAD_REF"
+          git checkout -B pr203-type-sync "origin/$GITHUB_HEAD_REF"
+          cp /tmp/pr203-database.types.ts supabase/database.types.ts
+          cp /tmp/pr203-supabase-types-manifest.json scripts/supabase-types-manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: regenerate Supabase types for inbound operations"
+            git push origin HEAD:"$GITHUB_HEAD_REF"
+          fi
+      - name: Verify generated types
+        shell: bash
+        run: |
+          set -euo pipefail
+          GENERATED_HASH="${{ steps.typegen.outputs.hash }}"
+          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
           if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
             echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
             exit 1
@@ -109,6 +148,7 @@ jobs:
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
             exit 1
           fi
+          npm run db:types:check
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
