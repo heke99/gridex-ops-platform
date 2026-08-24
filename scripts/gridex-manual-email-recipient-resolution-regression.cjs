@@ -14,7 +14,7 @@ function mustInclude(file, needle, why) {
   if (!read(file).includes(needle)) failures.push(`Missing "${needle}" in ${file} (${why})`)
 }
 
-const rmfi = 'lib/customer-operations/requestMissingFacilityInformation.ts'
+const rmfi = 'lib/customer-operations/requestMissingFacilityInformationCore.ts'
 const migration = 'supabase/migrations/20260707130000_gridex_manual_email_recipient_resolution.sql'
 
 // Resolution model.
