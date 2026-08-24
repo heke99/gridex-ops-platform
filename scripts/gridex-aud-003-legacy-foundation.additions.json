@@ -67,6 +67,11 @@
       "beforeLedgerVersion": "20260716010000"
     },
     {
+      "path": "bootstrap/20260728_customer_application_transition_replay_compatibility.sql",
+      "afterLedgerVersion": "20260727167000",
+      "beforeLedgerVersion": "20260728170000"
+    },
+    {
       "path": "bootstrap/20260731_publication_repair_live_functions_foundation.sql",
       "afterLedgerVersion": "20260731152000",
       "beforeLedgerVersion": "20260731210000"
@@ -242,6 +247,18 @@
       "artifactSha256": "b55bd0991ec9d01c74df7783247e95ecd7a058b2739891a65d342d09478b23d6",
       "purpose": "Restore the early stable external tenant reference prerequisite while preserving complete checksum-pinned, forward-only/tenant-safe 20260722133000 external tenant quote/API completion for chronological replay, including website_contract_quotes and canonical external publication/API contracts.",
       "preserveSourceReplay": true
+    },
+    "bootstrap/20260724_customer_application_continuation_schema_foundation.sql": {
+      "source": "migrations/20260724210000_customer_application_continuation_orchestrator.sql",
+      "artifactSha256": "fdc08a6843110bbfb550ddd96ce69d126d4166d9d771a03d05dd0297a12a41fb",
+      "preserveSourceReplay": true,
+      "purpose": "Restore the early continuation schema prerequisite while preserving the complete checksum-pinned 20260724210000 continuation orchestrator for chronological replay, including the four-column provisioning RPC contract required by later forward fixes."
+    },
+    "bootstrap/20260728_customer_application_transition_replay_compatibility.sql": {
+      "source": "migrations/20260724210000_customer_application_continuation_orchestrator.sql",
+      "artifactSha256": "7ffc65eb07f38b3289fb94db2223ba2a13f5e2f8bfab5be40a74f08483b7281b",
+      "preserveSourceReplay": true,
+      "purpose": "Normalize the source-defined customer-application transition RPC to the alias-qualified definition expected by the later checksum-pinned live-schema canonical sync, without skipping or rewriting the full timestamped continuation source migration."
     },
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
