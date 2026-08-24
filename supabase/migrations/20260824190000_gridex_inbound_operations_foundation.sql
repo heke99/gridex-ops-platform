@@ -60,7 +60,7 @@ create table if not exists public.inbound_operation_events (
   metering_point_id uuid,
   business_object_id text,
   processing_state text not null default 'received' check (processing_state in (
-    'received','normalized','matched','needs_review','applied','supplemental_evidence','conflict','ignored','unmatched','failed'
+    'received','normalized','matched','ambiguous','needs_review','applied','supplemental_evidence','conflict','ignored','unmatched','failed'
   )),
   evidence jsonb not null default '{}'::jsonb,
   business_event_fingerprint text,
