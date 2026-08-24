@@ -381,8 +381,8 @@ export async function resolveManualInboundCorrelation(input: {
     : null
 
   let companySites = companyId ? sites.filter((row) => clean(row.company_id) === companyId) : []
-  let companyMetering = companyId ? meteringPoints.filter((row) => clean(row.company_id) === companyId) : []
-  let companyCustomers = companyId ? customers.filter((row) => clean(row.company_id) === companyId) : []
+  const companyMetering = companyId ? meteringPoints.filter((row) => clean(row.company_id) === companyId) : []
+  const companyCustomers = companyId ? customers.filter((row) => clean(row.company_id) === companyId) : []
 
   const uniqueSiteIds = unique([
     ...companySites.map((row) => clean(row.id)),
