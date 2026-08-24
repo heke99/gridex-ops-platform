@@ -26,7 +26,7 @@ begin
       add column if not exists intent text,
       add column if not exists processing_state text not null default 'received';
 
-    create index if not exists manual_inbound_messages_mailbox_provider_idx
+    create unique index if not exists manual_inbound_messages_mailbox_provider_uidx
       on public.manual_inbound_messages (mailbox, provider_message_id)
       where provider_message_id is not null;
     create index if not exists manual_inbound_messages_company_customer_idx
