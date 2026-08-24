@@ -27,12 +27,12 @@ const checks = [
   ['app/api/platform/energy/resolve/route.ts', 'resolveEnergyContext'],
   ['lib/energy/svkGeometryImport.ts', 'N%C3%A4tomr%C3%A5den_240524_2_WFL1'],
   ['app/api/public/energy-area/route.ts', 'public_energy_area_removed'],
-  ['supabase/migrations/20260824080000_unique_postal_city_provisional_grid_owner.sql', 'postal_city_consensus'],
-  ['supabase/migrations/20260824080000_unique_postal_city_provisional_grid_owner.sql', "'candidateCount' <> '1'"],
-  ['supabase/migrations/20260824080000_unique_postal_city_provisional_grid_owner.sql', "'mapping_conflict_count', '0'"],
-  ['supabase/migrations/20260824080000_unique_postal_city_provisional_grid_owner.sql', 'new.selected_grid_owner_id := v_ops_grid_owner_id'],
-  ['supabase/migrations/20260824080000_unique_postal_city_provisional_grid_owner.sql', "'canonical', false"],
-  ['supabase/migrations/20260824080000_unique_postal_city_provisional_grid_owner.sql', "'purpose', 'facility_information_routing'"],
+  ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', 'postal_city_consensus'],
+  ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'candidateCount' <> '1'"],
+  ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'mapping_conflict_count', '0'"],
+  ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', 'new.selected_grid_owner_id := v_ops_grid_owner_id'],
+  ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'canonical', false"],
+  ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'purpose', 'facility_information_routing'"],
 ]
 
 let ok = true
