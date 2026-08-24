@@ -4,5 +4,5 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "dfe64adcb90fcba76c8f480e3be47111282a4e62632db85ffcef9f3419fa3acc",
-  "latest_migration": "20260823204821_enforce_contract_price_snapshot_hash_integrity.sql"
+  "latest_migration": "20260824080448_unique_postal_city_provisional_grid_owner.sql"
 }
