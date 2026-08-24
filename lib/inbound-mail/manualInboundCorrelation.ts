@@ -161,15 +161,67 @@ async function readRequest(companyId: string, requestId: string): Promise<JsonRe
   return (data as JsonRecord | null) ?? null
 }
 
-async function findRequestByOutboundReferences(references: string[]): Promise<{ request: JsonRecord | null; ambiguous: boolean; outboxIds: string[] }> {
-  if (!references.length) return { request: null, ambiguous: false, outboxIds: [] }
+async function findResendProviderIdsByRfcMessageId(references: string[]): Promise<string[]> {
+  if (!references.length) return []
+
+  // Resend's API email_id (stored in manual_email_outbox.provider_message_id)
+  // is not the SMTP/RFC Message-ID carried by In-Reply-To/References. Verified
+  // Resend webhook events store both values, so bridge RFC Message-ID -> email_id
+  // here before resolving the outbox/request. Keep the direct provider-id path
+  // below for legacy/other providers.
   const { data, error } = await supabaseService
+    .from('communication_log_events')
+    .select('provider_message_id,event_payload')
+    .eq('provider', 'resend')
+    .in('event_payload->data->>message_id', references)
+    .limit(50)
+  if (error) throw error
+
+  return unique(
+    ((data ?? []) as JsonRecord[])
+      .map((row) => clean(row.provider_message_id))
+      .filter((value): value is string => Boolean(value)),
+  )
+}
+
+async function findRequestByOutboundReferences(references: string[]): Promise<{
+  request: JsonRecord | null
+  ambiguous: boolean
+  outboxIds: string[]
+  matchMethods: string[]
+}> {
+  if (!references.length) return { request: null, ambiguous: false, outboxIds: [], matchMethods: [] }
+
+  const directResult = await supabaseService
     .from('manual_email_outbox')
     .select('id,company_id,request_id,provider_message_id')
     .in('provider_message_id', references)
     .limit(10)
-  if (error) throw error
-  const rows = (data ?? []) as JsonRecord[]
+  if (directResult.error) throw directResult.error
+
+  const rowsById = new Map<string, JsonRecord>()
+  for (const row of (directResult.data ?? []) as JsonRecord[]) {
+    const id = clean(row.id)
+    if (id) rowsById.set(id, row)
+  }
+  const matchMethods: string[] = rowsById.size ? ['provider_message_id'] : []
+
+  const resendProviderIds = await findResendProviderIdsByRfcMessageId(references)
+  if (resendProviderIds.length) {
+    const resendResult = await supabaseService
+      .from('manual_email_outbox')
+      .select('id,company_id,request_id,provider_message_id')
+      .in('provider_message_id', resendProviderIds)
+      .limit(10)
+    if (resendResult.error) throw resendResult.error
+    for (const row of (resendResult.data ?? []) as JsonRecord[]) {
+      const id = clean(row.id)
+      if (id) rowsById.set(id, row)
+    }
+    if ((resendResult.data ?? []).length) matchMethods.push('resend_rfc_message_id')
+  }
+
+  const rows = Array.from(rowsById.values())
   const requestKeys = unique(rows.flatMap((row) => {
     const companyId = clean(row.company_id)
     const requestId = clean(row.request_id)
@@ -180,6 +232,7 @@ async function findRequestByOutboundReferences(references: string[]): Promise<{ 
       request: null,
       ambiguous: requestKeys.length > 1,
       outboxIds: rows.map((row) => clean(row.id)).filter((value): value is string => Boolean(value)),
+      matchMethods: unique(matchMethods),
     }
   }
   const [companyId, requestId] = requestKeys[0].split(':')
@@ -187,6 +240,7 @@ async function findRequestByOutboundReferences(references: string[]): Promise<{ 
     request: await readRequest(companyId, requestId),
     ambiguous: false,
     outboxIds: rows.map((row) => clean(row.id)).filter((value): value is string => Boolean(value)),
+    matchMethods: unique(matchMethods),
   }
 }
 
@@ -333,6 +387,7 @@ export async function resolveManualInboundCorrelation(input: {
     hardAmbiguous = hardAmbiguous || replyMatch.ambiguous
     evidence.reply_reference_candidates = references
     evidence.reply_reference_outbox_ids = replyMatch.outboxIds
+    evidence.reply_reference_match_methods = replyMatch.matchMethods
     evidence.reply_reference_matched = Boolean(replyMatch.request)
     addCompanyEvidence(companyEvidence, 'request_reply_reference', clean(replyMatch.request?.company_id), 95, references[0] ?? null)
   }
