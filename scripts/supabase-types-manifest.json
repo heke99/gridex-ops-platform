@@ -1,8 +1,8 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-23T20:48:21.000Z",
+  "generated_at": "2026-08-24T19:44:05.991Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "61613fe06e6dff7a85b6f9ea0839c9d3f73bd885c532ad5dc13d9465d6b89062",
-  "latest_migration": "20260824080448_unique_postal_city_provisional_grid_owner.sql"
+  "sha256": "9f3cc06a01ff8992f53c5bc7e19972ce6e5f7fdffe9770e76a1431cdce2c92bc",
+  "latest_migration": "20260824190000_gridex_inbound_operations_foundation.sql"
 }

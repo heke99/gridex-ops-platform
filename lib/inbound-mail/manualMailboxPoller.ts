@@ -4,11 +4,11 @@
 // gridex.se). This is SEPARATE from the Ediel mailbox engine, which serves
 // ediel@gridex.se for EDIFACT transport only.
 //
-// Manual replies from grid owners are received here, matched to an open manual
-// request by GX-FIR case_reference, and handed to ingestManualInboundEmail. This
-// poller:
+// Every manual inbound message is persisted and handed to the tenant-first
+// correlation layer. GX-FIR is strong evidence, not a prerequisite. The poller:
 //   * NEVER parses EDIFACT, NEVER creates ediel_messages / ediel_outbox,
-//   * resolves the tenant FROM the matched request (never the mailbox),
+//   * passes tenant-specific mailbox scope only as correlation evidence,
+//   * retains RFC reply headers so normal "Reply" mail can be correlated,
 //   * reuses the env-only secret-reference + stale-lock patterns from Ediel.
 
 import { ImapFlow } from 'imapflow'
@@ -17,7 +17,6 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualMailboxSecret } from '@/lib/email/manualOperationsMailbox'
 import {
   ingestManualInboundEmail,
-  extractCaseReference,
   type ManualInboundEmail,
   type ManualInboundResult,
 } from '@/lib/inbound-mail/manualInboundIngestion'
@@ -30,6 +29,9 @@ export type ManualMailboxPollResult = {
   fetched: number
   ingested: number
   matched: number
+  ambiguous: number
+  unmatched: number
+  ignored: number
   skipped: number
   errors: string[]
 }
@@ -37,7 +39,6 @@ export type ManualMailboxPollResult = {
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
-
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -48,8 +49,6 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
 }
 
-// Small deterministic MIME reader for manual replies. It decodes plain text,
-// HTML and text attachments without executing or opening binary content.
 function decodeQuotedPrintable(value: string): string {
   return value
     .replace(/=\r?\n/g, '')
@@ -64,10 +63,29 @@ function decodeMimeBody(value: string, encoding: string | null): string {
   return value
 }
 
-function parseMimeSource(source: unknown): { bodyText: string | null; bodyHtml: string | null; attachments: unknown[] } {
-  if (!source) return { bodyText: null, bodyHtml: null, attachments: [] }
+function parseMessageHeaderValues(headerText: string): { inReplyTo: string | null; references: string[] } {
+  const unfolded = headerText.replace(/\r?\n[ \t]+/g, ' ')
+  const inReplyTo = clean(/^in-reply-to:\s*(.+)$/im.exec(unfolded)?.[1])
+  const referencesRaw = clean(/^references:\s*(.+)$/im.exec(unfolded)?.[1])
+  const references = referencesRaw
+    ? (referencesRaw.match(/<[^>]+>|[^\s]+/g) ?? []).map((value) => value.trim()).filter(Boolean).slice(0, 50)
+    : []
+  return { inReplyTo, references }
+}
+
+// Small deterministic MIME reader for manual replies. It decodes plain text,
+// HTML and text attachments without executing or opening binary content.
+function parseMimeSource(source: unknown): {
+  bodyText: string | null
+  bodyHtml: string | null
+  attachments: unknown[]
+  inReplyTo: string | null
+  references: string[]
+} {
+  if (!source) return { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [] }
   const raw = Buffer.isBuffer(source) ? source.toString('utf8') : String(source)
   const [headerText, ...bodyParts] = raw.split(/\r?\n\r?\n/)
+  const replyHeaders = parseMessageHeaderValues(headerText)
   const body = bodyParts.join('\n\n')
   const contentType = /content-type:\s*([^;\r\n]+)/i.exec(headerText)?.[1]?.toLowerCase() ?? 'text/plain'
   const boundary = /boundary="?([^";\r\n]+)"?/i.exec(headerText)?.[1] ?? null
@@ -75,8 +93,8 @@ function parseMimeSource(source: unknown): { bodyText: string | null; bodyHtml: 
   if (!boundary) {
     const decoded = decodeMimeBody(body, encoding)
     return contentType.includes('html')
-      ? { bodyText: null, bodyHtml: clean(decoded), attachments: [] }
-      : { bodyText: clean(decoded), bodyHtml: null, attachments: [] }
+      ? { bodyText: null, bodyHtml: clean(decoded), attachments: [], ...replyHeaders }
+      : { bodyText: clean(decoded), bodyHtml: null, attachments: [], ...replyHeaders }
   }
 
   const text: string[] = []
@@ -95,7 +113,12 @@ function parseMimeSource(source: unknown): { bodyText: string | null; bodyHtml: 
     } else if (partType.includes('html')) html.push(decoded)
     else if (partType.startsWith('text/')) text.push(decoded)
   }
-  return { bodyText: clean(text.join('\n')), bodyHtml: clean(html.join('\n')), attachments }
+  return {
+    bodyText: clean(text.join('\n')),
+    bodyHtml: clean(html.join('\n')),
+    attachments,
+    ...replyHeaders,
+  }
 }
 
 function envelopeAddress(list: unknown): { address: string | null; name: string | null } {
@@ -117,9 +140,6 @@ async function listActiveManualMailboxes(environment?: string | null): Promise<J
   return (data ?? []) as JsonRecord[]
 }
 
-// Respect poll_interval_minutes (default 5) so the 5-minute cron does not
-// hammer the IMAP provider for mailboxes configured with a longer interval.
-// Mirrors the Ediel poller's due-check. Missing/invalid data means "due".
 function isManualMailboxDueForPolling(mailbox: JsonRecord): boolean {
   const lastPolledAt = clean(mailbox.last_polled_at)
   if (!lastPolledAt) return true
@@ -152,6 +172,13 @@ async function finishMailbox(mailboxId: string, ok: boolean, errorMessage?: stri
     patch.last_error = String(errorMessage).replace(/[\r\n]+/g, ' ').slice(0, 300)
   }
   await supabaseService.from('manual_communication_mailboxes').update(patch).eq('id', mailboxId).then(() => undefined, () => undefined)
+}
+
+function countResolution(result: ManualMailboxPollResult, ingestResult: ManualInboundResult): void {
+  if (ingestResult.resolutionStatus === 'matched') result.matched += 1
+  else if (ingestResult.resolutionStatus === 'ambiguous') result.ambiguous += 1
+  else if (ingestResult.resolutionStatus === 'ignored') result.ignored += 1
+  else result.unmatched += 1
 }
 
 async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: ManualMailboxPollResult): Promise<void> {
@@ -208,9 +235,11 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
         const to = envelopeAddress(envelope.to)
         const subject = clean(envelope.subject)
         const parsedMime = parseMimeSource((message as { source?: unknown }).source)
+        const envelopeInReplyTo = clean(envelope.inReplyTo)
 
         const email: ManualInboundEmail = {
           mailbox: clean(mailbox.from_email) ?? username,
+          mailboxCompanyId: clean(mailbox.company_id),
           fromEmail: from.address,
           fromName: from.name,
           toEmail: to.address ?? clean(mailbox.from_email),
@@ -218,28 +247,21 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
           bodyText: parsedMime.bodyText,
           bodyHtml: parsedMime.bodyHtml,
           providerMessageId: clean(envelope.messageId),
-          threadId: clean(envelope.inReplyTo),
+          threadId: envelopeInReplyTo ?? parsedMime.inReplyTo,
+          inReplyTo: parsedMime.inReplyTo ?? envelopeInReplyTo,
+          references: parsedMime.references,
           attachments: parsedMime.attachments,
-        }
-
-        // Only ingest messages that carry a GX-FIR case reference; everything
-        // else stays in the mailbox untouched (Ediel-only mail never lands here).
-        if (!extractCaseReference(email)) {
-          result.skipped += 1
-          const uid = (message as { uid?: unknown }).uid
-          if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\Seen'], { uid: true })
-          continue
         }
 
         try {
           const ingestResult: ManualInboundResult = await ingestManualInboundEmail(email)
           result.ingested += 1
-          if (ingestResult.resolutionStatus === 'matched') result.matched += 1
+          countResolution(result, ingestResult)
           const uid = (message as { uid?: unknown }).uid
-          if (typeof uid === 'number') {
-            await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true })
-          }
+          if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true })
         } catch (ingestError) {
+          // Do not mark failed messages as Seen. The next poll may retry after a
+          // transient DB/schema/provider issue and raw mail is never discarded.
           result.errors.push(`ingest ${mailboxId}: ${ingestError instanceof Error ? ingestError.message : String(ingestError)}`)
         }
       }
@@ -255,13 +277,25 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
   }
 }
 
-// Polls all active manual operations mailboxes and routes GX-FIR replies to the
-// manual inbound ingestion. Kept fully separate from the Ediel mail engine.
+// Polls every active manual operations mailbox and persists every inbound mail.
+// Tenant/entity resolution happens inside manualInboundIngestion; GX-FIR is only
+// one of several strong correlation signals.
 export async function runManualInboundMailEngine(input?: {
   environment?: string | null
 }): Promise<ManualMailboxPollResult> {
   await assertPlatformSchemaReady()
-  const result: ManualMailboxPollResult = { mailboxes: 0, polled: 0, fetched: 0, ingested: 0, matched: 0, skipped: 0, errors: [] }
+  const result: ManualMailboxPollResult = {
+    mailboxes: 0,
+    polled: 0,
+    fetched: 0,
+    ingested: 0,
+    matched: 0,
+    ambiguous: 0,
+    unmatched: 0,
+    ignored: 0,
+    skipped: 0,
+    errors: [],
+  }
   const workerId = `manual-inbound:${nowIso()}`
 
   const mailboxes = await listActiveManualMailboxes(input?.environment)

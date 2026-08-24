@@ -113,6 +113,14 @@
     "20260823201716_canonical_customer_portal_match_strength_convergence.sql": "525a8f3a2587cb4c0375c01caa5868cd84036b635618c5bd048d2dd8f98dd819",
     "20260823204821_enforce_contract_price_snapshot_hash_integrity.sql": "599124b195bdae9d02a5835423b3580148b14c6c58a184a913a0ff5d1f4a8119",
     "20260824070634_fix_customer_application_workflow_output_ambiguity.sql": "1e39d46dcb478f0216c4d9ca2ffb583c000edaea1379a7a0097fe0969abab7c8",
-    "20260824080448_unique_postal_city_provisional_grid_owner.sql": "6d45152f5fb419d3ca52468312b4986acf96cfe6301dc34f20aaa284c99d6580"
+    "20260824080448_unique_postal_city_provisional_grid_owner.sql": "6d45152f5fb419d3ca52468312b4986acf96cfe6301dc34f20aaa284c99d6580",
+    "20260824132814_customer_application_runtime_contract_convergence.sql": "01869d0c91dc2d494d69b9184a39356360d3bf2c4eccc4e2c7de9064bec06a59",
+    "20260824134340_customer_application_runtime_readiness_contract.sql": "500dc8fb17507281f2ecbabdb82c86ea9dd9692dbad80cd272dba307877fe24e",
+    "20260824140830_website_poa_materialization_and_grid_owner_send_guard.sql": "9b968ad24e76a63b00610fe28f3add269e0f5de20ae681ed7ed71861cebc7023",
+    "20260824145700_customer_application_grid_owner_dependency_wait.sql": "795ba39580ec47c7eba4f673c95bd88fed0b163ae9ae3e36acb83281ab3988eb",
+    "20260824150500_customer_application_dependency_wait_state_projection.sql": "e0ba4c948a5a7dbff8a12a8a5224b16fdc821cca8a6a717c2fc94dadbfa4c9ab",
+    "20260824151800_exact_address_cache_street_number.sql": "365fad8426f43454219a6cf25f4cd5e0cbb1a2968044f79bb004af00230308fa",
+    "20260824153500_site_verified_grid_owner_manual_outbox_guard.sql": "f5377b866b01e079d19dfa95a945bd3fb801a84e1957afe17b901381d6f66761",
+    "20260824190000_gridex_inbound_operations_foundation.sql": "09310e637bcd884ee153883a03ab30918aff9393d8d6594d18ab073a179eba4f"
   }
 }

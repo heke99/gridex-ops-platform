@@ -131,7 +131,13 @@ ok(src.includes('createPowerOfAttorneyDocumentSnapshot') && src.includes('docume
 // 5) Operational response blocks (no technical Ediel leakage).
 ok(src.includes("next_step: 'automatic_processing'") || src.includes('next_step: "automatic_processing"'), 'accepted response exposes automatic_processing while OPS owns downstream work')
 ok(src.includes("next_step: 'complete_power_of_attorney'") || src.includes('next_step: "complete_power_of_attorney"'), 'continuation status exposes the missing-POA completion action')
-const poaOrchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
+// The public orchestrator is now a site/grid-owner verification guard around the
+// canonical core. Regress against both owners so a safe facade split cannot make
+// the golden path blind to the core POA/contact/nextAction contract.
+const poaOrchestrator = [
+  read('lib/customer-operations/requestMissingFacilityInformation.ts'),
+  read('lib/customer-operations/requestMissingFacilityInformationCore.ts'),
+].join('\n')
 ok(poaOrchestrator.includes('grid_owner_contact_required') && poaOrchestrator.includes('facility_identifier_requested'), 'orchestrator nextAction covers contact-required + facility-requested states')
 ok(src.includes('processWebsiteApplicationIntake({') && src.includes('references: intakeDecision.references'), 'continuation status includes canonical facility-request references from the orchestrator')
 ok(src.includes('responsePayload.power_of_attorney = {'), 'response includes a power_of_attorney status block')
