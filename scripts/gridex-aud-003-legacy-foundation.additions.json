@@ -256,7 +256,7 @@
     },
     "bootstrap/20260728_customer_application_transition_replay_compatibility.sql": {
       "source": "migrations/20260724210000_customer_application_continuation_orchestrator.sql",
-      "artifactSha256": "cd9a7e71e58faae51f073fa2ddc4b9ce515efcfe1fe453ae05273b3cdba19654",
+      "artifactSha256": "7ffc65eb07f38b3289fb94db2223ba2a13f5e2f8bfab5be40a74f08483b7281b",
       "preserveSourceReplay": true,
       "purpose": "Normalize the source-defined customer-application transition RPC to the alias-qualified definition expected by the later checksum-pinned live-schema canonical sync, without skipping or rewriting the full timestamped continuation source migration."
     },
