@@ -81311,8 +81311,10 @@ export type Database = {
           p_state: string
         }
         Returns: {
+          continuation_job_id: string
           operation_id: string
           state: string
+          workflow_id: string
         }[]
       }
       gridex_commit_customer_site_address: {
@@ -83242,6 +83244,25 @@ export type Database = {
       }
       gridex_text_to_jsonb: { Args: { value: string }; Returns: Json }
       gridex_text_to_text_array: { Args: { value: string }; Returns: string[] }
+      gridex_transition_customer_application_workflow: {
+        Args: {
+          p_actor_user_id?: string
+          p_company_id: string
+          p_customer_application_id: string
+          p_event_code: string
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_metadata?: Json
+          p_reason_code?: string
+          p_to_state: string
+        }
+        Returns: {
+          operation_id: string
+          state: string
+          workflow_id: string
+          workflow_version: number
+        }[]
+      }
       gridex_transition_portfolio_settlement: {
         Args: {
           p_action: string
