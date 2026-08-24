@@ -243,6 +243,12 @@
       "purpose": "Restore the early stable external tenant reference prerequisite while preserving complete checksum-pinned, forward-only/tenant-safe 20260722133000 external tenant quote/API completion for chronological replay, including website_contract_quotes and canonical external publication/API contracts.",
       "preserveSourceReplay": true
     },
+    "bootstrap/20260724_customer_application_continuation_schema_foundation.sql": {
+      "source": "migrations/20260724210000_customer_application_continuation_orchestrator.sql",
+      "artifactSha256": "fdc08a6843110bbfb550ddd96ce69d126d4166d9d771a03d05dd0297a12a41fb",
+      "preserveSourceReplay": true,
+      "purpose": "Restore the early continuation schema prerequisite while preserving the complete checksum-pinned 20260724210000 continuation orchestrator for chronological replay, including the four-column provisioning RPC contract required by later forward fixes."
+    },
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
       "artifactSha256": "24db9894315e5a95e976889db3332acb5a3d49744ad3dffab3b8e2dce9871015",
