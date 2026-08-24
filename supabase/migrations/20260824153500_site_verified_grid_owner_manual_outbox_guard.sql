@@ -28,8 +28,9 @@ begin
            and csr.customer_id = s.customer_id
            and csr.customer_site_id = s.id
            and csr.grid_owner_id = s.grid_owner_id
-           and csr.resolution_status = 'manual_verified'
-           and csr.automation_allowed is true,
+           and csr.resolution_status = 'grid_area_master_validated'
+           and csr.automation_allowed is true
+           and lower(coalesce(csr.source_claims->>'manual_grid_owner_confirmation','false')) in ('true','1','yes'),
            false
          )
     into v_request_grid_owner_id,
@@ -61,7 +62,7 @@ begin
     raise exception using
       errcode = '23514',
       message = 'manual_grid_owner_outbox_requires_verified_site_owner',
-      detail = 'External grid-owner mail requires the exact customer_site.grid_owner_id to match a verified customer-flow grid owner; technical-only owners additionally require an exact manual_verified site resolution.';
+      detail = 'External grid-owner mail requires exact site ownership. Technical-only owner rows additionally require an exact grid_area_master_validated resolution with explicit manual confirmation evidence.';
   end if;
 
   return new;
