@@ -67,6 +67,11 @@
       "beforeLedgerVersion": "20260716010000"
     },
     {
+      "path": "bootstrap/20260728_customer_application_transition_replay_compatibility.sql",
+      "afterLedgerVersion": "20260727167000",
+      "beforeLedgerVersion": "20260728170000"
+    },
+    {
       "path": "bootstrap/20260731_publication_repair_live_functions_foundation.sql",
       "afterLedgerVersion": "20260731152000",
       "beforeLedgerVersion": "20260731210000"
@@ -248,6 +253,12 @@
       "artifactSha256": "fdc08a6843110bbfb550ddd96ce69d126d4166d9d771a03d05dd0297a12a41fb",
       "preserveSourceReplay": true,
       "purpose": "Restore the early continuation schema prerequisite while preserving the complete checksum-pinned 20260724210000 continuation orchestrator for chronological replay, including the four-column provisioning RPC contract required by later forward fixes."
+    },
+    "bootstrap/20260728_customer_application_transition_replay_compatibility.sql": {
+      "source": "migrations/20260724210000_customer_application_continuation_orchestrator.sql",
+      "artifactSha256": "cd9a7e71e58faae51f073fa2ddc4b9ce515efcfe1fe453ae05273b3cdba19654",
+      "preserveSourceReplay": true,
+      "purpose": "Normalize the source-defined customer-application transition RPC to the alias-qualified definition expected by the later checksum-pinned live-schema canonical sync, without skipping or rewriting the full timestamped continuation source migration."
     },
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
