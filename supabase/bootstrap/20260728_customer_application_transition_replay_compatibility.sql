@@ -70,15 +70,15 @@ begin
   ) on conflict (company_id,idempotency_key) do nothing;
 
   update public.customer_application_workflows workflow
-  set state=p_to_state,
-      next_action=coalesce(p_metadata->>'next_action',workflow.next_action),
-      snapshot=coalesce(workflow.snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
-      failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),workflow.failure_code) else null end,
-      completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
-      last_transition_at=now(),
-      workflow_version=workflow.workflow_version+1,
-      updated_at=now()
-  where workflow.id=v_row.id;
+      set state=p_to_state,
+          next_action=coalesce(p_metadata->>'next_action',workflow.next_action),
+          snapshot=coalesce(workflow.snapshot,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb),
+          failure_code=case when p_to_state='failed' then coalesce(nullif(btrim(p_reason_code),''),workflow.failure_code) else null end,
+          completed_at=case when p_to_state in ('completed','cancelled') then now() else null end,
+          last_transition_at=now(),
+          workflow_version=workflow.workflow_version+1,
+          updated_at=now()
+      where workflow.id=v_row.id;
 
   return query
   select w.id,w.operation_id,w.state,w.workflow_version
