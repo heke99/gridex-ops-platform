@@ -30,7 +30,7 @@ function customerName(rawBody: unknown) {
  */
 export async function processWebsiteCustomerApplication(
   input: Parameters<typeof processWebsiteCustomerApplicationCore>[0],
-): ReturnType<typeof processWebsiteCustomerApplicationCore> {
+) {
   const result = await processWebsiteCustomerApplicationCore(input)
   if (!result.ok) return result
 
