@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildAgreementPdfAttachment, buildAgreementPdfBuffer } from '@/lib/customer-contracts/agreementPdf'
+import {
+  buildAgreementPdfAttachment,
+  buildAgreementPdfBuffer,
+  customerContractTypeLabel,
+} from '@/lib/customer-contracts/agreementPdf'
 
 const input = {
   companyName: 'Exempel Energi AB',
@@ -15,7 +19,7 @@ const input = {
   contractNumber: 'AVT-DX-100025-001',
   contractName: 'Rörligt elpris',
   contractDescription: 'Inköpspris med avtalat påslag.',
-  contractType: 'variable_spot',
+  contractType: 'variable_monthly',
   signedAt: '2026-07-13T18:00:00.000Z',
   startsAt: '2026-08-01',
   withdrawalDeadline: '2026-07-27T18:00:00.000Z',
@@ -49,14 +53,32 @@ describe('agreement PDF', () => {
     expect(latin1).toContain('ACCEPTERADE VILLKOR OCH DOKUMENT')
     expect(latin1).toContain('Allm\\344nna villkor')
     expect(latin1).toContain('Exempelv\\344gen 1, 111 11 Stockholm')
+    expect(latin1).toContain('Avtalstyp: M\\345nadsr\\366rligt')
 
+    expect(latin1).not.toContain('variable_monthly')
     expect(latin1).not.toContain('Detta \\344r de accepterade villkoren')
     expect(latin1).not.toContain('offer_signed_reference')
     expect(latin1).not.toContain('33333333-3333-4333-8333-333333333333')
     expect(latin1).not.toContain('11111111-1111-4111-8111-111111111111')
     expect(latin1).not.toContain('Signatursnapshot SHA-256')
     expect(latin1).not.toContain('BEVISUPPGIFTER')
+    expect(latin1).not.toContain('Gridex OPS')
     expect(latin1.trimEnd().endsWith('%%EOF')).toBe(true)
+  })
+
+  it.each([
+    ['fixed', 'Fast pris'],
+    ['variable_monthly', 'Månadsrörligt'],
+    ['variable_hourly', 'Timpris'],
+    ['variable_quarterly', 'Kvartspris'],
+    ['portfolio', 'Portföljförvaltat'],
+    ['mixed', 'Mixavtal'],
+  ])('maps %s to a customer-facing Swedish label', (contractType, expected) => {
+    expect(customerContractTypeLabel(contractType)).toBe(expected)
+  })
+
+  it('does not expose unknown internal contract type enums', () => {
+    expect(customerContractTypeLabel('internal_future_enum')).toBeNull()
   })
 
   it('returns a durable base64 email attachment', () => {
