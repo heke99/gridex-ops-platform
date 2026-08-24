@@ -1,0 +1,58 @@
+name: PR203 Supabase typegen sync
+
+on:
+  push:
+    branches:
+      - feat/inbound-grid-owner-reply-correlation
+
+permissions:
+  contents: write
+
+jobs:
+  sync-types:
+    if: github.repository == 'heke99/gridex-ops-platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/inbound-grid-owner-reply-correlation
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Generate canonical clean-replay types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          supabase gen types typescript --local > supabase/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          node - "$GENERATED_HASH" <<'NODE'
+          const fs = require('node:fs')
+          const hash = process.argv[2]
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.generated_at = new Date().toISOString()
+          manifest.generated_with = 'supabase-cli-2.101.0-clean-replay'
+          manifest.sha256 = hash
+          manifest.latest_migration = '20260824190000_gridex_inbound_operations_foundation.sql'
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
+          NODE
+          npm run db:types:check
+      - name: Commit generated types to PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if git diff --cached --quiet; then
+            echo "Supabase generated types already current."
+            exit 0
+          fi
+          git commit -m "chore: regenerate Supabase types for inbound operations"
+          git push origin HEAD:feat/inbound-grid-owner-reply-correlation
