@@ -60,7 +60,9 @@ ok(blockers.includes('Anläggnings-ID saknas'), 'blocker has Swedish tenant text
 ok(blockers.includes('customerBlockerSuperadminDiagnostic'), 'blocker exposes a superadmin-only diagnostic')
 
 // 5) Orchestrator (idempotent, tenant-safe, never creates ediel_outbox).
-const orchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
+const orchestratorFacade = read('lib/customer-operations/requestMissingFacilityInformation.ts')
+const orchestrator = read('lib/customer-operations/requestMissingFacilityInformationCore.ts')
+ok(orchestratorFacade.includes('requestMissingFacilityInformationCore'), 'orchestrator facade delegates to core')
 ok(orchestrator.includes('manual-facility-request:') && orchestrator.includes('idempotency_key'), 'orchestrator uses a deterministic idempotency key')
 ok(orchestrator.includes('GX-FIR-'), 'orchestrator generates GX-FIR case reference')
 ok(orchestrator.includes("channel: 'manual_email'") || orchestrator.includes("channel: 'manual_email',"), 'orchestrator uses manual_email channel')
@@ -97,18 +99,24 @@ ok(templates.includes('Anläggnings-ID') && templates.includes('Årsenergi'), 'f
 // not a prerequisite; all mail is persisted before matching.
 const inbound = read('lib/inbound-mail/manualInboundIngestion.ts')
 const correlation = read('lib/inbound-mail/manualInboundCorrelation.ts')
-ok(inbound.includes('persistRawInbound') && inbound.indexOf('persistRawInbound') < inbound.indexOf('resolveManualInboundCorrelation'), 'inbound persists raw e-mail before tenant/entity correlation')
+const persistCall = inbound.indexOf('await persistRawInbound(')
+const correlateCall = inbound.indexOf('await resolveManualInboundCorrelation(')
+ok(persistCall >= 0 && correlateCall > persistCall, 'inbound persists raw e-mail before tenant/entity correlation')
 ok(inbound.includes('extractCaseReference') && inbound.includes('GX-FIR-'), 'inbound still extracts GX-FIR as strong correlation evidence')
 ok(correlation.includes('request_case_reference') && correlation.includes('request_reply_reference'), 'correlation supports case-reference and reply-header request evidence')
 ok(correlation.includes('tenant_mailbox') && correlation.includes('unique_facility') && correlation.includes('unique_metering_point') && correlation.includes('unique_customer_number'), 'correlation ranks tenant mailbox, facility, metering point and customer-number evidence')
 ok(correlation.includes('hardAmbiguous') && correlation.includes("resolutionStatus = 'ambiguous'"), 'correlation fails closed on conflicting tenant/entity evidence')
 ok(correlation.includes('grid_owner_contact_channels') && correlation.includes('senderIsCredible'), 'correlation verifies the grid-owner sender in the resolved tenant')
+ok(correlation.includes('requestBoundByReply') && correlation.includes('escapeIlike'), 'correlation requires reply-bound recipient or verified contact and escapes ILIKE wildcards')
+ok(inbound.includes('persistTenantBinding') && inbound.includes("resolutionStatus === 'matched'"), 'inbound only persists tenant FKs after matched+credible correlation')
+ok(!/parse\.outcome === 'applied'[\s\S]{0,400}status:\s*'manual_response_received'/.test(inbound), 'inbound does not downgrade completed facility requests after apply')
 ok(inbound.includes('manual_inbound_messages') && inbound.includes('inbound_operation_events'), 'inbound stores raw mail and the cross-transport orchestration index')
 ok(inbound.includes('FACILITY_REQUEST_TYPES') && inbound.includes('correlation.senderCredible') && inbound.includes('applyManualFacilityResponse'), 'auto-apply is restricted to credible, matched canonical facility requests')
 
 // 10) Parser (safe apply vs needs_review vs protected identity, then next-step engine).
 const parser = read('lib/customer-operations/manualFacilityResponseParser.ts')
 ok(parser.includes('needs_review') && parser.includes("outcome: 'applied'"), 'parser supports both safe apply and needs_review outcomes')
+ok(parser.includes('!completion.ok') && parser.includes("outcome: 'needs_review'"), 'parser treats completion ok:false as needs_review')
 ok(parser.includes('protected_identity'), 'parser blocks auto-apply for protected identity')
 ok(parser.includes('manually_verified_by_grid_owner'), 'parser marks facility data as manually verified by grid owner')
 ok(parser.includes('completeFacilityLookupAndRunNextSteps'), 'parser triggers the canonical completion + next-step engine after a safe apply')
@@ -190,7 +198,13 @@ const summary = read('lib/customer-operations/manualRequestSummary.ts')
 ok(summary.includes('listManualGridOwnerRequestSummaries') && summary.includes('grid_owner_information_requests'), 'manual request summary loader reads grid_owner_information_requests')
 ok(summary.includes('E-post köad') && summary.includes('E-post skickad') && summary.includes('Väntar på svar från nätägaren') && summary.includes('Svar mottaget') && summary.includes('Uppgifter kompletterade') && summary.includes('Behöver granskning'), 'manual summary maps tenant Swedish statuses')
 ok(!summary.includes('provider_message_id') && !summary.includes('body_html') && !summary.includes('body_text') && !summary.includes('parsed_payload'), 'manual summary excludes provider/raw fields')
-const customerPage = read('app/admin/customers/[id]/page.tsx')
+const customerPage = [
+  read('app/admin/customers/[id]/page.tsx'),
+  read('app/admin/customers/[id]/page.part-1.tsx'),
+  read('app/admin/customers/[id]/page.part-2.tsx'),
+  read('app/admin/customers/[id]/page.part-3.tsx'),
+  read('app/admin/customers/[id]/page.part-4.tsx'),
+].join('\n')
 ok(customerPage.includes('listManualGridOwnerRequestSummaries') && customerPage.includes('manualRequests={manualRequestSummaries}'), 'customer card page loads + passes manual request summaries')
 const businessCard = read('components/admin/customers/CustomerBusinessActionsCard.tsx')
 ok(businessCard.includes('manualRequests') && businessCard.includes('Begäran till nätägare'), 'customer card renders the manual request status panel')

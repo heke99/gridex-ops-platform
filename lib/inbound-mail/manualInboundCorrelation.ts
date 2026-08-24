@@ -61,6 +61,11 @@ function normalizeEmail(value: unknown): string | null {
   return clean(value)?.toLowerCase() ?? null
 }
 
+/** Escape PostgREST/ILIKE wildcards so literal emails with _ or % match exactly. */
+function escapeIlike(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1')
+}
+
 function normalizeMessageId(value: unknown): string | null {
   const raw = clean(value)
   if (!raw) return null
@@ -252,7 +257,7 @@ async function findVerifiedSenderContacts(fromEmail: string | null): Promise<Jso
     .select('grid_owner_id,company_id,email,channel_type,is_verified,is_enabled')
     .eq('is_enabled', true)
     .eq('is_verified', true)
-    .ilike('email', from)
+    .ilike('email', escapeIlike(from))
     .limit(50)
   if (error) throw error
   return (data ?? []) as JsonRecord[]
@@ -348,16 +353,21 @@ function senderIsCredible(input: {
   gridOwnerId: string | null
   request: JsonRecord | null
   contacts: JsonRecord[]
+  requestBoundByReply: boolean
 }): boolean {
   const from = normalizeEmail(input.fromEmail)
   if (!from || !input.companyId || !input.gridOwnerId) return false
-  if (normalizeEmail(input.request?.recipient_email) === from) return true
-  return input.contacts.some((row) => {
+  const verifiedContact = input.contacts.some((row) => {
     const contactCompanyId = clean(row.company_id)
     return normalizeEmail(row.email) === from
       && clean(row.grid_owner_id) === input.gridOwnerId
       && (contactCompanyId === null || contactCompanyId === input.companyId)
   })
+  if (verifiedContact) return true
+  // recipient_email alone is spoofable on unauthenticated IMAP. Only trust it
+  // when reply headers already bound this message to the outbound request.
+  if (input.requestBoundByReply && normalizeEmail(input.request?.recipient_email) === from) return true
+  return false
 }
 
 export async function resolveManualInboundCorrelation(input: {
@@ -381,16 +391,23 @@ export async function resolveManualInboundCorrelation(input: {
   }
 
   const references = messageReferenceCandidates(input.email)
-  if (!request && references.length) {
+  let requestBoundByReply = false
+  if (references.length) {
     const replyMatch = await findRequestByOutboundReferences(references)
-    request = replyMatch.request
-    hardAmbiguous = hardAmbiguous || replyMatch.ambiguous
     evidence.reply_reference_candidates = references
     evidence.reply_reference_outbox_ids = replyMatch.outboxIds
     evidence.reply_reference_match_methods = replyMatch.matchMethods
     evidence.reply_reference_matched = Boolean(replyMatch.request)
-    addCompanyEvidence(companyEvidence, 'request_reply_reference', clean(replyMatch.request?.company_id), 95, references[0] ?? null)
+    if (!request) {
+      request = replyMatch.request
+      hardAmbiguous = hardAmbiguous || replyMatch.ambiguous
+      addCompanyEvidence(companyEvidence, 'request_reply_reference', clean(replyMatch.request?.company_id), 95, references[0] ?? null)
+    }
+    if (replyMatch.request && clean(replyMatch.request.id) === clean(request?.id)) {
+      requestBoundByReply = true
+    }
   }
+  evidence.request_bound_by_reply = requestBoundByReply
 
   const mailboxCompanyId = clean(input.email.mailboxCompanyId)
   if (mailboxCompanyId) addCompanyEvidence(companyEvidence, 'tenant_mailbox', mailboxCompanyId, 90, clean(input.email.mailbox))
@@ -506,6 +523,7 @@ export async function resolveManualInboundCorrelation(input: {
     gridOwnerId,
     request,
     contacts: senderContacts,
+    requestBoundByReply,
   })
 
   const requestId = clean(request?.id)

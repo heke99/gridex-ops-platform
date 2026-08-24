@@ -298,18 +298,28 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       ? 'ignored'
       : correlation.resolutionStatus
 
+  // Only matched+credible rows may become tenant-readable FKs under RLS.
+  // Guessed company/request from spoofable reply/case headers stay in evidence.
+  const persistTenantBinding = correlation.resolutionStatus === 'matched'
+  const boundCompanyId = persistTenantBinding ? correlation.companyId : null
+  const boundRequestId = persistTenantBinding ? correlation.requestId : null
+  const boundCustomerId = persistTenantBinding ? correlation.customerId : null
+  const boundCustomerSiteId = persistTenantBinding ? correlation.customerSiteId : null
+  const boundMeteringPointId = persistTenantBinding ? correlation.meteringPointId : null
+  const boundGridOwnerId = persistTenantBinding ? correlation.gridOwnerId : null
+
   const correlationUpdate = await supabaseService
     .from('manual_inbound_messages')
     .update({
-      company_id: correlation.companyId,
-      request_id: correlation.requestId,
+      company_id: boundCompanyId,
+      request_id: boundRequestId,
       mailbox_company_id: clean(email.mailboxCompanyId),
       in_reply_to: clean(email.inReplyTo ?? email.threadId),
       reference_message_ids: Array.isArray(email.references) ? email.references.filter(Boolean).slice(0, 50) : [],
-      grid_owner_id: correlation.gridOwnerId,
-      customer_id: correlation.customerId,
-      customer_site_id: correlation.customerSiteId,
-      metering_point_id: correlation.meteringPointId,
+      grid_owner_id: boundGridOwnerId,
+      customer_id: boundCustomerId,
+      customer_site_id: boundCustomerSiteId,
+      metering_point_id: boundMeteringPointId,
       tenant_resolution_method: correlation.tenantResolutionMethod,
       entity_resolution_method: correlation.entityResolutionMethod,
       correlation_evidence: correlation.evidence,
@@ -328,27 +338,27 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   if (!correlationUpdate.data) throw new Error('Inkommande e-post kunde inte uppdateras med korrelationsresultat.')
 
   const fingerprint = operationFingerprint({
-    companyId: correlation.companyId,
+    companyId: boundCompanyId,
     businessProcess: correlation.businessProcess,
-    requestId: correlation.requestId,
-    customerSiteId: correlation.customerSiteId,
+    requestId: boundRequestId,
+    customerSiteId: boundCustomerSiteId,
     facilityId: clean(extracted.facility_id),
     meteringPointValue: clean(extracted.metering_point_id),
   })
 
   await upsertInboundOperationEvent({
     inboundId: raw.inboundId,
-    companyId: correlation.companyId,
+    companyId: boundCompanyId,
     resolutionStatus: correlation.resolutionStatus,
     tenantResolutionMethod: correlation.tenantResolutionMethod,
     businessProcess: correlation.businessProcess,
     intent: correlation.intent,
     intentConfidence: correlation.intentConfidence,
-    gridOwnerId: correlation.gridOwnerId,
-    customerId: correlation.customerId,
-    customerSiteId: correlation.customerSiteId,
-    meteringPointId: correlation.meteringPointId,
-    requestId: correlation.requestId,
+    gridOwnerId: boundGridOwnerId,
+    customerId: boundCustomerId,
+    customerSiteId: boundCustomerSiteId,
+    meteringPointId: boundMeteringPointId,
+    requestId: boundRequestId,
     processingState: baseProcessingState,
     evidence: correlation.evidence,
     businessEventFingerprint: fingerprint,
@@ -382,18 +392,11 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       source: 'manual_inbound_ingestion',
     })
 
+    // applyManualFacilityResponse → completeFacilityLookup already commits the
+    // request to completed (or needs_review on conflict). Do not overwrite status
+    // afterward — filtering for pre-completion statuses throws on zero rows and
+    // leaves IMAP Seen unmarked with a sticky matched processing_state.
     processingState = parse.outcome === 'applied' ? 'applied' : 'needs_review'
-    if (parse.outcome === 'applied') {
-      const requestUpdate = await supabaseService
-        .from('grid_owner_information_requests')
-        .update({ status: 'manual_response_received', received_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('company_id', correlation.companyId)
-        .eq('id', String(correlation.request.id))
-        .in('status', ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'manual_response_received'])
-        .select('id')
-      if (requestUpdate.error) throw requestUpdate.error
-      if (!requestUpdate.data?.length) throw new Error('Nätägarärendet kunde inte markeras mottaget i rätt tenant.')
-    }
   } else if (correlation.resolutionStatus === 'matched') {
     // We understood who/what the mail belongs to, but this batch only auto-
     // applies the existing canonical facility-response path. Other intents are
@@ -412,17 +415,17 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
 
     await upsertInboundOperationEvent({
       inboundId: raw.inboundId,
-      companyId: correlation.companyId,
+      companyId: boundCompanyId,
       resolutionStatus: correlation.resolutionStatus,
       tenantResolutionMethod: correlation.tenantResolutionMethod,
       businessProcess: correlation.businessProcess,
       intent: correlation.intent,
       intentConfidence: correlation.intentConfidence,
-      gridOwnerId: correlation.gridOwnerId,
-      customerId: correlation.customerId,
-      customerSiteId: correlation.customerSiteId,
-      meteringPointId: correlation.meteringPointId,
-      requestId: correlation.requestId,
+      gridOwnerId: boundGridOwnerId,
+      customerId: boundCustomerId,
+      customerSiteId: boundCustomerSiteId,
+      meteringPointId: boundMeteringPointId,
+      requestId: boundRequestId,
       processingState,
       evidence: { ...correlation.evidence, parse_outcome: parse?.outcome ?? null },
       businessEventFingerprint: fingerprint,
@@ -432,12 +435,12 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   return {
     inboundId: raw.inboundId,
     resolutionStatus: correlation.resolutionStatus,
-    requestId: correlation.requestId,
+    requestId: boundRequestId,
     caseReference,
-    companyId: correlation.companyId,
-    customerId: correlation.customerId,
-    customerSiteId: correlation.customerSiteId,
-    meteringPointId: correlation.meteringPointId,
+    companyId: boundCompanyId,
+    customerId: boundCustomerId,
+    customerSiteId: boundCustomerSiteId,
+    meteringPointId: boundMeteringPointId,
     intent: correlation.intent,
     businessProcess: correlation.businessProcess,
     processingState,
