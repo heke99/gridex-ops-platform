@@ -22,7 +22,7 @@ function expect(condition, message) {
 }
 
 const website = read('lib/website/customerApplications.ts')
-const manual = read('lib/customer-operations/requestMissingFacilityInformation.ts')
+const manual = read('lib/customer-operations/requestMissingFacilityInformationCore.ts')
 const requests = read('lib/energy/gridOwnerRequests.ts')
 const context = read('lib/energy/meteringPointContext.ts')
 const migration = read('supabase/migrations/20260708210000_website_application_canonical_dispatch_alignment.sql')
