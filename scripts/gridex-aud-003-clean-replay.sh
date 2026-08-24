@@ -13,6 +13,8 @@ FOUNDATION_ADDITIONS="$ROOT/scripts/gridex-aud-003-legacy-foundation.additions.j
 FOUNDATION_ORDER="$ROOT/scripts/gridex-aud-003-foundation-order.json"
 NONCANONICAL="$ROOT/scripts/gridex-aud-003-noncanonical-artifacts.json"
 FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
+POA_LIVE_PREREQUISITE="$SUPABASE/bootstrap/20260824_powers_of_attorney_legal_bundle_version_document_prerequisite.sql"
+POA_LIVE_PREREQUISITE_SHA256="57a0d0ec161d53ec4c938af7621dac4d23d9cd7c867a32129ee9868f0589e753"
 EXPECTED_FINGERPRINT="a594bb02a06a96d6b1ba3d8233c066a7cae57c1984ca96272515d6498a514164"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
@@ -34,9 +36,14 @@ trap cleanup EXIT
 command -v supabase >/dev/null
 command -v psql >/dev/null
 command -v python3 >/dev/null
-for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL"; do
+for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE"; do
   test -f "$required" || { echo "missing replay provenance input: $required" >&2; exit 1; }
 done
+ACTUAL_POA_LIVE_PREREQUISITE_SHA256="$(sha256sum "$POA_LIVE_PREREQUISITE" | awk '{print $1}')"
+if [[ "$ACTUAL_POA_LIVE_PREREQUISITE_SHA256" != "$POA_LIVE_PREREQUISITE_SHA256" ]]; then
+  echo "verified POA live-schema prerequisite checksum drift: $ACTUAL_POA_LIVE_PREREQUISITE_SHA256 != $POA_LIVE_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
@@ -50,7 +57,10 @@ rm -f "$MIGRATIONS"/*.sql
 # 4) exclude only explicitly classified, checksum-bound noncanonical repository artifacts;
 # 5) execute every remaining timestamped repository migration deterministically, inserting declared
 #    interleaved bootstrap artifacts at their exact verified boundaries;
-# 6) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
+# 6) restore the checksum-pinned, verified-live POA document binding immediately before the first
+#    timestamped migration that consumes it; this reconciles live schema provenance without rewriting
+#    the already-applied 20260824140830 migration;
+# 7) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
 python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
@@ -217,7 +227,18 @@ apply_sql(){
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
-while IFS= read -r file; do apply_sql "$file"; done < "$TIMESTAMP_EXEC"
+poa_live_prerequisite_applied=false
+while IFS= read -r file; do
+  if [[ "$(basename "$file")" == 20260824140830_* ]]; then
+    apply_sql "$POA_LIVE_PREREQUISITE"
+    poa_live_prerequisite_applied=true
+  fi
+  apply_sql "$file"
+done < "$TIMESTAMP_EXEC"
+if [[ "$poa_live_prerequisite_applied" != true ]]; then
+  echo "verified POA live-schema prerequisite boundary was not reached before 20260824140830" >&2
+  exit 1
+fi
 
 python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys
