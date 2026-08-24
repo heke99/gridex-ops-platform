@@ -22,6 +22,10 @@ function normalizeMailboxAddress(value: unknown): string | null {
   return (angleAddress ?? raw).trim() || null
 }
 
+function escapeIlike(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1')
+}
+
 function verifyRequest(request: NextRequest, rawBody: string) {
   const secret = clean(process.env.MANUAL_INBOUND_WEBHOOK_SECRET)
   if (!secret) throw new Error('Inkommande e-post-webhook är inte konfigurerad.')
@@ -80,14 +84,14 @@ async function resolveWebhookMailboxCompanyId(mailbox: string): Promise<string |
       .select('id,company_id')
       .eq('is_active', true)
       .eq('is_verified', true)
-      .ilike('from_email', address)
+      .ilike('from_email', escapeIlike(address))
       .limit(20),
     supabaseService
       .from('manual_communication_mailboxes')
       .select('id,company_id')
       .eq('is_active', true)
       .eq('is_verified', true)
-      .ilike('reply_to_email', address)
+      .ilike('reply_to_email', escapeIlike(address))
       .limit(20),
   ])
   if (fromResult.error) throw fromResult.error

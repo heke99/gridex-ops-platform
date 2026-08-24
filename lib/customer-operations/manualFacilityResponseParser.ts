@@ -274,6 +274,35 @@ export async function applyManualFacilityResponse(input: {
       note: 'Automatiskt tolkat svar från nätägarens e-post.',
       rawPayload: { ...(input.rawPayload ?? {}), extracted: input.extracted as unknown as JsonRecord },
     })
+    // Conflict/quality-issue paths return ok:false without throwing. Treat them
+    // as needs_review — never report applied when facility data was not committed.
+    if (!completion.ok) {
+      const conflictUpdate = await supabaseService
+        .from('grid_owner_information_requests')
+        .update({
+          status: 'needs_review',
+          received_payload: input.rawPayload ?? {},
+          parsed_payload: {
+            ...parsedPayload,
+            applied: false,
+            completion_code: completion.blockerCode ?? 'data_conflict',
+          },
+          received_at: now,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId)
+        .eq('company_id', input.companyId)
+        .select('id')
+        .maybeSingle()
+      if (conflictUpdate.error) throw conflictUpdate.error
+      if (!conflictUpdate.data) throw new Error('Nätägarärendet kunde inte säkert återföras till granskning.')
+      return {
+        outcome: 'needs_review',
+        confidence: effectiveConfidence,
+        extracted: input.extracted,
+        reasons: [completion.blockerCode ?? 'data_conflict'],
+      }
+    }
     nextStepDecision = completion.supplierSwitchResult?.decision ?? completion.intakeDecision?.state ?? null
   } catch (error) {
     // Completion failed (e.g. request/site linkage issue): fall back to
