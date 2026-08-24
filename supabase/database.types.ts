@@ -46766,6 +46766,181 @@ export type Database = {
           },
         ]
       }
+      inbound_operation_events: {
+        Row: {
+          business_event_fingerprint: string | null
+          business_object_id: string | null
+          business_process: string | null
+          company_id: string | null
+          created_at: string
+          customer_id: string | null
+          customer_site_id: string | null
+          evidence: Json
+          grid_owner_id: string | null
+          id: string
+          idempotency_key: string
+          intent: string | null
+          intent_confidence: number | null
+          metering_point_id: string | null
+          processing_state: string
+          source_id: string
+          source_transport: string
+          tenant_resolution_method: string | null
+          tenant_resolution_status: string
+          updated_at: string
+        }
+        Insert: {
+          business_event_fingerprint?: string | null
+          business_object_id?: string | null
+          business_process?: string | null
+          company_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_site_id?: string | null
+          evidence?: Json
+          grid_owner_id?: string | null
+          id?: string
+          idempotency_key: string
+          intent?: string | null
+          intent_confidence?: number | null
+          metering_point_id?: string | null
+          processing_state?: string
+          source_id: string
+          source_transport: string
+          tenant_resolution_method?: string | null
+          tenant_resolution_status: string
+          updated_at?: string
+        }
+        Update: {
+          business_event_fingerprint?: string | null
+          business_object_id?: string | null
+          business_process?: string | null
+          company_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_site_id?: string | null
+          evidence?: Json
+          grid_owner_id?: string | null
+          id?: string
+          idempotency_key?: string
+          intent?: string | null
+          intent_confidence?: number | null
+          metering_point_id?: string | null
+          processing_state?: string
+          source_id?: string
+          source_transport?: string
+          tenant_resolution_method?: string | null
+          tenant_resolution_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       inbound_processing_jobs: {
         Row: {
           attempts_count: number
@@ -50437,19 +50612,33 @@ export type Database = {
           attachments: Json
           body_html: string | null
           body_text: string | null
+          business_process: string | null
           company_id: string | null
           confidence_score: number | null
+          correlation_evidence: Json
           created_at: string
+          customer_id: string | null
+          customer_site_id: string | null
+          entity_resolution_method: string | null
           extracted_payload: Json
           from_email: string | null
           from_name: string | null
+          grid_owner_id: string | null
           id: string
+          in_reply_to: string | null
+          intent: string | null
           mailbox: string | null
+          mailbox_company_id: string | null
+          metering_point_id: string | null
+          normalized_text: string | null
+          processing_state: string
           provider_message_id: string | null
           received_at: string
+          reference_message_ids: Json
           request_id: string | null
           resolution_status: string
           subject: string | null
+          tenant_resolution_method: string | null
           thread_id: string | null
           to_email: string | null
         }
@@ -50457,19 +50646,33 @@ export type Database = {
           attachments?: Json
           body_html?: string | null
           body_text?: string | null
+          business_process?: string | null
           company_id?: string | null
           confidence_score?: number | null
+          correlation_evidence?: Json
           created_at?: string
+          customer_id?: string | null
+          customer_site_id?: string | null
+          entity_resolution_method?: string | null
           extracted_payload?: Json
           from_email?: string | null
           from_name?: string | null
+          grid_owner_id?: string | null
           id?: string
+          in_reply_to?: string | null
+          intent?: string | null
           mailbox?: string | null
+          mailbox_company_id?: string | null
+          metering_point_id?: string | null
+          normalized_text?: string | null
+          processing_state?: string
           provider_message_id?: string | null
           received_at?: string
+          reference_message_ids?: Json
           request_id?: string | null
           resolution_status?: string
           subject?: string | null
+          tenant_resolution_method?: string | null
           thread_id?: string | null
           to_email?: string | null
         }
@@ -50477,19 +50680,33 @@ export type Database = {
           attachments?: Json
           body_html?: string | null
           body_text?: string | null
+          business_process?: string | null
           company_id?: string | null
           confidence_score?: number | null
+          correlation_evidence?: Json
           created_at?: string
+          customer_id?: string | null
+          customer_site_id?: string | null
+          entity_resolution_method?: string | null
           extracted_payload?: Json
           from_email?: string | null
           from_name?: string | null
+          grid_owner_id?: string | null
           id?: string
+          in_reply_to?: string | null
+          intent?: string | null
           mailbox?: string | null
+          mailbox_company_id?: string | null
+          metering_point_id?: string | null
+          normalized_text?: string | null
+          processing_state?: string
           provider_message_id?: string | null
           received_at?: string
+          reference_message_ids?: Json
           request_id?: string | null
           resolution_status?: string
           subject?: string | null
+          tenant_resolution_method?: string | null
           thread_id?: string | null
           to_email?: string | null
         }
@@ -50605,6 +50822,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grid_owner_information_requests"
             referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "manual_inbound_messages_request_id_fkey"
@@ -55456,6 +55778,7 @@ export type Database = {
           provider: string
           raw_payload: Json
           street: string | null
+          street_number: string | null
           sweref99_x: number | null
           sweref99_y: number | null
           updated_at: string
@@ -55474,6 +55797,7 @@ export type Database = {
           provider?: string
           raw_payload?: Json
           street?: string | null
+          street_number?: string | null
           sweref99_x?: number | null
           sweref99_y?: number | null
           updated_at?: string
@@ -55492,6 +55816,7 @@ export type Database = {
           provider?: string
           raw_payload?: Json
           street?: string | null
+          street_number?: string | null
           sweref99_x?: number | null
           sweref99_y?: number | null
           updated_at?: string
@@ -59003,6 +59328,7 @@ export type Database = {
           external_customer_id: string | null
           fullmakt_snapshot: Json
           id: string
+          legal_bundle_version_document_id: string | null
           legal_snapshot_id: string | null
           legal_text_version_id: string | null
           metadata: Json
@@ -59049,6 +59375,7 @@ export type Database = {
           external_customer_id?: string | null
           fullmakt_snapshot?: Json
           id?: string
+          legal_bundle_version_document_id?: string | null
           legal_snapshot_id?: string | null
           legal_text_version_id?: string | null
           metadata?: Json
@@ -59095,6 +59422,7 @@ export type Database = {
           external_customer_id?: string | null
           fullmakt_snapshot?: Json
           id?: string
+          legal_bundle_version_document_id?: string | null
           legal_snapshot_id?: string | null
           legal_text_version_id?: string | null
           metadata?: Json
@@ -59343,6 +59671,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["site_id"]
+          },
+          {
+            foreignKeyName: "powers_of_attorney_legal_bundle_version_document_id_fkey"
+            columns: ["legal_bundle_version_document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_bundle_version_documents"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "powers_of_attorney_legal_snapshot_id_fkey"
@@ -62999,6 +63334,7 @@ export type Database = {
           authorization_document_id: string | null
           automation_key: string | null
           automation_origin: string | null
+          communication_route_id: string | null
           company_id: string | null
           completed_at: string | null
           confirmed_start_date: string | null
@@ -63011,6 +63347,7 @@ export type Database = {
           customer_contract_id: string | null
           customer_id: string | null
           customer_site_id: string | null
+          ediel_route_profile_id: string | null
           expected_z02_variant: string | null
           external_reference: string | null
           failed_at: string | null
@@ -63056,6 +63393,7 @@ export type Database = {
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
+          communication_route_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           confirmed_start_date?: string | null
@@ -63068,6 +63406,7 @@ export type Database = {
           customer_contract_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
+          ediel_route_profile_id?: string | null
           expected_z02_variant?: string | null
           external_reference?: string | null
           failed_at?: string | null
@@ -63113,6 +63452,7 @@ export type Database = {
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
+          communication_route_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           confirmed_start_date?: string | null
@@ -63125,6 +63465,7 @@ export type Database = {
           customer_contract_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
+          ediel_route_profile_id?: string | null
           expected_z02_variant?: string | null
           external_reference?: string | null
           failed_at?: string | null
@@ -63167,6 +63508,34 @@ export type Database = {
           z03_variant?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_switch_requests_communication_route_id_fkey"
+            columns: ["communication_route_id"]
+            isOneToOne: false
+            referencedRelation: "communication_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_communication_route_id_fkey"
+            columns: ["communication_route_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_route_readiness_v"
+            referencedColumns: ["communication_route_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_communication_route_id_fkey"
+            columns: ["communication_route_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_business_readiness_v"
+            referencedColumns: ["communication_route_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_communication_route_id_fkey"
+            columns: ["communication_route_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_materialization_readiness_v"
+            referencedColumns: ["communication_route_id"]
+          },
           {
             foreignKeyName: "supplier_switch_requests_company_customer_customer_site_rel_fke"
             columns: ["company_id", "customer_id", "customer_site_id"]
@@ -63418,6 +63787,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["site_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_ediel_route_profile_id_fkey"
+            columns: ["ediel_route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_route_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_ediel_route_profile_id_fkey"
+            columns: ["ediel_route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_route_runtime_v"
+            referencedColumns: ["route_profile_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_ediel_route_profile_id_fkey"
+            columns: ["ediel_route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_route_readiness_v"
+            referencedColumns: ["ediel_route_profile_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_ediel_route_profile_id_fkey"
+            columns: ["ediel_route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_business_readiness_v"
+            referencedColumns: ["ediel_route_profile_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_ediel_route_profile_id_fkey"
+            columns: ["ediel_route_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_materialization_readiness_v"
+            referencedColumns: ["ediel_route_profile_id"]
           },
           {
             foreignKeyName: "supplier_switch_requests_inbound_z04_message_id_fk"
@@ -81631,6 +82035,10 @@ export type Database = {
         Returns: Json
       }
       gridex_current_user_context: { Args: never; Returns: Json }
+      gridex_customer_application_runtime_contract_v1: {
+        Args: never
+        Returns: Json
+      }
       gridex_customer_cleanup_external_ref: {
         Args: { p_customer_id: string }
         Returns: string
