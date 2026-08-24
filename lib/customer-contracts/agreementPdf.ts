@@ -44,6 +44,11 @@ export type AgreementPdfInput = {
   signatureSnapshotSha256?: string | null
 }
 
+type PdfLine = {
+  text: string
+  style?: 'title' | 'heading' | 'body' | 'small'
+}
+
 function pdfSafeText(value: unknown) {
   return String(value ?? '')
     .normalize('NFC')
@@ -82,7 +87,7 @@ function plainText(value: string | null | undefined) {
     .trim()
 }
 
-function wrapLine(value: string, maxLength = 88) {
+function wrapLine(value: string, maxLength = 82) {
   const paragraphs = pdfSafeText(value).split(/\n/)
   const lines: string[] = []
   for (const paragraph of paragraphs) {
@@ -127,7 +132,28 @@ function formatAmount(value: number | null | undefined, unit: string) {
   return `${new Intl.NumberFormat('sv-SE', { maximumFractionDigits: 4 }).format(value)} ${unit}`
 }
 
-function agreementLines(input: AgreementPdfInput) {
+function monthLabel(value: number | null | undefined) {
+  const months = value ?? 0
+  return `${months} ${months === 1 ? 'månad' : 'månader'}`
+}
+
+function cleanAddress(value: string | null | undefined) {
+  const parts = String(value ?? '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const deduped = parts.filter((part, index) => index === 0 || part.toLocaleLowerCase('sv-SE') !== parts[index - 1]?.toLocaleLowerCase('sv-SE'))
+  return deduped.join(', ')
+}
+
+function addWrapped(lines: PdfLine[], text: string, style: PdfLine['style'] = 'body', maxLength = 82) {
+  for (const wrapped of wrapLine(text, maxLength)) lines.push({ text: wrapped, style })
+}
+
+function agreementLines(input: AgreementPdfInput): PdfLine[] {
+  const lines: PdfLine[] = []
+  const brand = input.brandName?.trim() || input.companyName
+  const address = cleanAddress(input.companyAddress) || '-'
   const priceLines = [
     formatAmount(input.monthlyFeeSek, 'kr/mån'),
     formatAmount(input.invoiceFeeSek, 'kr/faktura'),
@@ -136,70 +162,108 @@ function agreementLines(input: AgreementPdfInput) {
     formatAmount(input.fixedPriceOrePerKwh, 'öre/kWh fast pris'),
   ].filter((value): value is string => Boolean(value))
 
-  return [
-    'AVTALSBEKRÄFTELSE',
-    '',
-    `Avtalspart: ${input.companyName}`,
-    ...(input.brandName && input.brandName !== input.companyName ? [`Varumärke: ${input.brandName}`] : []),
-    `Organisationsnummer: ${input.organizationNumber ?? '-'}`,
-    `Adress: ${input.companyAddress ?? '-'}`,
-    `Kundservice: ${input.companySupportEmail ?? '-'}${input.companyPhone ? ` · ${input.companyPhone}` : ''}`,
-    `Webbplats: ${input.companyWebsite ?? '-'}`,
-    `Kund: ${input.customerName}`,
-    `E-post: ${input.customerEmail ?? '-'}`,
-    `Kundnummer: ${input.customerNumber}`,
-    `Avtalsnummer: ${input.contractNumber}`,
-    '',
-    `Avtal: ${input.contractName}`,
-    ...(input.contractDescription ? [`Beskrivning: ${plainText(input.contractDescription)}`] : []),
-    `Avtalstyp: ${input.contractType ?? '-'}`,
-    `Tecknat: ${formatDateTime(input.signedAt)}`,
-    `Önskat startdatum: ${formatDate(input.startsAt)}`,
-    `Ångerfrist till: ${formatDateTime(input.withdrawalDeadline)}`,
-    `Bindningstid: ${input.bindingMonths ?? 0} månader`,
-    `Uppsägningstid: ${input.noticeMonths ?? 0} månader`,
-    '',
-    'PRISVILLKOR',
-    ...(priceLines.length > 0 ? priceLines : ['Pris enligt bifogat publicerat erbjudande och accepterad prisversion.']),
-    '',
-    'JURIDISKA DOKUMENT SOM ACCEPTERADES',
-    ...input.legalVersions.flatMap((version) => [
-      '',
-      `${version.title} - version ${version.version}`,
-      `Versions-ID: ${version.id}`,
-      plainText(version.body) || 'Dokumenttext saknas i PDF-snapshotet. Kontrollera originalsnapshotet i OPS.',
-    ]),
-    '',
-    'BEVISUPPGIFTER',
-    `Offer reference: ${input.offerReference}`,
-    `Publiceringsversion: ${input.contractPublicationVersionId ?? '-'}`,
-    `Prisversion: ${input.pricePlanVersionId ?? '-'}`,
-    `Juridikversion: ${input.legalBundleVersionId ?? '-'}`,
-    `Bevis-ID: ${input.evidenceId ?? input.contractNumber}`,
-    `Tenantsnapshot SHA-256: ${input.tenantSnapshotSha256 ?? '-'}`,
-    `Signatursnapshot SHA-256: ${input.signatureSnapshotSha256 ?? '-'}`,
-    '',
-    input.legalFooter ?? 'Detta dokument återger exakt den publicerings-, pris-, juridik- och tenantversion som var bunden till kundens serverregistrerade accept. Gridex OPS är teknisk plattform och är inte avtalspart om inte annat uttryckligen anges.',
-  ].flatMap((line) => wrapLine(line))
+  lines.push({ text: brand.toUpperCase(), style: 'small' })
+  lines.push({ text: 'AVTALSBEKRÄFTELSE', style: 'title' })
+  lines.push({ text: `Avtalsnummer ${input.contractNumber}`, style: 'small' })
+  lines.push({ text: '' })
+  addWrapped(lines, `Hej ${input.customerName},`, 'body')
+  addWrapped(lines, `Tack för att du har valt ${brand}. Här är en sammanfattning av det elavtal du tecknade ${formatDateTime(input.signedAt)}. Spara denna bekräftelse.`, 'body')
+
+  lines.push({ text: '' })
+  lines.push({ text: 'DITT AVTAL', style: 'heading' })
+  addWrapped(lines, `${input.contractName}${input.contractDescription ? ` - ${plainText(input.contractDescription)}` : ''}`)
+  lines.push({ text: `Kundnummer: ${input.customerNumber}` })
+  lines.push({ text: `Avtalsnummer: ${input.contractNumber}` })
+  if (input.contractType) lines.push({ text: `Avtalstyp: ${input.contractType}` })
+  lines.push({ text: `Önskat startdatum: ${formatDate(input.startsAt)}` })
+  lines.push({ text: `Bindningstid: ${monthLabel(input.bindingMonths)}` })
+  lines.push({ text: `Uppsägningstid: ${monthLabel(input.noticeMonths)}` })
+
+  lines.push({ text: '' })
+  lines.push({ text: 'PRIS', style: 'heading' })
+  if (priceLines.length > 0) {
+    for (const price of priceLines) lines.push({ text: price })
+  } else {
+    addWrapped(lines, 'Pris enligt det publicerade erbjudande som accepterades när avtalet tecknades.')
+  }
+
+  if (input.withdrawalDeadline) {
+    lines.push({ text: '' })
+    lines.push({ text: 'ÅNGERRÄTT', style: 'heading' })
+    addWrapped(lines, `Din ångerfrist gäller till ${formatDateTime(input.withdrawalDeadline)}. Information om hur du använder ångerrätten finns i de villkor du accepterade.`)
+  }
+
+  lines.push({ text: '' })
+  lines.push({ text: 'ACCEPTERADE VILLKOR OCH DOKUMENT', style: 'heading' })
+  if (input.legalVersions.length === 0) {
+    lines.push({ text: 'Inga separata juridiska dokument registrerades.' })
+  } else {
+    for (const version of input.legalVersions) {
+      addWrapped(lines, `• ${version.title}${version.version ? ` (version ${version.version})` : ''}`, 'small', 88)
+    }
+  }
+  addWrapped(lines, 'De fullständiga, versionslåsta dokumenten finns bevarade tillsammans med ditt avtal. Den här bekräftelsen återger kunduppgifterna och de kommersiella huvudvillkoren utan interna system- eller bevisuppgifter.', 'small', 88)
+
+  lines.push({ text: '' })
+  lines.push({ text: 'AVTALSPART OCH KONTAKT', style: 'heading' })
+  lines.push({ text: `${input.companyName} · Org.nr ${input.organizationNumber ?? '-'}` })
+  addWrapped(lines, address)
+  lines.push({ text: `Kundservice: ${input.companySupportEmail ?? '-'}${input.companyPhone ? ` · ${input.companyPhone}` : ''}` })
+  if (input.companyWebsite) lines.push({ text: `Webbplats: ${input.companyWebsite}` })
+
+  lines.push({ text: '' })
+  addWrapped(lines, `Bekräftelsen är digitalt skapad och hör till avtal ${input.contractNumber}. Interna versions-ID:n, signaturhashar och övriga tekniska bevis lagras separat i Gridex OPS och visas inte i kunddokumentet.`, 'small', 88)
+
+  return lines
 }
 
-function contentStream(lines: string[]) {
-  const commands = ['BT', '/F1 10 Tf', '48 794 Td', '13 TL']
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]
-    if (index > 0) commands.push('T*')
-    commands.push(`(${escapePdfString(line)}) Tj`)
+function lineMetrics(style: PdfLine['style']) {
+  if (style === 'title') return { font: 'F2', size: 20, leading: 26 }
+  if (style === 'heading') return { font: 'F2', size: 11, leading: 17 }
+  if (style === 'small') return { font: 'F1', size: 8.5, leading: 12 }
+  return { font: 'F1', size: 10, leading: 14 }
+}
+
+function contentStream(lines: PdfLine[]) {
+  const commands = ['BT', '48 792 Td']
+  let currentFont = ''
+  let currentSize = 0
+  for (const line of lines) {
+    const metrics = lineMetrics(line.style)
+    if (metrics.font !== currentFont || metrics.size !== currentSize) {
+      commands.push(`/${metrics.font} ${metrics.size} Tf`)
+      currentFont = metrics.font
+      currentSize = metrics.size
+    }
+    commands.push(`0 -${metrics.leading} Td`)
+    commands.push(`(${escapePdfString(line.text)}) Tj`)
   }
   commands.push('ET')
   return Buffer.from(commands.join('\n'), 'latin1')
 }
 
+function paginate(lines: PdfLine[]) {
+  const pages: PdfLine[][] = []
+  let page: PdfLine[] = []
+  let usedHeight = 0
+  const maxHeight = 700
+
+  for (const line of lines) {
+    const metrics = lineMetrics(line.style)
+    if (page.length > 0 && usedHeight + metrics.leading > maxHeight) {
+      pages.push(page)
+      page = []
+      usedHeight = 0
+    }
+    page.push(line)
+    usedHeight += metrics.leading
+  }
+  if (page.length > 0) pages.push(page)
+  return pages.length > 0 ? pages : [[{ text: 'AVTALSBEKRÄFTELSE', style: 'title' }]]
+}
+
 export function buildAgreementPdfBuffer(input: AgreementPdfInput): Buffer {
-  const allLines = agreementLines(input)
-  const pageSize = 54
-  const pages: string[][] = []
-  for (let index = 0; index < allLines.length; index += pageSize) pages.push(allLines.slice(index, index + pageSize))
-  if (pages.length === 0) pages.push(['AVTALSBEKRÄFTELSE'])
+  const pages = paginate(agreementLines(input))
 
   const objects: Buffer[] = []
   const addObject = (body: Buffer | string) => {
@@ -209,7 +273,8 @@ export function buildAgreementPdfBuffer(input: AgreementPdfInput): Buffer {
 
   const catalogId = addObject('')
   const pagesId = addObject('')
-  const fontId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>')
+  const fontRegularId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>')
+  const fontBoldId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>')
   const pageIds: number[] = []
 
   for (const lines of pages) {
@@ -219,7 +284,7 @@ export function buildAgreementPdfBuffer(input: AgreementPdfInput): Buffer {
       stream,
       Buffer.from('\nendstream', 'latin1'),
     ]))
-    const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`)
+    const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> /Contents ${contentId} 0 R >>`)
     pageIds.push(pageId)
   }
 
