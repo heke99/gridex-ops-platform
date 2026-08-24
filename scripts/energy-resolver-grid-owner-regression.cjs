@@ -33,6 +33,8 @@ const checks = [
   ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', 'new.selected_grid_owner_id := v_ops_grid_owner_id'],
   ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'canonical', false"],
   ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'purpose', 'facility_information_routing'"],
+  ['lib/customer-operations/customerIntakeOrchestrator.ts', 'A safely selected provisional grid owner may therefore be used'],
+  ['lib/customer-operations/customerIntakeOrchestrator.ts', 'Canonical grid-owner verification remains mandatory below before any switch starts'],
 ]
 
 let ok = true
@@ -44,5 +46,14 @@ for (const [file, needle] of checks) {
   }
 }
 
+const orchestratorPath = 'lib/customer-operations/customerIntakeOrchestrator.ts'
+const orchestrator = fs.existsSync(orchestratorPath) ? fs.readFileSync(orchestratorPath, 'utf8') : ''
+const facilityLookupGate = orchestrator.indexOf('if (!context.facilityReady)')
+const strictGridOwnerGate = orchestrator.indexOf('if (!context.gridOwnerReady)')
+if (facilityLookupGate < 0 || strictGridOwnerGate < 0 || facilityLookupGate >= strictGridOwnerGate) {
+  ok = false
+  console.error('Facility lookup must be evaluated before strict customer-flow grid-owner verification.')
+}
+
 if (!ok) process.exit(1)
-console.log(`energy-resolver-grid-owner-regression: ${checks.length} checks passed`)
+console.log(`energy-resolver-grid-owner-regression: ${checks.length} checks passed; provisional lookup ordering verified`)
