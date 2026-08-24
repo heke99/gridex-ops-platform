@@ -92,7 +92,7 @@ async function hasSiteSpecificVerifiedGridOwner(input: {
   if (!input.resolutionId) return false
   const resolution = await supabaseService
     .from('customer_site_resolution')
-    .select('id,customer_id,customer_site_id,grid_owner_id,resolution_status,automation_allowed')
+    .select('id,customer_id,customer_site_id,grid_owner_id,resolution_status,automation_allowed,source_claims')
     .eq('id', input.resolutionId)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
@@ -100,11 +100,15 @@ async function hasSiteSpecificVerifiedGridOwner(input: {
     .maybeSingle()
   if (resolution.error) throw resolution.error
   const row = resolution.data as JsonRecord | null
+  const claims = row?.source_claims && typeof row.source_claims === 'object' && !Array.isArray(row.source_claims)
+    ? row.source_claims as JsonRecord
+    : {}
   return Boolean(
     row?.id
     && clean(row.grid_owner_id) === input.gridOwnerId
-    && clean(row.resolution_status) === 'manual_verified'
-    && row.automation_allowed === true,
+    && clean(row.resolution_status) === 'grid_area_master_validated'
+    && row.automation_allowed === true
+    && claims.manual_grid_owner_confirmation === true,
   )
 }
 
@@ -114,9 +118,9 @@ async function hasSiteSpecificVerifiedGridOwner(input: {
  * selected_grid_owner_id is only a candidate for review. External communication
  * requires the exact site to carry a canonical grid_owner_id that points to a
  * customer-flow verified grid owner. A technical-only owner may be used only
- * when the exact customer/site resolution has an explicit manual_verified
- * record with automation_allowed=true. The database transport trigger enforces
- * the same invariant again at queue time.
+ * when the exact customer/site resolution is grid_area_master_validated with
+ * explicit manual_grid_owner_confirmation evidence and automation_allowed=true.
+ * The database transport trigger enforces the same invariant again at queue time.
  */
 export async function requestMissingFacilityInformation(input: RequestInput): Promise<RequestResult> {
   const siteResult = await supabaseService
