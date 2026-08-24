@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 const MAX_BODY_BYTES = 2_000_000
 const MAX_ATTACHMENTS = 10
 const MAX_ATTACHMENT_TEXT_BYTES = 200_000
+const MAX_REFERENCES = 50
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -43,12 +44,29 @@ function attachments(value: unknown): unknown[] {
   })
 }
 
+function messageReferences(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map(clean)
+      .filter((entry): entry is string => Boolean(entry))
+      .slice(0, MAX_REFERENCES)
+  }
+  const raw = clean(value)
+  if (!raw) return []
+  return (raw.match(/<[^>]+>|[^\s]+/g) ?? [])
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, MAX_REFERENCES)
+}
+
 function toInboundEmail(body: Record<string, unknown>): ManualInboundEmail {
   const providerMessageId = clean(body.message_id ?? body.messageId ?? body.provider_message_id ?? body.id)
   if (!providerMessageId || providerMessageId.length > 500) throw new Error('Stabilt provider-message-ID krävs.')
   const mailbox = clean(body.mailbox ?? body.to ?? body.recipient)
   const fromEmail = clean(body.from ?? body.from_email ?? body.sender)
   if (!mailbox || !fromEmail) throw new Error('Mailbox och avsändaradress krävs.')
+
+  const inReplyTo = clean(body.in_reply_to ?? body.inReplyTo)
   return {
     mailbox,
     fromEmail,
@@ -58,7 +76,9 @@ function toInboundEmail(body: Record<string, unknown>): ManualInboundEmail {
     bodyText: clean(body.text ?? body.body_text ?? body.bodyText ?? body.plain),
     bodyHtml: clean(body.html ?? body.body_html ?? body.bodyHtml),
     providerMessageId,
-    threadId: clean(body.thread_id ?? body.threadId ?? body.in_reply_to),
+    threadId: clean(body.thread_id ?? body.threadId) ?? inReplyTo,
+    inReplyTo,
+    references: messageReferences(body.references ?? body.reference_message_ids ?? body.referenceMessageIds),
     attachments: attachments(body.attachments),
   }
 }
