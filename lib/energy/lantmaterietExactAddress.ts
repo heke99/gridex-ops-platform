@@ -183,8 +183,6 @@ async function persistExactAddressPoint(input: {
   x: number
   y: number
   objectIdentity: string
-  searchReference: unknown
-  detail: unknown
 }) {
   const now = new Date()
   const expiresAt = new Date(now.getTime() + CACHE_TTL_DAYS * 86_400_000).toISOString()
@@ -204,9 +202,9 @@ async function persistExactAddressPoint(input: {
     raw_payload: {
       coordinate_scope: 'exact_address_point',
       source_authority: 'lantmateriet_fastighetsregistret',
+      provider_version: '4.2',
       object_identity: input.objectIdentity,
-      search_reference: input.searchReference,
-      detail: input.detail,
+      match_policy: 'exact_street_house_number_postal_code_city',
     },
     expires_at: expiresAt,
     updated_at: now.toISOString(),
@@ -260,17 +258,16 @@ export async function ensureLantmaterietExactAddressPoint(
     const references = list(reference.data)
     const candidates = references.filter((candidate) => candidateIdentity(candidate))
     const exact = candidates.filter((candidate) => exactCandidate(candidate, parts))
-    const usable = exact.length > 0 ? exact : candidates
-    if (usable.length === 0) {
-      return { configured: true, status: 'no_match', addressKey: parts.addressKey, sweref99X: null, sweref99Y: null, candidateCount: 0, objectIdentity: null }
+    if (exact.length === 0) {
+      return { configured: true, status: 'no_match', addressKey: parts.addressKey, sweref99X: null, sweref99Y: null, candidateCount: candidates.length, objectIdentity: null }
     }
     // Fail closed on ambiguity. We never pick the first of several address
     // objects merely because it is returned first by the provider.
-    if (usable.length !== 1) {
-      return { configured: true, status: 'ambiguous', addressKey: parts.addressKey, sweref99X: null, sweref99Y: null, candidateCount: usable.length, objectIdentity: null }
+    if (exact.length !== 1) {
+      return { configured: true, status: 'ambiguous', addressKey: parts.addressKey, sweref99X: null, sweref99Y: null, candidateCount: exact.length, objectIdentity: null }
     }
 
-    const selected = usable[0]
+    const selected = exact[0]
     const objectIdentity = candidateIdentity(selected)
     if (!objectIdentity) {
       return { configured: true, status: 'invalid_response', addressKey: parts.addressKey, sweref99X: null, sweref99Y: null, candidateCount: 1, objectIdentity: null }
@@ -297,13 +294,13 @@ export async function ensureLantmaterietExactAddressPoint(
       return { configured: true, status: 'invalid_response', addressKey: parts.addressKey, sweref99X: null, sweref99Y: null, candidateCount: 1, objectIdentity }
     }
 
+    // Data minimisation: retain the exact point + provider object identity and
+    // match policy only. The full Lantmäteriet response is not copied into OPS.
     await persistExactAddressPoint({
       parts,
       x: point.x,
       y: point.y,
       objectIdentity,
-      searchReference: selected,
-      detail: detail.data,
     })
 
     return {
