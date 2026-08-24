@@ -58,14 +58,6 @@ async function reconcileUnsentFacilityRequest(input: {
   gridAreaCode: string | null
   priceArea: string | null
 }) {
-  const { data: outboxRows, error: outboxError } = await supabaseService
-    .from('manual_email_outbox')
-    .select('request_id')
-    .eq('external_delivery', true)
-    .in('status', ['queued', 'sending', 'sent', 'delivered'])
-  if (outboxError) throw outboxError
-  const sentRequestIds = new Set((outboxRows ?? []).map((row) => clean(row.request_id)).filter(Boolean))
-
   const { data: requests, error } = await supabaseService
     .from('grid_owner_information_requests')
     .select('id,status,grid_owner_id,dispatch_status')
@@ -76,7 +68,28 @@ async function reconcileUnsentFacilityRequest(input: {
     .order('created_at', { ascending: false })
   if (error) throw error
 
-  for (const request of (requests ?? []) as JsonRecord[]) {
+  const requestRows = (requests ?? []) as JsonRecord[]
+  const requestIds = requestRows
+    .map((request) => clean(request.id))
+    .filter((value): value is string => Boolean(value))
+  if (requestIds.length === 0) return
+
+  // Scope delivery evidence to THIS site's request ids. Never scan another
+  // tenant's outbox merely to reconcile one site's provisional request.
+  const { data: outboxRows, error: outboxError } = await supabaseService
+    .from('manual_email_outbox')
+    .select('request_id')
+    .in('request_id', requestIds)
+    .eq('external_delivery', true)
+    .in('status', ['queued', 'sending', 'sent', 'delivered'])
+  if (outboxError) throw outboxError
+  const sentRequestIds = new Set(
+    (outboxRows ?? [])
+      .map((row) => clean(row.request_id))
+      .filter((value): value is string => Boolean(value)),
+  )
+
+  for (const request of requestRows) {
     const requestId = clean(request.id)
     if (!requestId || sentRequestIds.has(requestId)) continue
     const { error: updateError } = await supabaseService
