@@ -49,6 +49,27 @@ type PdfLine = {
   style?: 'title' | 'heading' | 'body' | 'small'
 }
 
+const CUSTOMER_CONTRACT_TYPE_LABELS: Record<string, string> = {
+  fixed: 'Fast pris',
+  fixed_price: 'Fast pris',
+  variable_monthly: 'Månadsrörligt',
+  variable_hourly: 'Timpris',
+  spot_hourly: 'Timpris',
+  variable_quarterly: 'Kvartspris',
+  variable_quarter_hour: 'Kvartspris',
+  spot_quarter_hour: 'Kvartspris',
+  portfolio: 'Portföljförvaltat',
+  portfolio_managed: 'Portföljförvaltat',
+  mixed: 'Mixavtal',
+  variable_spot: 'Rörligt elpris',
+}
+
+export function customerContractTypeLabel(value: string | null | undefined): string | null {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (!normalized) return null
+  return CUSTOMER_CONTRACT_TYPE_LABELS[normalized] ?? null
+}
+
 function pdfSafeText(value: unknown) {
   return String(value ?? '')
     .normalize('NFC')
@@ -154,6 +175,7 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   const lines: PdfLine[] = []
   const brand = input.brandName?.trim() || input.companyName
   const address = cleanAddress(input.companyAddress) || '-'
+  const contractTypeLabel = customerContractTypeLabel(input.contractType)
   const priceLines = [
     formatAmount(input.monthlyFeeSek, 'kr/mån'),
     formatAmount(input.invoiceFeeSek, 'kr/faktura'),
@@ -174,7 +196,7 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   addWrapped(lines, `${input.contractName}${input.contractDescription ? ` - ${plainText(input.contractDescription)}` : ''}`)
   lines.push({ text: `Kundnummer: ${input.customerNumber}` })
   lines.push({ text: `Avtalsnummer: ${input.contractNumber}` })
-  if (input.contractType) lines.push({ text: `Avtalstyp: ${input.contractType}` })
+  if (contractTypeLabel) lines.push({ text: `Avtalstyp: ${contractTypeLabel}` })
   lines.push({ text: `Önskat startdatum: ${formatDate(input.startsAt)}` })
   lines.push({ text: `Bindningstid: ${monthLabel(input.bindingMonths)}` })
   lines.push({ text: `Uppsägningstid: ${monthLabel(input.noticeMonths)}` })
@@ -199,7 +221,7 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
     lines.push({ text: 'Inga separata juridiska dokument registrerades.' })
   } else {
     for (const version of input.legalVersions) {
-      addWrapped(lines, `• ${version.title}${version.version ? ` (version ${version.version})` : ''}`, 'small', 88)
+      addWrapped(lines, `- ${version.title}${version.version ? ` (version ${version.version})` : ''}`, 'small', 88)
     }
   }
   addWrapped(lines, 'De fullständiga, versionslåsta dokumenten finns bevarade tillsammans med ditt avtal. Den här bekräftelsen återger kunduppgifterna och de kommersiella huvudvillkoren utan interna system- eller bevisuppgifter.', 'small', 88)
@@ -212,7 +234,7 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   if (input.companyWebsite) lines.push({ text: `Webbplats: ${input.companyWebsite}` })
 
   lines.push({ text: '' })
-  addWrapped(lines, `Bekräftelsen är digitalt skapad och hör till avtal ${input.contractNumber}. Interna versions-ID:n, signaturhashar och övriga tekniska bevis lagras separat i Gridex OPS och visas inte i kunddokumentet.`, 'small', 88)
+  addWrapped(lines, `Bekräftelsen är digitalt skapad och hör till avtal ${input.contractNumber}. Tekniska versions- och signaturbevis lagras säkert separat och visas inte i kunddokumentet.`, 'small', 88)
 
   return lines
 }
