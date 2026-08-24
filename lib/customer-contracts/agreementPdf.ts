@@ -242,7 +242,7 @@ function contentStream(lines: PdfLine[]) {
   return Buffer.from(commands.join('\n'), 'latin1')
 }
 
-function paginate(lines: PdfLine[]) {
+function paginate(lines: PdfLine[]): PdfLine[][] {
   const pages: PdfLine[][] = []
   let page: PdfLine[] = []
   let usedHeight = 0
