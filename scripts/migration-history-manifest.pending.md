@@ -1,0 +1,1 @@
+Temporary branch-only note: `20260825112000_ops_precision_resolution_authority.sql` must be checksum-pinned in `scripts/migration-history-manifest.additions.json` using the exact SHA-256 emitted by `npm run db:migrations:check` before merge. This note must be removed before merge.
