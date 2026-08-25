@@ -91,6 +91,8 @@ assert(!migration.includes('customer_site_id'), 'global mapping contains no site
 assert(materializationGuard.includes("v_resolution.price_area_assurance_status = 'verified'"), 'database guard accepts verified price-area materialization')
 assert(materializationGuard.includes("v_resolution.price_area_assurance_status = 'estimated'"), 'database guard handles estimated price-area materialization explicitly')
 assert(materializationGuard.includes('v_resolution.price_area_assurance_confidence >= 0.8'), 'database guard keeps persistent estimated price-area floor at 0.8')
+assert(resolver.includes('const skipSiteResolutionRebind'), 'non-materializable postal suggestions do not rebind customer_sites.resolution_id')
+assert(resolver.includes('!priceAreaCanMaterialize(resolved)'), 'site rebind skip is gated on the same materialization floor as price_area_code')
 assert(materializationGuard.includes("lower(coalesce(v_resolution.resolution_status, '')) = 'postal_suggested'"), 'database guard identifies postal suggestions')
 assert(materializationGuard.includes('new.grid_owner_id := null'), 'database guard clears unsafe/stale grid owner when binding a postal-only resolution')
 assert(materializationGuard.includes('new.grid_area_code := null'), 'database guard clears unsafe/stale grid area when binding a postal-only resolution')

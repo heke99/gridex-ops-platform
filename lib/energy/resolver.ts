@@ -1143,8 +1143,19 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
       resolvedPriceAreaCode &&
       resolved.gridOwnerVerificationStatus === 'verified',
     )
+    // Postal suggestions below the persistent materialization floor (incl. Papilite
+    // postal_centroid at 0.7) may be inserted into customer_site_resolution for
+    // audit/website pricing, but must not rebind customer_sites.resolution_id.
+    // The DB materialization guard clears price_area_code when estimated confidence
+    // is below 0.8, which would wipe a stronger site price after #207 unblocked
+    // postal_centroid persistence.
+    const skipSiteResolutionRebind =
+      resolved.resolutionStatus === 'postal_suggested' &&
+      !priceAreaCanMaterialize(resolved) &&
+      !resolvedGridOwnerId &&
+      !resolvedGridAreaCode
 
-    if (!protectedManualVerification || fullyVerifiedResolution) {
+    if ((!protectedManualVerification || fullyVerifiedResolution) && !skipSiteResolutionRebind) {
       const siteUpdate: Record<string, unknown> = {
         grid_owner_id: resolvedGridOwnerId,
         grid_area_code: resolvedGridAreaCode,

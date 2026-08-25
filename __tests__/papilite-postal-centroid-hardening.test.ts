@@ -89,6 +89,15 @@ describe('Papilite postal centroid hardening', () => {
     expect(resolver).toContain("const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null")
   })
 
+  it('does not rebind customer_sites.resolution_id for non-materializable postal suggestions', () => {
+    // After #207, postal_centroid rows persist. Rebinding resolution_id would fire the
+    // materialization guard and clear an existing site price_area_code (<0.8 estimated).
+    expect(resolver).toContain('const skipSiteResolutionRebind')
+    expect(resolver).toContain("resolved.resolutionStatus === 'postal_suggested'")
+    expect(resolver).toContain('!priceAreaCanMaterialize(resolved)')
+    expect(resolver).toContain('if ((!protectedManualVerification || fullyVerifiedResolution) && !skipSiteResolutionRebind)')
+  })
+
   it('enforces fail-closed Papilite materialization again at the database boundary', () => {
     expect(materializationGuard).toContain("v_resolution.price_area_assurance_status = 'verified'")
     expect(materializationGuard).toContain("v_resolution.price_area_assurance_status = 'estimated'")
