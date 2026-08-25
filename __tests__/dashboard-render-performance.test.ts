@@ -49,6 +49,16 @@ describe('authenticated shell performance invariants', () => {
     expect(loading).not.toContain('AdminSidebar')
   })
 
+  it('prefetches expensive sidebar routes only when the user shows intent', () => {
+    const sidebar = read('components/admin/AdminSidebar.tsx')
+
+    expect(sidebar).toContain('useRouter')
+    expect(sidebar).toContain('router.prefetch(href)')
+    expect(sidebar).toContain('prefetch={false}')
+    expect(sidebar).toContain('onPointerEnter={() => prefetchOnIntent(item.href)}')
+    expect(sidebar).toContain('onFocus={() => prefetchOnIntent(item.href)}')
+  })
+
   it('reuses the verified permission context on the metering page', () => {
     const page = read('app/admin/metering/page.tsx')
 
