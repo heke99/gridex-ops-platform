@@ -79,4 +79,16 @@ describe('authenticated shell performance invariants', () => {
     expect(customers).not.toContain('if (!excludeTestData && canUsePagedCustomerQuery')
     expect(customers).toContain('excludeTestData: params.excludeTestData')
   })
+
+  it('starts independent switch read dependencies together and reuses guard identity', () => {
+    const page = read('app/admin/operations/switches/page.tsx')
+
+    expect(page).toContain('const [tenantScope, resolvedSearchParams] = await Promise.all([')
+    expect(page).toContain('const [sites, events, outboundRequests, meteringPoints] = await Promise.all([')
+    expect(page).toContain('sitesPromise,')
+    expect(page).toContain('listSupplierSwitchEventsByRequestIds(supabase, requestIds)')
+    expect(page).toContain('listMeteringPointsBySiteIds(supabase, siteIds, { companyId })')
+    expect(page).toContain('userEmail={context.email}')
+    expect(page).not.toContain('.auth.getUser()')
+  })
 })
