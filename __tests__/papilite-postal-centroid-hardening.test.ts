@@ -34,11 +34,14 @@ describe('Papilite postal centroid hardening', () => {
   it('lets the website obtain SE1-SE4 without exact-address providers', () => {
     expect(binding).toContain('const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7')
     expect(binding).toContain("assurance.source === 'postal_centroid'")
+    expect(binding).toContain("evidence.coordinate_scope === 'postal_centroid'")
     expect(websiteCache).toContain("const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v2-papilite-first'")
     expect(websiteCache).toContain('street: null')
     expect(websiteCache).toContain('streetNumber: null')
     expect(websiteCache).toContain("resolution_mode: 'website_price_area_only'")
     expect(websiteCache).toContain('exact_address_provider_allowed: false')
+    expect(resolver).toContain('exact_address_provider_allowed')
+    expect(resolver).toContain('exactAddressProviderAllowed')
   })
 
   it('keeps internal Papilite provenance compatible with the public V1 response contract', () => {
