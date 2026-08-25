@@ -144,6 +144,18 @@ export type CustomerStatusCounts = {
   archived: number
 }
 
+type CustomerStatusCountsRpcRow = {
+  all_count: number | string | null
+  draft: number | string | null
+  pending_verification: number | string | null
+  active: number | string | null
+  inactive: number | string | null
+  moved: number | string | null
+  terminated: number | string | null
+  blocked: number | string | null
+  archived: number | string | null
+}
+
 export type CustomerListPageResult = {
   rows: CustomerListRow[]
   total: number
@@ -306,40 +318,24 @@ async function countCustomersByStatus(params: {
   customerType: CustomerTypeFilter
   excludeTestData: boolean
 }): Promise<CustomerStatusCounts> {
-  const countForStatus = async (status: CustomerStatusFilter) => {
-    const query = applyStatusQueryFilter(
-      applyCustomerTypeQueryFilter(
-        applyBaseCustomerFilters(
-          supabaseService.from('customers').select('id', { count: 'exact', head: true }) as unknown as CustomerQuery,
-          params.companyId,
-          status === 'archived',
-          params.excludeTestData
-        ),
-        params.customerType
-      ),
-      status
-    )
+  const { data, error } = await supabaseService
+    .rpc('gridex_customer_status_counts_v1', {
+      p_company_id: params.companyId,
+      p_customer_type: params.customerType,
+      p_exclude_test_data: params.excludeTestData,
+    })
+    .single()
 
-    const { count, error } = await query
-    if (error) throw error
-    return count ?? 0
-  }
+  if (error) throw error
 
-  const [all, ...statusCounts] = await Promise.all([
-    countForStatus('all'),
-    ...STATUS_COUNT_KEYS.map((status) => countForStatus(status)),
-  ])
+  const row = (data ?? {}) as Partial<CustomerStatusCountsRpcRow>
+  const statusCounts = Object.fromEntries(
+    STATUS_COUNT_KEYS.map((status) => [status, Number(row[status] ?? 0)])
+  ) as Omit<CustomerStatusCounts, 'all'>
 
   return {
-    all,
-    draft: statusCounts[0] ?? 0,
-    pending_verification: statusCounts[1] ?? 0,
-    active: statusCounts[2] ?? 0,
-    inactive: statusCounts[3] ?? 0,
-    moved: statusCounts[4] ?? 0,
-    terminated: statusCounts[5] ?? 0,
-    blocked: statusCounts[6] ?? 0,
-    archived: statusCounts[7] ?? 0,
+    all: Number(row.all_count ?? 0),
+    ...statusCounts,
   }
 }
 
