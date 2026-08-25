@@ -42,7 +42,7 @@ This separation keeps checkout fast while preventing a provisional website looku
 
 ## Idempotency and retries
 
-Send a stable `Idempotency-Key` on every endpoint documented as idempotent, especially quote creation and customer-application submission. Reuse the same key only when retrying the same logical operation with the same intent.
+Use stable idempotency keys for logical write operations. Send a stable `Idempotency-Key` on every endpoint documented as idempotent, especially quote creation and customer-application submission. Reuse the same key only when retrying the same logical operation with the same intent.
 
 For network failures or retryable server responses, retry with bounded exponential backoff and preserve the original idempotency key. Do not automatically retry validation errors or other responses explicitly marked non-retryable.
 
