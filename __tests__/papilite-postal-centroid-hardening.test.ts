@@ -10,6 +10,7 @@ describe('Papilite postal centroid hardening', () => {
   const websiteRoute = read('app/api/v1/website/energy-area/resolve/route.ts')
   const websiteCache = read('lib/energy/websiteResolutionCache.ts')
   const pendingExact = read('lib/energy/pendingExactAddressResolution.ts')
+  const svkVerifier = read('lib/energy/svkPostalGridOwnerVerification.ts')
   const migration = read('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql')
   const materializationGuard = read('supabase/migrations/20260817124500_site_resolution_materialization_guard.sql')
 
@@ -46,29 +47,30 @@ describe('Papilite postal centroid hardening', () => {
     expect(websiteRoute).not.toContain('source: resolution.priceAreaAssurance.source,')
   })
 
-  it('never promotes Papilite centroid to Ediel-capable canonical grid-owner verification', () => {
+  it('never promotes Papilite centroid to canonical grid-owner identity', () => {
     expect(resolver).toContain("resolutionStatus: 'postal_suggested'")
     expect(resolver).toContain('automationAllowed: false')
     expect(resolver).toContain('postal_centroid_not_facility_location')
     expect(resolver).toContain("'price_area_only'")
-    expect(pendingExact).toContain('selected_grid_owner_id: normalizedOwner.opsGridOwnerId')
-    expect(pendingExact).not.toMatch(/\n\s+grid_owner_id:\s*normalizedOwner\.opsGridOwnerId/)
-    expect(pendingExact).toContain("grid_owner_resolution_mode: 'provisional_facility_lookup_only'")
+    expect(pendingExact).not.toContain('applyPapiliteProvisionalGridOwner')
+    expect(pendingExact).not.toContain('papilite_postal_centroid_svk_polygon')
+    expect(svkVerifier).toContain("authority: 'svk_grid_area_geometry'")
+    expect(svkVerifier).toContain("const SVK_POSTAL_MATERIALIZATION_METHOD = 'postal_polygon_grid_area_intersection'")
   })
 
-  it('uses Papilite-derived provisional owner above 65 percent and Lantmateriet only as fallback', () => {
-    expect(pendingExact).toContain('const MIN_PAPILITE_GRID_OWNER_CONFIDENCE = 0.65')
-    expect(pendingExact).toContain(".eq('provider', 'papilite_postal_centroid')")
-    expect(pendingExact).toContain("supabaseService.rpc('gridex_lonlat_to_grid_area'")
-    expect(pendingExact).toContain('confidence <= MIN_PAPILITE_GRID_OWNER_CONFIDENCE')
-    expect(pendingExact).toContain("source: 'papilite_postal_centroid_svk_polygon'")
-    expect(pendingExact).toContain("purpose: 'facility_information_routing'")
-    expect(pendingExact.indexOf('const papilite = await applyPapiliteProvisionalGridOwner'))
+  it('uses SVK postcode evidence above 65 percent and Lantmateriet only as precision fallback', () => {
+    expect(svkVerifier).toContain('export const MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE = 0.65')
+    expect(svkVerifier).toContain('confidence <= MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE')
+    expect(svkVerifier).toContain('gridAreaCodes.length !== 1')
+    expect(svkVerifier).toContain('grid_owner_id: verification.gridOwnerId')
+    expect(pendingExact).toContain('const svkPostal = await applyUniqueSvkPostalGridOwnerToSite')
+    expect(pendingExact).toContain('const exact = await ensureLantmaterietExactAddressPoint')
+    expect(pendingExact.indexOf('const svkPostal = await applyUniqueSvkPostalGridOwnerToSite'))
       .toBeLessThan(pendingExact.indexOf('const exact = await ensureLantmaterietExactAddressPoint'))
-    expect(pendingExact).toContain("exact_address_status: 'papilite_insufficient_lantmateriet_not_configured'")
+    expect(pendingExact).toContain("exact_address_status: 'svk_postal_insufficient_lantmateriet_not_configured'")
   })
 
-  it('materializes only safe price area while leaving suggested grid context unbound', () => {
+  it('materializes only safe price area while leaving Papilite-suggested grid context unbound', () => {
     expect(resolver).toContain('function priceAreaCanMaterialize')
     expect(resolver).toContain("resolved.priceAreaAssurance.status === 'verified'")
     expect(resolver).toContain("resolved.priceAreaAssurance.status === 'estimated'")
@@ -77,7 +79,7 @@ describe('Papilite postal centroid hardening', () => {
     expect(resolver).toContain("const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null")
   })
 
-  it('enforces fail-closed materialization again at the database boundary', () => {
+  it('enforces fail-closed Papilite materialization again at the database boundary', () => {
     expect(materializationGuard).toContain("v_resolution.price_area_assurance_status = 'verified'")
     expect(materializationGuard).toContain("v_resolution.price_area_assurance_status = 'estimated'")
     expect(materializationGuard).toContain('v_resolution.price_area_assurance_confidence >= 0.8')
