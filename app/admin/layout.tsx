@@ -19,12 +19,14 @@ export default async function AdminLayout({
 }) {
  const admin = await requireAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(admin)
- const cookieStore = await cookies()
+ const [cookieStore, scope, liveAccess] = await Promise.all([
+ cookies(),
+ getOperationalCompanyScope(admin.userId),
+ getTenantLiveAccessForAdmin(admin),
+ ])
  const preferredMode = isPlatformAdmin
  ? normalizeAdminNavigationMode(cookieStore.get(ADMIN_NAVIGATION_MODE_COOKIE)?.value) ?? 'platform_view'
  : 'company_view'
- const scope = await getOperationalCompanyScope(admin.userId)
- const liveAccess = await getTenantLiveAccessForAdmin(admin)
  const selectedCompanyId = isPlatformAdmin && preferredMode === 'company_view' ? scope.companyId : null
  const companyOptions = isPlatformAdmin && preferredMode === 'company_view'
  ? scope.memberships.map((membership) => ({
