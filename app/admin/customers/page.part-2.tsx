@@ -1,7 +1,6 @@
 // Extracted from page.tsx; keep public imports on the facade module.
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
@@ -21,7 +20,11 @@ export async function AdminCustomersPage({
 }: CustomersPageProps) {
  const context = await requireAdminPageKeyAccess('customers.list')
 
- const resolvedSearchParams = await searchParams
+ const [resolvedSearchParams, companyScope, tenantScope] = await Promise.all([
+ searchParams,
+ getOperationalCompanyScope(context.userId),
+ resolveAdminTenantReadScope(context),
+ ])
  const query = (resolvedSearchParams.q ?? '').trim()
  const opsFilter = normalizeOperationsFilter(resolvedSearchParams.ops)
  const statusFilter = normalizeStatusFilter(resolvedSearchParams.status)
@@ -30,8 +33,6 @@ export async function AdminCustomersPage({
  const flagFilter = normalizeCustomerFlagFilter(resolvedSearchParams.flag)
  const page = normalizePage(resolvedSearchParams.page)
 
- const companyScope = await getOperationalCompanyScope(context.userId)
- const tenantScope = await resolveAdminTenantReadScope(context)
  const scopedCompanyId = tenantScope.companyId
  const canReadContracts =
    tenantScope.isPlatformAdmin ||
@@ -78,12 +79,6 @@ export async function AdminCustomersPage({
   })
 
  const customers = pageResult.rows
-
- const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
-
  const customerIds = customers.map((customer) => customer.id)
 
  const [sites, switchRequests, outboundRequests, latestContractsByCustomerId] =
@@ -207,7 +202,7 @@ export async function AdminCustomersPage({
  <AdminHeader
  title="Kundregister"
  subtitle="Kunder, anläggningar, mätpunkter, avtal och operationsläge för det operativa elhandelsbolaget."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">
