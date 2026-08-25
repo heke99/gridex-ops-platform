@@ -20,6 +20,26 @@ function text(body: Record<string, unknown>, ...keys: string[]): string | null {
   return null
 }
 
+function publicPriceAreaAssuranceSource(source: unknown):
+  | 'facility_data'
+  | 'grid_area_master'
+  | 'address_polygon'
+  | 'postal_city_consensus'
+  | 'postal_consensus'
+  | null {
+  if (source === 'postal_centroid') return 'postal_consensus'
+  if (
+    source === 'facility_data' ||
+    source === 'grid_area_master' ||
+    source === 'address_polygon' ||
+    source === 'postal_city_consensus' ||
+    source === 'postal_consensus'
+  ) {
+    return source
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
@@ -149,7 +169,11 @@ export async function POST(request: NextRequest) {
             status: resolution.priceAreaAssurance.status,
             price_area: resolution.priceAreaAssurance.priceArea,
             confidence: resolution.priceAreaAssurance.confidence,
-            source: resolution.priceAreaAssurance.source,
+            // `postal_centroid` is an internal OPS provenance value. The V1
+            // website contract intentionally exposes the stable postal-consensus
+            // category while the evidence payload retains `provider=papilite`
+            // and `coordinate_scope=postal_centroid` for diagnostics.
+            source: publicPriceAreaAssuranceSource(resolution.priceAreaAssurance.source),
             candidate_count: resolution.priceAreaAssurance.candidateCount,
             unique_price_area_count: resolution.priceAreaAssurance.uniquePriceAreaCount,
             source_version: resolution.priceAreaAssurance.sourceVersion,

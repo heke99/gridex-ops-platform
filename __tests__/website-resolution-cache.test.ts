@@ -46,7 +46,7 @@ describe('website energy resolution cache key', () => {
       city: 'Stockholm',
     })
 
-    expect(key).toMatch(/^website-energy-resolution-v1:company-a:[a-f0-9]{64}$/)
+    expect(key).toMatch(/^website-energy-resolution-v2-papilite-first:company-a:[a-f0-9]{64}$/)
     expect(key).not.toContain('Hemliggatan')
     expect(key).not.toContain('11122')
   })
