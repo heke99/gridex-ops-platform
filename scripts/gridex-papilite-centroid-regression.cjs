@@ -53,9 +53,12 @@ assert(pendingExact.includes('confidence <= MIN_PAPILITE_GRID_OWNER_CONFIDENCE')
 assert(pendingExact.includes("source: 'papilite_postal_centroid_svk_polygon'"), 'provisional grid-owner evidence records Papilite plus SVK provenance')
 assert(pendingExact.includes("purpose: 'facility_information_routing'"), 'Papilite-derived owner is scoped to facility-information routing only')
 assert(pendingExact.includes('selected_grid_owner_id: normalizedOwner.opsGridOwnerId'), 'Papilite only writes provisional selected_grid_owner_id')
-assert(!/\.update\(\{[\s\S]{0,400}grid_owner_id:\s*normalizedOwner\.opsGridOwnerId/.test(pendingExact), 'Papilite never writes canonical grid_owner_id')
+assert(!/\n\s+grid_owner_id:\s*normalizedOwner\.opsGridOwnerId/.test(pendingExact), 'Papilite never writes canonical grid_owner_id')
 assert(pendingExact.includes("grid_owner_resolution_mode: 'provisional_facility_lookup_only'"), 'continuation records that provisional owner cannot authorize switching')
-assert(pendingExact.indexOf('applyPapiliteProvisionalGridOwner') < pendingExact.indexOf('ensureLantmaterietExactAddressPoint({'), 'Papilite is attempted before Lantmateriet precision fallback')
+assert(
+  pendingExact.indexOf('const papilite = await applyPapiliteProvisionalGridOwner') < pendingExact.indexOf('const exact = await ensureLantmaterietExactAddressPoint'),
+  'Papilite is attempted before Lantmateriet precision fallback',
+)
 assert(pendingExact.includes("exact_address_status: 'papilite_insufficient_lantmateriet_not_configured'"), 'missing Lantmateriet credentials do not prevent Papilite-first processing')
 assert(!pendingExact.includes('if (!configured) {\n    return {'), 'continuation no longer exits before trying Papilite when Lantmateriet is unavailable')
 
