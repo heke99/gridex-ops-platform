@@ -1,6 +1,5 @@
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
@@ -24,17 +23,14 @@ type PageProps = {
 }
 
 export default async function AdminMeteringPage({ searchParams }: PageProps) {
- await requirePermissionServer('metering.read')
-
- const params = await searchParams
+ const [context, params] = await Promise.all([
+ requirePermissionServer('metering.read'),
+ searchParams,
+ ])
  const query = (params.q ?? '').trim()
 
- const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
- const companyScope = user ? await getOperationalCompanyScope(user.id) : null
- const companyId = companyScope?.companyId ?? null
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = companyScope.companyId
 
  const [requests, values] = await Promise.all([
  listAllGridOwnerDataRequests({
@@ -54,7 +50,7 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  <AdminHeader
  title="Mätvärden"
  subtitle="Driftvy för mätvärdesbegäran, UTILTS-import, kvalitet och koppling till rätt anläggning, nätägare och kund."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

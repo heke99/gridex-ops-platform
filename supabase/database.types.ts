@@ -82095,6 +82095,24 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_customer_status_counts_v1: {
+        Args: {
+          p_company_id?: string
+          p_customer_type?: string
+          p_exclude_test_data?: boolean
+        }
+        Returns: {
+          active: number
+          all_count: number
+          archived: number
+          blocked: number
+          draft: number
+          inactive: number
+          moved: number
+          pending_verification: number
+          terminated: number
+        }[]
+      }
       gridex_db1_default_company_id: { Args: never; Returns: string }
       gridex_db1_finish_backfill_run: {
         Args: {
