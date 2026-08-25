@@ -13,8 +13,9 @@ describe('SVK postcode grid-owner hardening', () => {
   it('uses postcode polygon intersection with canonical SVK grid geometry as owner authority', () => {
     expect(postalMaterialization).toContain('postal_polygon_grid_area_intersection')
     expect(postalMaterialization).toContain('st_area(st_intersection(p.geometry, g.geometry)) / p.postal_area')
+    expect(verifier).toContain("const SVK_POSTAL_MATERIALIZATION_METHOD = 'postal_polygon_grid_area_intersection'")
     expect(verifier).toContain("authority: 'svk_grid_area_geometry'")
-    expect(verifier).toContain("method: 'postal_polygon_grid_area_intersection'")
+    expect(verifier).toContain('method: SVK_POSTAL_MATERIALIZATION_METHOD')
   })
 
   it('promotes only a unique >65% SVK postcode match to canonical site fields', () => {
@@ -24,6 +25,12 @@ describe('SVK postcode grid-owner hardening', () => {
     expect(verifier).toContain('grid_owner_id: verification.gridOwnerId')
     expect(verifier).toContain('grid_area_code: verification.gridAreaCode')
     expect(verifier).toContain("resolution_status: 'grid_area_master_validated'")
+  })
+
+  it('keeps learned and Papilite mappings out of canonical owner verification', () => {
+    expect(verifier).toContain('SVK_POSTAL_MATERIALIZATION_METHOD')
+    expect(verifier).toContain('const svkRows = allRows.filter')
+    expect(verifier).toContain('active_non_svk_mapping_count')
   })
 
   it('keeps geographical owner identity separate from supplier-switch/Ediel readiness', () => {
