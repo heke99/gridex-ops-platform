@@ -2,15 +2,21 @@
 
 Current contract: **2026-08-22.2**
 
-This document is the concise production guide for website integrations. The canonical human-readable reference is served at `/developers/customer-portal-api`, and the machine-readable contract is published at `/api/v1/openapi/website-integration-v1.json`.
+The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
+
+## Responsibilities
+
+**Gridex platform** owns published electricity offers, authoritative pricing and settlement rules, legal document versions, application processing and downstream electricity-market operations.
+
+**Your integration** owns the customer experience, presentation, customer-entered data, controlled retries and secure handling of the API credential.
+
+The API credential determines the organization and permissions. Integrations send public business data and public references only; internal platform identifiers are not part of the website contract.
 
 ## Production endpoints
 
 Base URL: `https://app.gridex.se`
 
 Use `Authorization: Bearer <GRIDEX_API_KEY>` for authenticated calls. Keep the credential server-side and never expose it in browser JavaScript, logs, analytics, URLs, screenshots or client-side error messages.
-
-The API credential determines the organization and permissions. Integrations send public business data and public references only; internal platform identifiers are not part of the website contract.
 
 ## Recommended checkout flow
 
@@ -30,7 +36,7 @@ Persist the public offer, quote and application references returned by Gridex. D
 
 `POST /api/v1/website/energy-area/resolve` is a **website pricing endpoint**. Its public responsibility is to resolve the applicable Swedish price area for the checkout experience.
 
-A website integration must not treat a postcode result, coordinate, candidate owner or other provisional geography as authority for an external grid-owner operation. Canonical grid-area and grid-owner determination after intake is owned internally by Gridex Operations and can use additional verification without changing the public website contract.
+A website integration must not treat a postcode result, coordinate, candidate owner or other provisional geography as authority for an external grid-owner operation. Canonical grid-area and grid-owner determination after intake is handled internally by Gridex and can use additional verification without changing the public website contract.
 
 This separation keeps checkout fast while preventing a provisional website lookup from becoming an external-send routing decision.
 
@@ -53,7 +59,7 @@ The `settlement` object on a website quote is the canonical interpretation of wh
 - `portfolio` — final settlement uses the authoritative portfolio settlement for the period and actual metered consumption.
 - `mixed` — each published component is settled according to its configured pricing source and resolution.
 
-For every non-fixed model, checkout market data is indicative preview and audit evidence only. It does not become the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
+For every non-fixed model, checkout market data is **indicative preview/audit evidence only**. It does not become the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
 
 `valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does not expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, integrity mismatch or a commercially unavailable or withdrawn offer can still block submission.
 
