@@ -10,7 +10,7 @@ describe('SVK postcode grid-owner hardening', () => {
   const websiteCache = read('lib/energy/websiteResolutionCache.ts')
   const postalMaterialization = read('supabase/migrations/20260817083859_partner_postal_grid_materialization.sql')
 
-  it('uses postcode polygon intersection with canonical SVK grid geometry as owner authority', () => {
+  it('keeps postcode polygon intersection with canonical SVK geometry as an authoritative optional source', () => {
     expect(postalMaterialization).toContain('postal_polygon_grid_area_intersection')
     expect(postalMaterialization).toContain('st_area(st_intersection(p.geometry, g.geometry)) / p.postal_area')
     expect(verifier).toContain("const SVK_POSTAL_MATERIALIZATION_METHOD = 'postal_polygon_grid_area_intersection'")
@@ -18,16 +18,18 @@ describe('SVK postcode grid-owner hardening', () => {
     expect(verifier).toContain('method: SVK_POSTAL_MATERIALIZATION_METHOD')
   })
 
-  it('promotes only a unique >65% SVK postcode match to canonical site fields', () => {
+  it('accepts only a unique >65% postcode/SVK match and binds it through customer_site_resolution', () => {
     expect(verifier).toContain('export const MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE = 0.65')
     expect(verifier).toContain('gridAreaCodes.length !== 1')
     expect(verifier).toContain('confidence <= MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE')
-    expect(verifier).toContain('grid_owner_id: verification.gridOwnerId')
-    expect(verifier).toContain('grid_area_code: verification.gridAreaCode')
+    expect(verifier).toContain(".from('customer_site_resolution')")
     expect(verifier).toContain("resolution_status: 'grid_area_master_validated'")
+    expect(verifier).toContain("resolver_version: 'svk-postal-polygon-v2'")
+    expect(verifier).toContain('resolution_id: resolutionId')
+    expect(verifier).not.toContain('selected_grid_owner_id: verification.gridOwnerId')
   })
 
-  it('keeps learned and Papilite mappings out of canonical owner verification', () => {
+  it('keeps learned and Papilite mappings out of postcode-polygon authority', () => {
     expect(verifier).toContain('SVK_POSTAL_MATERIALIZATION_METHOD')
     expect(verifier).toContain('const svkRows = allRows.filter')
     expect(verifier).toContain('active_non_svk_mapping_count')
@@ -39,13 +41,13 @@ describe('SVK postcode grid-owner hardening', () => {
     expect(pending).not.toContain("resolved.gridOwnerVerificationStatus === 'verified'")
   })
 
-  it('uses Lantmateriet only after postcode/SVK cannot establish the owner', () => {
-    const svkIndex = pending.indexOf('const svkPostal = await applyUniqueSvkPostalGridOwnerToSite')
+  it('uses the new OPS Papilite/SVK precision path before Lantmateriet', () => {
+    const papiliteIndex = pending.indexOf('const papilite = await resolveOpsPapiliteGridOwnerForSite')
     const lantmaterietIndex = pending.indexOf('const exact = await ensureLantmaterietExactAddressPoint')
-    expect(svkIndex).toBeGreaterThanOrEqual(0)
-    expect(lantmaterietIndex).toBeGreaterThan(svkIndex)
+    expect(papiliteIndex).toBeGreaterThanOrEqual(0)
+    expect(lantmaterietIndex).toBeGreaterThan(papiliteIndex)
+    expect(pending).not.toContain('applyUniqueSvkPostalGridOwnerToSite')
     expect(pending).not.toContain('applyPapiliteProvisionalGridOwner')
-    expect(pending).not.toContain('papilite_postal_centroid_svk_polygon')
   })
 
   it('keeps the public website price-area lookup Papilite/postcode-only', () => {
