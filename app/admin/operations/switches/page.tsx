@@ -7,7 +7,7 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
  listAllSupplierSwitchRequests,
-listPowersOfAttorneyByCustomerIds,
+ listPowersOfAttorneyByCustomerIds,
  listSupplierSwitchEventsByRequestIds,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
@@ -149,14 +149,12 @@ export default async function AdminOperationsSwitchesPage({
  searchParams,
 }: SwitchesPageProps) {
  const context = await requireAdminPageKeyAccess('operations.switches')
- const tenantScope = await resolveAdminTenantReadScope(context)
+ const [tenantScope, resolvedSearchParams] = await Promise.all([
+ resolveAdminTenantReadScope(context),
+ searchParams,
+ ])
  const companyId = tenantScope.companyId
-
- const resolvedSearchParams = await searchParams
  const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
 
  const status = (resolvedSearchParams.status ?? 'all').trim()
  const requestType = (resolvedSearchParams.requestType ?? 'all').trim()
@@ -170,10 +168,11 @@ export default async function AdminOperationsSwitchesPage({
  companyId,
  })
 
+ const requestIds = requests.map((request) => request.id)
  const siteIds = Array.from(new Set(requests.map((request) => request.site_id)))
 
- let sites: CustomerSiteRow[] = []
- if (siteIds.length > 0) {
+ const sitesPromise: Promise<CustomerSiteRow[]> = siteIds.length > 0
+ ? (async () => {
  let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
@@ -184,16 +183,14 @@ export default async function AdminOperationsSwitchesPage({
  }
 
  const sitesQuery = await sitesQueryBuilder
-
  if (sitesQuery.error) throw sitesQuery.error
- sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
- }
+ return (sitesQuery.data ?? []) as CustomerSiteRow[]
+ })()
+ : Promise.resolve([] as CustomerSiteRow[])
 
- const [events, outboundRequests, meteringPoints] = await Promise.all([
- listSupplierSwitchEventsByRequestIds(
- supabase,
- requests.map((request) => request.id)
- ),
+ const [sites, events, outboundRequests, meteringPoints] = await Promise.all([
+ sitesPromise,
+ listSupplierSwitchEventsByRequestIds(supabase, requestIds),
  listOutboundRequests({
  status: 'all',
  requestType: 'supplier_switch',
@@ -208,24 +205,24 @@ export default async function AdminOperationsSwitchesPage({
  string,
  ReturnType<typeof evaluateSiteSwitchReadiness>
  >()
-const customerIds = Array.from(new Set(sites.map((site) => site.customer_id).filter(Boolean)))
-const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(supabase, customerIds, {
+ const customerIds = Array.from(new Set(sites.map((site) => site.customer_id).filter(Boolean)))
+ const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(supabase, customerIds, {
  companyId,
  limit: Math.max(customerIds.length * 5, 100),
-})
-const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
+ })
+ const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
 
-for (const powerOfAttorney of powersOfAttorney) {
+ for (const powerOfAttorney of powersOfAttorney) {
  const current = powersOfAttorneyByCustomerId.get(powerOfAttorney.customer_id) ?? []
  current.push(powerOfAttorney)
  powersOfAttorneyByCustomerId.set(powerOfAttorney.customer_id, current)
-}
+ }
 
  for (const site of sites) {
  const readiness = evaluateSiteSwitchReadiness({
  site,
  meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
-powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
+ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  })
 
  readinessMap.set(site.id, readiness)
@@ -283,7 +280,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  <AdminHeader
  title="Switchar"
  subtitle="Hantera leverantörsbyten, validering, outboundkoppling och intern slutföring av switchar."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">
