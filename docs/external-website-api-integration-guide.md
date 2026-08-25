@@ -67,11 +67,13 @@ For every non-fixed model, checkout market data is **indicative preview/audit ev
 
 Public `market_reference` contains public pricing evidence only. Internal source-row identifiers are never part of the public contract.
 
-## Legal acceptance and power of attorney
+## Legal acceptance, identity and power of attorney
 
 When a published agreement requires power of attorney, send the structured `powerOfAttorney` object documented by the canonical developer guide and OpenAPI contract.
 
-Bind acceptance to the authoritative legal text through `textVersionId`. Do not submit client-authored legal text as the contractual source. The resulting public `power_of_attorney` status indicates whether the acceptance is externally sendable and whether completion is still required.
+Bind acceptance to the authoritative legal text through `textVersionId`. Do not submit client-authored legal text as the contractual source. The resulting public `power_of_attorney` block exposes `externally_sendable` so the integration can distinguish a complete authorization from one that still requires customer completion.
+
+During migration from older website integrations, accepted customer-identity aliases can include `personal_identity_number` and `organisationsnummer`. These are transitional compatibility aliases; new implementations should use the canonical customer fields defined by the current OpenAPI specification rather than inventing additional aliases.
 
 Transitional public aliases may remain documented for migration compatibility, but new integrations should use the canonical fields from the current OpenAPI specification.
 
