@@ -1,8 +1,8 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-24T19:44:05.991Z",
+  "generated_at": "2026-08-25T22:27:17.703Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "9f3cc06a01ff8992f53c5bc7e19972ce6e5f7fdffe9770e76a1431cdce2c92bc",
-  "latest_migration": "20260825112000_ops_precision_resolution_authority.sql"
+  "sha256": "5b87521c05156255a26fe73794580ca12085bcf0f29b2dd1740281d80697f21a",
+  "latest_migration": "20260825235900_gridex_customer_status_counts_v1.sql"
 }
