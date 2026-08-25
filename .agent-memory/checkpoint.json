@@ -1,30 +1,36 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-25T20:38:00Z",
-  "branch": "perf/ops-performance-skills-20260825",
-  "active_phase": "OPS_AUTHENTICATED_RENDER_PERFORMANCE",
-  "active_task": "Install focused performance skills and remove verified authenticated read waterfalls without changing security or business semantics",
-  "status": "IMPLEMENTED_NOT_VERIFIED",
-  "base_main_sha": "9e16073dac2c547f717f58425514c16154954596",
-  "head_sha": "87b1a1220c211b40c2628a83ce6caa73e5b0f756",
-  "pr": 215,
-  "verification": {
-    "performance_skills": "PASS_4_ADDITIVE_SKILLS_LOCKED",
-    "dashboard_performance_regression": "PASS_IN_FULL_VITEST",
-    "full_e2e": "PASS",
-    "browser_quality_e2e": "PASS",
-    "ops_hardening_verify": "PASS",
-    "clean_migration_replay": "PASS",
-    "lint": "PASS",
-    "typecheck": "PASS",
-    "full_vitest": "PASS",
-    "api_compatibility": "PASS",
-    "security_rbac": "PASS",
-    "large_file_budget": "PASS",
-    "quality_performance": "PASS",
-    "production_build": "RUNNING",
-    "browser_bundle_budget": "PENDING"
+  "updated_at": "2026-08-25T20:58:00Z",
+  "branch": "perf/admin-instant-navigation-20260825",
+  "active_phase": "ADMIN_NAVIGATION_PERFORMANCE",
+  "active_task": "Eliminate authenticated sidebar prefetch stampede and redundant metering auth read",
+  "status": "IMPLEMENTED_PENDING_PR_VERIFICATION",
+  "base_main_sha": "453975bc7f322df96e4a15e45bf3ea24d00b2304",
+  "production_deployment": "dpl_GyfJvxCX21wwsqvFzncueqY8NVkh",
+  "evidence": {
+    "sidebar_prefetch_burst": "CONFIRMED_PRODUCTION_2026-08-25T20:48:49Z_TO_20:48:51Z",
+    "admin_loading_boundary": "ALREADY_PRESENT_ON_MAIN",
+    "metering_redundant_auth_read": "CONFIRMED_AND_REMOVED_ON_BRANCH"
   },
-  "next_verified_candidate": "Individually classify redundant auth.getUser reads after requireAdminPageKeyAccess; do not mass-edit the 23 search matches",
-  "resume_from": "Wait for the final production build and bundle-budget gate on PR #215; if green, record VERIFIED and leave the PR unmerged until the user explicitly requests merge"
+  "safety": {
+    "rbac_changed": false,
+    "tenant_scope_changed": false,
+    "business_logic_changed": false,
+    "api_contracts_changed": false,
+    "database_changed": false,
+    "writes_changed": false
+  },
+  "verification": {
+    "targeted_regression": "PENDING_CI",
+    "typecheck": "PENDING_CI",
+    "full_vitest": "PENDING_CI",
+    "ops_hardening": "PENDING_CI",
+    "quality_performance": "PENDING_CI",
+    "production_build": "PENDING_CI",
+    "browser_bundle_budget": "PENDING_CI",
+    "full_e2e": "PENDING_CI",
+    "browser_quality_e2e": "PENDING_CI",
+    "vercel_preview": "PENDING"
+  },
+  "resume_from": "Open PR, run full OPS hardening/E2E/build/bundle gates, verify Vercel preview, and do not merge without explicit user authorization."
 }
