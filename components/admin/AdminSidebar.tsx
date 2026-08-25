@@ -2,7 +2,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
@@ -44,6 +44,7 @@ export default function AdminSidebar({
   companyOptions = [],
 }: AdminSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const mode: AdminNavigationMode = isPlatformAdmin ? preferredMode : 'company_view'
   const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Plattform' : 'Ditt bolag')
   const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
@@ -57,11 +58,20 @@ export default function AdminSidebar({
     mode,
   })
 
+  const prefetchOnIntent = (href: string) => {
+    if (!isActive(pathname, href)) {
+      router.prefetch(href)
+    }
+  }
+
   return (
     <aside className="flex h-screen w-full flex-col border-r border-emerald-100/80 bg-gradient-to-b from-white via-[#fbfdfb] to-[#f7fbf8] text-slate-900 shadow-sm shadow-emerald-950/5">
       <div className="border-b border-emerald-100/80 bg-white/90 px-5 py-5 backdrop-blur-xl">
         <Link
           href="/admin"
+          prefetch={false}
+          onPointerEnter={() => prefetchOnIntent('/admin')}
+          onFocus={() => prefetchOnIntent('/admin')}
           className="group flex items-center gap-3 rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 transition hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-950/10"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-base font-bold text-white shadow-sm shadow-emerald-700/20">
@@ -166,6 +176,9 @@ export default function AdminSidebar({
                   <Link
                     key={item.key}
                     href={item.href}
+                    prefetch={false}
+                    onPointerEnter={() => prefetchOnIntent(item.href)}
+                    onFocus={() => prefetchOnIntent(item.href)}
                     aria-current={active ? 'page' : undefined}
                     className={`group relative block rounded-2xl border px-3 py-3 transition duration-150 ${
                       active
