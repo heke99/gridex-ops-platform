@@ -1,22 +1,19 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-25T09:05:00Z",
-  "branch": "cursor/codebase-health-and-stability-e60a",
-  "active_phase": "POST_PUSH_REVIEW_REMEDIATION",
-  "active_task": "Papilite/SVK energy resolution residuals after #205",
-  "status": "IMPLEMENTED_NOT_VERIFIED_CI",
-  "base_main_sha": "3f1a905cacfd228838ae4b3d8ed123a89b989f7b",
-  "head_sha_pending": true,
+  "updated_at": "2026-08-25T09:36:00Z",
+  "branch": "cursor/codebase-health-and-stability-4d87",
+  "active_phase": "TIP_RESIDUAL_HARDENING",
+  "active_task": "Post-#207 postal centroid residuals",
+  "status": "IMPLEMENTED_NOT_VERIFIED_HOSTED",
+  "base_main_sha": "f98619978ea8485aca2a91287f77e3ab042b95e0",
+  "head_sha": "02426adb",
+  "pr_draft_superseded": 206,
   "verification": {
-    "vitest_targeted": "PASS_26_TESTS_4_FILES",
-    "papilite_centroid_regression": "PASS",
+    "vitest_papilite_svk_capabilities": "PASS_3_FILES_25_TESTS",
+    "gridex_papilite_centroid_regression": "PASS",
+    "gridex_price_area_assurance_regression": "PASS",
     "app_typecheck": "PASS",
-    "ggshield": "NOT_INSTALLED"
+    "ggshield": "BLOCKED_CLI_UNAVAILABLE"
   },
-  "findings_fixed": [
-    "postal_consensus_remap_centroid_0_7_floor",
-    "svk_matching_owner_incomplete_area_reconcile",
-    "exact_address_provider_allowed_enforced"
-  ],
-  "resume_from": "Open/retain PR for residual hardening; monitor CI"
+  "resume_from": "Hosted CI on PR from cursor/codebase-health-and-stability-4d87; after merge close draft #206"
 }

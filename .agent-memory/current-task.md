@@ -2,12 +2,10 @@
 
 Updated: 2026-08-25
 
-Status: `POST_205_PAPILITE_ENERGY_RESIDUALS`
+Status: `POST_207_POSTAL_CENTROID_RESIDUALS_PR`
 
-Active work item: remediate residuals found in push review of main `3f1a905` / PR `#205`
-(Papilite-first website energy resolution).
+Active work item: tip residual hardening after main `#207` postal-centroid DB contract alignment.
 
 ## Exact next action
 
-After PR opens from this tip branch: wait for CI on the residual hardening PR, then
-continue only if CI reports further failures in the energy-resolution path.
+Merge vehicle `cursor/codebase-health-and-stability-4d87` (open PR). After merge, close/supersede draft `#206`. Do not rewrite the applied `#207` migration.
