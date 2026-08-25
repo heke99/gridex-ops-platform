@@ -214,12 +214,6 @@ async function fetchPapiliteCentroid(postal: string, city: string | null, countr
   }
 }
 
-async function ensureCentroid(postal: string, city: string | null, country: string): Promise<Centroid | null> {
-  const cached = await readCachedCentroid(postal, country)
-  if (cached) return cached
-  return fetchPapiliteCentroid(postal, city, country)
-}
-
 async function currentGeodata() {
   const maxAgeRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
   const maxAgeDays = Number.isFinite(maxAgeRaw) ? Math.min(Math.max(maxAgeRaw, 1), 365) : DEFAULT_GEODATA_MAX_AGE_DAYS
@@ -355,14 +349,46 @@ async function bindResolution(input: {
   if (!updated?.length) {
     const { data: existing, error } = await supabaseService
       .from('customer_sites')
-      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id')
+      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id,metadata')
       .eq('id', input.siteId)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .maybeSingle()
     if (error) throw error
-    if (clean(existing?.grid_owner_id) === input.gridOwnerId && clean(existing?.grid_area_code) === input.gridAreaCode) {
+    const existingOwner = clean(existing?.grid_owner_id)
+    const existingArea = clean(existing?.grid_area_code)
+    if (existingOwner === input.gridOwnerId && existingArea === input.gridAreaCode) {
       return clean(existing?.resolution_id) ?? resolutionId
+    }
+
+    // Matching owner with missing/stale grid_area_code cannot use the null-owner
+    // filter. Rebind a fresh resolution under that owner so the materialization
+    // guard can project canonical geography without writing selected_grid_owner_id.
+    if (existingOwner === input.gridOwnerId) {
+      const { data: reconciled, error: reconcileError } = await supabaseService
+        .from('customer_sites')
+        .update({
+          resolution_id: resolutionId,
+          resolution_status: 'grid_area_master_validated',
+          resolution_confidence: input.confidence,
+          metadata: {
+            ...(input.metadata ?? record(existing?.metadata)),
+            ops_precision_resolution: {
+              ...evidence,
+              resolution_id: resolutionId,
+              resolved_at: now.toISOString(),
+              incomplete_matching_owner_reconcile: true,
+            },
+          },
+          updated_at: now.toISOString(),
+        })
+        .eq('id', input.siteId)
+        .eq('company_id', input.companyId)
+        .eq('customer_id', input.customerId)
+        .eq('grid_owner_id', input.gridOwnerId)
+        .select('id,grid_owner_id,grid_area_code,resolution_id')
+      if (reconcileError) throw reconcileError
+      if (reconciled?.length) return resolutionId
     }
     return null
   }
@@ -385,13 +411,20 @@ export async function resolveOpsPapiliteGridOwnerForSite(input: {
   if (!postal) return unresolved('invalid_postal_code')
   const minConfidence = confidenceThreshold()
   const country = (clean(input.country) ?? 'SE').toUpperCase()
-  if (!clean(process.env.PAPILITE_API_KEY)) {
-    return unresolved('papilite_not_configured', { minConfidence })
-  }
+  const city = clean(input.city)
 
+  // Prefer a still-valid cached centroid before requiring PAPILITE_API_KEY so a
+  // brief key outage does not discard previously verified postal precision.
   let centroid: Centroid | null
   try {
-    centroid = await ensureCentroid(postal, clean(input.city), country)
+    const cached = await readCachedCentroid(postal, country)
+    if (cached) {
+      centroid = cached
+    } else if (!clean(process.env.PAPILITE_API_KEY)) {
+      return unresolved('papilite_not_configured', { minConfidence })
+    } else {
+      centroid = await fetchPapiliteCentroid(postal, city, country)
+    }
   } catch (error) {
     return unresolved('papilite_unavailable', {
       minConfidence,

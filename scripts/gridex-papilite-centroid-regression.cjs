@@ -34,6 +34,12 @@ assert(resolver.includes("resolutionStatus: 'postal_suggested'"), 'public centro
 assert(resolver.includes("'price_area_only'"), 'public centroid path stays price-area-only')
 assert(resolver.includes('automationAllowed: false'), 'public centroid cannot enable Ediel automation')
 assert(binding.includes("normalized === 'postal_centroid'"), 'resolution binding preserves centroid provenance')
+assert(binding.includes("assurance.source === 'postal_centroid'") || binding.includes('isPostalCentroidEvidence'), 'centroid trust floor remains source-aware')
+assert(binding.includes("evidence.coordinate_scope === 'postal_centroid'"), 'public postal_consensus remapping still honors centroid evidence for the 0.7 floor')
+assert(resolver.includes('function exactAddressProviderAllowed'), 'resolver enforces exact_address_provider_allowed instead of treating it as dead metadata')
+assert(resolver.includes('hasFullAddress(input) && exactAddressProviderAllowed(input)'), 'exact-address polygon path requires both full address and provider permission')
+assert(resolver.includes('const skipSiteResolutionRebind'), 'non-materializable postal suggestions do not rebind customer_sites.resolution_id')
+assert(resolver.includes('!priceAreaCanMaterialize(resolved)'), 'site rebind skip is gated on the same materialization floor as price_area_code')
 
 assert(websiteRoute.includes("if (source === 'postal_centroid') return 'postal_consensus'"), 'website API maps internal centroid source to stable V1 enum')
 assert(websiteCache.includes("const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v2-papilite-first'"), 'website cache remains Papilite-first')
@@ -63,12 +69,17 @@ assert(opsPrecision.includes('exact_address_point_materialized: false'), 'Papili
 assert(!opsPrecision.includes('latitude: input.centroid.latitude'), 'Papilite latitude is not copied into canonical site projection')
 assert(!opsPrecision.includes('longitude: input.centroid.longitude'), 'Papilite longitude is not copied into canonical site projection')
 
+assert(opsPrecision.includes('const cached = await readCachedCentroid(postal, country)'), 'OPS reads cached Papilite centroids before requiring API key')
+assert(opsPrecision.indexOf('const cached = await readCachedCentroid(postal, country)') < opsPrecision.indexOf("return unresolved('papilite_not_configured'"), 'cached centroids remain usable without a live Papilite key')
+assert(opsPrecision.includes('incomplete_matching_owner_reconcile'), 'OPS reconciles incomplete matching-owner sites through resolution rebinding')
+assert(pendingExact.includes("'papilite_verified_but_site_projection_missing'"), 'OPS fails closed when Papilite claims verified without site projection')
+assert(pendingExact.includes("'papilite_precision_insufficient_lantmateriet_not_configured'"), 'missing GeoTorget does not weaken Papilite fail-closed result')
+
 assert(pendingExact.includes('const papilite = await resolveOpsPapiliteGridOwnerForSite'), 'OPS continuation runs Papilite/SVK precision first')
 assert(pendingExact.includes('const exact = await ensureLantmaterietExactAddressPoint'), 'OPS continuation retains GeoTorget exact-address fallback')
 assert(pendingExact.indexOf('const papilite = await resolveOpsPapiliteGridOwnerForSite') < pendingExact.indexOf('const exact = await ensureLantmaterietExactAddressPoint'), 'Papilite/SVK runs before GeoTorget')
 assert(pendingExact.includes("resolutionMode: 'canonical_papilite_svk'"), 'high-confidence Papilite/SVK wakes canonical flow without GeoTorget')
 assert(pendingExact.includes("resolutionMode: 'canonical_svk_exact_point'"), 'GeoTorget fallback still resolves owner through SVK')
-assert(pendingExact.includes("exact_address_status: 'papilite_precision_insufficient_lantmateriet_not_configured'"), 'missing GeoTorget does not weaken Papilite fail-closed result')
 assert(!pendingExact.includes('applyUniqueSvkPostalGridOwnerToSite'), 'old postcode-polygon writer is not the active OPS continuation path')
 assert(lantmateriet.includes("const DEFAULT_BASE_URL = 'https://api.lantmateriet.se/distribution/produkter/belagenhetsadress/v4.2'"), 'GeoTorget fallback uses Belägenhetsadress Direkt v4.2')
 

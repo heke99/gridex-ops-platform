@@ -33,7 +33,8 @@ describe('OPS Papilite-first GeoTorget precision architecture', () => {
   it('falls back to GeoTorget instead of guessing', () => {
     expect(worker.indexOf('resolveOpsPapiliteGridOwnerForSite'))
       .toBeLessThan(worker.indexOf('ensureLantmaterietExactAddressPoint'))
-    expect(worker).toContain("exact_address_status: 'papilite_precision_insufficient_lantmateriet_not_configured'")
+    expect(worker).toContain("'papilite_precision_insufficient_lantmateriet_not_configured'")
+    expect(worker).toContain("'papilite_verified_but_site_projection_missing'")
   })
 
   it('keeps site geography and facility verification resolution-bound', () => {

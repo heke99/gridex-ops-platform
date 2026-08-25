@@ -81,6 +81,32 @@ describe('granular energy resolution readiness', () => {
     )
   })
 
+  it('keeps Papilite centroid pricing ready after public postal_consensus remapping', () => {
+    // Website V1 remaps internal postal_centroid → postal_consensus. Round-tripping
+    // the public payload through readiness must still honor the 0.7 centroid floor
+    // when evidence retains coordinate_scope=postal_centroid.
+    const result = deriveEnergyResolutionReadiness({
+      priceArea: 'SE3',
+      resolutionStatus: 'postal_suggested',
+      confidence: 0.7,
+      priceAreaAssuranceStatus: 'estimated',
+      priceAreaAssuranceSource: 'postal_consensus',
+      priceAreaAssuranceConfidence: 0.7,
+      priceAreaCandidateCount: 1,
+      priceAreaUniqueCount: 1,
+      priceAreaEvidence: {
+        coordinate_scope: 'postal_centroid',
+        provider: 'papilite',
+      },
+      expiresAt: FUTURE,
+      now: NOW,
+    })
+
+    expect(result.capabilities.pricing_ready).toBe(true)
+    expect(result.capabilities.quote_ready).toBe(true)
+    expect(result.blockers.pricing).toEqual([])
+  })
+
   it('blocks postal candidates spanning more than one price area', () => {
     const result = deriveEnergyResolutionReadiness({
       priceArea: null,

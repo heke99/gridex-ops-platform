@@ -28,6 +28,8 @@ describe('Papilite and OPS precision hardening', () => {
     expect(websiteCache).toContain("resolution_mode: 'website_price_area_only'")
     expect(websiteCache).toContain('exact_address_provider_allowed: false')
     expect(websiteCache).not.toContain('ensureLantmaterietExactAddressPoint')
+    expect(resolver).toContain('exact_address_provider_allowed')
+    expect(resolver).toContain('exactAddressProviderAllowed')
   })
 
   it('keeps public Papilite provenance price-area-only', () => {
@@ -39,6 +41,16 @@ describe('Papilite and OPS precision hardening', () => {
     expect(resolver).toContain('automationAllowed: false')
     expect(binding).toContain('const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7')
     expect(binding).toContain("assurance.source === 'postal_centroid'")
+    expect(binding).toContain("evidence.coordinate_scope === 'postal_centroid'")
+  })
+
+  it('does not rebind customer_sites.resolution_id for non-materializable postal suggestions', () => {
+    // After #207, postal_centroid rows persist. Rebinding resolution_id would fire the
+    // materialization guard and clear an existing site price_area_code (<0.8 estimated).
+    expect(resolver).toContain('const skipSiteResolutionRebind')
+    expect(resolver).toContain("resolved.resolutionStatus === 'postal_suggested'")
+    expect(resolver).toContain('!priceAreaCanMaterialize(resolved)')
+    expect(resolver).toContain('if ((!protectedManualVerification || fullyVerifiedResolution) && !skipSiteResolutionRebind)')
   })
 
   it('keeps the internal source compatible with the public V1 contract', () => {
@@ -61,6 +73,10 @@ describe('Papilite and OPS precision hardening', () => {
     expect(opsPrecision).toContain(".eq('provider', 'svk_arcgis')")
     expect(opsPrecision).toContain("if (geodata.stale)")
     expect(opsPrecision).toContain("if (currentPriceArea && currentPriceArea !== resolvedPriceArea)")
+    // Cached centroids must remain usable even when PAPILITE_API_KEY is briefly unset.
+    expect(opsPrecision).toContain('const cached = await readCachedCentroid(postal, country)')
+    expect(opsPrecision.indexOf('const cached = await readCachedCentroid(postal, country)'))
+      .toBeLessThan(opsPrecision.indexOf("return unresolved('papilite_not_configured'"))
   })
 
   it('creates a canonical resolution instead of materializing a Papilite centroid as a site position', () => {
@@ -83,7 +99,8 @@ describe('Papilite and OPS precision hardening', () => {
       .toBeLessThan(pendingExact.indexOf('const exact = await ensureLantmaterietExactAddressPoint'))
     expect(pendingExact).toContain("resolutionMode: 'canonical_papilite_svk'")
     expect(pendingExact).toContain("resolutionMode: 'canonical_svk_exact_point'")
-    expect(pendingExact).toContain("exact_address_status: 'papilite_precision_insufficient_lantmateriet_not_configured'")
+    expect(pendingExact).toContain("'papilite_precision_insufficient_lantmateriet_not_configured'")
+    expect(pendingExact).toContain("'papilite_verified_but_site_projection_missing'")
     expect(pendingExact).not.toContain('applyUniqueSvkPostalGridOwnerToSite')
     expect(pendingExact).not.toContain('applyPapiliteProvisionalGridOwner')
     expect(lantmateriet).toContain("const DEFAULT_BASE_URL = 'https://api.lantmateriet.se/distribution/produkter/belagenhetsadress/v4.2'")
