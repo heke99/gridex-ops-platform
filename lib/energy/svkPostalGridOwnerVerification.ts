@@ -407,18 +407,48 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
   if (!update.data?.length) {
     const existing = await supabaseService
       .from('customer_sites')
-      .select('grid_owner_id,grid_area_code,resolution_id')
+      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id,metadata')
       .eq('id', input.siteId)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .maybeSingle()
     if (existing.error) throw existing.error
-    if (
-      clean(existing.data?.grid_owner_id) === verification.gridOwnerId &&
-      normalizeGridAreaCode(existing.data?.grid_area_code) === verification.gridAreaCode
-    ) {
+
+    const existingOwner = clean(existing.data?.grid_owner_id)
+    const existingArea = normalizeGridAreaCode(existing.data?.grid_area_code)
+    if (existingOwner === verification.gridOwnerId && existingArea === verification.gridAreaCode) {
       return verification
     }
+
+    // Matching owner with missing/stale area cannot use the null-owner filter.
+    // Rebind resolution_id under the matching owner so the materialization guard
+    // projects grid_area_code. Never write selected_grid_owner_id as authority.
+    if (existingOwner === verification.gridOwnerId) {
+      const reconcile = await supabaseService
+        .from('customer_sites')
+        .update({
+          resolution_id: resolutionId,
+          resolution_status: 'grid_area_master_validated',
+          resolution_confidence: verification.confidence,
+          metadata: {
+            ...(input.metadata ?? metadataOf((existing.data ?? {}) as JsonRecord)),
+            svk_postal_grid_owner_verification: {
+              ...evidence,
+              resolution_id: resolutionId,
+              incomplete_matching_owner_reconcile: true,
+            },
+          },
+          updated_at: now.toISOString(),
+        })
+        .eq('id', input.siteId)
+        .eq('company_id', input.companyId)
+        .eq('customer_id', input.customerId)
+        .eq('grid_owner_id', verification.gridOwnerId)
+        .select('id,grid_owner_id,grid_area_code,resolution_id')
+      if (reconcile.error) throw reconcile.error
+      if (reconcile.data?.length) return verification
+    }
+
     return unresolved('ambiguous', {
       ...verification,
       status: 'ambiguous',

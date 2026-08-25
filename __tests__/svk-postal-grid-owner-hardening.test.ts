@@ -29,6 +29,15 @@ describe('SVK postcode grid-owner hardening', () => {
     expect(verifier).not.toContain('selected_grid_owner_id: verification.gridOwnerId')
   })
 
+  it('reconciles incomplete site area when the matching SVK owner is already bound', () => {
+    // Sites with grid_owner_id set but null/stale grid_area_code cannot use the
+    // null-owner insert filter. Rebind a fresh resolution under the matching owner
+    // so the materialization guard can project grid_area_code.
+    expect(verifier).toContain('.eq(\'grid_owner_id\', verification.gridOwnerId)')
+    expect(verifier).toContain('incomplete_matching_owner_reconcile')
+    expect(verifier).toContain('resolution_id: resolutionId')
+  })
+
   it('keeps learned and Papilite mappings out of postcode-polygon authority', () => {
     expect(verifier).toContain('SVK_POSTAL_MATERIALIZATION_METHOD')
     expect(verifier).toContain('const svkRows = allRows.filter')

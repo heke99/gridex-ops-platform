@@ -257,48 +257,65 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
         metadata: record(site.metadata),
       })
 
+      let papiliteProjectionMissing = false
       if (papilite.status === 'verified' && papilite.gridOwnerId && papilite.gridAreaCode) {
-        site = await loadSite({ companyId, customerId, siteId })
-        const canonicalGridOwnerId = clean(site?.grid_owner_id) ?? papilite.gridOwnerId
-        const canonicalGridAreaCode = clean(site?.grid_area_code) ?? papilite.gridAreaCode
-        await reconcileUnsentFacilityRequest({
-          companyId,
-          siteId,
-          gridOwnerId: canonicalGridOwnerId,
-          gridAreaCode: canonicalGridAreaCode,
-          priceArea: clean(site?.price_area_code) ?? papilite.priceArea,
-        })
-        await wakeCanonicalGridOwner({
-          jobId,
-          previousResult: {
-            ...previousResult,
+        const refreshedSite = await loadSite({ companyId, customerId, siteId })
+        if (!refreshedSite) {
+          await recordAttempt(jobId, previousResult, {
+            exact_address_status: 'site_missing',
             papilite_precision_status: papilite.status,
-            papilite_precision_confidence: papilite.confidence,
-            papilite_precision_threshold: papilite.minConfidence,
-            papilite_geodata_version: papilite.geodataVersion,
-          },
-          resolutionMode: 'canonical_papilite_svk',
-          gridOwnerId: canonicalGridOwnerId,
-          gridAreaCode: canonicalGridAreaCode,
-          confidence: papilite.confidence,
-          resolutionId: papilite.resolutionId,
-        })
-        summary.papiliteVerified += 1
-        summary.canonicalized += 1
-        summary.woken += 1
-        continue
+          })
+          continue
+        }
+        site = refreshedSite
+        const canonicalGridOwnerId = clean(site.grid_owner_id)
+        const canonicalGridAreaCode = clean(site.grid_area_code)
+        if (canonicalGridOwnerId && canonicalGridAreaCode) {
+          await reconcileUnsentFacilityRequest({
+            companyId,
+            siteId,
+            gridOwnerId: canonicalGridOwnerId,
+            gridAreaCode: canonicalGridAreaCode,
+            priceArea: clean(site.price_area_code) ?? papilite.priceArea,
+          })
+          await wakeCanonicalGridOwner({
+            jobId,
+            previousResult: {
+              ...previousResult,
+              papilite_precision_status: papilite.status,
+              papilite_precision_confidence: papilite.confidence,
+              papilite_precision_threshold: papilite.minConfidence,
+              papilite_geodata_version: papilite.geodataVersion,
+            },
+            resolutionMode: 'canonical_papilite_svk',
+            gridOwnerId: canonicalGridOwnerId,
+            gridAreaCode: canonicalGridAreaCode,
+            confidence: papilite.confidence,
+            resolutionId: papilite.resolutionId,
+          })
+          summary.papiliteVerified += 1
+          summary.canonicalized += 1
+          summary.woken += 1
+          continue
+        }
+        // Fail closed: never wake continuation on an unbound Papilite claim.
+        papiliteProjectionMissing = true
       }
 
       summary.papiliteFallback += 1
       summary.svkPostalInsufficient += 1
 
       if (!lantmaterietConfigured) {
+        const exactAddressStatus = papiliteProjectionMissing
+          ? 'papilite_verified_but_site_projection_missing'
+          : 'papilite_precision_insufficient_lantmateriet_not_configured'
         await recordAttempt(jobId, previousResult, {
-          exact_address_status: 'papilite_precision_insufficient_lantmateriet_not_configured',
+          exact_address_status: exactAddressStatus,
           papilite_precision_status: papilite.status,
           papilite_precision_confidence: papilite.confidence,
           papilite_precision_threshold: papilite.minConfidence ?? DEFAULT_OPS_PAPILITE_GRID_OWNER_MIN_CONFIDENCE,
           papilite_geodata_version: papilite.geodataVersion,
+          papilite_resolution_id: papilite.resolutionId,
         })
         continue
       }
@@ -326,6 +343,7 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
           papilite_precision_status: papilite.status,
           papilite_precision_confidence: papilite.confidence,
           papilite_precision_threshold: papilite.minConfidence,
+          papilite_verified_but_site_projection_missing: papiliteProjectionMissing,
         })
         continue
       }
