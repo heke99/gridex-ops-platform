@@ -5,7 +5,7 @@ import { resolveEnergyContext, normaliseGridAreaCode, normalizePostalCode } from
 import type { EnergyResolverInput, EnergyResolverResult } from '@/lib/energy/types'
 import { supabaseService } from '@/lib/supabase/service'
 
-const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v1'
+const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v2-papilite-first'
 const CACHE_TTL_MS = 15 * 60 * 1000
 
 function clean(value: unknown): string | null {
@@ -141,14 +141,29 @@ async function writeCachedResolution(input: EnergyResolverInput, result: EnergyR
 }
 
 /**
- * Website-only fast path. Customer/site-bound resolver calls deliberately bypass
- * this cache because those calls are allowed to mutate customer-specific state.
+ * Website-only fast path. The public website needs authoritative SE1-SE4 from
+ * OPS, but it must not depend on exact-address/Lantmateriet evidence. Exact
+ * address precision belongs to the customer continuation flow after signup.
+ *
+ * Keep the original address in this cache key/token context, but deliberately
+ * remove street data from the resolver call so it can use verified postcode
+ * masterdata and Papilite postcode centroid only. Bumping the cache schema
+ * prevents an older exact-address result from being served to the website.
  */
 export async function resolveWebsiteEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
   const cached = await readCachedResolution(input)
   if (cached) return cached
 
-  const resolved = await resolveEnergyContext(input)
+  const resolved = await resolveEnergyContext({
+    ...input,
+    street: null,
+    streetNumber: null,
+    metadata: {
+      ...(input.metadata ?? {}),
+      resolution_mode: 'website_price_area_only',
+      exact_address_provider_allowed: false,
+    },
+  })
   await writeCachedResolution(input, resolved)
   return resolved
 }
