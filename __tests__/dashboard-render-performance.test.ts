@@ -8,8 +8,8 @@ function read(relativePath: string) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
 }
 
-describe('dashboard render performance invariants', () => {
-  it('keeps verified auth server-side while deduplicating it per render request', () => {
+describe('authenticated shell performance invariants', () => {
+  it('keeps verified auth server-side while deduplicating it per dashboard render request', () => {
     const authHelper = read('lib/auth/currentUser.ts')
     const layout = read('app/dashboard/layout.tsx')
     const page = read('app/dashboard/page.tsx')
@@ -19,17 +19,25 @@ describe('dashboard render performance invariants', () => {
     expect(authHelper).toContain('.auth.getUser()')
     expect(authHelper).toContain('cache(async () =>')
 
-    expect(layout).toContain("getVerifiedAuthUser")
+    expect(layout).toContain('getVerifiedAuthUser')
     expect(layout).toContain('await getVerifiedAuthUser()')
-    expect(page).toContain("getVerifiedAuthUser")
+    expect(page).toContain('getVerifiedAuthUser')
     expect(page).toContain('await getVerifiedAuthUser()')
   })
 
-  it('starts independent platform-role and company-scope reads together', () => {
+  it('starts independent dashboard role and company-scope reads together', () => {
     const page = read('app/dashboard/page.tsx')
 
     expect(page).toMatch(
       /const \[isPlatformAdmin, companyScope\] = await Promise\.all\(\[\s*userHasPlatformRole\(user\.id\),\s*getOperationalCompanyScope\(user\.id\),\s*\]\)/,
+    )
+  })
+
+  it('starts independent admin-shell cookie, scope, and live-access reads together', () => {
+    const layout = read('app/admin/layout.tsx')
+
+    expect(layout).toMatch(
+      /const \[cookieStore, scope, liveAccess\] = await Promise\.all\(\[\s*cookies\(\),\s*getOperationalCompanyScope\(admin\.userId\),\s*getTenantLiveAccessForAdmin\(admin\),\s*\]\)/,
     )
   })
 })
