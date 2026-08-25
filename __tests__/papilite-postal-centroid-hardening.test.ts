@@ -13,6 +13,7 @@ describe('Papilite postal centroid hardening', () => {
   const svkVerifier = read('lib/energy/svkPostalGridOwnerVerification.ts')
   const migration = read('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql')
   const materializationGuard = read('supabase/migrations/20260817124500_site_resolution_materialization_guard.sql')
+  const sourceContractMigration = read('supabase/migrations/20260825091402_allow_postal_centroid_price_area_assurance_source.sql')
 
   it('uses PAP/API Lite as postcode-only enrichment', () => {
     expect(resolver).toContain("const PAPILITE_DEFAULT_URL = 'https://api.papapi.se/lite/'")
@@ -39,6 +40,12 @@ describe('Papilite postal centroid hardening', () => {
     expect(websiteCache).toContain('streetNumber: null')
     expect(websiteCache).toContain("resolution_mode: 'website_price_area_only'")
     expect(websiteCache).toContain('exact_address_provider_allowed: false')
+  })
+
+  it('persists the internal postal-centroid provenance without violating the database contract', () => {
+    expect(resolver).toContain('price_area_assurance_source: resolved.priceAreaAssurance.source')
+    expect(sourceContractMigration).toContain('customer_site_resolution_price_area_assurance_source_check')
+    expect(sourceContractMigration).toContain("'postal_centroid'::text")
   })
 
   it('keeps internal Papilite provenance compatible with the public V1 response contract', () => {
