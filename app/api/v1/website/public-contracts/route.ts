@@ -115,12 +115,17 @@ export async function GET(request: NextRequest) {
     // These reads are independent once the feed fingerprint misses. Starting
     // them together removes an avoidable network/database waterfall from the
     // website checkout path without changing freshness or validation rules.
+    // Capture tenant_reference as soon as tenant context resolves so feed
+    // consistency errors from the parallel offer load still include it.
+    const tenantPromise = loadExternalTenantContext(auth.client).then((tenant) => {
+      currentTenantReference = tenant.tenant_reference
+      return tenant
+    })
     const [revision, tenant, offers] = await Promise.all([
       loadPublicationRevision(auth.context.companyId, 'website'),
-      loadExternalTenantContext(auth.client),
+      tenantPromise,
       loadPublicContracts({ client: auth.client, customerType: query.customerType }),
     ])
-    currentTenantReference = tenant.tenant_reference
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     const headers = responseHeaders({
