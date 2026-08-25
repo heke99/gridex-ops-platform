@@ -39,7 +39,7 @@ production customer data or raw credentials in project memory.
 # Installed agent skills and execution contract
 
 The canonical installed-skill inventory is `skills-lock.json`. The repository
-currently contains 38 project-local skills under `.agents/skills/`.
+currently contains 42 project-local skills under `.agents/skills/`.
 
 For every non-trivial task, inspect the available skills before acting. Use all
 skills relevant to the task, but do not run unrelated skills merely to satisfy a
@@ -54,7 +54,7 @@ multi-tenant review, database review, API-contract review, performance review,
 or broad refactor, use the full baseline workflow below. A skill may only be
 skipped when its trigger is objectively absent; record the reason in the audit.
 
-## Canonical inventory: 38 installed skills
+## Canonical inventory: 42 installed skills
 
 ### Orchestration and delivery
 
@@ -109,8 +109,17 @@ skipped when its trigger is objectively absent; record the reason in the audit.
 37. `spec-to-code-compliance`
 38. `web-design-guidelines`
 
-`react-best-practices` is not installed and must not be referenced as an
-available project skill.
+### Performance and observability
+
+39. `vercel-react-best-practices`
+40. `performance-optimization`
+41. `observability-and-instrumentation`
+42. `sql-optimization-patterns`
+
+The installed `vercel-react-best-practices` skill is available for React and
+Next.js performance work. The repository's installed Next.js documentation in
+`node_modules/next/dist/docs/` remains higher authority for version-specific
+APIs, caching, rendering, route conventions, and deprecations.
 
 ## Full baseline audit workflow
 
@@ -173,6 +182,26 @@ phase before changing source code.
     generated cases
 31. `web-design-guidelines` for user-facing UI, accessibility, interaction, or
     design-system work
+
+### Performance review overlay
+
+When performance is in scope, complete this evidence pass before remediation:
+
+- `performance-optimization` defines the measure → identify → fix → verify →
+  guard workflow. Do not keep neutral or unmeasured optimizations.
+- `vercel-react-best-practices` applies to React/Next.js waterfalls, server/client
+  boundaries, bundle size, serialization, rendering and re-render findings.
+- `observability-and-instrumentation` applies when production-safe timing,
+  p50/p95/p99, tracing or structured telemetry is needed to prove the bottleneck
+  or verify the result.
+- `sql-optimization-patterns` applies to measured database/query bottlenecks,
+  together with `supabase-postgres-best-practices`.
+- Never cache or shortcut tenant-sensitive auth/RBAC/RLS decisions across
+  security boundaries. Never move authoritative server validation client-side
+  for speed.
+- Record baseline and after measurements using comparable conditions and retain
+  only changes that improve the proven metric while all correctness gates stay
+  green.
 
 ### Phase 5 — Remediation
 
