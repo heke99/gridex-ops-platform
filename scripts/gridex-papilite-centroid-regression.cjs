@@ -37,6 +37,8 @@ assert(resolver.includes("resolved.priceAreaAssurance.status === 'verified'"), '
 assert(resolver.includes("resolved.priceAreaAssurance.status === 'estimated'"), 'estimated price area is explicitly handled')
 assert(binding.includes("normalized === 'postal_centroid'"), 'resolution binding preserves postal-centroid provenance')
 assert(binding.includes('const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7'), 'postal centroid has a separate indicative-pricing floor')
+assert(binding.includes("assurance.source === 'postal_centroid'") || binding.includes('isPostalCentroidEvidence'), 'centroid trust floor remains source-aware')
+assert(binding.includes("evidence.coordinate_scope === 'postal_centroid'"), 'public postal_consensus remapping still honors centroid evidence for the 0.7 floor')
 
 assert(websiteRoute.includes("if (source === 'postal_centroid') return 'postal_consensus'"), 'website API keeps internal postal-centroid provenance compatible with public V1 source enum')
 assert(websiteRoute.includes('source: publicPriceAreaAssuranceSource(resolution.priceAreaAssurance.source)'), 'website API maps internal source before emitting the response')
@@ -46,6 +48,8 @@ assert(websiteCache.includes('street: null'), 'website resolver strips street fr
 assert(websiteCache.includes('streetNumber: null'), 'website resolver strips house number from the public price-area lookup')
 assert(websiteCache.includes("resolution_mode: 'website_price_area_only'"), 'website resolver records price-area-only mode')
 assert(websiteCache.includes('exact_address_provider_allowed: false'), 'website resolver explicitly forbids exact-address providers')
+assert(resolver.includes('function exactAddressProviderAllowed'), 'resolver enforces exact_address_provider_allowed instead of treating it as dead metadata')
+assert(resolver.includes('hasFullAddress(input) && exactAddressProviderAllowed(input)'), 'exact-address polygon path requires both full address and provider permission')
 
 assert(postalMaterialization.includes('postal_polygon_grid_area_intersection'), 'postcode mapping is materialized by postcode-polygon × grid-area intersection')
 assert(postalMaterialization.includes('st_area(st_intersection(p.geometry, g.geometry)) / p.postal_area'), 'postcode confidence is the spatial overlap share')
@@ -63,6 +67,8 @@ assert(svkPostal.includes('grid_area_code: verification.gridAreaCode'), 'verifie
 assert(svkPostal.includes("resolution_status: 'grid_area_master_validated'"), 'canonical postcode match records master-validated resolution status')
 assert(svkPostal.includes('operational_route_verification_required_separately: true'), 'geographical owner verification remains separate from Ediel route readiness')
 
+assert(svkPostal.includes('incomplete_matching_owner_reconcile'), 'matching owner with incomplete area is reconciled instead of stuck ambiguous')
+assert(svkPostal.includes(".eq('grid_owner_id', verification.gridOwnerId)"), 'incomplete-owner reconcile is scoped to the matching grid owner')
 assert(pendingExact.includes('applyUniqueSvkPostalGridOwnerToSite'), 'OPS continuation checks canonical SVK postcode mapping first')
 assert(!pendingExact.includes('applyPapiliteProvisionalGridOwner'), 'Papilite is not used as grid-owner authority')
 assert(!pendingExact.includes('papilite_postal_centroid_svk_polygon'), 'Papilite centroid is not promoted to a grid-owner decision')
@@ -85,6 +91,8 @@ assert(!migration.includes('customer_site_id'), 'global mapping contains no site
 assert(materializationGuard.includes("v_resolution.price_area_assurance_status = 'verified'"), 'database guard accepts verified price-area materialization')
 assert(materializationGuard.includes("v_resolution.price_area_assurance_status = 'estimated'"), 'database guard handles estimated price-area materialization explicitly')
 assert(materializationGuard.includes('v_resolution.price_area_assurance_confidence >= 0.8'), 'database guard keeps persistent estimated price-area floor at 0.8')
+assert(resolver.includes('const skipSiteResolutionRebind'), 'non-materializable postal suggestions do not rebind customer_sites.resolution_id')
+assert(resolver.includes('!priceAreaCanMaterialize(resolved)'), 'site rebind skip is gated on the same materialization floor as price_area_code')
 assert(materializationGuard.includes("lower(coalesce(v_resolution.resolution_status, '')) = 'postal_suggested'"), 'database guard identifies postal suggestions')
 assert(materializationGuard.includes('new.grid_owner_id := null'), 'database guard clears unsafe/stale grid owner when binding a postal-only resolution')
 assert(materializationGuard.includes('new.grid_area_code := null'), 'database guard clears unsafe/stale grid area when binding a postal-only resolution')

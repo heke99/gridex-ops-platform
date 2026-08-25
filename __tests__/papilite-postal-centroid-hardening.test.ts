@@ -35,11 +35,14 @@ describe('Papilite postal centroid hardening', () => {
   it('lets the website obtain SE1-SE4 without exact-address providers', () => {
     expect(binding).toContain('const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7')
     expect(binding).toContain("assurance.source === 'postal_centroid'")
+    expect(binding).toContain("evidence.coordinate_scope === 'postal_centroid'")
     expect(websiteCache).toContain("const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v2-papilite-first'")
     expect(websiteCache).toContain('street: null')
     expect(websiteCache).toContain('streetNumber: null')
     expect(websiteCache).toContain("resolution_mode: 'website_price_area_only'")
     expect(websiteCache).toContain('exact_address_provider_allowed: false')
+    expect(resolver).toContain('exact_address_provider_allowed')
+    expect(resolver).toContain('exactAddressProviderAllowed')
   })
 
   it('persists the internal postal-centroid provenance without violating the database contract', () => {
@@ -84,6 +87,15 @@ describe('Papilite postal centroid hardening', () => {
     expect(resolver).toContain('resolved.priceAreaAssurance.confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE')
     expect(resolver).toContain("const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null")
     expect(resolver).toContain("const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null")
+  })
+
+  it('does not rebind customer_sites.resolution_id for non-materializable postal suggestions', () => {
+    // After #207, postal_centroid rows persist. Rebinding resolution_id would fire the
+    // materialization guard and clear an existing site price_area_code (<0.8 estimated).
+    expect(resolver).toContain('const skipSiteResolutionRebind')
+    expect(resolver).toContain("resolved.resolutionStatus === 'postal_suggested'")
+    expect(resolver).toContain('!priceAreaCanMaterialize(resolved)')
+    expect(resolver).toContain('if ((!protectedManualVerification || fullyVerifiedResolution) && !skipSiteResolutionRebind)')
   })
 
   it('enforces fail-closed Papilite materialization again at the database boundary', () => {

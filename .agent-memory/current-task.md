@@ -1,11 +1,11 @@
 # Current task
 
-Updated: 2026-08-20
+Updated: 2026-08-25
 
-Status: `MASTERPLAN_PR_169_HOSTED_STAGING_VERIFICATION`
+Status: `POST_207_POSTAL_CENTROID_RESIDUALS_PR`
 
-Active work item: finish hosted CI/Vercel preview verification and execute the non-destructive authenticated E2E/load matrix for draft PR #169.
+Active work item: tip residual hardening after main `#207` postal-centroid DB contract alignment.
 
 ## Exact next action
 
-Publish the tested same-repository staging-label gate, add `staging-e2e-approved` to PR #169, and retain browser/k6 smoke-load-spike-ETag-soak/ZAP evidence. Do not promote while the OPS production Supabase project remains unidentified.
+Merge vehicle `cursor/codebase-health-and-stability-4d87` (open PR). After merge, close/supersede draft `#206`. Do not rewrite the applied `#207` migration.
