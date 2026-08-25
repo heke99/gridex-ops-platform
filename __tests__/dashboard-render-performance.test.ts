@@ -40,4 +40,22 @@ describe('authenticated shell performance invariants', () => {
       /const \[cookieStore, scope, liveAccess\] = await Promise\.all\(\[\s*cookies\(\),\s*getOperationalCompanyScope\(admin\.userId\),\s*getTenantLiveAccessForAdmin\(admin\),\s*\]\)/,
     )
   })
+
+  it('keeps the admin layout interactive while dynamic route content streams', () => {
+    const loading = read('app/admin/loading.tsx')
+
+    expect(loading).toContain('export default function AdminLoading')
+    expect(loading).toContain('aria-busy="true"')
+    expect(loading).not.toContain('AdminSidebar')
+  })
+
+  it('reuses the verified permission context on the metering page', () => {
+    const page = read('app/admin/metering/page.tsx')
+
+    expect(page).toContain("requirePermissionServer('metering.read')")
+    expect(page).toContain('getOperationalCompanyScope(context.userId)')
+    expect(page).toContain('userEmail={context.email}')
+    expect(page).not.toContain('createSupabaseServerClient')
+    expect(page).not.toContain('.auth.getUser()')
+  })
 })
