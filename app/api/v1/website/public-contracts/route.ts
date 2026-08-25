@@ -80,14 +80,11 @@ export async function GET(request: NextRequest) {
 
   let currentTenantReference: string | null = null
   try {
-    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc(
-      'public_contract_feed_fingerprint_v1',
-      {
-        p_company_id: auth.context.companyId,
-        p_customer_type: query.customerType,
-        p_channel: 'website',
-      },
-    )
+    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc('public_contract_feed_fingerprint_v1', {
+      p_company_id: auth.context.companyId,
+      p_customer_type: query.customerType,
+      p_channel: 'website',
+    })
     if (fingerprintError) throw fingerprintError
     const fingerprintRow = (Array.isArray(fingerprintRows) ? fingerprintRows[0] : fingerprintRows) as {
       fingerprint?: string | null
