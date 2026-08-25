@@ -80,14 +80,11 @@ export async function GET(request: NextRequest) {
 
   let currentTenantReference: string | null = null
   try {
-    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc(
-      'public_contract_feed_fingerprint_v1',
-      {
-        p_company_id: auth.context.companyId,
-        p_customer_type: query.customerType,
-        p_channel: 'website',
-      },
-    )
+    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc('public_contract_feed_fingerprint_v1', {
+      p_company_id: auth.context.companyId,
+      p_customer_type: query.customerType,
+      p_channel: 'website',
+    })
     if (fingerprintError) throw fingerprintError
     const fingerprintRow = (Array.isArray(fingerprintRows) ? fingerprintRows[0] : fingerprintRows) as {
       fingerprint?: string | null
@@ -114,9 +111,14 @@ export async function GET(request: NextRequest) {
       })
       return new NextResponse(null, { status: 304, headers: earlyHeaders })
     }
-    const [revision, tenant] = await Promise.all([
+
+    // These reads are independent once the feed fingerprint misses. Starting
+    // them together removes an avoidable network/database waterfall from the
+    // website checkout path without changing freshness or validation rules.
+    const [revision, tenant, offers] = await Promise.all([
       loadPublicationRevision(auth.context.companyId, 'website'),
       loadExternalTenantContext(auth.client),
+      loadPublicContracts({ client: auth.client, customerType: query.customerType }),
     ])
     currentTenantReference = tenant.tenant_reference
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
@@ -128,7 +130,6 @@ export async function GET(request: NextRequest) {
       requestId: currentRequestId,
     })
 
-    const offers = await loadPublicContracts({ client: auth.client, customerType: query.customerType })
     const data: Record<string, unknown>[] = []
     const mappingIssues: Array<{
       canonical_offer_reference: string
