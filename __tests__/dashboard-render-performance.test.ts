@@ -68,4 +68,15 @@ describe('authenticated shell performance invariants', () => {
     expect(page).not.toContain('createSupabaseServerClient')
     expect(page).not.toContain('.auth.getUser()')
   })
+
+  it('keeps the default tenant customer registry on the paged database path', () => {
+    const customers = read('lib/customers/getCustomers.ts')
+
+    expect(customers).toContain('excludeTestData = false')
+    expect(customers).toContain(".or('is_test_data.is.null,is_test_data.eq.false')")
+    expect(customers).toContain(".or('source.is.null,source.not.ilike.*test*')")
+    expect(customers).toContain('if (canUsePagedCustomerQuery({ query, contractFilter, flag }))')
+    expect(customers).not.toContain('if (!excludeTestData && canUsePagedCustomerQuery')
+    expect(customers).toContain('excludeTestData: params.excludeTestData')
+  })
 })
