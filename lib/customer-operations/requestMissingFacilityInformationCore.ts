@@ -706,7 +706,9 @@ export async function requestMissingFacilityInformation(
     }
   }
 
-  const gridOwnerId = clean(site.grid_owner_id) ?? clean(site.selected_grid_owner_id)
+  // Canonical external-send authority is the site-bound grid_owner_id only.
+  // selected_grid_owner_id is a review candidate and must never choose recipient.
+  const gridOwnerId = clean(site.grid_owner_id)
   const siteAddressHash = clean(site.address_hash)
   const requestPriceArea = resolveRequestPriceArea(site)
   if (!gridOwnerId) {

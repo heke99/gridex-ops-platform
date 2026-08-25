@@ -5,6 +5,13 @@ type RequestInput = Parameters<typeof requestMissingFacilityInformationCore>[0]
 type RequestResult = Awaited<ReturnType<typeof requestMissingFacilityInformationCore>>
 type JsonRecord = Record<string, unknown>
 
+const CANONICAL_GEOGRAPHIC_STATUSES = new Set([
+  'grid_area_master_validated',
+  'facility_data_requested',
+  'facility_data_received',
+  'facility_verified',
+])
+
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
@@ -82,50 +89,36 @@ async function blockForUnverifiedCanonicalGridOwner(input: RequestInput, message
   } as RequestResult
 }
 
-async function hasSiteSpecificVerifiedGridOwner(input: {
-  companyId: string
-  customerId: string
-  siteId: string
-  resolutionId: string | null
-  gridOwnerId: string
-}): Promise<boolean> {
-  if (!input.resolutionId) return false
-  const resolution = await supabaseService
-    .from('customer_site_resolution')
-    .select('id,customer_id,customer_site_id,grid_owner_id,resolution_status,automation_allowed,source_claims')
-    .eq('id', input.resolutionId)
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('customer_site_id', input.siteId)
-    .maybeSingle()
-  if (resolution.error) throw resolution.error
-  const row = resolution.data as JsonRecord | null
-  const claims = row?.source_claims && typeof row.source_claims === 'object' && !Array.isArray(row.source_claims)
-    ? row.source_claims as JsonRecord
-    : {}
+function hasCanonicalGeographicGridOwner(site: JsonRecord): boolean {
+  const gridOwnerId = clean(site.grid_owner_id)
+  const gridAreaCode = clean(site.grid_area_code)
+  const resolutionStatus = clean(site.resolution_status)
   return Boolean(
-    row?.id
-    && clean(row.grid_owner_id) === input.gridOwnerId
-    && clean(row.resolution_status) === 'grid_area_master_validated'
-    && row.automation_allowed === true
-    && claims.manual_grid_owner_confirmation === true,
+    gridOwnerId
+    && gridAreaCode
+    && resolutionStatus
+    && CANONICAL_GEOGRAPHIC_STATUSES.has(resolutionStatus),
   )
 }
 
 /**
  * Public facility-information orchestrator.
  *
- * selected_grid_owner_id is only a candidate for review. External communication
- * requires the exact site to carry a canonical grid_owner_id that points to a
- * customer-flow verified grid owner. A technical-only owner may be used only
- * when the exact customer/site resolution is grid_area_master_validated with
- * explicit manual_grid_owner_confirmation evidence and automation_allowed=true.
- * The database transport trigger enforces the same invariant again at queue time.
+ * Facility lookup is routed by the canonical geographical owner of the exact
+ * customer site. `selected_grid_owner_id` is a review candidate only and is
+ * never an external-send authority. Grid-owner Ediel/PRODAT/customer-flow
+ * readiness is deliberately NOT part of this gate: those are transport and
+ * supplier-switch concerns, not geographical ownership.
+ *
+ * Canonical geography requires customer_sites.grid_owner_id + grid_area_code
+ * and a lifecycle state that can only exist after grid-area master validation
+ * (or later facility-data states). The database outbox trigger enforces the
+ * same facility-specific invariant again at queue/send time.
  */
 export async function requestMissingFacilityInformation(input: RequestInput): Promise<RequestResult> {
   const siteResult = await supabaseService
     .from('customer_sites')
-    .select('id,grid_owner_id,selected_grid_owner_id,resolution_status,resolution_id')
+    .select('id,grid_owner_id,selected_grid_owner_id,grid_area_code,resolution_status,resolution_id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('id', input.siteId)
@@ -133,43 +126,11 @@ export async function requestMissingFacilityInformation(input: RequestInput): Pr
   if (siteResult.error) throw siteResult.error
   if (!siteResult.data?.id) throw new Error('customer_site_not_found_or_wrong_tenant')
 
-  const canonicalGridOwnerId = clean(siteResult.data.grid_owner_id)
-  if (!canonicalGridOwnerId) {
+  const site = siteResult.data as JsonRecord
+  if (!hasCanonicalGeographicGridOwner(site)) {
     return blockForUnverifiedCanonicalGridOwner(
       input,
-      'Nätägaren är endast föreslagen för anläggningen. Verifiera exakt nätägare innan fullmakt eller kunduppgifter skickas externt.',
-    )
-  }
-
-  const ownerResult = await supabaseService
-    .from('grid_owners')
-    .select('id,verified_for_customer_flow,technical_owner_only,verification_status')
-    .eq('id', canonicalGridOwnerId)
-    .maybeSingle()
-  if (ownerResult.error) throw ownerResult.error
-  const owner = ownerResult.data as JsonRecord | null
-  const baseOwnerReady = Boolean(
-    owner?.id
-    && owner.verified_for_customer_flow === true
-    && clean(owner.verification_status) === 'verified',
-  )
-  const siteSpecificVerified = baseOwnerReady && owner?.technical_owner_only === true
-    ? await hasSiteSpecificVerifiedGridOwner({
-        companyId: input.companyId,
-        customerId: input.customerId,
-        siteId: input.siteId,
-        resolutionId: clean(siteResult.data.resolution_id),
-        gridOwnerId: canonicalGridOwnerId,
-      })
-    : false
-  const ownerReady = Boolean(
-    baseOwnerReady
-    && (owner?.technical_owner_only !== true || siteSpecificVerified),
-  )
-  if (!ownerReady) {
-    return blockForUnverifiedCanonicalGridOwner(
-      input,
-      'Nätägaren är kopplad till anläggningen men är inte verifierad för kundflöde. Verifiera nätägaren innan fullmakt eller kunduppgifter skickas externt.',
+      'Exakt geografisk nätägare är ännu inte kanoniskt verifierad för anläggningen. Verifiera nätområde/nätägare innan fullmakt eller kunduppgifter skickas externt.',
     )
   }
 

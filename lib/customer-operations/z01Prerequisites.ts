@@ -162,7 +162,7 @@ export async function ensureFacilityLookupForZ01Blocker(input: {
     companyId: input.companyId,
     customerId: input.customerId,
     customerSiteId: siteId,
-    gridOwnerId: text(site.grid_owner_id) ?? text(site.selected_grid_owner_id),
+    gridOwnerId: text(site.grid_owner_id),
     gridAreaCode: text(site.grid_area_code) ?? text(site.manual_grid_area_code),
     priceArea: text(site.price_area_code) ?? text(site.bidding_zone_code),
     createdBy: text(input.actorUserId),

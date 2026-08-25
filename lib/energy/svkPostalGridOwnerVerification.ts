@@ -302,6 +302,12 @@ export async function verifyUniqueSvkPostalGridOwner(input: {
   }
 }
 
+/**
+ * Legacy postcode-polygon materializer retained for compatibility. It now
+ * follows the same canonical write model as every other geographical resolver:
+ * create a customer_site_resolution and bind the site through resolution_id.
+ * selected_grid_owner_id remains candidate/review-only and is never written.
+ */
 export async function applyUniqueSvkPostalGridOwnerToSite(input: {
   companyId: string
   customerId: string
@@ -316,38 +322,92 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
     return verification
   }
 
-  const now = new Date().toISOString()
+  const now = new Date()
+  const resolvedPriceArea = verification.priceArea ?? normalizePriceArea(input.currentPriceArea)
+  const hasPriceArea = Boolean(resolvedPriceArea)
+  const evidence = {
+    ...verification.evidence,
+    verified_at: now.toISOString(),
+    purpose: 'canonical_geographic_grid_owner',
+    operational_route_verification_required_separately: true,
+  }
+
+  const resolution = await supabaseService
+    .from('customer_site_resolution')
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      customer_site_id: input.siteId,
+      grid_owner_id: verification.gridOwnerId,
+      grid_area_code: verification.gridAreaCode,
+      grid_area_name: verification.gridAreaName,
+      grid_owner_name: verification.gridOwnerName,
+      price_area: resolvedPriceArea,
+      resolution_status: 'grid_area_master_validated',
+      confidence: verification.confidence,
+      source_chain: ['postal_code', 'postal_polygon_grid_area_intersection', 'svk_grid_area_geometry', 'platform_grid_areas'],
+      input_snapshot: {
+        postal_code: verification.postalCode,
+        city: clean(input.city),
+        resolution_mode: 'svk_postal_polygon',
+      },
+      result_snapshot: {
+        gridAreaCode: verification.gridAreaCode,
+        gridAreaName: verification.gridAreaName,
+        gridOwnerId: verification.gridOwnerId,
+        gridOwnerName: verification.gridOwnerName,
+        priceArea: resolvedPriceArea,
+        evidence,
+      },
+      automation_allowed: false,
+      next_required_action: 'Begär anläggningsuppgifter från geografiskt verifierad nätägare. Ediel/PRODAT-readiness verifieras separat.',
+      resolved_at: now.toISOString(),
+      expires_at: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+      resolver_version: 'svk-postal-polygon-v2',
+      geodata_version: verification.sourceVersion,
+      source_claims: {},
+      conflict_code: null,
+      price_area_assurance_status: hasPriceArea ? 'verified' : 'unresolved',
+      price_area_assurance_source: hasPriceArea ? 'grid_area_master' : null,
+      price_area_assurance_confidence: hasPriceArea ? verification.confidence : 0,
+      price_area_assurance_source_version: verification.sourceVersion,
+      price_area_candidate_count: hasPriceArea ? 1 : 0,
+      price_area_unique_count: hasPriceArea ? 1 : 0,
+      price_area_evidence: evidence,
+      updated_at: now.toISOString(),
+    })
+    .select('id')
+    .single()
+  if (resolution.error) throw resolution.error
+  const resolutionId = clean(resolution.data?.id)
+  if (!resolutionId) throw new Error('svk_postal_resolution_insert_missing_id')
+
   const update = await supabaseService
     .from('customer_sites')
     .update({
-      grid_owner_id: verification.gridOwnerId,
-      selected_grid_owner_id: verification.gridOwnerId,
-      grid_area_code: verification.gridAreaCode,
-      price_area_code: verification.priceArea ?? normalizePriceArea(input.currentPriceArea),
+      resolution_id: resolutionId,
       resolution_status: 'grid_area_master_validated',
       resolution_confidence: verification.confidence,
       metadata: {
         ...(input.metadata ?? {}),
         svk_postal_grid_owner_verification: {
-          ...verification.evidence,
-          verified_at: now,
-          purpose: 'canonical_geographic_grid_owner',
-          operational_route_verification_required_separately: true,
+          ...evidence,
+          resolution_id: resolutionId,
         },
       },
-      updated_at: now,
+      updated_at: now.toISOString(),
     })
     .eq('id', input.siteId)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .is('grid_owner_id', null)
-    .select('id,grid_owner_id,grid_area_code')
+    .select('id,grid_owner_id,grid_area_code,resolution_id')
   if (update.error) throw update.error
 
   if (!update.data?.length) {
     const existing = await supabaseService
       .from('customer_sites')
-      .select('grid_owner_id,grid_area_code')
+      .select('grid_owner_id,grid_area_code,resolution_id')
       .eq('id', input.siteId)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)

@@ -122,6 +122,8 @@
     "20260824151800_exact_address_cache_street_number.sql": "365fad8426f43454219a6cf25f4cd5e0cbb1a2968044f79bb004af00230308fa",
     "20260824153500_site_verified_grid_owner_manual_outbox_guard.sql": "f5377b866b01e079d19dfa95a945bd3fb801a84e1957afe17b901381d6f66761",
     "20260824190000_gridex_inbound_operations_foundation.sql": "09310e637bcd884ee153883a03ab30918aff9393d8d6594d18ab073a179eba4f",
-    "20260825091402_allow_postal_centroid_price_area_assurance_source.sql": "543d994630b5d596068d2d1716ff6ae0cd341302a2ed8dd9dddbf4d46c8e110d"
+    "20260825091402_allow_postal_centroid_price_area_assurance_source.sql": "543d994630b5d596068d2d1716ff6ae0cd341302a2ed8dd9dddbf4d46c8e110d",
+    "20260825093400_facility_geographic_owner_outbox_guard.sql": "fd6e9b289ad728a0f8a5193df5bb11d6ad8158069ee0e1464d1a6ab2744015c4",
+    "20260825112000_ops_precision_resolution_authority.sql": "3f3549adffd87fcc1bd9d6811189734e57b2c6317442506f0f762bfcb84432d8"
   }
 }
