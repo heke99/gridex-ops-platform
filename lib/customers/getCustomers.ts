@@ -426,87 +426,127 @@ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: st
   const customerIds = rows.map((row) => row.id)
   const byCustomerId = new Map(rows.map((row) => [row.id, row]))
 
-  try {
-    let siteQuery = supabaseService
-      .from('customer_sites')
-      .select('id, customer_id, status, grid_owner_id')
-      .in('customer_id', customerIds)
+  const siteContextPromise = (async () => {
+    try {
+      let siteQuery = supabaseService
+        .from('customer_sites')
+        .select('id, customer_id, status, grid_owner_id')
+        .in('customer_id', customerIds)
 
-    if (companyId) siteQuery = siteQuery.eq('company_id', companyId)
+      if (companyId) siteQuery = siteQuery.eq('company_id', companyId)
 
-    const { data, error } = await siteQuery
-    if (error) throw error
+      const { data, error } = await siteQuery
+      if (error) throw error
 
-    const sites = (data ?? []) as CustomerSiteCountRow[]
-    const customerIdBySiteId = new Map<string, string>()
-    const siteIds: string[] = []
+      const sites = (data ?? []) as CustomerSiteCountRow[]
+      const customerIdBySiteId = new Map<string, string>()
+      const siteIds: string[] = []
 
-    for (const site of sites) {
-      if (!site.id || !site.customer_id) continue
-      const customer = byCustomerId.get(site.customer_id)
-      if (!customer) continue
-      siteIds.push(site.id)
-      customerIdBySiteId.set(site.id, site.customer_id)
-      customer.site_count += 1
-      if (site.status === 'active') customer.active_site_count += 1
-      if (!site.grid_owner_id) customer.has_missing_grid_owner = true
+      for (const site of sites) {
+        if (!site.id || !site.customer_id || !byCustomerId.has(site.customer_id)) continue
+        siteIds.push(site.id)
+        customerIdBySiteId.set(site.id, site.customer_id)
+      }
+
+      return { sites, siteIds, customerIdBySiteId }
+    } catch (error) {
+      if (isMissingRelationError(error)) {
+        return {
+          sites: [] as CustomerSiteCountRow[],
+          siteIds: [] as string[],
+          customerIdBySiteId: new Map<string, string>(),
+        }
+      }
+      throw error
     }
+  })()
 
-    if (siteIds.length > 0) {
-      const { data: pointRows, error: pointError } = await supabaseService
+  const contractsPromise = (async () => {
+    try {
+      const { data, error } = await supabaseService
+        .from('customer_contracts')
+        .select('id, customer_id')
+        .in('customer_id', customerIds)
+
+      if (error) throw error
+      return (data ?? []) as Array<{ customer_id: string | null }>
+    } catch (error) {
+      if (isMissingRelationError(error)) return [] as Array<{ customer_id: string | null }>
+      throw error
+    }
+  })()
+
+  const powersOfAttorneyPromise = (async () => {
+    try {
+      const { data, error } = await supabaseService
+        .from('powers_of_attorney')
+        .select('id, customer_id, status')
+        .in('customer_id', customerIds)
+
+      if (error) throw error
+      return (data ?? []) as Array<{ customer_id: string | null; status: string | null }>
+    } catch (error) {
+      if (isMissingRelationError(error)) {
+        return [] as Array<{ customer_id: string | null; status: string | null }>
+      }
+      throw error
+    }
+  })()
+
+  const meteringPointsPromise = siteContextPromise.then(async ({ siteIds }) => {
+    if (siteIds.length === 0) return [] as MeteringPointCountRow[]
+
+    try {
+      const { data, error } = await supabaseService
         .from('metering_points')
         .select('id, site_id, status')
         .in('site_id', siteIds)
 
-      if (pointError) throw pointError
-
-      for (const point of (pointRows ?? []) as MeteringPointCountRow[]) {
-        if (!point.site_id) continue
-        const customerId = customerIdBySiteId.get(point.site_id)
-        if (!customerId) continue
-        const customer = byCustomerId.get(customerId)
-        if (!customer) continue
-        customer.metering_point_count += 1
-        if (point.status === 'active') customer.active_metering_point_count += 1
-      }
+      if (error) throw error
+      return (data ?? []) as MeteringPointCountRow[]
+    } catch (error) {
+      if (isMissingRelationError(error)) return [] as MeteringPointCountRow[]
+      throw error
     }
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error
+  })
+
+  const [siteContext, contracts, powersOfAttorney, meteringPoints] = await Promise.all([
+    siteContextPromise,
+    contractsPromise,
+    powersOfAttorneyPromise,
+    meteringPointsPromise,
+  ])
+
+  for (const site of siteContext.sites) {
+    if (!site.id || !site.customer_id) continue
+    const customer = byCustomerId.get(site.customer_id)
+    if (!customer) continue
+    customer.site_count += 1
+    if (site.status === 'active') customer.active_site_count += 1
+    if (!site.grid_owner_id) customer.has_missing_grid_owner = true
   }
 
-  try {
-    const { data, error } = await supabaseService
-      .from('customer_contracts')
-      .select('id, customer_id')
-      .in('customer_id', customerIds)
-
-    if (error) throw error
-
-    for (const contract of (data ?? []) as Array<{ customer_id: string | null }>) {
-      if (!contract.customer_id) continue
-      const customer = byCustomerId.get(contract.customer_id)
-      if (!customer) continue
-      customer.contract_count += 1
-    }
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error
+  for (const point of meteringPoints) {
+    if (!point.site_id) continue
+    const customerId = siteContext.customerIdBySiteId.get(point.site_id)
+    if (!customerId) continue
+    const customer = byCustomerId.get(customerId)
+    if (!customer) continue
+    customer.metering_point_count += 1
+    if (point.status === 'active') customer.active_metering_point_count += 1
   }
 
-  try {
-    const { data, error } = await supabaseService
-      .from('powers_of_attorney')
-      .select('id, customer_id, status')
-      .in('customer_id', customerIds)
+  for (const contract of contracts) {
+    if (!contract.customer_id) continue
+    const customer = byCustomerId.get(contract.customer_id)
+    if (!customer) continue
+    customer.contract_count += 1
+  }
 
-    if (error) throw error
-
-    for (const poa of (data ?? []) as Array<{ customer_id: string | null; status: string | null }>) {
-      if (!poa.customer_id || poa.status !== 'signed') continue
-      const customer = byCustomerId.get(poa.customer_id)
-      if (customer) customer.has_signed_power_of_attorney = true
-    }
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error
+  for (const poa of powersOfAttorney) {
+    if (!poa.customer_id || poa.status !== 'signed') continue
+    const customer = byCustomerId.get(poa.customer_id)
+    if (customer) customer.has_signed_power_of_attorney = true
   }
 
   return Array.from(byCustomerId.values())
