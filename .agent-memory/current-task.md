@@ -2,12 +2,12 @@
 
 Updated: 2026-08-25
 
-Status: `POST_205_PAPILITE_ENERGY_RESIDUALS`
+Status: `VERIFIED_CI_READY_TO_MERGE`
 
-Active work item: remediate residuals found in push review of main `3f1a905` / PR `#205`
-(Papilite-first website energy resolution).
+Active work item: Papilite/SVK residuals after `#205` — implemented on
+`cursor/codebase-health-and-stability-e60a` as PR `#206`.
 
 ## Exact next action
 
-After PR opens from this tip branch: wait for CI on the residual hardening PR, then
-continue only if CI reports further failures in the energy-resolution path.
+Merge [PR #206](https://github.com/heke99/gridex-ops-platform/pull/206) when ready
+(all 16 CI checks green, mergeable). No further code changes required for this item.
