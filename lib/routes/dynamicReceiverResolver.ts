@@ -218,7 +218,7 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   if (input.siteId) {
     let siteQuery = supabaseService
       .from("customer_sites")
-      .select("id,company_id,grid_owner_id,selected_grid_owner_id")
+      .select("id,company_id,grid_owner_id")
       .eq("id", input.siteId);
     if (input.companyId) siteQuery = siteQuery.eq("company_id", input.companyId);
 
@@ -239,9 +239,8 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
       id: string;
       company_id: string | null;
       grid_owner_id: string | null;
-      selected_grid_owner_id?: string | null;
     } | null;
-    const siteGridOwnerId = site?.selected_grid_owner_id ?? site?.grid_owner_id ?? null;
+    const siteGridOwnerId = site?.grid_owner_id ?? null;
     if (siteGridOwnerId) {
       return {
         gridOwnerId: siteGridOwnerId,
@@ -251,7 +250,7 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
           trace(
             "dynamic_receiver_context",
             "success",
-            "Vald nätägare hämtades från anläggningen.",
+            "Kanonisk nätägare hämtades från anläggningen.",
             { siteId: input.siteId, gridOwnerId: siteGridOwnerId },
           ),
         ],
@@ -299,7 +298,7 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
       trace(
         "dynamic_receiver_context",
         "warning",
-        "Anläggningen saknar vald nätägare.",
+        "Anläggningen saknar kanonisk nätägare.",
         { siteId: input.siteId },
       ),
     );
