@@ -34,6 +34,7 @@ type AtomicFacilityCompletion = {
   meteringPointExternalId?: string | null
   gridAreaCode?: string | null
   priceAreaCode?: string | null
+  resolutionId?: string | null
 }
 
 export type FacilityLookupSource = 'manual' | 'ediel_inbound' | 'system'
@@ -96,6 +97,7 @@ function atomicResult(value: unknown): AtomicFacilityCompletion {
     meteringPointExternalId: text(row.meteringPointExternalId),
     gridAreaCode: text(row.gridAreaCode),
     priceAreaCode: text(row.priceAreaCode),
+    resolutionId: text(row.resolutionId),
   }
 }
 
@@ -122,62 +124,6 @@ async function loadFacilityRequest(companyId: string, requestId: string): Promis
     throw new Error('Begäran är inte en anläggningsuppgiftsbegäran.')
   }
   return row
-}
-
-async function updateResolution(input: {
-  companyId: string
-  customerSiteId: string
-  resolutionId?: string | null
-  actorUserId?: string | null
-  priceAreaCode?: string | null
-  gridAreaCode?: string | null
-}) {
-  let resolutionId = input.resolutionId ?? null
-  if (!resolutionId) {
-    const latest = await supabaseService
-      .from('customer_site_resolution')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('customer_site_id', input.customerSiteId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (latest.error && !isMissingSchema(latest.error)) throw latest.error
-    resolutionId = text(latest.data?.id)
-  }
-  if (!resolutionId) return
-
-  const now = new Date().toISOString()
-  const assurancePatch = input.priceAreaCode
-    ? {
-        price_area: input.priceAreaCode,
-        price_area_assurance_status: 'verified',
-        price_area_assurance_source: 'facility_data',
-        price_area_assurance_confidence: 1,
-        price_area_assurance_source_version: now,
-        price_area_candidate_count: 1,
-        price_area_unique_count: 1,
-        price_area_evidence: {
-          verified_at: now,
-          grid_area_code: input.gridAreaCode ?? null,
-          source: 'facility_lookup_completion',
-        },
-      }
-    : {}
-
-  const { error } = await supabaseService
-    .from('customer_site_resolution')
-    .update({
-      ...assurancePatch,
-      resolution_status: 'facility_verified',
-      facility_data_verified_at: now,
-      verified_by: input.actorUserId ?? null,
-      updated_at: now,
-    })
-    .eq('id', resolutionId)
-    .eq('company_id', input.companyId)
-    .eq('customer_site_id', input.customerSiteId)
-  if (error && !isMissingSchema(error)) throw error
 }
 
 async function updateWebsiteApplication(input: {
@@ -260,8 +206,10 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
     throw new Error('Anläggnings-ID eller mätpunkt måste anges innan begäran kan slutföras.')
   }
 
-  // The service client is intentionally narrowed here so the code can use a
-  // newly migrated RPC before generated database types are refreshed in CI.
+  // The RPC owns the complete transactional write: it validates the canonical
+  // geographical owner, creates a facility_verified customer_site_resolution,
+  // binds the site to that resolution, and commits facility/metering data.
+  // TypeScript must not mutate that resolution in a second step.
   const rpcClient = supabaseService as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
   }
@@ -320,19 +268,9 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
     }
   }
 
-  // Ancillary projections are retry-safe. The request/site/metering point and
-  // facility blocker were already committed atomically by the RPC above.
-  await Promise.all([
-    updateResolution({
-      companyId: input.companyId,
-      customerSiteId: completion.customerSiteId,
-      resolutionId: text(request.resolution_id),
-      actorUserId: input.actorUserId ?? null,
-      priceAreaCode: completion.priceAreaCode ?? priceAreaCode,
-      gridAreaCode: completion.gridAreaCode ?? gridAreaCode,
-    }),
-    updateWebsiteApplication({ companyId: input.companyId, request }),
-  ])
+  // Only the website application is an ancillary projection now. The canonical
+  // facility resolution is already committed atomically by the RPC.
+  await updateWebsiteApplication({ companyId: input.companyId, request })
 
   await emitFacilityLookupCompletedEvent({
     companyId: input.companyId,
@@ -349,6 +287,7 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
       metering_point_record_id: completion.meteringPointRecordId ?? null,
       grid_area_code: completion.gridAreaCode ?? gridAreaCode,
       price_area_code: completion.priceAreaCode ?? priceAreaCode,
+      resolution_id: completion.resolutionId ?? null,
       ediel_message_id: text(input.edielMessageId),
       atomic_completion: true,
       already_completed: completion.alreadyCompleted === true,
@@ -373,6 +312,7 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
       source: input.source,
       facility_id: completion.facilityId ?? facilityId,
       metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
+      resolution_id: completion.resolutionId ?? null,
       atomic_completion: true,
     },
     idempotencyKey: `facility_data.verified:${input.requestId}:${completion.facilityId ?? completion.meteringPointExternalId ?? facilityId ?? meteringPointId}`,
