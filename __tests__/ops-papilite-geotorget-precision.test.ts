@@ -10,6 +10,8 @@ describe('OPS Papilite-first GeoTorget precision architecture', () => {
   const website = read('lib/energy/websiteResolutionCache.ts')
   const cron = read('app/api/internal/customer-operations/cron/route.ts')
   const facility = read('lib/facility/facilityLookupWorkflow.ts')
+  const processContext = read('lib/customer-operations/customerSiteProcessContext.ts')
+  const facilityCore = read('lib/customer-operations/requestMissingFacilityInformationCore.ts')
   const migration = read('supabase/migrations/20260825112000_ops_precision_resolution_authority.sql')
 
   it('keeps GeoTorget behind the internal OPS worker', () => {
@@ -37,5 +39,12 @@ describe('OPS Papilite-first GeoTorget precision architecture', () => {
     expect(migration).toContain('insert into public.customer_site_resolution')
     expect(facility).not.toContain('function updateResolution')
     expect(facility).toContain('TypeScript must not mutate that resolution in a second step')
+  })
+
+  it('never promotes selected_grid_owner_id into operational or external-send authority', () => {
+    expect(processContext).not.toContain('site.selected_grid_owner_id')
+    expect(processContext).toContain('clean(meteringPoint?.grid_owner_id) ?? clean(site.grid_owner_id)')
+    expect(facilityCore).not.toContain('clean(site.selected_grid_owner_id)')
+    expect(facilityCore).toContain('const gridOwnerId = clean(site.grid_owner_id)')
   })
 })
