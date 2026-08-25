@@ -1,9 +1,9 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import {
-  applyUniqueSvkPostalGridOwnerToSite,
-  MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE,
-} from '@/lib/energy/svkPostalGridOwnerVerification'
+  DEFAULT_OPS_PAPILITE_GRID_OWNER_MIN_CONFIDENCE,
+  resolveOpsPapiliteGridOwnerForSite,
+} from '@/lib/energy/opsPrecisionGridOwnerResolution'
 import {
   ensureLantmaterietExactAddressPoint,
   lantmaterietExactAddressConfigured,
@@ -30,7 +30,7 @@ function dueForExactAddressAttempt(result: JsonRecord) {
 async function loadSite(input: { companyId: string; customerId: string; siteId: string }) {
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,street,postal_code,city,country,grid_owner_id,selected_grid_owner_id,grid_area_code,price_area_code,address_hash,resolution_status,resolution_confidence,metadata')
+    .select('id,company_id,customer_id,street,postal_code,city,country,grid_owner_id,selected_grid_owner_id,grid_area_code,price_area_code,address_hash,resolution_id,resolution_status,resolution_confidence,metadata')
     .eq('id', input.siteId)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
@@ -58,7 +58,7 @@ async function recordAttempt(jobId: string, previous: JsonRecord, patch: JsonRec
 async function wakeCanonicalGridOwner(input: {
   jobId: string
   previousResult: JsonRecord
-  resolutionMode: 'canonical_svk_postal' | 'canonical_svk_exact_point' | 'already_canonical'
+  resolutionMode: 'canonical_papilite_svk' | 'canonical_svk_exact_point' | 'already_canonical'
   gridOwnerId: string
   gridAreaCode: string
   confidence?: number | null
@@ -80,8 +80,8 @@ async function wakeCanonicalGridOwner(input: {
         canonical_grid_owner_id: input.gridOwnerId,
         canonical_grid_area_code: input.gridAreaCode,
         canonical_grid_owner_confidence: input.confidence ?? null,
-        exact_address_status: input.resolutionMode === 'canonical_svk_postal'
-          ? 'not_required_unique_svk_postal_match'
+        exact_address_status: input.resolutionMode === 'canonical_papilite_svk'
+          ? 'not_required_papilite_high_confidence'
           : input.resolutionMode === 'already_canonical'
             ? 'already_canonical'
             : 'canonical_grid_owner_resolved',
@@ -195,6 +195,9 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
     configured: lantmaterietConfigured,
     scanned: jobs.length,
     attempted: 0,
+    papiliteVerified: 0,
+    papiliteFallback: 0,
+    // Kept for response compatibility while the old postcode-polygon path is retired.
     svkPostalVerified: 0,
     svkPostalInsufficient: 0,
     exactPointsCached: 0,
@@ -212,6 +215,7 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
     const siteId = clean(job.customer_site_id)
     if (!jobId || !companyId || !customerId || !siteId) continue
     const previousResult = record(job.result)
+    const applicationId = clean(record(job.payload).application_id)
 
     try {
       let site = await loadSite({ companyId, customerId, siteId })
@@ -230,66 +234,79 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
           gridOwnerId: existingGridOwnerId,
           gridAreaCode: existingGridAreaCode,
           confidence: typeof site.resolution_confidence === 'number' ? site.resolution_confidence : null,
+          resolutionId: clean(site.resolution_id),
         })
         summary.woken += 1
         continue
       }
 
-      // First establish the geographical grid owner from the canonical
-      // postcode-polygon × SVK grid-area master. Papilite is intentionally not
-      // an authority for grid-owner identity; it remains a website price-area
-      // provider. A unique SVK candidate with overlap >65% is canonical.
-      const svkPostal = await applyUniqueSvkPostalGridOwnerToSite({
+      // OPS precision pass #1: Papilite supplies a postcode centroid, but SVK
+      // geometry/masterdata remains the authority for grid area and grid owner.
+      // The spatial RPC only reaches the default 0.95 confidence when the point
+      // is >=1.5 km inside one unique active SVK grid area. Otherwise we fail
+      // closed and use the exact GeoTorget/Lantmateriet address point below.
+      const papilite = await resolveOpsPapiliteGridOwnerForSite({
         companyId,
         customerId,
         siteId,
+        customerApplicationId: applicationId,
         postalCode: clean(site.postal_code),
         city: clean(site.city),
+        country: clean(site.country) ?? 'SE',
         currentPriceArea: clean(site.price_area_code),
         metadata: record(site.metadata),
       })
 
-      if (svkPostal.status === 'verified' && svkPostal.gridOwnerId && svkPostal.gridAreaCode) {
+      if (papilite.status === 'verified' && papilite.gridOwnerId && papilite.gridAreaCode) {
         site = await loadSite({ companyId, customerId, siteId })
-        const canonicalGridOwnerId = clean(site?.grid_owner_id) ?? svkPostal.gridOwnerId
-        const canonicalGridAreaCode = clean(site?.grid_area_code) ?? svkPostal.gridAreaCode
+        const canonicalGridOwnerId = clean(site?.grid_owner_id) ?? papilite.gridOwnerId
+        const canonicalGridAreaCode = clean(site?.grid_area_code) ?? papilite.gridAreaCode
         await reconcileUnsentFacilityRequest({
           companyId,
           siteId,
           gridOwnerId: canonicalGridOwnerId,
           gridAreaCode: canonicalGridAreaCode,
-          priceArea: clean(site?.price_area_code) ?? svkPostal.priceArea,
+          priceArea: clean(site?.price_area_code) ?? papilite.priceArea,
         })
         await wakeCanonicalGridOwner({
           jobId,
-          previousResult,
-          resolutionMode: 'canonical_svk_postal',
+          previousResult: {
+            ...previousResult,
+            papilite_precision_status: papilite.status,
+            papilite_precision_confidence: papilite.confidence,
+            papilite_precision_threshold: papilite.minConfidence,
+            papilite_geodata_version: papilite.geodataVersion,
+          },
+          resolutionMode: 'canonical_papilite_svk',
           gridOwnerId: canonicalGridOwnerId,
           gridAreaCode: canonicalGridAreaCode,
-          confidence: svkPostal.confidence,
+          confidence: papilite.confidence,
+          resolutionId: papilite.resolutionId,
         })
-        summary.svkPostalVerified += 1
+        summary.papiliteVerified += 1
         summary.canonicalized += 1
         summary.woken += 1
         continue
       }
 
+      summary.papiliteFallback += 1
       summary.svkPostalInsufficient += 1
+
       if (!lantmaterietConfigured) {
         await recordAttempt(jobId, previousResult, {
-          exact_address_status: 'svk_postal_insufficient_lantmateriet_not_configured',
-          svk_postal_status: svkPostal.status,
-          svk_postal_confidence: svkPostal.confidence,
-          svk_postal_confidence_threshold: MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE,
-          svk_postal_candidate_count: svkPostal.candidateCount,
-          svk_postal_unique_grid_area_count: svkPostal.uniqueGridAreaCount,
+          exact_address_status: 'papilite_precision_insufficient_lantmateriet_not_configured',
+          papilite_precision_status: papilite.status,
+          papilite_precision_confidence: papilite.confidence,
+          papilite_precision_threshold: papilite.minConfidence ?? DEFAULT_OPS_PAPILITE_GRID_OWNER_MIN_CONFIDENCE,
+          papilite_geodata_version: papilite.geodataVersion,
         })
         continue
       }
 
-      // Lantmäteriet is only a precision provider. Its exact address point is
-      // never the authority for the grid owner; resolveEnergyContext maps that
-      // point back through canonical SVK grid-area geometry/masterdata.
+      // OPS precision pass #2: GeoTorget/Lantmateriet supplies an exact address
+      // point only when Papilite/SVK did not reach canonical confidence. The
+      // exact point is then mapped through the same SVK geometry/masterdata;
+      // Lantmateriet never becomes the grid-owner authority.
       summary.attempted += 1
       const exact = await ensureLantmaterietExactAddressPoint({
         street: clean(site.street),
@@ -306,8 +323,9 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
         await recordAttempt(jobId, previousResult, {
           exact_address_status: exact.status,
           exact_address_candidate_count: exact.candidateCount,
-          svk_postal_status: svkPostal.status,
-          svk_postal_confidence: svkPostal.confidence,
+          papilite_precision_status: papilite.status,
+          papilite_precision_confidence: papilite.confidence,
+          papilite_precision_threshold: papilite.minConfidence,
         })
         continue
       }
@@ -316,7 +334,7 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
         companyId,
         customerId,
         customerSiteId: siteId,
-        customerApplicationId: clean(record(job.payload).application_id),
+        customerApplicationId: applicationId,
         street: clean(site.street),
         postalCode: clean(site.postal_code),
         city: clean(site.city),
@@ -333,8 +351,8 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
           exact_address_resolution_id: resolved.resolutionId ?? null,
           grid_owner_operational_verification_status: resolved.gridOwnerVerificationStatus ?? null,
           grid_owner_operational_verification_issues: resolved.gridOwnerVerificationIssues ?? [],
-          svk_postal_status: svkPostal.status,
-          svk_postal_confidence: svkPostal.confidence,
+          papilite_precision_status: papilite.status,
+          papilite_precision_confidence: papilite.confidence,
         })
         continue
       }
@@ -348,7 +366,12 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
       })
       await wakeCanonicalGridOwner({
         jobId,
-        previousResult,
+        previousResult: {
+          ...previousResult,
+          papilite_precision_status: papilite.status,
+          papilite_precision_confidence: papilite.confidence,
+          papilite_precision_threshold: papilite.minConfidence,
+        },
         resolutionMode: 'canonical_svk_exact_point',
         gridOwnerId: canonicalGridOwnerId,
         gridAreaCode: canonicalGridAreaCode,
