@@ -1,28 +1,22 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-20T13:23:00Z",
-  "branch": "codex/gridex-production-masterplan-20260820",
-  "active_phase": "MASTERPLAN_PUBLICATION_AND_HOSTED_VERIFICATION",
-  "active_task": "Production masterplan correctness and performance hardening",
-  "status": "PR_169_HOSTED_VERIFICATION_RUNNING",
-  "base_main_sha": "22d2b4834577ad96b31c4373832a0507397c65e3",
-  "head_sha": "d8d54e78f2499eac85f2ddb7f77b298c4b307704",
-  "pr": 169,
+  "updated_at": "2026-08-25T09:05:00Z",
+  "branch": "cursor/codebase-health-and-stability-e60a",
+  "active_phase": "POST_PUSH_REVIEW_REMEDIATION",
+  "active_task": "Papilite/SVK energy resolution residuals after #205",
+  "status": "IMPLEMENTED_NOT_VERIFIED_CI",
+  "base_main_sha": "3f1a905cacfd228838ae4b3d8ed123a89b989f7b",
+  "head_sha_pending": true,
   "verification": {
+    "vitest_targeted": "PASS_26_TESTS_4_FILES",
+    "papilite_centroid_regression": "PASS",
     "app_typecheck": "PASS",
-    "vitest": "PASS_98_FILES_699_TESTS",
-    "production_build": "PASS",
-    "openapi_release": "PASS_2026_08_20_1",
-    "migration_integrity": "PASS_476_FILES_380_GROUPS",
-    "production_dependency_audit": "PASS_0",
-    "supabase_dev_trigger": "PASS",
-    "public_contract_fingerprint_explain": "PASS_6_693_MS_NO_DISK_OR_TEMP_IO",
-    "supabase_advisor_triage": "PASS_CLASSIFIED_16_SECURITY_1100_PERFORMANCE",
-    "large_file_ratchet": "PASS_0_GRANDFATHERED_ALL_SOURCE_UNDER_1800",
-    "n_plus_one_gate": "PASS_0_UNAPPROVED_QUERY_LOOPS",
-    "browser_bundle_budget": "PASS_MAX_222348_BYTES",
-    "performance_slo_contract": "PASS_SMOKE_LOAD_SPIKE_SOAK_ETAG",
-    "k6_etag_profile": "PASS_STATIC_LIVE_STAGING_PENDING"
+    "ggshield": "NOT_INSTALLED"
   },
-  "resume_from": "Publish the staging-label gate follow-up, label PR #169, retain authenticated browser/k6/ZAP evidence, verify Vercel preview, and keep production promotion blocked until OPS production Supabase parity is possible"
+  "findings_fixed": [
+    "postal_consensus_remap_centroid_0_7_floor",
+    "svk_matching_owner_incomplete_area_reconcile",
+    "exact_address_provider_allowed_enforced"
+  ],
+  "resume_from": "Open/retain PR for residual hardening; monitor CI"
 }

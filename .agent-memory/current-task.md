@@ -1,11 +1,13 @@
 # Current task
 
-Updated: 2026-08-20
+Updated: 2026-08-25
 
-Status: `MASTERPLAN_PR_169_HOSTED_STAGING_VERIFICATION`
+Status: `POST_205_PAPILITE_ENERGY_RESIDUALS`
 
-Active work item: finish hosted CI/Vercel preview verification and execute the non-destructive authenticated E2E/load matrix for draft PR #169.
+Active work item: remediate residuals found in push review of main `3f1a905` / PR `#205`
+(Papilite-first website energy resolution).
 
 ## Exact next action
 
-Publish the tested same-repository staging-label gate, add `staging-e2e-approved` to PR #169, and retain browser/k6 smoke-load-spike-ETag-soak/ZAP evidence. Do not promote while the OPS production Supabase project remains unidentified.
+After PR opens from this tip branch: wait for CI on the residual hardening PR, then
+continue only if CI reports further failures in the energy-resolution path.
