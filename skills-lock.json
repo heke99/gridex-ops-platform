@@ -82,12 +82,24 @@
       "skillPath": "skills/install-hooks/SKILL.md",
       "computedHash": "ca428f89202634531b926ff6bf8c58ebcadbfe9af8ce4ac72b6db823270337a1"
     },
+    "observability-and-instrumentation": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/observability-and-instrumentation/SKILL.md",
+      "computedHash": "2f08ba32de04edda116b95c9d6d3caa1019c9e997b26a817373e057aa20ffcb4"
+    },
+    "performance-optimization": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance-optimization/SKILL.md",
+      "computedHash": "0bd506af7872f61828ae63ce971d86848173e6f8c8e460b803606863950ce910"
+    },
     "property-based-testing": {
       "source": "trailofbits/skills",
       "ref": "main",
       "sourceType": "github",
       "skillPath": "plugins/property-based-testing/skills/property-based-testing/SKILL.md",
-      "computedHash": "30146f00ecab4e49019c40b5e0f18869addfbfa4c448f1382aa288ce8b7c0417"
+      "computedHash": "30146f00ecab4e49019c40b5e0f18869addfbfa4c448f138da6188b7c0417"
     },
     "quality-playbook": {
       "source": "github/awesome-copilot",
@@ -152,6 +164,12 @@
       "skillPath": "plugins/spec-to-code-compliance/skills/spec-to-code-compliance/SKILL.md",
       "computedHash": "c5385ff84662a0538b5091ee97c5f5c03c0d477fc95d5ce77b677b7bc1db47d2"
     },
+    "sql-optimization-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-essentials/skills/sql-optimization-patterns/SKILL.md",
+      "computedHash": "758bbed928d3ce57e22f9d6fa1ac09eec4db8da6b103230436e078b9f38ec3d3"
+    },
     "subagent-driven-development": {
       "source": "obra/superpowers",
       "sourceType": "github",
@@ -213,6 +231,12 @@
       "sourceType": "github",
       "skillPath": "plugins/variant-analysis/skills/variant-analysis/SKILL.md",
       "computedHash": "b3ec9869c54c7c7fb9ee0d0980887be44749fe21a2489b47e6cc4598a6328d51"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "987ee242810694e756b801767a56c5a5feba84039c20a7d5d330978666b19be5"
     },
     "verification-before-completion": {
       "source": "obra/superpowers",
