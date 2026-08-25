@@ -6,7 +6,8 @@
   "active_task": "Papilite/SVK energy resolution residuals after #205",
   "status": "IMPLEMENTED_NOT_VERIFIED_CI",
   "base_main_sha": "3f1a905cacfd228838ae4b3d8ed123a89b989f7b",
-  "head_sha_pending": true,
+  "head_sha": "bcd7c78e",
+  "pr": 206,
   "verification": {
     "vitest_targeted": "PASS_26_TESTS_4_FILES",
     "papilite_centroid_regression": "PASS",
