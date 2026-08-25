@@ -114,9 +114,14 @@ export async function GET(request: NextRequest) {
       })
       return new NextResponse(null, { status: 304, headers: earlyHeaders })
     }
-    const [revision, tenant] = await Promise.all([
+
+    // These reads are independent once the feed fingerprint misses. Starting
+    // them together removes an avoidable network/database waterfall from the
+    // website checkout path without changing freshness or validation rules.
+    const [revision, tenant, offers] = await Promise.all([
       loadPublicationRevision(auth.context.companyId, 'website'),
       loadExternalTenantContext(auth.client),
+      loadPublicContracts({ client: auth.client, customerType: query.customerType }),
     ])
     currentTenantReference = tenant.tenant_reference
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
@@ -128,7 +133,6 @@ export async function GET(request: NextRequest) {
       requestId: currentRequestId,
     })
 
-    const offers = await loadPublicContracts({ client: auth.client, customerType: query.customerType })
     const data: Record<string, unknown>[] = []
     const mappingIssues: Array<{
       canonical_offer_reference: string
