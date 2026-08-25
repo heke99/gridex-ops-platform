@@ -5,6 +5,7 @@ type JsonRecord = Record<string, unknown>
 
 export const MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE = 0.65
 const MAX_POSTAL_CANDIDATES = 100
+const SVK_POSTAL_MATERIALIZATION_METHOD = 'postal_polygon_grid_area_intersection'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -34,6 +35,12 @@ function normalizeGridAreaCode(value: unknown): string | null {
 function confidenceValue(value: unknown): number {
   const parsed = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : 0
+}
+
+function metadataOf(row: JsonRecord): JsonRecord {
+  return row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+    ? row.metadata as JsonRecord
+    : {}
 }
 
 export type SvkPostalGridOwnerVerificationStatus =
@@ -87,10 +94,12 @@ function unresolved(
 /**
  * Geographical grid-owner verification from postcode masterdata only.
  *
- * platform_postal_code_grid_mappings is materialized from postcode polygon ×
- * canonical SVK grid-area geometry. A unique grid-area candidate with overlap
- * strictly above 65% is therefore sufficient to establish the geographical
- * grid owner. Operational Ediel/PRODAT readiness is deliberately separate.
+ * Only rows explicitly materialized by postcode polygon × canonical SVK
+ * grid-area geometry are authoritative here. Learned customer-site mappings
+ * and Papilite centroid rows are intentionally excluded from owner identity.
+ * A unique grid-area candidate with overlap strictly above 65% is sufficient
+ * to establish the geographical grid owner. Operational Ediel/PRODAT readiness
+ * is deliberately separate.
  *
  * Ambiguous or low-confidence matches remain unresolved so OPS can use an
  * exact Lantmäteriet address point and then match that point against the same
@@ -114,16 +123,28 @@ export async function verifyUniqueSvkPostalGridOwner(input: {
     .limit(MAX_POSTAL_CANDIDATES)
   if (response.error) throw response.error
 
-  const rows = (response.data ?? []) as JsonRecord[]
-  if (rows.length === 0) return unresolved('no_mapping', { postalCode })
+  const allRows = (response.data ?? []) as JsonRecord[]
+  if (allRows.length === 0) return unresolved('no_mapping', { postalCode })
+  const candidateLimitExceeded = typeof response.count === 'number' && response.count > allRows.length
+
+  const svkRows = allRows.filter((row) => clean(metadataOf(row).materialization_method) === SVK_POSTAL_MATERIALIZATION_METHOD)
+  if (svkRows.length === 0) {
+    return unresolved('no_mapping', {
+      postalCode,
+      evidence: {
+        authority: 'svk_grid_area_geometry',
+        method: SVK_POSTAL_MATERIALIZATION_METHOD,
+        active_non_svk_mapping_count: allRows.length,
+      },
+    })
+  }
 
   const requestedCity = normalizeCity(input.city)
   const exactCityRows = requestedCity
-    ? rows.filter((row) => normalizeCity(row.city) === requestedCity)
+    ? svkRows.filter((row) => normalizeCity(row.city) === requestedCity)
     : []
-  const candidates = exactCityRows.length > 0 ? exactCityRows : rows
+  const candidates = exactCityRows.length > 0 ? exactCityRows : svkRows
   const cityScope = exactCityRows.length > 0 ? 'exact_city' as const : 'postal_code' as const
-  const candidateLimitExceeded = typeof response.count === 'number' && response.count > rows.length
 
   const gridAreaCodes = [...new Set(
     candidates
@@ -137,18 +158,19 @@ export async function verifyUniqueSvkPostalGridOwner(input: {
   )]
   const confidence = candidates.reduce((max, row) => Math.max(max, confidenceValue(row.confidence)), 0)
   const sourceVersion = candidates
-    .map((row) => clean((row.metadata as JsonRecord | null)?.source_version) ?? clean(row.updated_at))
+    .map((row) => clean(metadataOf(row).source_version) ?? clean(row.updated_at))
     .filter((value): value is string => Boolean(value))
     .sort()
     .at(-1) ?? null
   const evidence: JsonRecord = {
     authority: 'svk_grid_area_geometry',
-    method: 'postal_polygon_grid_area_intersection',
+    method: SVK_POSTAL_MATERIALIZATION_METHOD,
     postal_code: postalCode,
     requested_city: clean(input.city),
     city_scope: cityScope,
     candidate_count: candidates.length,
-    total_postal_candidate_count: response.count ?? rows.length,
+    total_active_mapping_count: response.count ?? allRows.length,
+    svk_materialized_mapping_count: svkRows.length,
     candidate_limit_exceeded: candidateLimitExceeded,
     grid_area_codes: gridAreaCodes,
     price_areas: priceAreas,
@@ -301,7 +323,7 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
       grid_owner_id: verification.gridOwnerId,
       selected_grid_owner_id: verification.gridOwnerId,
       grid_area_code: verification.gridAreaCode,
-      price_area_code: verification.priceArea,
+      price_area_code: verification.priceArea ?? normalizePriceArea(input.currentPriceArea),
       resolution_status: 'grid_area_master_validated',
       resolution_confidence: verification.confidence,
       metadata: {
