@@ -111,9 +111,14 @@ describe('Gridex remediation confirmed regressions', () => {
     const route = source('app/api/v1/website/public-contracts/route.ts')
     const fingerprintIndex = route.indexOf("rpc('public_contract_feed_fingerprint_v1'")
     const contractLoadIndex = route.indexOf('loadPublicContracts({ client: auth.client')
+    const parallelLoadIndex = route.indexOf('await Promise.all([')
     expect(fingerprintIndex).toBeGreaterThanOrEqual(0)
     expect(contractLoadIndex).toBeGreaterThanOrEqual(0)
+    expect(parallelLoadIndex).toBeGreaterThan(fingerprintIndex)
     expect(fingerprintIndex).toBeLessThan(contractLoadIndex)
+    expect(route).toContain('currentTenantReference = tenant.tenant_reference')
+    expect(route.indexOf('loadExternalTenantContext(auth.client).then')).toBeGreaterThanOrEqual(0)
+    expect(route.indexOf('loadExternalTenantContext(auth.client).then')).toBeLessThan(parallelLoadIndex)
   })
 
   it('BUG-013: regression_bug_013_identity_uses_canonical_rpc', () => {
