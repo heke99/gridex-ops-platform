@@ -260,7 +260,12 @@ function canUsePagedCustomerQuery(params: {
   return params.query.length === 0 && params.contractFilter === 'all' && params.flag === 'all'
 }
 
-function applyBaseCustomerFilters(query: CustomerQuery, companyId: string | null, includeHidden = false): CustomerQuery {
+function applyBaseCustomerFilters(
+  query: CustomerQuery,
+  companyId: string | null,
+  includeHidden = false,
+  excludeTestData = false
+): CustomerQuery {
   let scopedQuery = query
     .not('company_id', 'is', null)
     .or('source.is.null,source.neq.ediel_portal_test')
@@ -269,11 +274,16 @@ function applyBaseCustomerFilters(query: CustomerQuery, companyId: string | null
     scopedQuery = scopedQuery.or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
   }
 
+  if (excludeTestData) {
+    scopedQuery = scopedQuery
+      .or('is_test_data.is.null,is_test_data.eq.false')
+      .or('source.is.null,source.not.ilike.*test*')
+  }
+
   if (companyId) scopedQuery = scopedQuery.eq('company_id', companyId)
 
   return scopedQuery
 }
-
 
 function applyCustomerTypeQueryFilter(
   query: CustomerQuery,
@@ -294,6 +304,7 @@ function applyStatusQueryFilter(
 async function countCustomersByStatus(params: {
   companyId: string | null
   customerType: CustomerTypeFilter
+  excludeTestData: boolean
 }): Promise<CustomerStatusCounts> {
   const countForStatus = async (status: CustomerStatusFilter) => {
     const query = applyStatusQueryFilter(
@@ -301,7 +312,8 @@ async function countCustomersByStatus(params: {
         applyBaseCustomerFilters(
           supabaseService.from('customers').select('id', { count: 'exact', head: true }) as unknown as CustomerQuery,
           params.companyId,
-          status === 'archived'
+          status === 'archived',
+          params.excludeTestData
         ),
         params.customerType
       ),
@@ -337,6 +349,7 @@ async function loadPagedCustomerRows(params: {
   status: CustomerStatusFilter
   companyId: string | null
   customerType: CustomerTypeFilter
+  excludeTestData: boolean
 }): Promise<{ rows: CustomerListRow[]; total: number; counts: CustomerStatusCounts }> {
   const from = (params.page - 1) * params.pageSize
   const to = from + params.pageSize - 1
@@ -346,7 +359,8 @@ async function loadPagedCustomerRows(params: {
       applyBaseCustomerFilters(
         supabaseService.from('customers').select(CUSTOMER_LIST_SELECT, { count: 'exact' }) as unknown as CustomerQuery,
         params.companyId,
-        params.status === 'archived'
+        params.status === 'archived',
+        params.excludeTestData
       ),
       params.customerType
     ),
@@ -360,6 +374,7 @@ async function loadPagedCustomerRows(params: {
     countCustomersByStatus({
       companyId: params.companyId,
       customerType: params.customerType,
+      excludeTestData: params.excludeTestData,
     }),
   ])
 
@@ -551,13 +566,14 @@ export async function listCustomersPage(options: {
   const companyId = options.companyId ?? null
   const excludeTestData = Boolean(options.excludeTestData) && flag !== 'test_customers'
 
-  if (!excludeTestData && canUsePagedCustomerQuery({ query, contractFilter, flag })) {
+  if (canUsePagedCustomerQuery({ query, contractFilter, flag })) {
     const pagedRows = await loadPagedCustomerRows({
       page,
       pageSize,
       status,
       companyId,
       customerType,
+      excludeTestData,
     })
     const totalPages = Math.max(1, Math.ceil(pagedRows.total / pageSize))
 
