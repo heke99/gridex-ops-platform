@@ -1,6 +1,9 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
-import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
+import {
+  applyUniqueSvkPostalGridOwnerToSite,
+  MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE,
+} from '@/lib/energy/svkPostalGridOwnerVerification'
 import {
   ensureLantmaterietExactAddressPoint,
   lantmaterietExactAddressConfigured,
@@ -8,32 +11,12 @@ import {
 
 type JsonRecord = Record<string, unknown>
 
-const MIN_PAPILITE_GRID_OWNER_CONFIDENCE = 0.65
-
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function record(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
-}
-
-function numberValue(value: unknown): number | null {
-  const parsed = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function postal(value: unknown): string | null {
-  const digits = clean(value)?.replace(/\D/g, '') ?? ''
-  return /^\d{5}$/.test(digits) ? digits : null
-}
-
-function normalizedCity(value: unknown): string {
-  return (clean(value) ?? '')
-    .normalize('NFKC')
-    .toLocaleLowerCase('sv-SE')
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 function dueForExactAddressAttempt(result: JsonRecord) {
@@ -44,17 +27,10 @@ function dueForExactAddressAttempt(result: JsonRecord) {
   return Date.now() - timestamp >= 55 * 60 * 1000
 }
 
-function selectedOwnerConfidence(site: JsonRecord | null): number | null {
-  const selection = record(record(site?.metadata).provisional_grid_owner_selection)
-  const value = numberValue(selection.confidence)
-  if (value === null) return null
-  return Math.max(0, Math.min(1, value))
-}
-
 async function loadSite(input: { companyId: string; customerId: string; siteId: string }) {
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,street,postal_code,city,country,grid_owner_id,selected_grid_owner_id,grid_area_code,price_area_code,address_hash,resolution_status,metadata')
+    .select('id,company_id,customer_id,street,postal_code,city,country,grid_owner_id,selected_grid_owner_id,grid_area_code,price_area_code,address_hash,resolution_status,resolution_confidence,metadata')
     .eq('id', input.siteId)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
@@ -79,12 +55,16 @@ async function recordAttempt(jobId: string, previous: JsonRecord, patch: JsonRec
   if (error) throw error
 }
 
-async function wakeForProvisionalGridOwner(input: {
+async function wakeCanonicalGridOwner(input: {
   jobId: string
   previousResult: JsonRecord
+  resolutionMode: 'canonical_svk_postal' | 'canonical_svk_exact_point' | 'already_canonical'
   gridOwnerId: string
-  confidence: number | null
-  source: string
+  gridAreaCode: string
+  confidence?: number | null
+  resolutionId?: string | null
+  operationalVerificationStatus?: string | null
+  operationalVerificationIssues?: string[]
 }) {
   const now = new Date().toISOString()
   const { error } = await supabaseService
@@ -95,12 +75,19 @@ async function wakeForProvisionalGridOwner(input: {
         ...input.previousResult,
         dependency_wait: false,
         dependency_code: null,
-        automation_state: 'provisional_grid_owner_selected',
-        grid_owner_resolution_mode: 'provisional_facility_lookup_only',
-        provisional_grid_owner_id: input.gridOwnerId,
-        provisional_grid_owner_source: input.source,
-        provisional_grid_owner_confidence: input.confidence,
-        exact_address_status: 'not_required_papilite_confident',
+        automation_state: 'dependency_resolved',
+        grid_owner_resolution_mode: input.resolutionMode,
+        canonical_grid_owner_id: input.gridOwnerId,
+        canonical_grid_area_code: input.gridAreaCode,
+        canonical_grid_owner_confidence: input.confidence ?? null,
+        exact_address_status: input.resolutionMode === 'canonical_svk_postal'
+          ? 'not_required_unique_svk_postal_match'
+          : input.resolutionMode === 'already_canonical'
+            ? 'already_canonical'
+            : 'canonical_grid_owner_resolved',
+        exact_address_resolution_id: input.resolutionId ?? null,
+        grid_owner_operational_verification_status: input.operationalVerificationStatus ?? null,
+        grid_owner_operational_verification_issues: input.operationalVerificationIssues ?? [],
         last_exact_address_attempt_at: now,
       },
       updated_at: now,
@@ -108,156 +95,6 @@ async function wakeForProvisionalGridOwner(input: {
     .eq('id', input.jobId)
     .eq('status', 'queued')
   if (error) throw error
-}
-
-type PapiliteProvisionalResult = {
-  status:
-    | 'selected'
-    | 'cache_missing'
-    | 'cache_invalid'
-    | 'city_mismatch'
-    | 'confidence_low'
-    | 'polygon_no_match'
-    | 'price_area_conflict'
-    | 'grid_owner_unmapped'
-  confidence: number | null
-  gridOwnerId: string | null
-  gridAreaCode: string | null
-  priceArea: string | null
-}
-
-async function applyPapiliteProvisionalGridOwner(input: {
-  companyId: string
-  customerId: string
-  siteId: string
-  site: JsonRecord
-}): Promise<PapiliteProvisionalResult> {
-  const postCode = postal(input.site.postal_code)
-  if (!postCode) {
-    return { status: 'cache_invalid', confidence: null, gridOwnerId: null, gridAreaCode: null, priceArea: null }
-  }
-
-  const now = new Date().toISOString()
-  const cache = await supabaseService
-    .from('platform_address_lookup_cache')
-    .select('latitude,longitude,confidence,postal_code,city,provider,raw_payload,expires_at,updated_at')
-    .eq('postal_code', postCode)
-    .eq('provider', 'papilite_postal_centroid')
-    .gt('expires_at', now)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (cache.error) throw cache.error
-  if (!cache.data) {
-    return { status: 'cache_missing', confidence: null, gridOwnerId: null, gridAreaCode: null, priceArea: null }
-  }
-
-  const cached = cache.data as JsonRecord
-  const raw = record(cached.raw_payload)
-  const latitude = numberValue(cached.latitude)
-  const longitude = numberValue(cached.longitude)
-  const cacheConfidence = numberValue(cached.confidence)
-  if (
-    raw.coordinate_scope !== 'postal_centroid' ||
-    raw.provider !== 'papilite' ||
-    latitude === null ||
-    longitude === null ||
-    cacheConfidence === null
-  ) {
-    return { status: 'cache_invalid', confidence: cacheConfidence, gridOwnerId: null, gridAreaCode: null, priceArea: null }
-  }
-
-  const siteCity = normalizedCity(input.site.city)
-  const cacheCity = normalizedCity(cached.city)
-  if (siteCity && cacheCity && siteCity !== cacheCity) {
-    return { status: 'city_mismatch', confidence: cacheConfidence, gridOwnerId: null, gridAreaCode: null, priceArea: null }
-  }
-
-  const polygon = await supabaseService.rpc('gridex_lonlat_to_grid_area', {
-    p_longitude: longitude,
-    p_latitude: latitude,
-  })
-  if (polygon.error) throw polygon.error
-  const row = Array.isArray(polygon.data) ? polygon.data[0] : polygon.data
-  if (!row || typeof row !== 'object' || Array.isArray(row)) {
-    return { status: 'polygon_no_match', confidence: cacheConfidence, gridOwnerId: null, gridAreaCode: null, priceArea: null }
-  }
-
-  const polygonRow = row as JsonRecord
-  const polygonConfidence = numberValue(polygonRow.confidence)
-  const confidence = Math.max(0, Math.min(1, Math.min(cacheConfidence, polygonConfidence ?? cacheConfidence)))
-  const gridAreaCode = clean(polygonRow.grid_area_code)
-  const priceArea = clean(polygonRow.price_area)?.toUpperCase() ?? null
-  const currentPriceArea = clean(input.site.price_area_code)?.toUpperCase() ?? null
-  if (currentPriceArea && priceArea && currentPriceArea !== priceArea) {
-    return { status: 'price_area_conflict', confidence, gridOwnerId: null, gridAreaCode, priceArea }
-  }
-  if (confidence <= MIN_PAPILITE_GRID_OWNER_CONFIDENCE) {
-    return { status: 'confidence_low', confidence, gridOwnerId: null, gridAreaCode, priceArea }
-  }
-
-  const normalizedOwner = await normalizeGridOwnerIdToOps({
-    gridOwnerId: clean(polygonRow.grid_owner_id),
-    companyId: input.companyId,
-  })
-  if (!normalizedOwner.opsGridOwnerId) {
-    return { status: 'grid_owner_unmapped', confidence, gridOwnerId: null, gridAreaCode, priceArea }
-  }
-
-  const metadata = record(input.site.metadata)
-  const selectedAt = new Date().toISOString()
-  const update = await supabaseService
-    .from('customer_sites')
-    .update({
-      selected_grid_owner_id: normalizedOwner.opsGridOwnerId,
-      metadata: {
-        ...metadata,
-        provisional_grid_owner_selection: {
-          source: 'papilite_postal_centroid_svk_polygon',
-          canonical: false,
-          postal_code: postCode,
-          city: clean(input.site.city),
-          grid_area_code_candidate: gridAreaCode,
-          grid_owner_id: normalizedOwner.opsGridOwnerId,
-          grid_owner_name: clean(polygonRow.grid_owner_name),
-          price_area: priceArea,
-          confidence,
-          confidence_threshold: MIN_PAPILITE_GRID_OWNER_CONFIDENCE,
-          selected_at: selectedAt,
-          purpose: 'facility_information_routing',
-        },
-      },
-      updated_at: selectedAt,
-    })
-    .eq('id', input.siteId)
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .is('grid_owner_id', null)
-    .select('id,selected_grid_owner_id')
-  if (update.error) throw update.error
-  if (!update.data?.length) {
-    const refreshed = await loadSite({ companyId: input.companyId, customerId: input.customerId, siteId: input.siteId })
-    const canonical = clean(refreshed?.grid_owner_id)
-    const provisional = clean(refreshed?.selected_grid_owner_id)
-    if (canonical || provisional === normalizedOwner.opsGridOwnerId) {
-      return {
-        status: 'selected',
-        confidence,
-        gridOwnerId: canonical ?? provisional,
-        gridAreaCode,
-        priceArea,
-      }
-    }
-    return { status: 'grid_owner_unmapped', confidence, gridOwnerId: null, gridAreaCode, priceArea }
-  }
-
-  return {
-    status: 'selected',
-    confidence,
-    gridOwnerId: normalizedOwner.opsGridOwnerId,
-    gridAreaCode,
-    priceArea,
-  }
 }
 
 async function reconcileUnsentFacilityRequest(input: {
@@ -273,7 +110,15 @@ async function reconcileUnsentFacilityRequest(input: {
     .eq('company_id', input.companyId)
     .eq('customer_site_id', input.siteId)
     .in('request_type', ['facility_lookup', 'facility_identifier_lookup'])
-    .in('status', ['draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review', 'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox'])
+    .in('status', [
+      'draft',
+      'ready_to_send',
+      'ready_to_send_manual_email',
+      'needs_review',
+      'blocked_missing_poa',
+      'blocked_missing_grid_owner_contact',
+      'blocked_missing_manual_mailbox',
+    ])
     .order('created_at', { ascending: false })
   if (error) throw error
 
@@ -283,8 +128,6 @@ async function reconcileUnsentFacilityRequest(input: {
     .filter((value): value is string => Boolean(value))
   if (requestIds.length === 0) return
 
-  // Scope delivery evidence to THIS site's request ids. Never scan another
-  // tenant's outbox merely to reconcile one site's provisional request.
   const { data: outboxRows, error: outboxError } = await supabaseService
     .from('manual_email_outbox')
     .select('request_id')
@@ -292,6 +135,7 @@ async function reconcileUnsentFacilityRequest(input: {
     .eq('external_delivery', true)
     .in('status', ['queued', 'sending', 'sent', 'delivered'])
   if (outboxError) throw outboxError
+
   const sentRequestIds = new Set(
     (outboxRows ?? [])
       .map((row) => clean(row.request_id))
@@ -318,11 +162,7 @@ async function reconcileUnsentFacilityRequest(input: {
       .eq('id', requestId)
       .eq('company_id', input.companyId)
     if (updateError) {
-      // A competing canonical request may already exist. Do not make exact
-      // resolution fail because an old provisional, never-sent row cannot be
-      // rebound; the downstream idempotent orchestrator will reuse/create the
-      // canonical request safely.
-      console.warn('[pending-exact-address] provisional request reconciliation skipped', {
+      console.warn('[pending-exact-address] unsent request reconciliation skipped', {
         requestId,
         code: updateError.code ?? null,
       })
@@ -355,8 +195,8 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
     configured: lantmaterietConfigured,
     scanned: jobs.length,
     attempted: 0,
-    papiliteSelected: 0,
-    papiliteInsufficient: 0,
+    svkPostalVerified: 0,
+    svkPostalInsufficient: 0,
     exactPointsCached: 0,
     canonicalized: 0,
     woken: 0,
@@ -374,62 +214,82 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
     const previousResult = record(job.result)
 
     try {
-      const site = await loadSite({ companyId, customerId, siteId })
-      if (!site || clean(site.grid_owner_id)) {
-        await recordAttempt(jobId, previousResult, {
-          exact_address_status: clean(site?.grid_owner_id) ? 'already_canonical' : 'site_missing',
-        })
+      let site = await loadSite({ companyId, customerId, siteId })
+      if (!site) {
+        await recordAttempt(jobId, previousResult, { exact_address_status: 'site_missing' })
         continue
       }
 
-      const alreadySelected = clean(site.selected_grid_owner_id)
-      const existingConfidence = selectedOwnerConfidence(site)
-      if (
-        alreadySelected &&
-        (existingConfidence === null || existingConfidence > MIN_PAPILITE_GRID_OWNER_CONFIDENCE)
-      ) {
-        await wakeForProvisionalGridOwner({
+      const existingGridOwnerId = clean(site.grid_owner_id)
+      const existingGridAreaCode = clean(site.grid_area_code)
+      if (existingGridOwnerId && existingGridAreaCode) {
+        await wakeCanonicalGridOwner({
           jobId,
           previousResult,
-          gridOwnerId: alreadySelected,
-          confidence: existingConfidence,
-          source: clean(record(record(site.metadata).provisional_grid_owner_selection).source) ?? 'existing_selected_grid_owner',
+          resolutionMode: 'already_canonical',
+          gridOwnerId: existingGridOwnerId,
+          gridAreaCode: existingGridAreaCode,
+          confidence: typeof site.resolution_confidence === 'number' ? site.resolution_confidence : null,
         })
         summary.woken += 1
         continue
       }
 
-      // Papilite is always the first provider for the continuation path. The
-      // postcode centroid is allowed to select only a provisional grid owner
-      // for facility-information routing. It never materializes canonical
-      // grid_owner_id/grid_area_code and can never authorize supplier switch.
-      const papilite = await applyPapiliteProvisionalGridOwner({ companyId, customerId, siteId, site })
-      if (papilite.status === 'selected' && papilite.gridOwnerId) {
-        await wakeForProvisionalGridOwner({
+      // First establish the geographical grid owner from the canonical
+      // postcode-polygon × SVK grid-area master. Papilite is intentionally not
+      // an authority for grid-owner identity; it remains a website price-area
+      // provider. A unique SVK candidate with overlap >65% is canonical.
+      const svkPostal = await applyUniqueSvkPostalGridOwnerToSite({
+        companyId,
+        customerId,
+        siteId,
+        postalCode: clean(site.postal_code),
+        city: clean(site.city),
+        currentPriceArea: clean(site.price_area_code),
+        metadata: record(site.metadata),
+      })
+
+      if (svkPostal.status === 'verified' && svkPostal.gridOwnerId && svkPostal.gridAreaCode) {
+        site = await loadSite({ companyId, customerId, siteId })
+        const canonicalGridOwnerId = clean(site?.grid_owner_id) ?? svkPostal.gridOwnerId
+        const canonicalGridAreaCode = clean(site?.grid_area_code) ?? svkPostal.gridAreaCode
+        await reconcileUnsentFacilityRequest({
+          companyId,
+          siteId,
+          gridOwnerId: canonicalGridOwnerId,
+          gridAreaCode: canonicalGridAreaCode,
+          priceArea: clean(site?.price_area_code) ?? svkPostal.priceArea,
+        })
+        await wakeCanonicalGridOwner({
           jobId,
           previousResult,
-          gridOwnerId: papilite.gridOwnerId,
-          confidence: papilite.confidence,
-          source: 'papilite_postal_centroid_svk_polygon',
+          resolutionMode: 'canonical_svk_postal',
+          gridOwnerId: canonicalGridOwnerId,
+          gridAreaCode: canonicalGridAreaCode,
+          confidence: svkPostal.confidence,
         })
-        summary.papiliteSelected += 1
+        summary.svkPostalVerified += 1
+        summary.canonicalized += 1
         summary.woken += 1
         continue
       }
 
-      summary.papiliteInsufficient += 1
+      summary.svkPostalInsufficient += 1
       if (!lantmaterietConfigured) {
         await recordAttempt(jobId, previousResult, {
-          exact_address_status: 'papilite_insufficient_lantmateriet_not_configured',
-          papilite_resolution_status: papilite.status,
-          papilite_grid_owner_confidence: papilite.confidence,
-          papilite_confidence_threshold: MIN_PAPILITE_GRID_OWNER_CONFIDENCE,
+          exact_address_status: 'svk_postal_insufficient_lantmateriet_not_configured',
+          svk_postal_status: svkPostal.status,
+          svk_postal_confidence: svkPostal.confidence,
+          svk_postal_confidence_threshold: MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE,
+          svk_postal_candidate_count: svkPostal.candidateCount,
+          svk_postal_unique_grid_area_count: svkPostal.uniqueGridAreaCount,
         })
         continue
       }
 
-      // Lantmäteriet is a precision fallback only after Papilite is missing,
-      // conflicting, unmappable, or at/below the 65% grid-owner threshold.
+      // Lantmäteriet is only a precision provider. Its exact address point is
+      // never the authority for the grid owner; resolveEnergyContext maps that
+      // point back through canonical SVK grid-area geometry/masterdata.
       summary.attempted += 1
       const exact = await ensureLantmaterietExactAddressPoint({
         street: clean(site.street),
@@ -446,8 +306,8 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
         await recordAttempt(jobId, previousResult, {
           exact_address_status: exact.status,
           exact_address_candidate_count: exact.candidateCount,
-          papilite_resolution_status: papilite.status,
-          papilite_grid_owner_confidence: papilite.confidence,
+          svk_postal_status: svkPostal.status,
+          svk_postal_confidence: svkPostal.confidence,
         })
         continue
       }
@@ -465,50 +325,39 @@ export async function processPendingExactAddressResolutions(input: { limit?: num
 
       const refreshed = await loadSite({ companyId, customerId, siteId })
       const canonicalGridOwnerId = clean(refreshed?.grid_owner_id)
-      const fullyCanonical = Boolean(
-        canonicalGridOwnerId
-        && clean(refreshed?.grid_area_code)
-        && resolved.gridOwnerVerificationStatus === 'verified',
-      )
-
-      if (!fullyCanonical) {
+      const canonicalGridAreaCode = clean(refreshed?.grid_area_code)
+      const canonicalPriceArea = clean(refreshed?.price_area_code)
+      if (!canonicalGridOwnerId || !canonicalGridAreaCode) {
         await recordAttempt(jobId, previousResult, {
           exact_address_status: 'point_resolved_but_grid_owner_not_ready',
           exact_address_resolution_id: resolved.resolutionId ?? null,
-          grid_owner_verification_status: resolved.gridOwnerVerificationStatus ?? null,
-          grid_owner_verification_issues: resolved.gridOwnerVerificationIssues ?? [],
+          grid_owner_operational_verification_status: resolved.gridOwnerVerificationStatus ?? null,
+          grid_owner_operational_verification_issues: resolved.gridOwnerVerificationIssues ?? [],
+          svk_postal_status: svkPostal.status,
+          svk_postal_confidence: svkPostal.confidence,
         })
         continue
       }
 
-      summary.canonicalized += 1
       await reconcileUnsentFacilityRequest({
         companyId,
         siteId,
-        gridOwnerId: canonicalGridOwnerId as string,
-        gridAreaCode: clean(refreshed?.grid_area_code),
-        priceArea: clean(refreshed?.price_area_code),
+        gridOwnerId: canonicalGridOwnerId,
+        gridAreaCode: canonicalGridAreaCode,
+        priceArea: canonicalPriceArea,
       })
-
-      const now = new Date().toISOString()
-      const { error: wakeError } = await supabaseService
-        .from('customer_operation_jobs')
-        .update({
-          run_after: now,
-          result: {
-            ...previousResult,
-            dependency_wait: false,
-            dependency_code: null,
-            automation_state: 'dependency_resolved',
-            exact_address_status: 'canonical_grid_owner_resolved',
-            exact_address_resolution_id: resolved.resolutionId ?? null,
-            last_exact_address_attempt_at: now,
-          },
-          updated_at: now,
-        })
-        .eq('id', jobId)
-        .eq('status', 'queued')
-      if (wakeError) throw wakeError
+      await wakeCanonicalGridOwner({
+        jobId,
+        previousResult,
+        resolutionMode: 'canonical_svk_exact_point',
+        gridOwnerId: canonicalGridOwnerId,
+        gridAreaCode: canonicalGridAreaCode,
+        confidence: resolved.confidence,
+        resolutionId: resolved.resolutionId ?? null,
+        operationalVerificationStatus: resolved.gridOwnerVerificationStatus ?? null,
+        operationalVerificationIssues: resolved.gridOwnerVerificationIssues ?? [],
+      })
+      summary.canonicalized += 1
       summary.woken += 1
     } catch (jobError) {
       summary.errors += 1
