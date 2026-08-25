@@ -1,11 +1,18 @@
 # Current task
 
-Updated: 2026-08-20
+Updated: 2026-08-25
 
-Status: `MASTERPLAN_PR_169_HOSTED_STAGING_VERIFICATION`
+Status: `IMPLEMENTED_NOT_VERIFIED`
 
-Active work item: finish hosted CI/Vercel preview verification and execute the non-destructive authenticated E2E/load matrix for draft PR #169.
+Active work item: improve Gridex OPS runtime performance without changing tenant isolation, RBAC/RLS, pricing, customer/site ownership, EDIEL/supplier-switch behavior, legal evidence, API contracts, or write semantics.
+
+## Current batch
+
+1. Install and lock the focused performance skill set.
+2. Deduplicate the dashboard's repeated server-verified `auth.getUser()` lookup with request-scoped React cache.
+3. Start the independent platform-role and operational-company-scope reads in parallel after verified authentication.
+4. Keep `/dashboard`, `/admin`, `/portal`, and other authenticated surfaces dynamic.
 
 ## Exact next action
 
-Publish the tested same-repository staging-label gate, add `staging-e2e-approved` to PR #169, and retain browser/k6 smoke-load-spike-ETag-soak/ZAP evidence. Do not promote while the OPS production Supabase project remains unidentified.
+Run the branch through targeted regression, typecheck, full Vitest, production build, existing performance/N+1/bundle guards, and Vercel preview. Keep only verified improvements; do not merge until explicitly requested.
