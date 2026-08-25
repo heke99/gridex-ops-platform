@@ -52,8 +52,9 @@ assert(postalMaterialization.includes('st_area(st_intersection(p.geometry, g.geo
 assert(postalMaterialization.includes('Multiple candidates are intentionally preserved'), 'postcode materialization preserves ambiguity instead of guessing')
 
 assert(svkPostal.includes('export const MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE = 0.65'), 'SVK postcode canonical threshold is 65 percent')
+assert(svkPostal.includes("const SVK_POSTAL_MATERIALIZATION_METHOD = 'postal_polygon_grid_area_intersection'"), 'SVK verifier pins the authoritative spatial provenance method')
 assert(svkPostal.includes("authority: 'svk_grid_area_geometry'"), 'SVK grid geometry is the grid-owner authority')
-assert(svkPostal.includes("method: 'postal_polygon_grid_area_intersection'"), 'grid-owner verification uses postcode polygon intersection evidence')
+assert(svkPostal.includes('method: SVK_POSTAL_MATERIALIZATION_METHOD'), 'grid-owner verification records postcode polygon intersection evidence')
 assert(svkPostal.includes('gridAreaCodes.length !== 1'), 'multiple SVK grid-area candidates fail closed')
 assert(svkPostal.includes('confidence <= MIN_SVK_POSTAL_GRID_OWNER_CONFIDENCE'), '65 percent and below requires precision fallback')
 assert(svkPostal.includes("status: 'verified'"), 'unique high-confidence SVK postcode match becomes verified')
