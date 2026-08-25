@@ -628,13 +628,18 @@ export async function listCustomersPage(options: {
   }
 
   const includeHiddenRows = status === 'archived'
-  const hydratedRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId, status, includeHiddenRows), companyId)
-  const allRows = excludeTestData
-    ? hydratedRows.filter((row) => !matchesFlag(row, 'test_customers'))
-    : hydratedRows
-  const searchedRows = allRows.filter((row) => matchesText(row, query))
-  const counts = buildCounts(searchedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag)))
-  const filteredRows = searchedRows.filter(
+  const baseRows = await loadCustomerRows(companyId, status, includeHiddenRows)
+  const visibleRows = excludeTestData
+    ? baseRows.filter((row) => !matchesFlag(row, 'test_customers'))
+    : baseRows
+  const hydrationCandidates = visibleRows.filter(
+    (row) => matchesText(row, query) && matchesCustomerType(row, customerType)
+  )
+  const hydratedRows = await hydrateDerivedCustomerData(hydrationCandidates, companyId)
+  const counts = buildCounts(
+    hydratedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag))
+  )
+  const filteredRows = hydratedRows.filter(
     (row) =>
       matchesStatus(row, status) &&
       matchesCustomerType(row, customerType) &&
