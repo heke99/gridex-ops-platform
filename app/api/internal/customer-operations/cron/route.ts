@@ -54,12 +54,10 @@ async function run(request: NextRequest) {
       })
     }
 
-    // Resolve exact address dependencies BEFORE continuation jobs run. The
-    // resolver is dormant until Lantmäteriet credentials exist. Once enabled,
-    // it stores only address/geodata evidence, maps the exact SWEREF99 point to
-    // the existing SVK polygon master, and wakes the SAME idempotent customer
-    // job when the canonical grid owner is verified. Postal candidates never
-    // become canonical through this path.
+    // Resolve geographic grid-owner dependencies BEFORE continuation jobs run.
+    // Unique SVK postcode-polygon matches (>65%) can canonicalize without
+    // Lantmäteriet. Exact-address precision is only a fallback when postcode
+    // evidence is insufficient; Papilite never becomes grid-owner authority.
     const exactAddressResolution = await processPendingExactAddressResolutions({
       limit: Math.min(requestedLimit, 5),
     })

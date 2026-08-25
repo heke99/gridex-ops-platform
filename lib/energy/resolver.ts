@@ -141,6 +141,14 @@ function hasFullAddress(input: EnergyResolverInput): boolean {
   return Boolean(clean(input.street) && normalizePostalCode(input.postalCode) && clean(input.city))
 }
 
+function exactAddressProviderAllowed(input: EnergyResolverInput): boolean {
+  const metadata = input.metadata
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return true
+  // Website price-area path sets exact_address_provider_allowed: false. Honor it
+  // even if street data is present so Lantmäteriet cannot re-enter that path.
+  return metadata.exact_address_provider_allowed !== false
+}
+
 function addressKeyFor(parts: { street: string | null; streetNumber: string | null; postalCode: string | null; city: string | null; country: string | null }): string | null {
   if (!parts.street || !parts.postalCode || !parts.city) return null
   return [parts.street, parts.streetNumber, parts.postalCode, parts.city, parts.country ?? 'SE']
@@ -1199,7 +1207,7 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     const explicit = explicitCode ? await findGridAreaByCode(explicitCode) : null
     if (explicitCode && !explicit) warnings.push('grid_area_code_not_found_in_master')
 
-    if (hasFullAddress(input)) {
+    if (hasFullAddress(input) && exactAddressProviderAllowed(input)) {
       const cached = await cachedAddressCoordinates(input)
       if (cached) {
         const geocode: GeocodeLookup = {
@@ -1272,10 +1280,10 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     }
 
     return saveResolution(input, result(input, {
-      resolutionStatus: explicitCode || hasFullAddress(input) ? 'needs_review' : 'postal_suggested',
+      resolutionStatus: explicitCode || (hasFullAddress(input) && exactAddressProviderAllowed(input)) ? 'needs_review' : 'postal_suggested',
       confidence: 0,
       sourceChain: ['input'],
-      nextRequiredAction: explicitCode || hasFullAddress(input)
+      nextRequiredAction: explicitCode || (hasFullAddress(input) && exactAddressProviderAllowed(input))
         ? 'Nätområde kunde inte verifieras från adressen. Granska adressmatchning, geodata och masterdata innan något skickas.'
         : 'Komplettera full adress eller verifiera postnumret manuellt för att fastställa nätområde.',
       warnings: [...warnings, 'no_energy_resolution_candidate'],

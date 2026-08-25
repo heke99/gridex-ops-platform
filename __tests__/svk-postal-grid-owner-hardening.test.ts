@@ -27,6 +27,14 @@ describe('SVK postcode grid-owner hardening', () => {
     expect(verifier).toContain("resolution_status: 'grid_area_master_validated'")
   })
 
+  it('reconciles incomplete site area when the matching SVK owner is already bound', () => {
+    // Sites with grid_owner_id set but null/stale grid_area_code must not be
+    // stuck as ambiguous: the null-owner insert filter cannot update them, so
+    // apply must reconcile under the matching owner.
+    expect(verifier).toContain('.eq(\'grid_owner_id\', verification.gridOwnerId)')
+    expect(verifier).toContain('incomplete_matching_owner_reconcile')
+  })
+
   it('keeps learned and Papilite mappings out of canonical owner verification', () => {
     expect(verifier).toContain('SVK_POSTAL_MATERIALIZATION_METHOD')
     expect(verifier).toContain('const svkRows = allRows.filter')
