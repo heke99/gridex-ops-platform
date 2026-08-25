@@ -6,6 +6,10 @@ const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), '
 
 describe('Papilite postal centroid hardening', () => {
   const resolver = read('lib/energy/resolver.ts')
+  const binding = read('lib/energy/resolutionBinding.ts')
+  const websiteRoute = read('app/api/v1/website/energy-area/resolve/route.ts')
+  const websiteCache = read('lib/energy/websiteResolutionCache.ts')
+  const pendingExact = read('lib/energy/pendingExactAddressResolution.ts')
   const migration = read('supabase/migrations/20260817094125_papilite_verified_postal_learning.sql')
   const materializationGuard = read('supabase/migrations/20260817124500_site_resolution_materialization_guard.sql')
 
@@ -26,11 +30,42 @@ describe('Papilite postal centroid hardening', () => {
     expect(resolver).toContain("clean(data.provider) === 'papilite_postal_centroid'")
   })
 
-  it('never promotes Papilite centroid to Ediel-capable grid-owner verification', () => {
+  it('lets the website obtain SE1-SE4 without exact-address providers', () => {
+    expect(binding).toContain('const MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE = 0.7')
+    expect(binding).toContain("assurance.source === 'postal_centroid'")
+    expect(websiteCache).toContain("const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v2-papilite-first'")
+    expect(websiteCache).toContain('street: null')
+    expect(websiteCache).toContain('streetNumber: null')
+    expect(websiteCache).toContain("resolution_mode: 'website_price_area_only'")
+    expect(websiteCache).toContain('exact_address_provider_allowed: false')
+  })
+
+  it('keeps internal Papilite provenance compatible with the public V1 response contract', () => {
+    expect(websiteRoute).toContain("if (source === 'postal_centroid') return 'postal_consensus'")
+    expect(websiteRoute).toContain('source: publicPriceAreaAssuranceSource(resolution.priceAreaAssurance.source)')
+    expect(websiteRoute).not.toContain('source: resolution.priceAreaAssurance.source,')
+  })
+
+  it('never promotes Papilite centroid to Ediel-capable canonical grid-owner verification', () => {
     expect(resolver).toContain("resolutionStatus: 'postal_suggested'")
     expect(resolver).toContain('automationAllowed: false')
     expect(resolver).toContain('postal_centroid_not_facility_location')
     expect(resolver).toContain("'price_area_only'")
+    expect(pendingExact).toContain('selected_grid_owner_id: normalizedOwner.opsGridOwnerId')
+    expect(pendingExact).not.toMatch(/\n\s+grid_owner_id:\s*normalizedOwner\.opsGridOwnerId/)
+    expect(pendingExact).toContain("grid_owner_resolution_mode: 'provisional_facility_lookup_only'")
+  })
+
+  it('uses Papilite-derived provisional owner above 65 percent and Lantmateriet only as fallback', () => {
+    expect(pendingExact).toContain('const MIN_PAPILITE_GRID_OWNER_CONFIDENCE = 0.65')
+    expect(pendingExact).toContain(".eq('provider', 'papilite_postal_centroid')")
+    expect(pendingExact).toContain("supabaseService.rpc('gridex_lonlat_to_grid_area'")
+    expect(pendingExact).toContain('confidence <= MIN_PAPILITE_GRID_OWNER_CONFIDENCE')
+    expect(pendingExact).toContain("source: 'papilite_postal_centroid_svk_polygon'")
+    expect(pendingExact).toContain("purpose: 'facility_information_routing'")
+    expect(pendingExact.indexOf('const papilite = await applyPapiliteProvisionalGridOwner'))
+      .toBeLessThan(pendingExact.indexOf('const exact = await ensureLantmaterietExactAddressPoint'))
+    expect(pendingExact).toContain("exact_address_status: 'papilite_insufficient_lantmateriet_not_configured'")
   })
 
   it('materializes only safe price area while leaving suggested grid context unbound', () => {
