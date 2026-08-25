@@ -12,6 +12,8 @@ describe('OPS Papilite-first GeoTorget precision architecture', () => {
   const facility = read('lib/facility/facilityLookupWorkflow.ts')
   const processContext = read('lib/customer-operations/customerSiteProcessContext.ts')
   const facilityCore = read('lib/customer-operations/requestMissingFacilityInformationCore.ts')
+  const z01 = read('lib/customer-operations/z01Prerequisites.ts')
+  const dynamicReceiver = read('lib/routes/dynamicReceiverResolver.ts')
   const migration = read('supabase/migrations/20260825112000_ops_precision_resolution_authority.sql')
 
   it('keeps GeoTorget behind the internal OPS worker', () => {
@@ -46,5 +48,9 @@ describe('OPS Papilite-first GeoTorget precision architecture', () => {
     expect(processContext).toContain('clean(meteringPoint?.grid_owner_id) ?? clean(site.grid_owner_id)')
     expect(facilityCore).not.toContain('clean(site.selected_grid_owner_id)')
     expect(facilityCore).toContain('const gridOwnerId = clean(site.grid_owner_id)')
+    expect(z01).not.toContain('site.selected_grid_owner_id')
+    expect(z01).toContain('gridOwnerId: text(site.grid_owner_id)')
+    expect(dynamicReceiver).not.toContain('site?.selected_grid_owner_id ?? site?.grid_owner_id')
+    expect(dynamicReceiver).not.toContain('.select("id,company_id,grid_owner_id,selected_grid_owner_id")')
   })
 })
