@@ -1,1 +1,0 @@
-PR scope: admin navigation latency only. Production evidence showed simultaneous cache-miss prefetches for many sidebar destinations. Fix uses intent-based prefetch and reuses already-verified metering identity. No merge without explicit user authorization.
