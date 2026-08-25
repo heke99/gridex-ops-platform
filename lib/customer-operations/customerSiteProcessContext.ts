@@ -551,7 +551,10 @@ export async function resolveCustomerSiteProcessContext(input: {
   })
   blockers.push(...authorization.blockers)
 
-  const gridOwnerId = clean(meteringPoint?.grid_owner_id) ?? clean(site.grid_owner_id) ?? clean(site.selected_grid_owner_id)
+  // Operational context may trust a facility-verified metering-point owner or
+  // the canonical site owner. selected_grid_owner_id is review-only and must
+  // never become route/supplier-switch authority.
+  const gridOwnerId = clean(meteringPoint?.grid_owner_id) ?? clean(site.grid_owner_id)
   let gridOwnerReady = false
   let routeReady = false
   let gridOwnerEvidence: JsonRecord = {}
