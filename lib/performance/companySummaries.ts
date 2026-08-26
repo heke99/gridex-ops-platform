@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getVerifiedPlatformDashboardSummary } from '@/lib/performance/platformDashboardSummary'
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -40,6 +41,9 @@ export type CompanyDashboardSummary = {
   apiErrors: number
   webhookFailures: number
   customersBlockedOrDataIssues: number
+  companiesTotal?: number
+  gridOwnersTotal?: number
+  electricitySuppliersTotal?: number
 }
 
 export type CustomerIntakeQueueRow = {
@@ -95,7 +99,41 @@ export async function getCompanyDashboardSummary(
   supabase: SupabaseClient,
   companyId: string | null | undefined
 ): Promise<CompanyDashboardSummary | null> {
-  if (!companyId) return null
+  if (!companyId) {
+    const platform = await getVerifiedPlatformDashboardSummary(supabase)
+    if (!platform) return null
+
+    return {
+      companyId: '__platform__',
+      companyName: null,
+      customersTotal: platform.customersTotal,
+      contractsTotal: platform.contractsTotal,
+      sitesTotal: platform.sitesTotal,
+      meteringPointsTotal: platform.meteringPointsTotal,
+      openTasks: platform.openTasks,
+      openGridOwnerRequests: platform.openGridOwnerRequests,
+      openSwitches: platform.openSwitches,
+      outboundRequestsTotal: platform.outboundRequestsTotal,
+      meteringValuesTotal: platform.meteringValuesTotal,
+      billingUnderlaysTotal: platform.billingUnderlaysTotal,
+      ongoingSupplierSwitches: platform.ongoingSupplierSwitches,
+      waitingForGridOwner: platform.waitingForGridOwner,
+      negativeAcknowledgements: platform.negativeAcknowledgements,
+      missingMeteringValues: platform.missingMeteringValues,
+      customersActionRequired: platform.customersActionRequired,
+      latestMeteringValues: platform.latestMeteringValues,
+      upcomingTerminations: platform.upcomingTerminations,
+      pendingCustomerApplications: platform.pendingCustomerApplications,
+      billingBlockedOrFailed: 0,
+      routeMissingOrNotReady: 0,
+      apiErrors: 0,
+      webhookFailures: 0,
+      customersBlockedOrDataIssues: 0,
+      companiesTotal: platform.companiesTotal,
+      gridOwnersTotal: platform.gridOwnersTotal,
+      electricitySuppliersTotal: platform.electricitySuppliersTotal,
+    }
+  }
 
   try {
     const rpcResult = await supabase.rpc('gridex_admin_dashboard_summary', { p_company_id: companyId })
@@ -235,7 +273,6 @@ export async function listCompanyCustomerListSummary(
     return []
   }
 }
-
 
 export type CompanyWorkQueueRow = {
   id: string

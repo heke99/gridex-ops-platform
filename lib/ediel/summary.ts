@@ -1,6 +1,7 @@
 // lib/ediel/summary.ts
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getVerifiedPlatformDashboardSummary } from '@/lib/performance/platformDashboardSummary'
 
 export type EdielSummary = {
   totalMessages: number
@@ -89,6 +90,11 @@ export async function getEdielSummary(
   supabase: SupabaseClient,
   companyId?: string | null
 ): Promise<EdielSummary> {
+  if (!companyId) {
+    const platform = await getVerifiedPlatformDashboardSummary(supabase)
+    if (platform) return platform.ediel
+  }
+
   const messages = () => {
     let query = supabase.from('ediel_messages').select('id', { count: 'exact', head: true })
     if (companyId) query = query.eq('company_id', companyId)
