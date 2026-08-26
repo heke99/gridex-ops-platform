@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
 import { evaluateBillingMonthInvoiceReadiness } from '@/lib/billing/invoiceReadiness'
+import { assertInvoiceExportGraphCoverage } from '@/lib/billing/invoiceGraphCoverage'
 import {
   createInvoiceExportRun,
   sendInvoiceExportRun,
@@ -309,6 +310,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
         // invoice-ready.
         if (
           readiness.status !== 'ready' ||
+          readiness.underlayCount === 0 ||
           readiness.readyUnderlayCount !== readiness.underlayCount
         ) {
           const status: MonthlyBillingAutomationStatus = 'completed_with_blockers'
@@ -351,6 +353,11 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           provider: 'capway_aptic',
           environment: providerEnvironment as 'test' | 'production',
         })
+        const graphCoverage = await assertInvoiceExportGraphCoverage({
+          companyId: input.companyId,
+          exportRunId: exportRun.runId,
+          expectedUnderlayIds: readiness.readyUnderlayIds,
+        })
         const queuedResult = {
           queued: exportRun.itemCount,
           blocked: exportRun.readiness.underlayCount - exportRun.readiness.readyUnderlayCount,
@@ -383,13 +390,14 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           status,
           totalUnderlays: underlayResult.underlays,
           totalBlocked: queuedResult.blocked ?? 0,
-          totalExported: queuedResult.queued ?? 0,
+          totalExported: graphCoverage.exportItemCount,
           exportConfirmed: sent === true,
           metadata: {
             ...metadataBase,
             underlayResult,
             pricingPreparation,
             readiness: exportRun.readiness,
+            graphCoverage,
             queuedResult,
             exportRunId: exportRun.runId,
             sent,
