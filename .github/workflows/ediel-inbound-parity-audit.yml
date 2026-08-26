@@ -1,0 +1,22 @@
+name: EDIFACT inbound parity audit
+
+on:
+  push:
+    branches:
+      - test/live-e66-multitenant-20260826
+
+permissions:
+  contents: read
+
+jobs:
+  parity-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run __tests__/ediel-inbound-parity-audit.test.ts --reporter=verbose
