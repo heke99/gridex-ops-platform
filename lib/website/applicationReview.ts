@@ -410,14 +410,23 @@ export function assessWebsiteApplicationReadiness(
     "organisationsnummer",
     "orgnr",
   ]);
+  // Facility identity must follow the same alias order as
+  // applicationBusinessKeyHash: site.facility_id → metering.site_facility_id →
+  // metering.anlage_id. Website clients often place the GS1 facility id under
+  // metering_point without repeating it on site.
   const facilityId = firstText(input, [
     "site.facility_id",
     "site.facilityId",
     "facility_id",
     "facilityId",
     "site_facility_id",
+    "siteFacilityId",
+    "metering_point.site_facility_id",
+    "metering_point.siteFacilityId",
     "anlage_id",
     "anlaggningId",
+    "metering_point.anlage_id",
+    "metering_point.anlaggningId",
   ]);
   const siteAddress = firstText(input, [
     "site.street",

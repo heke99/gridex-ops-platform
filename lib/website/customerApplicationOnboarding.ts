@@ -3,7 +3,10 @@ import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
 import { customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from "@/lib/website/applicationReview";
 import { publicOfferReference, type PublicContractOffer } from "@/lib/website/publicContracts";
-import { normalizeFacilityId } from "@/lib/energy/facilityDataErrors";
+import {
+  normalizeFacilityId,
+  normalizeMeteringPointId,
+} from "@/lib/energy/facilityDataErrors";
 import { assertCanonicalSnapshot, buildCanonicalContractSnapshot } from "@/lib/pricing/contractSnapshot";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 import { createTenantContext } from "@/lib/tenant/context";
@@ -154,12 +157,19 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
   const poaLegal = input.legalVersions.find((version) => version.type === "power_of_attorney") ?? null;
   const siteInput = input.body.site;
   const meterInput = input.body.metering_point;
-  const normalizedFacilityId = normalizeFacilityId(siteInput?.facility_id);
+  // Match applicationBusinessKeyHash / readiness: facility may arrive on
+  // metering_point.site_facility_id or metering_point.anlage_id when site.facility_id
+  // is omitted. Metering ids are normalized the same way as facility ids.
+  const normalizedFacilityId =
+    normalizeFacilityId(siteInput?.facility_id) ??
+    normalizeFacilityId(meterInput?.site_facility_id) ??
+    normalizeFacilityId(meterInput?.anlage_id);
   const canonicalMeteringPointId =
-    clean(meterInput?.metering_point_id) ??
-    clean(meterInput?.meter_point_id) ??
-    clean(meterInput?.ediel_metering_point_id) ??
-    clean(meterInput?.anlage_id) ??
+    normalizeMeteringPointId(meterInput?.metering_point_id) ??
+    normalizeMeteringPointId(meterInput?.meter_point_id) ??
+    normalizeMeteringPointId(meterInput?.ediel_metering_point_id) ??
+    // Last-resort: some clients send only anlage_id as the GS1 metering identity.
+    normalizeMeteringPointId(meterInput?.anlage_id) ??
     null;
   const requestedStartDate =
     input.readiness.requestedStartDate ??
@@ -254,8 +264,9 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
           meter_point_id: canonicalMeteringPointId,
           metering_point_id: canonicalMeteringPointId,
           ediel_metering_point_id: canonicalMeteringPointId,
-          anlage_id: clean(meterInput?.anlage_id) ?? normalizedFacilityId,
-          site_facility_id: clean(meterInput?.site_facility_id) ?? normalizedFacilityId,
+          anlage_id: normalizeFacilityId(meterInput?.anlage_id) ?? normalizedFacilityId,
+          site_facility_id:
+            normalizeFacilityId(meterInput?.site_facility_id) ?? normalizedFacilityId,
           status: "active",
           metering_type: selected.energyDirection,
           measurement_type: clean(meterInput?.measurement_type) ?? selected.energyDirection,
