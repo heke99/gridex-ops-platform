@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getPlatformDashboardSummary } from '@/lib/performance/platformDashboardSummary'
+import { getVerifiedPlatformDashboardSummary } from '@/lib/performance/platformDashboardSummary'
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -100,7 +100,7 @@ export async function getCompanyDashboardSummary(
   companyId: string | null | undefined
 ): Promise<CompanyDashboardSummary | null> {
   if (!companyId) {
-    const platform = await getPlatformDashboardSummary()
+    const platform = await getVerifiedPlatformDashboardSummary(supabase)
     if (!platform) return null
 
     return {
