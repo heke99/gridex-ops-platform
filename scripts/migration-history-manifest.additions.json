@@ -125,6 +125,7 @@
     "20260825091402_allow_postal_centroid_price_area_assurance_source.sql": "543d994630b5d596068d2d1716ff6ae0cd341302a2ed8dd9dddbf4d46c8e110d",
     "20260825093400_facility_geographic_owner_outbox_guard.sql": "fd6e9b289ad728a0f8a5193df5bb11d6ad8158069ee0e1464d1a6ab2744015c4",
     "20260825112000_ops_precision_resolution_authority.sql": "3f3549adffd87fcc1bd9d6811189734e57b2c6317442506f0f762bfcb84432d8",
-    "20260825235900_gridex_customer_status_counts_v1.sql": "760aeaadb955fea05049a6663a6a9c596c32cf62dbfc3e2dcfc55057cb938df2"
+    "20260825235900_gridex_customer_status_counts_v1.sql": "760aeaadb955fea05049a6663a6a9c596c32cf62dbfc3e2dcfc55057cb938df2",
+    "20260826093000_platform_dashboard_and_rls_read_performance.sql": "c449aecba4270f90e49f5012d85bf79e3c2757565b758a3f708e139c09ab7d3e"
   }
 }
