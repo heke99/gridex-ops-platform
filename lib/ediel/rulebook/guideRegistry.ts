@@ -8,12 +8,18 @@ export type AuthoritativeEdielGuide = {
   latestUpdated: string
   effectiveFrom: string
   effectiveTo: string | null
+  semanticEffectiveFrom?: string
+  activationDates?: readonly string[]
   authority: 'Svenska kraftnät'
   certificationScope: 'production_current' | 'future_effective' | 'technical_rules'
 }
 
 /**
  * Effective-dated Swedish Ediel source registry.
+ *
+ * Rules in this file are deliberately limited to dates and identifiers that are
+ * explicitly stated in the authoritative Swedish Ediel guides. Never infer a
+ * validity date from a file name, Git timestamp or association-assigned code.
  *
  * Important: UNH/S009/0057 is not by itself a guide-revision identifier. The
  * Swedish UTILTS guides 25-A-3 and 25-A-4 both use E5SE5A, while 25-A-4 does
@@ -57,10 +63,15 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
   {
     family: 'APERAK',
     guideRevision: '16-B',
-    associationAssignedCode: null,
+    associationAssignedCode: 'E2SE6A',
     documentName: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B',
     latestUpdated: '2026-06-30',
-    effectiveFrom: '2016-12-01',
+    // 16.B semantics are stated as valid from 2016-12-01. The current Swedish
+    // electricity envelope binding E2SE6A is taken from the 26-A/16-B guide;
+    // we only activate that binding from the current PRODAT 26-A epoch rather
+    // than pretending E2SE6A was historically valid back to 2016.
+    semanticEffectiveFrom: '2016-12-01',
+    effectiveFrom: '2026-04-01',
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
@@ -71,7 +82,10 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     associationAssignedCode: null,
     documentName: '260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6',
     latestUpdated: '2026-02-20',
-    effectiveFrom: '2024-01-01',
+    // The guide explicitly states validity from 2024-04-01 and 2024-10-01.
+    // Keep both activation dates instead of inventing a single earlier date.
+    effectiveFrom: '2024-04-01',
+    activationDates: ['2024-04-01', '2024-10-01'],
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'technical_rules',
@@ -95,7 +109,7 @@ export function resolveAuthoritativeEdielGuide(input: {
     if (guide.family !== input.family) return false
     if (guide.effectiveFrom > date) return false
     if (guide.effectiveTo && guide.effectiveTo < date) return false
-    if (association && guide.associationAssignedCode && guide.associationAssignedCode.toUpperCase() !== association) return false
+    if (association && guide.associationAssignedCode?.toUpperCase() !== association) return false
     return true
   })
 
