@@ -12,6 +12,7 @@ export type AuthoritativeEdielGuide = {
   activationDates?: readonly string[]
   authority: 'Svenska kraftnät'
   certificationScope: 'production_current' | 'future_effective' | 'technical_rules'
+  fieldMatrixStatus: 'certified' | 'pending' | 'not_applicable'
 }
 
 /**
@@ -37,6 +38,7 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: '2026-09-30',
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
+    fieldMatrixStatus: 'certified',
   },
   {
     family: 'UTILTS',
@@ -48,6 +50,7 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'future_effective',
+    fieldMatrixStatus: 'pending',
   },
   {
     family: 'PRODAT',
@@ -59,6 +62,7 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
+    fieldMatrixStatus: 'pending',
   },
   {
     family: 'APERAK',
@@ -75,6 +79,7 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
+    fieldMatrixStatus: 'pending',
   },
   {
     family: 'CONTRL',
@@ -89,6 +94,7 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'technical_rules',
+    fieldMatrixStatus: 'not_applicable',
   },
 ] as const
 
@@ -125,4 +131,10 @@ export function getCurrentUtiltsGuide(referenceDate: string): AuthoritativeEdiel
     referenceDate,
     associationAssignedCode: 'E5SE5A',
   })
+}
+
+export function assertGuideFieldMatrixCertified(guide: AuthoritativeEdielGuide): void {
+  if (guide.fieldMatrixStatus !== 'certified') {
+    throw new Error(`ediel_guide_field_matrix_not_certified:${guide.family}:${guide.guideRevision}`)
+  }
 }
