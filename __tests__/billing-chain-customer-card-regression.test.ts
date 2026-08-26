@@ -40,6 +40,14 @@ describe('canonical billing chain regression', () => {
     expect(source).not.toContain('evaluateBillingMonthInvoiceReadiness')
   })
 
+  it('resolves Capway environment from tenant config, not request body overrides', () => {
+    const source = read('app/api/internal/invoice-exports/create/route.ts')
+
+    expect(source).toContain('billing_provider_environment')
+    expect(source).toContain("billing_provider_environment === 'production' ? 'production' : 'test'")
+    expect(source).not.toContain("body.environment === 'production' ? 'production' : 'test'")
+  })
+
   it('requires explicit approval and revalidates readiness before provider dispatch', () => {
     const source = read('lib/billing/invoiceApprovedDispatch.ts')
     const approvalGate = source.indexOf("itemApproval.status !== 'approved'")
@@ -52,6 +60,58 @@ describe('canonical billing chain regression', () => {
     expect(providerSend).toBeGreaterThan(readinessGate)
     expect(source).toContain(".eq('status', 'failed_retryable')")
     expect(source).toContain("approval(item.metadata).status !== 'approved'")
+  })
+
+  it('blocks approve/send when reserved kWh drifts from the live underlay', () => {
+    const source = read('lib/billing/invoiceApprovedDispatch.ts')
+    const readiness = source.slice(source.indexOf('async function assertItemStillReady'), source.indexOf('async function approveItem'))
+
+    expect(readiness).toContain('context.item.total_kwh')
+    expect(readiness).toContain('context.underlay.total_kwh')
+    expect(readiness).toContain('Math.abs(underlayKwh - itemKwh) > 0.001')
+    expect(readiness).toContain('Math.abs(underlayKwh - invoiceKwh) > 0.001')
+  })
+
+  it('fails closed when the named contract price snapshot cannot be loaded', () => {
+    const source = read('lib/billing/invoiceReviewPrepare.ts')
+
+    expect(source).toContain('if (!priceSnapshot) throw new Error(')
+    expect(source).not.toContain('if (!priceSnapshot && !snapshotId)')
+  })
+
+  it('cancels incomplete drafts after enrichment failure and ignores cancelled reservations', () => {
+    const source = read('lib/billing/invoiceReviewPrepare.ts')
+
+    expect(source).toContain("status: 'cancelled'")
+    expect(source).toContain("calculation_snapshot_enrichment_failed")
+    expect(source).toContain(".neq('status', 'cancelled')")
+  })
+
+  it('keeps Capway paymentCondition aligned with the caller dueDate for B2B terms', () => {
+    const source = read('lib/integrations/billing/capway/payloadBuilder.ts')
+
+    expect(source).toContain('Math.max(1, input.paymentConditionDays ?? 20)')
+    expect(source).not.toContain('Math.max(20, input.paymentConditionDays ?? 20)')
+  })
+
+  it('keeps Vercel crons on five-field schedules', () => {
+    const source = read('vercel.json')
+
+    expect(source).toContain('"schedule": "10 5 * * *"')
+    expect(source).not.toContain('"schedule": "10 5 * * * *"')
+  })
+
+  it('classifies failed_retryable as failed and prefers locked kWh in review rows', () => {
+    const source = read('lib/billing/invoiceReviewData.ts')
+
+    expect(source).toContain("'failed_retryable'")
+    expect(source).toContain("num(item?.total_kwh)")
+  })
+
+  it('shows sent status before approval on invoice detail', () => {
+    const source = read('app/admin/billing/invoices/[id]/page.tsx')
+
+    expect(source).toMatch(/detail\.item\.status === 'sent'[\s\S]*approvalStatus === 'approved'/)
   })
 
   it('verifies export items and draft invoice mirrors against the same underlays', () => {
@@ -77,5 +137,13 @@ describe('customer billing card regression', () => {
     expect(source).not.toContain('CustomerPartnerExportsPanel')
     expect(source).not.toContain('CustomerOutboundHistoryPanel')
     expect(source).not.toContain('QuickActionButton')
+  })
+
+  it('surfaces invoice_readiness_status so drafted and sent invoices are not shown as bare underlay-ready', () => {
+    const source = read('components/admin/customers/CustomerBillingMeteringCard.tsx')
+
+    expect(source).toContain('invoice_readiness_status')
+    expect(source).toContain('Fakturerad')
+    expect(source).toContain('Klar för faktura')
   })
 })

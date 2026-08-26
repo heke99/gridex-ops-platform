@@ -53,6 +53,7 @@
     "gridex:company-statistics-regression": "node scripts/gridex-launch-regression.cjs company-statistics-regression",
     "gridex:pricing-flow-regression": "node scripts/gridex-launch-regression.cjs pricing-flow-regression",
     "gridex:billing-readiness-regression": "node scripts/gridex-launch-regression.cjs billing-readiness-regression",
+    "gridex:billing-chain-review-regression": "vitest run __tests__/billing-chain-customer-card-regression.test.ts",
     "gridex:route-readiness-regression": "node scripts/gridex-launch-regression.cjs route-readiness-regression",
     "gridex:supplier-contact-regression": "node scripts/gridex-launch-regression.cjs supplier-contact-regression",
     "gridex:customer-intake-regression": "node scripts/gridex-launch-regression.cjs customer-intake-regression",

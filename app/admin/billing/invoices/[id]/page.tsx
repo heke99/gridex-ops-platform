@@ -70,7 +70,7 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
             ← Till fakturor
           </Link>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-            {approvalStatus === 'approved' ? 'Godkänd' : detail.item.status === 'sent' ? 'Skickad' : 'Väntar på granskning'}
+            {detail.item.status === 'sent' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
           </span>
         </div>
 

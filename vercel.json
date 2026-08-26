@@ -76,7 +76,7 @@
     },
     {
       "path": "/api/cron/reconciliation/daily",
-      "schedule": "10 5 * * * *"
+      "schedule": "10 5 * * *"
     },
     {
       "path": "/api/cron/reconciliation/end-to-end",

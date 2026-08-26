@@ -103,6 +103,15 @@ async function assertItemStillReady(context: Awaited<ReturnType<typeof loadItemC
   const priceArea = text(context.invoice.price_area_code) ?? text(context.underlay.price_area)
   if (!priceArea || !['SE1', 'SE2', 'SE3', 'SE4'].includes(priceArea)) throw new Error('Fakturan saknar giltigt elområde SE1–SE4.')
   if (!text(context.invoice.calculation_snapshot_sha256)) throw new Error('Juridisk beräkningssnapshot saknas.')
+  const underlayKwh = num(context.underlay.total_kwh)
+  const itemKwh = num(context.item.total_kwh)
+  const invoiceKwh = num(context.invoice.total_kwh) ?? num(context.invoice.consumption_kwh)
+  if (underlayKwh === null || itemKwh === null || Math.abs(underlayKwh - itemKwh) > 0.001) {
+    throw new Error('Förbrukningen i underlaget avviker från den reserverade fakturan. Omförbered fakturan.')
+  }
+  if (invoiceKwh !== null && Math.abs(underlayKwh - invoiceKwh) > 0.001) {
+    throw new Error('Förbrukningen i underlaget avviker från fakturaspegeln. Omförbered fakturan.')
+  }
   const pairs = [
     [num(context.item.amount_ex_vat), num(context.pricingRun.total_ex_vat)],
     [num(context.item.vat_amount), num(context.pricingRun.vat_amount)],

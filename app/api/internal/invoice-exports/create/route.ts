@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare'
 
 export const runtime = 'nodejs'
@@ -19,10 +20,23 @@ export async function POST(request: Request) {
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     if (!billingMonth) return NextResponse.json({ error: 'billing_month krävs.' }, { status: 400 })
 
+    const supabase = await createSupabaseServerClient()
+    const company = await supabase
+      .from('companies')
+      .select('billing_provider_environment,invoice_export_target_system')
+      .eq('id', companyId)
+      .maybeSingle()
+    if (company.error) throw company.error
+    if (!company.data) throw new Error('Tenant saknas.')
+    if (company.data.invoice_export_target_system !== 'capway_aptic') {
+      throw new Error('Canonical fakturapartner är inte konfigurerad som Capway/Aptic.')
+    }
+    const environment = company.data.billing_provider_environment === 'production' ? 'production' : 'test'
+
     const result = await prepareInvoiceDraftsForReview({
       companyId,
       billingMonth,
-      environment: body.environment === 'production' ? 'production' : 'test',
+      environment,
       actorUserId: access.guard.userId,
     })
     return NextResponse.json({
