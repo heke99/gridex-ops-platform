@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic'
 type PageProps = {
   searchParams: Promise<{
     month?: string
+    customer?: string
     sent?: string
     failed?: string
     approved?: string
@@ -63,13 +64,15 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
 
-  const rows = companyId ? await listInvoiceReviewRows({ companyId, billingMonth: selectedMonth }) : []
-  const readyCount = rows.filter((row) => row.status === 'ready_for_review').length
-  const approvedCount = rows.filter((row) => row.status === 'approved').length
-  const sentCount = rows.filter((row) => row.status === 'sent').length
-  const flaggedCount = rows.filter((row) => ['missing_meter_values', 'blocked', 'failed'].includes(row.status)).length
+  const allRows = companyId ? await listInvoiceReviewRows({ companyId, billingMonth: selectedMonth }) : []
+  const customerFilter = params.customer?.trim() || null
+  const rows = customerFilter ? allRows.filter((row) => row.customerId === customerFilter) : allRows
+  const readyCount = allRows.filter((row) => row.status === 'ready_for_review').length
+  const approvedCount = allRows.filter((row) => row.status === 'approved').length
+  const sentCount = allRows.filter((row) => row.status === 'sent').length
+  const flaggedCount = allRows.filter((row) => ['missing_meter_values', 'blocked', 'failed'].includes(row.status)).length
   const sendableCount = readyCount + approvedCount
-  const missingMeterCount = rows.filter((row) => row.status === 'missing_meter_values').length
+  const missingMeterCount = allRows.filter((row) => row.status === 'missing_meter_values').length
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -93,22 +96,28 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
         ) : null}
 
         <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-end lg:justify-between">
-          <form method="get" className="flex flex-wrap items-end gap-3">
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
-              Fakturamånad
-              <input
-                type="month"
-                name="month"
-                defaultValue={selectedMonth}
-                className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
-              />
-            </label>
-            <button className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">
-              Visa
-            </button>
-          </form>
+          <div className="flex flex-wrap items-end gap-3">
+            <form method="get" className="flex flex-wrap items-end gap-3">
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Fakturamånad
+                <input
+                  type="month"
+                  name="month"
+                  defaultValue={selectedMonth}
+                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
+                />
+              </label>
+              {customerFilter ? <input type="hidden" name="customer" value={customerFilter} /> : null}
+              <button className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Visa</button>
+            </form>
+            {customerFilter ? (
+              <Link href={`/admin/billing?month=${selectedMonth}`} className="h-10 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Visa alla kunder
+              </Link>
+            ) : null}
+          </div>
 
-          {companyId && sendableCount > 0 ? (
+          {companyId && !customerFilter && sendableCount > 0 ? (
             <form action={approveAndSendReadyInvoicesAction}>
               <input type="hidden" name="billing_month" value={selectedMonth} />
               <button className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
@@ -118,25 +127,27 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
           ) : null}
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['Klara för granskning', readyCount, 'Kan öppnas och kontrolleras innan utskick.'],
-            ['Flaggade', flaggedCount, missingMeterCount ? `${missingMeterCount} saknar kompletta mätvärden.` : 'Kräver åtgärd före fakturering.'],
-            ['Godkända', approvedCount, 'Godkända men ännu inte bekräftat skickade.'],
-            ['Skickade', sentCount, 'Bekräftade av fakturapartnern.'],
-          ].map(([label, count, help]) => (
-            <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">{label}</p>
-              <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">{count}</p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">{help}</p>
-            </div>
-          ))}
-        </section>
+        {!customerFilter ? (
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ['Klara för granskning', readyCount, 'Kan öppnas och kontrolleras innan utskick.'],
+              ['Flaggade', flaggedCount, missingMeterCount ? `${missingMeterCount} saknar kompletta mätvärden.` : 'Kräver åtgärd före fakturering.'],
+              ['Godkända', approvedCount, 'Godkända men ännu inte bekräftat skickade.'],
+              ['Skickade', sentCount, 'Bekräftade av fakturapartnern.'],
+            ].map(([label, count, help]) => (
+              <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-medium text-slate-500">{label}</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">{count}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{help}</p>
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
-              <h2 className="font-semibold text-slate-950">Kunder · {selectedMonth}</h2>
+              <h2 className="font-semibold text-slate-950">{customerFilter ? 'Kundens fakturor' : `Kunder · ${selectedMonth}`}</h2>
               <p className="mt-1 text-xs text-slate-500">Flaggade kunder skickas aldrig med i batchen.</p>
             </div>
             <div className="flex gap-3 text-xs font-medium text-slate-500">
@@ -146,9 +157,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
           </div>
 
           {rows.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-slate-500">
-              Inga faktureringsunderlag finns för vald månad ännu.
-            </div>
+            <div className="px-5 py-12 text-center text-sm text-slate-500">Inga faktureringsunderlag finns för urvalet ännu.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
@@ -167,15 +176,11 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                   {rows.map((row) => (
                     <tr key={row.underlayId} className="align-top hover:bg-slate-50/60">
                       <td className="px-5 py-4">
-                        <Link href={`/admin/customers/${row.customerId}?tab=billing-metering`} className="font-semibold text-slate-950 hover:underline">
-                          {row.customerName}
-                        </Link>
+                        <Link href={`/admin/customers/${row.customerId}?tab=billing-metering`} className="font-semibold text-slate-950 hover:underline">{row.customerName}</Link>
                         <div className="mt-1 text-xs text-slate-500">{row.customerNumber ?? 'Kundnummer saknas'}</div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyle[row.status]}`}>
-                          {row.statusLabel}
-                        </span>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyle[row.status]}`}>{row.statusLabel}</span>
                         {row.blocker ? <p className="mt-2 max-w-xs text-xs leading-5 text-slate-500">{row.blocker}</p> : null}
                       </td>
                       <td className="px-4 py-4 text-slate-700">{productLabel(row.contractType, row.contractName)}</td>
@@ -184,9 +189,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                       <td className="px-4 py-4 text-right font-semibold tabular-nums text-slate-950">{money(row.amountIncVat)}</td>
                       <td className="px-5 py-4 text-right">
                         {row.invoiceExportItemId ? (
-                          <Link href={`/admin/billing/invoices/${row.invoiceExportItemId}`} className="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
-                            Visa faktura
-                          </Link>
+                          <Link href={`/admin/billing/invoices/${row.invoiceExportItemId}`} className="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">Visa faktura</Link>
                         ) : (
                           <span className="text-xs text-slate-400">Ej klar</span>
                         )}
