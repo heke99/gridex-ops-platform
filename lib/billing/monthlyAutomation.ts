@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
+import { getBillingPeriodLock } from '@/lib/billing/invoiceReadiness'
 import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare'
 import { withAutomationLock } from '@/lib/automation/locks'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
@@ -86,11 +87,7 @@ async function insertRun(input: {
     lock_token: input.lockToken,
     export_requested: false,
     export_confirmed: false,
-    metadata: {
-      source: 'monthly_billing_prepare_only_v2',
-      approval_required: true,
-      run_id: randomUUID(),
-    },
+    metadata: { source: 'monthly_billing_prepare_only_v2', approval_required: true, run_id: randomUUID() },
   }).select('id').single()
   if (result.error) throw result.error
   return String(result.data.id)
@@ -142,14 +139,21 @@ export async function runMonthlyBillingAutomationForCompany(input: {
     ttlSeconds: 21_600,
     metadata: { domain: 'monthly_billing_prepare', billingMonth: periodMonth },
     run: async (lock) => {
-      const automationRunId = await insertRun({
-        companyId: input.companyId,
-        periodMonth,
-        actorUserId,
-        lockKey: lock.lockKey,
-        lockToken: lock.lockToken,
-      })
+      const automationRunId = await insertRun({ companyId: input.companyId, periodMonth, actorUserId, lockKey: lock.lockKey, lockToken: lock.lockToken })
       try {
+        const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth: periodMonth })
+        if (periodLock && ['locked', 'exported', 'closed'].includes(String(periodLock.status))) {
+          await finishRun({
+            companyId: input.companyId,
+            automationRunId,
+            actorUserId,
+            status: 'completed',
+            totalPrepared: 0,
+            metadata: { source: 'monthly_billing_prepare_only_v2', no_op: true, reason: 'billing_period_locked', period_lock_status: periodLock.status },
+          })
+          return { companyId: input.companyId, billingMonth: periodMonth, status: 'completed', automationRunId, prepared: 0, blocked: 0, failed: 0 }
+        }
+
         const underlayResult = await generateBillingUnderlaysForMonth({
           companyId: input.companyId,
           billingMonth: periodMonth,
@@ -161,10 +165,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           environment,
           actorUserId,
         })
-        const status: MonthlyBillingAutomationStatus =
-          preparation.blocked > 0 || preparation.failed > 0
-            ? 'completed_with_blockers'
-            : 'completed'
+        const status: MonthlyBillingAutomationStatus = preparation.blocked > 0 || preparation.failed > 0 ? 'completed_with_blockers' : 'completed'
         await finishRun({
           companyId: input.companyId,
           automationRunId,
@@ -173,12 +174,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           totalUnderlays: preparation.underlays,
           totalBlocked: preparation.blocked,
           totalPrepared: preparation.created,
-          metadata: {
-            source: 'monthly_billing_prepare_only_v2',
-            approval_required: true,
-            underlay_result: underlayResult,
-            preparation,
-          },
+          metadata: { source: 'monthly_billing_prepare_only_v2', approval_required: true, underlay_result: underlayResult, preparation },
         })
         return {
           companyId: input.companyId,
@@ -193,14 +189,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Okänt fel i månatlig fakturaförberedelse.'
-        await finishRun({
-          companyId: input.companyId,
-          automationRunId,
-          actorUserId,
-          status: 'failed',
-          failureReason: message,
-          metadata: { source: 'monthly_billing_prepare_only_v2', error: message },
-        })
+        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status: 'failed', failureReason: message, metadata: { source: 'monthly_billing_prepare_only_v2', error: message } })
         return { companyId: input.companyId, billingMonth: periodMonth, status: 'failed', automationRunId, error: message }
       }
     },
@@ -218,12 +207,7 @@ export async function runMonthlyBillingAutomation(input: {
   for (const company of companies) {
     const companyId = text(company.id)
     if (!companyId) continue
-    results.push(await runMonthlyBillingAutomationForCompany({
-      companyId,
-      billingMonth: input.billingMonth,
-      actorUserId: input.actorUserId,
-      companyConfig: company,
-    }))
+    results.push(await runMonthlyBillingAutomationForCompany({ companyId, billingMonth: input.billingMonth, actorUserId: input.actorUserId, companyConfig: company }))
   }
   return {
     billingMonth: billingMonth(input.billingMonth),
