@@ -130,7 +130,7 @@ async function loadByIds(input: {
       .eq('company_id', input.companyId)
       .in(input.column, chunk)
     if (result.error) throw result.error
-    rows.push(...((result.data ?? []) as Row[]))
+    rows.push(...((result.data ?? []) as unknown as Row[]))
   }
   return rows
 }

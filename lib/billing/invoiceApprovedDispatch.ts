@@ -412,7 +412,7 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
       if (result.status === 'sent') sent += 1
       else {
         failed += 1
-        errors.push({ invoiceExportItemId: itemId, error: 'error' in result ? String(result.error) : `Utskicket fick status ${result.status}.` })
+        errors.push({ invoiceExportItemId: itemId, error: 'Fakturaexporten returnerade ett icke-skickat resultat.' })
       }
     } catch (error) {
       failed += 1

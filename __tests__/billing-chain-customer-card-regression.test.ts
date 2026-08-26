@@ -16,27 +16,42 @@ describe('canonical billing chain regression', () => {
     expect(source).toMatch(/createCustomerDataRequestPackageAction[\s\S]*runCustomerActionWithMeterValuePreparation/)
   })
 
-  it('prices and locks underlays before creating the monthly invoice graph', () => {
+  it('generates underlays before preparing per-customer invoice drafts and never sends from monthly automation', () => {
     const source = read('lib/billing/monthlyAutomation.ts')
-    const pricingIndex = source.indexOf('prepareLockedPricingForMonth')
-    const readinessIndex = source.lastIndexOf('evaluateBillingMonthInvoiceReadiness')
-    const exportIndex = source.indexOf('createInvoiceExportRun({')
+    const underlayIndex = source.indexOf('generateBillingUnderlaysForMonth({')
+    const prepareIndex = source.indexOf('prepareInvoiceDraftsForReview({')
 
-    expect(pricingIndex).toBeGreaterThan(-1)
-    expect(readinessIndex).toBeGreaterThan(pricingIndex)
-    expect(exportIndex).toBeGreaterThan(readinessIndex)
-    expect(source).toContain("readiness.status !== 'ready'")
-    expect(source).toContain('readiness.readyUnderlayCount !== readiness.underlayCount')
-    expect(source).toContain('assertInvoiceExportGraphCoverage')
+    expect(underlayIndex).toBeGreaterThan(-1)
+    expect(prepareIndex).toBeGreaterThan(underlayIndex)
+    expect(source).toContain("source: 'monthly_billing_prepare_only_v2'")
+    expect(source).toContain('approval_required: true')
+    expect(source).not.toContain('sendInvoiceExportRun')
+    expect(source).not.toContain('sendToPartner')
   })
 
-  it('blocks partial graphs in the internal invoice-export API too', () => {
+  it('keeps the internal invoice-create API prepare-only instead of requiring a fully green month', () => {
     const source = read('app/api/internal/invoice-exports/create/route.ts')
 
-    expect(source).toContain('evaluateBillingMonthInvoiceReadiness')
-    expect(source).toContain("readiness.status !== 'ready'")
-    expect(source).toContain('readiness.readyUnderlayCount !== readiness.underlayCount')
-    expect(source).toContain('assertInvoiceExportGraphCoverage')
+    expect(source).toContain('prepareInvoiceDraftsForReview')
+    expect(source).toContain("mode: 'prepare_only'")
+    expect(source).toContain('approval_required: true')
+    expect(source).toContain('blocked_customers_are_not_reserved_or_sent: true')
+    expect(source).not.toContain('sendInvoiceExportRun')
+    expect(source).not.toContain('evaluateBillingMonthInvoiceReadiness')
+  })
+
+  it('requires explicit approval and revalidates readiness before provider dispatch', () => {
+    const source = read('lib/billing/invoiceApprovedDispatch.ts')
+    const approvalGate = source.indexOf("itemApproval.status !== 'approved'")
+    const readinessGate = source.indexOf('await assertItemStillReady(context)', approvalGate)
+    const providerSend = source.indexOf('client.createInvoices([payload], providerKey)')
+
+    expect(approvalGate).toBeGreaterThan(-1)
+    expect(source).toContain("invoiceApproval.status !== 'approved'")
+    expect(readinessGate).toBeGreaterThan(approvalGate)
+    expect(providerSend).toBeGreaterThan(readinessGate)
+    expect(source).toContain(".eq('status', 'failed_retryable')")
+    expect(source).toContain("approval(item.metadata).status !== 'approved'")
   })
 
   it('verifies export items and draft invoice mirrors against the same underlays', () => {
