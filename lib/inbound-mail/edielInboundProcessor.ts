@@ -11,6 +11,18 @@ import {
 } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { supabaseService } from '@/lib/supabase/service'
 
+function isSafeStandaloneMeteringUtilts(input: {
+  messageFamily: string
+  messageCode: string | null
+  meteringPointMatchStatus: string
+}): boolean {
+  return (
+    input.messageFamily === 'UTILTS' &&
+    String(input.messageCode ?? '').toUpperCase() === 'E66' &&
+    input.meteringPointMatchStatus === 'matched'
+  )
+}
+
 export async function processInboundEmailMessage(input: {
   inboundEmailMessageId: string
   actorUserId?: string | null
@@ -141,10 +153,20 @@ export async function processInboundEmailMessage(input: {
     parseResultId,
   })
 
-  const safeMatch = outboundMatch.status === 'matched'
-  const matchStatus = safeMatch ? 'matched' : outboundMatch.status
+  const safeOutboundMatch = outboundMatch.status === 'matched'
+  const safeStandaloneMetering = isSafeStandaloneMeteringUtilts({
+    messageFamily: parsed.messageFamily,
+    messageCode: parsed.messageCode,
+    meteringPointMatchStatus: meteringPointMatch.status,
+  })
+  const safeMatch = safeOutboundMatch || safeStandaloneMetering
+  const matchStatus = safeOutboundMatch
+    ? 'matched'
+    : safeStandaloneMetering
+      ? 'matched_metering_point'
+      : outboundMatch.status
 
-  if (safeMatch) {
+  if (safeOutboundMatch) {
     await applySafeInboundStatusUpdate({
       companyId: tenant.companyId,
       parsed,
@@ -167,13 +189,15 @@ export async function processInboundEmailMessage(input: {
       tenantResolution: tenant.shared,
     })
 
-    await createInboundMailTask({
-      companyId: tenant.companyId,
-      title: 'Inkommande Ediel-mail kräver manuell matchning',
-      description: outboundMatch.reasons.join('\n'),
-      metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
-      actorUserId: input.actorUserId ?? null,
-    })
+    if (!safeStandaloneMetering) {
+      await createInboundMailTask({
+        companyId: tenant.companyId,
+        title: 'Inkommande Ediel-mail kräver manuell matchning',
+        description: outboundMatch.reasons.join('\n'),
+        metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
+        actorUserId: input.actorUserId ?? null,
+      })
+    }
   }
 
   await updateInboundEmailProcessingStatus({
