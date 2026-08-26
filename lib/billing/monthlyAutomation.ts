@@ -1,10 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
+import { evaluateBillingMonthInvoiceReadiness } from '@/lib/billing/invoiceReadiness'
 import {
   createInvoiceExportRun,
   sendInvoiceExportRun,
 } from '@/lib/integrations/billing/invoiceExportCore'
+import {
+  calculateUnderlayPricingWithCore,
+  loadLockedUnderlayPricingWithCore,
+} from '@/lib/pricing/underlayPricingAdapter'
+import { lockPricingPreview } from '@/lib/pricing/engine'
 import { withAutomationLock } from '@/lib/automation/locks'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
@@ -13,12 +19,21 @@ import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/sto
 type JsonRecord = Record<string, unknown>
 type MonthlyBillingAutomationStatus = 'running' | 'completed' | 'completed_with_blockers' | 'failed'
 
+type PricingPreparationResult = {
+  candidates: number
+  alreadyLocked: number
+  newlyLocked: number
+  failed: number
+  errors: Array<{ billingUnderlayId: string; error: string }>
+}
+
 export type MonthlyBillingAutomationCompanyResult = {
   companyId: string
   billingMonth: string
   status: MonthlyBillingAutomationStatus
   automationRunId: string | null
   underlayResult?: Awaited<ReturnType<typeof generateBillingUnderlaysForMonth>> | null
+  pricingPreparation?: PricingPreparationResult | null
   exportRunId?: string | null
   queued?: number
   blocked?: number
@@ -34,6 +49,86 @@ function text(value: unknown): string | null {
 function billingMonth(value: unknown): string {
   const month = text(value) ?? previousStockholmBillingMonth()
   return parseBillingMonth(month).value
+}
+
+async function prepareLockedPricingForMonth(input: {
+  companyId: string
+  billingMonth: string
+  actorUserId: string | null
+}): Promise<PricingPreparationResult> {
+  const [year, month] = input.billingMonth.split('-').map(Number)
+  const { data, error } = await supabaseService
+    .from('billing_underlays')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('underlay_year', year)
+    .eq('underlay_month', month)
+    .eq('status', 'validated')
+    .eq('readiness_status', 'ready')
+    .order('id', { ascending: true })
+
+  if (error) throw error
+
+  const result: PricingPreparationResult = {
+    candidates: (data ?? []).length,
+    alreadyLocked: 0,
+    newlyLocked: 0,
+    failed: 0,
+    errors: [],
+  }
+
+  for (const row of data ?? []) {
+    const billingUnderlayId = String(row.id)
+    try {
+      const existing = await loadLockedUnderlayPricingWithCore({
+        companyId: input.companyId,
+        billingUnderlayId,
+      })
+      if (existing?.locked) {
+        result.alreadyLocked += 1
+        continue
+      }
+
+      const pricing = await calculateUnderlayPricingWithCore({
+        companyId: input.companyId,
+        billingUnderlayId,
+        persist: true,
+      })
+      if (pricing.status !== 'success' || !pricing.pricingRunId) {
+        throw new Error(
+          pricing.errors.join(' ') ||
+            pricing.warnings.join(' ') ||
+            'Prisberäkningen blev inte exportklar.',
+        )
+      }
+
+      await lockPricingPreview({
+        companyId: input.companyId,
+        pricingRunId: pricing.pricingRunId,
+        actorUserId: input.actorUserId,
+      })
+
+      const verified = await loadLockedUnderlayPricingWithCore({
+        companyId: input.companyId,
+        billingUnderlayId,
+      })
+      if (!verified?.locked) {
+        throw new Error('Prisberäkningen kunde inte verifieras som låst.')
+      }
+      result.newlyLocked += 1
+    } catch (pricingError) {
+      result.failed += 1
+      result.errors.push({
+        billingUnderlayId,
+        error:
+          pricingError instanceof Error
+            ? pricingError.message
+            : 'Okänt fel vid canonical prisberäkning.',
+      })
+    }
+  }
+
+  return result
 }
 
 async function insertAutomationRun(input: {
@@ -188,9 +283,54 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           billingMonth: periodMonth,
           createdBy: actorUserId,
         })
+        const pricingPreparation = await prepareLockedPricingForMonth({
+          companyId: input.companyId,
+          billingMonth: periodMonth,
+          actorUserId,
+        })
+        const readiness = await evaluateBillingMonthInvoiceReadiness({
+          companyId: input.companyId,
+          billingMonth: periodMonth,
+        })
+
         if (targetSystem !== 'capway_aptic') {
           throw new Error(`Fakturaexportprovidern ${targetSystem} saknar canonical invoice_export_items-adapter.`)
         }
+
+        if (readiness.readyUnderlayCount === 0) {
+          const status: MonthlyBillingAutomationStatus = 'completed_with_blockers'
+          await updateAutomationRun({
+            automationRunId,
+            companyId: input.companyId,
+            actorUserId,
+            status,
+            totalUnderlays: readiness.underlayCount,
+            totalBlocked: readiness.underlayCount,
+            totalExported: 0,
+            metadata: {
+              ...metadataBase,
+              underlayResult,
+              pricingPreparation,
+              readiness,
+              exportRunId: null,
+              sent: false,
+            },
+          })
+          return {
+            companyId: input.companyId,
+            billingMonth: periodMonth,
+            status,
+            automationRunId,
+            underlayResult,
+            pricingPreparation,
+            exportRunId: null,
+            queued: 0,
+            blocked: readiness.underlayCount,
+            skipped: 0,
+            sent: false,
+          }
+        }
+
         const exportRun = await createInvoiceExportRun({
           companyId: input.companyId,
           actorUserId,
@@ -207,8 +347,8 @@ export async function runMonthlyBillingAutomationForCompany(input: {
         let sent: boolean | null = null
         if (input.sendToPartner === true) {
           await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
-          if ((queuedResult.blocked ?? 0) > 0 || underlayResult.needsReview > 0) {
-            throw new Error('Fakturaexport blockerad eftersom fakturaunderlag eller exportposter kräver granskning.')
+          if ((queuedResult.blocked ?? 0) > 0 || pricingPreparation.failed > 0) {
+            throw new Error('Fakturaexport blockerad eftersom fakturaunderlag eller prisberäkning kräver granskning.')
           }
           const sendResult = await sendInvoiceExportRun({
             companyId: input.companyId,
@@ -220,17 +360,27 @@ export async function runMonthlyBillingAutomationForCompany(input: {
         }
 
         const status: MonthlyBillingAutomationStatus =
-          (queuedResult.blocked ?? 0) > 0 || underlayResult.needsReview > 0 ? 'completed_with_blockers' : 'completed'
+          (queuedResult.blocked ?? 0) > 0 || pricingPreparation.failed > 0
+            ? 'completed_with_blockers'
+            : 'completed'
         await updateAutomationRun({
           automationRunId,
           companyId: input.companyId,
           actorUserId,
           status,
           totalUnderlays: underlayResult.underlays,
-          totalBlocked: (queuedResult.blocked ?? 0) + underlayResult.needsReview,
+          totalBlocked: queuedResult.blocked ?? 0,
           totalExported: queuedResult.queued ?? 0,
           exportConfirmed: sent === true,
-          metadata: { ...metadataBase, underlayResult, queuedResult, exportRunId: exportRun.runId, sent },
+          metadata: {
+            ...metadataBase,
+            underlayResult,
+            pricingPreparation,
+            readiness: exportRun.readiness,
+            queuedResult,
+            exportRunId: exportRun.runId,
+            sent,
+          },
         })
         return {
           companyId: input.companyId,
@@ -238,6 +388,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           status,
           automationRunId,
           underlayResult,
+          pricingPreparation,
           exportRunId: exportRun.runId,
           queued: queuedResult.queued,
           blocked: queuedResult.blocked,
