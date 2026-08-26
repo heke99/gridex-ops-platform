@@ -7,6 +7,7 @@ import * as implementation3 from './actions.part-3'
 import * as implementation4 from './actions.part-4'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 
@@ -17,16 +18,23 @@ function formText(formData: FormData, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-async function listMeterValueRequestIds(customerId: string): Promise<Set<string>> {
+async function listMeterValueRequestIds(input: {
+  customerId: string
+  companyId: string | null
+}): Promise<Set<string>> {
   const ids = new Set<string>()
   const pageSize = 500
 
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from('grid_owner_data_requests')
       .select('id')
-      .eq('customer_id', customerId)
+      .eq('customer_id', input.customerId)
       .eq('request_scope', 'meter_values')
+
+    if (input.companyId) query = query.eq('company_id', input.companyId)
+
+    const { data, error } = await query
       .order('id', { ascending: true })
       .range(from, from + pageSize - 1)
 
@@ -46,9 +54,14 @@ async function runCustomerActionWithMeterValuePreparation<T>(input: {
   if (!customerId) return input.operation()
 
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const beforeIds = await listMeterValueRequestIds(customerId)
+  const tenantScope = await resolveAdminTenantReadScope(guard)
+  if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
+    throw new Error('Aktivt bolag saknas för mätvärdesbegäran.')
+  }
+  const companyId = tenantScope.isPlatformAdmin ? null : tenantScope.companyId
+  const beforeIds = await listMeterValueRequestIds({ customerId, companyId })
   const result = await input.operation()
-  const afterIds = await listMeterValueRequestIds(customerId)
+  const afterIds = await listMeterValueRequestIds({ customerId, companyId })
   const createdIds = [...afterIds].filter((id) => !beforeIds.has(id))
 
   // Every new meter-value request created from the customer card must enter the
