@@ -4,6 +4,7 @@ import { inferEdielFamilyAndCodeFromRawPayload } from '@/lib/ediel/classify'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 
+// Temporary executable audit: removed once the production mismatches are recorded/fixed.
 function envelope(message: string, reference: string): string {
   return [
     "UNA:+.? '",
