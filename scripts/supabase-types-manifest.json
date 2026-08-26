@@ -1,8 +1,8 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-08-26T08:09:16.289Z",
+  "generated_at": "2026-08-26T10:58:00.000Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "910b86196cd2f4bed2376afa9cc555302a837d2efe7d36e11abda3e904c1807a",
-  "latest_migration": "20260826103000_electricity_suppliers_masterdata_rls_guard.sql"
+  "latest_migration": "20260826213000_invoice_review_projection_sync.sql"
 }

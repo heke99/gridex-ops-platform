@@ -31,12 +31,7 @@ function splitName(name: string | null): { firstname: string | null; lastname: s
 
 function customerName(customer: Record<string, unknown>): string | null {
   const personalName = [stringValue(customer.first_name), stringValue(customer.last_name)].filter(Boolean).join(' ')
-  return (
-    stringValue(customer.company_name) ??
-    (personalName || null) ??
-    stringValue(customer.name) ??
-    stringValue(customer.full_name)
-  )
+  return stringValue(customer.company_name) ?? (personalName || null) ?? stringValue(customer.name) ?? stringValue(customer.full_name)
 }
 
 function vatCodeForRate(rate: number): string {
@@ -46,6 +41,25 @@ function vatCodeForRate(rate: number): string {
   if (percent === 12) return 'SE12'
   if (percent === 6) return 'SE6'
   return 'SE0'
+}
+
+function invoiceLineDescription(line: Record<string, unknown>): string | null {
+  const description = stringValue(line.description)
+  if (!description) return null
+  const metadata = isObject(line.metadata) ? line.metadata : {}
+  const regulatedLabel = stringValue(metadata.invoice_price_label)
+  const unit = (stringValue(line.unit) ?? '').toLowerCase()
+  const unitPriceExVat = numberValue(line.unit_price_ex_vat)
+  if (
+    regulatedLabel &&
+    ['Spotpris', 'Medelspotpris'].includes(regulatedLabel) &&
+    unit === 'kwh' &&
+    Number.isFinite(unitPriceExVat)
+  ) {
+    const orePerKwh = Math.round(unitPriceExVat * 100 * 1000) / 1000
+    return `${description} · ${orePerKwh.toLocaleString('sv-SE')} öre/kWh exkl. moms`
+  }
+  return description
 }
 
 function assertCapwayDebtRowsAreExVat(input: {
@@ -60,30 +74,12 @@ function assertCapwayDebtRowsAreExVat(input: {
     const vatAmount = roundMoney(numberValue(line.vat_amount))
     const rowPrincipal = roundMoney(numberValue(row.rowPrincipalAmount))
     const rowNet = roundMoney(numberValue(row.itemNetAmount))
-
-    if (!row.vatCode) {
-      throw new Error(`Capway-export blockerad: debtRow ${description} saknar vatCode.`)
-    }
-
-    if (row.includingVAT !== false) {
-      throw new Error(`Capway-export blockerad: debtRow ${description} måste skickas exkl. moms.`)
-    }
-
-    if (rowPrincipal !== rowNet) {
-      throw new Error(`Capway-export blockerad: debtRow ${description} har olika net amount och principal amount.`)
-    }
-
-    if (Math.abs(rowPrincipal - amountExVat) > 0.01) {
-      throw new Error(`Capway-export blockerad: debtRow ${description} matchar inte amount_ex_vat.`)
-    }
-
-    if (vatAmount !== 0 && amountIncVat !== 0 && Math.abs(amountExVat - amountIncVat) <= 0.01) {
-      throw new Error(`Capway-export blockerad: fakturarad ${description} verkar sakna separat exkl./inkl. moms.`)
-    }
-
-    if (vatAmount !== 0 && amountIncVat !== 0 && Math.abs(rowPrincipal - amountIncVat) <= 0.01) {
-      throw new Error(`Capway-export blockerad: debtRow ${description} verkar innehålla belopp inkl. moms.`)
-    }
+    if (!row.vatCode) throw new Error(`Capway-export blockerad: debtRow ${description} saknar vatCode.`)
+    if (row.includingVAT !== false) throw new Error(`Capway-export blockerad: debtRow ${description} måste skickas exkl. moms.`)
+    if (rowPrincipal !== rowNet) throw new Error(`Capway-export blockerad: debtRow ${description} har olika net amount och principal amount.`)
+    if (Math.abs(rowPrincipal - amountExVat) > 0.01) throw new Error(`Capway-export blockerad: debtRow ${description} matchar inte amount_ex_vat.`)
+    if (vatAmount !== 0 && amountIncVat !== 0 && Math.abs(amountExVat - amountIncVat) <= 0.01) throw new Error(`Capway-export blockerad: fakturarad ${description} verkar sakna separat exkl./inkl. moms.`)
+    if (vatAmount !== 0 && amountIncVat !== 0 && Math.abs(rowPrincipal - amountIncVat) <= 0.01) throw new Error(`Capway-export blockerad: debtRow ${description} verkar innehålla belopp inkl. moms.`)
   })
 }
 
@@ -101,10 +97,16 @@ export function buildCapwayInvoicePayload(input: {
 }): CapwayPutInvoice {
   const financingMode = input.financingMode ?? input.config.defaultFinancingMode
   const invoiceDate = input.invoiceDate ?? new Date().toISOString()
-  const dueDate = input.dueDate ?? new Date(Date.now() + 10 * 86_400_000).toISOString()
+  const paymentConditionDays = Math.max(20, input.paymentConditionDays ?? 20)
+  const dueDate = input.dueDate ?? new Date(Date.now() + paymentConditionDays * 86_400_000).toISOString()
   const name = customerName(input.customer)
   const { firstname, lastname } = splitName(name)
   const juridicalType = stringValue(input.customer.customer_type) === 'business' || stringValue(input.customer.org_number) ? 1 : 0
+  const metadata = isObject(input.underlay?.payload) ? input.underlay?.payload as Record<string, unknown> : {}
+  const priceArea = stringValue(input.underlay?.price_area) ?? stringValue(metadata.price_area)
+  if (!priceArea || !['SE1', 'SE2', 'SE3', 'SE4'].includes(priceArea)) {
+    throw new Error('Capway-export blockerad: fakturan saknar giltigt elområde SE1–SE4.')
+  }
 
   const rowLines = input.pricingLines
     .filter((line) => stringValue(line.description))
@@ -115,7 +117,7 @@ export function buildCapwayInvoicePayload(input: {
       return {
         rowReference: stringValue(line.id) ?? `ROW-${index + 1}`,
         itemReference: stringValue(line.line_type) ?? null,
-        description: stringValue(line.description),
+        description: invoiceLineDescription(line),
         itemCount: numberValue(line.quantity) || 1,
         itemNetAmount: amountExVat,
         rowPrincipalAmount: amountExVat,
@@ -139,7 +141,6 @@ export function buildCapwayInvoicePayload(input: {
   const customerNumber = stringValue(input.customer.customer_number)
   const customerRef = customerNumber ?? stringValue(input.customer.external_customer_id) ?? stringValue(input.customer.id)
   const address = stringValue(input.customer.full_address) ?? stringValue(input.customer.address_line_1) ?? stringValue(input.customer.street)
-  const metadata = isObject(input.underlay?.payload) ? input.underlay?.payload as Record<string, unknown> : {}
 
   return {
     creditorReference: stringValue(input.config.rawSettings?.creditor_reference) ?? stringValue(input.company?.org_number) ?? input.config.companyId,
@@ -184,7 +185,7 @@ export function buildCapwayInvoicePayload(input: {
     debts: [
       {
         debtPrincipalType: principal < 0 ? 2 : 1,
-        description: `Elhandel ${String(input.pricingRun.billing_period_start ?? '').slice(0, 7)}`,
+        description: `Elhandel ${String(input.pricingRun.billing_period_start ?? '').slice(0, 7)} · Elområde: ${priceArea}`,
         originalReferenceNumber: externalReference,
         ledgerReference: externalReference,
         originalPrincipal: principal,
@@ -195,8 +196,8 @@ export function buildCapwayInvoicePayload(input: {
         currencyCode: 'SEK',
         invoiceDate,
         dueDate,
-        paymentCondition: input.paymentConditionDays ?? 10,
-        message: stringValue(input.config.rawSettings?.invoice_message) ?? 'Faktura skapad från Gridex faktureringsunderlag.',
+        paymentCondition: paymentConditionDays,
+        message: stringValue(input.config.rawSettings?.invoice_message) ?? `Elhandel. Elområde: ${priceArea}.`,
         receiverFullName: name,
         receiverStreet: address,
         receiverCity: stringValue(input.customer.city),
@@ -205,7 +206,8 @@ export function buildCapwayInvoicePayload(input: {
         debtRows: rowLines,
         extraFields: [
           { name: 'gridex_billing_underlay_id', value: [stringValue(input.pricingRun.billing_underlay_id) ?? ''] },
-          { name: 'gridex_price_area', value: [stringValue(input.underlay?.price_area) ?? stringValue(metadata.price_area) ?? ''] },
+          { name: 'gridex_price_area', value: [priceArea] },
+          { name: 'Elområde', value: [priceArea] },
         ],
       },
     ],
@@ -214,10 +216,11 @@ export function buildCapwayInvoicePayload(input: {
       { name: 'gridex_company_id', value: [input.config.companyId] },
       { name: 'gridex_customer_number', value: [customerNumber ?? ''] },
       { name: 'gridex_financing_mode', value: [financingMode] },
+      { name: 'Elområde', value: [priceArea] },
     ],
     note: [
       {
-        noteText: `Gridex export ${externalReference}. Finansieringsläge: ${financingMode}.`,
+        noteText: `Gridex export ${externalReference}. Elområde: ${priceArea}. Finansieringsläge: ${financingMode}.`,
         systemCode: 'Gridex',
         important: false,
       },

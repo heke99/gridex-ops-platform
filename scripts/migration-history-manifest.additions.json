@@ -127,6 +127,7 @@
     "20260825112000_ops_precision_resolution_authority.sql": "3f3549adffd87fcc1bd9d6811189734e57b2c6317442506f0f762bfcb84432d8",
     "20260825235900_gridex_customer_status_counts_v1.sql": "760aeaadb955fea05049a6663a6a9c596c32cf62dbfc3e2dcfc55057cb938df2",
     "20260826093000_platform_dashboard_and_rls_read_performance.sql": "f9084068f4eead62330b1b394b6b4cab5f47ff68b411bdb144009314c2b85a2c",
-    "20260826103000_electricity_suppliers_masterdata_rls_guard.sql": "b0dcf5c1e2c4e7f1849d1d1d25bdf5ee47b57f8f945af46ef3a67c4dcab8525f"
+    "20260826103000_electricity_suppliers_masterdata_rls_guard.sql": "b0dcf5c1e2c4e7f1849d1d1d25bdf5ee47b57f8f945af46ef3a67c4dcab8525f",
+    "20260826213000_invoice_review_projection_sync.sql": "29a55288a96865d5349d7a82de47d5a898f05dd1ab8851a2a7fcd5de6ad88e0d"
   }
 }
