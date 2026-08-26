@@ -297,7 +297,20 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           throw new Error(`Fakturaexportprovidern ${targetSystem} saknar canonical invoice_export_items-adapter.`)
         }
 
-        if (readiness.readyUnderlayCount === 0) {
+        const blockedUnderlays = Math.max(
+          readiness.underlayCount - readiness.readyUnderlayCount,
+          0,
+        )
+
+        // Do not create a partial invoice graph. The export run has month-level
+        // idempotency, so reserving only a subset would make a later rerun skip
+        // newly repaired underlays. Pricing may be prepared independently, but
+        // the canonical invoice graph is created only when the whole month is
+        // invoice-ready.
+        if (
+          readiness.status !== 'ready' ||
+          readiness.readyUnderlayCount !== readiness.underlayCount
+        ) {
           const status: MonthlyBillingAutomationStatus = 'completed_with_blockers'
           await updateAutomationRun({
             automationRunId,
@@ -305,7 +318,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
             actorUserId,
             status,
             totalUnderlays: readiness.underlayCount,
-            totalBlocked: readiness.underlayCount,
+            totalBlocked: blockedUnderlays,
             totalExported: 0,
             metadata: {
               ...metadataBase,
@@ -325,7 +338,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
             pricingPreparation,
             exportRunId: null,
             queued: 0,
-            blocked: readiness.underlayCount,
+            blocked: blockedUnderlays,
             skipped: 0,
             sent: false,
           }
