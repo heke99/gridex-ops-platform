@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 
 function toNumber(value: unknown): number {
@@ -140,6 +141,51 @@ async function loadPlatformDashboardSummary(): Promise<PlatformDashboardSummary 
   }
 }
 
-// React cache deduplicates the service-role RPC during the same server render.
-// This lets /admin reuse one platform aggregate for the KPI cards and Ediel summary.
-export const getPlatformDashboardSummary = cache(loadPlatformDashboardSummary)
+// React cache deduplicates the service-role aggregate during a server render.
+const getPlatformDashboardSummary = cache(loadPlatformDashboardSummary)
+
+const verifiedSummaryByClient = new WeakMap<SupabaseClient, Promise<PlatformDashboardSummary | null>>()
+
+async function verifyAndLoadPlatformSummary(
+  supabase: SupabaseClient
+): Promise<PlatformDashboardSummary | null> {
+  const startedAt = performance.now()
+
+  try {
+    const { data, error } = await supabase.rpc('gridex_user_is_platform_admin')
+    const durationMs = performance.now() - startedAt
+    const allowed = !error && data === true
+
+    console.info('[admin-dashboard:timing]', {
+      stage: 'platform-rpc-guard',
+      durationMs: Math.round(durationMs * 10) / 10,
+      ok: allowed,
+      code: error?.code ?? null,
+    })
+
+    if (!allowed) return null
+    return getPlatformDashboardSummary()
+  } catch (error) {
+    console.warn('[admin-dashboard:timing]', {
+      stage: 'platform-rpc-guard',
+      durationMs: Math.round((performance.now() - startedAt) * 10) / 10,
+      ok: false,
+      code: error instanceof Error ? error.name : 'unknown_error',
+    })
+    return null
+  }
+}
+
+// A null company scope is not by itself proof that the caller is a platform admin.
+// Verify with the caller's authenticated Supabase client before any service-role read.
+// WeakMap dedupes the guard + aggregate for the same request-scoped client instance.
+export function getVerifiedPlatformDashboardSummary(
+  supabase: SupabaseClient
+): Promise<PlatformDashboardSummary | null> {
+  const existing = verifiedSummaryByClient.get(supabase)
+  if (existing) return existing
+
+  const pending = verifyAndLoadPlatformSummary(supabase)
+  verifiedSummaryByClient.set(supabase, pending)
+  return pending
+}
