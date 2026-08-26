@@ -51,8 +51,8 @@
       "schedule": "2-52/10 * * * *"
     },
     {
-      "path": "/api/cron/billing/monthly?send_to_partner=true",
-      "schedule": "20 4 1 * *"
+      "path": "/api/cron/billing/monthly",
+      "schedule": "20 */6 * * *"
     },
     {
       "path": "/api/cron/billing/invoice-export-retry",
@@ -76,7 +76,7 @@
     },
     {
       "path": "/api/cron/reconciliation/daily",
-      "schedule": "10 5 * * *"
+      "schedule": "10 5 * * * *"
     },
     {
       "path": "/api/cron/reconciliation/end-to-end",
