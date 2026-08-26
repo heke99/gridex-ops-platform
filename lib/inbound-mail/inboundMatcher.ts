@@ -18,6 +18,19 @@ function firstReference(parsed: ParsedEdifactEnvelope, keys: string[]): string |
   return null
 }
 
+function firstLocReference(parsed: ParsedEdifactEnvelope, qualifier: string): string | null {
+  const normalizedQualifier = qualifier.trim().toUpperCase()
+  for (const segment of parsed.segments) {
+    const elements = segment.split('+')
+    if (String(elements[0] ?? '').trim().toUpperCase() !== 'LOC') continue
+    const actualQualifier = String(elements[1] ?? '').split(':')[0]?.trim().toUpperCase()
+    if (actualQualifier !== normalizedQualifier) continue
+    const value = String(elements[2] ?? '').split(':')[0]?.trim()
+    if (value) return value
+  }
+  return null
+}
+
 async function insertAttempt(input: {
   companyId?: string | null
   inboundEmailMessageId?: string | null
@@ -144,10 +157,11 @@ export async function matchMeteringPointForInbound(input: {
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
 }): Promise<InboundEntityMatch> {
-  const candidates = [
+  const candidates = Array.from(new Set([
+    firstLocReference(input.parsed, '172'),
     firstReference(input.parsed, ['Z07', 'MG', 'TN']),
     input.parsed.references.LI?.[0],
-  ].filter((value): value is string => Boolean(value))
+  ].filter((value): value is string => Boolean(value))))
 
   if (candidates.length === 0) {
     const match = { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: ['Ingen anläggnings-/mätpunktsreferens hittades.'], candidates: [] } satisfies InboundEntityMatch
@@ -157,13 +171,14 @@ export async function matchMeteringPointForInbound(input: {
 
   const ors = candidates.flatMap((candidate) => [
     `meter_point_id.eq.${candidate}`,
+    `metering_point_id.eq.${candidate}`,
     `site_facility_id.eq.${candidate}`,
     `ediel_reference.eq.${candidate}`,
   ])
 
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id, customer_id, site_id, grid_owner_id, meter_point_id, site_facility_id, ediel_reference')
+    .select('id, company_id, customer_id, site_id, grid_owner_id, meter_point_id, metering_point_id, site_facility_id, ediel_reference')
     .eq('company_id', input.companyId)
     .or(ors.join(','))
     .limit(5)
