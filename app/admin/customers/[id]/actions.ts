@@ -7,7 +7,6 @@ import * as implementation3 from './actions.part-3'
 import * as implementation4 from './actions.part-4'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 
@@ -18,25 +17,51 @@ function formText(formData: FormData, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-async function listMeterValueRequestIds(input: {
-  actorUserId: string
-  customerId: string
-}): Promise<Set<string>> {
-  const scope = await getOperationalCompanyScope(input.actorUserId)
-  let query = supabaseService
-    .from('grid_owner_data_requests')
-    .select('id')
-    .eq('customer_id', input.customerId)
-    .eq('request_scope', 'meter_values')
+async function listMeterValueRequestIds(customerId: string): Promise<Set<string>> {
+  const ids = new Set<string>()
+  const pageSize = 500
 
-  if (!scope.isPlatformAdmin) {
-    if (!scope.companyId) throw new Error('Aktivt bolag saknas för mätvärdesbegäran.')
-    query = query.eq('company_id', scope.companyId)
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabaseService
+      .from('grid_owner_data_requests')
+      .select('id')
+      .eq('customer_id', customerId)
+      .eq('request_scope', 'meter_values')
+      .order('id', { ascending: true })
+      .range(from, from + pageSize - 1)
+
+    if (error) throw error
+    for (const row of data ?? []) ids.add(String(row.id))
+    if ((data ?? []).length < pageSize) break
   }
 
-  const { data, error } = await query.limit(200)
-  if (error) throw error
-  return new Set((data ?? []).map((row) => String(row.id)))
+  return ids
+}
+
+async function runCustomerActionWithMeterValuePreparation<T>(input: {
+  formData: FormData
+  operation: () => Promise<T>
+}): Promise<T> {
+  const customerId = formText(input.formData, 'customer_id')
+  if (!customerId) return input.operation()
+
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const beforeIds = await listMeterValueRequestIds(customerId)
+  const result = await input.operation()
+  const afterIds = await listMeterValueRequestIds(customerId)
+  const createdIds = [...afterIds].filter((id) => !beforeIds.has(id))
+
+  // Every new meter-value request created from the customer card must enter the
+  // canonical supplier path immediately. Other request scopes are ignored.
+  for (const dataRequestId of createdIds) {
+    await ensureAndPrepareUtiltsFromDataRequest({
+      actorUserId: guard.userId,
+      dataRequestId,
+      utiltsCode: 'E73',
+    })
+  }
+
+  return result
 }
 
 export async function saveCustomerSiteAction(...args: Parameters<typeof implementation1.saveCustomerSiteAction>) {
@@ -81,53 +106,26 @@ export async function updateOperationTaskStatusAction(...args: Parameters<typeof
 
 export async function createGridOwnerDataRequestAction(...args: Parameters<typeof implementation3.createGridOwnerDataRequestAction>) {
   const [formData] = args
-  const requestScope = formText(formData, 'request_scope')
-
-  if (requestScope !== 'meter_values') {
-    return implementation3.createGridOwnerDataRequestAction(...args)
-  }
-
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const customerId = formText(formData, 'customer_id')
-  if (!customerId) {
-    return implementation3.createGridOwnerDataRequestAction(...args)
-  }
-
-  const beforeIds = await listMeterValueRequestIds({
-    actorUserId: guard.userId,
-    customerId,
+  return runCustomerActionWithMeterValuePreparation({
+    formData,
+    operation: () => implementation3.createGridOwnerDataRequestAction(...args),
   })
-
-  const result = await implementation3.createGridOwnerDataRequestAction(...args)
-
-  const afterIds = await listMeterValueRequestIds({
-    actorUserId: guard.userId,
-    customerId,
-  })
-  const createdIds = [...afterIds].filter((id) => !beforeIds.has(id))
-
-  // The implementation intentionally returns without creating a request when
-  // route/readiness/access is blocked. In that case there is nothing to send.
-  if (createdIds.length === 0) return result
-  if (createdIds.length !== 1) {
-    throw new Error('Mätvärdesbegäran blev tvetydig och stoppades innan E73 kunde skapas.')
-  }
-
-  await ensureAndPrepareUtiltsFromDataRequest({
-    actorUserId: guard.userId,
-    dataRequestId: createdIds[0],
-    utiltsCode: 'E73',
-  })
-
-  return result
 }
 
 export async function createAuthorizationRequestPackageAction(...args: Parameters<typeof implementation3.createAuthorizationRequestPackageAction>) {
-  return implementation3.createAuthorizationRequestPackageAction(...args)
+  const [formData] = args
+  return runCustomerActionWithMeterValuePreparation({
+    formData,
+    operation: () => implementation3.createAuthorizationRequestPackageAction(...args),
+  })
 }
 
 export async function createCustomerDataRequestPackageAction(...args: Parameters<typeof implementation3.createCustomerDataRequestPackageAction>) {
-  return implementation3.createCustomerDataRequestPackageAction(...args)
+  const [formData] = args
+  return runCustomerActionWithMeterValuePreparation({
+    formData,
+    operation: () => implementation3.createCustomerDataRequestPackageAction(...args),
+  })
 }
 
 export async function registerCurrentSupplierResponseAction(...args: Parameters<typeof implementation3.registerCurrentSupplierResponseAction>) {
