@@ -1,0 +1,37 @@
+name: Live E66 multitenant probe
+
+on:
+  push:
+    branches:
+      - test/live-e66-multitenant-20260826
+
+permissions:
+  contents: read
+
+jobs:
+  live-e66:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: live-e66-placeholder-anon
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      GRIDEX_E2E_ACTOR_USER_ID: ${{ secrets.GRIDEX_E2E_ACTOR_USER_ID }}
+      GRIDEX_E2E_ALLOW_OUTBOUND: 'NO'
+      GRIDEX_E2E_TARGET: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Require isolated live-test credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
+          done
+      - name: Run raw EDIFACT E66 through production inbound code path
+        run: npx vitest run __tests__/live-e66-inbound-runtime.test.ts --reporter=verbose
