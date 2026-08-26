@@ -82908,6 +82908,7 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_platform_dashboard_summary_v1: { Args: never; Returns: Json }
       gridex_point_to_grid_area: {
         Args: { p_x: number; p_y: number }
         Returns: {
