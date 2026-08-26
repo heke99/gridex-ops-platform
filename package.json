@@ -24,6 +24,7 @@
     "gridex:energy-resolver-regression": "node scripts/energy-resolver-grid-owner-regression.cjs",
     "gridex:explicit-input-preservation-regression": "node scripts/gridex-explicit-input-preservation-regression.cjs",
     "gridex:masterdata-id-mapping-regression": "node scripts/gridex-masterdata-id-mapping-regression.cjs",
+    "gridex:platform-dashboard-summary-regression": "node scripts/gridex-platform-dashboard-summary-regression.cjs",
     "gridex:poa-authorization-chain-regression": "node scripts/gridex-poa-authorization-chain-regression.cjs",
     "gridex:manual-pdf-website-shared-orchestrator-regression": "node scripts/gridex-manual-pdf-website-shared-orchestrator-regression.cjs",
     "gridex:facility-missing-path-hardening-regression": "node scripts/gridex-facility-missing-path-hardening-regression.cjs",
