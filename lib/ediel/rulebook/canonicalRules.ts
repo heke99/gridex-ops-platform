@@ -1,5 +1,10 @@
 import type { AckFamily, AckOutcome } from '@/lib/ediel/ack'
 import { CANONICAL_EDIEL_ERRORS } from '@/lib/ediel/rulebook/mapEdielError'
+import {
+  isUtiltsApplicationReferenceMessageCode,
+  isUtiltsRequestMessageCode,
+  resolveVerifiedUtiltsApplicationReference,
+} from '@/lib/ediel/rulebook/utiltsApplicationReference'
 
 export type CanonicalRuleSeverity = 'blocking' | 'manual_review' | 'warning'
 export type CanonicalRuleScope = 'common' | 'routing' | 'security' | 'ack_lifecycle' | 'unsupported' | 'application_reference'
@@ -101,8 +106,17 @@ export const CANONICAL_EDIEL_RULES: CanonicalEdielRule[] = [
     scope: 'application_reference',
     severity: 'blocking',
     title: 'Leverantörs-PRODAT kräver 23-DDQ-PRODAT',
-    description: 'Z03/Z04/Z05/Z06/Z09/Z10 ska inte skickas som 23-DGI-PRODAT.',
+    description: 'Svenska leverantörsflöden Z01/Z02/Z03/Z04/Z05/Z06/Z08/Z09/Z10 använder 23-DDQ-PRODAT.',
     source: 'PRODAT 26.A',
+    adminOverridable: false,
+  },
+  {
+    key: 'APPREF_UTILTS_EXACT_MATRIX',
+    scope: 'application_reference',
+    severity: 'blocking',
+    title: 'UTILTS Application Reference måste följa fält 311 exakt',
+    description: 'Application Reference valideras mot den exakta svenska matrisen. Begäran använder Application Reference för den meddelandetyp som begärs.',
+    source: 'UTILTS & APERAK 25.A.3, fält 311',
     adminOverridable: false,
   },
   {
@@ -198,15 +212,48 @@ export function evaluateApplicationReferenceGuard(input: {
   family: string | null | undefined
   messageCode: string | null | undefined
   applicationReference: string | null | undefined
+  requestedMessageCode?: string | null | undefined
 }): ApplicationReferenceGuardResult {
   const family = String(input.family ?? '').toUpperCase()
   const code = String(input.messageCode ?? '').toUpperCase()
-  const appRef = String(input.applicationReference ?? '').toUpperCase()
+  const appRef = String(input.applicationReference ?? '').trim().toUpperCase()
   const permissionCodes = new Set(['Z13', 'Z14', 'Z15', 'Z18'])
   const supplierCodes = new Set(['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09', 'Z10'])
 
   if (appRef === '27-DDQ-PRODAT') {
     return { ok: false, expectedApplicationReference: null, ruleKeys: ['UNSUPPORTED_GAS'], reason: 'Gas/naturgas ingår inte i Batch 4.' }
+  }
+
+  if (family === 'UTILTS') {
+    if (!isUtiltsApplicationReferenceMessageCode(code) && !isUtiltsRequestMessageCode(code)) {
+      return {
+        ok: false,
+        expectedApplicationReference: null,
+        ruleKeys: ['APPREF_UTILTS_EXACT_MATRIX'],
+        reason: `UTILTS ${code || 'utan meddelandekod'} saknar verifierad Application Reference-regel.`,
+      }
+    }
+
+    try {
+      const resolved = resolveVerifiedUtiltsApplicationReference({
+        messageCode: code,
+        requestedMessageCode: input.requestedMessageCode,
+        applicationReference: appRef || null,
+      })
+      return {
+        ok: true,
+        expectedApplicationReference: resolved,
+        ruleKeys: [],
+        reason: null,
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        expectedApplicationReference: null,
+        ruleKeys: ['APPREF_UTILTS_EXACT_MATRIX'],
+        reason: error instanceof Error ? error.message : 'UTILTS Application Reference kunde inte verifieras.',
+      }
+    }
   }
 
   if (family !== 'PRODAT') {
@@ -233,7 +280,12 @@ export function evaluateApplicationReferenceGuard(input: {
     }
   }
 
-  return { ok: true, expectedApplicationReference: null, ruleKeys: [], reason: null }
+  return {
+    ok: false,
+    expectedApplicationReference: null,
+    ruleKeys: ['APPREF_DDQ_FOR_SUPPLIER'],
+    reason: `PRODAT ${code || 'utan meddelandekod'} ingår inte i den verifierade svenska 26.A-funktionslistan.`,
+  }
 }
 
 export function canonicalRulebookSummary() {

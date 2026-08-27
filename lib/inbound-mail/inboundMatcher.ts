@@ -144,33 +144,35 @@ export async function matchMeteringPointForInbound(input: {
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
 }): Promise<InboundEntityMatch> {
-  const candidates = [
+  const candidates = Array.from(new Set([
+    input.parsed.locations['172']?.[0] ?? null,
     firstReference(input.parsed, ['Z07', 'MG', 'TN']),
-    input.parsed.references.LI?.[0],
-  ].filter((value): value is string => Boolean(value))
+    input.parsed.references.LI?.[0] ?? null,
+  ].filter((value): value is string => Boolean(value))))
 
   if (candidates.length === 0) {
-    const match = { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: ['Ingen anläggnings-/mätpunktsreferens hittades.'], candidates: [] } satisfies InboundEntityMatch
+    const match = { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: ['Ingen canonical LOC+172/anläggnings-/mätpunktsreferens hittades.'], candidates: [] } satisfies InboundEntityMatch
     await insertAttempt({ ...input, matchType: 'metering_point', match })
     return match
   }
 
   const ors = candidates.flatMap((candidate) => [
     `meter_point_id.eq.${candidate}`,
+    `metering_point_id.eq.${candidate}`,
     `site_facility_id.eq.${candidate}`,
     `ediel_reference.eq.${candidate}`,
   ])
 
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id, customer_id, site_id, grid_owner_id, meter_point_id, site_facility_id, ediel_reference')
+    .select('id, company_id, customer_id, site_id, grid_owner_id, meter_point_id, metering_point_id, site_facility_id, ediel_reference')
     .eq('company_id', input.companyId)
     .or(ors.join(','))
     .limit(5)
 
   if (error) throw error
 
-  const match = singleOrAmbiguous('metering_point', (data ?? []) as Array<Record<string, unknown>>, [`Mätpunktsreferenser testade: ${candidates.join(', ')}`])
+  const match = singleOrAmbiguous('metering_point', (data ?? []) as Array<Record<string, unknown>>, [`Canonical mätpunktsreferenser testade: ${candidates.join(', ')}`])
   await insertAttempt({ ...input, matchType: 'metering_point', match })
   return match
 }
