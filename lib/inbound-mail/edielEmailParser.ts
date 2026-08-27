@@ -1,7 +1,16 @@
+import {
+  firstCompositeComponent,
+  splitComposite,
+  tokenizeEdifact,
+  type EdifactTokenizedSegment,
+} from '@/lib/ediel/core/edifactTokenizer'
+
 export type ParsedEdifactEnvelope = {
   rawPayload: string
   messageFamily: 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | 'OTHER'
   messageCode: string | null
+  messageFunctionCode: string | null
+  acknowledgementRequestCode: string | null
   interchangeReference: string | null
   transactionReference: string | null
   senderEdielId: string | null
@@ -10,9 +19,17 @@ export type ParsedEdifactEnvelope = {
   receiverSubAddress: string | null
   applicationReference: string | null
   bgmReference: string | null
+  messageTypeVersion: {
+    syntaxIdentifier: string | null
+    directoryVersion: string | null
+    release: string | null
+    controllingAgency: string | null
+    associationAssignedCode: string | null
+  }
   references: Record<string, string[]>
   parties: Record<string, string[]>
   dates: Record<string, string[]>
+  locations: Record<string, string[]>
   quantities: Array<{ qualifier: string | null; value: number | null; rawValue: string | null; unit: string | null }>
   errorCodes: string[]
   freeText: string[]
@@ -41,18 +58,6 @@ export function normalizeEdifactMessageCode(
   return 'OTHER'
 }
 
-function splitParty(value: string | null): { edielId: string | null; subAddress: string | null } {
-  if (!value) return { edielId: null, subAddress: null }
-  const first = value.split('+')[0] ?? value
-  const parts = first.split(':')
-  return {
-    edielId: cleanText(parts[0]),
-    // UNB S002/S003 component 0007 is an ID qualifier (for example ZZ),
-    // while component 0008 is the reverse routing/subaddress.
-    subAddress: cleanText(parts[2] ?? null),
-  }
-}
-
 function pushRecord(record: Record<string, string[]>, key: string | null, value: string | null) {
   if (!key || !value) return
   record[key] = [...(record[key] ?? []), value]
@@ -67,6 +72,17 @@ function normalizeMimeText(input: string): string {
     .replace(/=0D=0A/gi, '\n')
 }
 
+function edifactStartIndex(candidate: string): number {
+  const unaIndex = candidate.indexOf('UNA')
+  const unbIndex = candidate.indexOf('UNB')
+  if (unaIndex >= 0 && unbIndex >= 0) return Math.min(unaIndex, unbIndex)
+  return unaIndex >= 0 ? unaIndex : unbIndex
+}
+
+function segmentTerminatorForPayload(payload: string): string {
+  return payload.startsWith('UNA') && payload.length >= 9 ? payload[8] : "'"
+}
+
 export function extractEdifactPayload(input: string | null | undefined): string | null {
   const raw = cleanText(input)
   if (!raw) return null
@@ -74,21 +90,18 @@ export function extractEdifactPayload(input: string | null | undefined): string 
   const candidates = [raw, normalizeMimeText(raw)]
 
   for (const candidate of candidates) {
-    const unaIndex = candidate.indexOf('UNA')
-    const unbIndex = candidate.indexOf('UNB')
-    const start = unaIndex >= 0 ? unaIndex : unbIndex
-
+    const start = edifactStartIndex(candidate)
     if (start < 0) continue
 
     const fromStart = candidate.slice(start)
-    const unzIndex = fromStart.lastIndexOf('UNZ+')
+    const terminator = segmentTerminatorForPayload(fromStart)
+    const unzIndex = fromStart.lastIndexOf('UNZ')
     if (unzIndex < 0) return fromStart.trim()
 
-    const afterUnz = fromStart.slice(unzIndex)
-    const endQuote = afterUnz.indexOf("'")
-    if (endQuote < 0) return fromStart.trim()
+    const end = fromStart.indexOf(terminator, unzIndex)
+    if (end < 0) return fromStart.trim()
 
-    return fromStart.slice(0, unzIndex + endQuote + 1).trim()
+    return fromStart.slice(0, end + 1).trim()
   }
 
   return null
@@ -101,22 +114,24 @@ function parseNumeric(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
-  const payload = rawPayload.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
-  const normalized = payload.startsWith('UNA') ? payload.slice(9) : payload
-  const segments = normalized
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
+function element(segment: EdifactTokenizedSegment, index: number): string | null {
+  return cleanText(segment.elements[index] ?? null)
+}
 
+export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
+  const tokenized = tokenizeEdifact(rawPayload)
+  const { una } = tokenized
   const references: Record<string, string[]> = {}
   const parties: Record<string, string[]> = {}
   const dates: Record<string, string[]> = {}
+  const locations: Record<string, string[]> = {}
   const quantities: ParsedEdifactEnvelope['quantities'] = []
   const errorCodes: string[] = []
   const freeText: string[] = []
   let messageFamily: ParsedEdifactEnvelope['messageFamily'] = 'OTHER'
   let messageCode: string | null = null
+  let messageFunctionCode: string | null = null
+  let acknowledgementRequestCode: string | null = null
   let interchangeReference: string | null = null
   let transactionReference: string | null = null
   let senderEdielId: string | null = null
@@ -125,97 +140,117 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
   let receiverSubAddress: string | null = null
   let applicationReference: string | null = null
   let bgmReference: string | null = null
+  let syntaxIdentifier: string | null = null
+  let directoryVersion: string | null = null
+  let release: string | null = null
+  let controllingAgency: string | null = null
+  let associationAssignedCode: string | null = null
 
-  for (const segment of segments) {
-    const elements = segment.split('+')
-    const tag = elements[0]
-
-    if (tag === 'UNB') {
-      const sender = splitParty(elements[2] ?? null)
-      const receiver = splitParty(elements[3] ?? null)
-      senderEdielId = sender.edielId
-      senderSubAddress = sender.subAddress
-      receiverEdielId = receiver.edielId
-      receiverSubAddress = receiver.subAddress
-      interchangeReference = cleanText(elements[5])
-      applicationReference = cleanText(elements[7]) ?? applicationReference
+  for (const segment of tokenized.segments) {
+    if (segment.tag === 'UNB') {
+      const syntax = splitComposite(segment.elements[1], una)
+      const sender = splitComposite(segment.elements[2], una)
+      const receiver = splitComposite(segment.elements[3], una)
+      syntaxIdentifier = cleanText(syntax[0] ?? null)
+      senderEdielId = cleanText(sender[0] ?? null)
+      senderSubAddress = cleanText(sender[2] ?? null)
+      receiverEdielId = cleanText(receiver[0] ?? null)
+      receiverSubAddress = cleanText(receiver[2] ?? null)
+      interchangeReference = element(segment, 5)
+      applicationReference = element(segment, 7) ?? applicationReference
     }
 
-    if (tag === 'UNH') {
-      transactionReference = cleanText(elements[1]) ?? transactionReference
-      const typeParts = String(elements[2] ?? '').split(':')
-      const family = cleanText(typeParts[0])?.toUpperCase() ?? 'OTHER'
+    if (segment.tag === 'UNH') {
+      transactionReference = element(segment, 1) ?? transactionReference
+      const typeParts = splitComposite(segment.elements[2], una)
+      const family = cleanText(typeParts[0] ?? null)?.toUpperCase() ?? 'OTHER'
       messageFamily = family === 'PRODAT' || family === 'UTILTS' || family === 'CONTRL' || family === 'APERAK'
         ? family
         : family === 'UTILTS_ERR'
           ? 'UTILTS_ERR'
           : 'OTHER'
+      directoryVersion = cleanText(typeParts[1] ?? null)
+      release = cleanText(typeParts[2] ?? null)
+      controllingAgency = cleanText(typeParts[3] ?? null)
+      associationAssignedCode = cleanText(typeParts[4] ?? null)
     }
 
-    if (tag === 'BGM') {
-      const code = cleanText(elements[1]?.split(':')[0] ?? null)
+    if (segment.tag === 'BGM') {
+      const code = firstCompositeComponent(segment.elements[1], una)
       messageCode = code ?? messageCode
-      bgmReference = cleanText(elements[2]) ?? bgmReference
-      if (code === 'ERR') messageFamily = 'UTILTS_ERR'
+      bgmReference = element(segment, 2) ?? bgmReference
+      messageFunctionCode = firstCompositeComponent(segment.elements[3], una) ?? messageFunctionCode
+      acknowledgementRequestCode = firstCompositeComponent(segment.elements[4], una) ?? acknowledgementRequestCode
+      if (String(code ?? '').toUpperCase() === 'ERR') messageFamily = 'UTILTS_ERR'
     }
 
-    if (tag === 'RFF') {
-      const [qualifier, value] = String(elements[1] ?? '').split(':')
-      pushRecord(references, cleanText(qualifier), cleanText(value))
+    if (segment.tag === 'RFF') {
+      const parts = splitComposite(segment.elements[1], una)
+      const qualifier = cleanText(parts[0] ?? null)
+      const value = cleanText(parts.slice(1).join(una.componentDataElementSeparator))
+      pushRecord(references, qualifier, value)
     }
 
-    if (tag === 'DOC') {
-      const qualifier = cleanText(String(elements[1] ?? '').split(':')[0] ?? null)
-      const value = cleanText(String(elements[2] ?? '').split(':')[0] ?? null)
+    if (segment.tag === 'DOC') {
+      const qualifier = firstCompositeComponent(segment.elements[1], una)
+      const value = firstCompositeComponent(segment.elements[2], una)
       pushRecord(references, qualifier ? `DOC_${qualifier}` : 'DOC', value)
     }
 
-    if (tag === 'UCI') {
-      pushRecord(references, 'UCI', cleanText(elements[1]))
-      const actionCode = cleanText(elements[4])
+    if (segment.tag === 'UCI') {
+      pushRecord(references, 'UCI', element(segment, 1))
+      const actionCode = firstCompositeComponent(segment.elements[4], una)
       if (actionCode) pushRecord(references, 'UCI_ACTION', actionCode)
     }
 
-    if (tag === 'UCM') {
-      pushRecord(references, 'UCM', cleanText(elements[1]))
-      const actionCode = cleanText(elements[4])
+    if (segment.tag === 'UCM') {
+      pushRecord(references, 'UCM', element(segment, 1))
+      const actionCode = firstCompositeComponent(segment.elements[4], una)
       if (actionCode) pushRecord(references, 'UCM_ACTION', actionCode)
     }
 
-    if (tag === 'UCS') {
-      const code = cleanText(elements[2] ?? elements[1] ?? null)
+    if (segment.tag === 'UCS') {
+      const code = firstCompositeComponent(segment.elements[2] ?? segment.elements[1], una)
       if (code) errorCodes.push(code)
     }
 
-    if (tag === 'DTM') {
-      const [qualifier, value] = String(elements[1] ?? '').split(':')
-      pushRecord(dates, cleanText(qualifier), cleanText(value))
+    if (segment.tag === 'DTM') {
+      const parts = splitComposite(segment.elements[1], una)
+      pushRecord(dates, cleanText(parts[0] ?? null), cleanText(parts[1] ?? null))
     }
 
-    if (tag === 'QTY') {
-      const [qualifier, value, unit] = String(elements[1] ?? '').split(':')
-      quantities.push({ qualifier: cleanText(qualifier), rawValue: cleanText(value), value: parseNumeric(cleanText(value)), unit: cleanText(unit) })
+    if (segment.tag === 'LOC') {
+      const qualifier = firstCompositeComponent(segment.elements[1], una)
+      const value = firstCompositeComponent(segment.elements[2], una)
+      pushRecord(locations, qualifier, value)
     }
 
-    if (tag === 'ERC') {
-      const code = cleanText(String(elements[1] ?? '').split(':')[0] ?? null)
+    if (segment.tag === 'QTY') {
+      const parts = splitComposite(segment.elements[1], una)
+      const qualifier = cleanText(parts[0] ?? null)
+      const value = cleanText(parts[1] ?? null)
+      const unit = cleanText(parts[2] ?? null)
+      quantities.push({ qualifier, rawValue: value, value: parseNumeric(value), unit })
+    }
+
+    if (segment.tag === 'ERC') {
+      const code = firstCompositeComponent(segment.elements[1], una)
       if (code) errorCodes.push(code)
     }
 
-    if (tag === 'FTX') {
-      const text = elements
+    if (segment.tag === 'FTX') {
+      const text = segment.elements
         .slice(3)
-        .join(' ')
-        .split(':')
+        .flatMap((value) => splitComposite(value, una))
         .map((part) => cleanText(part))
         .filter((part): part is string => Boolean(part))
         .join(' ')
       if (text) freeText.push(text)
     }
 
-    if (tag === 'NAD') {
-      const qualifier = cleanText(elements[1])
-      const value = cleanText(elements[2]?.split(':')[0] ?? null)
+    if (segment.tag === 'NAD') {
+      const qualifier = firstCompositeComponent(segment.elements[1], una)
+      const value = firstCompositeComponent(segment.elements[2], una)
       pushRecord(parties, qualifier, value)
     }
   }
@@ -224,6 +259,8 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
     rawPayload,
     messageFamily,
     messageCode: normalizeEdifactMessageCode(messageFamily, messageCode),
+    messageFunctionCode,
+    acknowledgementRequestCode,
     interchangeReference,
     transactionReference,
     senderEdielId,
@@ -232,13 +269,21 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
     receiverSubAddress,
     applicationReference,
     bgmReference,
+    messageTypeVersion: {
+      syntaxIdentifier,
+      directoryVersion,
+      release,
+      controllingAgency,
+      associationAssignedCode,
+    },
     references,
     parties,
     dates,
+    locations,
     quantities,
     errorCodes,
     freeText,
-    segments,
+    segments: tokenized.segments.map((segment) => segment.raw),
   }
 }
 

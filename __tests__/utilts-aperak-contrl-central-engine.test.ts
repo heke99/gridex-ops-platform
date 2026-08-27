@@ -60,18 +60,31 @@ describe('central Swedish UTILTS market engine', () => {
     })).toEqual({ requestedMessageCode: 'E66' })
   })
 
-  it('derives E73 Application Reference from the requested application, never generic UTILTS', () => {
+  it('uses the exact requested-message Application Reference and never generates one heuristically', () => {
     expect(resolveCanonicalUtiltsApplicationReference({
       code: 'E73', actorRole: 'supplier', requestedMessageCode: 'S02', resolution: 'monthly',
     })).toBe('23-DDQ-S02-S')
+
     expect(resolveCanonicalUtiltsApplicationReference({
-      code: 'E73', actorRole: 'supplier', requestedMessageCode: 'E66', resolution: '15',
+      code: 'E73',
+      actorRole: 'supplier',
+      requestedMessageCode: 'E66',
+      resolution: '15',
+      applicationReference: '23-DDQ-E66-T',
     })).toBe('23-DDQ-E66-T')
     expect(resolveCanonicalUtiltsApplicationReference({
-      code: 'E73', actorRole: 'supplier', requestedMessageCode: 'E66', resolution: 'hourly',
+      code: 'E73',
+      actorRole: 'supplier',
+      requestedMessageCode: 'E66',
+      resolution: 'hourly',
+      applicationReference: '23-DDQ-E66-S',
     })).toBe('23-DDQ-E66-S')
+
+    expect(() => resolveCanonicalUtiltsApplicationReference({
+      code: 'E73', actorRole: 'supplier', requestedMessageCode: 'E66', resolution: '15',
+    })).toThrow('utilts_application_reference_explicit_value_required:E66')
     expect(() => resolveCanonicalUtiltsApplicationReference({ code: 'E73', actorRole: 'supplier' }))
-      .toThrow('utilts_e73_requested_message_required')
+      .toThrow('utilts_request_application_reference_target_invalid:E73:missing')
 
     const registry = verifyUtiltsRegistryConsistency()
     expect(registry).toEqual({ ok: true, issues: [] })

@@ -4,5 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "b71e6f97363e1fd3d041327443d1ba0d042614a3c49c01524a21dd95bf78f848",
-  "latest_migration": "20260827135630_tenant_integrity_requested_by_fk_index.sql"
+  "latest_migration": "20260827201000_canonical_ediel_tenant_identity_valid_from_post_backfill.sql",
+  "latest_migration_schema_effect": "data_only_no_generated_type_change"
 }

@@ -124,13 +124,12 @@ export async function prepareAndQueueUtiltsE73(params: {
     : null
 
   const resolution = normalizeUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
-  const applicationReference = resolveCanonicalUtiltsApplicationReference({
-    code: 'E73',
-    actorRole: 'supplier',
-    requestedMessageCode,
-    resolution,
-  })
 
+  // Route/actor selection happens first. The selected route may carry an exact
+  // field-311 Application Reference, but it is NOT authoritative by itself: the
+  // canonical 25-A-3 registry below validates it against the requested message.
+  // This intentionally removes the old `quarter_hour => T, otherwise S`
+  // heuristic. For multi-valued E66 an exact configured candidate is required.
   const routeContext = await resolveDecisionBackedOutboundContext({
     requestType: 'meter_values',
     gridOwner,
@@ -152,8 +151,13 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityId,
       requestedPeriodStart: dataRequest.requested_period_start,
       requestedPeriodEnd: dataRequest.requested_period_end,
-      applicationReference,
     },
+  })
+
+  const applicationReference = resolveCanonicalUtiltsApplicationReference({
+    code: 'E73',
+    requestedMessageCode,
+    applicationReference: routeContext.applicationReference,
   })
 
   const outbound = await findOrCreateDataRequestOutbound({
@@ -204,7 +208,7 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityVerified: true,
       bilateralCapabilityId,
       applicationReferencePolicyKey: applicationReference,
-      marketSemanticVersion: 'swedish-utilts-central-2026-08-22',
+      marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
       requestedPeriodStart: dataRequest.requested_period_start,
       requestedPeriodEnd: dataRequest.requested_period_end,
       periodStart: dataRequest.requested_period_start,
@@ -286,12 +290,12 @@ export async function prepareAndQueueUtiltsE73(params: {
     edielMessageId: message.id,
     eventType: 'validated',
     eventStatus: 'success',
-    message: 'UTILTS E73 skapades via central supplier-market engine med verifierad bilateral capability.',
+    message: 'UTILTS E73 skapades med verifierad bilateral capability och explicit canonical Application Reference för efterfrågat meddelande.',
     payload: {
       requestedMessageCode,
       bilateralCapabilityId,
       applicationReference,
-      marketSemanticVersion: 'swedish-utilts-central-2026-08-22',
+      marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
     },
   })
 

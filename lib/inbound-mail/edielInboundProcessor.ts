@@ -2,6 +2,11 @@ import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
 import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
+import { applyCanonicalInboundAckStatusUpdate } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
+import {
+  failClosedOutboundMatchForAck,
+  verifyInboundAckTransportCorrelation,
+} from '@/lib/inbound-mail/inboundAckTransportGuard'
 import {
   applySafeInboundStatusUpdate,
   createInboundEdielMessage,
@@ -140,6 +145,38 @@ export async function processInboundEmailMessage(input: {
     inboundEmailMessageId: input.inboundEmailMessageId,
     parseResultId,
   })
+
+  if (parsed.messageFamily === 'CONTRL' || parsed.messageFamily === 'APERAK') {
+    const transportGuard = await verifyInboundAckTransportCorrelation({
+      companyId: tenant.companyId,
+      environment,
+      parsed,
+      outboundMatch,
+    })
+    const guardedOutboundMatch = failClosedOutboundMatchForAck({ outboundMatch, guard: transportGuard })
+
+    const ackResult = await applyCanonicalInboundAckStatusUpdate({
+      companyId: tenant.companyId,
+      environment,
+      parsed,
+      outboundMatch: guardedOutboundMatch,
+      meteringPointMatch,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId,
+      actorUserId: input.actorUserId ?? null,
+      tenantResolution: tenant.shared,
+    })
+
+    await updateInboundEmailProcessingStatus({
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      companyId: tenant.companyId,
+      status: ackResult.status,
+      matchStatus: ackResult.matchStatus,
+      matchPayload: { tenant, outboundMatch: guardedOutboundMatch, transportGuard, meteringPointMatch, parsed },
+    })
+
+    return { status: ackResult.status, companyId: tenant.companyId, parseResultId }
+  }
 
   const safeMatch = outboundMatch.status === 'matched'
   const matchStatus = safeMatch ? 'matched' : outboundMatch.status
