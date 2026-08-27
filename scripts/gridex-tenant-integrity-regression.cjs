@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+const readBytes = (file) => fs.readFileSync(path.join(root, file))
 const assert = (condition, message) => {
   if (!condition) {
     console.error(`❌ ${message}`)
@@ -13,10 +15,29 @@ const assert = (condition, message) => {
   console.log(`✅ ${message}`)
 }
 
-const baseMigration = read('supabase/migrations/20260827134553_tenant_integrity_auditor_v1.sql')
-const aggregateHotfix = read('supabase/migrations/20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql')
-const latestViews = read('supabase/migrations/20260827134827_tenant_integrity_effective_latest_views.sql')
-const requesterIndex = read('supabase/migrations/20260827135630_tenant_integrity_requested_by_fk_index.sql')
+const migrationPaths = [
+  'supabase/migrations/20260827134553_tenant_integrity_auditor_v1.sql',
+  'supabase/migrations/20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql',
+  'supabase/migrations/20260827134827_tenant_integrity_effective_latest_views.sql',
+  'supabase/migrations/20260827135630_tenant_integrity_requested_by_fk_index.sql',
+]
+const migrationHashes = Object.fromEntries(
+  migrationPaths.map((file) => [path.basename(file), crypto.createHash('sha256').update(readBytes(file)).digest('hex')])
+)
+const migrationManifest = JSON.parse(read('scripts/migration-history-manifest.additions.json'))
+
+console.log('Tenant integrity migration SHA256:')
+for (const [file, hash] of Object.entries(migrationHashes)) {
+  console.log(`${file} ${hash}`)
+}
+for (const [file, hash] of Object.entries(migrationHashes)) {
+  assert(migrationManifest.files?.[file] === hash, `migration provenance pin matches ${file}`)
+}
+
+const baseMigration = read(migrationPaths[0])
+const aggregateHotfix = read(migrationPaths[1])
+const latestViews = read(migrationPaths[2])
+const requesterIndex = read(migrationPaths[3])
 const service = read('lib/tenant/integrity.ts')
 const page = read('app/admin/system/tenant-integrity/page.tsx')
 const actions = read('app/admin/system/tenant-integrity/actions.ts')
