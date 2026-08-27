@@ -137,6 +137,7 @@
     "20260827134553_tenant_integrity_auditor_v1.sql": "13beb652ffb9d1dfb5872f3208ee8837942de1666e23e0b8c161a73885373783",
     "20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql": "c62f4953a200c1f06988c501fd1197a889f80290125be792f74abda93e42723c",
     "20260827134827_tenant_integrity_effective_latest_views.sql": "30357ffb592992d7e640137046cb34331959dd923b0785fef85d3f0fcf67673f",
-    "20260827135630_tenant_integrity_requested_by_fk_index.sql": "b13f9b7bd7764b1df0027deef99dcba1b7e2977417a51961d04c424229cdf62f"
+    "20260827135630_tenant_integrity_requested_by_fk_index.sql": "b13f9b7bd7764b1df0027deef99dcba1b7e2977417a51961d04c424229cdf62f",
+    "20260827193000_canonical_ediel_tenant_identity_and_legacy_route_cleanup.sql": "872d1aac4bdef4655b47c680d12319093db7a0cee6e931ffcf7afbbc5fbbb61b"
   }
 }
