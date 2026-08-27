@@ -1,18 +1,18 @@
 # Current task
 
-Updated: 2026-08-25
+Updated: 2026-08-27
 
-Status: `IMPLEMENTED_NOT_VERIFIED`
+Status: `IMPLEMENTED_PENDING_PR_VERIFICATION`
 
-Active work item: improve Gridex OPS runtime performance without changing tenant isolation, RBAC/RLS, pricing, customer/site ownership, EDIEL/supplier-switch behavior, legal evidence, API contracts, or write semantics.
+Active work item: post-`17179c84`/#233 tenant integrity residual hardening.
 
 ## Current batch
 
-1. Install and lock the focused performance skill set.
-2. Deduplicate the dashboard's repeated server-verified `auth.getUser()` lookup with request-scoped React cache.
-3. Start the independent platform-role and operational-company-scope reads in parallel after verified authentication.
-4. Keep `/dashboard`, `/admin`, `/portal`, and other authenticated surfaces dynamic.
+1. OUTBOUND-001 schema-safe rewrite (typed outbound_requests columns only).
+2. Severity-first findings load before UI limit + summary-based header metrics.
+3. UUID validation on audit action companyId.
+4. Regression/npm script/unit coverage.
 
 ## Exact next action
 
-Run the branch through targeted regression, typecheck, full Vitest, production build, existing performance/N+1/bundle guards, and Vercel preview. Keep only verified improvements; do not merge until explicitly requested.
+Wait for PR `#234` CI/hosted gates; do not merge without explicit authorization. Keep `#232` as the separate merge vehicle for grid-owner unique-match residuals.
