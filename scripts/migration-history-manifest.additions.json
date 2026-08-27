@@ -119,7 +119,7 @@
     "20260824140830_website_poa_materialization_and_grid_owner_send_guard.sql": "9b968ad24e76a63b00610fe28f3add269e0f5de20ae681ed7ed71861cebc7023",
     "20260824145700_customer_application_grid_owner_dependency_wait.sql": "795ba39580ec47c7eba4f673c95bd88fed0b163ae9ae3e36acb83281ab3988eb",
     "20260824150500_customer_application_dependency_wait_state_projection.sql": "e0ba4c948a5a7dbff8a12a8a5224b16fdc821cca8a6a717c2fc94dadbfa4c9ab",
-    "20260824151800_exact_address_cache_street_number.sql": "365fad8426f43454219a5fc25f4cd5e0cbb1a2968044f79bb004af00230308fa",
+    "20260824151800_exact_address_cache_street_number.sql": "365fad8426f43454219a6cf25f4cd5e0cbb1a2968044f79bb004af00230308fa",
     "20260824153500_site_verified_grid_owner_manual_outbox_guard.sql": "f5377b866b01e079d19dfa95a945bd3fb801a84e1957afe17b901381d6f66761",
     "20260824190000_gridex_inbound_operations_foundation.sql": "09310e637bcd884ee153883a03ab30918aff9393d8d6594d18ab073a179eba4f",
     "20260825091402_allow_postal_centroid_price_area_assurance_source.sql": "543d994630b5d596068d2d1716ff6ae0cd341302a2ed8dd9dddbf4d46c8e110d",
