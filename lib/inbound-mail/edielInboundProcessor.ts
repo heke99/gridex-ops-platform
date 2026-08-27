@@ -4,6 +4,10 @@ import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { applyCanonicalInboundAckStatusUpdate } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import {
+  failClosedOutboundMatchForAck,
+  verifyInboundAckTransportCorrelation,
+} from '@/lib/inbound-mail/inboundAckTransportGuard'
+import {
   applySafeInboundStatusUpdate,
   createInboundEdielMessage,
   createParseResult,
@@ -143,11 +147,19 @@ export async function processInboundEmailMessage(input: {
   })
 
   if (parsed.messageFamily === 'CONTRL' || parsed.messageFamily === 'APERAK') {
-    const ackResult = await applyCanonicalInboundAckStatusUpdate({
+    const transportGuard = await verifyInboundAckTransportCorrelation({
       companyId: tenant.companyId,
       environment,
       parsed,
       outboundMatch,
+    })
+    const guardedOutboundMatch = failClosedOutboundMatchForAck({ outboundMatch, guard: transportGuard })
+
+    const ackResult = await applyCanonicalInboundAckStatusUpdate({
+      companyId: tenant.companyId,
+      environment,
+      parsed,
+      outboundMatch: guardedOutboundMatch,
       meteringPointMatch,
       inboundEmailMessageId: input.inboundEmailMessageId,
       parseResultId,
@@ -160,7 +172,7 @@ export async function processInboundEmailMessage(input: {
       companyId: tenant.companyId,
       status: ackResult.status,
       matchStatus: ackResult.matchStatus,
-      matchPayload: { tenant, outboundMatch, meteringPointMatch, parsed },
+      matchPayload: { tenant, outboundMatch: guardedOutboundMatch, transportGuard, meteringPointMatch, parsed },
     })
 
     return { status: ackResult.status, companyId: tenant.companyId, parseResultId }
