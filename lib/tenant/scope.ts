@@ -199,7 +199,7 @@ export async function assertUserCanOperateCompany(
   if (await isPlatformAdminUser(userId)) {
     const { data, error } = await supabaseService
       .from('companies')
-      .select('id')
+      .select('id, status')
       .eq('id', normalized)
       .maybeSingle()
 
@@ -208,7 +208,17 @@ export async function assertUserCanOperateCompany(
       throw error
     }
 
-    if (data?.id) return normalized
+    if (!data?.id) {
+      throw new Error('Det valda elhandelsbolaget finns inte.')
+    }
+
+    if (!isCompanyWritableInTenantWorkspace(data.status)) {
+      throw new Error(
+        'Bolaget är pausat eller inte operativt. Vanliga driftåtgärder är blockerade även för platform admin tills bolaget återaktiveras via tenantstyrningen.'
+      )
+    }
+
+    return normalized
   }
 
   const memberships = await listOperationalCompaniesForUser(userId)
