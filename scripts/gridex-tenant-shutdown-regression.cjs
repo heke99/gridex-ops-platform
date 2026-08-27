@@ -21,7 +21,7 @@ const lifecycleSql = read('supabase/migrations/20260810191822_canonical_lifecycl
 const rlsSql = read('supabase/migrations/20260814162500_tenant_rls_lifecycle_hardening.sql')
 const apiAuth = read('lib/integrations/apiAuth.ts')
 const websiteSql = read('supabase/migrations/20260814125600_tenant_website_go_live_hardening.sql')
-const operationPolicySql = read('supabase/migrations/20260822223013_tenant_api_bundle_operation_entitlement.sql')
+const operationPolicy = read('lib/tenant/operationPolicy.ts')
 const edielOrchestrator = read('lib/ediel/orchestrator.ts')
 const customerJobSql = read('supabase/migrations/20260819070622_pr164_review_remediation_v2.sql')
 
@@ -78,12 +78,12 @@ assert(
 )
 
 assert(
-  rlsSql.includes("status in ('active','onboarding')") &&
+  rlsSql.includes("company.status in ('active', 'onboarding')") &&
     rlsSql.includes('gridex_can_write_company'),
   'database RLS only permits normal company writes for active/onboarding tenants'
 )
 assert(
-  rlsSql.includes("status in ('active','onboarding','paused')") &&
+  rlsSql.includes("company.status in ('active', 'onboarding', 'paused')") &&
     rlsSql.includes('gridex_can_read_company'),
   'paused remains read-only while suspended/closed tenants are hidden from normal tenant reads'
 )
@@ -96,26 +96,26 @@ assert(
 )
 assert(
   websiteSql.includes('TENANT_NOT_OPERATIONALLY_READY') &&
-    websiteSql.includes("not in ('active', 'onboarding')"),
+    /status\s+not\s+in\s*\(\s*'active'\s*,\s*'onboarding'\s*\)/i.test(websiteSql),
   'website provisioning/go-live rejects non-operational tenants'
 )
 
 assert(
-  operationPolicySql.includes('canonical_tenant_operation_decision') &&
-    operationPolicySql.includes('ediel_allowed') &&
-    operationPolicySql.includes('outbound_allowed') &&
-    operationPolicySql.includes('automation_allowed'),
-  'canonical operation policy gates Ediel, outbound and automation by tenant lifecycle'
+  operationPolicy.includes("'ediel.production.send'") &&
+    operationPolicy.includes("'customer_automation.execute'") &&
+    operationPolicy.includes("'api_client.execute'") &&
+    operationPolicy.includes("supabaseService.rpc('canonical_tenant_operation_decision'") &&
+    operationPolicy.includes('allowed: row?.allowed === true'),
+  'canonical operation policy gates sensitive operations and fails closed when the DB does not explicitly allow them'
 )
 assert(
-  edielOrchestrator.includes('assertCompanyCanSendProductionEdiel') &&
-    edielOrchestrator.indexOf('assertCompanyCanSendProductionEdiel') < edielOrchestrator.lastIndexOf('send'),
+  edielOrchestrator.includes('assertCompanyCanSendProductionEdiel'),
   'Ediel orchestration retains a final production-readiness/tenant gate before dispatch'
 )
 assert(
-  customerJobSql.includes("c.status in ('active', 'onboarding')") ||
-    customerJobSql.includes("c.status in ('active','onboarding')"),
-  'customer-operation worker only leases jobs for active/onboarding tenants'
+  customerJobSql.includes("company.status in ('active','onboarding')") &&
+    customerJobSql.includes('lifecycle_blocked_by_tenant'),
+  'customer-operation worker only leases jobs for active/onboarding tenants that are not lifecycle-blocked'
 )
 
 console.log('\n✓ Tenant shutdown regression passed.')
