@@ -9,6 +9,8 @@ export type ParsedEdifactEnvelope = {
   rawPayload: string
   messageFamily: 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | 'OTHER'
   messageCode: string | null
+  messageFunctionCode: string | null
+  acknowledgementRequestCode: string | null
   interchangeReference: string | null
   transactionReference: string | null
   senderEdielId: string | null
@@ -78,7 +80,6 @@ function edifactStartIndex(candidate: string): number {
 }
 
 function segmentTerminatorForPayload(payload: string): string {
-  // UNA is exactly nine characters including the segment terminator.
   return payload.startsWith('UNA') && payload.length >= 9 ? payload[8] : "'"
 }
 
@@ -129,6 +130,8 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
   const freeText: string[] = []
   let messageFamily: ParsedEdifactEnvelope['messageFamily'] = 'OTHER'
   let messageCode: string | null = null
+  let messageFunctionCode: string | null = null
+  let acknowledgementRequestCode: string | null = null
   let interchangeReference: string | null = null
   let transactionReference: string | null = null
   let senderEdielId: string | null = null
@@ -176,6 +179,8 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
       const code = firstCompositeComponent(segment.elements[1], una)
       messageCode = code ?? messageCode
       bgmReference = element(segment, 2) ?? bgmReference
+      messageFunctionCode = firstCompositeComponent(segment.elements[3], una) ?? messageFunctionCode
+      acknowledgementRequestCode = firstCompositeComponent(segment.elements[4], una) ?? acknowledgementRequestCode
       if (String(code ?? '').toUpperCase() === 'ERR') messageFamily = 'UTILTS_ERR'
     }
 
@@ -254,6 +259,8 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
     rawPayload,
     messageFamily,
     messageCode: normalizeEdifactMessageCode(messageFamily, messageCode),
+    messageFunctionCode,
+    acknowledgementRequestCode,
     interchangeReference,
     transactionReference,
     senderEdielId,
