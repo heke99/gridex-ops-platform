@@ -66,7 +66,9 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
-    fieldMatrixStatus: 'pending',
+    // 77 fields x 13 message functions are materialized immutably in
+    // lib/ediel/prodat/prodat26AFieldMatrix.ts. DB rows are projections only.
+    fieldMatrixStatus: 'certified',
   },
   {
     family: 'APERAK',
@@ -79,7 +81,9 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
-    fieldMatrixStatus: 'pending',
+    // PRODAT APERAK BGM/function + ERC/FTX semantics are code-owned by the
+    // family-specific APERAK classifier/rulebook, not by mutable DB rows.
+    fieldMatrixStatus: 'certified',
   },
   {
     family: 'CONTRL',
