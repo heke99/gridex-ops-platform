@@ -7,19 +7,24 @@ const root = process.cwd()
 const directory = path.join(root, 'supabase', 'migrations')
 const manifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
 const additionsPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
+const edielAdditionsPath = path.join(root, 'scripts', 'migration-history-manifest.ediel.additions.json')
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
 const additions = fs.existsSync(additionsPath)
   ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
+  : { files: {} }
+const edielAdditions = fs.existsSync(edielAdditionsPath)
+  ? JSON.parse(fs.readFileSync(edielAdditionsPath, 'utf8'))
   : { files: {} }
 const allowedLegacyCollisions = manifest.allowedLegacyCollisions ?? {}
 const allowedUnversionedFiles = new Set(manifest.allowedUnversionedFiles ?? [])
 const baseFiles = manifest.files ?? {}
 const additionFiles = additions.files ?? {}
-const expectedFiles = { ...baseFiles, ...additionFiles }
+const edielAdditionFiles = edielAdditions.files ?? {}
+const expectedFiles = { ...baseFiles, ...additionFiles, ...edielAdditionFiles }
 const actualNames = fs.readdirSync(directory).filter((name) => name.endsWith('.sql')).sort()
 const failures = []
 
-for (const [name, checksum] of Object.entries(additionFiles)) {
+for (const [name, checksum] of Object.entries({ ...additionFiles, ...edielAdditionFiles })) {
   if (baseFiles[name] && baseFiles[name] !== checksum) {
     failures.push(`Additive manifest conflicts with canonical checksum: ${name}`)
   }
