@@ -89,10 +89,12 @@ assert(
 )
 
 assert(
-  apiAuth.includes('tenant_suspended') &&
-    apiAuth.includes('tenant_paused') &&
-    apiAuth.includes('tenantApiAccessError'),
-  'integration API centrally rejects suspended/paused tenants'
+  apiAuth.includes("status === 'paused'") &&
+    apiAuth.includes("code: 'organization_paused'") &&
+    apiAuth.includes("status === 'suspended'") &&
+    apiAuth.includes("code: 'organization_suspended'") &&
+    apiAuth.includes("supabaseService.rpc('authenticate_integration_request_v1'"),
+  'integration API centrally rejects suspended/paused tenants and uses atomic DB authentication'
 )
 assert(
   websiteSql.includes('TENANT_NOT_OPERATIONALLY_READY') &&
