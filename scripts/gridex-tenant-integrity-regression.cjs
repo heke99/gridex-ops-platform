@@ -20,6 +20,7 @@ const migrationPaths = [
   'supabase/migrations/20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql',
   'supabase/migrations/20260827134827_tenant_integrity_effective_latest_views.sql',
   'supabase/migrations/20260827135630_tenant_integrity_requested_by_fk_index.sql',
+  'supabase/migrations/20260827161000_tenant_integrity_outbound_schema_safe_v1.sql',
 ]
 const migrationHashes = Object.fromEntries(
   migrationPaths.map((file) => [path.basename(file), crypto.createHash('sha256').update(readBytes(file)).digest('hex')])
@@ -38,6 +39,7 @@ const baseMigration = read(migrationPaths[0])
 const aggregateHotfix = read(migrationPaths[1])
 const latestViews = read(migrationPaths[2])
 const requesterIndex = read(migrationPaths[3])
+const outboundSchemaSafe = read(migrationPaths[4])
 const service = read('lib/tenant/integrity.ts')
 const page = read('app/admin/system/tenant-integrity/page.tsx')
 const actions = read('app/admin/system/tenant-integrity/actions.ts')
@@ -127,6 +129,14 @@ assert(
   'server service reads canonical summary/finding views'
 )
 assert(
+  /\.from\('tenant_integrity_latest_findings_v'\)[\s\S]*?\.order\('severity',\s*\{\s*ascending:\s*true\s*\}\)[\s\S]*?\.order\('detected_at',\s*\{\s*ascending:\s*false\s*\}\)[\s\S]*?\.limit\(250\)/.test(service),
+  'latest findings are severity-first before the UI limit so critical/high are not truncated away'
+)
+assert(
+  page.includes('companies.reduce') && page.includes('critical_count') && page.includes('high_count'),
+  'dashboard severity metrics use company summary aggregates instead of the truncated findings page'
+)
+assert(
   actions.includes('requirePlatformAdminActionAccess'),
   'audit mutation requires platform-admin action access'
 )
@@ -137,6 +147,20 @@ assert(
 assert(
   page.includes('runTenantIntegrityAuditAction'),
   'tenant integrity UI exposes explicit audit execution'
+)
+
+const outboundSafeSql = outboundSchemaSafe
+assert(outboundSafeSql.includes('tenant_integrity_outbound_schema_safe'), 'OUTBOUND schema-safe migration is marked')
+assert(outboundSafeSql.includes("'OUTBOUND-001'"), 'OUTBOUND schema-safe migration rewrites OUTBOUND-001')
+assert(
+  !/o\.supplier_switch_request_id|o\.switch_request_id|o\.customer_contract_id|o\.contract_id/.test(
+    outboundSafeSql.split('$new$')[1] || ''
+  ),
+  'OUTBOUND-001 no longer references outbound_requests columns absent from the typed schema'
+)
+assert(
+  /left join public\.metering_points mp on mp\.id=o\.metering_point_id/.test(outboundSafeSql),
+  'OUTBOUND-001 still validates metering-point tenant linkage'
 )
 
 for (const unsafePattern of [

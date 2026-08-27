@@ -122,6 +122,8 @@
     "gridex:automation-idempotency-multisite-regression": "node scripts/gridex-automation-idempotency-multisite-regression.cjs",
     "gridex:messages-operations-visibility-regression": "node scripts/gridex-messages-operations-visibility-regression.cjs",
     "gridex:tenant-source-of-truth-regression": "node scripts/gridex-tenant-source-of-truth-regression.cjs",
+    "gridex:tenant-integrity-regression": "node scripts/gridex-tenant-integrity-regression.cjs",
+    "gridex:tenant-shutdown-regression": "node scripts/gridex-tenant-shutdown-regression.cjs",
     "gridex:shared-mailbox-tenant-resolution-regression": "node scripts/gridex-shared-mailbox-tenant-resolution-regression.cjs",
     "gridex:test-production-separation-regression": "node scripts/gridex-test-production-separation-regression.cjs",
     "gridex:z01-production-resolver-environment-regression": "node scripts/gridex-z01-production-resolver-environment-regression.cjs",
