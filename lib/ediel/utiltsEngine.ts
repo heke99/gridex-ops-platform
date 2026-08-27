@@ -7,9 +7,9 @@ import {
   type UtiltsRuntimeResult,
   type UtiltsRuntimeValidation,
   type UtiltsValidationIssue,
-} from '@/lib/ediel/utiltsEngineLegacy'
+} from '@/lib/ediel/utiltsEngine.part-1'
 
-export * from '@/lib/ediel/utiltsEngineLegacy'
+export * from '@/lib/ediel/utiltsEngine.part-1'
 
 export type UtiltsRuntimeReferenceOptions = {
   referenceDate?: string | Date | null
