@@ -50,7 +50,11 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'future_effective',
-    fieldMatrixStatus: 'pending',
+    // The active-message field matrix is the certified 25-A-3 base plus the
+    // explicit 25-A-4 overlay in utilts25A4.ts. Removed S08-only fields and
+    // processability/code-list changes are versioned there; no duplicated
+    // independent matrix is allowed.
+    fieldMatrixStatus: 'certified',
   },
   {
     family: 'PRODAT',
@@ -70,10 +74,6 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     associationAssignedCode: 'E2SE6A',
     documentName: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B',
     latestUpdated: '2026-06-30',
-    // 16.B semantics are stated as valid from 2016-12-01. The current Swedish
-    // electricity envelope binding E2SE6A is taken from the 26-A/16-B guide;
-    // we only activate that binding from the current PRODAT 26-A epoch rather
-    // than pretending E2SE6A was historically valid back to 2016.
     semanticEffectiveFrom: '2016-12-01',
     effectiveFrom: '2026-04-01',
     effectiveTo: null,
@@ -87,8 +87,6 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     associationAssignedCode: null,
     documentName: '260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6',
     latestUpdated: '2026-02-20',
-    // The guide explicitly states validity from 2024-04-01 and 2024-10-01.
-    // Keep both activation dates instead of inventing a single earlier date.
     effectiveFrom: '2024-04-01',
     activationDates: ['2024-04-01', '2024-10-01'],
     effectiveTo: null,
