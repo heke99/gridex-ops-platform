@@ -45,17 +45,17 @@ export type UtiltsCanonicalProfile = {
   location172Requirement: UtiltsLocation172Requirement
   identityRequirement: UtiltsIdentityRequirement
   requiresTransaction: boolean
-  /** Compatibility summary: true only when field 209 is unconditionally R. */
+  /** Operational compatibility summary. Exact R/D/O/X remains in utiltsFieldMatrix. */
   requiresMeteringPoint: boolean
-  /** Compatibility summary: true only when field 260a is unconditionally R. */
+  /** Operational compatibility summary. Exact conditional area rules remain in utiltsFieldMatrix. */
   requiresGridArea: boolean
-  /** Compatibility summary for unconditional delivery-period requirement. */
+  /** Operational compatibility summary for a delivery-period-bearing transaction. */
   requiresPeriod: boolean
-  /** Compatibility summary for unconditional field-508 requirement. */
+  /** Operational compatibility summary for resolution-bearing value messages. */
   requiresResolution: boolean
-  /** Compatibility summary for unconditional field-264 requirement. */
+  /** Operational compatibility summary for unit-bearing value messages. */
   requiresUnit: boolean
-  /** True only when the profile has an unconditional quantity in its canonical value model. */
+  /** True when the business message carries observations/quantities; request families are false. */
   requiresQuantities: boolean
   supportsCorrections: boolean
   validatesDst: boolean
@@ -70,13 +70,19 @@ const CURRENT_UTILTS_GUIDE = {
   effectiveTo: '2026-09-30',
 } as const
 
+/**
+ * Business-process labels are stable Gridex domain contracts. They are not the
+ * normative field matrix; those rules live in utiltsFieldMatrix. Keep these
+ * names stable so persisted requests/UI do not silently change semantics when
+ * a guide source is refactored.
+ */
 const UTILTS_BUSINESS_PROCESSES: Record<UtiltsCanonicalMessageCode, string> = {
   S01: 'aggregated_settlement',
   S02: 'object_consumption_forecast',
-  S03: 'preliminary_load_profile_shares_grid_owner',
-  S04: 'preliminary_load_profile_shares_esett',
+  S03: 'preliminary_shares',
+  S04: 'summed_plan_values',
   S05: 'aggregated_settlement',
-  S06: 'missing_aggregated_settlement_request',
+  S06: 'bilateral_aggregate_request',
   S07: 'object_time_series',
   E30: 'collected_metering',
   E31: 'final_aggregated_metering',
@@ -121,6 +127,36 @@ const IDENTITY_REQUIREMENT: Record<UtiltsCanonicalMessageCode, UtiltsIdentityReq
   ERR: 'error_context',
 }
 
+/**
+ * These are business-processing summaries used by older orchestration/UI code.
+ * They intentionally do NOT replace the R/D/O/X matrix. A `D` network-area
+ * field can still be required for a supported transaction depending on the
+ * time-series product. The canonical validator must evaluate that condition.
+ */
+const OPERATIONAL_REQUIREMENTS: Record<UtiltsCanonicalMessageCode, {
+  meteringPoint: boolean
+  gridArea: boolean
+  period: boolean
+  resolution: boolean
+  unit: boolean
+  quantities: boolean
+}> = {
+  E30: { meteringPoint: true,  gridArea: true,  period: true,  resolution: true,  unit: false, quantities: true },
+  E31: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  E66: { meteringPoint: true,  gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  E72: { meteringPoint: true,  gridArea: false, period: true,  resolution: false, unit: false, quantities: false },
+  E73: { meteringPoint: true,  gridArea: false, period: true,  resolution: false, unit: false, quantities: false },
+  E74: { meteringPoint: false, gridArea: true,  period: true,  resolution: false, unit: false, quantities: false },
+  S01: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  S02: { meteringPoint: true,  gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  S03: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  S04: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  S05: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  S06: { meteringPoint: false, gridArea: true,  period: true,  resolution: false, unit: false, quantities: false },
+  S07: { meteringPoint: true,  gridArea: false, period: true,  resolution: true,  unit: true,  quantities: true },
+  ERR: { meteringPoint: false, gridArea: false, period: false, resolution: false, unit: false, quantities: false },
+}
+
 function location172Requirement(code: UtiltsCanonicalMessageCode): UtiltsLocation172Requirement {
   if (code === 'ERR') return 'conditional'
   const requirement = getUtiltsFieldRequirement(code, '209', 'metering_point_id')
@@ -128,11 +164,6 @@ function location172Requirement(code: UtiltsCanonicalMessageCode): UtiltsLocatio
   if (requirement === 'D' || requirement === 'O') return 'conditional'
   if (requirement === 'X') return 'forbidden'
   throw new Error(`utilts_location_172_rule_missing:${code}`)
-}
-
-function unconditionalField(code: UtiltsCanonicalMessageCode, fieldNo: string, semanticKey: string): boolean {
-  if (code === 'ERR') return false
-  return getUtiltsFieldRequirement(code, fieldNo, semanticKey) === 'R'
 }
 
 function readiness(code: UtiltsCanonicalMessageCode): UtiltsCanonicalProfile['productionReadiness'] {
@@ -168,12 +199,13 @@ type ProfileInput = Omit<
   | 'requiresPeriod'
   | 'requiresResolution'
   | 'requiresUnit'
+  | 'requiresQuantities'
 >
 
 function profile(input: ProfileInput): UtiltsCanonicalProfile {
   const market = getUtiltsMarketProfile(input.messageCode)
   if (!market) throw new Error(`utilts_market_profile_missing:${input.messageCode}`)
-  const location172 = location172Requirement(input.messageCode)
+  const operational = OPERATIONAL_REQUIREMENTS[input.messageCode]
   return {
     ...input,
     officialMeaning: UTILTS_OFFICIAL_MEANINGS[input.messageCode],
@@ -189,32 +221,33 @@ function profile(input: ProfileInput): UtiltsCanonicalProfile {
     correctResult: 'positive_aperak',
     applicationErrorResult: 'negative_aperak',
     functionalErrorResult: 'utilts_err',
-    location172Requirement: location172,
+    location172Requirement: location172Requirement(input.messageCode),
     identityRequirement: IDENTITY_REQUIREMENT[input.messageCode],
-    requiresMeteringPoint: location172 === 'required',
-    requiresGridArea: unconditionalField(input.messageCode, '260a', 'grid_area_id'),
-    requiresPeriod: unconditionalField(input.messageCode, '245', input.scope === 'request' ? 'delivery_period' : 'delivery_period'),
-    requiresResolution: unconditionalField(input.messageCode, '508', 'resolution'),
-    requiresUnit: unconditionalField(input.messageCode, '264', 'unit'),
+    requiresMeteringPoint: operational.meteringPoint,
+    requiresGridArea: operational.gridArea,
+    requiresPeriod: operational.period,
+    requiresResolution: operational.resolution,
+    requiresUnit: operational.unit,
+    requiresQuantities: operational.quantities,
   }
 }
 
 const common = ['UNB', 'UNH', 'BGM', 'DTM', 'NAD']
 export const UTILTS_CANONICAL_PROFILES: readonly UtiltsCanonicalProfile[] = [
-  profile({ profileKey: 'utilts_e66', messageCode: 'E66', phase: 'metering', scope: 'metering_point', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: true, validatesDst: true, agtCases: ['UL2', 'UL3', 'UE1', 'UE2'] }),
-  profile({ profileKey: 'utilts_e31', messageCode: 'E31', phase: 'settlement', scope: 'grid_area', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: true, validatesDst: true, agtCases: ['UL6'] }),
-  profile({ profileKey: 'utilts_e30', messageCode: 'E30', phase: 'metering', scope: 'metering_point', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: true, validatesDst: true, agtCases: [] }),
-  profile({ profileKey: 'utilts_e72', messageCode: 'E72', phase: 'metering', scope: 'request', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: false, validatesDst: false, agtCases: [] }),
-  profile({ profileKey: 'utilts_e73', messageCode: 'E73', phase: 'metering', scope: 'request', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: false, validatesDst: false, agtCases: [] }),
-  profile({ profileKey: 'utilts_e74', messageCode: 'E74', phase: 'settlement', scope: 'request', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: false, validatesDst: false, agtCases: [] }),
-  profile({ profileKey: 'utilts_s01', messageCode: 'S01', phase: 'settlement', scope: 'grid_area', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: true, validatesDst: false, agtCases: [] }),
-  profile({ profileKey: 'utilts_s02', messageCode: 'S02', phase: 'planning', scope: 'metering_point', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, requiresQuantities: true, supportsCorrections: true, validatesDst: false, agtCases: ['UL4'] }),
-  profile({ profileKey: 'utilts_s03', messageCode: 'S03', phase: 'planning', scope: 'grid_area', requiredSignals: [...common, 'IDE', 'LOC+239'], requiresTransaction: true, requiresQuantities: true, supportsCorrections: true, validatesDst: true, agtCases: ['UL1'] }),
-  profile({ profileKey: 'utilts_s04', messageCode: 'S04', phase: 'planning', scope: 'grid_area', requiredSignals: [...common, 'IDE', 'LOC+239'], requiresTransaction: true, requiresQuantities: true, supportsCorrections: true, validatesDst: true, agtCases: [] }),
-  profile({ profileKey: 'utilts_s05', messageCode: 'S05', phase: 'settlement', scope: 'grid_area', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: true, validatesDst: false, agtCases: [] }),
-  profile({ profileKey: 'utilts_s06', messageCode: 'S06', phase: 'settlement', scope: 'request', requiredSignals: [...common, 'IDE'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: false, validatesDst: false, agtCases: [] }),
-  profile({ profileKey: 'utilts_s07', messageCode: 'S07', phase: 'settlement', scope: 'metering_point', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, requiresQuantities: false, supportsCorrections: true, validatesDst: true, agtCases: [] }),
-  profile({ profileKey: 'utilts_err', messageCode: 'ERR', phase: 'metering', scope: 'error', requiredSignals: ['UNB', 'UNH', 'BGM', 'ERC'], requiresTransaction: false, requiresQuantities: false, supportsCorrections: false, validatesDst: false, agtCases: ['UE1', 'UE2'] }),
+  profile({ profileKey: 'utilts_e66', messageCode: 'E66', phase: 'metering', scope: 'metering_point', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: true, validatesDst: true, agtCases: ['UL2', 'UL3', 'UE1', 'UE2'] }),
+  profile({ profileKey: 'utilts_e31', messageCode: 'E31', phase: 'settlement', scope: 'grid_area', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: true, validatesDst: true, agtCases: ['UL6'] }),
+  profile({ profileKey: 'utilts_e30', messageCode: 'E30', phase: 'metering', scope: 'metering_point', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, supportsCorrections: true, validatesDst: true, agtCases: [] }),
+  profile({ profileKey: 'utilts_e72', messageCode: 'E72', phase: 'metering', scope: 'request', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, supportsCorrections: false, validatesDst: false, agtCases: [] }),
+  profile({ profileKey: 'utilts_e73', messageCode: 'E73', phase: 'metering', scope: 'request', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: false, validatesDst: false, agtCases: [] }),
+  profile({ profileKey: 'utilts_e74', messageCode: 'E74', phase: 'settlement', scope: 'request', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: false, validatesDst: false, agtCases: [] }),
+  profile({ profileKey: 'utilts_s01', messageCode: 'S01', phase: 'settlement', scope: 'grid_area', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: true, validatesDst: false, agtCases: [] }),
+  profile({ profileKey: 'utilts_s02', messageCode: 'S02', phase: 'planning', scope: 'metering_point', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, supportsCorrections: true, validatesDst: false, agtCases: ['UL4'] }),
+  profile({ profileKey: 'utilts_s03', messageCode: 'S03', phase: 'planning', scope: 'grid_area', requiredSignals: [...common, 'IDE', 'LOC+239'], requiresTransaction: true, supportsCorrections: true, validatesDst: true, agtCases: ['UL1'] }),
+  profile({ profileKey: 'utilts_s04', messageCode: 'S04', phase: 'planning', scope: 'grid_area', requiredSignals: [...common, 'IDE', 'LOC+239'], requiresTransaction: true, supportsCorrections: true, validatesDst: true, agtCases: [] }),
+  profile({ profileKey: 'utilts_s05', messageCode: 'S05', phase: 'settlement', scope: 'grid_area', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: true, validatesDst: false, agtCases: [] }),
+  profile({ profileKey: 'utilts_s06', messageCode: 'S06', phase: 'settlement', scope: 'request', requiredSignals: [...common, 'IDE'], requiresTransaction: true, supportsCorrections: false, validatesDst: false, agtCases: [] }),
+  profile({ profileKey: 'utilts_s07', messageCode: 'S07', phase: 'settlement', scope: 'metering_point', requiredSignals: [...common, 'IDE', 'LOC+172'], requiresTransaction: true, supportsCorrections: true, validatesDst: true, agtCases: [] }),
+  profile({ profileKey: 'utilts_err', messageCode: 'ERR', phase: 'metering', scope: 'error', requiredSignals: ['UNB', 'UNH', 'BGM', 'ERC'], requiresTransaction: false, supportsCorrections: false, validatesDst: false, agtCases: ['UE1', 'UE2'] }),
 ] as const
 
 export function getCanonicalUtiltsProfile(messageCode: string | null | undefined): UtiltsCanonicalProfile | null {
@@ -237,6 +270,9 @@ export function resolveCanonicalUtiltsProfile(input: {
 
   const businessDate = String(input.businessDate ?? '').trim().slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)) throw new Error('utilts_profile_business_date_invalid')
+  if (businessDate < CURRENT_UTILTS_GUIDE.effectiveFrom) {
+    throw new Error(`utilts_profile_not_effective:${businessDate}`)
+  }
 
   const guide = resolveAuthoritativeEdielGuide({
     family: 'UTILTS',
