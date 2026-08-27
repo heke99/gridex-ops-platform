@@ -128,6 +128,15 @@
     "20260825235900_gridex_customer_status_counts_v1.sql": "760aeaadb955fea05049a6663a6a9c596c32cf62dbfc3e2dcfc55057cb938df2",
     "20260826093000_platform_dashboard_and_rls_read_performance.sql": "f9084068f4eead62330b1b394b6b4cab5f47ff68b411bdb144009314c2b85a2c",
     "20260826103000_electricity_suppliers_masterdata_rls_guard.sql": "b0dcf5c1e2c4e7f1849d1d1d25bdf5ee47b57f8f945af46ef3a67c4dcab8525f",
-    "20260826213000_invoice_review_projection_sync.sql": "29a55288a96865d5349d7a82de47d5a898f05dd1ab8851a2a7fcd5de6ad88e0d"
+    "20260826213000_invoice_review_projection_sync.sql": "29a55288a96865d5349d7a82de47d5a898f05dd1ab8851a2a7fcd5de6ad88e0d",
+    "20260827111400_add_actor_identifier_ediel_lookup_index.sql": "ef18214a0eb6cd25931ee3972727a7671edbd288cf4f9e699430c939b1f7dce8",
+    "20260827124127_optimize_grid_owner_actor_matching_regression_safe_v2.sql": "cf24fcff658604660cd215bddef72fdbf99e03a3b1577db0656a7101ff9e5cbc",
+    "20260827125003_optimize_platform_grid_owner_sync_join.sql": "b515aad187f98e04b3875ae3bfaad476a4d5ac26512803021975f3d09afa4873",
+    "20260827125221_optimize_grid_owner_backfill_antijoins_v2.sql": "568257fbd1d955886895556730735c6f28a6d1ca2243fb64ded56a628bbc8c66",
+    "20260827130351_skip_noop_grid_owner_link_writes.sql": "06aa8a8cc6b9a0c11034f59ed86289ffe36da0bcb58ab961cd43f8b649c77c13",
+    "20260827134553_tenant_integrity_auditor_v1.sql": "13beb652ffb9d1dfb5872f3208ee8837942de1666e23e0b8c161a73885373783",
+    "20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql": "c62f4953a200c1f06988c501fd1197a889f80290125be792f74abda93e42723c",
+    "20260827134827_tenant_integrity_effective_latest_views.sql": "30357ffb592992d7e640137046cb34331959dd923b0785fef85d3f0fcf67673f",
+    "20260827135630_tenant_integrity_requested_by_fk_index.sql": "b13f9b7bd7764b1df0027deef99dcba1b7e2977417a51961d04c424229cdf62f"
   }
 }

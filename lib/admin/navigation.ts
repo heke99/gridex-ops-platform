@@ -216,6 +216,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'data_cleanup', label: 'Datahantering', href: '/admin/platform/data-cleanup', description: 'Arkivera och rensa testdata säkert', pageKey: 'platform.security', platformOnly: true },
       { key: 'security', label: 'Produktionsskydd', href: '/admin/platform/security', description: 'Tenant-isolering och systemdiagnostik', pageKey: 'platform.security', platformOnly: true },
       { key: 'system_health', label: 'Systemstatus', href: '/admin/system-health', description: 'Driftstatus för API, Ediel, webhooks, routes och fakturering', pageKey: 'platform.security', platformOnly: true },
+      { key: 'tenant_integrity', label: 'Tenant-integritet', href: '/admin/system/tenant-integrity', description: 'Canonical audit av tenant, RBAC, kundgraf, outbound och Ediel', pageKey: 'platform.security', platformOnly: true },
       { key: 'auth_diag', label: 'Systemdiagnostik', href: '/admin/system/auth-diagnostics', description: 'Auth och accessdiagnostik', platformOnly: true },
     ],
   },

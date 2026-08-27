@@ -1,0 +1,50 @@
+name: Tenant integrity regression
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'lib/tenant/integrity.ts'
+      - 'lib/tenant/scope.ts'
+      - 'lib/tenant/lifecycle.ts'
+      - 'lib/tenant/operationPolicy.ts'
+      - 'lib/integrations/apiAuth.ts'
+      - 'lib/integrations/webhooks.ts'
+      - 'lib/email/emailOutbox.ts'
+      - 'lib/ediel/orchestrator.ts'
+      - 'app/admin/companies/**'
+      - 'app/admin/system/tenant-integrity/**'
+      - 'scripts/gridex-tenant-integrity-regression.cjs'
+      - 'scripts/gridex-tenant-shutdown-regression.cjs'
+      - '.github/workflows/tenant-integrity-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'lib/tenant/integrity.ts'
+      - 'lib/tenant/scope.ts'
+      - 'lib/tenant/lifecycle.ts'
+      - 'lib/tenant/operationPolicy.ts'
+      - 'lib/integrations/apiAuth.ts'
+      - 'lib/integrations/webhooks.ts'
+      - 'lib/email/emailOutbox.ts'
+      - 'lib/ediel/orchestrator.ts'
+      - 'app/admin/companies/**'
+      - 'app/admin/system/tenant-integrity/**'
+      - 'scripts/gridex-tenant-integrity-regression.cjs'
+      - 'scripts/gridex-tenant-shutdown-regression.cjs'
+      - '.github/workflows/tenant-integrity-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tenant-integrity-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify tenant integrity contracts
+        run: node scripts/gridex-tenant-integrity-regression.cjs
+      - name: Verify tenant shutdown contracts
+        run: node scripts/gridex-tenant-shutdown-regression.cjs
