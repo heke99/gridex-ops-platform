@@ -101,9 +101,15 @@ export async function getGridOwnerVerification(gridOwnerId: string | null | unde
     .from('gridex_verified_grid_owners_v')
     .select(verificationSelect)
     .eq('grid_owner_id', gridOwnerId)
-    .maybeSingle()
+    .limit(2)
 
-  if (!view.error) return mapVerification(view.data as Record<string, unknown> | null)
+  if (!view.error) {
+    const rows = (view.data ?? []) as Array<Record<string, unknown>>
+    if (rows.length > 1) {
+      throw new Error(`grid_owner_verification_ambiguous:${gridOwnerId}`)
+    }
+    return mapVerification(rows[0] ?? null)
+  }
   if (!missingSchema(view.error)) throw view.error
 
   const fallback = await supabaseService

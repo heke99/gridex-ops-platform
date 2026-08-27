@@ -403,12 +403,18 @@
     "20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql": "98241372a19bb2c4db672cd2f28990d3a086fe2e959697e83a3bfa1b5b8242c2",
     "20260814232000_bind_website_sales_to_live_production.sql": "48a7eb20af6f7ba5d76cc24e0f91fa94b110a954d99d05e4d8a00c99dccf4f15",
     "20260814234000_certification_evidence_passed_integrity.sql": "67e9943bcaff02f1c099becbd7dac9eb9823626ed7b13e9f2d216a13925fc9c9",
+    "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991",
+    "20260815003554_conditional_limited_pilot_evidence_gate.sql": "d05eaff0ce10b5084d512187c10e06906fcd86c66f0a7ae33920e90463a6f513",
+    "20260827111400_add_actor_identifier_ediel_lookup_index.sql": "ef18214a0eb6cd25931ee3972727a7671edbd288cf4f9e699430c939b1f7dce8",
+    "20260827124127_optimize_grid_owner_actor_matching_regression_safe_v2.sql": "cf24fcff658604660cd215bddef72fdbf99e03a3b1577db0656a7101ff9e5cbc",
+    "20260827125003_optimize_platform_grid_owner_sync_join.sql": "b515aad187f98e04b3875ae3bfaad476a4d5ac26512803021975f3d09afa4873",
+    "20260827125221_optimize_grid_owner_backfill_antijoins_v2.sql": "568257fbd1d955886895556730735c6f28a6d1ca2243fb64ded56a628bbc8c66",
+    "20260827130351_skip_noop_grid_owner_link_writes.sql": "06aa8a8cc6b9a0c11034f59ed86289ffe36da0bcb58ab961cd43f8b649c77c13",
+    "20260827141000_grid_owner_backfill_unique_ops_link_guard.sql": "b566e21f56d1a14f714dd30e2d7a5cd8c8147b5e92c9eb667461902c882442e8",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
-    "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991",
-    "20260815003554_conditional_limited_pilot_evidence_gate.sql": "d05eaff0ce10b5084d512187c10e06906fcd86c66f0a7ae33920e90463a6f513"
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

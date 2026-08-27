@@ -137,6 +137,7 @@
     "gridex:facility-lookup-manual-workflow-regression": "node scripts/gridex-facility-lookup-manual-workflow-regression.cjs",
     "gridex:manual-grid-owner-information-request-regression": "node scripts/gridex-manual-grid-owner-information-request-regression.cjs && node scripts/gridex-manual-grid-owner-live-fixes-regression.cjs",
     "gridex:manual-grid-owner-live-fixes-regression": "node scripts/gridex-manual-grid-owner-live-fixes-regression.cjs",
+    "gridex:grid-owner-readiness-perf-residuals-regression": "node scripts/gridex-grid-owner-readiness-perf-residuals-regression.cjs",
     "gridex:website-api-power-of-attorney-regression": "node scripts/gridex-website-api-power-of-attorney-regression.cjs",
     "gridex:legal-poa-platform-hardening-regression": "node scripts/gridex-legal-poa-platform-hardening-regression.cjs",
     "gridex:inbound-facility-recognition-regression": "node scripts/gridex-inbound-facility-recognition-regression.cjs",
