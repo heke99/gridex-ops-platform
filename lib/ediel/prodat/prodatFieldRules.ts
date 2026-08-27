@@ -1,14 +1,25 @@
-export const SUPPORTED_PRODAT_BUSINESS_CODES = ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'] as const
+import {
+  PRODAT_26A_MESSAGE_CODES,
+  canonicalProdat26AFieldRules,
+  type Prodat26AMessageCode,
+} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
-export type SupportedProdatBusinessCode = (typeof SUPPORTED_PRODAT_BUSINESS_CODES)[number]
+export const SUPPORTED_PRODAT_BUSINESS_CODES = PRODAT_26A_MESSAGE_CODES
+export type SupportedProdatBusinessCode = Prodat26AMessageCode
 
 export function isSupportedProdatBusinessCode(value: string | null | undefined): value is SupportedProdatBusinessCode {
   return SUPPORTED_PRODAT_BUSINESS_CODES.includes(String(value ?? '').toUpperCase() as SupportedProdatBusinessCode)
 }
 
+/** Compatibility helper. Required segment tags are derived from the immutable
+ * 26.A field matrix rather than maintained as a second semantic list. */
 export function requiredProdatSegmentsForCode(code: string): string[] {
-  const normalized = code.toUpperCase()
-  if (normalized === 'Z13' || normalized === 'Z18') return ['BGM', 'DTM', 'NAD', 'LIN', 'RFF', 'CCI', 'CAV']
-  if (normalized === 'Z14' || normalized === 'Z15') return ['BGM', 'DTM', 'NAD', 'LIN', 'RFF']
-  return ['BGM', 'DTM', 'NAD', 'LIN']
+  const tags = canonicalProdat26AFieldRules(code)
+    .filter((rule) => rule.requirement === 'required')
+    .map((rule) => String(rule.segmentPath ?? '').split('/')[0])
+    .map((path) => path.split('+')[0])
+    .filter(Boolean)
+  return Array.from(new Set(tags))
 }
+
+export { canonicalProdat26AFieldRules }
