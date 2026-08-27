@@ -84,6 +84,7 @@ export async function listPlatformControlTowerAlerts(): Promise<PlatformControlT
     blockedBillingCount,
     unresolvedOutboundCount,
     tenantConflictCount,
+    integrityReleaseGateCount,
     highAccessCount,
     pendingInvitationCount,
   ] = await Promise.all([
@@ -111,6 +112,10 @@ export async function listPlatformControlTowerAlerts(): Promise<PlatformControlT
     ]),
     safeCount('customer_sync_events', [
       { column: 'match_status', op: 'in', value: ['unresolved', 'pending'] },
+    ]),
+    safeCount('tenant_integrity_latest_findings_v', [
+      { column: 'enforcement_mode', value: 'release_gate' },
+      { column: 'severity', op: 'in', value: ['critical', 'high'] },
     ]),
     countHighAccessUsers(),
     safeCount('company_invitations', [{ column: 'status', value: 'pending' }]),
@@ -206,6 +211,17 @@ export async function listPlatformControlTowerAlerts(): Promise<PlatformControlT
       severity: 'warning',
       href: '/admin/operations/sync',
       count: tenantConflictCount,
+    })
+  }
+
+  if (integrityReleaseGateCount > 0) {
+    alerts.push({
+      id: 'tenant-integrity-release-gates',
+      title: 'Tenant-integritet kräver åtgärd',
+      description: 'Canonical tenant-auditen har kritiska eller höga release-gate-fynd. Kontrollera evidens innan berörda flöden ändras eller produktionssätts.',
+      severity: 'danger',
+      href: '/admin/system/tenant-integrity',
+      count: integrityReleaseGateCount,
     })
   }
 
