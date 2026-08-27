@@ -16,6 +16,7 @@ const assert = (condition, message) => {
 const baseMigration = read('supabase/migrations/20260827134553_tenant_integrity_auditor_v1.sql')
 const aggregateHotfix = read('supabase/migrations/20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql')
 const latestViews = read('supabase/migrations/20260827134827_tenant_integrity_effective_latest_views.sql')
+const requesterIndex = read('supabase/migrations/20260827135630_tenant_integrity_requested_by_fk_index.sql')
 const service = read('lib/tenant/integrity.ts')
 const page = read('app/admin/system/tenant-integrity/page.tsx')
 const actions = read('app/admin/system/tenant-integrity/actions.ts')
@@ -90,6 +91,10 @@ assert(
 assert(
   aggregateHotfix.includes("min(tep.id::text)::uuid"),
   'UUID aggregate hotfix is persisted'
+)
+assert(
+  requesterIndex.includes('tenant_integrity_runs_requested_by_idx') && requesterIndex.includes('tenant_integrity_audit_runs(requested_by)'),
+  'audit requested_by foreign key has a covering index'
 )
 
 assert(
