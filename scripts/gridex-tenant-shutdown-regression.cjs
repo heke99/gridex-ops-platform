@@ -23,6 +23,8 @@ const apiAuth = read('lib/integrations/apiAuth.ts')
 const websiteSql = read('supabase/migrations/20260814125600_tenant_website_go_live_hardening.sql')
 const operationPolicy = read('lib/tenant/operationPolicy.ts')
 const edielOrchestrator = read('lib/ediel/orchestrator.ts')
+const emailOutbox = read('lib/email/emailOutbox.ts')
+const webhooks = read('lib/integrations/webhooks.ts')
 const customerJobSql = read('supabase/migrations/20260819070622_pr164_review_remediation_v2.sql')
 
 assert(
@@ -103,7 +105,9 @@ assert(
 )
 
 assert(
-  operationPolicy.includes("'ediel.production.send'") &&
+  operationPolicy.includes("'email.send'") &&
+    operationPolicy.includes("'webhook.deliver'") &&
+    operationPolicy.includes("'ediel.production.send'") &&
     operationPolicy.includes("'customer_automation.execute'") &&
     operationPolicy.includes("'api_client.execute'") &&
     operationPolicy.includes("supabaseService.rpc('canonical_tenant_operation_decision'") &&
@@ -113,6 +117,18 @@ assert(
 assert(
   edielOrchestrator.includes('assertCompanyCanSendProductionEdiel'),
   'Ediel orchestration retains a final production-readiness/tenant gate before dispatch'
+)
+assert(
+  emailOutbox.includes("getTenantOperationDecision(row.company_id, 'email.send')") &&
+    emailOutbox.includes('sendTenantEmailOutboxRow') &&
+    emailOutbox.includes('blocked_tenant_state'),
+  'email outbox rechecks tenant lifecycle after claim and before provider send'
+)
+assert(
+  (webhooks.match(/getTenantOperationDecision\(delivery\.company_id, 'webhook\.deliver'\)/g) ?? []).length >= 3 &&
+    webhooks.includes('blocked_tenant_state') &&
+    webhooks.includes('postPublicWebhook'),
+  'webhook delivery rechecks tenant lifecycle through claim, delivery and transport boundaries'
 )
 assert(
   customerJobSql.includes("company.status in ('active','onboarding')") &&
