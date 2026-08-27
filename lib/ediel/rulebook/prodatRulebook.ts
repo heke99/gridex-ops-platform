@@ -1,5 +1,11 @@
 import { evaluateApplicationReferenceGuard } from '@/lib/ediel/rulebook/canonicalRules'
 import { getCanonicalEdielError, type CanonicalEdielErrorKey } from '@/lib/ediel/rulebook/mapEdielError'
+import {
+  allowedProdatSubtypes,
+  resolveProdatSubtype,
+  type ProdatMessageCode,
+  type ProdatSubtypeRule,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type ProdatRuleProfileKey =
   | 'prodat_z01_customer_identity_request'
@@ -26,10 +32,18 @@ export type ProdatProcessGroup =
 
 export type ProdatCanonicalProfile = {
   profileKey: ProdatRuleProfileKey
-  messageCode: string
+  messageCode: ProdatMessageCode
+  meaning: string
   applicationReference: '23-DDQ-PRODAT' | '23-DGI-PRODAT'
+  associationAssignedCode: 'E2SE6A'
+  edifactDirectory: 'D97A'
+  guideVersion: '26.A'
+  guideRevision: '3'
+  effectiveFrom: '2026-04-01'
   processGroup: ProdatProcessGroup
+  /** Compatibility projection only. Canonical validation uses subtypeRules. */
   allowedVariants: string[]
+  subtypeRules: readonly ProdatSubtypeRule[]
   direction: 'actor_to_portal' | 'portal_to_actor'
   senderRole: 'supplier' | 'esco' | 'grid_owner'
   receiverRole: 'supplier' | 'esco' | 'grid_owner'
@@ -40,30 +54,74 @@ export type ProdatCanonicalProfile = {
   errorKeys: CanonicalEdielErrorKey[]
 }
 
+const common = {
+  associationAssignedCode: 'E2SE6A',
+  edifactDirectory: 'D97A',
+  guideVersion: '26.A',
+  guideRevision: '3',
+  effectiveFrom: '2026-04-01',
+  expectedAckFamily: 'APERAK',
+  requiresContrl: true,
+} as const
+
+function variants(code: ProdatMessageCode): { allowedVariants: string[]; subtypeRules: readonly ProdatSubtypeRule[] } {
+  const rules = allowedProdatSubtypes(code)
+  return {
+    allowedVariants: rules.flatMap((rule) => [rule.subtype, rule.transactionReasonCode]),
+    subtypeRules: rules,
+  }
+}
+
+function profile(input: Omit<ProdatCanonicalProfile,
+  | 'associationAssignedCode'
+  | 'edifactDirectory'
+  | 'guideVersion'
+  | 'guideRevision'
+  | 'effectiveFrom'
+  | 'expectedAckFamily'
+  | 'requiresContrl'
+  | 'allowedVariants'
+  | 'subtypeRules'
+>): ProdatCanonicalProfile {
+  return { ...input, ...common, ...variants(input.messageCode) }
+}
+
 /**
- * Compile-time PRODAT 26.A contract for the market roles Gridex supports.
- * The dated DB rule pack is the runtime source of truth; this registry is the
- * fail-closed code contract used by labels/support checks and regression tests.
+ * Canonical Swedish electricity-market PRODAT 26.A Revision 3 catalog.
+ * Message/subtype combinations are derived from field 223 in the current guide;
+ * do not add a second hand-maintained combination matrix here.
  */
 export const PRODAT_CANONICAL_PROFILES: ProdatCanonicalProfile[] = [
-  { profileKey: 'prodat_z01_customer_identity_request', messageCode: 'Z01', applicationReference: '23-DDQ-PRODAT', processGroup: 'customer_masterdata', allowedVariants: ['L', 'LK', 'Z22', 'Z23'], direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', expectedAckFamily: 'APERAK', requiresContrl: true, z01AperakException: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'MANDATORY_FIELD_MISSING'] },
-  { profileKey: 'prodat_z02_customer_identity_response', messageCode: 'Z02', applicationReference: '23-DDQ-PRODAT', processGroup: 'customer_masterdata', allowedVariants: ['L', 'LK', 'Z22', 'Z23'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'MANDATORY_FIELD_MISSING'] },
-  { profileKey: 'prodat_z03_supplier_switch', messageCode: 'Z03', applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', allowedVariants: ['L', 'LK', 'C', 'Z22', 'Z23', 'Z24'], direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD+FR', 'NAD+DO', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'INCORRECT_METERING_POINT_ID', 'INCORRECT_GRID_AREA_ID'] },
-  { profileKey: 'prodat_z04_supplier_switch_confirmation', messageCode: 'Z04', applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', allowedVariants: ['L', 'LK', 'C', 'A', 'D', 'Z22', 'Z23', 'Z24', 'Z26', 'Z70'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] },
-  { profileKey: 'prodat_z05_old_supplier_confirmation', messageCode: 'Z05', applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', allowedVariants: ['L', 'LK', 'C', 'Z22', 'Z23', 'Z24'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] },
-  { profileKey: 'prodat_z06_masterdata_grid_to_supplier', messageCode: 'Z06', applicationReference: '23-DDQ-PRODAT', processGroup: 'masterdata', allowedVariants: ['E', 'F', 'G', 'E34', 'E64', 'E32'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] },
-  { profileKey: 'prodat_z08_contract_end', messageCode: 'Z08', applicationReference: '23-DDQ-PRODAT', processGroup: 'delivery_contract', allowedVariants: ['H', 'Z25'], direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] },
-  { profileKey: 'prodat_z09_masterdata_supplier_to_grid', messageCode: 'Z09', applicationReference: '23-DDQ-PRODAT', processGroup: 'masterdata', allowedVariants: ['B', 'D', 'E', 'F', 'G', 'Z27', 'Z70', 'E34', 'E64', 'E32'], direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] },
-  { profileKey: 'prodat_z10_meter_change', messageCode: 'Z10', applicationReference: '23-DDQ-PRODAT', processGroup: 'metering', allowedVariants: ['M', 'E58'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] },
-  { profileKey: 'prodat_z13_permission_request', messageCode: 'Z13', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', allowedVariants: ['V', 'VH', 'S17', 'S18'], direction: 'actor_to_portal', senderRole: 'esco', receiverRole: 'grid_owner', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'RFF+Z05'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'ACTOR_NOT_CONNECTED'] },
-  { profileKey: 'prodat_z14_permission_response', messageCode: 'Z14', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', allowedVariants: ['V', 'VH', 'N', 'S17', 'S18', 'Z96'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'esco', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'RFF+LI'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'INCORRECT_PERMISSION_STATUS'] },
-  { profileKey: 'prodat_z15_permission_ended', messageCode: 'Z15', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', allowedVariants: ['V', 'VH', 'C', 'S17', 'S18', 'Z24'], direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'esco', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'DTM+693', 'DTM+164', 'CCI+Z13', 'CCI+Z23', 'CCI+Z25', 'RFF+Z05', 'RFF+LI', 'RFF+Z09'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'INCORRECT_PERMISSION_STATUS', 'INCORRECT_PERMISSION_END_REASON'] },
-  { profileKey: 'prodat_z18_permission_end_request', messageCode: 'Z18', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', allowedVariants: ['V', 'S17'], direction: 'actor_to_portal', senderRole: 'esco', receiverRole: 'grid_owner', expectedAckFamily: 'APERAK', requiresContrl: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM+693', 'DTM+164', 'NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'CCI+Z13', 'CCI+Z25', 'RFF+Z05', 'RFF+LI', 'RFF+Z09'], errorKeys: ['INCORRECT_PERMISSION_END_REASON', 'ACTOR_NOT_CONNECTED'] },
+  profile({ profileKey: 'prodat_z01_customer_identity_request', messageCode: 'Z01', meaning: 'Request for customer identity', applicationReference: '23-DDQ-PRODAT', processGroup: 'customer_masterdata', direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', z01AperakException: true, requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'MANDATORY_FIELD_MISSING'] }),
+  profile({ profileKey: 'prodat_z02_customer_identity_response', messageCode: 'Z02', meaning: 'Response to customer identity request', applicationReference: '23-DDQ-PRODAT', processGroup: 'customer_masterdata', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'MANDATORY_FIELD_MISSING'] }),
+  profile({ profileKey: 'prodat_z03_supplier_switch', messageCode: 'Z03', meaning: 'Supplier switch / move notification', applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD+FR', 'NAD+DO', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'INCORRECT_METERING_POINT_ID', 'INCORRECT_GRID_AREA_ID'] }),
+  profile({ profileKey: 'prodat_z04_supplier_switch_confirmation', messageCode: 'Z04', meaning: 'Grid-owner confirmation/information about supplier switch or move', applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] }),
+  profile({ profileKey: 'prodat_z05_old_supplier_confirmation', messageCode: 'Z05', meaning: 'Grid-owner confirmation/information to old supplier', applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] }),
+  profile({ profileKey: 'prodat_z06_masterdata_grid_to_supplier', messageCode: 'Z06', meaning: 'Grid-owner masterdata update to supplier', applicationReference: '23-DDQ-PRODAT', processGroup: 'masterdata', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] }),
+  profile({ profileKey: 'prodat_z08_contract_end', messageCode: 'Z08', meaning: 'Supplier information about ended/rescinded contract', applicationReference: '23-DDQ-PRODAT', processGroup: 'delivery_contract', direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] }),
+  profile({ profileKey: 'prodat_z09_masterdata_supplier_to_grid', messageCode: 'Z09', meaning: 'Supplier masterdata update to grid owner', applicationReference: '23-DDQ-PRODAT', processGroup: 'masterdata', direction: 'actor_to_portal', senderRole: 'supplier', receiverRole: 'grid_owner', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] }),
+  profile({ profileKey: 'prodat_z10_meter_change', messageCode: 'Z10', meaning: 'Meter update from grid owner to supplier', applicationReference: '23-DDQ-PRODAT', processGroup: 'metering', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'supplier', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD', 'LIN'], errorKeys: ['OBJECT_NOT_IDENTIFIED'] }),
+  profile({ profileKey: 'prodat_z13_permission_request', messageCode: 'Z13', meaning: 'ESCO request for metering-value access', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', direction: 'actor_to_portal', senderRole: 'esco', receiverRole: 'grid_owner', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'RFF+Z05'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'ACTOR_NOT_CONNECTED'] }),
+  profile({ profileKey: 'prodat_z14_permission_response', messageCode: 'Z14', meaning: 'Grid-owner approval/rejection of metering-value access', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'esco', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM', 'NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'RFF+LI'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'INCORRECT_PERMISSION_STATUS'] }),
+  profile({ profileKey: 'prodat_z15_permission_ended', messageCode: 'Z15', meaning: 'Grid-owner termination of active metering-value permission', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', direction: 'portal_to_actor', senderRole: 'grid_owner', receiverRole: 'esco', requiredSignals: ['NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'DTM+693', 'DTM+164', 'CCI+Z13', 'CCI+Z23', 'CCI+Z25', 'RFF+Z05', 'RFF+LI', 'RFF+Z09'], errorKeys: ['OBJECT_NOT_IDENTIFIED', 'INCORRECT_PERMISSION_STATUS', 'INCORRECT_PERMISSION_END_REASON'] }),
+  profile({ profileKey: 'prodat_z18_permission_end_request', messageCode: 'Z18', meaning: 'ESCO request to end metering-value reporting', applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', direction: 'actor_to_portal', senderRole: 'esco', receiverRole: 'grid_owner', requiredSignals: ['UNB', 'UNH', 'BGM', 'DTM+693', 'DTM+164', 'NAD+FR', 'NAD+DO', 'NAD+UD', 'LIN', 'CCI+Z13', 'CCI+Z25', 'RFF+Z05', 'RFF+LI', 'RFF+Z09'], errorKeys: ['INCORRECT_PERMISSION_END_REASON', 'ACTOR_NOT_CONNECTED'] }),
 ]
 
 export function getCanonicalProdatProfile(messageCode: string | null | undefined): ProdatCanonicalProfile | null {
   const code = String(messageCode ?? '').toUpperCase()
-  return PRODAT_CANONICAL_PROFILES.find((profile) => profile.messageCode === code) ?? null
+  return PRODAT_CANONICAL_PROFILES.find((entry) => entry.messageCode === code) ?? null
+}
+
+export function validateProdatSubtype(input: {
+  messageCode?: string | null
+  subtypeOrReasonCode?: string | null
+  bilateralCapabilityVerified?: boolean
+}) {
+  return resolveProdatSubtype({
+    messageCode: input.messageCode,
+    subtypeOrReasonCode: input.subtypeOrReasonCode,
+    bilateralCapabilityVerified: input.bilateralCapabilityVerified,
+  })
 }
 
 export function validateProdatApplicationReference(input: { messageCode?: string | null; applicationReference?: string | null }) {
