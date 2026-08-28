@@ -1,7 +1,11 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { OPEN_SUPPLIER_SWITCH_STATUSES } from '@/lib/operations/switchLifecycleBlocks'
-import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmLocalToUtc, strictIsoDate } from '@/lib/time/stockholm'
+import {
+  canonicalProdatSubtypeForMessage,
+  canonicalSupplierSwitchSendPolicyProjection,
+  type CanonicalSupplierSwitchSendPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 export type SupplierSwitchScheduleBlocker = { code: string; message: string }
 
@@ -15,52 +19,13 @@ export const ACTIVE_SUPPLIER_SWITCH_STATUSES = Array.from(new Set<string>([
   ...LEGACY_ACTIVE_SUPPLIER_SWITCH_STATUSES,
 ]))
 
-export type SupplierSwitchPolicy = {
-  version: string
-  sendWindowOpenLeadDays: number
-  sendWindowCloseOffsetDays: number
-  marketLeadDays: number
-  calendar: 'Europe/Stockholm'
-}
+export type SupplierSwitchPolicy = CanonicalSupplierSwitchSendPolicy
 
-function positiveInteger(value: unknown, name: string, allowZero = true): number {
-  const number = Number(value)
-  if (!Number.isInteger(number) || number < (allowZero ? 0 : 1) || number > 3650) {
-    throw new Error(`invalid_supplier_switch_policy_${name}`)
-  }
-  return number
-}
-
-export async function loadSupplierSwitchPolicy(companyId: string, environment = 'production', onDate = new Date()): Promise<SupplierSwitchPolicy> {
-  await assertPlatformSchemaReady()
-  const localDate = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(onDate)
-  const { data, error } = await supabaseService
-    .from('market_process_policies')
-    .select('id,company_id,policy_version,policy,valid_from,valid_to')
-    .eq('process_code', 'supplier_switch')
-    .eq('environment', environment)
-    .eq('is_active', true)
-    .lte('valid_from', localDate)
-    .or(`valid_to.is.null,valid_to.gte.${localDate}`)
-    .or(`company_id.is.null,company_id.eq.${companyId}`)
-    .order('valid_from', { ascending: false })
-    .limit(20)
-  if (error) throw error
-  const rows = (data ?? []) as Array<{ id: string; company_id: string | null; policy_version: string; policy: Record<string, unknown> }>
-  const tenant = rows.filter((row) => row.company_id === companyId)
-  const global = rows.filter((row) => row.company_id === null)
-  const tier = tenant.length > 0 ? tenant : global
-  if (tier.length !== 1) throw new Error(tier.length === 0 ? 'supplier_switch_policy_missing' : 'supplier_switch_policy_ambiguous')
-  const row = tier[0]
-  return {
-    version: row.policy_version,
-    sendWindowOpenLeadDays: positiveInteger(row.policy.send_window_open_lead_days, 'open_lead_days'),
-    sendWindowCloseOffsetDays: positiveInteger(row.policy.send_window_close_offset_days, 'close_offset_days'),
-    marketLeadDays: positiveInteger(row.policy.market_lead_days, 'market_lead_days'),
-    calendar: row.policy.calendar === 'Europe/Stockholm' ? 'Europe/Stockholm' : (() => { throw new Error('invalid_supplier_switch_policy_calendar') })(),
-  }
+export function loadSupplierSwitchPolicy(input: {
+  subtype?: 'L' | 'LK' | 'C' | null
+  cancellationOfSubtype?: 'L' | 'LK' | null
+} = {}): SupplierSwitchPolicy {
+  return canonicalSupplierSwitchSendPolicyProjection(input)
 }
 
 function dateOnlyToStockholmStart(value: string): Date {
@@ -69,17 +34,49 @@ function dateOnlyToStockholmStart(value: string): Date {
   return stockholmLocalToUtc({ year, month, day })
 }
 
-function addCalendarDays(date: Date, days: number): Date {
-  const local = new Intl.DateTimeFormat('sv-SE', {
+function stockholmDateOnly(value: Date): string {
+  return new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(date)
-  const [year, month, day] = local.split('-').map(Number)
-  const utcCalendar = new Date(Date.UTC(year, month - 1, day + days))
-  return stockholmLocalToUtc({ year: utcCalendar.getUTCFullYear(), month: utcCalendar.getUTCMonth() + 1, day: utcCalendar.getUTCDate() })
+  }).format(value)
+}
+
+function dateParts(value: string): { year: number; month: number; day: number } {
+  const strict = strictIsoDate(value, 'requested_start_date')
+  const [year, month, day] = strict.split('-').map(Number)
+  return { year, month, day }
+}
+
+function formatDate(year: number, month: number, day: number): string {
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+function addCalendarDaysDateOnly(value: string, days: number): string {
+  const { year, month, day } = dateParts(value)
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return formatDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+}
+
+function addCalendarMonthsDateOnly(value: string, months: number): string {
+  const { year, month, day } = dateParts(value)
+  const zeroBased = year * 12 + (month - 1) + months
+  const targetYear = Math.floor(zeroBased / 12)
+  const targetMonthIndex = ((zeroBased % 12) + 12) % 12
+  const targetMonth = targetMonthIndex + 1
+  return formatDate(targetYear, targetMonth, Math.min(day, daysInMonth(targetYear, targetMonth)))
+}
+
+function stockholmEndOfDate(value: string): Date {
+  const next = addCalendarDaysDateOnly(value, 1)
+  return new Date(dateOnlyToStockholmStart(next).getTime() - 1)
 }
 
 export type SupplierSwitchSendWindow = {
   requestedStartDate: string | null
+  transactionSubtype: 'L' | 'LK' | 'C'
   sendWindowOpensAt: string | null
   sendWindowClosesAt: string | null
   sendNotBefore: string | null
@@ -94,19 +91,44 @@ export function evaluateSupplierSwitchSendWindow(input: {
 }): SupplierSwitchSendWindow {
   const now = input.now ?? new Date()
   if (!input.requestedStartDate) {
-    return { requestedStartDate: null, sendWindowOpensAt: null, sendWindowClosesAt: null, sendNotBefore: null, windowOpen: false, reason: 'missing_start_date' }
+    return {
+      requestedStartDate: null,
+      transactionSubtype: input.policy.subtype,
+      sendWindowOpensAt: null,
+      sendWindowClosesAt: null,
+      sendNotBefore: null,
+      windowOpen: false,
+      reason: 'missing_start_date',
+    }
   }
-  let start: Date
+
+  let startDate: string
   try {
-    start = dateOnlyToStockholmStart(input.requestedStartDate)
+    startDate = strictIsoDate(input.requestedStartDate, 'requested_start_date')
   } catch {
-    return { requestedStartDate: input.requestedStartDate, sendWindowOpensAt: null, sendWindowClosesAt: null, sendNotBefore: null, windowOpen: false, reason: 'invalid_start_date' }
+    return {
+      requestedStartDate: input.requestedStartDate,
+      transactionSubtype: input.policy.subtype,
+      sendWindowOpensAt: null,
+      sendWindowClosesAt: null,
+      sendNotBefore: null,
+      windowOpen: false,
+      reason: 'invalid_start_date',
+    }
   }
-  const opensAt = addCalendarDays(start, -input.policy.sendWindowOpenLeadDays)
-  const closesAt = addCalendarDays(start, input.policy.sendWindowCloseOffsetDays)
-  const reason = now < opensAt ? 'too_early' : now >= closesAt ? 'expired' : 'open'
+
+  const opensDate = input.policy.maxAdvanceMonths === null
+    ? stockholmDateOnly(now)
+    : addCalendarMonthsDateOnly(startDate, -input.policy.maxAdvanceMonths)
+  const closesDate = addCalendarDaysDateOnly(startDate, input.policy.latestRelativeToStartDays)
+  const today = stockholmDateOnly(now)
+  const reason = today < opensDate ? 'too_early' : today > closesDate ? 'expired' : 'open'
+  const opensAt = dateOnlyToStockholmStart(opensDate)
+  const closesAt = stockholmEndOfDate(closesDate)
+
   return {
-    requestedStartDate: input.requestedStartDate,
+    requestedStartDate: startDate,
+    transactionSubtype: input.policy.subtype,
     sendWindowOpensAt: opensAt.toISOString(),
     sendWindowClosesAt: closesAt.toISOString(),
     sendNotBefore: opensAt.toISOString(),
@@ -121,6 +143,9 @@ export type SupplierSwitchScheduleInput = {
   requestedStartDate: string | null
   environment?: 'test' | 'production'
   status?: string | null
+  requestType?: string | null
+  transactionSubtype?: string | null
+  cancellationOfSubtype?: 'L' | 'LK' | null
   siteId?: string | null
   meteringPointId?: string | null
   now?: Date
@@ -131,6 +156,20 @@ export type SupplierSwitchScheduleResult = {
   window: SupplierSwitchSendWindow
   blockers: SupplierSwitchScheduleBlocker[]
   policyVersion: string | null
+}
+
+function resolveSwitchSubtype(input: SupplierSwitchScheduleInput): 'L' | 'LK' | 'C' {
+  if (String(input.status ?? '').trim().toLowerCase() === 'cancellation_requested') return 'C'
+  const canonical = canonicalProdatSubtypeForMessage('Z03', input.transactionSubtype)
+  if (canonical === 'C' || canonical === 'LK' || canonical === 'L') return canonical
+  if (String(input.requestType ?? '').trim().toLowerCase() === 'move_in') return 'LK'
+  return 'L'
+}
+
+function cancellationContext(input: SupplierSwitchScheduleInput, subtype: 'L' | 'LK' | 'C'): 'L' | 'LK' | null {
+  if (subtype !== 'C') return null
+  if (input.cancellationOfSubtype) return input.cancellationOfSubtype
+  return String(input.requestType ?? '').trim().toLowerCase() === 'move_in' ? 'LK' : 'L'
 }
 
 async function findDuplicateActiveSwitch(input: SupplierSwitchScheduleInput): Promise<boolean> {
@@ -177,28 +216,45 @@ async function hasUnresolvedNegativeAck(input: SupplierSwitchScheduleInput): Pro
 
 export async function evaluateSupplierSwitchSchedule(input: SupplierSwitchScheduleInput): Promise<SupplierSwitchScheduleResult> {
   const blockers: SupplierSwitchScheduleBlocker[] = []
+  const subtype = resolveSwitchSubtype(input)
   let policy: SupplierSwitchPolicy | null = null
   try {
-    if (!input.companyId) throw new Error('supplier_switch_company_missing')
-    policy = await loadSupplierSwitchPolicy(input.companyId, input.environment ?? 'production', input.now)
+    policy = loadSupplierSwitchPolicy({
+      subtype,
+      cancellationOfSubtype: cancellationContext(input, subtype),
+    })
   } catch (error) {
-    blockers.push({ code: 'supplier_switch_policy_unavailable', message: error instanceof Error ? error.message : 'Leverantörsbytets marknadspolicy kunde inte läsas.' })
+    blockers.push({
+      code: 'supplier_switch_policy_unavailable',
+      message: error instanceof Error ? error.message : 'Leverantörsbytets canonical marknadspolicy kunde inte läsas.',
+    })
   }
+
   const window = policy
     ? evaluateSupplierSwitchSendWindow({ requestedStartDate: input.requestedStartDate, policy, now: input.now })
-    : { requestedStartDate: input.requestedStartDate, sendWindowOpensAt: null, sendWindowClosesAt: null, sendNotBefore: null, windowOpen: false, reason: 'invalid_start_date' as const }
+    : {
+        requestedStartDate: input.requestedStartDate,
+        transactionSubtype: subtype,
+        sendWindowOpensAt: null,
+        sendWindowClosesAt: null,
+        sendNotBefore: null,
+        windowOpen: false,
+        reason: 'invalid_start_date' as const,
+      }
+
   if (!window.windowOpen) {
     blockers.push({
       code: `supplier_switch_send_window_${window.reason}`,
       message: window.reason === 'missing_start_date'
         ? 'Startdatum saknas och leverantörsbytet får inte skickas.'
         : window.reason === 'expired'
-          ? 'Sändfönstret har passerat. Ange ett nytt giltigt startdatum.'
+          ? 'Handbokens senaste sänddag har passerat. Ange ett nytt giltigt startdatum.'
           : window.reason === 'too_early'
-            ? `Leverantörsbytet kan skickas tidigast ${window.sendNotBefore?.slice(0, 10)}.`
-            : 'Startdatumet eller sändfönstret är ogiltigt.',
+            ? `Handbokens sändfönster öppnar ${window.sendNotBefore?.slice(0, 10)}.`
+            : 'Startdatumet eller det canonical sändfönstret är ogiltigt.',
     })
   }
+
   try {
     if (await findDuplicateActiveSwitch(input)) blockers.push({ code: 'duplicate_active_supplier_switch', message: 'Det finns redan ett pågående leverantörsbyte för anläggningen.' })
   } catch (error) {
