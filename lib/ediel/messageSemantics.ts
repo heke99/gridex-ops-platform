@@ -21,6 +21,7 @@ export type EdielMessageSemantics = {
   requiredFields: string[]
   forbiddenIfMissing: string[]
   ackPolicy: string
+  supplierUtiltsSupport: string | null
   timeoutPolicy: string | null
   ruleVersion: string
   environment: 'test' | 'production' | 'both'
@@ -103,6 +104,9 @@ function requiredFieldsFor(entry: CanonicalEdielBusinessSemantics): string[] {
   if (entry.family === 'UTILTS_ERR') return ['related_message_id']
   if (entry.dataScope === 'metering_point') return ['metering_point_id', 'period']
   if (entry.dataScope === 'grid_area') return ['grid_area_id', 'period']
+  // Alternative identities such as metering point OR regulating object are
+  // enforced by the canonical UTILTS field/identity validator, not by a false
+  // compatibility requirement for one side of the alternative.
   return []
 }
 
@@ -144,6 +148,15 @@ function allowedNextStatusFor(entry: CanonicalEdielBusinessSemantics): string[] 
   return mapping[entry.businessEffect] ?? []
 }
 
+function ackPolicyFor(entry: CanonicalEdielBusinessSemantics): string {
+  const expected = new Set(entry.expectedAcknowledgements)
+  if (expected.size === 0) return 'none'
+  if (expected.size === 1 && expected.has('CONTRL')) return 'technical_ack_only'
+  if (expected.size === 1 && expected.has('APERAK')) return 'application_ack'
+  if (expected.has('CONTRL') && expected.has('APERAK')) return 'technical_and_application_ack'
+  return 'canonical_ack_policy'
+}
+
 function project(entry: CanonicalEdielBusinessSemantics): EdielMessageSemantics {
   return {
     messageFamily: entry.family,
@@ -158,7 +171,8 @@ function project(entry: CanonicalEdielBusinessSemantics): EdielMessageSemantics 
     allowedNextStatus: allowedNextStatusFor(entry),
     requiredFields: requiredFieldsFor(entry),
     forbiddenIfMissing: [],
-    ackPolicy: entry.family === 'CONTRL' ? 'technical_ack_only' : entry.family === 'APERAK' ? 'application_ack' : 'technical_and_application_ack',
+    ackPolicy: ackPolicyFor(entry),
+    supplierUtiltsSupport: entry.supplierUtiltsSupport,
     timeoutPolicy: null,
     ruleVersion: 'canonical.business-semantics.v1',
     environment: 'both',
@@ -241,4 +255,34 @@ export function messageForRequestType(requestType: string): {
     default:
       return null
   }
+}
+
+/**
+ * Compatibility guard retained for callers that validate a business request
+ * against an EDIFACT message choice. It now validates against canonical
+ * source-controlled semantics rather than mutable DB rows.
+ */
+export async function assertMessageMatchesRequestType(input: {
+  requestType: string
+  messageFamily: string
+  messageCode: string
+  subtype?: string | null
+  environment?: 'test' | 'production'
+}): Promise<{ ok: boolean; reason?: string; semantics?: EdielMessageSemantics | null }> {
+  const expected = messageForRequestType(input.requestType)
+  if (!expected) return { ok: false, reason: 'unknown_request_type' }
+
+  const family = input.messageFamily.toUpperCase()
+  const code = input.messageCode.toUpperCase()
+  const subtype = input.subtype?.toUpperCase() ?? null
+  const familyMatches = expected.messageFamily === family
+  const codeMatches = expected.messageCode === code
+  const subtypeMatches = !expected.subtype || expected.subtype === subtype
+  const semantics = await resolveEdielMessageSemantics(input)
+
+  if (!familyMatches || !codeMatches || !subtypeMatches) {
+    return { ok: false, reason: 'message_code_request_type_mismatch', semantics }
+  }
+  if (!semantics) return { ok: false, reason: 'message_semantics_unknown', semantics }
+  return { ok: true, semantics }
 }
