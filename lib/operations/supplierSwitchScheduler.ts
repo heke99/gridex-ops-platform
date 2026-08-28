@@ -19,13 +19,33 @@ export const ACTIVE_SUPPLIER_SWITCH_STATUSES = Array.from(new Set<string>([
   ...LEGACY_ACTIVE_SUPPLIER_SWITCH_STATUSES,
 ]))
 
-export type SupplierSwitchPolicy = CanonicalSupplierSwitchSendPolicy
+/**
+ * `marketLeadDays` is a compatibility projection for the pure start-date
+ * calculator. It is always derived from the canonical handbook policy; no DB
+ * field or tenant setting can redefine it.
+ */
+export type SupplierSwitchPolicy = CanonicalSupplierSwitchSendPolicy & {
+  marketLeadDays: number
+}
 
-export function loadSupplierSwitchPolicy(input: {
+type SupplierSwitchPolicyInput = {
   subtype?: 'L' | 'LK' | 'C' | null
   cancellationOfSubtype?: 'L' | 'LK' | null
-} = {}): SupplierSwitchPolicy {
-  return canonicalSupplierSwitchSendPolicyProjection(input)
+}
+
+export function loadSupplierSwitchPolicy(
+  input: SupplierSwitchPolicyInput | string = {},
+  _legacyEnvironment?: 'test' | 'production',
+): SupplierSwitchPolicy {
+  // A string input is accepted only for callers on the former company-scoped
+  // API. The value is deliberately ignored: handbook timing is global
+  // normative policy, not tenant/environment configuration.
+  const normalizedInput: SupplierSwitchPolicyInput = typeof input === 'string' ? {} : input
+  const policy = canonicalSupplierSwitchSendPolicyProjection(normalizedInput)
+  return {
+    ...policy,
+    marketLeadDays: policy.minimumLeadCalendarDays ?? 0,
+  }
 }
 
 function dateOnlyToStockholmStart(value: string): Date {
