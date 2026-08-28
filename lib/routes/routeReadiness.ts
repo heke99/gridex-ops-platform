@@ -1,10 +1,9 @@
 import type { BusinessProcess, RouteScope, OutboundIntent } from '@/lib/routes/routeDecisionTypes'
 import { ackModeForProcess, routeScopeForProcess } from '@/lib/ediel/routeMatrix'
+import { resolveProdatApplicationReferenceForProcess } from '@/lib/ediel/core/applicationReferenceResolver'
 import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 
 export function routeScopeForBusinessProcess(process: BusinessProcess, messageCode?: string | null): RouteScope {
-  // CONTRL/APERAK/ediel_ack reuse the source message route; they have no own
-  // communication_routes DB row with a dedicated scope.
   if (process === 'ediel_ack') return 'customer_masterdata'
 
   const messageFamily =
@@ -48,6 +47,18 @@ export function supplierSwitchSubtype(params: {
 export function requiresGridOwnerAgreement(process: BusinessProcess, messageCode?: string | null): boolean {
   if (process === 'metering_access') return true
   return ['Z13', 'Z18'].includes(String(messageCode ?? '').toUpperCase())
+}
+
+/**
+ * Compatibility projection for old route callers that only know a DB route
+ * scope. Values are delegated to the canonical PRODAT profile authority; no
+ * Application Reference literal is owned here.
+ */
+export function expectedApplicationReference(scope: RouteScope): string | null {
+  if (scope === 'metering_access') return resolveProdatApplicationReferenceForProcess('metering_access')
+  if (scope === 'supplier_switch') return resolveProdatApplicationReferenceForProcess('supplier_switch')
+  if (scope === 'customer_masterdata') return resolveProdatApplicationReferenceForProcess('customer_masterdata')
+  return null
 }
 
 /**
