@@ -7,6 +7,7 @@
 
 import {
   resolveApplicationReference,
+  resolveProdatApplicationReferenceForProcess,
   type ApplicationReferenceResolverInput,
 } from '@/lib/ediel/core/applicationReferenceResolver'
 import { evaluateApplicationReferenceGuard } from '@/lib/ediel/rulebook/canonicalRules'
@@ -31,9 +32,15 @@ function upper(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-// Compatibility helper for process-only PRODAT callers. It is intentionally
-// PRODAT-only; non-PRODAT Application References require message-profile context
-// and must never be fabricated from a family name.
+function canonicalProcessName(value: string | null | undefined): string {
+  const process = String(value ?? '').trim().toLowerCase()
+  if (process === 'facility_lookup') return 'customer_masterdata'
+  if (process === 'metering_permission') return 'metering_access'
+  return process
+}
+
+// Compatibility helper for process-only PRODAT callers. It delegates to the
+// canonical PRODAT profile catalog and never manufactures DDQ/DGI locally.
 export function resolveApplicationReferenceForProcess(
   businessProcess: string | null | undefined,
   family: string = 'PRODAT',
@@ -42,21 +49,7 @@ export function resolveApplicationReferenceForProcess(
   if (fam !== 'PRODAT') {
     throw new Error(`application_reference_process_only_unsupported_family:${fam}`)
   }
-
-  const process = String(businessProcess ?? '').trim().toLowerCase()
-  const dgiProcesses = new Set([
-    'metering_access',
-    'metering_permission',
-  ])
-  const ddqProcesses = new Set([
-    'facility_lookup',
-    'customer_masterdata',
-    'supplier_switch',
-  ])
-
-  if (dgiProcesses.has(process)) return '23-DGI-PRODAT'
-  if (ddqProcesses.has(process)) return '23-DDQ-PRODAT'
-  throw new Error(`prodat_application_reference_process_unsupported:${process || 'missing'}`)
+  return resolveProdatApplicationReferenceForProcess(canonicalProcessName(businessProcess))
 }
 
 export function resolvePolicyApplicationReference(input: ApplicationReferenceResolverInput): string {
