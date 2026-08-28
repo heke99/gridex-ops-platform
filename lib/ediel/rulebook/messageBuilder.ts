@@ -1,4 +1,5 @@
-import { defaultApplicationReferenceForProcess, processGroupForMessage, type EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
+import { processGroupForMessage, type EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
+import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 
 export type RulebookMessageBuildDecision = {
@@ -17,7 +18,10 @@ export function buildRulebookMessageDecision(input: {
   rawPayload?: string | null
 }): RulebookMessageBuildDecision {
   const processGroup = input.processGroup ?? processGroupForMessage(input.family, input.code)
-  const applicationReference = input.applicationReference ?? defaultApplicationReferenceForProcess(processGroup as never, input.family)
+  const canonicalProdat = String(input.family).trim().toUpperCase() === 'PRODAT'
+    ? getCanonicalProdatProfile(input.code)
+    : null
+  const applicationReference = input.applicationReference ?? canonicalProdat?.applicationReference ?? null
   const validation = validateRulebookMessage({
     family: input.family,
     code: input.code,

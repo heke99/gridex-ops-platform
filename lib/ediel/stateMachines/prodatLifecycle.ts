@@ -1,4 +1,8 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import {
+  canonicalProdatSubtypeAlias,
+  PRODAT_TRANSACTION_REASON_CODES,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type ProdatProcessKind =
   | 'information'
@@ -65,21 +69,8 @@ type ProdatLifecycleMessage = Pick<EdielMessageRow, 'message_code' | 'parsed_pay
   direction?: string | null
 }
 
-const SUBTYPE_ALIASES: Record<string, string> = {
-  Z22: 'L',
-  Z23: 'LK',
-  Z24: 'C',
-  Z25: 'H',
-  Z26: 'A',
-  Z27: 'B',
-  Z70: 'D',
-  Z96: 'N',
-  E34: 'E',
-  E58: 'M',
-  E64: 'F',
-  E32: 'G',
-  S17: 'V',
-  S18: 'VH',
+// These are Gridex workflow aliases, not Ediel transaction-code mappings.
+const APPLICATION_SUBTYPE_ALIASES: Record<string, string> = {
   CANCEL: 'C',
   CANCELLATION: 'C',
 }
@@ -117,7 +108,7 @@ export function normalizeProdatSubtype(code: string, value: string | null): stri
   if (!normalized) return null
   const withoutCode = normalized.startsWith(code) ? normalized.slice(code.length) : normalized
   const mapped = withoutCode || normalized
-  return SUBTYPE_ALIASES[mapped] ?? mapped
+  return APPLICATION_SUBTYPE_ALIASES[mapped] ?? canonicalProdatSubtypeAlias(mapped, code) ?? mapped
 }
 
 export function extractProdatSubtype(message: ProdatLifecycleMessage): string | null {
@@ -129,12 +120,10 @@ export function extractProdatSubtype(message: ProdatLifecycleMessage): string | 
   if (fromPayload) return fromPayload
 
   const raw = String(message.raw_payload ?? '').toUpperCase()
-  // Compact function forms used by some fixtures, e.g. Z04L.
   const compactCode = raw.match(new RegExp(`(?:BGM\\+|\\b)${code}([A-Z]{1,2})(?:[+':]|\\b)`))?.[1] ?? null
   if (compactCode) return normalizeProdatSubtype(code, compactCode)
 
-  // Swedish PRODAT 26.A transaction type is commonly carried as a CAV value.
-  for (const transactionCode of Object.keys(SUBTYPE_ALIASES)) {
+  for (const transactionCode of PRODAT_TRANSACTION_REASON_CODES) {
     if (raw.includes(`CAV+${transactionCode}`) || raw.includes(`:${transactionCode}`)) {
       return normalizeProdatSubtype(code, transactionCode)
     }

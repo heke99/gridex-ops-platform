@@ -3,6 +3,8 @@
 // Compatibility projection for UI/intents. Normative Ediel rules live in the
 // canonical dated rulebooks. Do not add independent message semantics here.
 
+import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
+import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
 import { UTILTS_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/utiltsRulebook'
 import { getSupplierUtiltsSupport, getUtiltsMarketProfile } from '@/lib/ediel/rulebook/utiltsMarketEngine'
@@ -78,43 +80,69 @@ function actorRole(value: string | null | undefined): ActorRole {
   return known.includes(normalized as ActorRole) ? normalized as ActorRole : 'unknown'
 }
 
+type FieldProjection = {
+  field: MessageField
+  canonicalFieldKeys: readonly string[]
+}
+
+const PRODAT_FIELD_PROJECTIONS: readonly FieldProjection[] = [
+  { field: 'facility_id', canonicalFieldKeys: ['installation_id'] },
+  { field: 'metering_point_id', canonicalFieldKeys: ['line_item', 'installation_id'] },
+  { field: 'grid_area_code', canonicalFieldKeys: ['net_area'] },
+  { field: 'customer_identity', canonicalFieldKeys: ['end_user_id'] },
+  { field: 'customer_name', canonicalFieldKeys: ['end_user_name'] },
+  { field: 'requested_effective_date', canonicalFieldKeys: ['contract_start_date', 'contract_stop_date', 'report_start_date', 'report_end_date', 'validity_start_date'] },
+]
+
 function prodatFields(code: string): Pick<EdielMessageProfile, 'requiredFields' | 'conditionalFields' | 'allowedMissingFields'> {
-  switch (code) {
-    case 'Z01':
-      return { requiredFields: ['facility_id', 'customer_identity'], conditionalFields: ['metering_point_id', 'grid_area_code'], allowedMissingFields: [] }
-    case 'Z03':
-      return { requiredFields: ['metering_point_id', 'customer_identity', 'requested_effective_date'], conditionalFields: ['facility_id', 'grid_area_code'], allowedMissingFields: [] }
-    case 'Z08':
-      return { requiredFields: ['metering_point_id', 'requested_effective_date'], conditionalFields: [], allowedMissingFields: [] }
-    case 'Z09':
-    case 'Z13':
-    case 'Z18':
-      return { requiredFields: ['metering_point_id'], conditionalFields: [], allowedMissingFields: [] }
-    default:
-      return { requiredFields: [], conditionalFields: [], allowedMissingFields: [] }
+  const rules = canonicalProdat26AFieldRules(code)
+  const requiredFields: MessageField[] = []
+  const conditionalFields: MessageField[] = []
+
+  for (const projection of PRODAT_FIELD_PROJECTIONS) {
+    const matching = rules.filter((rule) => projection.canonicalFieldKeys.includes(rule.fieldKey))
+    if (matching.some((rule) => rule.requirement === 'required')) {
+      requiredFields.push(projection.field)
+    } else if (matching.some((rule) => rule.requirement === 'dependent')) {
+      conditionalFields.push(projection.field)
+    }
   }
+  return { requiredFields, conditionalFields, allowedMissingFields: [] }
+}
+
+function ackPolicy(family: string, code: string): { policy: AcknowledgementPolicy; response: string | null } {
+  const ack = canonicalAckRequirements({ family, code })
+  const policy: AcknowledgementPolicy = ack.requiresContrl && ack.requiresAperak
+    ? 'contrl_then_aperak'
+    : ack.requiresContrl
+      ? 'contrl_only'
+      : ack.requiresAperak
+        ? 'aperak_only'
+        : 'none'
+  return { policy, response: ack.businessResponses[0] ?? null }
 }
 
 const prodatProfiles: EdielMessageProfile[] = PRODAT_CANONICAL_PROFILES.map((canonical) => {
   const direction: MessageDirection = canonical.direction === 'actor_to_portal' ? 'outbound' : 'inbound'
   const fields = prodatFields(canonical.messageCode)
+  const ack = ackPolicy('PRODAT', canonical.messageCode)
   return {
     messageFamily: 'PRODAT',
     messageCode: canonical.messageCode,
-    subtype: canonical.profileKey.replace(/^prodat_[a-z0-9]+_/, ''),
+    subtype: null,
     direction,
     senderRole: actorRole(canonical.senderRole),
     receiverRole: actorRole(canonical.receiverRole),
     businessProcess: canonical.processGroup,
     ...fields,
     applicationReference: canonical.applicationReference,
-    acknowledgementPolicy: canonical.z01AperakException ? 'contrl_only' : 'contrl_then_aperak',
-    expectedResponse: canonical.z01AperakException ? null : 'APERAK',
-    sendWindow: canonical.messageCode === 'Z03' ? 'effective_date_window' : 'immediate',
+    acknowledgementPolicy: ack.policy,
+    expectedResponse: ack.response,
+    sendWindow: canonical.processGroup === 'supplier_switch' ? 'effective_date_window' : 'immediate',
     encryption: 'route_profile_controlled',
     routeReadiness: direction === 'outbound' ? 'requires_production_route' : 'inbound_no_route_required',
     supportedStatus: direction === 'outbound' ? 'supported_outbound' : 'supported_inbound',
-    notes: `Projection of ${canonical.profileKey}; tenant DDQ/DGI capability and dated rule-pack validation remain mandatory at runtime.`,
+    notes: `Projection of ${canonical.profileKey}; exact subtype, field R/D/O/X rules and tenant capability are resolved canonically at runtime.`,
   }
 })
 
@@ -153,6 +181,8 @@ const utiltsProfiles: EdielMessageProfile[] = UTILTS_CANONICAL_PROFILES.map((can
   const market = getUtiltsMarketProfile(canonical.messageCode)
   const direction = utiltsDirection(canonical.messageCode)
   const fields = utiltsFields(canonical.messageCode)
+  const family = canonical.messageCode === 'ERR' ? 'UTILTS_ERR' : 'UTILTS'
+  const ack = ackPolicy(family, canonical.messageCode)
   return {
     messageFamily: canonical.messageCode === 'ERR' ? 'UTILTS-ERR' : 'UTILTS',
     messageCode: canonical.messageCode === 'ERR' ? 'ERR' : canonical.messageCode,
@@ -164,16 +194,14 @@ const utiltsProfiles: EdielMessageProfile[] = UTILTS_CANONICAL_PROFILES.map((can
       : actorRole(market?.receiverRoles[0]),
     businessProcess: canonical.businessProcess,
     ...fields,
-    // UTILTS field 311 has a message/role/product-specific allowlist. A single
-    // catalog default would be incorrect, so runtime must resolve it canonically.
     applicationReference: null,
-    acknowledgementPolicy: canonical.messageCode === 'ERR' ? 'contrl_only' : 'contrl_then_aperak',
-    expectedResponse: canonical.messageCode === 'ERR' ? 'CONTRL' : null,
+    acknowledgementPolicy: ack.policy,
+    expectedResponse: ack.response,
     sendWindow: 'reporting_window',
     encryption: 'route_profile_controlled',
     routeReadiness: direction === 'outbound' ? 'requires_production_route' : 'inbound_no_route_required',
     supportedStatus: utiltsSupportedStatus(canonical.messageCode),
-    notes: `${canonical.officialMeaning} Identity=${canonical.identityRequirement}; LOC+172=${canonical.location172Requirement}. Exact Application Reference is resolved from the dated canonical field-311 registry.`,
+    notes: `${canonical.officialMeaning} Exact Application Reference and R/D/O/X are resolved from the dated canonical UTILTS registries.`,
   }
 })
 
@@ -192,7 +220,7 @@ const ackProfiles: EdielMessageProfile[] = [
     requiredFields: [], conditionalFields: [], allowedMissingFields: [], applicationReference: null,
     acknowledgementPolicy: 'none', expectedResponse: null, sendWindow: 'immediate',
     encryption: 'route_profile_controlled', routeReadiness: 'inbound_no_route_required', supportedStatus: 'supported_inbound',
-    notes: 'BGM 312 is positive and BGM 313 negative; ERC presence must not determine outcome.',
+    notes: 'Outcome is classified by the family-specific canonical APERAK semantics; this catalog does not define a global 312/313 rule.',
   },
 ]
 

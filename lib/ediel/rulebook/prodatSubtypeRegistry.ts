@@ -27,6 +27,14 @@ const source = {
   page: 122,
 } as const
 
+/**
+ * Sole source-controlled mapping between Swedish PRODAT transaction reason
+ * codes (field 223) and Gridex's compatibility subtype tokens.
+ *
+ * Consumers must call the helpers below instead of maintaining local alias
+ * objects. This keeps parser, validator, renderer, lifecycle and UI projections
+ * on exactly the same transaction semantics.
+ */
 export const PRODAT_SUBTYPE_RULES: readonly ProdatSubtypeRule[] = [
   { subtype: 'L',  transactionReasonCode: 'Z22', meaning: 'Change of supplier', allowedMessageCodes: ['Z01', 'Z02', 'Z03', 'Z04', 'Z05'], source },
   { subtype: 'LK', transactionReasonCode: 'Z23', meaning: 'Change of customer and supplier', allowedMessageCodes: ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z08'], bilateralOnlyFor: ['Z08'], source },
@@ -44,6 +52,10 @@ export const PRODAT_SUBTYPE_RULES: readonly ProdatSubtypeRule[] = [
   { subtype: 'VH', transactionReasonCode: 'S18', meaning: 'Historical metering data', allowedMessageCodes: ['Z13', 'Z14', 'Z15'], source },
 ] as const
 
+export const PRODAT_TRANSACTION_REASON_CODES: readonly ProdatTransactionReasonCode[] = PRODAT_SUBTYPE_RULES.map(
+  (rule) => rule.transactionReasonCode,
+)
+
 export type ProdatSubtypeResolution = {
   ok: boolean
   subtype: ProdatSubtype | null
@@ -57,16 +69,47 @@ function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
+function stripCompositeMessageCode(value: string, messageCode?: string | null): string {
+  const code = normalize(messageCode)
+  if (code && value.startsWith(code) && value.length > code.length) return value.slice(code.length)
+  return value
+}
+
+export function findProdatSubtypeRule(
+  value: string | null | undefined,
+  messageCode?: string | null,
+): ProdatSubtypeRule | null {
+  const normalized = stripCompositeMessageCode(normalize(value), messageCode)
+  if (!normalized) return null
+  return PRODAT_SUBTYPE_RULES.find(
+    (candidate) => candidate.subtype === normalized || candidate.transactionReasonCode === normalized,
+  ) ?? null
+}
+
+/** Normalize subtype/reason/composite tokens to the canonical compatibility subtype. */
+export function canonicalProdatSubtypeAlias(
+  value: string | null | undefined,
+  messageCode?: string | null,
+): ProdatSubtype | null {
+  return findProdatSubtypeRule(value, messageCode)?.subtype ?? null
+}
+
+/** Normalize subtype/reason/composite tokens to the exact field-223 reason code. */
+export function canonicalProdatTransactionReason(
+  value: string | null | undefined,
+  messageCode?: string | null,
+): ProdatTransactionReasonCode | null {
+  return findProdatSubtypeRule(value, messageCode)?.transactionReasonCode ?? null
+}
+
 export function resolveProdatSubtype(input: {
   messageCode: string | null | undefined
   subtypeOrReasonCode: string | null | undefined
   bilateralCapabilityVerified?: boolean
 }): ProdatSubtypeResolution {
   const messageCode = normalize(input.messageCode) as ProdatMessageCode
-  const token = normalize(input.subtypeOrReasonCode)
-  const rule = PRODAT_SUBTYPE_RULES.find((candidate) =>
-    candidate.subtype === token || candidate.transactionReasonCode === token,
-  )
+  const token = stripCompositeMessageCode(normalize(input.subtypeOrReasonCode), messageCode)
+  const rule = findProdatSubtypeRule(token, messageCode)
 
   if (!rule) {
     return { ok: false, subtype: null, transactionReasonCode: null, bilateralRequired: false, reason: `prodat_subtype_unknown:${token || 'missing'}`, source: null }

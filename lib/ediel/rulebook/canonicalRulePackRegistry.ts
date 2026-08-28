@@ -1,5 +1,16 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielDirection } from '@/lib/ediel/types'
+import {
+  getCanonicalProdatProfile,
+  type ProdatCanonicalProfile,
+} from '@/lib/ediel/rulebook/prodatRulebook'
+import { resolveProdatSubtype } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import { getCanonicalUtiltsProfile, type UtiltsCanonicalProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import {
+  assertGuideFieldMatrixCertified,
+  resolveAuthoritativeEdielGuide,
+  type AuthoritativeEdielGuide,
+} from '@/lib/ediel/rulebook/guideRegistry'
 
 export type CanonicalRulePackResolution = {
   rulePackId: string
@@ -49,6 +60,16 @@ type DbRow = {
   state_machine_ready?: unknown
 }
 
+type SourceCanonicalResolution = {
+  family: 'PRODAT' | 'UTILTS'
+  guide: AuthoritativeEdielGuide
+  associationAssignedCode: string
+  profileKey: string
+  businessProcess: string
+  phase: string | null
+  profile: Record<string, unknown>
+}
+
 function requiredText(row: DbRow, key: keyof DbRow): string {
   const value = row[key]
   if (typeof value !== 'string' || !value.trim()) {
@@ -68,14 +89,14 @@ function booleanValue(row: DbRow, key: keyof DbRow): boolean {
   return row[key] as boolean
 }
 
-function normalizeRow(value: unknown): CanonicalRulePackResolution {
+function normalizeDbEvidence(value: unknown): CanonicalRulePackResolution {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('canonical_rule_pack_result_invalid')
   }
   const row = value as DbRow
   const profile = row.profile
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
-    throw new Error('canonical_rule_pack_profile_invalid')
+    throw new Error('canonical_rule_pack_profile_evidence_invalid')
   }
   const market = requiredText(row, 'market')
   if (market !== 'electricity') throw new Error(`canonical_rule_pack_market_invalid:${market}`)
@@ -104,6 +125,140 @@ function normalizeRow(value: unknown): CanonicalRulePackResolution {
   }
 }
 
+function normalizeIdentifier(value: string | null | undefined): string {
+  return String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
+}
+
+function sourceProfileSnapshot(profile: ProdatCanonicalProfile | UtiltsCanonicalProfile): Record<string, unknown> {
+  if ('applicationReference' in profile) {
+    return {
+      profileKey: profile.profileKey,
+      messageCode: profile.messageCode,
+      processGroup: profile.processGroup,
+      applicationReference: profile.applicationReference,
+      associationAssignedCode: profile.associationAssignedCode,
+      guideVersion: profile.guideVersion,
+      guideRevision: profile.guideRevision,
+      effectiveFrom: profile.effectiveFrom,
+      direction: profile.direction,
+      senderRole: profile.senderRole,
+      receiverRole: profile.receiverRole,
+      allowedVariants: profile.allowedVariants,
+    }
+  }
+  return {
+    profileKey: profile.profileKey,
+    messageCode: profile.messageCode,
+    businessProcess: profile.businessProcess,
+    associationAssignedCode: profile.associationAssignedCode,
+    guideVersion: profile.guideVersion,
+    guideRevision: profile.guideRevision,
+    effectiveFrom: profile.effectiveFrom,
+    effectiveTo: profile.effectiveTo,
+    phase: profile.phase,
+    scope: profile.scope,
+    allowedSenderRoles: profile.allowedSenderRoles,
+    allowedReceiverRoles: profile.allowedReceiverRoles,
+  }
+}
+
+function resolveSourceCanonical(params: {
+  family: 'PRODAT' | 'UTILTS'
+  messageCode: string
+  transactionSubtype?: string | null
+  direction: EdielDirection
+  businessDate: string
+}): SourceCanonicalResolution {
+  if (params.family === 'PRODAT') {
+    const profile = getCanonicalProdatProfile(params.messageCode)
+    if (!profile) throw new Error(`canonical_source_profile_missing:PRODAT:${params.messageCode}`)
+
+    const subtype = resolveProdatSubtype({
+      messageCode: profile.messageCode,
+      subtypeOrReasonCode: params.transactionSubtype,
+      // This registry call validates protocol membership only. Bilateral tenant
+      // capability is a separate runtime readiness gate and is never inferred here.
+      bilateralCapabilityVerified: true,
+    })
+    if (!subtype.ok || !subtype.subtype) {
+      throw new Error(subtype.reason ?? `canonical_source_subtype_not_allowed:${profile.messageCode}`)
+    }
+
+    const expectedDirection: EdielDirection = profile.direction === 'actor_to_portal' ? 'outbound' : 'inbound'
+    if (params.direction !== expectedDirection) {
+      throw new Error(`canonical_source_direction_not_allowed:${profile.messageCode}:${params.direction}:${expectedDirection}`)
+    }
+
+    const guide = resolveAuthoritativeEdielGuide({
+      family: 'PRODAT',
+      referenceDate: params.businessDate,
+      associationAssignedCode: profile.associationAssignedCode,
+    })
+    assertGuideFieldMatrixCertified(guide)
+    return {
+      family: 'PRODAT',
+      guide,
+      associationAssignedCode: profile.associationAssignedCode,
+      profileKey: profile.profileKey,
+      businessProcess: profile.processGroup,
+      phase: null,
+      profile: {
+        ...sourceProfileSnapshot(profile),
+        transactionSubtype: subtype.subtype,
+        transactionReasonCode: subtype.transactionReasonCode,
+        bilateralRequired: subtype.bilateralRequired,
+      },
+    }
+  }
+
+  const profile = getCanonicalUtiltsProfile(params.messageCode)
+  if (!profile) throw new Error(`canonical_source_profile_missing:UTILTS:${params.messageCode}`)
+  const guide = resolveAuthoritativeEdielGuide({
+    family: 'UTILTS',
+    referenceDate: params.businessDate,
+    associationAssignedCode: profile.associationAssignedCode,
+  })
+  assertGuideFieldMatrixCertified(guide)
+  return {
+    family: 'UTILTS',
+    guide,
+    associationAssignedCode: profile.associationAssignedCode,
+    profileKey: profile.profileKey,
+    businessProcess: profile.businessProcess,
+    phase: profile.phase,
+    profile: sourceProfileSnapshot(profile),
+  }
+}
+
+function assertDbEvidenceMatchesSource(input: {
+  evidence: CanonicalRulePackResolution
+  source: SourceCanonicalResolution
+  businessDate: string
+}) {
+  const { evidence, source, businessDate } = input
+  if (normalizeIdentifier(evidence.family) !== source.family) {
+    throw new Error(`canonical_rule_pack_evidence_family_mismatch:${evidence.family}:${source.family}`)
+  }
+  if (normalizeIdentifier(evidence.unhAssociationCode) !== normalizeIdentifier(source.associationAssignedCode)) {
+    throw new Error(`canonical_rule_pack_evidence_association_mismatch:${evidence.unhAssociationCode}:${source.associationAssignedCode}`)
+  }
+  if (evidence.validFrom > businessDate || (evidence.validTo && evidence.validTo < businessDate)) {
+    throw new Error(`canonical_rule_pack_evidence_date_mismatch:${businessDate}:${evidence.validFrom}:${evidence.validTo ?? 'open'}`)
+  }
+
+  const dbGuideTokens = [evidence.guideVersion, evidence.guideRevision].map(normalizeIdentifier)
+  const sourceGuideTokens = [source.guide.guideRevision, source.associationAssignedCode].map(normalizeIdentifier)
+  if (!dbGuideTokens.some((token) => sourceGuideTokens.includes(token))) {
+    throw new Error(`canonical_rule_pack_evidence_guide_mismatch:${evidence.guideVersion}:${source.guide.guideRevision}`)
+  }
+}
+
+/**
+ * Source code resolves all normative Ediel semantics first. Supabase is queried
+ * only for an activated evidence row (stable IDs, checksum and readiness flags)
+ * matching that source decision. DB profile JSON can never redefine the runtime
+ * message function, subtype, direction, Application Reference or guide window.
+ */
 export async function resolveCanonicalRulePack(params: {
   family: 'PRODAT' | 'UTILTS'
   messageCode: string
@@ -116,12 +271,11 @@ export async function resolveCanonicalRulePack(params: {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(params.businessDate)) {
     throw new Error('canonical_rule_pack_business_date_invalid')
   }
+
+  const source = resolveSourceCanonical(params)
   const subtype = params.family === 'PRODAT'
     ? String(params.transactionSubtype ?? '').trim().toUpperCase()
     : ''
-  if (params.family === 'PRODAT' && !subtype) {
-    throw new Error(`canonical_rule_pack_subtype_required:${params.messageCode}`)
-  }
 
   const { data, error } = await supabaseService.rpc('resolve_canonical_ediel_rule_pack', {
     p_market: 'electricity',
@@ -131,22 +285,41 @@ export async function resolveCanonicalRulePack(params: {
     p_direction: params.direction,
     p_business_date: params.businessDate,
   })
-  if (error) throw new Error(`canonical_rule_pack_resolution_failed:${error.message}`)
+  if (error) throw new Error(`canonical_rule_pack_evidence_resolution_failed:${error.message}`)
   const rows = Array.isArray(data) ? data : data ? [data] : []
   if (rows.length !== 1) {
-    throw new Error(`canonical_rule_pack_resolution_count:${rows.length}:${params.family}:${params.messageCode}:${subtype}`)
+    throw new Error(`canonical_rule_pack_evidence_count:${rows.length}:${params.family}:${params.messageCode}:${subtype}`)
   }
-  const resolved = normalizeRow(rows[0])
-  if (!resolved.parserReady || !resolved.validatorReady || !resolved.ackReady) {
-    throw new Error(`canonical_rule_pack_runtime_incomplete:${resolved.profileKey}`)
+
+  const evidence = normalizeDbEvidence(rows[0])
+  assertDbEvidenceMatchesSource({ evidence, source, businessDate: params.businessDate })
+
+  if (!evidence.parserReady || !evidence.validatorReady || !evidence.ackReady) {
+    throw new Error(`canonical_rule_pack_evidence_runtime_incomplete:${evidence.profileKey}`)
   }
-  if (params.requireBuilder !== false && params.direction === 'outbound' && !resolved.builderReady) {
-    throw new Error(`canonical_rule_pack_builder_not_ready:${resolved.profileKey}`)
+  if (params.requireBuilder !== false && params.direction === 'outbound' && !evidence.builderReady) {
+    throw new Error(`canonical_rule_pack_evidence_builder_not_ready:${evidence.profileKey}`)
   }
-  if (params.requireStateMachine !== false && !resolved.stateMachineReady) {
-    throw new Error(`canonical_rule_pack_state_machine_not_ready:${resolved.profileKey}`)
+  if (params.requireStateMachine !== false && !evidence.stateMachineReady) {
+    throw new Error(`canonical_rule_pack_evidence_state_machine_not_ready:${evidence.profileKey}`)
   }
-  return resolved
+
+  return {
+    ...evidence,
+    family: source.family,
+    guideVersion: source.guide.guideRevision,
+    guideRevision: source.family === 'PRODAT'
+      ? getCanonicalProdatProfile(params.messageCode)?.guideRevision ?? source.guide.guideRevision
+      : getCanonicalUtiltsProfile(params.messageCode)?.guideRevision ?? source.guide.guideRevision,
+    unhAssociationCode: source.associationAssignedCode,
+    validFrom: source.guide.effectiveFrom,
+    validTo: source.guide.effectiveTo,
+    sourceDocument: source.guide.documentName,
+    profileKey: source.profileKey,
+    businessProcess: source.businessProcess,
+    phase: source.phase,
+    profile: source.profile,
+  }
 }
 
 export function assertLegacyRuleSnapshotMatchesCanonical(params: {
@@ -154,10 +327,10 @@ export function assertLegacyRuleSnapshotMatchesCanonical(params: {
   legacyVersion: string | null | undefined
   legacyProfileKey: string | null | undefined
 }) {
-  const normalize = (value: string | null | undefined) => String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
-  const expectedVersion = normalize(params.canonical.guideVersion)
-  const actualVersion = normalize(params.legacyVersion)
-  if (!actualVersion || (actualVersion !== expectedVersion && actualVersion !== normalize(params.canonical.unhAssociationCode))) {
+  const expectedVersion = normalizeIdentifier(params.canonical.guideVersion)
+  const actualVersion = normalizeIdentifier(params.legacyVersion)
+  const expectedAssociation = normalizeIdentifier(params.canonical.unhAssociationCode)
+  if (!actualVersion || (actualVersion !== expectedVersion && actualVersion !== expectedAssociation)) {
     throw new Error(`legacy_rule_snapshot_version_mismatch:${actualVersion || 'missing'}:${expectedVersion}`)
   }
   if (!String(params.legacyProfileKey ?? '').trim()) {

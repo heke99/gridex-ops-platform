@@ -19,9 +19,14 @@ import { buildZ13Segments } from '@/lib/ediel/prodat/builders/z13'
 import { buildZ14Segments } from '@/lib/ediel/prodat/builders/z14'
 import { buildZ15Segments } from '@/lib/ediel/prodat/builders/z15'
 import { buildZ18Segments } from '@/lib/ediel/prodat/builders/z18'
-import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
+import { deriveProdatAckExpectation, prodatMessageTypeToken } from '@/lib/ediel/prodat/registry'
 import { buildRulebookMessageDecision } from '@/lib/ediel/rulebook/messageBuilder'
 import { validateProdatProfile } from '@/lib/ediel/prodat/profiles'
+import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
+import {
+  canonicalProdatSubtypeAlias,
+  canonicalProdatTransactionReason,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type {
   ProdatEngineAckExpectation,
@@ -37,7 +42,6 @@ export type {
   ProdatEngineValidationIssue,
   ProdatEngineVersionContext,
 } from '@/lib/ediel/prodat/types'
-
 
 export class ProdatRenderValidationError extends Error {
   readonly issues: ProdatEngineRenderResult['issues']
@@ -72,28 +76,46 @@ function withAckExpectation(result: ProdatEngineRenderResult, code?: string | nu
   }
 }
 
+function canonicalizeEngineInput(input: ProdatEngineInput): ProdatEngineInput {
+  const subtypeSource = input.variant
+    ?? input.context.reasonForTransaction
+    ?? (input.code === 'Z08' ? input.context.contractClosureReason : null)
+  const subtype = canonicalProdatSubtypeAlias(subtypeSource, input.code)
+  const reason = canonicalProdatTransactionReason(subtypeSource, input.code)
+
+  return {
+    ...input,
+    variant: subtype ?? input.variant ?? null,
+    context: {
+      ...input.context,
+      reasonForTransaction: reason ?? input.context.reasonForTransaction ?? null,
+    },
+  }
+}
+
 export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult {
-  const builder = BUILDERS[input.code]
+  const canonicalInput = canonicalizeEngineInput(input)
+  const builder = BUILDERS[canonicalInput.code]
   const rulebookDecision = buildRulebookMessageDecision({
     family: 'PRODAT',
-    code: input.code,
-    applicationReference: input.route.applicationReference ?? undefined,
+    code: canonicalInput.code,
+    applicationReference: canonicalInput.route.applicationReference ?? undefined,
   })
   const profileValidation = validateProdatProfile({
-    code: input.code,
-    subtype: input.variant,
-    version: input.version.selectedVersion,
-    context: input.context,
+    code: canonicalInput.code,
+    subtype: canonicalInput.variant,
+    version: canonicalInput.version.selectedVersion,
+    context: canonicalInput.context,
   })
   const result = builder({
-    context: input.context,
-    portalSnapshot: input.portalSnapshot ?? null,
-    generatedAt: input.generatedAt,
-    mode: input.mode,
-    variant: input.variant ?? null,
-    routeDecisionReason: input.route.routeDecisionReason ?? null,
-    selectedVersion: input.version.selectedVersion,
-    acceptedVersions: input.version.acceptedVersions ?? [],
+    context: canonicalInput.context,
+    portalSnapshot: canonicalInput.portalSnapshot ?? null,
+    generatedAt: canonicalInput.generatedAt,
+    mode: canonicalInput.mode,
+    variant: canonicalInput.variant ?? null,
+    routeDecisionReason: canonicalInput.route.routeDecisionReason ?? null,
+    selectedVersion: canonicalInput.version.selectedVersion,
+    acceptedVersions: canonicalInput.version.acceptedVersions ?? [],
   })
 
   const rendered = withAckExpectation({
@@ -115,27 +137,26 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
       rulebookApplicationReference: rulebookDecision.applicationReference,
       rulebookIssues: rulebookDecision.issues as unknown as Array<Record<string, unknown>>,
     },
-  }, input.code)
+  }, canonicalInput.code)
 
   const blockingIssues = rendered.issues.filter((issue) => issue.severity === 'error')
-  if (input.mode === 'production' && blockingIssues.length > 0) {
-    throw new ProdatRenderValidationError(input, blockingIssues)
+  if (canonicalInput.mode === 'production' && blockingIssues.length > 0) {
+    throw new ProdatRenderValidationError(canonicalInput, blockingIssues)
   }
 
   return rendered
 }
 
-/**
- * Legacy-compatible adapter used by existing switch/TGT code. It renders the
- * same body segments as the old implementation, but the actual responsibility
- * now sits inside lib/ediel/prodat/* so PRODAT can grow without becoming one
- * giant generator.
- */
+/** Legacy-compatible adapter. Version/token are projected from the canonical
+ * PRODAT profile rather than repeated as literals here. */
 export function renderProdat26A(input: {
   context: ProdatEngineProductionContext
   portalSnapshot?: ProdatEnginePortalSnapshot
   generatedAt?: Date
 }): ProdatEngineRenderResult {
+  const canonical = getCanonicalProdatProfile(input.context.code)
+  if (!canonical) throw new Error(`canonical_prodat_profile_missing:${input.context.code}`)
+  const selectedVersion = canonical.guideVersion.replace(/[^A-Z0-9]/gi, '')
   return renderProdat({
     code: input.context.code,
     mode: input.portalSnapshot ? 'test' : 'production',
@@ -145,9 +166,9 @@ export function renderProdat26A(input: {
     },
     route: {},
     version: {
-      selectedVersion: '26A',
-      messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A',
-      acceptedVersions: ['26A', 'E2SE6A'],
+      selectedVersion,
+      messageTypeToken: prodatMessageTypeToken(selectedVersion),
+      acceptedVersions: [selectedVersion, canonical.associationAssignedCode],
     },
     context: input.context,
     portalSnapshot: input.portalSnapshot ?? null,
