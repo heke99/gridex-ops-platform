@@ -9,7 +9,7 @@ import {
 } from '@/lib/ediel/core/canonicalMessage'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
-import { resolveCanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
+import { canonicalAckRuleForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import {
   resolveCanonicalEdielPolicy,
   type CanonicalEdielPolicy,
@@ -187,7 +187,7 @@ function technicalResponsePlan(params: {
 }): CanonicalResponsePlanItem[] {
   if (params.message.direction !== 'inbound' || params.message.message_standard !== 'edifact') return []
   try {
-    const ack = resolveCanonicalAckMatrixRule({ family: String(params.canonical.family), code: params.canonical.messageCode })
+    const ack = canonicalAckRuleForFamilyCode({ family: String(params.canonical.family), code: params.canonical.messageCode })
     if (ack.technicalAck !== 'CONTRL') return []
     return [{
       family: 'CONTRL',
@@ -209,7 +209,7 @@ function addNegativeAperakIfAllowed(params: {
   applicationErrors?: EdielAperakApplicationError[]
 }) {
   try {
-    const ack = resolveCanonicalAckMatrixRule({ family: params.family, code: params.code })
+    const ack = canonicalAckRuleForFamilyCode({ family: params.family, code: params.code })
     if (ack.negativeApplicationResponse !== 'APERAK' && ack.negativeApplicationResponse !== 'APERAK_OR_UTILTS_ERR') return
     if (params.responsePlan.some((item) => item.family === 'APERAK' && item.outcome === 'negative')) return
     params.responsePlan.push({

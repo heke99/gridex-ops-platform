@@ -18,7 +18,7 @@ import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/ref
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { resolveApplicationReferenceForProcess } from '@/lib/ediel/intent/applicationReferencePolicy'
-import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
+import { canonicalProdatProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
@@ -116,7 +116,7 @@ export async function buildFacilityLookupZ01Draft(input: {
   const identity = customerIdentifier(customer)
   const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
   const transactionReference = compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25)
-  const canonicalProfile = getCanonicalProdatProfile('Z01')
+  const canonicalProfile = canonicalProdatProfileForMessage('Z01')
   if (!canonicalProfile) throw new Error('facility_lookup_z01_canonical_profile_missing')
   const messageVersion = await resolveCanonicalOutboundVersion({
     family: 'PRODAT',

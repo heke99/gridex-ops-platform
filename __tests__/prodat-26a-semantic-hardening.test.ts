@@ -268,7 +268,7 @@ describe('PRODAT 26.A semantic hardening', () => {
     const cisActions = fs.readFileSync(path.join(process.cwd(), 'app/admin/cis/actions.ts'), 'utf8')
     const controlActions = fs.readFileSync(path.join(process.cwd(), 'app/admin/operations/control-actions.ts'), 'utf8')
     const inboundState = fs.readFileSync(path.join(process.cwd(), 'lib/ediel/flows/inboundBusinessStateMachine.ts'), 'utf8')
-    const prodatSource = fs.readFileSync(path.join(process.cwd(), 'lib/ediel/prodat.ts'), 'utf8')
+    const prodatSource = fs.readFileSync(path.join(process.cwd(), 'lib/ediel/prodat/compatAdapter.ts'), 'utf8')
 
     expect(cisActions).not.toMatch(/outboundRequest\.status === 'acknowledged'[\s\S]{0,500}status: 'accepted'/)
     expect(controlActions).not.toMatch(/outboundRequest\.status === 'acknowledged'[\s\S]{0,500}status: 'accepted'/)

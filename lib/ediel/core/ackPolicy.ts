@@ -4,10 +4,13 @@ import type { EdielAckStatus, EdielMessageRow } from '@/lib/ediel/types'
 import { getEdielRouteRuntimeByCommunicationRouteId } from '@/lib/ediel/config'
 import { listAckMessagesForSource } from '@/lib/ediel/db'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
-import { canonicalAckRequirements, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
+import {
+  canonicalAckRequirementsForFamilyCode,
+  type CanonicalAckMatrixRule,
+  type ProdatBusinessContext,
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import type { ProdatBusinessContext } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -306,7 +309,7 @@ export function deriveEdielAckDefaults(params: { family: string; code: string })
   aperakStatus: 'pending' | 'not_required'
   utiltsErrStatus: 'not_required'
 } {
-  const requirements = canonicalAckRequirements(params)
+  const requirements = canonicalAckRequirementsForFamilyCode(params)
   return {
     requiresContrl: requirements.requiresContrl,
     requiresAperak: requirements.requiresAperak,

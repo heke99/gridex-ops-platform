@@ -1,10 +1,11 @@
-import type { CreateEdielMessageInput } from '@/lib/ediel/types'
+import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 import type { CanonicalRouteRequestType } from '@/lib/ediel/core/routeRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import {
   createCanonicalOutboundMessage,
+  createCanonicalAckMessage as createLegacyCanonicalAckMessage,
   resolveCanonicalOutboundContext,
 } from './kernelLegacy'
 
@@ -15,7 +16,6 @@ export {
   resolveInboundAcceptedVersions,
   registerInboundCanonicalMessage,
   createCanonicalOutboundMessage,
-  createCanonicalAckMessage,
   buildCanonicalReferencesForOutbound,
 } from './kernelLegacy'
 
@@ -50,6 +50,51 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     )
   }
   return validation.rulePackSnapshot
+}
+
+function inheritedSourceRulePackSnapshot(sourceMessage: EdielMessageRow) {
+  const embedded = sourceMessage.rule_pack_snapshot ?? {}
+  const profileKey = String(sourceMessage.rule_profile_key ?? embedded.profileKey ?? '').trim()
+  const profileVersionId = String(sourceMessage.rule_profile_version_id ?? embedded.profileVersionId ?? '').trim()
+  const version = String(sourceMessage.rule_profile_version ?? embedded.version ?? '').trim()
+  const checksum = String(sourceMessage.rule_pack_checksum ?? embedded.checksum ?? '').trim()
+  if (!profileKey || !profileVersionId || !version || !checksum) {
+    throw new Error(`canonical_ack_source_rule_pack_snapshot_missing:${sourceMessage.id}`)
+  }
+  return {
+    profileKey,
+    profileVersionId,
+    version,
+    checksum,
+    inheritedFromSourceMessage: true as const,
+    sourceMessageId: sourceMessage.id,
+  }
+}
+
+/**
+ * Public ACK gateway. ACK/error families never select an independent normative
+ * rule pack: they validate their own protocol semantics through
+ * resolveCanonicalEdielPolicy and inherit the exact activation/evidence
+ * snapshot of the business message they acknowledge.
+ */
+export async function createCanonicalAckMessage(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  draft: CreateEdielMessageInput
+}) {
+  const sourceSnapshot = inheritedSourceRulePackSnapshot(params.sourceMessage)
+  return createLegacyCanonicalAckMessage({
+    ...params,
+    draft: {
+      ...params.draft,
+      parsedPayload: {
+        ...(params.draft.parsedPayload ?? {}),
+        canonicalSourceRulePackSnapshot: sourceSnapshot,
+      },
+    },
+  })
 }
 
 /**
