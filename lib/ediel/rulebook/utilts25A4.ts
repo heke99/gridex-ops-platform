@@ -1,4 +1,5 @@
 export type UtiltsGuideRevision = '25-A-3' | '25-A-4'
+export type UtiltsMessageUseMode = 'live_inbound' | 'outbound' | 'historical_replay'
 
 export type UtiltsProcessabilityPolicy = {
   guideRevision: UtiltsGuideRevision
@@ -24,6 +25,7 @@ export type UtiltsProcessabilityPolicy = {
 }
 
 const activeCodes = ['E30', 'E31', 'E66', 'E72', 'E73', 'E74', 'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'ERR'] as const
+const S08_LAST_LIVE_USE_DATE = '2026-04-14'
 
 export const UTILTS_25_A_3_POLICY: UtiltsProcessabilityPolicy = {
   guideRevision: '25-A-3',
@@ -33,6 +35,8 @@ export const UTILTS_25_A_3_POLICY: UtiltsProcessabilityPolicy = {
   fieldMatrixBase: '25-A-3',
   fieldMatrixOverlayCertified: true,
   activeOutboundMessageCodes: activeCodes,
+  // S08 remains recognizable for historical parsing/audit after retirement,
+  // but it is not a current production workflow after 2026-04-14.
   historicalReceiveOnlyMessageCodes: ['S08'],
   removedFieldNumbers: [],
   removedRejectionReasonCodes: [],
@@ -49,10 +53,10 @@ export const UTILTS_25_A_3_POLICY: UtiltsProcessabilityPolicy = {
 }
 
 /**
- * 25-A-4 is a dated overlay over the current active field matrix. For the
- * message families Gridex supports, the change log removes S08-only fields
- * 535-538 and changes processability/code-list semantics; it does not create a
- * second independent copy of the unchanged active-field matrix.
+ * 25-A-4 is a dated overlay over the certified 25-A-3 active-field matrix.
+ * The change log removes the retired S08 fields 535-538, removes E19 and Z03,
+ * and changes processability semantics. It does not create a second unrelated
+ * copy of the unchanged active-message field matrix.
  */
 export const UTILTS_25_A_4_POLICY: UtiltsProcessabilityPolicy = {
   guideRevision: '25-A-4',
@@ -62,7 +66,7 @@ export const UTILTS_25_A_4_POLICY: UtiltsProcessabilityPolicy = {
   fieldMatrixBase: '25-A-3',
   fieldMatrixOverlayCertified: true,
   activeOutboundMessageCodes: activeCodes,
-  historicalReceiveOnlyMessageCodes: ['S08'],
+  historicalReceiveOnlyMessageCodes: [],
   removedFieldNumbers: ['535', '536', '537', '538'],
   removedRejectionReasonCodes: ['E19'],
   removedTransactionReasonCodes: ['Z03'],
@@ -89,14 +93,36 @@ export function resolveUtiltsProcessabilityPolicy(referenceDate: string): Utilts
   return date >= UTILTS_25_A_4_POLICY.effectiveFrom ? UTILTS_25_A_4_POLICY : UTILTS_25_A_3_POLICY
 }
 
+/**
+ * S08 is a historical Swedish UTILTS process. The 25-A-3 guide explicitly says
+ * it ceases to be used after 2026-04-14. Historical replay remains parseable,
+ * but current inbound/outbound business automation must not revive it.
+ */
+export function assertUtiltsMessageUseAllowed(input: {
+  referenceDate: string
+  messageCode: string | null | undefined
+  mode: UtiltsMessageUseMode
+}): void {
+  const date = isoDate(input.referenceDate)
+  const policy = resolveUtiltsProcessabilityPolicy(date)
+  const code = String(input.messageCode ?? '').trim().toUpperCase()
+
+  if (code === 'S08') {
+    if (input.mode === 'historical_replay') return
+    if (date <= S08_LAST_LIVE_USE_DATE && policy.guideRevision === '25-A-3') return
+    throw new Error(`utilts_s08_live_use_discontinued:${date}`)
+  }
+
+  if (input.mode === 'outbound' && !policy.activeOutboundMessageCodes.includes(code)) {
+    throw new Error(`utilts_message_not_supported:${policy.guideRevision}:${code || 'missing'}`)
+  }
+}
+
 export function assertUtiltsOutboundMessageAllowed(input: {
   referenceDate: string
   messageCode: string | null | undefined
 }): void {
-  const policy = resolveUtiltsProcessabilityPolicy(input.referenceDate)
-  const code = String(input.messageCode ?? '').trim().toUpperCase()
-  if (code === 'S08') throw new Error(`utilts_s08_outbound_discontinued:${input.referenceDate}`)
-  if (!policy.activeOutboundMessageCodes.includes(code)) throw new Error(`utilts_message_not_supported:${policy.guideRevision}:${code || 'missing'}`)
+  assertUtiltsMessageUseAllowed({ ...input, mode: 'outbound' })
 }
 
 export function assertUtiltsTransactionReasonAllowed(input: {
