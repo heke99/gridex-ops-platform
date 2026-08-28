@@ -111,6 +111,10 @@ export async function actionPreflight(input: {
       requestedDate: input.requestedDate,
       historicalStartDate: input.historicalStartDate,
       historicalEndDate: input.historicalEndDate,
+      // In the current site model move_in_date is the available current-customer
+      // grid-agreement start evidence. The canonical Z13 engine takes the later
+      // of this date and the handbook's three-year history limit.
+      networkContractStartDate: firstNonBlank(site?.move_in_date),
     })
 
     for (const message of deadline.issues) {

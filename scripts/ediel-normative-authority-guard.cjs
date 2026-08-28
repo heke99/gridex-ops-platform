@@ -18,6 +18,7 @@ const MATRIX_AUTHORITY_ALLOWLIST = new Set([
   'lib/ediel/ack/canonicalAckEngine.ts',
   'lib/ediel/prodat/prodat26AFieldMatrix.ts',
   'lib/ediel/rulebook/codeRules.ts',
+  'lib/ediel/rulebook/deadlinePolicy.ts',
   'lib/ediel/rulebook/fieldMatrix.ts',
   'lib/ediel/rulebook/guideRegistry.ts',
   'lib/ediel/rulebook/prodatApplicationReference.ts',
@@ -50,6 +51,7 @@ const NORMATIVE_LITERAL_ALLOWLIST = new Set([
 // Effective dates / guide identifiers have exactly these source-controlled
 // owners. A projection must read them from a profile/guide, never repeat them.
 const VALIDITY_AUTHORITY_ALLOWLIST = new Set([
+  'lib/ediel/rulebook/deadlinePolicy.ts',
   'lib/ediel/rulebook/guideRegistry.ts',
   'lib/ediel/rulebook/prodatRulebook.ts',
   'lib/ediel/rulebook/prodatSubtypeRegistry.ts',
@@ -72,6 +74,7 @@ const NORMATIVE_AUTHORITY_IMPORTS = [
   '@/lib/ediel/prodat/prodat26AFieldMatrix',
   '@/lib/ediel/prodat/prodatDependentConditionEngine',
   '@/lib/ediel/rulebook/businessSemantics',
+  '@/lib/ediel/rulebook/deadlinePolicy',
   '@/lib/ediel/rulebook/guideRegistry',
   '@/lib/ediel/rulebook/prodatApplicationReference',
   '@/lib/ediel/rulebook/prodatRulebook',
@@ -103,6 +106,19 @@ const CANONICAL_IMPORT_PROJECTION_ALLOWLIST = new Set([
   'lib/ediel/utiltsEngine.part-2.ts',
   'lib/routes/routeReadiness.ts',
 ])
+
+const FORBIDDEN_NORMATIVE_DB_READS = [
+  {
+    table: 'ediel_business_deadline_rules',
+    pattern: /\.from\(\s*['"]ediel_business_deadline_rules['"]\s*\)/,
+    reason: 'business deadlines are source-controlled canonical policy; DB rows are evidence only',
+  },
+  {
+    table: 'market_process_policies',
+    pattern: /\.from\(\s*['"]market_process_policies['"]\s*\)/,
+    reason: 'supplier-switch timing is source-controlled canonical policy; DB rows are evidence only',
+  },
+]
 
 function normalize(file) {
   return file.replaceAll('\\', '/')
@@ -207,6 +223,22 @@ function scanNormativeAuthority(root = process.cwd()) {
     }
   }
 
+  const deadlineCalculatorPath = 'lib/ediel/calendar/deadlineCalculator.ts'
+  if (exists(deadlineCalculatorPath)) {
+    const deadlineCalculator = read(deadlineCalculatorPath)
+    if (!deadlineCalculator.includes('canonicalDeadlineForAction')) {
+      violations.push(`${deadlineCalculatorPath}: operational deadline calculator must consume canonical deadline facade`)
+    }
+  }
+
+  const supplierSchedulerPath = 'lib/operations/supplierSwitchScheduler.ts'
+  if (exists(supplierSchedulerPath)) {
+    const scheduler = read(supplierSchedulerPath)
+    if (!scheduler.includes('canonicalSupplierSwitchSendPolicyProjection')) {
+      violations.push(`${supplierSchedulerPath}: supplier switch scheduler must consume canonical Z03 deadline policy`)
+    }
+  }
+
   for (const absolute of runtimeFiles(root)) {
     const relative = normalize(path.relative(root, absolute))
     const source = fs.readFileSync(absolute, 'utf8')
@@ -216,6 +248,12 @@ function scanNormativeAuthority(root = process.cwd()) {
       source.includes("@/lib/ediel/rulebook/validatorLegacy")
     ) {
       violations.push(`${relative}: validatorLegacy may only be reached through the canonical validator facade`)
+    }
+
+    for (const forbiddenDb of FORBIDDEN_NORMATIVE_DB_READS) {
+      if (forbiddenDb.pattern.test(source)) {
+        violations.push(`${relative}: reads normative DB table ${forbiddenDb.table}; ${forbiddenDb.reason}`)
+      }
     }
 
     if (

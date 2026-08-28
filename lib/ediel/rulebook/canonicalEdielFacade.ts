@@ -10,6 +10,15 @@ import {
   type CanonicalEdielBusinessFamily,
 } from '@/lib/ediel/rulebook/businessSemantics'
 import {
+  canonicalDeadlineCatalog,
+  canonicalDeadlineRuleForMessage,
+  canonicalSupplierSwitchSendPolicy,
+  evaluateCanonicalEdielActionDeadline,
+  type CanonicalDeadlineEvaluation,
+  type CanonicalEdielDeadlineRule,
+  type CanonicalSupplierSwitchSendPolicy,
+} from '@/lib/ediel/rulebook/deadlinePolicy'
+import {
   PRODAT_CANONICAL_PROFILES,
   getCanonicalProdatProfile,
   type ProdatCanonicalProfile,
@@ -135,10 +144,43 @@ export function canonicalBusinessSemanticsCatalog(): readonly CanonicalEdielBusi
   return listCanonicalEdielBusinessSemantics()
 }
 
+export function canonicalDeadlineForMessage(input: {
+  family: string
+  code: string
+  subtype?: string | null
+}): CanonicalEdielDeadlineRule | null {
+  return canonicalDeadlineRuleForMessage(input)
+}
+
+export function canonicalDeadlineCatalogProjection(): readonly CanonicalEdielDeadlineRule[] {
+  return canonicalDeadlineCatalog()
+}
+
+export function canonicalSupplierSwitchSendPolicyProjection(input: {
+  subtype?: 'L' | 'LK' | 'C' | null
+  cancellationOfSubtype?: 'L' | 'LK' | null
+} = {}): CanonicalSupplierSwitchSendPolicy {
+  return canonicalSupplierSwitchSendPolicy(input)
+}
+
+export function canonicalDeadlineForAction(input: {
+  actionType: string
+  requestedDate?: string | null
+  historicalStartDate?: string | null
+  historicalEndDate?: string | null
+  networkContractStartDate?: string | null
+  now?: Date
+}): CanonicalDeadlineEvaluation {
+  return evaluateCanonicalEdielActionDeadline(input)
+}
+
 export type {
   CanonicalAckMatrixRule,
+  CanonicalDeadlineEvaluation,
   CanonicalEdielBusinessFamily,
   CanonicalEdielBusinessSemantics,
+  CanonicalEdielDeadlineRule,
+  CanonicalSupplierSwitchSendPolicy,
   ProdatBusinessContext,
   ProdatCanonicalProfile,
   UtiltsCanonicalProfile,

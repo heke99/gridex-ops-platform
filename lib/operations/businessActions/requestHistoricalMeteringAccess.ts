@@ -6,12 +6,6 @@ import {
   buildBusinessActionIdempotencyKey,
 } from '@/lib/operations/businessActions/idempotency'
 
-function dateOnly(value: string): Date {
-  const date = new Date(`${value.slice(0, 10)}T00:00:00.000Z`)
-  if (Number.isNaN(date.getTime())) throw new Error('Ogiltig historisk period.')
-  return date
-}
-
 export async function requestHistoricalMeteringAccess(input: {
   actorUserId: string
   customerId: string
@@ -22,22 +16,8 @@ export async function requestHistoricalMeteringAccess(input: {
   startDate: string
   endDate: string
 }) {
-  const start = dateOnly(input.startDate)
-  const end = dateOnly(input.endDate)
-  const yesterday = new Date()
-  yesterday.setUTCHours(0, 0, 0, 0)
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1)
-  const oldest = new Date(yesterday)
-  oldest.setUTCFullYear(oldest.getUTCFullYear() - 3)
-
-  if (start > yesterday || end > yesterday || end < start || start < oldest) {
-    return {
-      ok: false,
-      decision: decideBusinessAction('request_historical_metering_access'),
-      message: 'Historisk period måste vara avslutad, i rätt ordning och högst tre år bakåt.',
-    }
-  }
-
+  // Z13VH date bounds are owned by the canonical Ediel deadline policy. Do not
+  // duplicate the three-year/yesterday rules in this workflow.
   const preflight = await actionPreflight({
     ...input,
     actionType: 'request_historical_metering_access',
