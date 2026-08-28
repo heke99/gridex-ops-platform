@@ -18,6 +18,19 @@ export type ProdatSubtypeRule = {
   }
 }
 
+export type ProdatBusinessContext =
+  | 'death'
+  | 'bankruptcy'
+  | 'identity_change'
+  | 'other_masterdata'
+  | 'unknown'
+
+export type ProdatBusinessContextResolution = ProdatSubtypeResolution & {
+  businessContext: ProdatBusinessContext | null
+  customerStatusRequired: boolean
+  bilateralReason: string | null
+}
+
 const source = {
   document: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B',
   version: '26.A',
@@ -40,10 +53,15 @@ export const PRODAT_SUBTYPE_RULES: readonly ProdatSubtypeRule[] = [
   { subtype: 'LK', transactionReasonCode: 'Z23', meaning: 'Change of customer and supplier', allowedMessageCodes: ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z08'], bilateralOnlyFor: ['Z08'], source },
   { subtype: 'C',  transactionReasonCode: 'Z24', meaning: 'Cancellation', allowedMessageCodes: ['Z03', 'Z04', 'Z05', 'Z15'], source },
   { subtype: 'H',  transactionReasonCode: 'Z25', meaning: 'Rescission / unspecified', allowedMessageCodes: ['Z03', 'Z04', 'Z05', 'Z08'], bilateralOnlyFor: ['Z03', 'Z04', 'Z05'], source },
-  { subtype: 'A',  transactionReasonCode: 'Z26', meaning: 'Assigned/default supplier', allowedMessageCodes: ['Z04'], source },
+  // PRODAT 26.A p.65: Z26/Z04A may only be used after bilateral agreement.
+  { subtype: 'A',  transactionReasonCode: 'Z26', meaning: 'Assigned/default supplier', allowedMessageCodes: ['Z04'], bilateralOnlyFor: ['Z04'], source },
   { subtype: 'D',  transactionReasonCode: 'Z70', meaning: 'Obligation to receive production', allowedMessageCodes: ['Z04', 'Z09'], source },
   { subtype: 'B',  transactionReasonCode: 'Z27', meaning: 'Change of balance responsible', allowedMessageCodes: ['Z09'], source },
   { subtype: 'N',  transactionReasonCode: 'Z96', meaning: 'Rejected reporting', allowedMessageCodes: ['Z14'], source },
+  // E34 is context-sensitive. Death/bankruptcy is the normal Handbook process;
+  // other Z06E/Z09E use requires counterparty-specific bilateral capability.
+  // That condition is evaluated by resolveProdatBusinessContext below rather
+  // than by bilateralOnlyFor, because it cannot be decided from code alone.
   { subtype: 'E',  transactionReasonCode: 'E34', meaning: 'Customer/consumer masterdata update', allowedMessageCodes: ['Z06', 'Z09'], source },
   { subtype: 'G',  transactionReasonCode: 'E32', meaning: 'Metering-point masterdata update', allowedMessageCodes: ['Z06', 'Z09'], source },
   { subtype: 'F',  transactionReasonCode: 'E64', meaning: 'Metering-point update requiring meter reading', allowedMessageCodes: ['Z06', 'Z09'], source },
@@ -124,6 +142,68 @@ export function resolveProdatSubtype(input: {
   }
 
   return { ok: true, subtype: rule.subtype, transactionReasonCode: rule.transactionReasonCode, bilateralRequired, reason: null, source: rule.source }
+}
+
+/**
+ * Evaluate business-context conditions that cannot be inferred from field 223.
+ *
+ * Handbook 26A chapter 4.4 and PRODAT 26.A p.65:
+ * - Z06E/Z09E are normally used for death/bankruptcy and require customer status.
+ * - Other customer-identity/masterdata purposes require a bilateral agreement
+ *   with the exact counterparty. A bilateral flag for one actor must never
+ *   authorize another actor.
+ */
+export function resolveProdatBusinessContext(input: {
+  messageCode: string | null | undefined
+  subtypeOrReasonCode: string | null | undefined
+  businessContext?: ProdatBusinessContext | null
+  bilateralCapabilityVerified?: boolean
+}): ProdatBusinessContextResolution {
+  const base = resolveProdatSubtype({
+    messageCode: input.messageCode,
+    subtypeOrReasonCode: input.subtypeOrReasonCode,
+    bilateralCapabilityVerified: input.bilateralCapabilityVerified,
+  })
+  const businessContext = input.businessContext ?? null
+  if (!base.ok) {
+    return { ...base, businessContext, customerStatusRequired: false, bilateralReason: null }
+  }
+
+  const code = normalize(input.messageCode)
+  if (base.subtype !== 'E' || !['Z06', 'Z09'].includes(code)) {
+    return { ...base, businessContext, customerStatusRequired: false, bilateralReason: null }
+  }
+
+  const normalDeathProcess = businessContext === 'death' || businessContext === 'bankruptcy'
+  if (normalDeathProcess) {
+    return {
+      ...base,
+      bilateralRequired: false,
+      businessContext,
+      customerStatusRequired: true,
+      bilateralReason: null,
+    }
+  }
+
+  if (input.bilateralCapabilityVerified === true) {
+    return {
+      ...base,
+      bilateralRequired: true,
+      businessContext,
+      customerStatusRequired: false,
+      bilateralReason: 'e34_non_death_masterdata_bilateral',
+    }
+  }
+
+  return {
+    ...base,
+    ok: false,
+    bilateralRequired: true,
+    reason: `prodat_e34_business_context_or_bilateral_required:${code}`,
+    businessContext,
+    customerStatusRequired: false,
+    bilateralReason: 'e34_non_death_masterdata_bilateral',
+  }
 }
 
 export function allowedProdatSubtypes(messageCode: string | null | undefined): readonly ProdatSubtypeRule[] {
