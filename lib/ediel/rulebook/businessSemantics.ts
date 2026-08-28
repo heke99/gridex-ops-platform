@@ -1,3 +1,4 @@
+import { resolveCanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
 import { PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
 import {
   PRODAT_SUBTYPE_RULES,
@@ -5,6 +6,10 @@ import {
   type ProdatMessageCode,
   type ProdatSubtype,
 } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import {
+  getCanonicalSupplierUtiltsSupport,
+  type SupplierUtiltsSupport,
+} from '@/lib/ediel/rulebook/utiltsMarketSemantics'
 import {
   UTILTS_CANONICAL_PROFILES,
   type UtiltsCanonicalMessageCode,
@@ -87,7 +92,15 @@ export type CanonicalEdielBusinessEffect =
   | 'functional_rejection'
   | 'manual_review_only'
 
-export type CanonicalEdielDataScope = 'metering_point' | 'grid_area' | 'transaction' | 'interchange' | 'error_context'
+export type CanonicalEdielDataScope =
+  | 'metering_point'
+  | 'metering_point_or_regulating_object'
+  | 'grid_area'
+  | 'grid_area_or_regulating_object'
+  | 'transaction'
+  | 'interchange'
+  | 'error_context'
+
 export type CanonicalEdielBilateralPolicy = 'none' | 'always' | 'contextual'
 
 export type CanonicalEdielBusinessSemantics = {
@@ -112,6 +125,7 @@ export type CanonicalEdielBusinessSemantics = {
   bilateralPolicy: CanonicalEdielBilateralPolicy
   requiresCustomerStatus: boolean
   autoStateMutationAllowed: boolean
+  supplierUtiltsSupport: SupplierUtiltsSupport | null
   source: {
     document: string
     version: string
@@ -163,7 +177,7 @@ const PRODAT_DEFINITIONS: Record<string, ProdatDefinition> = {
   'Z04:LK': { officialMeaning: 'Grid-owner confirmation/response to a customer-and-supplier change Z03LK.', businessProcess: 'customer_and_supplier_change_confirmation', operationKind: 'response', domainObject: 'supply_relationship', businessEffect: 'confirm_customer_and_supplier_change', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true },
   'Z04:C':  { officialMeaning: 'Grid-owner confirmation that the previously notified supplier change has been withdrawn.', businessProcess: 'supplier_change_cancellation_confirmation', operationKind: 'response', domainObject: 'supply_relationship', businessEffect: 'confirm_change_cancellation', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true },
   'Z04:H':  { officialMeaning: 'Bilateral grid-owner response/information for an unspecified Z25 change-procedure reason.', businessProcess: 'bilateral_unspecified_change_response', operationKind: 'manual_bilateral_process', domainObject: 'supply_relationship', businessEffect: 'manual_review_only', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'always', requiresCustomerStatus: false, autoStateMutationAllowed: false },
-  'Z04:A':  { officialMeaning: 'Information from the grid owner that assigned/default supply starts.', businessProcess: 'assigned_supply_start', operationKind: 'notification', domainObject: 'supply_relationship', businessEffect: 'start_assigned_supply', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'always', requiresCustomerStatus: false, autoStateMutationAllowed: true },
+  'Z04:A':  { officialMeaning: 'Information from the grid owner that assigned/default supply starts.', businessProcess: 'assigned_supply_start', operationKind: 'notification', domainObject: 'supply_relationship', businessEffect: 'start_assigned_supply', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'always', requiresCustomerStatus: false, autoStateMutationAllowed: false },
   'Z04:D':  { officialMeaning: 'Information that the obligation to receive production becomes effective.', businessProcess: 'production_receipt_obligation_start', operationKind: 'notification', domainObject: 'production_purchase_obligation', businessEffect: 'start_production_receipt_obligation', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true },
 
   'Z05:L':  { officialMeaning: 'Information to the current/old supplier that supply ends, normally due to supplier switch; also the business response to Z08H.', businessProcess: 'existing_supply_end_supplier_change', operationKind: 'termination_notice', domainObject: 'supply_relationship', businessEffect: 'end_existing_supply', expectedBusinessResponses: none, historical: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true },
@@ -197,6 +211,14 @@ const PRODAT_DEFINITIONS: Record<string, ProdatDefinition> = {
   'Z18:V':  { officialMeaning: 'Eligible party/ESCO request/information that ongoing metering-data reporting should stop.', businessProcess: 'metering_reporting_end_request', operationKind: 'termination_request', domainObject: 'metering_data_permission', businessEffect: 'request_stop_metering_reporting', expectedBusinessResponses: ['PRODAT:Z15:V'], historical: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: false },
 }
 
+function expectedAcknowledgements(family: CanonicalEdielBusinessFamily, code: string): readonly string[] {
+  const ack = resolveCanonicalAckMatrixRule({ family, code })
+  const expected: string[] = []
+  if (ack.technicalAck === 'CONTRL') expected.push('CONTRL')
+  if (ack.applicationAck === 'APERAK' || ack.applicationAck === 'transactional') expected.push('APERAK')
+  return expected
+}
+
 function prodatDirection(direction: 'actor_to_portal' | 'portal_to_actor'): CanonicalEdielDirection {
   return direction === 'actor_to_portal' ? 'outbound' : 'inbound'
 }
@@ -217,15 +239,16 @@ function buildProdatSemantics(): CanonicalEdielBusinessSemantics[] {
         direction: prodatDirection(profile.direction),
         senderRoles: [profile.senderRole],
         receiverRoles: [profile.receiverRole],
-        expectedAcknowledgements: ['CONTRL', 'APERAK'],
+        expectedAcknowledgements: expectedAcknowledgements('PRODAT', profile.messageCode),
         dataScope: 'metering_point',
         carriesQuantities: false,
+        supplierUtiltsSupport: null,
         source: {
           document: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B + Svensk Elmarknadshandbok 26A',
           version: profile.guideVersion,
           revision: profile.guideRevision,
           effectiveFrom: profile.effectiveFrom,
-          pageOrSection: 'PRODAT p.65/p.122; Handbook chapters 4, 10, 11',
+          pageOrSection: 'PRODAT field 223 and Handbook chapters 4, 10, 11',
         },
       })
     }
@@ -233,13 +256,13 @@ function buildProdatSemantics(): CanonicalEdielBusinessSemantics[] {
   return result
 }
 
-function utiltsDirection(senderRoles: readonly string[], receiverRoles: readonly string[]): CanonicalEdielDirection {
-  const gridexRoles = new Set(['supplier', 'esco', 'energy_supplier', 'eligible_party', 'balance_responsible_party'])
-  const canSend = senderRoles.some((role) => gridexRoles.has(role.toLowerCase()))
-  const canReceive = receiverRoles.some((role) => gridexRoles.has(role.toLowerCase()))
-  if (canSend && canReceive) return 'both'
-  if (canSend) return 'outbound'
-  if (canReceive) return 'inbound'
+function utiltsDirection(code: UtiltsCanonicalMessageCode): CanonicalEdielDirection {
+  const support = getCanonicalSupplierUtiltsSupport(code)
+  if (support === 'inbound_only') return 'inbound'
+  if (support === 'outbound_only') return 'outbound'
+  // Manual-review and non-supplier messages have no automatic Gridex supplier
+  // direction. Keep both only as a compatibility shape; supplierUtiltsSupport
+  // is the authoritative gate and autoStateMutationAllowed remains false.
   return 'both'
 }
 
@@ -265,8 +288,10 @@ function utiltsResponses(code: UtiltsCanonicalMessageCode): readonly string[] {
 }
 
 function utiltsDataScope(identity: string): CanonicalEdielDataScope {
-  if (identity === 'metering_point' || identity === 'metering_point_or_regulating_object') return 'metering_point'
-  if (identity === 'aggregate' || identity === 'aggregate_or_regulating_object') return 'grid_area'
+  if (identity === 'metering_point') return 'metering_point'
+  if (identity === 'metering_point_or_regulating_object') return 'metering_point_or_regulating_object'
+  if (identity === 'aggregate') return 'grid_area'
+  if (identity === 'aggregate_or_regulating_object') return 'grid_area_or_regulating_object'
   return 'error_context'
 }
 
@@ -274,8 +299,10 @@ function buildUtiltsSemantics(): CanonicalEdielBusinessSemantics[] {
   return UTILTS_CANONICAL_PROFILES.map((profile) => {
     const request = profile.scope === 'request'
     const error = profile.messageCode === 'ERR'
+    const family: CanonicalEdielBusinessFamily = error ? 'UTILTS_ERR' : 'UTILTS'
+    const supplierSupport = getCanonicalSupplierUtiltsSupport(profile.messageCode)
     return {
-      family: error ? 'UTILTS_ERR' : 'UTILTS',
+      family,
       code: profile.messageCode,
       subtype: null,
       transactionReasonCode: null,
@@ -284,18 +311,19 @@ function buildUtiltsSemantics(): CanonicalEdielBusinessSemantics[] {
       operationKind: error ? 'functional_error' : request ? 'request' : 'data',
       domainObject: utiltsDomainObject(profile.messageCode),
       businessEffect: error ? 'functional_rejection' : request ? 'request_missing_values' : 'deliver_values',
-      direction: utiltsDirection(profile.allowedSenderRoles, profile.allowedReceiverRoles),
+      direction: utiltsDirection(profile.messageCode),
       senderRoles: profile.allowedSenderRoles,
       receiverRoles: profile.allowedReceiverRoles,
       expectedBusinessResponses: utiltsResponses(profile.messageCode),
-      expectedAcknowledgements: error ? ['CONTRL', 'APERAK'] : ['CONTRL', 'APERAK'],
+      expectedAcknowledgements: expectedAcknowledgements(family, profile.messageCode),
       dataScope: utiltsDataScope(profile.identityRequirement),
       historical: false,
       carriesQuantities: profile.requiresQuantities,
       requestsData: request,
       bilateralPolicy: profile.bilateralCapabilityRequired ? 'always' : 'none',
       requiresCustomerStatus: false,
-      autoStateMutationAllowed: !request && !error && profile.productionReadiness !== 'partial',
+      autoStateMutationAllowed: !request && !error && supplierSupport === 'inbound_only' && profile.productionReadiness !== 'partial',
+      supplierUtiltsSupport: supplierSupport,
       source: {
         document: profile.guideDocumentName,
         version: profile.guideVersion,
@@ -310,12 +338,12 @@ function buildUtiltsSemantics(): CanonicalEdielBusinessSemantics[] {
 const ACK_SEMANTICS: readonly CanonicalEdielBusinessSemantics[] = [
   {
     family: 'CONTRL', code: 'CONTRL', subtype: null, transactionReasonCode: null,
-    officialMeaning: 'Technical EDIFACT interchange/message acknowledgement.', businessProcess: 'technical_ack', operationKind: 'technical_ack', domainObject: 'interchange', businessEffect: 'technical_acknowledgement', direction: 'both', senderRoles: [], receiverRoles: [], expectedBusinessResponses: none, expectedAcknowledgements: none, dataScope: 'interchange', historical: false, carriesQuantities: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true,
+    officialMeaning: 'Technical EDIFACT interchange/message acknowledgement.', businessProcess: 'technical_ack', operationKind: 'technical_ack', domainObject: 'interchange', businessEffect: 'technical_acknowledgement', direction: 'both', senderRoles: [], receiverRoles: [], expectedBusinessResponses: none, expectedAcknowledgements: expectedAcknowledgements('CONTRL', 'CONTRL'), dataScope: 'interchange', historical: false, carriesQuantities: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true, supplierUtiltsSupport: null,
     source: { document: 'Ediel General Technical Rules', version: '24-A-6', revision: '6', effectiveFrom: '2024-01-01', pageOrSection: 'CONTRL acknowledgement rules' },
   },
   {
     family: 'APERAK', code: 'APERAK', subtype: null, transactionReasonCode: null,
-    officialMeaning: 'Application acknowledgement or application-level rejection of a referenced business message.', businessProcess: 'application_ack', operationKind: 'application_ack', domainObject: 'application_transaction', businessEffect: 'application_acknowledgement', direction: 'both', senderRoles: [], receiverRoles: [], expectedBusinessResponses: none, expectedAcknowledgements: ['CONTRL'], dataScope: 'transaction', historical: false, carriesQuantities: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true,
+    officialMeaning: 'Application acknowledgement or application-level rejection of a referenced business message.', businessProcess: 'application_ack', operationKind: 'application_ack', domainObject: 'application_transaction', businessEffect: 'application_acknowledgement', direction: 'both', senderRoles: [], receiverRoles: [], expectedBusinessResponses: none, expectedAcknowledgements: expectedAcknowledgements('APERAK', 'APERAK'), dataScope: 'transaction', historical: false, carriesQuantities: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true, supplierUtiltsSupport: null,
     source: { document: 'PRODAT/APERAK 26.A/16.B and UTILTS/APERAK guides', version: 'context-dependent', revision: 'context-dependent', effectiveFrom: '2016-12-01', pageOrSection: 'APERAK acknowledgement rules' },
   },
 ] as const
