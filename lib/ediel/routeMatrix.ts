@@ -6,9 +6,7 @@
  * semantics. Those are resolved from the canonical rulebooks.
  */
 
-import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
 import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 
 /** DB-valid values for communication_routes.route_scope */
 export type CommunicationRouteScope =
@@ -18,9 +16,6 @@ export type CommunicationRouteScope =
   | 'meter_values'
   | 'metering_values'
   | 'billing_underlay'
-
-/** DB-valid values for ediel_route_profiles.ack_mode */
-export type EdielAckMode = 'default' | 'none' | 'contrl_only' | 'contrl_and_aperak'
 
 /** DB-valid values for communication_routes.route_type (EDIEL operational routes) */
 export const EDIEL_PARTNER_ROUTE_TYPE = 'ediel_partner' as const
@@ -76,58 +71,6 @@ export function routeScopeForProcess(params: {
   throw new Error(`ediel_route_scope_family_unsupported:${family || 'missing'}`)
 }
 
-/** Compatibility projection of the canonical acknowledgement policy. */
-export function ackModeForProcess(params: {
-  messageFamily: string
-  messageCode?: string | null
-}): EdielAckMode {
-  const family = normalize(params.messageFamily)
-  const code = normalize(params.messageCode)
-
-  if (family === 'CONTRL' || family === 'APERAK') return 'none'
-  if (family === 'UTILTS_ERR') return 'contrl_only'
-  if (family === 'PRODAT') {
-    if (!code) throw new Error('ediel_ack_mode_prodat_code_required')
-    const profile = getCanonicalProdatProfile(code)
-    if (!profile) throw new Error(`ediel_ack_mode_prodat_profile_missing:${code}`)
-    return profile.z01AperakException ? 'contrl_only' : 'contrl_and_aperak'
-  }
-  if (family === 'UTILTS') {
-    if (!code) return 'default'
-    const profile = getCanonicalUtiltsProfile(code)
-    if (!profile) throw new Error(`ediel_ack_mode_utilts_profile_missing:${code}`)
-    return profile.messageCode === 'ERR' ? 'contrl_only' : 'contrl_and_aperak'
-  }
-  if (family === 'AI_LIST' || family === 'OTHER') return 'none'
-  throw new Error(`ediel_ack_mode_family_unsupported:${family || 'missing'}`)
-}
-
-/**
- * Compatibility entry point. It delegates to canonical Application Reference
- * resolution and never manufactures a route-level fallback.
- */
-export function applicationReferenceForProcess(params: {
-  routeScope?: CommunicationRouteScope | null
-  messageFamily?: string
-  messageCode?: string | null
-  requestedMessageCode?: string | null
-  applicationReference?: string | null
-}): string {
-  const family = normalize(params.messageFamily)
-  const code = normalize(params.messageCode)
-  if (!family) throw new Error('ediel_application_reference_family_required')
-  if (!code && (family === 'PRODAT' || family === 'UTILTS')) {
-    throw new Error(`ediel_application_reference_message_code_required:${family}`)
-  }
-
-  return resolveApplicationReference({
-    messageFamily: family,
-    businessCode: code || null,
-    requestedMessageCode: params.requestedMessageCode ?? null,
-    routeProfile: params.applicationReference ? { applicationReference: params.applicationReference } : null,
-  })
-}
-
 export function shouldMaterializePerGridOwner(params: {
   messageFamily: string
   messageCode?: string | null
@@ -150,11 +93,6 @@ export function isMeteringAccessCode(messageCode: string | null | undefined): bo
 export function isCustomerMasterdataCode(messageCode: string | null | undefined): boolean {
   const profile = getCanonicalProdatProfile(messageCode)
   return Boolean(profile && ['customer_masterdata', 'delivery_contract'].includes(profile.processGroup))
-}
-
-const VALID_ACK_MODES = new Set<string>(['default', 'none', 'contrl_only', 'contrl_and_aperak'])
-export function isValidAckMode(value: unknown): value is EdielAckMode {
-  return typeof value === 'string' && VALID_ACK_MODES.has(value)
 }
 
 const VALID_ROUTE_SCOPES = new Set<string>([

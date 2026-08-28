@@ -2,6 +2,8 @@
 
 import type { EdielDirection, EdielMessageFamily } from '@/lib/ediel/types'
 import { isActiveEdielMessageFamily } from '@/lib/ediel/types'
+import { PRODAT_CANONICAL_PROFILES, getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
+import { UTILTS_CANONICAL_PROFILES, getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 
 export type InferredEdielPayload = {
   messageFamily: EdielMessageFamily | 'UNKNOWN'
@@ -55,6 +57,26 @@ function matchEdifactToken(rawPayloadUpper: string, token: string): boolean {
   )
 }
 
+function canonicalUtiltsCodeFromPayload(upper: string): string | null {
+  const bgmMatch = upper.match(/BGM\+([A-Z0-9_:-]+)\+?/)
+  const bgmToken = bgmMatch?.[1]?.split(':')[0] ?? null
+  if (bgmToken && bgmToken !== 'ERR' && getCanonicalUtiltsProfile(bgmToken)) return bgmToken
+
+  return UTILTS_CANONICAL_PROFILES.find(
+    (profile) => profile.messageCode !== 'ERR' && upper.includes(`BGM+${profile.messageCode}`),
+  )?.messageCode ?? null
+}
+
+function canonicalProdatCodeFromPayload(upper: string): string | null {
+  const bgmMatch = upper.match(/BGM\+([A-Z0-9_:-]+)\+?/)
+  const bgmToken = bgmMatch?.[1]?.split(':')[0] ?? null
+  if (bgmToken && getCanonicalProdatProfile(bgmToken)) return bgmToken
+
+  return PRODAT_CANONICAL_PROFILES.find(
+    (profile) => upper.includes(`BGM+${profile.messageCode}`),
+  )?.messageCode ?? null
+}
+
 function inferEdifactFamilyAndCode(rawPayload: string): {
   family: EdielMessageFamily | 'UNKNOWN'
   code: string | null
@@ -92,31 +114,11 @@ function inferEdifactFamilyAndCode(rawPayload: string): {
   }
 
   if (matchEdifactToken(upper, 'UTILTS')) {
-    const bgmMatch = upper.match(/BGM\+([A-Z0-9_:-]+)\+?/)
-    const bgmToken = bgmMatch?.[1]?.split(':')[0] ?? null
-    const utiltsCode =
-      bgmToken &&
-      ['S01', 'S02', 'S03', 'S04', 'E31', 'E66', 'E73'].includes(bgmToken)
-        ? bgmToken
-        : ['S01', 'S02', 'S03', 'S04', 'E31', 'E66', 'E73'].find((code) =>
-              upper.includes(`BGM+${code}`)
-            ) ?? null
-
-    return { family: 'UTILTS', code: utiltsCode }
+    return { family: 'UTILTS', code: canonicalUtiltsCodeFromPayload(upper) }
   }
 
   if (matchEdifactToken(upper, 'PRODAT')) {
-    const bgmMatch = upper.match(/BGM\+([A-Z0-9_:-]+)\+?/)
-    const bgmToken = bgmMatch?.[1]?.split(':')[0] ?? null
-    const prodatCode =
-      bgmToken &&
-      ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'].includes(bgmToken)
-        ? bgmToken
-        : ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'].find((code) =>
-              upper.includes(`BGM+${code}`)
-            ) ?? null
-
-    return { family: 'PRODAT', code: prodatCode }
+    return { family: 'PRODAT', code: canonicalProdatCodeFromPayload(upper) }
   }
 
   return { family: 'UNKNOWN', code: null }
@@ -146,7 +148,6 @@ function inferXmlFamilyAndCode(rawPayload: string): {
 
   return { family: 'UNKNOWN', code: null }
 }
-
 
 export function extractEdifactPayloadFromText(rawText: string, subject?: string | null): string {
   const candidates = [rawText, subject ?? ''].filter(Boolean) as string[]
