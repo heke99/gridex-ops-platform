@@ -1,6 +1,12 @@
 import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import {
+  assertProdatDependentConditionsDetermined,
+  evaluateProdatDependentConditions,
+  type ProdatDependentConditionEvaluation,
+  type ProdatDependentConditionFacts,
+} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import {
   resolveEdielGuideAcceptance,
   type AuthoritativeEdielGuide,
   type EdielGuideFamily,
@@ -32,10 +38,10 @@ import {
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 
 export type CanonicalEdielPolicyDirection = 'inbound' | 'outbound'
-export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay'
+export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay' | 'catalog_evidence'
 
 export type CanonicalEdielSourceTrace = {
-  authority: 'guide' | 'business_semantics' | 'field_matrix' | 'application_reference' | 'acknowledgement' | 'processability'
+  authority: 'guide' | 'business_semantics' | 'field_matrix' | 'dependent_condition' | 'application_reference' | 'acknowledgement' | 'processability'
   document: string
   section: string
 }
@@ -47,6 +53,9 @@ export type CanonicalEdielPolicy = {
   transactionReasonCode: string | null
   direction: CanonicalEdielPolicyDirection
   referenceDate: string
+  profileKey: string | null
+  processGroup: string | null
+  phase: string | null
   semantics: CanonicalEdielBusinessSemantics
   guide: AuthoritativeEdielGuide
   acceptedInboundGuides: readonly AuthoritativeEdielGuide[]
@@ -55,6 +64,7 @@ export type CanonicalEdielPolicy = {
   associationAssignedCode: string | null
   applicationReference: string | null
   fieldRules: readonly (RulebookFieldRule | UtiltsFieldRule)[]
+  prodatDependentConditions: readonly ProdatDependentConditionEvaluation[]
   ackRule: CanonicalAckMatrixRule
   utiltsProfile: UtiltsCanonicalProfile | null
   utiltsProcessability: UtiltsProcessabilityPolicy | null
@@ -63,6 +73,21 @@ export type CanonicalEdielPolicy = {
   customerStatusRequired: boolean
   businessResponses: readonly string[]
   sourceTrace: readonly CanonicalEdielSourceTrace[]
+}
+
+export type ResolveCanonicalEdielPolicyInput = {
+  family: string
+  messageCode: string
+  subtypeOrReasonCode?: string | null
+  direction: CanonicalEdielPolicyDirection
+  referenceDate: string
+  associationAssignedCode?: string | null
+  applicationReference?: string | null
+  requestedMessageCode?: string | null
+  businessContext?: ProdatBusinessContext | null
+  bilateralCapabilityVerified?: boolean
+  prodatDependentFacts?: ProdatDependentConditionFacts | null
+  mode?: CanonicalEdielPolicyMode
 }
 
 function normalize(value: unknown): string {
@@ -126,20 +151,12 @@ function policyMode(input: {
  * duplicate their rule tables. Runtime consumers should resolve one policy
  * snapshot and use it throughout parse/validate/render/ACK/state processing.
  * No mutable database row may override the returned protocol/business meaning.
+ *
+ * `catalog_evidence` is intentionally non-operational: it may resolve a static
+ * bilateral profile for DB evidence comparison without asserting that a tenant
+ * actually has that bilateral capability. It must never be used to send data.
  */
-export function resolveCanonicalEdielPolicy(input: {
-  family: string
-  messageCode: string
-  subtypeOrReasonCode?: string | null
-  direction: CanonicalEdielPolicyDirection
-  referenceDate: string
-  associationAssignedCode?: string | null
-  applicationReference?: string | null
-  requestedMessageCode?: string | null
-  businessContext?: ProdatBusinessContext | null
-  bilateralCapabilityVerified?: boolean
-  mode?: CanonicalEdielPolicyMode
-}): CanonicalEdielPolicy {
+export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyInput): CanonicalEdielPolicy {
   const family = normalizeFamily(input.family)
   const code = family === 'UTILTS_ERR' ? 'ERR' : normalize(input.messageCode)
   const referenceDate = normalizeDate(input.referenceDate)
@@ -165,10 +182,13 @@ export function resolveCanonicalEdielPolicy(input: {
     const profile = getCanonicalProdatProfile(code)
     if (!profile) throw new Error(`canonical_ediel_prodat_code_unsupported:${code}`)
 
+    const bilateralCapabilityVerified = mode === 'catalog_evidence'
+      ? true
+      : input.bilateralCapabilityVerified
     const subtype = resolveProdatSubtype({
       messageCode: code,
       subtypeOrReasonCode: input.subtypeOrReasonCode,
-      bilateralCapabilityVerified: input.bilateralCapabilityVerified,
+      bilateralCapabilityVerified,
     })
     if (!subtype.ok || !subtype.subtype || !subtype.transactionReasonCode) {
       throw new Error(subtype.reason ?? `canonical_ediel_prodat_subtype_invalid:${code}`)
@@ -178,7 +198,7 @@ export function resolveCanonicalEdielPolicy(input: {
       messageCode: code,
       subtypeOrReasonCode: subtype.subtype,
       businessContext: input.businessContext,
-      bilateralCapabilityVerified: input.bilateralCapabilityVerified,
+      bilateralCapabilityVerified,
     })
     if (!contextual.ok) throw new Error(contextual.reason ?? `canonical_ediel_prodat_context_invalid:${code}:${subtype.subtype}`)
 
@@ -194,6 +214,18 @@ export function resolveCanonicalEdielPolicy(input: {
       throw new Error(`canonical_ediel_application_reference_required:${family}:${code}`)
     }
 
+    const prodatDependentConditions = evaluateProdatDependentConditions({
+      messageCode: code,
+      facts: {
+        ...(input.prodatDependentFacts ?? {}),
+        canonicalSubtype: subtype.subtype,
+        businessContext: input.businessContext ?? input.prodatDependentFacts?.businessContext ?? null,
+      },
+    })
+    if (mode === 'send') {
+      assertProdatDependentConditionsDetermined(prodatDependentConditions)
+    }
+
     return deepFreeze({
       family,
       code,
@@ -201,6 +233,9 @@ export function resolveCanonicalEdielPolicy(input: {
       transactionReasonCode: subtype.transactionReasonCode,
       direction: input.direction,
       referenceDate,
+      profileKey: profile.profileKey,
+      processGroup: profile.processGroup,
+      phase: null,
       semantics,
       guide: acceptance.current,
       acceptedInboundGuides: acceptance.acceptedInbound,
@@ -209,6 +244,7 @@ export function resolveCanonicalEdielPolicy(input: {
       associationAssignedCode,
       applicationReference: providedApplicationReference || expectedApplicationReference,
       fieldRules: canonicalProdat26AFieldRules(code),
+      prodatDependentConditions,
       ackRule,
       utiltsProfile: null,
       utiltsProcessability: null,
@@ -220,6 +256,7 @@ export function resolveCanonicalEdielPolicy(input: {
         { authority: 'guide', document: acceptance.current.documentName, section: 'effective-dated guide registry' },
         { authority: 'business_semantics', document: semantics.source.document, section: semantics.source.pageOrSection },
         { authority: 'field_matrix', document: acceptance.current.documentName, section: 'PRODAT 26.A field matrix' },
+        { authority: 'dependent_condition', document: acceptance.current.documentName, section: 'PRODAT 26.A D-cell condition registry' },
         { authority: 'application_reference', document: acceptance.current.documentName, section: 'PRODAT Application Reference' },
         { authority: 'acknowledgement', document: acceptance.current.documentName, section: 'PRODAT/APERAK acknowledgement rules' },
       ],
@@ -245,7 +282,7 @@ export function resolveCanonicalEdielPolicy(input: {
     if (!semantics) throw new Error(`canonical_ediel_business_semantics_missing:${family}:${code}`)
 
     const supplierUtiltsSupport = getSupplierUtiltsSupport(code)
-    if (input.direction === 'outbound' && family === 'UTILTS') {
+    if (input.direction === 'outbound' && family === 'UTILTS' && mode !== 'catalog_evidence') {
       assertSupplierUtiltsOutboundAllowed({
         code,
         bilateralCapabilityVerified: input.bilateralCapabilityVerified,
@@ -274,6 +311,9 @@ export function resolveCanonicalEdielPolicy(input: {
       transactionReasonCode: null,
       direction: input.direction,
       referenceDate,
+      profileKey: utiltsProfile.profileKey,
+      processGroup: utiltsProfile.businessProcess,
+      phase: utiltsProfile.phase,
       semantics,
       guide: acceptance.current,
       acceptedInboundGuides: acceptance.acceptedInbound,
@@ -282,6 +322,7 @@ export function resolveCanonicalEdielPolicy(input: {
       associationAssignedCode,
       applicationReference,
       fieldRules: family === 'UTILTS' ? getUtiltsFieldRules(code) : [],
+      prodatDependentConditions: [],
       ackRule,
       utiltsProfile,
       utiltsProcessability: processability,
@@ -310,6 +351,9 @@ export function resolveCanonicalEdielPolicy(input: {
     transactionReasonCode: null,
     direction: input.direction,
     referenceDate,
+    profileKey: null,
+    processGroup: null,
+    phase: null,
     semantics,
     guide: acceptance.current,
     acceptedInboundGuides: acceptance.acceptedInbound,
@@ -318,6 +362,7 @@ export function resolveCanonicalEdielPolicy(input: {
     associationAssignedCode,
     applicationReference: normalize(input.applicationReference) || null,
     fieldRules: [],
+    prodatDependentConditions: [],
     ackRule,
     utiltsProfile: null,
     utiltsProcessability: null,
