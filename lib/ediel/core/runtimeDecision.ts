@@ -7,9 +7,19 @@ import {
   parseCanonicalMessageRow,
   type CanonicalEdielMessage,
 } from '@/lib/ediel/core/canonicalMessage'
-import { validateRulebookMessage, validateRulebookMessageWithRegistry, type RulebookValidationResult } from '@/lib/ediel/rulebook/validator'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
+import { resolveCanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
+import {
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
+import {
+  resolveUtiltsInboundBusinessOutcome,
+  type UtiltsInboundBusinessOutcome,
+} from '@/lib/ediel/utilts/inboundBusinessOutcome'
 
 export type CanonicalDecisionState = 'accepted' | 'rejected' | 'not_applicable' | 'manual_review'
 
@@ -34,6 +44,8 @@ export type CanonicalDecisionIssue = {
 
 export type CanonicalRuntimeDecision = {
   canonical: CanonicalEdielMessage
+  policy: CanonicalEdielPolicy | null
+  utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null
   syntaxDecision: CanonicalDecisionState
   applicationDecision: CanonicalDecisionState
   functionalDecision: CanonicalDecisionState
@@ -88,103 +100,224 @@ function applicationErrorFromIssue(input: {
   }
 }
 
-function canHaveApplicationAck(family: string): boolean {
-  return family === 'PRODAT' || family === 'UTILTS'
+function normalizeDate(value: unknown): string | null {
+  const raw = String(value ?? '').trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length >= 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+  return null
 }
 
-function prodatAperakPlanFromValidation(rulebook: RulebookValidationResult): CanonicalResponsePlanItem {
-  const blocking = rulebook.issues.some((item) => item.severity === 'error' || item.blocking)
-  if (!blocking) {
-    return {
-      family: 'APERAK',
-      outcome: 'positive',
-      erc: '100',
-      ftx: 'OK',
-      reason: 'PRODAT är accepterad enligt canonical parser/rulebook. APERAK skickas om route/rule kräver det.',
-    }
-  }
-
-  const applicationErrors = rulebook.issues
-    .filter((item) => item.severity === 'error' || item.blocking)
-    .map((item) => applicationErrorFromIssue({ code: item.code, description: item.description, fieldPath: item.fieldPath }))
-
-  return {
-    family: 'APERAK',
-    outcome: 'negative',
-    erc: applicationErrors[0]?.ercCode ?? '42',
-    ftx: applicationErrors[0]?.text ?? 'INCORRECT DATA',
-    reason: rulebook.fieldRuleSource === 'registry'
-      ? 'PRODAT innehåller anvisnings-/applikationsfel enligt importerad fältmatris.'
-      : 'PRODAT innehåller anvisnings-/applikationsfel enligt rulebook.',
-    applicationErrors,
-  }
+function canonicalBusinessDate(message: EdielMessageRow, canonical: CanonicalEdielMessage): string {
+  const documentDate = canonical.rawSegments
+    .find((segment) => /^DTM\+137:/i.test(segment))
+    ?.replace(/^DTM\+137:/i, '')
+    .split(':')[0]
+  return normalizeDate(documentDate)
+    ?? normalizeDate(message.message_received_at)
+    ?? normalizeDate(message.created_at)
+    ?? new Date().toISOString().slice(0, 10)
 }
 
-function applyProdatRulebookDecision(params: {
-  canonical: CanonicalEdielMessage
-  rulebook: RulebookValidationResult
-  responsePlan: CanonicalResponsePlanItem[]
-  issues: CanonicalDecisionIssue[]
-  sourceRules: string[]
-  decisionTrace: string[]
-}): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState } {
-  const { canonical, rulebook, responsePlan, issues, sourceRules, decisionTrace } = params
-  sourceRules.push(rulebook.fieldRuleSource === 'registry' ? 'PRODAT_IMPORTED_FIELD_RULES' : 'PRODAT_RULEBOOK_PROCESS_CLASSIFICATION')
-  decisionTrace.push(`PRODAT klassad som ${canonical.processGroup}; ${rulebook.fieldRuleSource === 'registry' ? 'importerad fältmatris' : 'rulebook'} gav ${rulebook.issues.length} issue(s).`)
-
-  for (const item of rulebook.issues) {
-    issues.push(issue({
-      layer: item.code.includes('APPLICATION_REFERENCE') ? 'route' : 'application',
-      severity: item.severity,
-      code: item.code,
-      title: item.title,
-      description: item.description,
-      source: rulebook.fieldRuleSource === 'registry' ? 'validateRulebookMessageWithRegistry' : 'validateRulebookMessage',
-    }))
-  }
-
-  const blocking = rulebook.issues.some((item) => item.severity === 'error' || item.blocking)
-  responsePlan.push(prodatAperakPlanFromValidation(rulebook))
-
-  if (blocking) {
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted' }
-  }
-
-  return { applicationDecision: 'accepted', functionalDecision: 'accepted' }
+function readBooleanFact(message: EdielMessageRow, key: string): boolean | undefined {
+  const parsed = message.parsed_payload ?? {}
+  const report = message.validation_report ?? {}
+  const candidates = [
+    parsed[key],
+    (parsed.prodatDependentFacts as Record<string, unknown> | undefined)?.[key],
+    (report.prodatDependentFacts as Record<string, unknown> | undefined)?.[key],
+  ]
+  return candidates.find((value): value is boolean => typeof value === 'boolean')
 }
 
-function shouldContrlInbound(message: EdielMessageRow, family: string): boolean {
-  return message.direction === 'inbound' && message.message_standard === 'edifact' && family !== 'CONTRL'
+function readObjectFact(message: EdielMessageRow, key: string): Record<string, boolean | null | undefined> | undefined {
+  const parsed = message.parsed_payload ?? {}
+  const direct = parsed[key]
+  const nested = (parsed.prodatDependentFacts as Record<string, unknown> | undefined)?.[key]
+  const value = direct ?? nested
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, boolean | null | undefined>
+    : undefined
 }
 
-function initialResponsePlan(params: {
+function readStringFact(message: EdielMessageRow, key: string): string | undefined {
+  const parsed = message.parsed_payload ?? {}
+  const report = message.validation_report ?? {}
+  const candidates = [
+    parsed[key],
+    (parsed.prodatDependentFacts as Record<string, unknown> | undefined)?.[key],
+    (report.prodatDependentFacts as Record<string, unknown> | undefined)?.[key],
+  ]
+  const value = candidates.find((candidate) => typeof candidate === 'string' && candidate.trim())
+  return typeof value === 'string' ? value.trim() : undefined
+}
+
+function resolveRuntimePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage): CanonicalEdielPolicy | null {
+  if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR') return null
+  if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
+
+  const family = canonical.family
+  return resolveCanonicalEdielPolicy({
+    family,
+    messageCode: canonical.messageCode,
+    subtypeOrReasonCode: canonical.subtype,
+    direction: message.direction,
+    referenceDate: canonicalBusinessDate(message, canonical),
+    associationAssignedCode: canonical.version,
+    applicationReference: canonical.applicationReference,
+    bilateralCapabilityVerified: readBooleanFact(message, 'bilateralCapabilityVerified'),
+    prodatDependentFacts: family === 'PRODAT' ? {
+      market: 'electricity',
+      customerKind: readStringFact(message, 'customerKind') as 'private' | 'business' | undefined,
+      meterReadingsSentInUtilts: readBooleanFact(message, 'meterReadingsSentInUtilts'),
+      multipleMeterRegisters: readBooleanFact(message, 'multipleMeterRegisters'),
+      endUserAddressAvailable: readBooleanFact(message, 'endUserAddressAvailable'),
+      invoiceeAddressDiffersFromEndUser: readBooleanFact(message, 'invoiceeAddressDiffersFromEndUser'),
+      byCell: readObjectFact(message, 'byCell'),
+    } : null,
+    mode: 'parse',
+  })
+}
+
+function technicalResponsePlan(params: {
   message: EdielMessageRow
   canonical: CanonicalEdielMessage
   syntaxAccepted: boolean
   syntaxIssueText: string | null
 }): CanonicalResponsePlanItem[] {
-  if (!shouldContrlInbound(params.message, String(params.canonical.family))) return []
-  return [
-    {
+  if (params.message.direction !== 'inbound' || params.message.message_standard !== 'edifact') return []
+  try {
+    const ack = resolveCanonicalAckMatrixRule({ family: String(params.canonical.family), code: params.canonical.messageCode })
+    if (ack.technicalAck !== 'CONTRL') return []
+    return [{
       family: 'CONTRL',
       outcome: params.syntaxAccepted ? 'positive' : 'negative',
       reason: params.syntaxAccepted
-        ? 'Inbound EDIFACT är syntaxmässigt accepterat och ska få positiv CONTRL.'
+        ? 'Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority.'
         : params.syntaxIssueText ?? 'Inbound EDIFACT har syntaxfel och ska få negativ CONTRL.',
-    },
-  ]
+    }]
+  } catch {
+    return []
+  }
 }
 
-function resolveUtiltsDecision(params: {
-  message: EdielMessageRow
+function addNegativeAperakIfAllowed(params: {
+  family: string
+  code: string | null
+  responsePlan: CanonicalResponsePlanItem[]
+  reason: string
+  applicationErrors?: EdielAperakApplicationError[]
+}) {
+  try {
+    const ack = resolveCanonicalAckMatrixRule({ family: params.family, code: params.code })
+    if (ack.negativeApplicationResponse !== 'APERAK' && ack.negativeApplicationResponse !== 'APERAK_OR_UTILTS_ERR') return
+    if (params.responsePlan.some((item) => item.family === 'APERAK' && item.outcome === 'negative')) return
+    params.responsePlan.push({
+      family: 'APERAK',
+      outcome: 'negative',
+      erc: params.applicationErrors?.[0]?.ercCode ?? '42',
+      ftx: params.applicationErrors?.[0]?.text ?? params.reason.slice(0, 70),
+      reason: params.reason,
+      applicationErrors: params.applicationErrors,
+    })
+  } catch {
+    // Unsupported family remains fail-closed in the decision state; no ACK is fabricated.
+  }
+}
+
+function applyProdatPolicyDecision(params: {
+  policy: CanonicalEdielPolicy
+  canonical: CanonicalEdielMessage
   responsePlan: CanonicalResponsePlanItem[]
   issues: CanonicalDecisionIssue[]
   sourceRules: string[]
   decisionTrace: string[]
 }): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState } {
+  const fieldIssues = validateCanonicalPolicyFields({
+    policy: params.policy,
+    rawSegments: params.canonical.rawSegments,
+    scope: 'all',
+  })
+  params.sourceRules.push('CANONICAL_EDIEL_POLICY', 'PRODAT_26A_POLICY_FIELD_VALIDATOR', 'PRODAT_DEPENDENT_CONDITION_ENGINE')
+  params.decisionTrace.push(`PRODAT ${params.policy.code}${params.policy.subtype ?? ''} validerades mot en canonical policy med ${params.policy.prodatDependentConditions.length} D-villkor.`)
+
+  for (const item of fieldIssues) {
+    params.issues.push(issue({
+      layer: item.code.includes('APPLICATION_REFERENCE') ? 'route' : 'application',
+      severity: item.severity,
+      code: item.code,
+      title: item.title,
+      description: item.description,
+      source: 'validateCanonicalPolicyFields',
+    }))
+  }
+
+  const blocking = fieldIssues.some((item) => item.severity === 'error' || item.blocking)
+  if (blocking) {
+    const applicationErrors = fieldIssues
+      .filter((item) => item.severity === 'error' || item.blocking)
+      .map((item) => applicationErrorFromIssue({
+        code: item.code,
+        description: item.description,
+        fieldPath: item.fieldPath,
+      }))
+    addNegativeAperakIfAllowed({
+      family: params.policy.family,
+      code: params.policy.code,
+      responsePlan: params.responsePlan,
+      reason: 'PRODAT innehåller ett blockerande canonical policy-/fältfel.',
+      applicationErrors,
+    })
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted' }
+  }
+
+  if (params.policy.ackRule.applicationAck === 'APERAK') {
+    params.responsePlan.push({
+      family: 'APERAK',
+      outcome: 'positive',
+      erc: '100',
+      ftx: 'OK',
+      reason: 'PRODAT är accepterad enligt canonical policy och positiv APERAK krävs.',
+    })
+  }
+
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted' }
+}
+
+function resolveUtiltsDecision(params: {
+  message: EdielMessageRow
+  policy: CanonicalEdielPolicy
+  responsePlan: CanonicalResponsePlanItem[]
+  issues: CanonicalDecisionIssue[]
+  sourceRules: string[]
+  decisionTrace: string[]
+}): {
+  applicationDecision: CanonicalDecisionState
+  functionalDecision: CanonicalDecisionState
+  businessOutcome: UtiltsInboundBusinessOutcome
+} {
   const runtime = runUtiltsRuntimeForMessage(params.message)
-  params.sourceRules.push(`UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`)
-  params.decisionTrace.push(`UTILTS runtime klassade meddelandet som ${runtime.validation.classification}.`)
+  const businessOutcome = resolveUtiltsInboundBusinessOutcome(params.policy)
+  params.sourceRules.push('CANONICAL_EDIEL_POLICY', `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`, `UTILTS_BUSINESS_OUTCOME_${businessOutcome.kind.toUpperCase()}`)
+  params.decisionTrace.push(`UTILTS ${params.policy.code} klassades som ${businessOutcome.kind}; runtime=${runtime.validation.classification}.`)
+
+  if (!businessOutcome.allowIndividualCustomerLink && (params.message.customer_id || params.message.site_id || params.message.metering_point_id)) {
+    params.issues.push(issue({
+      layer: 'application',
+      severity: 'error',
+      code: 'UTILTS_INDIVIDUAL_LINK_FORBIDDEN',
+      title: 'UTILTS får inte kopplas till individuell kund',
+      description: `${params.policy.code} har canonical scope ${params.policy.semantics.dataScope} och får inte appliceras på customer/site/metering_point.`,
+      source: 'resolveUtiltsInboundBusinessOutcome',
+    }))
+    addNegativeAperakIfAllowed({
+      family: params.policy.family,
+      code: params.policy.code,
+      responsePlan: params.responsePlan,
+      reason: `${params.policy.code} har fel business scope för individuell kundkoppling.`,
+    })
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome }
+  }
 
   for (const utiltsIssue of runtime.validation.issues) {
     params.issues.push(issue({
@@ -198,7 +331,7 @@ function resolveUtiltsDecision(params: {
   }
 
   if (runtime.validation.classification === 'syntax_rejected') {
-    return { applicationDecision: 'not_applicable', functionalDecision: 'not_applicable' }
+    return { applicationDecision: 'not_applicable', functionalDecision: 'not_applicable', businessOutcome }
   }
 
   if (runtime.ackPlan.shouldSendUtiltsErr) {
@@ -207,7 +340,7 @@ function resolveUtiltsDecision(params: {
       outcome: 'negative',
       reason: runtime.ackPlan.reason || 'UTILTS process-/funktionsfel ska besvaras med UTILTS_ERR.',
     })
-    return { applicationDecision: 'not_applicable', functionalDecision: 'rejected' }
+    return { applicationDecision: 'not_applicable', functionalDecision: 'rejected', businessOutcome }
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
@@ -227,7 +360,7 @@ function resolveUtiltsDecision(params: {
         lineItemReference: item.lineItemReference ?? null,
       })),
     })
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted' }
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome }
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
@@ -237,11 +370,66 @@ function resolveUtiltsDecision(params: {
       bgm: '312',
       erc: '100',
       ftx: 'OK',
-      reason: 'UTILTS är korrekt och ska få positiv APERAK när APERAK krävs.',
+      reason: 'UTILTS är korrekt och ska få positiv APERAK när canonical policy/runtime kräver det.',
     })
   }
 
-  return { applicationDecision: 'accepted', functionalDecision: 'accepted' }
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted', businessOutcome }
+}
+
+function buildResult(params: {
+  canonical: CanonicalEdielMessage
+  policy: CanonicalEdielPolicy | null
+  utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null
+  syntaxDecision: CanonicalDecisionState
+  applicationDecision: CanonicalDecisionState
+  functionalDecision: CanonicalDecisionState
+  responsePlan: CanonicalResponsePlanItem[]
+  issues: CanonicalDecisionIssue[]
+  sourceRules: string[]
+  decisionTrace: string[]
+  syntax: unknown
+}): CanonicalRuntimeDecision {
+  const parsedPayload = buildCanonicalParsedPayload(params.canonical)
+  const validationReport = {
+    canonicalRuntimeVersion: '3.0-policy',
+    syntaxDecision: params.syntaxDecision,
+    applicationDecision: params.applicationDecision,
+    functionalDecision: params.functionalDecision,
+    responsePlan: params.responsePlan,
+    issues: params.issues,
+    sourceRules: params.sourceRules,
+    decisionTrace: params.decisionTrace,
+    syntax: params.syntax,
+    canonicalPolicy: params.policy ? {
+      family: params.policy.family,
+      code: params.policy.code,
+      subtype: params.policy.subtype,
+      referenceDate: params.policy.referenceDate,
+      profileKey: params.policy.profileKey,
+      guide: params.policy.guide,
+      applicationReference: params.policy.applicationReference,
+      ackRule: params.policy.ackRule,
+      semantics: params.policy.semantics,
+      prodatDependentConditions: params.policy.prodatDependentConditions,
+      sourceTrace: params.policy.sourceTrace,
+    } : null,
+    utiltsBusinessOutcome: params.utiltsBusinessOutcome,
+  }
+  return {
+    canonical: params.canonical,
+    policy: params.policy,
+    utiltsBusinessOutcome: params.utiltsBusinessOutcome,
+    syntaxDecision: params.syntaxDecision,
+    applicationDecision: params.applicationDecision,
+    functionalDecision: params.functionalDecision,
+    responsePlan: params.responsePlan,
+    issues: params.issues,
+    sourceRules: params.sourceRules,
+    decisionTrace: params.decisionTrace,
+    parsedPayload,
+    validationReport,
+  }
 }
 
 export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): CanonicalRuntimeDecision {
@@ -254,17 +442,18 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
 
   const syntaxAccepted = syntax.ok
   const syntaxIssueText = syntax.issues.map((item) => item.description).filter(Boolean).join(' | ') || null
-  const responsePlan = initialResponsePlan({ message, canonical, syntaxAccepted, syntaxIssueText })
-  const sourceRules: string[] = ['CANONICAL_RUNTIME_2_5B']
+  const responsePlan = technicalResponsePlan({ message, canonical, syntaxAccepted, syntaxIssueText })
+  const sourceRules: string[] = ['CANONICAL_RUNTIME_3_0_POLICY']
   const decisionTrace: string[] = [
     `Canonical parser: ${canonical.family} ${canonical.messageCode ?? ''} (${canonical.version ?? 'utan version'}).`,
     syntaxAccepted ? 'Syntax validator: accepterad.' : `Syntax validator: avvisad (${syntaxIssueText ?? 'syntaxfel'}).`,
   ]
 
   if (!syntaxAccepted) {
-    const parsedPayload = buildCanonicalParsedPayload(canonical)
-    const validationReport = {
-      canonicalRuntimeVersion: '2.5B',
+    return buildResult({
+      canonical,
+      policy: null,
+      utiltsBusinessOutcome: null,
       syntaxDecision: 'rejected',
       applicationDecision: 'not_applicable',
       functionalDecision: 'not_applicable',
@@ -273,59 +462,67 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
       sourceRules,
       decisionTrace,
       syntax,
-    }
-    return {
+    })
+  }
+
+  let policy: CanonicalEdielPolicy | null = null
+  try {
+    policy = resolveRuntimePolicy(message, canonical)
+  } catch (error) {
+    const description = error instanceof Error ? error.message : String(error)
+    issues.push(issue({
+      layer: 'application',
+      severity: 'error',
+      code: 'CANONICAL_POLICY_RESOLUTION_FAILED',
+      title: 'Canonical Ediel-policy kunde inte avgöras',
+      description,
+      source: 'resolveCanonicalEdielPolicy',
+    }))
+    addNegativeAperakIfAllowed({
+      family: String(canonical.family),
+      code: canonical.messageCode,
+      responsePlan,
+      reason: description,
+    })
+    return buildResult({
       canonical,
-      syntaxDecision: 'rejected',
-      applicationDecision: 'not_applicable',
+      policy: null,
+      utiltsBusinessOutcome: null,
+      syntaxDecision: 'accepted',
+      applicationDecision: 'rejected',
       functionalDecision: 'not_applicable',
       responsePlan,
       issues,
       sourceRules,
-      decisionTrace,
-      parsedPayload,
-      validationReport,
-    }
+      decisionTrace: [...decisionTrace, `Canonical policy: blockerad (${description}).`],
+      syntax,
+    })
   }
 
   let applicationDecision: CanonicalDecisionState = 'not_applicable'
   let functionalDecision: CanonicalDecisionState = 'not_applicable'
+  let utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null = null
 
-  if (canonical.family === 'UTILTS') {
-    const utilts = resolveUtiltsDecision({ message, responsePlan, issues, sourceRules, decisionTrace })
+  if (canonical.family === 'UTILTS' && policy) {
+    const utilts = resolveUtiltsDecision({ message, policy, responsePlan, issues, sourceRules, decisionTrace })
     applicationDecision = utilts.applicationDecision
     functionalDecision = utilts.functionalDecision
-  } else if (canonical.family === 'PRODAT') {
-    const rulebook = validateRulebookMessage({
-      family: 'PRODAT',
-      code: canonical.messageCode,
-      processGroup: canonical.processGroup,
-      applicationReference: canonical.applicationReference,
-      rawPayload: message.raw_payload,
-      mode: 'parse',
-    })
-    const prodatDecision = applyProdatRulebookDecision({
-      canonical,
-      rulebook,
-      responsePlan,
-      issues,
-      sourceRules,
-      decisionTrace,
-    })
-    applicationDecision = prodatDecision.applicationDecision
-    functionalDecision = prodatDecision.functionalDecision
-  } else if (canHaveApplicationAck(String(canonical.family))) {
-    applicationDecision = 'manual_review'
-    functionalDecision = 'manual_review'
-  } else {
-    applicationDecision = 'not_applicable'
-    functionalDecision = 'not_applicable'
+    utiltsBusinessOutcome = utilts.businessOutcome
+  } else if (canonical.family === 'PRODAT' && policy) {
+    const prodat = applyProdatPolicyDecision({ policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    applicationDecision = prodat.applicationDecision
+    functionalDecision = prodat.functionalDecision
+  } else if (canonical.family === 'UTILTS_ERR' && policy) {
+    utiltsBusinessOutcome = resolveUtiltsInboundBusinessOutcome(policy)
+    applicationDecision = 'accepted'
+    functionalDecision = 'accepted'
   }
 
-  const parsedPayload = buildCanonicalParsedPayload(canonical)
-  const validationReport = {
-    canonicalRuntimeVersion: '2.5B',
-    syntaxDecision: syntaxAccepted ? 'accepted' : 'rejected',
+  return buildResult({
+    canonical,
+    policy,
+    utiltsBusinessOutcome,
+    syntaxDecision: 'accepted',
     applicationDecision,
     functionalDecision,
     responsePlan,
@@ -333,76 +530,75 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     sourceRules,
     decisionTrace,
     syntax,
-  }
-
-  return {
-    canonical,
-    syntaxDecision: syntaxAccepted ? 'accepted' : 'rejected',
-    applicationDecision,
-    functionalDecision,
-    responsePlan,
-    issues,
-    sourceRules,
-    decisionTrace,
-    parsedPayload,
-    validationReport,
-  }
+  })
 }
 
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message: EdielMessageRow): Promise<CanonicalRuntimeDecision> {
-  const canonical = parseCanonicalMessageRow(message)
-  if (canonical.family !== 'PRODAT') return resolveCanonicalRuntimeDecision(message)
-
   const base = resolveCanonicalRuntimeDecision(message)
-  if (base.syntaxDecision === 'rejected') return base
+  if (base.syntaxDecision === 'rejected' || !base.policy) return base
+  if (base.policy.family !== 'PRODAT' && base.policy.family !== 'UTILTS') return base
 
-  const rulebook = await validateRulebookMessageWithRegistry({
-    family: 'PRODAT',
-    code: canonical.messageCode,
-    processGroup: canonical.processGroup,
-    applicationReference: canonical.applicationReference,
-    rawPayload: message.raw_payload,
-    mode: 'parse',
-    direction: message.direction,
-    environment: message.environment,
-    version: message.message_version,
-  })
-
-  if (rulebook.fieldRuleSource !== 'registry') return base
-
-  const issues = base.issues.filter((item) => item.source !== 'validateRulebookMessage')
-  const responsePlan = base.responsePlan.filter((item) => item.family !== 'APERAK')
-  const sourceRules = base.sourceRules.filter((item) => item !== 'PRODAT_RULEBOOK_PROCESS_CLASSIFICATION')
-  const decisionTrace = base.decisionTrace.filter((item) => !item.startsWith('PRODAT klassad som '))
-
-  const prodatDecision = applyProdatRulebookDecision({
-    canonical,
-    rulebook,
-    responsePlan,
-    issues,
-    sourceRules,
-    decisionTrace,
-  })
-
-  const validationReport = {
-    ...base.validationReport,
-    applicationDecision: prodatDecision.applicationDecision,
-    functionalDecision: prodatDecision.functionalDecision,
-    responsePlan,
-    issues,
-    sourceRules,
-    decisionTrace,
-    fieldRuleSource: 'registry',
-  }
-
-  return {
-    ...base,
-    applicationDecision: prodatDecision.applicationDecision,
-    functionalDecision: prodatDecision.functionalDecision,
-    responsePlan,
-    issues,
-    sourceRules,
-    decisionTrace,
-    validationReport,
+  try {
+    const evidence = await resolveCanonicalRulePack({
+      family: base.policy.family,
+      messageCode: base.policy.code,
+      transactionSubtype: base.policy.subtype,
+      direction: message.direction,
+      businessDate: base.policy.referenceDate,
+      requireBuilder: false,
+      requireStateMachine: true,
+    })
+    const sourceRules = [...base.sourceRules, `RULE_PACK_EVIDENCE:${evidence.profileKey}:${evidence.sourceHash}`]
+    const decisionTrace = [...base.decisionTrace, `DB evidence verifierad för source-owned policy: ${evidence.profileKey}.`]
+    const validationReport = {
+      ...base.validationReport,
+      sourceRules,
+      decisionTrace,
+      rulePackEvidence: {
+        profileKey: evidence.profileKey,
+        messageProfileId: evidence.messageProfileId,
+        rulePackId: evidence.rulePackId,
+        sourceHash: evidence.sourceHash,
+      },
+      fieldRuleSource: 'canonical_policy',
+    }
+    return { ...base, sourceRules, decisionTrace, validationReport }
+  } catch (error) {
+    const description = error instanceof Error ? error.message : String(error)
+    const issues = [
+      ...base.issues,
+      issue({
+        layer: 'application',
+        severity: 'error',
+        code: 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE',
+        title: 'Canonical runtime-evidence saknas',
+        description,
+        source: 'resolveCanonicalRulePack',
+      }),
+    ]
+    const responsePlan = [...base.responsePlan]
+    addNegativeAperakIfAllowed({
+      family: base.policy.family,
+      code: base.policy.code,
+      responsePlan,
+      reason: description,
+    })
+    const decisionTrace = [...base.decisionTrace, `DB evidence gate: blockerad (${description}).`]
+    const validationReport = {
+      ...base.validationReport,
+      applicationDecision: 'rejected',
+      issues,
+      responsePlan,
+      decisionTrace,
+      fieldRuleSource: 'canonical_policy',
+    }
+    return {
+      ...base,
+      applicationDecision: 'rejected',
+      issues,
+      responsePlan,
+      decisionTrace,
+      validationReport,
+    }
   }
 }
