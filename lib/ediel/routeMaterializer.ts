@@ -8,9 +8,9 @@ import {
   senderSettingProductionLockStatus,
   type SenderSettingRow,
 } from "@/lib/ediel/senderSettingsResolver";
+import { projectCanonicalAckMode } from "@/lib/ediel/ack/routeAckModeProjection";
+import { validateRouteDeclaredApplicationReference } from "@/lib/ediel/core/applicationReferenceResolver";
 import {
-  ackModeForProcess,
-  applicationReferenceForProcess,
   routeScopeForProcess,
   targetSystemForEnvironment,
 } from "@/lib/ediel/routeMatrix";
@@ -298,12 +298,27 @@ async function upsertRouteProfile(params: {
     text(params.route.party_id) ??
     text(params.route.interchange_party_id) ??
     text(params.gridOwner.ediel_id);
-  const routeScope = routeScopeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }) ?? "customer_masterdata";
-  const applicationReference =
+  const configuredApplicationReference =
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
-    text(params.senderSettings.default_application_reference) ??
-    applicationReferenceForProcess({ routeScope, messageFamily: params.messageFamily, messageCode: params.messageCode });
+    text(params.senderSettings.default_application_reference);
+  const applicationReferenceCheck = validateRouteDeclaredApplicationReference({
+    messageFamily: params.messageFamily,
+    businessCode: params.messageCode,
+    routeProfile: configuredApplicationReference
+      ? { applicationReference: configuredApplicationReference }
+      : null,
+  });
+  if (!applicationReferenceCheck.ok) {
+    throw new Error(
+      `ediel_application_reference_route_mismatch:${applicationReferenceCheck.routeDeclaredApplicationReference ?? 'missing'}:${applicationReferenceCheck.policyApplicationReference}`,
+    );
+  }
+  const applicationReference = applicationReferenceCheck.policyApplicationReference;
+  const ackMode = projectCanonicalAckMode({
+    messageFamily: params.messageFamily,
+    messageCode: params.messageCode,
+  });
   const routeMetadata = metadata(params.route.metadata);
   const metadataPayload = {
     platform_actor_route_id: params.route.id,
@@ -341,7 +356,7 @@ async function upsertRouteProfile(params: {
     route_type: "email",
     payload_format: "edifact",
     message_standard: "edifact",
-    ack_mode: ackModeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }),
+    ack_mode: ackMode,
     default_test_flag: params.route.environment === "production" ? 0 : 1,
     default_timezone: 1,
     sender_ediel_id: senderEdielId,
@@ -362,7 +377,7 @@ async function upsertRouteProfile(params: {
     mailbox: null,
     encryption_mode: params.messageFamily === "PRODAT" ? "smime" : "none",
     transport_type: "smtp",
-    ack_policy: ackModeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }),
+    ack_policy: ackMode,
     is_active: true,
     is_enabled: true,
     metadata: metadataPayload,
