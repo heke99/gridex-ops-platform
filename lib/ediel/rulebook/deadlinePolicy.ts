@@ -133,7 +133,7 @@ export const CANONICAL_EDIEL_DEADLINE_RULES: readonly CanonicalEdielDeadlineRule
     c('not_after', 'today', 0, 'calendar_days'),
   ], summary: 'Z13V önskat startdatum får ligga högst tre år bakåt och senast idag; nätavtalets start kan begränsa perioden ytterligare.', source: source('11.3', '206-207') },
   { family: 'PRODAT', code: 'Z13', subtype: 'VH', direction: 'outbound', constraints: [
-    c('not_before', 'yesterday', -3, 'years', null, 'Historik får inte gå längre tillbaka än nätavtalets start om den är senare.'),
+    c('not_before', 'today', -3, 'years', null, 'Historik får inte gå längre tillbaka än nätavtalets start om den är senare.'),
     c('not_after', 'yesterday', 0, 'calendar_days'),
     c('not_after', 'historical_end', 0, 'calendar_days', null, 'Slutdatum är obligatoriskt och ska vara historiskt.'),
   ], summary: 'Z13VH kräver historisk period: start högst tre år bakåt och senast igår, slutdatum obligatoriskt och historiskt.', source: source('11.3', '206-207') },
@@ -334,7 +334,7 @@ export function evaluateCanonicalEdielActionDeadline(input: {
 
   if (actionType === 'request_historical_metering_access') {
     const policy = canonicalDeadlineRuleForMessage({ family: 'PRODAT', code: 'Z13', subtype: 'VH' })
-    const threeYearsBack = addCanonicalYears(yesterday, -3)
+    const threeYearsBack = addCanonicalYears(today, -3)
     const earliest = laterDate(threeYearsBack, input.networkContractStartDate)
     const start = input.historicalStartDate ? strictDateOnly(input.historicalStartDate, 'historical_start_date') : null
     const end = input.historicalEndDate ? strictDateOnly(input.historicalEndDate, 'historical_end_date') : null
