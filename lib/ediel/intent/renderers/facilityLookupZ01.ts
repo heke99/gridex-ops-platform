@@ -18,6 +18,7 @@ import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/ref
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { resolveApplicationReferenceForProcess } from '@/lib/ediel/intent/applicationReferencePolicy'
+import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
@@ -115,15 +116,16 @@ export async function buildFacilityLookupZ01Draft(input: {
   const identity = customerIdentifier(customer)
   const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
   const transactionReference = compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25)
-  const messageVersion = (await resolveCanonicalOutboundVersion({
+  const canonicalProfile = getCanonicalProdatProfile('Z01')
+  if (!canonicalProfile) throw new Error('facility_lookup_z01_canonical_profile_missing')
+  const messageVersion = await resolveCanonicalOutboundVersion({
     family: 'PRODAT',
     code: 'Z01',
     standard: 'edifact',
-    fallback: '26A',
     routeDefaultMessageVersion: input.routeContext.defaultMessageVersion ?? null,
     environment: input.routeContext.environment,
-  })) ?? '26A'
-  const messageVersionToken = messageVersion === '26A' ? 'E2SE6A' : messageVersion
+  })
+  if (!messageVersion) throw new Error('facility_lookup_z01_canonical_version_missing')
 
   // Use a real identifier when the site already has one; otherwise this is the
   // documented allowed-missing facility lookup (no fabricated id).
@@ -165,7 +167,7 @@ export async function buildFacilityLookupZ01Draft(input: {
     receiverSubAddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress,
     applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
-    messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
+    messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
     segments: rendered.segments,
   })
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
