@@ -11,7 +11,7 @@ import {
   type RulebookValidationInput as LegacyRulebookValidationInput,
   type RulebookValidationResult as LegacyRulebookValidationResult,
 } from '@/lib/ediel/rulebook/validatorLegacy'
-import type { ProdatDependentConditionResult } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type { ProdatDependentConditionEvaluation } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 
 export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Draft metadata from the canonical renderer. Used to verify that production
@@ -75,7 +75,7 @@ function renderedDependentSnapshot(input: RulebookValidationInput): unknown[] | 
 function canonicalizeRenderedDependentSnapshot(input: {
   policy: CanonicalEdielPolicy
   snapshot: unknown[] | null
-}): ProdatDependentConditionResult[] | null {
+}): ProdatDependentConditionEvaluation[] | null {
   if (!input.snapshot) return null
   const byId = new Map<string, Record<string, unknown>>()
   for (const value of input.snapshot) {
@@ -86,7 +86,7 @@ function canonicalizeRenderedDependentSnapshot(input: {
   }
   if (byId.size !== input.policy.prodatDependentConditions.length) return null
 
-  const results: ProdatDependentConditionResult[] = []
+  const results: ProdatDependentConditionEvaluation[] = []
   for (const canonical of input.policy.prodatDependentConditions) {
     const row = byId.get(canonical.id)
     if (!row) return null
@@ -96,7 +96,6 @@ function canonicalizeRenderedDependentSnapshot(input: {
     results.push({
       ...canonical,
       status,
-      reason: typeof row.reason === 'string' && row.reason.trim() ? row.reason : canonical.reason,
     })
   }
   return results
@@ -108,9 +107,6 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   const dir = direction(input)
   if (!dir) throw new Error(`canonical_policy_direction_required:${family}:${code}`)
 
-  // On production send, D-condition truth must come from the renderer's policy
-  // snapshot because that renderer had the original business facts. We resolve
-  // the immutable catalog here and then verify/attach only the tri-state results.
   const policy = resolveCanonicalEdielPolicy({
     family,
     messageCode: code,
@@ -166,8 +162,6 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
 
     let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments })
     if (input.mode === 'send' && input.environment !== 'production') {
-      // Test/TGT may deliberately exercise incomplete dependent contexts. Keep
-      // the finding visible without weakening the production fail-closed gate.
       fieldIssues = fieldIssues.map((entry) =>
         entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED'
           ? { ...entry, severity: 'warning' as const, blocking: false }
@@ -185,8 +179,6 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       expectedApplicationReference: policy.applicationReference,
       parsed,
       issues,
-      // Compatibility enum: registry means the mutable registry cannot redefine
-      // fields; the rule-pack snapshot is evidence for the canonical policy.
       fieldRuleSource: 'registry',
       rulePackSnapshot: null,
     }
