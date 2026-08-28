@@ -140,6 +140,7 @@
     "20260827135630_tenant_integrity_requested_by_fk_index.sql": "b13f9b7bd7764b1df0027deef99dcba1b7e2977417a51961d04c424229cdf62f",
     "20260827175502_canonical_ediel_tenant_identity_valid_from_correction.sql": "9777caf2b87ae5433a9909b7159266b393885cd14c13bd9449e59ef218cbc022",
     "20260827193000_canonical_ediel_tenant_identity_and_legacy_route_cleanup.sql": "872d1aac4bdef4655b47c680d12319093db7a0cee6e931ffcf7afbbc5fbbb61b",
-    "20260827201000_canonical_ediel_tenant_identity_valid_from_post_backfill.sql": "9777caf2b87ae5433a9909b7159266b393885cd14c13bd9449e59ef218cbc022"
+    "20260827201000_canonical_ediel_tenant_identity_valid_from_post_backfill.sql": "9777caf2b87ae5433a9909b7159266b393885cd14c13bd9449e59ef218cbc022",
+    "20260828225000_ediel_canonical_deadline_authority.sql": "0b0144be42db1173302b500e4dc10c83d7ad1084dab1b44f1c818cf7e235925c"
   }
 }
