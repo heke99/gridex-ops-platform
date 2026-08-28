@@ -15,6 +15,13 @@ export type AuthoritativeEdielGuide = {
   fieldMatrixStatus: 'certified' | 'pending' | 'not_applicable'
 }
 
+export type EdielGuideAcceptance = {
+  current: AuthoritativeEdielGuide
+  acceptedInbound: readonly AuthoritativeEdielGuide[]
+  acceptedOutbound: readonly [AuthoritativeEdielGuide]
+  previousGuideGraceActive: boolean
+}
+
 /**
  * Effective-dated Swedish Ediel source registry.
  *
@@ -106,6 +113,17 @@ function normalizeDate(value: string): string {
   return normalized
 }
 
+function utcDate(value: string): Date {
+  const normalized = normalizeDate(value)
+  return new Date(`${normalized}T00:00:00.000Z`)
+}
+
+function addUtcDays(value: string, days: number): string {
+  const date = utcDate(value)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 export function resolveAuthoritativeEdielGuide(input: {
   family: EdielGuideFamily
   referenceDate: string
@@ -125,6 +143,62 @@ export function resolveAuthoritativeEdielGuide(input: {
     throw new Error(`ediel_guide_resolution_${candidates.length === 0 ? 'missing' : 'ambiguous'}:${input.family}:${date}:${association || 'none'}`)
   }
   return candidates[0]
+}
+
+/**
+ * General Technical Rules require receivers to support the immediately
+ * preceding valid guide for the first two weeks after a new guide takes
+ * effect. Outbound traffic must always use the current guide.
+ *
+ * The grace window is the new guide's effective date plus 13 calendar days,
+ * i.e. 2026-10-01..2026-10-14 for UTILTS 25-A-4. The association code is not
+ * sufficient to select between 25-A-3 and 25-A-4 because both are E5SE5A.
+ */
+export function resolveEdielGuideAcceptance(input: {
+  family: EdielGuideFamily
+  referenceDate: string
+  associationAssignedCode?: string | null
+}): EdielGuideAcceptance {
+  const date = normalizeDate(input.referenceDate)
+  const association = String(input.associationAssignedCode ?? '').trim().toUpperCase()
+  const current = resolveAuthoritativeEdielGuide({
+    family: input.family,
+    referenceDate: date,
+    associationAssignedCode: association || null,
+  })
+
+  const previousCandidates = AUTHORITATIVE_EDIEL_GUIDES
+    .filter((guide) => {
+      if (guide.family !== current.family) return false
+      if (guide.effectiveFrom >= current.effectiveFrom) return false
+      if (association && guide.associationAssignedCode?.toUpperCase() !== association) return false
+      return true
+    })
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))
+
+  const previous = previousCandidates[0] ?? null
+  const graceEnd = addUtcDays(current.effectiveFrom, 13)
+  const previousGuideGraceActive = Boolean(
+    previous
+    && date >= current.effectiveFrom
+    && date <= graceEnd
+    && (!previous.effectiveTo || previous.effectiveTo === addUtcDays(current.effectiveFrom, -1)),
+  )
+
+  return {
+    current,
+    acceptedInbound: previousGuideGraceActive && previous ? [current, previous] : [current],
+    acceptedOutbound: [current],
+    previousGuideGraceActive,
+  }
+}
+
+export function resolveAcceptedInboundEdielGuides(input: {
+  family: EdielGuideFamily
+  referenceDate: string
+  associationAssignedCode?: string | null
+}): readonly AuthoritativeEdielGuide[] {
+  return resolveEdielGuideAcceptance(input).acceptedInbound
 }
 
 export function getCurrentUtiltsGuide(referenceDate: string): AuthoritativeEdielGuide {
