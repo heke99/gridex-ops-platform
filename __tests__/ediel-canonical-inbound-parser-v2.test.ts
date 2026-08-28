@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -94,6 +95,14 @@ describe('canonical inbound EDIFACT parser v2', () => {
       applicationValidity: 'valid',
       confidence: 'high',
     })
+  })
+
+  it('runs the permanent parser-authority guard', () => {
+    const output = execFileSync(process.execPath, ['scripts/ediel-parser-authority-guard.cjs'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    })
+    expect(output).toContain('Ediel parser authority guard passed.')
   })
 
   it('prevents active classifiers from reintroducing ad-hoc raw EDIFACT splitting', () => {
