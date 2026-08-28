@@ -1,14 +1,13 @@
 // lib/ediel/core/ackPolicy.ts
 
 import type { EdielAckStatus, EdielMessageRow } from '@/lib/ediel/types'
-import {
-  getActiveEdielMessageRule,
-  getEdielRouteRuntimeByCommunicationRouteId,
-} from '@/lib/ediel/config'
+import { getEdielRouteRuntimeByCommunicationRouteId } from '@/lib/ediel/config'
 import { listAckMessagesForSource } from '@/lib/ediel/db'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
-import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
-import { loadCanonicalAckRulePack } from '@/lib/ediel/ack/ackRulePackRegistry'
+import { canonicalAckRequirements, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
+import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import type { ProdatBusinessContext } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -88,45 +87,89 @@ async function resolveRouteAckMode(sourceMessage: EdielMessageRow) {
   return runtime?.ack_mode ?? ('default' as const)
 }
 
-async function resolveRuleDefaults(sourceMessage: EdielMessageRow) {
-  const refDate = sourceMessage.message_received_at?.slice(0, 10) ?? sourceMessage.created_at.slice(0, 10)
-  const resolved =
-    (await getActiveEdielMessageRule({
-      family: sourceMessage.message_family,
-      code: String(sourceMessage.message_code),
-      standard: sourceMessage.message_standard,
-      direction: 'inbound',
-      date: refDate,
-    })) ??
-    (await getActiveEdielMessageRule({
-      family: sourceMessage.message_family,
-      code: String(sourceMessage.message_code),
-      standard: sourceMessage.message_standard,
-      direction: 'both',
-      date: refDate,
-    }))
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
 
-  const ackRulePack = await loadCanonicalAckRulePack({
-    family: sourceMessage.message_family,
-    code: sourceMessage.message_code,
-    companyId: sourceMessage.company_id,
-    environment: sourceMessage.environment,
-    version: sourceMessage.message_version,
+function validAckRule(value: unknown): CanonicalAckMatrixRule | null {
+  const candidate = record(value)
+  if (!candidate) return null
+  const technicalAck = candidate.technicalAck
+  const applicationAck = candidate.applicationAck
+  const negative = candidate.negativeApplicationResponse
+  if (technicalAck !== 'CONTRL' && technicalAck !== 'none') return null
+  if (applicationAck !== 'APERAK' && applicationAck !== 'transactional' && applicationAck !== 'none') return null
+  if (!['APERAK', 'UTILTS_ERR', 'APERAK_OR_UTILTS_ERR', 'none'].includes(String(negative))) return null
+  return candidate as unknown as CanonicalAckMatrixRule
+}
+
+function policyAckRuleFromPersistedRuntime(sourceMessage: EdielMessageRow): CanonicalAckMatrixRule | null {
+  const report = record(sourceMessage.validation_report)
+  const canonicalRuntime = record(report?.canonicalRuntime)
+  const directPolicy = record(report?.canonicalPolicy)
+  const nestedPolicy = record(canonicalRuntime?.canonicalPolicy)
+  return validAckRule(nestedPolicy?.ackRule ?? directPolicy?.ackRule)
+}
+
+function referenceDate(sourceMessage: EdielMessageRow): string {
+  const value = String(sourceMessage.message_received_at ?? sourceMessage.created_at ?? '').trim().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`canonical_ack_reference_date_missing:${sourceMessage.id}`)
+  return value
+}
+
+function booleanPayloadFact(sourceMessage: EdielMessageRow, key: string): boolean | undefined {
+  const parsed = record(sourceMessage.parsed_payload)
+  const direct = parsed?.[key]
+  const dependent = record(parsed?.prodatDependentFacts)?.[key]
+  return typeof direct === 'boolean' ? direct : typeof dependent === 'boolean' ? dependent : undefined
+}
+
+function businessContextFact(sourceMessage: EdielMessageRow): ProdatBusinessContext | null {
+  const parsed = record(sourceMessage.parsed_payload)
+  const value = String(parsed?.businessContext ?? record(parsed?.prodatDependentFacts)?.businessContext ?? '').trim().toLowerCase()
+  return ['death', 'bankruptcy', 'identity_change', 'other_masterdata', 'unknown'].includes(value)
+    ? value as ProdatBusinessContext
+    : null
+}
+
+/**
+ * ACK semantics are taken from the canonical policy snapshot produced by the
+ * inbound runtime. Manual/compatibility callers without that snapshot must
+ * resolve the same canonical policy from the message; DB/config rule rows never
+ * become protocol authority. Route ack_mode remains transport configuration and
+ * can only add an optional positive APERAK, never suppress canonical responses.
+ */
+function resolveCanonicalAckRuleForSource(sourceMessage: EdielMessageRow): CanonicalAckMatrixRule {
+  const persisted = policyAckRuleFromPersistedRuntime(sourceMessage)
+  if (persisted) return persisted
+
+  const canonical = parseCanonicalMessageRow(sourceMessage)
+  if (!canonical.messageCode) throw new Error(`canonical_ack_message_code_missing:${sourceMessage.id}`)
+  const policy = resolveCanonicalEdielPolicy({
+    family: String(canonical.family),
+    messageCode: canonical.messageCode,
+    subtypeOrReasonCode: canonical.subtype,
+    direction: 'inbound',
+    referenceDate: referenceDate(sourceMessage),
+    associationAssignedCode: canonical.version ?? sourceMessage.message_version,
+    applicationReference: canonical.applicationReference ?? sourceMessage.application_reference,
+    businessContext: businessContextFact(sourceMessage),
+    bilateralCapabilityVerified: booleanPayloadFact(sourceMessage, 'bilateralCapabilityVerified'),
+    mode: 'parse',
   })
-  const canonical = {
-    requiresContrl: ackRulePack.rule.technicalAck === 'CONTRL',
-    requiresAperak: ackRulePack.rule.applicationAck === 'APERAK' || ackRulePack.rule.applicationAck === 'transactional',
-    supportsNegativeAperak: ackRulePack.rule.negativeApplicationResponse === 'APERAK' || ackRulePack.rule.negativeApplicationResponse === 'APERAK_OR_UTILTS_ERR',
-    supportsUtiltsErr: ackRulePack.rule.negativeApplicationResponse === 'UTILTS_ERR' || ackRulePack.rule.negativeApplicationResponse === 'APERAK_OR_UTILTS_ERR',
-  }
+  return policy.ackRule
+}
 
+function resolveRuleDefaults(sourceMessage: EdielMessageRow) {
+  const rule = resolveCanonicalAckRuleForSource(sourceMessage)
   return {
-    requiresContrl: canonical.requiresContrl,
-    requiresAperak: canonical.requiresAperak,
-    supportsNegativeResponse: canonical.supportsNegativeAperak || canonical.supportsUtiltsErr,
-    supportsNegativeAperak: canonical.supportsNegativeAperak,
-    supportsUtiltsErr: canonical.supportsUtiltsErr,
-    ruleId: ackRulePack.snapshot.ruleId ?? resolved?.id ?? null,
+    requiresContrl: rule.technicalAck === 'CONTRL',
+    requiresAperak: rule.applicationAck === 'APERAK' || rule.applicationAck === 'transactional',
+    supportsNegativeResponse: rule.negativeApplicationResponse !== 'none',
+    supportsNegativeAperak: rule.negativeApplicationResponse === 'APERAK' || rule.negativeApplicationResponse === 'APERAK_OR_UTILTS_ERR',
+    supportsUtiltsErr: rule.negativeApplicationResponse === 'UTILTS_ERR' || rule.negativeApplicationResponse === 'APERAK_OR_UTILTS_ERR',
   }
 }
 
@@ -134,12 +177,8 @@ export async function getAutomaticAckPolicy(sourceMessage: EdielMessageRow): Pro
   ensureInboundEdifactSource(sourceMessage)
 
   const routeAckMode = await resolveRouteAckMode(sourceMessage)
-  const ruleDefaults = await resolveRuleDefaults(sourceMessage)
+  const ruleDefaults = resolveRuleDefaults(sourceMessage)
 
-  // Canonical Swedish Ediel rules are regulatory/protocol semantics. A route is
-  // transport configuration and must never downgrade a mandatory response.
-  // `ack_mode` may add an optional positive APERAK, but cannot suppress CONTRL,
-  // negative APERAK or UTILTS-ERR required by the canonical rule pack.
   const shouldSendContrl =
     sourceMessage.message_family !== 'CONTRL' &&
     (ruleDefaults.requiresContrl || routeAckMode === 'contrl_only' || routeAckMode === 'contrl_and_aperak')
@@ -257,6 +296,9 @@ export function defaultAckStatuses(): {
   }
 }
 
+/** Compatibility projection for callers that only need stored ACK defaults.
+ * Active runtime decisions resolve a full CanonicalEdielPolicy and consume its
+ * ackRule; this helper does not own a second ACK matrix. */
 export function deriveEdielAckDefaults(params: { family: string; code: string }): {
   requiresContrl: boolean
   requiresAperak: boolean
