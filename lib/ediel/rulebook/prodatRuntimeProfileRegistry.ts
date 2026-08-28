@@ -1,4 +1,7 @@
-import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
+import {
+  PRODAT_CANONICAL_PROFILES,
+  getCanonicalProdatProfile,
+} from '@/lib/ediel/rulebook/prodatRulebook'
 import {
   allowedProdatSubtypes,
   canonicalProdatSubtypeAlias,
@@ -97,7 +100,8 @@ export function resolveCanonicalProdatRuntimeProfile(input: {
   if (!canonical) return null
 
   const requestedVersion = String(input.version ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
-  if (requestedVersion && requestedVersion !== '26A' && requestedVersion !== canonical.associationAssignedCode) {
+  const canonicalVersion = canonical.guideVersion.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+  if (requestedVersion && requestedVersion !== canonicalVersion && requestedVersion !== canonical.associationAssignedCode) {
     return null
   }
 
@@ -129,7 +133,7 @@ export function resolveCanonicalProdatRuntimeProfile(input: {
     key: profileKey(canonical.messageCode, subtype),
     code: canonical.messageCode,
     subtype,
-    version: '26A',
+    version: canonicalVersion as '26A',
     associationAssignedCode: canonical.associationAssignedCode,
     requiredContext: requirements.requiredContext,
     requiresCustomerIdentity: requirements.requiresCustomerIdentity,
@@ -141,26 +145,20 @@ export function resolveCanonicalProdatRuntimeProfile(input: {
 }
 
 export function listCanonicalProdatRuntimeProfiles(): readonly CanonicalProdatRuntimeProfile[] {
-  return getCanonicalProdatProfile('Z01')
-    ? (['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10','Z13','Z14','Z15','Z18'] as const).flatMap((code) => {
-        const canonical = getCanonicalProdatProfile(code)
-        if (!canonical) return []
-        const wildcard = wildcardSubtype(canonical.messageCode)
-        if (wildcard) {
-          const resolved = resolveCanonicalProdatRuntimeProfile({ code, subtypeOrReasonCode: null, version: '26A' })
-          return resolved ? [resolved] : []
-        }
-        return allowedProdatSubtypes(canonical.messageCode).flatMap((rule) => {
-          // Bilateral-only variants stay visible as canonical profiles but are not
-          // silently accepted by runtime unless capability is explicitly verified.
-          const resolved = resolveCanonicalProdatRuntimeProfile({
-            code,
-            subtypeOrReasonCode: rule.subtype,
-            version: '26A',
-            bilateralCapabilityVerified: true,
-          })
-          return resolved ? [resolved] : []
-        })
+  return PRODAT_CANONICAL_PROFILES.flatMap((canonical) => {
+    const wildcard = wildcardSubtype(canonical.messageCode)
+    if (wildcard) {
+      const resolved = resolveCanonicalProdatRuntimeProfile({ code: canonical.messageCode, subtypeOrReasonCode: null, version: canonical.guideVersion })
+      return resolved ? [resolved] : []
+    }
+    return allowedProdatSubtypes(canonical.messageCode).flatMap((rule) => {
+      const resolved = resolveCanonicalProdatRuntimeProfile({
+        code: canonical.messageCode,
+        subtypeOrReasonCode: rule.subtype,
+        version: canonical.guideVersion,
+        bilateralCapabilityVerified: true,
       })
-    : []
+      return resolved ? [resolved] : []
+    })
+  })
 }
