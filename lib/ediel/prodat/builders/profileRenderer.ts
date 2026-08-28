@@ -21,7 +21,10 @@ import {
 } from '@/lib/ediel/prodat/render/dates'
 import { validateProdatContext } from '@/lib/ediel/prodat/render/validate'
 import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
-
+import {
+  canonicalProdatSubtypeAlias,
+  canonicalProdatTransactionReason,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 function prodatCav(value: string | null | undefined, maxLength = 12): string {
   const code = sanitizeProdatToken(value ?? null, maxLength)
@@ -57,30 +60,16 @@ function portalDate102(portalData: ProdatEnginePortalSnapshot, key: string): str
   return prodatDate102(portalString(portalData, key))
 }
 
-function normalizeReasonForTransaction(value?: string | null): string | null {
-  const normalized = sanitizeProdatText(value).toUpperCase()
-  if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
-  if (normalized === 'L' || normalized === 'Z22') return 'Z22'
-  if (normalized === 'F' || normalized === 'Z06F' || normalized === 'Z09F' || normalized === 'E64') return 'E64'
-  if (normalized === 'G' || normalized === 'Z06G' || normalized === 'Z09G' || normalized === 'E32') return 'E32'
-  if (normalized === 'D' || normalized === 'Z09D' || normalized === 'Z70') return 'Z70'
-  return normalized || null
-}
-
 function isPermissionMessageCode(code: string): boolean {
   return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
 }
 
-function isHistoricalPermissionReason(value?: string | null): boolean {
-  const normalized = sanitizeProdatToken(value ?? null, 12)
-  return normalized === 'S18' || normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH'
+function isHistoricalPermissionReason(value?: string | null, messageCode?: string | null): boolean {
+  return canonicalProdatSubtypeAlias(value, messageCode) === 'VH'
 }
 
-function resolvePermissionReasonForCode(explicitValue?: string | null): string | null {
-  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
-  if (normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH') return 'S18'
-  if (normalized === 'V' || normalized === 'Z13V' || normalized === 'Z14V' || normalized === 'Z18V') return 'S17'
-  return normalizeReasonForTransaction(explicitValue)
+function resolveReasonForCode(explicitValue?: string | null, messageCode?: string | null): string | null {
+  return canonicalProdatTransactionReason(explicitValue, messageCode)
 }
 
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
@@ -107,13 +96,12 @@ export function buildProfiledProdatSegments(input: {
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = isPermissionMessageCode(context.code)
   const isSupplierZ09 = context.code === 'Z09'
-  const explicitReasonForTransaction = isHistoricalPermissionReason(input.variant ?? context.reasonForTransaction ?? null)
-    ? 'S18'
-    : portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? input.variant ?? null
-  const reasonForTransaction = isPermissionMessage
-    ? resolvePermissionReasonForCode(explicitReasonForTransaction)
-    : normalizeReasonForTransaction(explicitReasonForTransaction)
-  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null)
+  const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction')
+    ?? context.reasonForTransaction
+    ?? input.variant
+    ?? null
+  const reasonForTransaction = resolveReasonForCode(explicitReasonForTransaction, context.code)
+  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null, context.code)
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
   const installationDirection = sanitizeProdatToken(
     portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null,
@@ -155,7 +143,6 @@ export function buildProfiledProdatSegments(input: {
     prodatPartySegment('DO', context.receiverEdielId),
   ]
 
-  // Only emit the LIN object identifier when a real id exists. No 'UNKNOWN'.
   if (hasObjectIdentifier) {
     segments.push(`LIN+1++${sanitizeProdatText(meterPointId)}:::9`)
   }
@@ -176,14 +163,9 @@ export function buildProfiledProdatSegments(input: {
     )
     if (closureDate) segments.push(`DTM+93:${closureDate}:203`)
   } else if ((context.code === 'Z13' || context.code === 'Z14') && startDate203) {
-    // PRODAT 26.A fält 302/321: tillståndsflöden använder rapportstart
-    // och, för historiska mätvärden, rapportslut. De ska inte renderas som
-    // DTM+92 avtalstart.
     segments.push(`DTM+90:${startDate203}:203`)
     if (isHistoricalPermission && reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
   } else if (startDate203) {
-    // Z09 uses validity date (field 216) in SG8/DTM qualifier 157.
-    // Supplier AGT L7 failed when this was rendered as DTM+92.
     segments.push(`DTM+${isSupplierZ09 ? '157' : '92'}:${startDate203}:203`)
   }
 
@@ -208,8 +190,6 @@ export function buildProfiledProdatSegments(input: {
     35,
   )
   if (isPermissionMessage && energyProductId) {
-    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
-    // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
     segments.push('CCI++Z14', prodatCavValue2(energyProductId, 35))
   }
 
@@ -262,13 +242,13 @@ export function buildProfiledProdatSegments(input: {
 
   if (!isSupplierZ09) {
     segments.push(prodatCustomerNadSegment({
-    customerId: portalString(portalData, 'customerId') ?? context.customerId ?? null,
-    customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
-    customerName: portalString(portalData, 'customerName') ?? context.customerName,
-    address: portalString(portalData, 'customerAddress') ?? context.customerAddress ?? null,
-    city: portalString(portalData, 'customerCity') ?? context.customerCity ?? null,
-    postalCode: portalString(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null,
-    country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? null,
+      customerId: portalString(portalData, 'customerId') ?? context.customerId ?? null,
+      customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
+      customerName: portalString(portalData, 'customerName') ?? context.customerName,
+      address: portalString(portalData, 'customerAddress') ?? context.customerAddress ?? null,
+      city: portalString(portalData, 'customerCity') ?? context.customerCity ?? null,
+      postalCode: portalString(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null,
+      country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? null,
     }))
   }
 
