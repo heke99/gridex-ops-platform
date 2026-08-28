@@ -16,11 +16,11 @@ import { updateGridOwnerDataRequestStatus } from '@/lib/cis/db'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
-  assertSupplierUtiltsOutboundAllowed,
-  normalizeUtiltsResolutionClass,
-  resolveCanonicalUtiltsApplicationReference,
+  assertCanonicalSupplierUtiltsOutboundAllowed,
+  canonicalSupplierUtiltsApplicationReference,
+  canonicalUtiltsResolutionClass,
   type UtiltsRequestedMessageCode,
-} from '@/lib/ediel/rulebook/utiltsMarketEngine'
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -109,7 +109,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     requestPayload: record(dataRequest.request_payload),
   })
 
-  assertSupplierUtiltsOutboundAllowed({
+  assertCanonicalSupplierUtiltsOutboundAllowed({
     code: 'E73',
     bilateralCapabilityVerified: true,
     requestedMessageCode,
@@ -123,7 +123,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
-  const resolution = normalizeUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
+  const resolution = canonicalUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
 
   // Route/actor selection happens first. The selected route may carry an exact
   // field-311 Application Reference, but it is NOT authoritative by itself: the
@@ -154,7 +154,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
-  const applicationReference = resolveCanonicalUtiltsApplicationReference({
+  const applicationReference = canonicalSupplierUtiltsApplicationReference({
     code: 'E73',
     requestedMessageCode,
     applicationReference: routeContext.applicationReference,
