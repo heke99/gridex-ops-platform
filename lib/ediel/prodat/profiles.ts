@@ -1,5 +1,14 @@
 import type { ProdatEngineCode, ProdatEngineProductionContext, ProdatEngineValidationIssue } from '@/lib/ediel/prodat/types'
 import {
+  canonicalProdatSubtypeAlias,
+  canonicalProdatTransactionReason,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import {
+  listCanonicalProdatRuntimeProfiles,
+  resolveCanonicalProdatRuntimeProfile,
+  type CanonicalProdatRuntimeProfile,
+} from '@/lib/ediel/rulebook/prodatRuntimeProfileRegistry'
+import {
   normalizeProdatEndUserIdQualifier,
   sanitizeProdatText,
 } from '@/lib/ediel/prodat/render/segments'
@@ -8,64 +17,37 @@ function textValue(value: unknown): string {
   return typeof value === 'string' ? sanitizeProdatText(value) : ''
 }
 
-export type ProdatProfile = {
-  key: string
-  code: ProdatEngineCode
-  subtype: string
-  version: string
-  requiredContext: readonly (keyof ProdatEngineProductionContext)[]
-  requiresCustomerIdentity: boolean
-  requiresMeterPoint: boolean
-  requiresStartDate: boolean
-  requiresEndDate: boolean
-  businessResponse?: string | null
+/** Compatibility type retained for existing engine/tests. Normative ownership
+ * lives in rulebook/prodatRuntimeProfileRegistry. */
+export type ProdatProfile = CanonicalProdatRuntimeProfile
+
+function subtypeSource(
+  code: ProdatEngineCode,
+  value?: string | null,
+  context?: ProdatEngineProductionContext,
+): string | null {
+  const explicit = String(value ?? '').trim()
+  if (explicit) return explicit
+
+  const reason = String(context?.reasonForTransaction ?? '').trim()
+  if (reason) return reason
+
+  // Z08 uses the termination reason as field-223 transaction semantics in the
+  // legacy engine input. Resolve it through the same canonical subtype registry.
+  if (code === 'Z08') {
+    const closure = String(context?.contractClosureReason ?? '').trim()
+    if (closure) return closure
+  }
+  return null
 }
 
-const PROFILES: readonly ProdatProfile[] = [
-  { key: 'prodat_26a_z01', code: 'Z01', subtype: '*', version: '26A', requiredContext: ['customerName'], requiresCustomerIdentity: false, requiresMeterPoint: false, requiresStartDate: false, requiresEndDate: false, businessResponse: 'Z02' },
-  { key: 'prodat_26a_z02', code: 'Z02', subtype: '*', version: '26A', requiredContext: ['customerName'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false },
-  { key: 'prodat_26a_z03_l', code: 'Z03', subtype: 'L', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false, businessResponse: 'Z04L' },
-  { key: 'prodat_26a_z03_lk', code: 'Z03', subtype: 'LK', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false, businessResponse: 'Z04LK' },
-  { key: 'prodat_26a_z04_l', code: 'Z04', subtype: 'L', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z04_lk', code: 'Z04', subtype: 'LK', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z04_c', code: 'Z04', subtype: 'C', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false },
-  { key: 'prodat_26a_z04_a', code: 'Z04', subtype: 'A', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z04_d', code: 'Z04', subtype: 'D', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: true },
-  { key: 'prodat_26a_z05_l', code: 'Z05', subtype: 'L', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z08_h', code: 'Z08', subtype: 'H', version: '26A', requiredContext: ['contractClosureReason'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: true, businessResponse: 'Z05L' },
-  { key: 'prodat_26a_z06_f', code: 'Z06', subtype: 'F', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false },
-  { key: 'prodat_26a_z06_g', code: 'Z06', subtype: 'G', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false },
-  { key: 'prodat_26a_z09_f', code: 'Z09', subtype: 'F', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: false, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z09_g', code: 'Z09', subtype: 'G', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: false, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z09_d', code: 'Z09', subtype: 'D', version: '26A', requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: false, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z10', code: 'Z10', subtype: '*', version: '26A', requiredContext: [], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false },
-  { key: 'prodat_26a_z13_v', code: 'Z13', subtype: 'V', version: '26A', requiredContext: ['reasonForTransaction', 'installationDirection', 'permissionPurpose', 'reportingFrequency', 'energyProductId'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z13_vh', code: 'Z13', subtype: 'VH', version: '26A', requiredContext: ['reasonForTransaction', 'installationDirection', 'permissionPurpose', 'reportingFrequency', 'energyProductId', 'permissionEndDate'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: true },
-  { key: 'prodat_26a_z14_v', code: 'Z14', subtype: 'V', version: '26A', requiredContext: ['permissionStatus'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: false },
-  { key: 'prodat_26a_z14_n', code: 'Z14', subtype: 'N', version: '26A', requiredContext: ['permissionStatus'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false },
-  { key: 'prodat_26a_z14_vh', code: 'Z14', subtype: 'VH', version: '26A', requiredContext: ['permissionStatus', 'permissionEndDate'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: true },
-  { key: 'prodat_26a_z15_v', code: 'Z15', subtype: 'V', version: '26A', requiredContext: ['permissionStatus', 'permissionEndReason', 'permissionEndDate'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: true },
-  { key: 'prodat_26a_z18_v', code: 'Z18', subtype: 'V', version: '26A', requiredContext: ['permissionId', 'permissionTimestamp', 'permissionEndReason', 'permissionEndDate'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: true },
-] as const
-
-function normalize(value: unknown): string {
-  return String(value ?? '').trim().toUpperCase()
-}
-
-export function normalizeProdatSubtype(code: ProdatEngineCode, value?: string | null, context?: ProdatEngineProductionContext): string {
-  const explicit = normalize(value)
-  if (explicit) return explicit.replace(code, '') || explicit
-  const reason = normalize(context?.reasonForTransaction)
-  if (reason === 'Z22') return 'L'
-  if (reason === 'Z23') return 'LK'
-  if (reason === 'E64') return 'F'
-  if (reason === 'E32') return 'G'
-  if (reason === 'Z70') return 'D'
-  if (reason === 'S18') return 'VH'
-  if (reason === 'S17') return 'V'
-  if (code === 'Z08') return 'H'
-  if (['Z01', 'Z02', 'Z10'].includes(code)) return '*'
-  return ''
+export function normalizeProdatSubtype(
+  code: ProdatEngineCode,
+  value?: string | null,
+  context?: ProdatEngineProductionContext,
+): string {
+  if (code === 'Z01' || code === 'Z02' || code === 'Z10') return '*'
+  return canonicalProdatSubtypeAlias(subtypeSource(code, value, context), code) ?? ''
 }
 
 export function resolveProdatProfile(input: {
@@ -74,9 +56,12 @@ export function resolveProdatProfile(input: {
   version?: string | null
   context: ProdatEngineProductionContext
 }): ProdatProfile | null {
-  const version = normalize(input.version).replace('E2SE6A', '26A') || '26A'
-  const subtype = normalizeProdatSubtype(input.code, input.subtype, input.context)
-  return PROFILES.find((profile) => profile.code === input.code && profile.version === version && (profile.subtype === subtype || profile.subtype === '*')) ?? null
+  const subtypeOrReasonCode = subtypeSource(input.code, input.subtype, input.context)
+  return resolveCanonicalProdatRuntimeProfile({
+    code: input.code,
+    subtypeOrReasonCode,
+    version: input.version,
+  })
 }
 
 export function validateProdatProfile(input: {
@@ -87,12 +72,16 @@ export function validateProdatProfile(input: {
 }): { profile: ProdatProfile | null; issues: ProdatEngineValidationIssue[] } {
   const profile = resolveProdatProfile(input)
   const issues: ProdatEngineValidationIssue[] = []
+  const subtype = normalizeProdatSubtype(input.code, input.subtype, input.context)
+
   if (!profile) {
+    const source = subtypeSource(input.code, input.subtype, input.context)
+    const canonicalReason = canonicalProdatTransactionReason(source, input.code)
     issues.push({
       severity: 'error',
       code: 'prodat_profile_missing',
       title: 'PRODAT-profil saknas',
-      description: `Ingen aktiv profil finns för ${input.code}/${normalizeProdatSubtype(input.code, input.subtype, input.context) || 'saknad subtype'}/${input.version ?? '26A'}. Affärsdata får inte gissas.`,
+      description: `Ingen canonical runtimeprofil finns för ${input.code}/${subtype || canonicalReason || 'saknad subtype'}/${input.version ?? 'saknad version'}. Affärsdata eller version får inte gissas.`,
     })
     return { profile: null, issues }
   }
@@ -140,9 +129,10 @@ export function validateProdatProfile(input: {
   if (profile.requiresEndDate && !endDate) {
     issues.push({ severity: 'error', code: 'prodat_end_date_missing', title: 'Slutdatum saknas', description: `${profile.key} kräver ett explicit slutdatum. Slutdatum får inte härledas eller fabriceras.` })
   }
+
   return { profile, issues }
 }
 
 export function listProdatProfiles(): readonly ProdatProfile[] {
-  return PROFILES
+  return listCanonicalProdatRuntimeProfiles()
 }
