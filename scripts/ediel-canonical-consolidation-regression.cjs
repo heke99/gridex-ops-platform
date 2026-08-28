@@ -60,6 +60,13 @@ assert(!appRefPolicy.includes("return '23-DGI-PRODAT'"), 'intent appref policy m
 assert(!appRefPolicy.includes("return '23-DDQ-PRODAT'"), 'intent appref policy must not manufacture DDQ')
 assert(appRefPolicy.includes('resolveProdatApplicationReferenceForProcess'), 'intent appref compatibility must delegate to canonical authority')
 
+const config = read('lib/ediel/config.ts')
+assert(config.includes('canonical_application_reference_message_context_required'), 'generic config appref helper must fail closed for canonical EDIFACT families')
+assert(!config.includes("if (process === 'PRODAT') return `23-${sub}-PRODAT`"), 'config must not fabricate PRODAT Application Reference')
+assert(!config.includes("if (process === 'UTILTS' || process === 'UTILTS_ERR') return `23-${sub}-UTILTS`"), 'config must not fabricate UTILTS Application Reference')
+assert(!config.includes("key: 'default_message_version_missing'"), 'route readiness must not require a route-level protocol version override')
+assert(!config.includes("key: 'application_reference_missing'"), 'route readiness must not require a route-level Application Reference override')
+
 const versionSelector = read('lib/ediel/rulebook/versionSelector.ts')
 assert(versionSelector.includes('resolveAuthoritativeEdielGuide'), 'runtime version selector must use the effective-dated guide registry')
 assert(!versionSelector.includes('getRulebookRule'), 'runtime version selector must not use legacy rulebook as version authority')
