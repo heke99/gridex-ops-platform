@@ -1,9 +1,9 @@
 import {
-  listCanonicalEdielBusinessSemantics,
-  resolveCanonicalEdielBusinessSemantics,
+  canonicalBusinessSemanticsCatalog,
+  canonicalBusinessSemanticsProjection,
   type CanonicalEdielBusinessSemantics,
   type CanonicalEdielBusinessFamily,
-} from '@/lib/ediel/rulebook/businessSemantics'
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 export type EdielMessageFamily = CanonicalEdielBusinessFamily
 
@@ -188,7 +188,7 @@ export function fallbackMessageSemantics(input: {
   messageCode: string
   subtype?: string | null
 }): EdielMessageSemantics | null {
-  const entry = resolveCanonicalEdielBusinessSemantics({
+  const entry = canonicalBusinessSemanticsProjection({
     family: input.messageFamily,
     code: input.messageCode,
     subtype: input.subtype,
@@ -210,7 +210,7 @@ export async function resolveEdielMessageSemantics(input: {
 }
 
 export function listFallbackMessageSemantics(): EdielMessageSemantics[] {
-  return listCanonicalEdielBusinessSemantics().map(project)
+  return canonicalBusinessSemanticsCatalog().map(project)
 }
 
 export function messageForRequestType(requestType: string): {
