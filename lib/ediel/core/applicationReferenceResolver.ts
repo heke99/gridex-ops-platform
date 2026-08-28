@@ -1,5 +1,8 @@
-import { getCanonicalProdatProfile, PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
-import { resolveVerifiedUtiltsApplicationReference } from '@/lib/ediel/rulebook/utiltsApplicationReference'
+import {
+  canonicalProdatApplicationReferenceForProcess,
+  canonicalProdatProfileForMessage,
+  canonicalVerifiedUtiltsApplicationReference,
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 export type EdielCompanyRole = 'supplier' | 'energy_service_company' | 'system_supplier' | string
 
@@ -28,7 +31,7 @@ function upper(value: string | null | undefined): string {
 
 function prodatApplicationReference(input: ApplicationReferenceResolverInput): string {
   const code = upper(input.businessCode ?? input.messageType)
-  const profile = getCanonicalProdatProfile(code)
+  const profile = canonicalProdatProfileForMessage(code)
   if (!profile) {
     throw new Error(`prodat_application_reference_message_unsupported:${code || 'missing'}`)
   }
@@ -39,21 +42,16 @@ export function resolveProdatApplicationReferenceForProcess(
   businessProcess: string | null | undefined,
 ): string {
   const process = String(businessProcess ?? '').trim().toLowerCase()
-  const references = [...new Set(
-    PRODAT_CANONICAL_PROFILES
-      .filter((profile) => profile.processGroup === process)
-      .map((profile) => profile.applicationReference),
-  )]
-
-  if (references.length !== 1) {
+  const reference = canonicalProdatApplicationReferenceForProcess(process)
+  if (!reference) {
     throw new Error(`prodat_application_reference_process_unsupported:${process || 'missing'}`)
   }
-  return references[0]
+  return reference
 }
 
 function utiltsApplicationReference(input: ApplicationReferenceResolverInput): string {
   const code = upper(input.businessCode ?? input.messageType)
-  return resolveVerifiedUtiltsApplicationReference({
+  return canonicalVerifiedUtiltsApplicationReference({
     messageCode: code,
     requestedMessageCode: input.requestedMessageCode,
     applicationReference: input.routeProfile?.applicationReference ?? null,
