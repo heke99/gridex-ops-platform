@@ -1,5 +1,9 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
+import {
+  canonicalMessageFacts,
+  hasCanonicalScalarToken,
+} from '@/lib/ediel/core/canonicalEdifactAst'
 
 export type EdielDecisionContextKind = 'TGT' | 'AGT' | 'bilateral' | 'production' | 'unknown'
 
@@ -89,6 +93,8 @@ export type ClassifyEdielMessageInput = {
   testKind?: EdielDecisionContextKind | null
 }
 
+type CanonicalFacts = ReturnType<typeof canonicalMessageFacts>
+
 function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
 }
@@ -98,72 +104,23 @@ function cleanToken(value: unknown): string | null {
   return token.length > 0 ? token.toUpperCase() : null
 }
 
-function rawSegments(rawPayload?: string | null): string[] {
-  return String(rawPayload ?? '')
-    .replace(/\r\n/g, '')
-    .replace(/\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
+function factsFor(rawPayload: string | null): CanonicalFacts {
+  return canonicalMessageFacts(rawPayload)
 }
 
-function bgmCode(rawPayload?: string | null): string | null {
-  const segment = rawSegments(rawPayload).find((item) => item.toUpperCase().startsWith('BGM+'))
-  const value = segment?.split('+')[1]?.split(':')[0]?.trim() ?? ''
-  return value ? value.toUpperCase() : null
-}
-
-function unhFamily(rawPayload?: string | null): string | null {
-  const segment = rawSegments(rawPayload).find((item) => item.toUpperCase().startsWith('UNH+'))
-  const value = segment?.split('+')[2]?.split(':')[0]?.trim() ?? ''
-  return value ? value.toUpperCase().replace('-', '_') : null
-}
-
-function readCciCavCodes(rawPayload?: string | null): Record<string, string[]> {
-  const result: Record<string, string[]> = {}
-  let current: string | null = null
-
-  for (const segment of rawSegments(rawPayload)) {
-    const upper = segment.toUpperCase()
-    if (upper.startsWith('CCI+')) {
-      const parts = segment.split('+')
-      current = cleanToken(parts[2]?.split(':')[0]) ?? cleanToken(parts[3]?.split(':')[0])
-      continue
-    }
-
-    if (upper.startsWith('CAV+') && current) {
-      const rawValue = segment.split('+')[1] ?? ''
-      const value = cleanToken(rawValue.split(':').find((part) => part.trim().length > 0) ?? rawValue)
-      if (value) {
-        result[current] = [...(result[current] ?? []), value]
-      }
-    }
-  }
-
-  return result
-}
-
-function inferFamily(input: ClassifyEdielMessageInput, rawPayload: string | null): string {
+function inferFamily(input: ClassifyEdielMessageInput, facts: CanonicalFacts): string {
   const explicit = cleanToken(input.family ?? input.message?.message_family)
   if (explicit) return explicit.replace('-', '_')
-
-  const fromUnh = unhFamily(rawPayload)
-  if (fromUnh) return fromUnh
-
-  const raw = normalize(rawPayload)
-  if (raw.includes('UTILTS_ERR') || raw.includes('UTILTS-ERR') || raw.includes('BGM+ERR')) return 'UTILTS_ERR'
-  if (raw.includes('PRODAT:D:')) return 'PRODAT'
-  if (raw.includes('UTILTS:D:')) return 'UTILTS'
-  if (raw.includes('APERAK:D:')) return 'APERAK'
-  if (raw.includes('CONTRL:D:')) return 'CONTRL'
+  const parsed = cleanToken(facts.family)
+  if (parsed) return parsed.replace('-', '_')
+  if (facts.messageCode === 'ERR') return 'UTILTS_ERR'
   return 'UNKNOWN'
 }
 
-function inferMessageCode(input: ClassifyEdielMessageInput, rawPayload: string | null): string | null {
+function inferMessageCode(input: ClassifyEdielMessageInput, facts: CanonicalFacts): string | null {
   const explicit = cleanToken(input.messageCode ?? input.message?.message_code)
   if (explicit && explicit !== 'UNKNOWN') return explicit
-  return bgmCode(rawPayload)
+  return cleanToken(facts.messageCode)
 }
 
 function prodatProfileForCode(code: string | null): EdielRuleProfileId {
@@ -199,26 +156,25 @@ function utiltsProfileForCode(code: string | null, variant: EdielMessageVariant)
   return 'manual_review_unknown'
 }
 
-function prodatPermissionVariant(code: string | null, rawPayload: string | null): {
+function prodatPermissionVariant(code: string | null, facts: CanonicalFacts): {
   variant: EdielMessageVariant
   businessResult: EdielBusinessResult
   validity: EdielApplicationValidity
   signals: string[]
   manualReviewReason: string | null
 } {
-  const raw = normalize(rawPayload)
-  const cci = readCciCavCodes(rawPayload)
-  const statuses = cci.Z23 ?? []
-  const purposes = cci.Z24 ?? []
-  const endReasons = cci.Z25 ?? []
+  const statuses = facts.cciCavCodes.Z23 ?? []
+  const purposes = facts.cciCavCodes.Z24 ?? []
+  const endReasons = facts.cciCavCodes.Z25 ?? []
   const signals: string[] = []
   if (statuses.length > 0) signals.push(`Z23=${statuses.join(',')}`)
   if (purposes.length > 0) signals.push(`Z24=${purposes.join(',')}`)
   if (endReasons.length > 0) signals.push(`Z25=${endReasons.join(',')}`)
 
   if (code === 'Z13') {
+    const historical = hasCanonicalScalarToken(facts, 'Z13VH') || hasCanonicalScalarToken(facts, 'S18')
     return {
-      variant: raw.includes('Z13VH') ? 'Z13VH' : 'Z13V',
+      variant: historical ? 'Z13VH' : 'Z13V',
       businessResult: 'permission_requested',
       validity: 'valid',
       signals,
@@ -237,23 +193,15 @@ function prodatPermissionVariant(code: string | null, rawPayload: string | null)
   }
 
   if (code === 'Z14') {
-    if (raw.includes('Z14VH')) {
+    if (hasCanonicalScalarToken(facts, 'Z14VH') || hasCanonicalScalarToken(facts, 'S18')) {
       return { variant: 'Z14VH', businessResult: 'permission_approved', validity: 'valid', signals, manualReviewReason: null }
     }
-    if (raw.includes('Z14N')) {
+    if (hasCanonicalScalarToken(facts, 'Z14N') || statuses.some((status) => ['A75', 'Z96'].includes(status))) {
       return { variant: 'Z14N', businessResult: 'permission_rejected', validity: 'valid', signals, manualReviewReason: null }
     }
-    if (raw.includes('Z14V')) {
+    if (hasCanonicalScalarToken(facts, 'Z14V') || hasCanonicalScalarToken(facts, 'S17') || statuses.some((status) => ['A74', 'A13'].includes(status))) {
       return { variant: 'Z14V', businessResult: 'permission_approved', validity: 'valid', signals, manualReviewReason: null }
     }
-
-    if (statuses.some((status) => ['A74', 'A13'].includes(status))) {
-      return { variant: 'Z14V', businessResult: 'permission_approved', validity: 'valid', signals, manualReviewReason: null }
-    }
-    if (statuses.some((status) => ['A75', 'Z96'].includes(status))) {
-      return { variant: 'Z14N', businessResult: 'permission_rejected', validity: 'valid', signals, manualReviewReason: null }
-    }
-
     return {
       variant: 'unknown',
       businessResult: 'unknown',
@@ -284,23 +232,28 @@ function prodatPermissionVariant(code: string | null, rawPayload: string | null)
   }
 }
 
-function utiltsVariant(rawPayload: string | null, explicitProcessType?: string | null): EdielMessageVariant {
+function utiltsVariant(facts: CanonicalFacts, explicitProcessType?: string | null): EdielMessageVariant {
   const explicit = normalize(explicitProcessType)
   if (['QUARTER', 'KVART', '15', 'PT15M'].includes(explicit)) return 'quarter'
   if (['HOUR', 'TIM', '60', 'PT60M'].includes(explicit)) return 'hour'
   if (['SCH', 'MONTH', 'MÅNAD', 'MANAD'].includes(explicit)) return 'sch'
 
-  const raw = normalize(rawPayload)
-  if (raw.includes('DTM+354:15:804') || raw.includes('DTM+354:15:806') || raw.includes('23-DDQ-E66-T') || raw.includes('23-DGI-E66-T')) return 'quarter'
-  if (raw.includes('DTM+354:60:804') || raw.includes('DTM+354:60:806')) return 'hour'
-  if (raw.includes('23-DDQ-E66-S') || raw.includes('23-DGI-E66-S') || raw.includes('SCH')) return 'sch'
+  const resolution = facts.dtmValues['354'] ?? []
+  if (resolution.includes('15')) return 'quarter'
+  if (resolution.includes('60')) return 'hour'
+
+  const appRef = normalize(facts.applicationReference)
+  if (appRef.includes('E66-T')) return 'quarter'
+  if (appRef.includes('E66-S')) return 'sch'
+  if (hasCanonicalScalarToken(facts, 'SCH')) return 'sch'
   return 'unknown'
 }
 
 export function classifyProdatPermissionMessage(input: ClassifyEdielMessageInput): EdielClassifiedMessage {
   const rawPayload = input.rawPayload ?? input.message?.raw_payload ?? null
-  const code = inferMessageCode(input, rawPayload)
-  const permission = prodatPermissionVariant(code, rawPayload)
+  const facts = factsFor(rawPayload)
+  const code = inferMessageCode(input, facts)
+  const permission = prodatPermissionVariant(code, facts)
   const profile = prodatProfileForCode(code)
   const isPermissionCode = ['Z13', 'Z14', 'Z15', 'Z18'].includes(code ?? '')
 
@@ -326,8 +279,9 @@ export function classifyProdatPermissionMessage(input: ClassifyEdielMessageInput
 
 export function classifyUtiltsMessage(input: ClassifyEdielMessageInput): EdielClassifiedMessage {
   const rawPayload = input.rawPayload ?? input.message?.raw_payload ?? null
-  const code = inferMessageCode(input, rawPayload)
-  const variant = utiltsVariant(rawPayload, input.processType ?? input.message?.process_type ?? null)
+  const facts = factsFor(rawPayload)
+  const code = inferMessageCode(input, facts)
+  const variant = utiltsVariant(facts, input.processType ?? input.message?.process_type ?? null)
   const profile = utiltsProfileForCode(code, variant)
   const validity: EdielApplicationValidity = profile === 'manual_review_unknown' ? 'uncertain' : 'valid'
 
@@ -353,16 +307,12 @@ export function classifyUtiltsMessage(input: ClassifyEdielMessageInput): EdielCl
 
 export function classifyEdielMessage(input: ClassifyEdielMessageInput): EdielClassifiedMessage {
   const rawPayload = input.rawPayload ?? input.message?.raw_payload ?? null
-  const family = inferFamily(input, rawPayload)
-  const code = inferMessageCode(input, rawPayload)
+  const facts = factsFor(rawPayload)
+  const family = inferFamily(input, facts)
+  const code = inferMessageCode(input, facts)
 
-  if (family === 'PRODAT') {
-    return classifyProdatPermissionMessage({ ...input, family, messageCode: code })
-  }
-
-  if (family === 'UTILTS') {
-    return classifyUtiltsMessage({ ...input, family, messageCode: code })
-  }
+  if (family === 'PRODAT') return classifyProdatPermissionMessage({ ...input, family, messageCode: code })
+  if (family === 'UTILTS') return classifyUtiltsMessage({ ...input, family, messageCode: code })
 
   if (family === 'CONTRL') {
     return {
@@ -459,18 +409,13 @@ export function compareEngineDecisionWithExpected(params: {
 }): { status: 'match' | 'rule_conflict' | 'no_expected'; reason: string } {
   const expectedFamily = cleanToken(params.expectedFamily)
   const actualFamily = cleanToken(params.actualFamily)
-  if (!expectedFamily && !params.expectedOutcome) {
-    return { status: 'no_expected', reason: 'Ingen testförväntning angavs.' }
-  }
-
+  if (!expectedFamily && !params.expectedOutcome) return { status: 'no_expected', reason: 'Ingen testförväntning angavs.' }
   if (expectedFamily && expectedFamily !== actualFamily) {
     return { status: 'rule_conflict', reason: `Förväntad ACK-familj ${expectedFamily}, men engine valde ${actualFamily}.` }
   }
-
   if (params.expectedOutcome && params.actualOutcome && params.expectedOutcome !== params.actualOutcome) {
     return { status: 'rule_conflict', reason: `Förväntat outcome ${params.expectedOutcome}, men engine valde ${params.actualOutcome}.` }
   }
-
   return { status: 'match', reason: 'Engine decision matchar testförväntningen.' }
 }
 

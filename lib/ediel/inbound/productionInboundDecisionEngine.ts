@@ -1,4 +1,5 @@
 import { decideProdatAperak } from '@/lib/ediel/decisionEngine'
+import { canonicalMessageFacts } from '@/lib/ediel/core/canonicalEdifactAst'
 import { selectRuleProfile, summarizeRuleProfile } from '@/lib/ediel/rulebook/ruleProfileSelector'
 
 export type EdielInboundMessageFamily = 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | string
@@ -77,10 +78,12 @@ function prodatUiLabel(scenario: ProductionInboundScenario, code: string | null)
 }
 
 export function classifyProductionInboundDecision(input: ProductionInboundDecisionInput): ProductionInboundDecision {
+  const rawPayload = input.rawPayload ?? null
+  const facts = canonicalMessageFacts(rawPayload)
   const classification = selectRuleProfile({
     family: input.messageFamily ?? null,
     messageCode: input.messageCode ?? null,
-    rawPayload: input.rawPayload ?? null,
+    rawPayload,
     processType: input.utiltsResolution ?? input.processType ?? null,
     actorRole: input.actorRole ?? null,
     testKind: 'production',
@@ -97,10 +100,10 @@ export function classifyProductionInboundDecision(input: ProductionInboundDecisi
 
   if (family === 'PRODAT') {
     const prodatDecision = decideProdatAperak({
-      rawPayload: input.rawPayload ?? null,
-      family: family,
+      rawPayload,
+      family,
       messageCode: code,
-      applicationReference: input.rawPayload?.includes('23-DGI-PRODAT') ? '23-DGI-PRODAT' : null,
+      applicationReference: facts.applicationReference,
       processType: classification.processType,
       actorRole: input.actorRole ?? null,
       testKind: 'production',
