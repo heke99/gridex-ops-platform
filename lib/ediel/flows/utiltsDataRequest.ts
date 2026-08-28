@@ -1,8 +1,11 @@
 // Stable public facade.
-// Supplier outbound UTILTS is centralized in utiltsSupplierRequest; inbound
-// transaction processing remains in the characterized runtime module.
+// Supplier outbound UTILTS is centralized in utiltsSupplierRequest. Inbound
+// supplier processing must pass through the canonical business-outcome dispatcher
+// so forecast/aggregate/request traffic cannot reach billing side effects.
 export { prepareAndQueueUtiltsE73 } from './utiltsSupplierRequest'
-export { processInboundUtiltsMessage } from './utiltsDataRequest.part-2'
+export {
+  processInboundUtiltsMessageByCanonicalPolicy as processInboundUtiltsMessage,
+} from './utiltsInboundPolicyProcessor'
 
 export async function prepareAndQueueUtiltsE66(_params: {
   actorUserId: string
