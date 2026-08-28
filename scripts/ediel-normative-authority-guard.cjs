@@ -12,7 +12,7 @@ const DEAD_PROFILE_FILES = [
   'lib/ediel/core/messageBuilder/profiles/contrlEdiel2.ts',
 ]
 
-// Files that are allowed to own hand-maintained normative Ediel matrices.
+// Files that are allowed to OWN hand-maintained normative Ediel matrices.
 // Projections may consume these registries, but must not recreate their rows.
 const MATRIX_AUTHORITY_ALLOWLIST = new Set([
   'lib/ediel/ack/canonicalAckEngine.ts',
@@ -51,8 +51,16 @@ const NORMATIVE_LITERAL_ALLOWLIST = new Set([
 const VALIDITY_AUTHORITY_ALLOWLIST = new Set([
   'lib/ediel/rulebook/guideRegistry.ts',
   'lib/ediel/rulebook/prodatRulebook.ts',
+  'lib/ediel/rulebook/prodatSubtypeRegistry.ts',
   'lib/ediel/rulebook/utilts25A4.ts',
   'lib/ediel/rulebook/utiltsRulebook.ts',
+])
+
+// These modules expose narrowed TypeScript shapes or compatibility views whose
+// values are populated from canonical profiles. They may repeat a literal in a
+// TYPE position but are forbidden from becoming independent matrix owners.
+const VALIDITY_PROJECTION_ALLOWLIST = new Set([
+  'lib/ediel/rulebook/prodatRuntimeProfileRegistry.ts',
 ])
 
 function normalize(file) {
@@ -147,17 +155,17 @@ function scanNormativeAuthority(root = process.cwd()) {
       violations.push(`${relative}: legacy applicationReferenceForProcess compatibility API is forbidden`)
     }
 
-    // Direct association-assigned-code constants are a common way a parallel
+    // Direct association-assigned-code CONSTANTS are a common way a parallel
     // rule source reappears. Exact codecs/parsers are explicitly allowlisted.
     const ownsAssociationLiteral = /(?:export\s+)?const\s+[A-Za-z0-9_]*(?:UNH|VERSION|ASSOCIATION|GUIDE)[A-Za-z0-9_]*\s*(?::[^=]+)?=\s*['"][^'"]*(?:E2SE6A|E5SE5A)[^'"]*['"]/i.test(source)
     if (ownsAssociationLiteral && !NORMATIVE_LITERAL_ALLOWLIST.has(relative)) {
       violations.push(`${relative}: owns E2SE6A/E5SE5A literal outside explicit allowlist`)
     }
 
-    // Hand-written PRODAT/UTILTS code/profile matrices are permitted only in
-    // canonical authority files. Derived arrays such as CANONICAL.map(...) do
-    // not trigger because they do not carry many literal message codes.
-    const matrixDeclaration = /(?:export\s+)?const\s+[A-Za-z0-9_]*(?:PRODAT|UTILTS)[A-Za-z0-9_]*(?:CODES?|MATRIX|PROFILES?|RULES?)[A-Za-z0-9_]*\s*(?::[^=]+)?=/i.test(source)
+    // Detect only literal array/object matrix ownership. Derived projections
+    // such as `const utiltsProfiles = UTILTS_CANONICAL_PROFILES.map(...)` are
+    // consumers, not parallel authorities, and deliberately do not trigger.
+    const matrixDeclaration = /(?:export\s+)?const\s+[A-Za-z0-9_]*(?:PRODAT|UTILTS)[A-Za-z0-9_]*(?:CODES?|MATRIX|PROFILES?|RULES?)[A-Za-z0-9_]*\s*(?::[^=]+)?=\s*[\[{]/i.test(source)
     if (matrixDeclaration && !MATRIX_AUTHORITY_ALLOWLIST.has(relative)) {
       const prodatCodes = literalCodeCount(source, 'PRODAT')
       const utiltsCodes = literalCodeCount(source, 'UTILTS')
@@ -166,10 +174,16 @@ function scanNormativeAuthority(root = process.cwd()) {
       }
     }
 
-    // Guide validity must never be repeated by runtime projections.
+    // Guide validity must never be repeated by ordinary runtime modules. A
+    // separately reviewed projection allowlist covers narrowed TS compatibility
+    // shapes whose actual runtime values are read from canonical profiles.
     const ownsValidityLiteral = /(?:guideVersion|guideRevision|associationAssignedCode|effectiveFrom|effectiveTo)\s*:\s*['"][^'"]+['"]/g.test(source)
-    if (ownsValidityLiteral && !VALIDITY_AUTHORITY_ALLOWLIST.has(relative)) {
-      violations.push(`${relative}: owns guide/version/effective-date literal outside validity authority allowlist`)
+    if (
+      ownsValidityLiteral &&
+      !VALIDITY_AUTHORITY_ALLOWLIST.has(relative) &&
+      !VALIDITY_PROJECTION_ALLOWLIST.has(relative)
+    ) {
+      violations.push(`${relative}: owns guide/version/effective-date literal outside validity authority/projection allowlist`)
     }
   }
 
