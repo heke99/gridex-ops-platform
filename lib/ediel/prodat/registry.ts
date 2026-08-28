@@ -1,39 +1,40 @@
-// lib/ediel/prodat/registry.ts
+// Compatibility registry for the PRODAT renderer.
+// Message support, version tokens and ACK semantics are projected from canonical
+// rulebook modules; do not add independent protocol matrices here.
 
 import type { ProdatEngineAckExpectation, ProdatEngineCode } from '@/lib/ediel/prodat/types'
+import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
+import { PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
 
-export const ACTIVE_PRODAT_ENGINE_CODES: readonly ProdatEngineCode[] = [
-  'Z01',
-  'Z02',
-  'Z03',
-  'Z04',
-  'Z05',
-  'Z06',
-  'Z08',
-  'Z09',
-  'Z10',
-  'Z13',
-  'Z14',
-  'Z15',
-  'Z18',
-] as const
+export const ACTIVE_PRODAT_ENGINE_CODES: readonly ProdatEngineCode[] = PRODAT_CANONICAL_PROFILES.map(
+  (profile) => profile.messageCode as ProdatEngineCode,
+)
 
 export function isProdatEngineCode(value: string | null | undefined): value is ProdatEngineCode {
-  return Boolean(value && (ACTIVE_PRODAT_ENGINE_CODES as readonly string[]).includes(value))
+  const normalized = String(value ?? '').trim().toUpperCase()
+  return ACTIVE_PRODAT_ENGINE_CODES.includes(normalized as ProdatEngineCode)
 }
 
 export function prodatMessageTypeToken(version: string | null | undefined): string {
-  const selectedVersion = version && version.trim().length > 0 ? version.trim() : '26A'
-  return `PRODAT:D:97A:UN:${selectedVersion === '26A' ? 'E2SE6A' : selectedVersion}`
+  const canonical = PRODAT_CANONICAL_PROFILES[0]
+  if (!canonical) throw new Error('canonical_prodat_profile_catalog_empty')
+
+  const normalized = String(version ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const canonicalGuideVersion = canonical.guideVersion.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+  if (!normalized) throw new Error('prodat_message_version_required')
+  if (normalized !== canonicalGuideVersion && normalized !== canonical.associationAssignedCode) {
+    throw new Error(`prodat_message_version_not_supported:${version}`)
+  }
+  return `PRODAT:D:${canonical.edifactDirectory.slice(1)}:UN:${canonical.associationAssignedCode}`
 }
 
 export function deriveProdatAckExpectation(code?: ProdatEngineCode | string | null): ProdatEngineAckExpectation {
-  const normalizedCode = String(code ?? '').trim().toUpperCase()
+  const canonical = canonicalAckRequirements({ family: 'PRODAT', code })
   return {
-    requiresContrl: true,
-    requiresAperak: normalizedCode === 'Z01' ? false : true,
-    contrlStatus: 'pending',
-    aperakStatus: 'pending',
+    requiresContrl: canonical.requiresContrl,
+    requiresAperak: canonical.requiresAperak,
+    contrlStatus: canonical.requiresContrl ? 'pending' : 'not_required',
+    aperakStatus: canonical.requiresAperak ? 'pending' : 'not_required',
     utiltsErrStatus: 'not_required',
     ackDueAt: null,
   }
