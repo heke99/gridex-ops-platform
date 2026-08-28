@@ -46,7 +46,8 @@ export function normalizeProdatSubtype(
   value?: string | null,
   context?: ProdatEngineProductionContext,
 ): string {
-  if (code === 'Z01' || code === 'Z02' || code === 'Z10') return '*'
+  // No message-family wildcard is a valid substitute for PRODAT business
+  // subtype. Z01/Z02 must preserve L vs LK and Z10 must resolve to M/E58.
   return canonicalProdatSubtypeAlias(subtypeSource(code, value, context), code) ?? ''
 }
 
