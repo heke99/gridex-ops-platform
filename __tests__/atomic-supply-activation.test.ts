@@ -6,8 +6,12 @@ const migration = readFileSync(
   `${root}/supabase/migrations/20260725120000_billing_readiness_and_supply_activation_v1.sql`,
   'utf8',
 )
-const stateMachine = readFileSync(
+const stateMachineFacade = readFileSync(
   `${root}/lib/ediel/flows/inboundBusinessStateMachine.ts`,
+  'utf8',
+)
+const stateMachineImplementation = readFileSync(
+  `${root}/lib/ediel/flows/inboundBusinessStateMachineLegacy.ts`,
   'utf8',
 )
 
@@ -25,11 +29,13 @@ describe('atomic customer supply activation', () => {
     expect(migration).toContain('on conflict')
   })
 
-  it('uses the RPC instead of sequential completion writes in the inbound state machine', () => {
-    expect(stateMachine).toContain("supabaseService.rpc('activate_customer_supply_v1'")
-    const completionBranch = stateMachine.slice(
-      stateMachine.indexOf("if (outcome === 'supplier_switch_completed'"),
-      stateMachine.indexOf("if (outcome === 'supplier_switch_review_required'"),
+  it('keeps the policy facade while delegating committed activation to the atomic RPC implementation', () => {
+    expect(stateMachineFacade).toContain('resolveCanonicalEdielPolicy')
+    expect(stateMachineFacade).toContain('applyLegacyInboundBusinessStateMachine')
+    expect(stateMachineImplementation).toContain("supabaseService.rpc('activate_customer_supply_v1'")
+    const completionBranch = stateMachineImplementation.slice(
+      stateMachineImplementation.indexOf("if (outcome === 'supplier_switch_completed'"),
+      stateMachineImplementation.indexOf("if (outcome === 'supplier_switch_review_required'"),
     )
     expect(completionBranch).not.toContain("strictUpdate('supplier_switch_requests'")
     expect(completionBranch).not.toContain('ensureSupplyPeriodFromSwitch')
