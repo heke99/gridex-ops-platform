@@ -24,11 +24,12 @@ export async function startSupplierSwitch(input: {
   const decision = decideBusinessAction('start_supplier_switch')
   if (!preflight.ok) return { ok: false, preflight, decision, message: 'Kan inte starta leverantörsbyte' }
 
-  // SupplierSwitchScheduler gate: no Z03 before the send window opens, no duplicate
-  // active switch, and no unresolved negative ACK.
+  // SupplierSwitchScheduler gate: the send window is derived from the
+  // source-controlled Elmarknadshandbok deadline policy (never a DB policy),
+  // with subtype-specific Z03L/Z03LK/Z03C timing.
   const { data: switchRow } = await supabaseService
     .from('supplier_switch_requests')
-    .select('id,company_id,customer_id,requested_start_date,status,site_id,metering_point_id')
+    .select('id,company_id,customer_id,requested_start_date,status,request_type,prodat_variant,prodat_reason,site_id,metering_point_id')
     .eq('id', input.switchRequestId)
     .maybeSingle()
   if (switchRow) {
@@ -37,6 +38,9 @@ export async function startSupplierSwitch(input: {
       customer_id?: string | null
       requested_start_date?: string | null
       status?: string | null
+      request_type?: string | null
+      prodat_variant?: string | null
+      prodat_reason?: string | null
       site_id?: string | null
       metering_point_id?: string | null
     }
@@ -45,6 +49,8 @@ export async function startSupplierSwitch(input: {
       companyId: row.company_id ?? preflight.companyId ?? null,
       requestedStartDate: row.requested_start_date ?? null,
       status: row.status ?? null,
+      requestType: row.request_type ?? null,
+      transactionSubtype: row.prodat_variant ?? row.prodat_reason ?? null,
       siteId: row.site_id ?? preflight.siteId ?? null,
       meteringPointId: row.metering_point_id ?? preflight.meteringPointId ?? null,
     })
