@@ -20,7 +20,7 @@ function asRulebookFieldRule(value: unknown): RulebookFieldRule {
 export function validateCanonicalPolicyFields(input: {
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
-  rawPayload?: string | null
+  scope?: 'all' | 'dependent_only'
 }): EdielRulebookIssue[] {
   const rules = input.policy.fieldRules.map(asRulebookFieldRule)
   const matrixInput: FieldMatrixEvaluationInput = {
@@ -33,7 +33,9 @@ export function validateCanonicalPolicyFields(input: {
     mode: 'parse',
   }
 
-  const issues = validateFieldMatrixPayload(matrixInput, rules)
+  const issues = input.scope === 'dependent_only'
+    ? []
+    : validateFieldMatrixPayload(matrixInput, rules)
   if (input.policy.family !== 'PRODAT') return issues
 
   const dependentByField = new Map(
