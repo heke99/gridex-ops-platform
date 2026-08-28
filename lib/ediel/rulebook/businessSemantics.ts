@@ -103,6 +103,10 @@ export type CanonicalEdielDataScope =
 
 export type CanonicalEdielBilateralPolicy = 'none' | 'always' | 'contextual'
 
+/**
+ * Stable business meaning only. Guide/version/effective-date ownership belongs
+ * exclusively to guideRegistry and the universal canonical policy resolver.
+ */
 export type CanonicalEdielBusinessSemantics = {
   family: CanonicalEdielBusinessFamily
   code: string
@@ -128,9 +132,6 @@ export type CanonicalEdielBusinessSemantics = {
   supplierUtiltsSupport: SupplierUtiltsSupport | null
   source: {
     document: string
-    version: string
-    revision: string
-    effectiveFrom: string
     pageOrSection: string
   }
 }
@@ -153,9 +154,9 @@ type ProdatDefinition = Pick<
 const none: readonly string[] = []
 
 /**
- * Business meanings from Svensk Elmarknadshandbok 26A chapter 10/11 and
- * PRODAT 26.A field 223. This table describes effects, not EDIFACT field
- * cardinality; field rules remain in the canonical field matrix.
+ * Business meanings from Svensk Elmarknadshandbok 26A chapters 4/10/11 and
+ * PRODAT 26.A field 223. This table describes business effects, not EDIFACT
+ * field cardinality; field rules remain in the canonical field subsystem.
  *
  * Important distinctions:
  * - Z13/Z14/Z15/Z18 govern permission/reporting, not the actual quantities.
@@ -244,10 +245,7 @@ function buildProdatSemantics(): CanonicalEdielBusinessSemantics[] {
         carriesQuantities: false,
         supplierUtiltsSupport: null,
         source: {
-          document: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B + Svensk Elmarknadshandbok 26A',
-          version: profile.guideVersion,
-          revision: profile.guideRevision,
-          effectiveFrom: profile.effectiveFrom,
+          document: 'Ediel PRODAT/APERAK + Svensk Elmarknadshandbok',
           pageOrSection: 'PRODAT field 223 and Handbook chapters 4, 10, 11',
         },
       })
@@ -260,9 +258,7 @@ function utiltsDirection(code: UtiltsCanonicalMessageCode): CanonicalEdielDirect
   const support = getCanonicalSupplierUtiltsSupport(code)
   if (support === 'inbound_only') return 'inbound'
   if (support === 'outbound_only') return 'outbound'
-  // Manual-review and non-supplier messages have no automatic Gridex supplier
-  // direction. Keep both only as a compatibility shape; supplierUtiltsSupport
-  // is the authoritative gate and autoStateMutationAllowed remains false.
+  // Compatibility shape only. Supplier support is the actual automation gate.
   return 'both'
 }
 
@@ -325,11 +321,8 @@ function buildUtiltsSemantics(): CanonicalEdielBusinessSemantics[] {
       autoStateMutationAllowed: !request && !error && supplierSupport === 'inbound_only' && profile.productionReadiness !== 'partial',
       supplierUtiltsSupport: supplierSupport,
       source: {
-        document: profile.guideDocumentName,
-        version: profile.guideVersion,
-        revision: profile.guideRevision,
-        effectiveFrom: profile.effectiveFrom,
-        pageOrSection: 'UTILTS canonical message profile / field matrix',
+        document: 'Ediel UTILTS/APERAK',
+        pageOrSection: 'canonical message profile and field matrix',
       },
     } satisfies CanonicalEdielBusinessSemantics
   })
@@ -339,12 +332,12 @@ const ACK_SEMANTICS: readonly CanonicalEdielBusinessSemantics[] = [
   {
     family: 'CONTRL', code: 'CONTRL', subtype: null, transactionReasonCode: null,
     officialMeaning: 'Technical EDIFACT interchange/message acknowledgement.', businessProcess: 'technical_ack', operationKind: 'technical_ack', domainObject: 'interchange', businessEffect: 'technical_acknowledgement', direction: 'both', senderRoles: [], receiverRoles: [], expectedBusinessResponses: none, expectedAcknowledgements: expectedAcknowledgements('CONTRL', 'CONTRL'), dataScope: 'interchange', historical: false, carriesQuantities: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true, supplierUtiltsSupport: null,
-    source: { document: 'Ediel General Technical Rules', version: '24-A-6', revision: '6', effectiveFrom: '2024-01-01', pageOrSection: 'CONTRL acknowledgement rules' },
+    source: { document: 'Ediel General Technical Rules', pageOrSection: 'CONTRL acknowledgement rules' },
   },
   {
     family: 'APERAK', code: 'APERAK', subtype: null, transactionReasonCode: null,
     officialMeaning: 'Application acknowledgement or application-level rejection of a referenced business message.', businessProcess: 'application_ack', operationKind: 'application_ack', domainObject: 'application_transaction', businessEffect: 'application_acknowledgement', direction: 'both', senderRoles: [], receiverRoles: [], expectedBusinessResponses: none, expectedAcknowledgements: expectedAcknowledgements('APERAK', 'APERAK'), dataScope: 'transaction', historical: false, carriesQuantities: false, requestsData: false, bilateralPolicy: 'none', requiresCustomerStatus: false, autoStateMutationAllowed: true, supplierUtiltsSupport: null,
-    source: { document: 'PRODAT/APERAK 26.A/16.B and UTILTS/APERAK guides', version: 'context-dependent', revision: 'context-dependent', effectiveFrom: '2016-12-01', pageOrSection: 'APERAK acknowledgement rules' },
+    source: { document: 'Ediel PRODAT/APERAK and UTILTS/APERAK', pageOrSection: 'APERAK acknowledgement rules' },
   },
 ] as const
 
