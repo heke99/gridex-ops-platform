@@ -64,21 +64,45 @@ export function isUtiltsApplicationReferenceMessageCode(
   return Object.prototype.hasOwnProperty.call(UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES, upper(value))
 }
 
+/**
+ * Resolve the field-311 target for a UTILTS request without heuristics.
+ *
+ * An explicit requestedMessageCode wins only if it is listed for the request.
+ * For inbound requests the exact Application Reference is itself authoritative
+ * evidence: it is matched against the target allowlists and accepted only when
+ * exactly one target matches. A request with exactly one possible target (E72)
+ * may resolve that target directly. Zero or multiple matches fail closed.
+ */
 export function getUtiltsApplicationReferenceTarget(input: {
   messageCode: string
   requestedMessageCode?: string | null
+  applicationReference?: string | null
 }): UtiltsApplicationReferenceMessageCode {
   const messageCode = upper(input.messageCode)
 
   if (isUtiltsRequestMessageCode(messageCode)) {
-    const requested = upper(input.requestedMessageCode)
     const allowedTargets = UTILTS_25_A_3_REQUEST_TARGETS[messageCode]
-    if (!isUtiltsApplicationReferenceMessageCode(requested) || !allowedTargets.includes(requested)) {
+    const requested = upper(input.requestedMessageCode)
+    if (requested) {
+      if (!isUtiltsApplicationReferenceMessageCode(requested) || !allowedTargets.includes(requested)) {
+        throw new Error(`utilts_request_application_reference_target_invalid:${messageCode}:${requested}`)
+      }
+      return requested
+    }
+
+    const candidate = upper(input.applicationReference)
+    if (candidate) {
+      const matches = allowedTargets.filter((target) =>
+        UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES[target].includes(candidate),
+      )
+      if (matches.length === 1) return matches[0]
       throw new Error(
-        `utilts_request_application_reference_target_invalid:${messageCode}:${requested || 'missing'}`,
+        `utilts_request_application_reference_target_${matches.length === 0 ? 'invalid' : 'ambiguous'}:${messageCode}:${candidate}`,
       )
     }
-    return requested
+
+    if (allowedTargets.length === 1) return allowedTargets[0]
+    throw new Error(`utilts_request_application_reference_target_invalid:${messageCode}:missing`)
   }
 
   if (!isUtiltsApplicationReferenceMessageCode(messageCode)) {
@@ -92,7 +116,10 @@ export function isStaticUtiltsApplicationReferenceAllowed(input: {
   applicationReference: string
   requestedMessageCode?: string | null
 }): boolean {
-  const target = getUtiltsApplicationReferenceTarget(input)
+  const target = getUtiltsApplicationReferenceTarget({
+    ...input,
+    applicationReference: input.applicationReference,
+  })
   const candidate = upper(input.applicationReference)
   return UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES[target].includes(candidate)
 }
@@ -101,18 +128,22 @@ export function isStaticUtiltsApplicationReferenceAllowed(input: {
  * Resolve only when the answer is unambiguous from the authoritative matrix.
  *
  * - An explicit candidate is always checked against the exact allowlist.
+ * - Request targets can be proven by explicit requestedMessageCode or by an
+ *   exact unique field-311 allowlist match; no S/T or actor-role inference is used.
  * - A single-valued target (currently S02/S04) may be resolved without a
  *   candidate.
- * - Multi-valued targets require an explicit, already selected value. We do not
- *   infer S/T from interval length or infer an Ediel actor token from a local
- *   role name because neither inference is the normative field-311 rule.
+ * - Multi-valued targets require an explicit, already selected value.
  */
 export function resolveVerifiedUtiltsApplicationReference(input: {
   messageCode: string
   requestedMessageCode?: string | null
   applicationReference?: string | null
 }): string {
-  const target = getUtiltsApplicationReferenceTarget(input)
+  const target = getUtiltsApplicationReferenceTarget({
+    messageCode: input.messageCode,
+    requestedMessageCode: input.requestedMessageCode,
+    applicationReference: input.applicationReference,
+  })
   const allowed = UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES[target]
   const candidate = upper(input.applicationReference)
 
@@ -136,6 +167,24 @@ export function assertUtiltsApplicationReferenceRegistryConsistency(): void {
       if (value !== value.toUpperCase() || !value.startsWith('23-')) {
         throw new Error(`utilts_application_reference_invalid_registry_value:${code}:${value}`)
       }
+    }
+  }
+
+  for (const [requestCode, targets] of Object.entries(UTILTS_25_A_3_REQUEST_TARGETS)) {
+    if (targets.length === 0) throw new Error(`utilts_request_target_empty:${requestCode}`)
+    for (const target of targets) {
+      if (!isUtiltsApplicationReferenceMessageCode(target)) {
+        throw new Error(`utilts_request_target_unknown:${requestCode}:${target}`)
+      }
+    }
+    const references = targets.flatMap((target) =>
+      UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES[target].map((applicationReference) => ({ target, applicationReference })),
+    )
+    const duplicates = references.filter((item, index) =>
+      references.findIndex((candidate) => candidate.applicationReference === item.applicationReference) !== index,
+    )
+    if (duplicates.length > 0) {
+      throw new Error(`utilts_request_target_application_reference_ambiguous:${requestCode}:${duplicates[0].applicationReference}`)
     }
   }
 }
