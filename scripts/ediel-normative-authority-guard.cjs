@@ -64,6 +64,46 @@ const VALIDITY_PROJECTION_ALLOWLIST = new Set([
   'lib/ediel/rulebook/prodatRuntimeProfileRegistry.ts',
 ])
 
+// Normative sub-engines may only be composed inside the canonical engine
+// implementation. Operational code (core, flows, state machines, app/UI etc.)
+// must consume resolveCanonicalEdielPolicy or an explicitly canonical facade.
+const NORMATIVE_AUTHORITY_IMPORTS = [
+  '@/lib/ediel/ack/canonicalAckEngine',
+  '@/lib/ediel/prodat/prodat26AFieldMatrix',
+  '@/lib/ediel/prodat/prodatDependentConditionEngine',
+  '@/lib/ediel/rulebook/businessSemantics',
+  '@/lib/ediel/rulebook/guideRegistry',
+  '@/lib/ediel/rulebook/prodatApplicationReference',
+  '@/lib/ediel/rulebook/prodatRulebook',
+  '@/lib/ediel/rulebook/prodatSubtypeRegistry',
+  '@/lib/ediel/rulebook/utilts25A4',
+  '@/lib/ediel/rulebook/utiltsApplicationReference',
+  '@/lib/ediel/rulebook/utiltsFieldMatrix',
+  '@/lib/ediel/rulebook/utiltsMarketEngine',
+  '@/lib/ediel/rulebook/utiltsMarketSemantics',
+  '@/lib/ediel/rulebook/utiltsRulebook',
+]
+
+const CANONICAL_ENGINE_IMPLEMENTATION_PREFIXES = [
+  'lib/ediel/ack/',
+  'lib/ediel/prodat/',
+  'lib/ediel/utilts/',
+  'lib/ediel/rulebook/',
+  'lib/ediel/profiles/',
+]
+
+// Reviewed projection/codec adapters are allowed to consume a sub-engine but
+// cannot own matrices because the matrix/literal checks below still apply.
+const CANONICAL_IMPORT_PROJECTION_ALLOWLIST = new Set([
+  'lib/ediel/classify.ts',
+  'lib/ediel/routeMatrix.ts',
+  'lib/ediel/specRegistry.ts',
+  'lib/ediel/utiltsEngine.ts',
+  'lib/ediel/utiltsEngine.part-1.ts',
+  'lib/ediel/utiltsEngine.part-2.ts',
+  'lib/routes/routeReadiness.ts',
+])
+
 function normalize(file) {
   return file.replaceAll('\\', '/')
 }
@@ -97,6 +137,18 @@ function literalCodeCount(source, family) {
   return (source.match(regex) ?? []).length
 }
 
+function isCanonicalEngineImplementation(relative) {
+  return CANONICAL_ENGINE_IMPLEMENTATION_PREFIXES.some((prefix) => relative.startsWith(prefix))
+}
+
+function importedModules(source) {
+  const modules = []
+  for (const match of source.matchAll(/(?:from\s+|import\s*\(\s*|require\(\s*)['"]([^'"]+)['"]/g)) {
+    if (match[1]) modules.push(match[1])
+  }
+  return modules
+}
+
 function scanNormativeAuthority(root = process.cwd()) {
   const violations = []
   const exists = (relative) => fs.existsSync(path.join(root, relative))
@@ -104,6 +156,19 @@ function scanNormativeAuthority(root = process.cwd()) {
 
   for (const file of DEAD_PROFILE_FILES) {
     if (exists(file)) violations.push(`${file}: dead legacy profile must stay deleted`)
+  }
+
+  const validatorPath = 'lib/ediel/rulebook/validator.ts'
+  if (exists(validatorPath)) {
+    const validator = read(validatorPath)
+    for (const family of ['PRODAT', 'UTILTS', 'UTILTS_ERR', 'APERAK', 'CONTRL']) {
+      if (!validator.includes(`'${family}'`)) {
+        violations.push(`${validatorPath}: canonical validator family set must include ${family}`)
+      }
+    }
+    if (!validator.includes('isActiveCanonicalFamily(family)')) {
+      violations.push(`${validatorPath}: legacy delegation must be gated behind canonical-family check`)
+    }
   }
 
   const routeMatrixPath = 'lib/ediel/routeMatrix.ts'
@@ -145,6 +210,24 @@ function scanNormativeAuthority(root = process.cwd()) {
   for (const absolute of runtimeFiles(root)) {
     const relative = normalize(path.relative(root, absolute))
     const source = fs.readFileSync(absolute, 'utf8')
+
+    if (
+      relative !== validatorPath &&
+      source.includes("@/lib/ediel/rulebook/validatorLegacy")
+    ) {
+      violations.push(`${relative}: validatorLegacy may only be reached through the canonical validator facade`)
+    }
+
+    if (
+      !isCanonicalEngineImplementation(relative) &&
+      !CANONICAL_IMPORT_PROJECTION_ALLOWLIST.has(relative)
+    ) {
+      for (const imported of importedModules(source)) {
+        if (NORMATIVE_AUTHORITY_IMPORTS.includes(imported)) {
+          violations.push(`${relative}: operational runtime imports normative authority ${imported}; consume canonicalEdielPolicy/canonical facade instead`)
+        }
+      }
+    }
 
     // Old route compatibility APIs are forbidden everywhere in production
     // runtime. Longer canonical function names do not match these word-boundary
