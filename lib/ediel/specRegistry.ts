@@ -72,7 +72,12 @@ const CANONICAL_PRODAT_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...PRODAT_CA
     currentVersion: profile.guideVersion,
     validFrom: profile.effectiveFrom,
     previousVersion: null,
-    direction: profile.direction === 'actor_to_portal' ? 'outbound' : 'inbound',
+    direction:
+      profile.direction === 'actor_to_portal'
+        ? 'outbound'
+        : profile.direction === 'portal_to_actor'
+          ? 'inbound'
+          : 'both',
     ...canonicalAckFields('PRODAT', profile.messageCode),
     status: 'runtime_ready',
     sourceTitle: 'Canonical PRODAT guide',
