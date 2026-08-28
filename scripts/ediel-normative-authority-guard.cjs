@@ -26,6 +26,7 @@ const MATRIX_AUTHORITY_ALLOWLIST = new Set([
   'lib/ediel/rulebook/utilts25A4.ts',
   'lib/ediel/rulebook/utiltsApplicationReference.ts',
   'lib/ediel/rulebook/utiltsFieldMatrix.ts',
+  'lib/ediel/rulebook/utiltsMarketSemantics.ts',
   'lib/ediel/rulebook/utiltsRulebook.ts',
 ])
 
