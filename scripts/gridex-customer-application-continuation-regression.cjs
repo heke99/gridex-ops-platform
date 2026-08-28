@@ -34,6 +34,8 @@ const developerDocs = read('app/developers/customer-portal-api/page.tsx')
 const legacyDocs = read('docs/external-website-api-integration-guide.md')
 const openapi = fs.readFileSync(path.join(root, 'docs/openapi/website-integration-v1.json'), 'utf8')
 const lifecycle = read('lib/customer-notifications/notificationOrchestrator.ts')
+const inboundStateFacade = read('lib/ediel/flows/inboundBusinessStateMachine.ts')
+const inboundStateImplementation = read('lib/ediel/flows/inboundBusinessStateMachineLegacy.ts')
 
 expect(migration.includes("'customer_application_continuation','queued'"), 'atomic commit creates the canonical continuation job')
 expect(migration.includes('drop function if exists public.gridex_commit_customer_application_provisioning('), 'migration drops the prior OUT-row signature before changing the return type')
@@ -76,7 +78,11 @@ expect(migration.includes('customer_operation_jobs_lifecycle_notification_uidx')
 expect(lifecycle.includes('enqueueCustomerLifecycleNotification') && lifecycle.includes("job_type: 'dispatch_lifecycle_notification'"), 'lifecycle mail creation is protected by a durable queue job')
 expect(worker.includes("case 'dispatch_lifecycle_notification':") && worker.includes('notifyCustomerForLifecycleEvent'), 'customer-operation worker dispatches lifecycle notifications durably')
 expect(read('lib/customers/customerOperationEvents.ts').includes('enqueueCustomerLifecycleNotification'), 'customer operation events enqueue lifecycle notifications')
-expect(read('lib/ediel/flows/inboundBusinessStateMachine.ts').includes('enqueueCustomerLifecycleNotification'), 'Ediel business outcomes enqueue lifecycle notifications')
+expect(
+  inboundStateFacade.includes('applyLegacyInboundBusinessStateMachine') &&
+    inboundStateImplementation.includes('enqueueCustomerLifecycleNotification'),
+  'Ediel business outcomes enqueue lifecycle notifications behind the canonical inbound facade',
+)
 expect(continuation.includes('power_of_attorney_required_notification_not_queued'), 'missing POA notification creation fails the continuation job for retry')
 expect(exists('app/admin/website-applications/[id]/page.tsx') && read('app/admin/website-applications/[id]/page.tsx').includes('Workflowhändelser'), 'admin application view exposes workflow transitions and jobs')
 expect(read('app/admin/website-applications/actions.ts').includes('requeueWebsiteApplicationContinuationAction'), 'admin can safely requeue the canonical continuation row')
