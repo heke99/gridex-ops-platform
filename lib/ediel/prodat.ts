@@ -23,6 +23,10 @@ import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegi
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
 import { isProdatCodeSendable } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
+import {
+  PRODAT_CANONICAL_PROFILES,
+  getCanonicalProdatProfile,
+} from '@/lib/ediel/rulebook/prodatRulebook'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10' | 'Z13' | 'Z14' | 'Z15' | 'Z18'
 
@@ -80,7 +84,13 @@ type BaseSwitchOutboundInput = {
   environment?: EdielEnvironment | null
 }
 
-const PRODAT_CODES: readonly ProdatSwitchCode[] = ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'] as const
+const PRODAT_SWITCH_CODE_SET = new Set<string>(
+  PRODAT_CANONICAL_PROFILES
+    .filter((profile) =>
+      ['supplier_switch', 'masterdata', 'metering', 'metering_access'].includes(profile.processGroup)
+    )
+    .map((profile) => profile.messageCode)
+)
 
 function sanitize(value?: string | null): string {
   return (value ?? '').replace(/[\r\n'+]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -416,9 +426,8 @@ function installationNadSegment(params: {
   return `NAD+IT+${sanitize(params.meterPointId)}::9+++${address}+${city}++${postalCode}+${country}`
 }
 
-
 export function isProdatSwitchCode(value: string | null | undefined): value is ProdatSwitchCode {
-  return Boolean(value && (PRODAT_CODES as readonly string[]).includes(value))
+  return Boolean(value && PRODAT_SWITCH_CODE_SET.has(value))
 }
 
 export function validateProdatSwitchContext(params: {
@@ -621,9 +630,6 @@ function renderProdatSegments(params: {
   }
 }
 
-
-
-
 function buildValidationReport(result: ProdatSwitchValidationResult): Record<string, unknown> {
   return {
     isReady: result.isReady,
@@ -641,6 +647,11 @@ function buildProdatSwitchOutboundDraft(
   return (async () => {
     if (!isProdatCodeSendable(code)) {
       throw new Error(`prodat_outbound_direction_not_allowed:${code}`)
+    }
+
+    const canonicalProfile = getCanonicalProdatProfile(code)
+    if (!canonicalProfile) {
+      throw new Error(`prodat_canonical_profile_missing:${code}`)
     }
 
     const validation = validateProdatSwitchContext({
@@ -677,15 +688,16 @@ function buildProdatSwitchOutboundDraft(
 
     const environment = input.environment ?? 'test'
     const testFlag = environment === 'production' ? 0 : 1
-    const messageVersion =
-      (await resolveCanonicalOutboundVersion({
-        family: 'PRODAT',
-        code,
-        fallback: '26A',
-        standard: 'edifact',
-        routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
-        environment,
-      })) ?? '26A'
+    const messageVersion = await resolveCanonicalOutboundVersion({
+      family: 'PRODAT',
+      code,
+      standard: 'edifact',
+      routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
+      environment,
+    })
+    if (!messageVersion) {
+      throw new Error(`prodat_canonical_version_missing:${code}`)
+    }
 
     const senderSubAddress = input.senderSubAddress ?? 'PRODAT'
     const receiverSubAddress = input.receiverSubAddress ?? 'PRODAT'
@@ -716,7 +728,7 @@ function buildProdatSwitchOutboundDraft(
       receiverSubAddress,
       applicationReference,
       testFlag,
-      messageTypeToken: `PRODAT:D:97A:UN:${messageVersion === '26A' ? 'E2SE6A' : messageVersion}`,
+      messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
       segments: prodatRendered.segments,
     })
 
