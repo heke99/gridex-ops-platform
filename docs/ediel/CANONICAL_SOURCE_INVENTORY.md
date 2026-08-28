@@ -1,6 +1,6 @@
 # Canonical Ediel source inventory
 
-Status date: 2026-08-27
+Status date: 2026-08-28
 
 This inventory is the provenance contract for the Gridex canonical Ediel/EDIFACT engine. Runtime rules must be deterministic code derived from the listed authoritative sources. Database rows may persist projections, evidence, snapshots and activation state, but may not redefine protocol semantics.
 
@@ -9,7 +9,7 @@ This inventory is the provenance contract for the Gridex canonical Ediel/EDIFACT
 1. Latest semantically effective change from Svenska kraftnät / Edielportal documentation.
 2. Message-family guide.
 3. Generella tekniska regler.
-4. Elmarknadshandboken for business-process semantics.
+4. Elmarknadshandboken for business-process semantics and market timing.
 5. Product/structure/code-list documentation explicitly referenced by the guide.
 6. Portal-approved interoperability fixtures as regression evidence.
 7. Current database rows as persisted projection/evidence.
@@ -46,6 +46,25 @@ The complete 26-A matrix is represented by `lib/ediel/prodat/prodat26AFieldMatri
 - - = forbidden/not used
 
 The historical SQL import `20260530190000_import_prodat_26a_field_matrix.sql` is retained as migration history and DB projection evidence. It is not the normative runtime owner.
+
+## Market timing / deadline provenance
+
+Swedish business timing from Svensk Elmarknadshandbok 26A chapters 10.2.1 and 11.3 is source-controlled in `lib/ediel/rulebook/deadlinePolicy.ts`.
+
+The deadline policy owns, among other rules:
+
+- Z02 L/LK response within 30 minutes of Z01.
+- Z03L: earliest 14 months before and latest 14 calendar days before delivery start.
+- Z03LK: earliest 14 months before and latest on the move-in day.
+- Z03C: subtype/context-specific cancellation deadlines.
+- Z04/Z05/Z06/Z08/Z09/Z10 response/change timing from the chapter 10.2.1 table.
+- Z13V/Z13VH historical date bounds, including the three-year limit and current grid-agreement start when that evidence is later.
+- Z14 V/VH/N 21-day handling window.
+- Z15/Z18 qualitative "as soon as possible" / in-connection-with timing without inventing numeric deadlines.
+
+Operational consumers must use `canonicalEdielFacade`; they may not import `deadlinePolicy.ts` directly.
+
+`ediel_business_deadline_rules` and supplier-switch rows in `market_process_policies` are retained only as historical/projection evidence. They are inactive and must never be read by runtime as normative timing. `scripts/ediel-normative-authority-guard.cjs` fails CI if those DB tables regain an operational runtime reader.
 
 ## UTILTS 25-A-4 delta
 
