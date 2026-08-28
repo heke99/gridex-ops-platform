@@ -1,4 +1,4 @@
-import type { EdielDirection } from '@/lib/ediel/types'
+import type { EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
 import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -239,4 +239,29 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     })]
     return { ...result, ok: false, blocking: true, issues, fieldRuleSource: 'registry', rulePackSnapshot: null }
   }
+}
+
+/**
+ * Stable synchronous compatibility API used by transport send guards. Active
+ * PRODAT/UTILTS rows are still validated by this file's canonical policy path;
+ * the function no longer delegates those families to the legacy validator.
+ */
+export function validateEdielMessageRowWithRulebook(
+  message: EdielMessageRow,
+  mode: 'send' | 'parse' | 'test' = 'send',
+): RulebookValidationResult {
+  return validateRulebookMessage({
+    family: message.message_family,
+    code: String(message.message_code ?? ''),
+    processGroup: message.process_type ?? message.route_scope ?? null,
+    routeScope: message.route_scope ?? null,
+    applicationReference: message.application_reference,
+    rawPayload: message.raw_payload,
+    parsedPayload: message.parsed_payload ?? null,
+    mode,
+    direction: message.direction,
+    environment: message.environment,
+    version: message.message_version,
+    companyId: message.company_id,
+  })
 }
