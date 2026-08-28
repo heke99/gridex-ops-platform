@@ -1,7 +1,10 @@
 import {
+  extractCanonicalEdifactPayload,
+  parseCanonicalEdifactAst,
+} from '@/lib/ediel/core/canonicalEdifactAst'
+import {
   firstCompositeComponent,
   splitComposite,
-  tokenizeEdifact,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
 
@@ -34,6 +37,12 @@ export type ParsedEdifactEnvelope = {
   errorCodes: string[]
   freeText: string[]
   segments: string[]
+  lineGroups: Array<{
+    lineNumber: string | null
+    itemId: string | null
+    references: Record<string, string[]>
+    cciCavCodes: Record<string, string[]>
+  }>
 }
 
 function cleanText(value: string | null | undefined): string | null {
@@ -63,48 +72,8 @@ function pushRecord(record: Record<string, string[]>, key: string | null, value:
   record[key] = [...(record[key] ?? []), value]
 }
 
-function normalizeMimeText(input: string): string {
-  return input
-    .replace(/=\r?\n/g, '')
-    .replace(/=27/g, "'")
-    .replace(/=2B/gi, '+')
-    .replace(/=3A/gi, ':')
-    .replace(/=0D=0A/gi, '\n')
-}
-
-function edifactStartIndex(candidate: string): number {
-  const unaIndex = candidate.indexOf('UNA')
-  const unbIndex = candidate.indexOf('UNB')
-  if (unaIndex >= 0 && unbIndex >= 0) return Math.min(unaIndex, unbIndex)
-  return unaIndex >= 0 ? unaIndex : unbIndex
-}
-
-function segmentTerminatorForPayload(payload: string): string {
-  return payload.startsWith('UNA') && payload.length >= 9 ? payload[8] : "'"
-}
-
 export function extractEdifactPayload(input: string | null | undefined): string | null {
-  const raw = cleanText(input)
-  if (!raw) return null
-
-  const candidates = [raw, normalizeMimeText(raw)]
-
-  for (const candidate of candidates) {
-    const start = edifactStartIndex(candidate)
-    if (start < 0) continue
-
-    const fromStart = candidate.slice(start)
-    const terminator = segmentTerminatorForPayload(fromStart)
-    const unzIndex = fromStart.lastIndexOf('UNZ')
-    if (unzIndex < 0) return fromStart.trim()
-
-    const end = fromStart.indexOf(terminator, unzIndex)
-    if (end < 0) return fromStart.trim()
-
-    return fromStart.slice(0, end + 1).trim()
-  }
-
-  return null
+  return extractCanonicalEdifactPayload(input)
 }
 
 function parseNumeric(value: string | null): number | null {
@@ -119,8 +88,8 @@ function element(segment: EdifactTokenizedSegment, index: number): string | null
 }
 
 export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
-  const tokenized = tokenizeEdifact(rawPayload)
-  const { una } = tokenized
+  const ast = parseCanonicalEdifactAst(rawPayload)
+  const { una } = ast
   const references: Record<string, string[]> = {}
   const parties: Record<string, string[]> = {}
   const dates: Record<string, string[]> = {}
@@ -146,7 +115,7 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
   let controllingAgency: string | null = null
   let associationAssignedCode: string | null = null
 
-  for (const segment of tokenized.segments) {
+  for (const segment of ast.segments) {
     if (segment.tag === 'UNB') {
       const syntax = splitComposite(segment.elements[1], una)
       const sender = splitComposite(segment.elements[2], una)
@@ -255,6 +224,13 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
     }
   }
 
+  const lineGroups = (ast.messages[0]?.lineGroups ?? []).map((group) => ({
+    lineNumber: group.lineNumber,
+    itemId: group.itemId,
+    references: group.references,
+    cciCavCodes: group.cciCavCodes,
+  }))
+
   return {
     rawPayload,
     messageFamily,
@@ -283,7 +259,8 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
     quantities,
     errorCodes,
     freeText,
-    segments: tokenized.segments.map((segment) => segment.raw),
+    segments: ast.segments.map((segment) => segment.raw),
+    lineGroups,
   }
 }
 
@@ -293,9 +270,9 @@ export function parseInboundEmailContent(input: {
   attachmentText?: string | null
 }): ParsedEdifactEnvelope | null {
   const payload =
-    extractEdifactPayload(input.attachmentText) ??
-    extractEdifactPayload(input.bodyText) ??
-    extractEdifactPayload(input.rawEmail)
+    extractCanonicalEdifactPayload(input.attachmentText) ??
+    extractCanonicalEdifactPayload(input.bodyText) ??
+    extractCanonicalEdifactPayload(input.rawEmail)
 
   if (!payload) return null
   return parseEdifactPayload(payload)
