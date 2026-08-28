@@ -1,11 +1,11 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {
-  canonicalProdatSubtypeAlias,
-  PRODAT_TRANSACTION_REASON_CODES,
+  canonicalBusinessSemanticsProjection,
+  canonicalProdatSubtypeForMessage,
+  canonicalProdatTransactionReasonCodes,
   type ProdatBusinessContext,
-} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
-import { resolveCanonicalEdielBusinessSemantics } from '@/lib/ediel/rulebook/businessSemantics'
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 export type ProdatProcessKind =
   | 'information'
@@ -79,7 +79,7 @@ type ProdatLifecycleMessage = Pick<EdielMessageRow, 'message_code' | 'parsed_pay
   >>
 
 // Product/workflow aliases only. Ediel reason-code aliases are resolved by the
-// canonical subtype registry below.
+// canonical subtype registry behind canonicalEdielFacade.
 const APPLICATION_SUBTYPE_ALIASES: Record<string, string> = {
   CANCEL: 'C',
   CANCELLATION: 'C',
@@ -118,7 +118,7 @@ export function normalizeProdatSubtype(code: string, value: string | null): stri
   if (!normalized) return null
   const withoutCode = normalized.startsWith(code) ? normalized.slice(code.length) : normalized
   const mapped = withoutCode || normalized
-  return APPLICATION_SUBTYPE_ALIASES[mapped] ?? canonicalProdatSubtypeAlias(mapped, code) ?? mapped
+  return APPLICATION_SUBTYPE_ALIASES[mapped] ?? canonicalProdatSubtypeForMessage(code, mapped) ?? mapped
 }
 
 export function extractProdatSubtype(message: ProdatLifecycleMessage): string | null {
@@ -133,7 +133,7 @@ export function extractProdatSubtype(message: ProdatLifecycleMessage): string | 
   const compactCode = raw.match(new RegExp(`(?:BGM\\+|\\b)${code}([A-Z]{1,2})(?:[+':]|\\b)`))?.[1] ?? null
   if (compactCode) return normalizeProdatSubtype(code, compactCode)
 
-  for (const transactionCode of PRODAT_TRANSACTION_REASON_CODES) {
+  for (const transactionCode of canonicalProdatTransactionReasonCodes()) {
     if (raw.includes(`CAV+${transactionCode}`) || raw.includes(`:${transactionCode}`)) {
       return normalizeProdatSubtype(code, transactionCode)
     }
@@ -300,7 +300,7 @@ export function decideProdatLifecycle(message: ProdatLifecycleMessage): ProdatLi
     }
   }
 
-  const semantics = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code, subtype })
+  const semantics = canonicalBusinessSemanticsProjection({ family: 'PRODAT', code, subtype })
   if (!semantics) return null
   if (direction === 'inbound' && semantics.direction === 'outbound') return manualDirectionReview(code, subtype)
   return lifecycleFromBusinessEffect({ code, subtype, businessEffect: semantics.businessEffect })
