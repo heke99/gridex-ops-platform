@@ -1,3 +1,4 @@
+import { getCanonicalProdatProfile, PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
 import { resolveVerifiedUtiltsApplicationReference } from '@/lib/ediel/rulebook/utiltsApplicationReference'
 
 export type EdielCompanyRole = 'supplier' | 'energy_service_company' | 'system_supplier' | string
@@ -25,14 +26,29 @@ function upper(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-const PRODAT_DDQ_CODES = new Set(['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09', 'Z10'])
-const PRODAT_DGI_CODES = new Set(['Z13', 'Z14', 'Z15', 'Z18'])
-
 function prodatApplicationReference(input: ApplicationReferenceResolverInput): string {
   const code = upper(input.businessCode ?? input.messageType)
-  if (PRODAT_DDQ_CODES.has(code)) return '23-DDQ-PRODAT'
-  if (PRODAT_DGI_CODES.has(code)) return '23-DGI-PRODAT'
-  throw new Error(`prodat_application_reference_message_unsupported:${code || 'missing'}`)
+  const profile = getCanonicalProdatProfile(code)
+  if (!profile) {
+    throw new Error(`prodat_application_reference_message_unsupported:${code || 'missing'}`)
+  }
+  return profile.applicationReference
+}
+
+export function resolveProdatApplicationReferenceForProcess(
+  businessProcess: string | null | undefined,
+): string {
+  const process = String(businessProcess ?? '').trim().toLowerCase()
+  const references = [...new Set(
+    PRODAT_CANONICAL_PROFILES
+      .filter((profile) => profile.processGroup === process)
+      .map((profile) => profile.applicationReference),
+  )]
+
+  if (references.length !== 1) {
+    throw new Error(`prodat_application_reference_process_unsupported:${process || 'missing'}`)
+  }
+  return references[0]
 }
 
 function utiltsApplicationReference(input: ApplicationReferenceResolverInput): string {
@@ -47,9 +63,9 @@ function utiltsApplicationReference(input: ApplicationReferenceResolverInput): s
 // Policy-driven Application Reference.
 //
 // No family is allowed to manufacture a fallback `23-<role>-<family>` value.
-// PRODAT is selected by its verified business-code group. UTILTS is validated
-// against the exact 25-A-3 field-311 registry. ACK families must echo/correlate
-// the original Application Reference and therefore cannot be resolved without
+// PRODAT is resolved from its canonical message profile. UTILTS is validated
+// against the exact field-311 registry. ACK families must echo/correlate the
+// original Application Reference and therefore cannot be resolved without
 // original-message context by this generic function.
 export function resolveApplicationReference(input: ApplicationReferenceResolverInput): string {
   const family = upper(input.messageFamily)
