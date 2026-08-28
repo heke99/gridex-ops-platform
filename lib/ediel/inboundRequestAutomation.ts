@@ -1,7 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import { canonicalUtiltsProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 export type InboundRequestDecisionStatus = 'ready_to_answer' | 'pending_review' | 'not_applicable'
 
@@ -12,7 +12,7 @@ export function resolveInboundIdentityRequirements(input: {
   if (String(input.family ?? '').trim().toUpperCase() !== 'UTILTS') {
     return { requiresMeteringPoint: true, requiresGridArea: false }
   }
-  const profile = getCanonicalUtiltsProfile(input.code)
+  const profile = canonicalUtiltsProfileForMessage(input.code)
   return profile
     ? {
         requiresMeteringPoint: profile.requiresMeteringPoint,
