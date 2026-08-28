@@ -156,21 +156,29 @@ function extractReference(
   return null
 }
 
-function extractDateFromDtm(segment: string | null): string | null {
-  if (!segment) return null
-  const match = segment.match(/:(\d{8,12})/)
-  if (!match) return null
-  const raw = match[1]
-  if (raw.length >= 8) {
-    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
-  }
-  return null
+function extractDateFromDtm(
+  segment: EdifactTokenizedSegment | null,
+  una: ReturnType<typeof tokenizeEdifact>['una'],
+): string | null {
+  if (!segment || segment.tag !== 'DTM') return null
+  const components = splitComposite(segment.elements[1], una)
+  const raw = String(components[1] ?? '').trim()
+  if (!/^\d{8,12}$/.test(raw)) return null
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
 }
 
-function extractQty(segment: string | null): number | null {
-  if (!segment) return null
-  const parts = segment.split(':')
-  const value = Number(parts[1] ?? '')
+function extractQty(
+  segment: EdifactTokenizedSegment | null,
+  una: ReturnType<typeof tokenizeEdifact>['una'],
+): number | null {
+  if (!segment || segment.tag !== 'QTY') return null
+  const components = splitComposite(segment.elements[1], una)
+  const raw = String(components[1] ?? '').trim()
+  if (!raw) return null
+  const normalized = una.decimalMark && una.decimalMark !== '.'
+    ? raw.replace(una.decimalMark, '.')
+    : raw
+  const value = Number(normalized)
   return Number.isFinite(value) ? value : null
 }
 
@@ -276,13 +284,14 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
 
   const meterPointId = firstCompositeComponent(loc172Segment?.elements[2], tokenized.una)
   const gridAreaId = firstCompositeComponent(loc239Segment?.elements[2], tokenized.una)
-  const quantity = extractQty(qtySegment?.raw ?? null)
+  const quantity = extractQty(qtySegment, tokenized.una)
   const unb = unbSegment?.raw ?? null
   const unh = unhSegment?.raw ?? null
   const bgm = bgmSegment?.raw ?? null
-  const dtm137 = dtmSegment('137')?.raw ?? null
-  const dtm324 = dtmSegment('324')?.raw ?? null
-  const dtm597 = dtmSegment('597')?.raw ?? null
+  const dtm137Segment = dtmSegment('137')
+  const dtm324Segment = dtmSegment('324')
+  const dtm597Segment = dtmSegment('597')
+  const dtm324 = dtm324Segment?.raw ?? null
   const cci = cciSegment?.raw ?? null
 
   return {
@@ -308,17 +317,15 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
       meterPointId,
       meteringPointId: meterPointId,
       gridAreaId,
-      periodStart: extractDateFromDtm(dtm137),
+      periodStart: extractDateFromDtm(dtm137Segment, tokenized.una),
       deliveryPeriod: dtm324 ?? null,
-      registrationTime: extractDateFromDtm(dtm597),
+      registrationTime: extractDateFromDtm(dtm597Segment, tokenized.una),
       quantity,
       readingType: cci ?? null,
       segmentCount: rawSegments.length,
       inferredFamily: inferred.messageFamily,
       inferredCode: inferred.messageCode,
-      hasUtiltsErrPattern:
-        rawPayload.toUpperCase().includes('UTILTS-ERR') ||
-        rawPayload.toUpperCase().includes('UTILTS_ERR'),
+      hasUtiltsErrPattern: inferred.messageFamily === 'UTILTS_ERR',
     },
   }
 }

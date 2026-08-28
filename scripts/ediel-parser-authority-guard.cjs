@@ -48,6 +48,19 @@ const REQUIRED_CONTRACTS = [
       ['raw PRODAT application-reference sniffing', /rawPayload\?\.includes\(\s*["']23-DGI-PRODAT["']/],
     ],
   },
+  {
+    file: 'lib/ediel/utilts.ts',
+    mustContain: [
+      'splitComposite(segment.elements[1], una)',
+      'extractQty(qtySegment, tokenized.una)',
+      'extractDateFromDtm(dtm137Segment, tokenized.una)',
+    ],
+    forbidden: [
+      ['raw colon quantity splitting', /segment\.split\(\s*["']:["']\s*\)/],
+      ['raw colon DTM regex extraction', /segment\.match\(\/:[^/]*\\d/],
+      ['raw UTILTS-ERR substring sniffing', /rawPayload\.toUpperCase\(\)\.includes\(\s*["']UTILTS[-_]ERR["']/],
+    ],
+  },
 ]
 
 function scanParserAuthority(root = process.cwd()) {
