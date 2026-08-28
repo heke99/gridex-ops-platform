@@ -1,6 +1,8 @@
 // lib/ediel/prodat/types.ts
 
 import type { EdielAckStatus } from '@/lib/ediel/types'
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type { ProdatBusinessContext } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type ProdatEngineCode =
   | 'Z01'
@@ -80,6 +82,15 @@ export type ProdatEngineProductionContext = {
   energyProductId?: string | null
   powerOfAttorneyReference?: string | null
   balanceResponsibleId?: string | null
+  /** Explicit business context; never inferred from free text. */
+  businessContext?: ProdatBusinessContext | null
+  /** Tenant/counterparty capability evidence for bilateral-only PRODAT variants. */
+  bilateralCapabilityVerified?: boolean | null
+  /**
+   * Factual inputs for every official PRODAT D cell. Production rendering fails
+   * closed when the central condition engine cannot determine a D condition.
+   */
+  dependentConditionFacts?: ProdatDependentConditionFacts | null
 }
 
 export type ProdatEngineInput = {
@@ -130,6 +141,8 @@ export type ProdatEngineDiagnostics = {
   rulebookProcessGroup?: string | null
   rulebookApplicationReference?: string | null
   rulebookIssues?: Array<Record<string, unknown>>
+  canonicalPolicySourceTrace?: Array<Record<string, unknown>>
+  dependentConditionStatuses?: Array<Record<string, unknown>>
 }
 
 export type ProdatEngineRenderResult = {

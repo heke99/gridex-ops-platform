@@ -11,7 +11,15 @@ import {
   isProdatCodeSendable,
   verifyProdatRegistryConsistency,
 } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
+import {
+  assertCanonicalEdielBusinessSemanticCoverage,
+  resolveCanonicalEdielBusinessSemantics,
+} from '@/lib/ediel/rulebook/businessSemantics'
 import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
+import {
+  resolveProdatBusinessContext,
+  resolveProdatSubtype,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { activeRulebookRules, processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 import { decideProdatLifecycle, normalizeProdatSubtype } from '@/lib/ediel/stateMachines/prodatLifecycle'
 import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
@@ -59,10 +67,12 @@ describe('PRODAT 26.A semantic hardening', () => {
 
   it('keeps tenant wording simple while preserving subtype meaning', () => {
     expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z03', reasonForTransaction: 'Z22' })).toBe('Leverantörsbyte')
-    expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z03', reasonForTransaction: 'Z23' })).toBe('Inflytt / leverantörsbyte')
+    expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z03', reasonForTransaction: 'Z23' })).toBe('Inflytt / kund- och leverantörsbyte')
     expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z05', reasonForTransaction: 'Z24' })).toBe('Leveransen fortsätter')
     expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z15', reasonForTransaction: 'Z24' })).toBe('Mätvärdesrapportering fortsätter')
-    expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z13', reasonForTransaction: 'S18' })).toBe('Begär historiska mätvärden')
+    expect(gridexBusinessMessageLabel({ family: 'PRODAT', code: 'Z13', reasonForTransaction: 'S18' })).toBe('Begär historisk mätvärdesåtkomst')
+    expect(gridexBusinessMessageLabel({ family: 'UTILTS', code: 'S02' })).toBe('Förbrukningsprognos')
+    expect(gridexBusinessMessageLabel({ family: 'UTILTS', code: 'E66' })).toBe('Validerade mätvärden mottagna')
   })
 
   it('normalizes the complete Swedish 26.A transaction code set used by Gridex', () => {
@@ -73,6 +83,88 @@ describe('PRODAT 26.A semantic hardening', () => {
     for (const [reason, subtype] of Object.entries(expected)) {
       expect(normalizeProdatSubtype('Z15', reason), reason).toBe(subtype)
     }
+  })
+
+  it('has one canonical business meaning for every supported PRODAT subtype and UTILTS profile', () => {
+    expect(() => assertCanonicalEdielBusinessSemanticCoverage()).not.toThrow()
+
+    const z01 = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z01', subtype: 'L' })
+    expect(z01?.businessProcess).toBe('grid_contract_check_supplier_switch')
+    expect(z01?.businessEffect).toBe('request_grid_contract_check')
+    expect(z01?.officialMeaning).toContain('valid grid agreement')
+
+    const z03lk = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z03', subtype: 'LK' })
+    expect(z03lk?.businessProcess).toBe('customer_and_supplier_change')
+    expect(z03lk?.officialMeaning).toContain('not the only meaning')
+
+    const z08h = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z08', subtype: 'H' })
+    expect(z08h?.businessEffect).toBe('request_supply_end')
+    expect(z08h?.expectedBusinessResponses).toContain('PRODAT:Z05:L')
+
+    const z18v = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z18', subtype: 'V' })
+    expect(z18v?.businessEffect).toBe('request_stop_metering_reporting')
+    expect(z18v?.expectedBusinessResponses).toContain('PRODAT:Z15:V')
+  })
+
+  it('distinguishes metering permission, historical access, forecasts, values and missing-data requests', () => {
+    const z13v = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z13', subtype: 'V' })
+    const z13vh = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z13', subtype: 'VH' })
+    const e66 = resolveCanonicalEdielBusinessSemantics({ family: 'UTILTS', code: 'E66' })
+    const e73 = resolveCanonicalEdielBusinessSemantics({ family: 'UTILTS', code: 'E73' })
+    const s02 = resolveCanonicalEdielBusinessSemantics({ family: 'UTILTS', code: 'S02' })
+    const e31 = resolveCanonicalEdielBusinessSemantics({ family: 'UTILTS', code: 'E31' })
+
+    expect(z13v?.domainObject).toBe('metering_data_permission')
+    expect(z13v?.carriesQuantities).toBe(false)
+    expect(z13v?.requestsData).toBe(true)
+    expect(z13vh?.historical).toBe(true)
+    expect(z13vh?.businessEffect).toBe('request_historical_metering_data')
+
+    expect(e66?.domainObject).toBe('validated_metering_values')
+    expect(e66?.carriesQuantities).toBe(true)
+    expect(e66?.requestsData).toBe(false)
+
+    expect(e73?.businessEffect).toBe('request_missing_values')
+    expect(e73?.carriesQuantities).toBe(false)
+    expect(e73?.expectedBusinessResponses).toEqual(['UTILTS:E66', 'UTILTS:S02'])
+
+    expect(s02?.domainObject).toBe('object_consumption_forecast')
+    expect(s02?.carriesQuantities).toBe(true)
+
+    expect(e31?.dataScope).toBe('grid_area')
+    expect(fallbackMessageSemantics({ messageFamily: 'UTILTS', messageCode: 'E31' })?.requiredFields).toEqual(['grid_area_id', 'period'])
+  })
+
+  it('enforces Z04A bilateral use and context-sensitive E34 rules', () => {
+    expect(resolveProdatSubtype({ messageCode: 'Z04', subtypeOrReasonCode: 'A' })).toMatchObject({
+      ok: false,
+      subtype: 'A',
+      bilateralRequired: true,
+    })
+    expect(resolveProdatSubtype({ messageCode: 'Z04', subtypeOrReasonCode: 'Z26', bilateralCapabilityVerified: true })).toMatchObject({
+      ok: true,
+      subtype: 'A',
+      bilateralRequired: true,
+    })
+
+    expect(resolveProdatBusinessContext({
+      messageCode: 'Z06',
+      subtypeOrReasonCode: 'E34',
+      businessContext: 'death',
+    })).toMatchObject({ ok: true, customerStatusRequired: true, bilateralRequired: false })
+
+    expect(resolveProdatBusinessContext({
+      messageCode: 'Z09',
+      subtypeOrReasonCode: 'E',
+      businessContext: 'identity_change',
+    })).toMatchObject({ ok: false, bilateralRequired: true })
+
+    expect(resolveProdatBusinessContext({
+      messageCode: 'Z09',
+      subtypeOrReasonCode: 'E',
+      businessContext: 'identity_change',
+      bilateralCapabilityVerified: true,
+    })).toMatchObject({ ok: true, bilateralRequired: true })
   })
 
   it('treats Z05C and Z15C as reversals instead of terminations', () => {
@@ -134,10 +226,20 @@ describe('PRODAT 26.A semantic hardening', () => {
     expect(z09?.allowedSubtypes).not.toContain('Z34')
   })
 
-  it('never maps a supplier metering-values request to outbound E66', () => {
+  it('never maps data-access permission or a missing-values request to the wrong family', () => {
     expect(messageForRequestType('metering_values_request')).toEqual({
       messageFamily: 'UTILTS',
       messageCode: 'E73',
+    })
+    expect(messageForRequestType('metering_access_request')).toEqual({
+      messageFamily: 'PRODAT',
+      messageCode: 'Z13',
+      subtype: 'V',
+    })
+    expect(messageForRequestType('historical_metering_access_request')).toEqual({
+      messageFamily: 'PRODAT',
+      messageCode: 'Z13',
+      subtype: 'VH',
     })
     expect(fallbackMessageSemantics({ messageFamily: 'UTILTS', messageCode: 'E66' })?.direction).toBe('inbound')
     expect(fallbackMessageSemantics({ messageFamily: 'UTILTS', messageCode: 'E73' })?.direction).toBe('outbound')
@@ -178,7 +280,6 @@ describe('PRODAT 26.A semantic hardening', () => {
     expect(prodatSource).toContain('prodat_outbound_direction_not_allowed')
   })
 
-
   it('requires inbound Z04 and reached effective date before supply activation', () => {
     const base = {
       status: 'accepted' as const,
@@ -196,5 +297,4 @@ describe('PRODAT 26.A semantic hardening', () => {
     expect(operationsActions).toContain('inbound_z04_plus_effective_start_date')
     expect(operationsActions).not.toContain('findAcknowledgedOutboundForSwitch')
   })
-
 })

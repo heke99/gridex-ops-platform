@@ -71,23 +71,24 @@ function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase().replace('-', '_')
 }
 
+/**
+ * Resolve only explicitly supported Ediel/EDIFACT acknowledgement families.
+ * Unknown families must fail closed: manufacturing a default CONTRL policy can
+ * turn an unsupported business message into a seemingly valid protocol path.
+ */
 export function resolveCanonicalAckMatrixRule(input: {
   family: string | null | undefined
   code?: string | null
 }): CanonicalAckMatrixRule {
   const family = normalize(input.family)
   const code = normalize(input.code)
-  return ACK_MATRIX.find((rule) => rule.family === family && rule.code === code)
-    ?? ACK_MATRIX.find((rule) => rule.family === family && rule.code === '*')
-    ?? {
-      family,
-      code: code || '*',
-      technicalAck: 'CONTRL',
-      applicationAck: 'none',
-      businessResponses: [],
-      negativeApplicationResponse: 'none',
-      acknowledgeIncomingMessageWith: ['CONTRL'],
-    }
+  const rule = ACK_MATRIX.find((candidate) => candidate.family === family && candidate.code === code)
+    ?? ACK_MATRIX.find((candidate) => candidate.family === family && candidate.code === '*')
+
+  if (!rule) {
+    throw new Error(`ediel_ack_family_unsupported:${family || 'missing'}:${code || '*'}`)
+  }
+  return rule
 }
 
 export function canonicalAckRequirements(input: {

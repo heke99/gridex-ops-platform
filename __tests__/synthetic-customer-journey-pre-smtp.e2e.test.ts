@@ -173,8 +173,10 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     const z03 = buildZ03Segments({
       mode: 'production',
       generatedAt: new Date(acceptedAt),
+      variant: 'L',
       context: {
         code: 'Z03',
+        reasonForTransaction: 'Z22',
         bgmReference: 'SYNTH-Z03-900001',
         transactionReference: 'SWITCH-900001',
         senderEdielId: '21660',
@@ -190,6 +192,14 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
         customerPostalCode: '11122',
         customerCountry: 'SE',
         powerOfAttorneyReference: 'POA-SYNTH-900001',
+        dependentConditionFacts: {
+          endUserAddressAvailable: true,
+          invoiceeAddressDiffersFromEndUser: false,
+          byCell: {
+            'Z03:233': true,
+            'Z03:234': true,
+          },
+        },
       },
     })
     expect(z03.issues.filter((issue) => issue.severity === 'error')).toEqual([])

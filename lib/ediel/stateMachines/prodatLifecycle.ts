@@ -1,8 +1,11 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {
   canonicalProdatSubtypeAlias,
   PRODAT_TRANSACTION_REASON_CODES,
+  type ProdatBusinessContext,
 } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import { resolveCanonicalEdielBusinessSemantics } from '@/lib/ediel/rulebook/businessSemantics'
 
 export type ProdatProcessKind =
   | 'information'
@@ -65,11 +68,18 @@ export type ProdatLifecycleDecision = {
   requiresCorrelation: boolean
 }
 
-type ProdatLifecycleMessage = Pick<EdielMessageRow, 'message_code' | 'parsed_payload' | 'raw_payload'> & {
-  direction?: string | null
-}
+type ProdatLifecycleMessage = Pick<EdielMessageRow, 'message_code' | 'parsed_payload' | 'raw_payload'> &
+  Partial<Pick<EdielMessageRow,
+    | 'direction'
+    | 'application_reference'
+    | 'message_version'
+    | 'message_received_at'
+    | 'created_at'
+    | 'validation_report'
+  >>
 
-// These are Gridex workflow aliases, not Ediel transaction-code mappings.
+// Product/workflow aliases only. Ediel reason-code aliases are resolved by the
+// canonical subtype registry below.
 const APPLICATION_SUBTYPE_ALIASES: Record<string, string> = {
   CANCEL: 'C',
   CANCELLATION: 'C',
@@ -150,76 +160,148 @@ function manualDirectionReview(code: string, subtype: string | null): ProdatLife
   }, code, subtype)
 }
 
+function manualReview(code: string, subtype: string | null, process: ProdatProcessKind = 'unknown'): ProdatLifecycleDecision {
+  return decision({
+    process,
+    state: 'manual_review',
+    outcome: 'manual_review_required',
+    createSupplyPeriod: false,
+    endSupplyPeriod: false,
+    requiresCorrelation: true,
+  }, code, subtype)
+}
+
+function lifecycleFromBusinessEffect(input: {
+  code: string
+  subtype: string | null
+  businessEffect: string
+}): ProdatLifecycleDecision {
+  const { code, subtype, businessEffect } = input
+  switch (businessEffect) {
+    case 'record_grid_contract_response':
+      return decision({ process: 'information', state: 'information_received', outcome: 'grid_owner_information_received', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'confirm_supplier_change':
+    case 'confirm_customer_and_supplier_change':
+      return decision({ process: 'supplier_switch', state: 'switch_accepted', outcome: 'supplier_switch_accepted', createSupplyPeriod: true, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'confirm_change_cancellation':
+      return decision({ process: 'cancellation', state: 'cancelled_before_start', outcome: 'supplier_switch_cancelled_before_start', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'start_assigned_supply':
+      return decision({ process: 'assigned_supply', state: 'assigned_supply_active', outcome: 'assigned_supply_started', createSupplyPeriod: true, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
+    case 'start_production_receipt_obligation':
+      return decision({ process: 'mandatory_purchase', state: 'mandatory_purchase_active', outcome: 'mandatory_purchase_supply_started', createSupplyPeriod: true, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
+    case 'request_supply_end':
+      return decision({ process: 'termination', state: 'termination_requested', outcome: 'supply_termination_requested', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'end_existing_supply':
+      return decision({ process: 'termination', state: 'supply_ended', outcome: 'supply_terminated', createSupplyPeriod: false, endSupplyPeriod: true, requiresCorrelation: true }, code, subtype)
+    case 'continue_existing_supply':
+      return decision({ process: 'cancellation', state: 'supply_continues', outcome: 'supply_continuation_confirmed', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'update_customer_masterdata':
+    case 'update_metering_point_with_reading':
+    case 'update_metering_point_masterdata':
+      return decision({ process: 'masterdata', state: 'masterdata_update_received', outcome: 'masterdata_update_received', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
+    case 'update_meter_masterdata':
+      return decision({ process: 'metering', state: 'meter_change_received', outcome: 'meter_change_received', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
+    case 'request_metering_reporting':
+    case 'request_historical_metering_data':
+      return decision({ process: 'permission', state: 'permission_requested', outcome: 'permission_requested', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'approve_metering_reporting':
+    case 'approve_historical_metering_data':
+      return decision({ process: 'permission', state: 'permission_confirmed', outcome: 'permission_confirmed', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'reject_metering_reporting':
+      return decision({ process: 'permission', state: 'permission_rejected', outcome: 'permission_rejected', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'stop_metering_reporting':
+    case 'stop_historical_metering_reporting':
+      return decision({ process: 'permission', state: 'permission_ended', outcome: 'permission_ended', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    case 'continue_metering_reporting':
+      return decision({ process: 'permission', state: 'permission_continues', outcome: 'permission_continues', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+    default:
+      return manualReview(code, subtype)
+  }
+}
+
+function referenceDate(message: ProdatLifecycleMessage): string | null {
+  for (const value of [message.message_received_at, message.created_at]) {
+    const candidate = String(value ?? '').trim().slice(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) return candidate
+  }
+  const rawDate = String(message.raw_payload ?? '').match(/DTM\+137:(\d{8})/)?.[1]
+  return rawDate ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}` : null
+}
+
+function boolFact(message: ProdatLifecycleMessage, key: string): boolean | undefined {
+  const payload = record(message.parsed_payload)
+  const report = record(message.validation_report)
+  const values = [
+    payload?.[key],
+    record(payload?.prodatDependentFacts)?.[key],
+    record(report?.prodatDependentFacts)?.[key],
+  ]
+  return values.find((value): value is boolean => typeof value === 'boolean')
+}
+
+function contextFact(message: ProdatLifecycleMessage): ProdatBusinessContext | null {
+  const payload = record(message.parsed_payload)
+  const value = String(payload?.businessContext ?? record(payload?.prodatDependentFacts)?.businessContext ?? '').trim().toLowerCase()
+  return ['death', 'bankruptcy', 'identity_change', 'other_masterdata', 'unknown'].includes(value)
+    ? value as ProdatBusinessContext
+    : null
+}
+
+export function decideProdatLifecycleFromPolicy(policy: CanonicalEdielPolicy): ProdatLifecycleDecision {
+  const code = policy.code
+  const subtype = policy.subtype
+  if (policy.family !== 'PRODAT') return manualReview(code, subtype)
+  if (policy.direction === 'inbound' && policy.semantics.direction === 'outbound') {
+    return manualDirectionReview(code, subtype)
+  }
+  return lifecycleFromBusinessEffect({
+    code,
+    subtype,
+    businessEffect: policy.semantics.businessEffect,
+  })
+}
+
 /**
- * Decide only the business effect of an inbound PRODAT message for Gridex's
- * supplier/eligible-party roles. Outbound-origin messages observed inbound are
- * quarantined for review and never mutate customer/supply state.
+ * Active runtime path: resolve one canonical policy and project its business
+ * effect into Gridex workflow states. No Ediel code/subtype matrix is owned by
+ * this state machine. If required policy facts are unavailable, state mutation
+ * fails closed to manual review instead of guessing.
+ *
+ * Partial synthetic test objects without protocol metadata use the same
+ * canonical business-semantics registry as a compatibility projection only.
  */
 export function decideProdatLifecycle(message: ProdatLifecycleMessage): ProdatLifecycleDecision | null {
   const code = String(message.message_code ?? '').trim().toUpperCase().slice(0, 3)
   const subtype = extractProdatSubtype(message)
-  const inbound = !message.direction || String(message.direction).toLowerCase() === 'inbound'
+  if (!code || !subtype) return null
 
-  if (inbound && ['Z01', 'Z03', 'Z08', 'Z09', 'Z13', 'Z18'].includes(code)) {
-    return manualDirectionReview(code, subtype)
-  }
+  const date = referenceDate(message)
+  const applicationReference = String(message.application_reference ?? '').trim() || null
+  const version = String(message.message_version ?? '').trim() || null
+  const direction = String(message.direction ?? 'inbound').toLowerCase() === 'outbound' ? 'outbound' : 'inbound'
 
-  if (code === 'Z02') {
-    return decision({ process: 'information', state: 'information_received', outcome: 'grid_owner_information_received', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-
-  if (code === 'Z04' && (subtype === 'L' || subtype === 'LK')) {
-    return decision({ process: 'supplier_switch', state: 'switch_accepted', outcome: 'supplier_switch_accepted', createSupplyPeriod: true, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z04' && subtype === 'C') {
-    return decision({ process: 'cancellation', state: 'cancelled_before_start', outcome: 'supplier_switch_cancelled_before_start', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z04' && subtype === 'A') {
-    return decision({ process: 'assigned_supply', state: 'assigned_supply_active', outcome: 'assigned_supply_started', createSupplyPeriod: true, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
-  }
-  if (code === 'Z04' && subtype === 'D') {
-    return decision({ process: 'mandatory_purchase', state: 'mandatory_purchase_active', outcome: 'mandatory_purchase_supply_started', createSupplyPeriod: true, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
-  }
-  if (code === 'Z04') {
-    return decision({ process: 'unknown', state: 'manual_review', outcome: 'manual_review_required', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-
-  if (code === 'Z05' && (subtype === 'L' || subtype === 'LK')) {
-    return decision({ process: 'termination', state: 'supply_ended', outcome: 'supply_terminated', createSupplyPeriod: false, endSupplyPeriod: true, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z05' && subtype === 'C') {
-    return decision({ process: 'cancellation', state: 'supply_continues', outcome: 'supply_continuation_confirmed', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z05') {
-    return decision({ process: 'supplier_switch', state: 'manual_review', outcome: 'manual_review_required', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
+  if (date && applicationReference && version) {
+    try {
+      const policy = resolveCanonicalEdielPolicy({
+        family: 'PRODAT',
+        messageCode: code,
+        subtypeOrReasonCode: subtype,
+        direction,
+        referenceDate: date,
+        associationAssignedCode: version,
+        applicationReference,
+        businessContext: contextFact(message),
+        bilateralCapabilityVerified: boolFact(message, 'bilateralCapabilityVerified'),
+        mode: 'parse',
+      })
+      return decideProdatLifecycleFromPolicy(policy)
+    } catch {
+      return manualDirectionReview(code, subtype)
+    }
   }
 
-  if (code === 'Z06' && ['E', 'F', 'G'].includes(subtype ?? '')) {
-    return decision({ process: 'masterdata', state: 'masterdata_update_received', outcome: 'masterdata_update_received', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
-  }
-  if (code === 'Z10' && subtype === 'M') {
-    return decision({ process: 'metering', state: 'meter_change_received', outcome: 'meter_change_received', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
-  }
-
-  if (code === 'Z14' && subtype === 'N') {
-    return decision({ process: 'permission', state: 'permission_rejected', outcome: 'permission_rejected', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z14' && (subtype === 'V' || subtype === 'VH')) {
-    return decision({ process: 'permission', state: 'permission_confirmed', outcome: 'permission_confirmed', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z15' && (subtype === 'V' || subtype === 'VH')) {
-    return decision({ process: 'permission', state: 'permission_ended', outcome: 'permission_ended', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z15' && subtype === 'C') {
-    return decision({ process: 'permission', state: 'permission_continues', outcome: 'permission_continues', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-  if (code === 'Z14' || code === 'Z15') {
-    return decision({ process: 'permission', state: 'manual_review', outcome: 'manual_review_required', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: true }, code, subtype)
-  }
-
-  if (code === 'Z06' || code === 'Z10') {
-    return decision({ process: code === 'Z10' ? 'metering' : 'masterdata', state: 'manual_review', outcome: 'manual_review_required', createSupplyPeriod: false, endSupplyPeriod: false, requiresCorrelation: false }, code, subtype)
-  }
-
-  return null
+  const semantics = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code, subtype })
+  if (!semantics) return null
+  if (direction === 'inbound' && semantics.direction === 'outbound') return manualDirectionReview(code, subtype)
+  return lifecycleFromBusinessEffect({ code, subtype, businessEffect: semantics.businessEffect })
 }

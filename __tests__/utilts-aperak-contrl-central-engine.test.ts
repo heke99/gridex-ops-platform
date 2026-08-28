@@ -115,6 +115,17 @@ describe('UTILTS validation class -> acknowledgement family', () => {
     expect(utilts.applicationAck).toBe('transactional')
     expect(utilts.negativeApplicationResponse).toBe('APERAK_OR_UTILTS_ERR')
   })
+
+  it('keeps the Z01 positive ACK path distinct and fails closed for unknown families', () => {
+    const z01 = resolveCanonicalAckMatrixRule({ family: 'PRODAT', code: 'Z01' })
+    expect(z01.technicalAck).toBe('CONTRL')
+    expect(z01.applicationAck).toBe('none')
+    expect(z01.businessResponses).toEqual(['Z02'])
+    expect(z01.negativeApplicationResponse).toBe('APERAK')
+
+    expect(() => resolveCanonicalAckMatrixRule({ family: 'UNKNOWN_FAMILY', code: 'X01' }))
+      .toThrow('ediel_ack_family_unsupported:UNKNOWN_FAMILY:X01')
+  })
 })
 
 describe('database defense in depth', () => {

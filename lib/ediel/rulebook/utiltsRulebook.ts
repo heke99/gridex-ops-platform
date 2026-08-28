@@ -62,6 +62,11 @@ export type UtiltsCanonicalProfile = {
   agtCases: string[]
 }
 
+/**
+ * Compatibility snapshot for callers that only enumerate stable message
+ * profiles. Normative guide selection MUST use resolveCanonicalUtiltsProfile
+ * with an explicit business/reference date.
+ */
 const CURRENT_UTILTS_GUIDE = {
   guideVersion: '25-A-3',
   guideRevision: '3',
@@ -70,12 +75,6 @@ const CURRENT_UTILTS_GUIDE = {
   effectiveTo: '2026-09-30',
 } as const
 
-/**
- * Business-process labels are stable Gridex domain contracts. They are not the
- * normative field matrix; those rules live in utiltsFieldMatrix. Keep these
- * names stable so persisted requests/UI do not silently change semantics when
- * a guide source is refactored.
- */
 const UTILTS_BUSINESS_PROCESSES: Record<UtiltsCanonicalMessageCode, string> = {
   S01: 'aggregated_settlement',
   S02: 'object_consumption_forecast',
@@ -127,12 +126,6 @@ const IDENTITY_REQUIREMENT: Record<UtiltsCanonicalMessageCode, UtiltsIdentityReq
   ERR: 'error_context',
 }
 
-/**
- * These are business-processing summaries used by older orchestration/UI code.
- * They intentionally do NOT replace the R/D/O/X matrix. A `D` network-area
- * field can still be required for a supported transaction depending on the
- * time-series product. The canonical validator must evaluate that condition.
- */
 const OPERATIONAL_REQUIREMENTS: Record<UtiltsCanonicalMessageCode, {
   meteringPoint: boolean
   gridArea: boolean
@@ -255,6 +248,16 @@ export function getCanonicalUtiltsProfile(messageCode: string | null | undefined
   return UTILTS_CANONICAL_PROFILES.find((entry) => entry.messageCode === code) ?? null
 }
 
+function guideImplementationRevision(guideRevision: string): string {
+  const match = String(guideRevision).match(/-(\d+)$/)
+  if (!match) throw new Error(`utilts_guide_revision_unparseable:${guideRevision}`)
+  return match[1]
+}
+
+/**
+ * Resolve the profile and all guide metadata from one effective-dated source.
+ * Never select 25-A-3/25-A-4 from the shared E5SE5A association code alone.
+ */
 export function resolveCanonicalUtiltsProfile(input: {
   messageCode: string | null | undefined
   businessDate: string
@@ -264,15 +267,10 @@ export function resolveCanonicalUtiltsProfile(input: {
   if (!base) throw new Error(`utilts_profile_not_found:${String(input.messageCode ?? '')}`)
 
   const version = String(input.version ?? '').trim().toUpperCase()
-  if (version !== base.version) {
-    throw new Error(`utilts_profile_version_not_supported:${version || 'missing'}`)
-  }
+  if (version !== base.version) throw new Error(`utilts_profile_version_not_supported:${version || 'missing'}`)
 
   const businessDate = String(input.businessDate ?? '').trim().slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)) throw new Error('utilts_profile_business_date_invalid')
-  if (businessDate < CURRENT_UTILTS_GUIDE.effectiveFrom) {
-    throw new Error(`utilts_profile_not_effective:${businessDate}`)
-  }
 
   const guide = resolveAuthoritativeEdielGuide({
     family: 'UTILTS',
@@ -284,7 +282,7 @@ export function resolveCanonicalUtiltsProfile(input: {
   return {
     ...base,
     guideVersion: guide.guideRevision,
-    guideRevision: guide.guideRevision === '25-A-3' ? '3' : guide.guideRevision,
+    guideRevision: guideImplementationRevision(guide.guideRevision),
     guideDocumentName: guide.documentName,
     effectiveFrom: guide.effectiveFrom,
     effectiveTo: guide.effectiveTo,

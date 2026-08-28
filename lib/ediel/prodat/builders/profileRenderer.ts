@@ -1,6 +1,7 @@
 // lib/ediel/prodat/builders/profileRenderer.ts
 
 import type {
+  ProdatEngineAckExpectation,
   ProdatEnginePortalSnapshot,
   ProdatEngineProductionContext,
   ProdatEngineRenderResult,
@@ -20,11 +21,10 @@ import {
   prodatNowDate203,
 } from '@/lib/ediel/prodat/render/dates'
 import { validateProdatContext } from '@/lib/ediel/prodat/render/validate'
-import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
 import {
-  canonicalProdatSubtypeAlias,
-  canonicalProdatTransactionReason,
-} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 function prodatCav(value: string | null | undefined, maxLength = 12): string {
   const code = sanitizeProdatToken(value ?? null, maxLength)
@@ -60,21 +60,46 @@ function portalDate102(portalData: ProdatEnginePortalSnapshot, key: string): str
   return prodatDate102(portalString(portalData, key))
 }
 
-function isPermissionMessageCode(code: string): boolean {
-  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
-}
-
-function isHistoricalPermissionReason(value?: string | null, messageCode?: string | null): boolean {
-  return canonicalProdatSubtypeAlias(value, messageCode) === 'VH'
-}
-
-function resolveReasonForCode(explicitValue?: string | null, messageCode?: string | null): string | null {
-  return canonicalProdatTransactionReason(explicitValue, messageCode)
-}
-
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
   const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
   return sanitizeProdatToken(override ?? portalString(portalData, 'meteringMethod') ?? fallback ?? null, 12)
+}
+
+function rendererPolicy(input: {
+  context: ProdatEngineProductionContext
+  generatedAt?: Date
+  mode?: 'test' | 'production'
+  variant?: string | null
+  policy?: CanonicalEdielPolicy
+}): CanonicalEdielPolicy {
+  if (input.policy) return input.policy
+  return resolveCanonicalEdielPolicy({
+    family: 'PRODAT',
+    messageCode: input.context.code,
+    subtypeOrReasonCode: input.variant ?? input.context.reasonForTransaction ?? input.context.contractClosureReason ?? null,
+    direction: 'outbound',
+    referenceDate: (input.generatedAt ?? new Date()).toISOString().slice(0, 10),
+    businessContext: input.context.businessContext ?? null,
+    bilateralCapabilityVerified: input.context.bilateralCapabilityVerified ?? undefined,
+    prodatDependentFacts: {
+      market: 'electricity',
+      ...(input.context.dependentConditionFacts ?? {}),
+    },
+    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
+  })
+}
+
+function ackExpectationFromPolicy(policy: CanonicalEdielPolicy): ProdatEngineAckExpectation {
+  const requiresContrl = policy.ackRule.technicalAck === 'CONTRL'
+  const requiresAperak = policy.ackRule.applicationAck === 'APERAK' || policy.ackRule.applicationAck === 'transactional'
+  return {
+    requiresContrl,
+    requiresAperak,
+    contrlStatus: requiresContrl ? 'pending' : 'not_required',
+    aperakStatus: requiresAperak ? 'pending' : 'not_required',
+    utiltsErrStatus: 'not_required',
+    ackDueAt: null,
+  }
 }
 
 export function buildProfiledProdatSegments(input: {
@@ -87,21 +112,19 @@ export function buildProfiledProdatSegments(input: {
   routeDecisionReason?: string | null
   selectedVersion?: string | null
   acceptedVersions?: string[]
+  policy?: CanonicalEdielPolicy
 }): ProdatEngineRenderResult {
   const portalData = input.portalSnapshot ?? null
   const context = input.context
+  const policy = rendererPolicy(input)
   const issues = validateProdatContext(context)
 
   const bgmReference = compactProdatReference(context.bgmReference, 35)
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
-  const isPermissionMessage = isPermissionMessageCode(context.code)
-  const isSupplierZ09 = context.code === 'Z09'
-  const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction')
-    ?? context.reasonForTransaction
-    ?? input.variant
-    ?? null
-  const reasonForTransaction = resolveReasonForCode(explicitReasonForTransaction, context.code)
-  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null, context.code)
+  const isPermissionMessage = policy.processGroup === 'metering_access'
+  const isSupplierZ09 = policy.code === 'Z09'
+  const reasonForTransaction = policy.transactionReasonCode
+  const isHistoricalPermission = policy.semantics.historical
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
   const installationDirection = sanitizeProdatToken(
     portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null,
@@ -112,11 +135,6 @@ export function buildProfiledProdatSegments(input: {
     12,
   )
 
-  // Production rule (no-placeholder): never fabricate an object identifier such as
-  // 'UNKNOWN'. When no real facility/metering point id exists the object id is
-  // omitted. A Z01 customer-identity request is address-keyed and does not require
-  // LIN per its rulebook profile, so omission is documented-safe; other codes
-  // always carry a real id (enforced by their preflight) and are unaffected.
   const meterPointId = portalString(portalData, 'facilityId') ?? sanitizeProdatText(context.meterPointId)
   const hasObjectIdentifier = meterPointId.trim().length > 0
 
@@ -136,7 +154,7 @@ export function buildProfiledProdatSegments(input: {
     )
 
   const segments: string[] = [
-    `BGM+${context.code}+${bgmReference}+9+AB`,
+    `BGM+${policy.code}+${bgmReference}+9+AB`,
     `DTM+137:${prodatNowDate203(input.generatedAt)}:203`,
     'DTM+ZZZ:1:805',
     prodatPartySegment('FR', context.senderEdielId),
@@ -148,7 +166,7 @@ export function buildProfiledProdatSegments(input: {
   }
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
-  if (context.code === 'Z18') {
+  if (policy.code === 'Z18') {
     const permissionCreatedAt = prodatDate203(
       portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp,
     )
@@ -157,12 +175,12 @@ export function buildProfiledProdatSegments(input: {
     )
     if (permissionCreatedAt) segments.push(`DTM+693:${permissionCreatedAt}:203`)
     if (reportingEndDate) segments.push(`DTM+164:${reportingEndDate}:203`)
-  } else if (context.code === 'Z08') {
+  } else if (policy.code === 'Z08') {
     const closureDate = prodatDate203AtStartOfDay(
       portalString(portalData, 'endDate') ?? context.endDate ?? context.permissionEndDate,
     )
     if (closureDate) segments.push(`DTM+93:${closureDate}:203`)
-  } else if ((context.code === 'Z13' || context.code === 'Z14') && startDate203) {
+  } else if ((policy.code === 'Z13' || policy.code === 'Z14') && startDate203) {
     segments.push(`DTM+90:${startDate203}:203`)
     if (isHistoricalPermission && reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
   } else if (startDate203) {
@@ -221,7 +239,7 @@ export function buildProfiledProdatSegments(input: {
     portalString(portalData, 'contractClosureReason') ?? context.contractClosureReason ?? null,
     12,
   )
-  if (context.code === 'Z08' && contractClosureReason) {
+  if (policy.code === 'Z08' && contractClosureReason) {
     segments.push('CCI++Z25', prodatCav(contractClosureReason))
   }
 
@@ -233,7 +251,7 @@ export function buildProfiledProdatSegments(input: {
 
   const permissionId = portalString(portalData, 'permissionId') ?? context.permissionId ?? null
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference') ?? context.powerOfAttorneyReference
-  if (context.code === 'Z18') {
+  if (policy.code === 'Z18') {
     const z18PermissionId = sanitizeProdatText(permissionId ?? powerOfAttorneyReference ?? '')
     if (z18PermissionId) segments.push(`RFF+Z09:${z18PermissionId}`)
   } else if (!isSupplierZ09 && powerOfAttorneyReference) {
@@ -252,7 +270,7 @@ export function buildProfiledProdatSegments(input: {
     }))
   }
 
-  if (!isSupplierZ09 && context.code !== 'Z03' && context.code !== 'Z18') {
+  if (!isSupplierZ09 && policy.code !== 'Z03' && policy.code !== 'Z18') {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
       address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,
@@ -270,12 +288,12 @@ export function buildProfiledProdatSegments(input: {
   return {
     segments,
     issues,
-    ackExpectation: deriveProdatAckExpectation(context.code),
+    ackExpectation: ackExpectationFromPolicy(policy),
     diagnostics: {
       engine: 'prodat',
       renderer: input.renderer ?? 'prodat.engine.buildProfiledProdatSegments',
       code: context.code,
-      variant: input.variant ?? null,
+      variant: policy.subtype,
       mode: input.mode,
       lineItemReference,
       bgmReference,
@@ -287,6 +305,11 @@ export function buildProfiledProdatSegments(input: {
       routeDecisionReason: input.routeDecisionReason ?? null,
       selectedVersion: input.selectedVersion ?? null,
       acceptedVersions: input.acceptedVersions ?? [],
+      profileKey: policy.profileKey,
+      rulebookProcessGroup: policy.processGroup,
+      rulebookApplicationReference: policy.applicationReference,
+      canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
+      dependentConditionStatuses: policy.prodatDependentConditions as unknown as Array<Record<string, unknown>>,
     },
   }
 }

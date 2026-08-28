@@ -1,16 +1,9 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielDirection } from '@/lib/ediel/types'
 import {
-  getCanonicalProdatProfile,
-  type ProdatCanonicalProfile,
-} from '@/lib/ediel/rulebook/prodatRulebook'
-import { resolveProdatSubtype } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
-import { getCanonicalUtiltsProfile, type UtiltsCanonicalProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
-import {
-  assertGuideFieldMatrixCertified,
-  resolveAuthoritativeEdielGuide,
-  type AuthoritativeEdielGuide,
-} from '@/lib/ediel/rulebook/guideRegistry'
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 export type CanonicalRulePackResolution = {
   rulePackId: string
@@ -61,8 +54,8 @@ type DbRow = {
 }
 
 type SourceCanonicalResolution = {
+  policy: CanonicalEdielPolicy
   family: 'PRODAT' | 'UTILTS'
-  guide: AuthoritativeEdielGuide
   associationAssignedCode: string
   profileKey: string
   businessProcess: string
@@ -129,36 +122,30 @@ function normalizeIdentifier(value: string | null | undefined): string {
   return String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
 }
 
-function sourceProfileSnapshot(profile: ProdatCanonicalProfile | UtiltsCanonicalProfile): Record<string, unknown> {
-  if ('applicationReference' in profile) {
-    return {
-      profileKey: profile.profileKey,
-      messageCode: profile.messageCode,
-      processGroup: profile.processGroup,
-      applicationReference: profile.applicationReference,
-      associationAssignedCode: profile.associationAssignedCode,
-      guideVersion: profile.guideVersion,
-      guideRevision: profile.guideRevision,
-      effectiveFrom: profile.effectiveFrom,
-      direction: profile.direction,
-      senderRole: profile.senderRole,
-      receiverRole: profile.receiverRole,
-      allowedVariants: profile.allowedVariants,
-    }
+function assertPolicyDirection(policy: CanonicalEdielPolicy, direction: EdielDirection): void {
+  const canonicalDirection = policy.semantics.direction
+  if (canonicalDirection !== 'both' && canonicalDirection !== direction) {
+    throw new Error(`canonical_source_direction_not_allowed:${policy.code}:${direction}:${canonicalDirection}`)
   }
+}
+
+function policyProfileSnapshot(policy: CanonicalEdielPolicy): Record<string, unknown> {
   return {
-    profileKey: profile.profileKey,
-    messageCode: profile.messageCode,
-    businessProcess: profile.businessProcess,
-    associationAssignedCode: profile.associationAssignedCode,
-    guideVersion: profile.guideVersion,
-    guideRevision: profile.guideRevision,
-    effectiveFrom: profile.effectiveFrom,
-    effectiveTo: profile.effectiveTo,
-    phase: profile.phase,
-    scope: profile.scope,
-    allowedSenderRoles: profile.allowedSenderRoles,
-    allowedReceiverRoles: profile.allowedReceiverRoles,
+    profileKey: policy.profileKey,
+    messageCode: policy.code,
+    transactionSubtype: policy.subtype,
+    transactionReasonCode: policy.transactionReasonCode,
+    processGroup: policy.processGroup,
+    phase: policy.phase,
+    applicationReference: policy.applicationReference,
+    associationAssignedCode: policy.associationAssignedCode,
+    guideRevision: policy.guide.guideRevision,
+    effectiveFrom: policy.guide.effectiveFrom,
+    effectiveTo: policy.guide.effectiveTo,
+    direction: policy.direction,
+    bilateralRequired: policy.bilateralRequired,
+    businessEffect: policy.semantics.businessEffect,
+    dataScope: policy.semantics.dataScope,
   }
 }
 
@@ -169,64 +156,42 @@ function resolveSourceCanonical(params: {
   direction: EdielDirection
   businessDate: string
 }): SourceCanonicalResolution {
-  if (params.family === 'PRODAT') {
-    const profile = getCanonicalProdatProfile(params.messageCode)
-    if (!profile) throw new Error(`canonical_source_profile_missing:PRODAT:${params.messageCode}`)
-
-    const subtype = resolveProdatSubtype({
-      messageCode: profile.messageCode,
-      subtypeOrReasonCode: params.transactionSubtype,
-      // This registry call validates protocol membership only. Bilateral tenant
-      // capability is a separate runtime readiness gate and is never inferred here.
-      bilateralCapabilityVerified: true,
-    })
-    if (!subtype.ok || !subtype.subtype) {
-      throw new Error(subtype.reason ?? `canonical_source_subtype_not_allowed:${profile.messageCode}`)
-    }
-
-    const expectedDirection: EdielDirection = profile.direction === 'actor_to_portal' ? 'outbound' : 'inbound'
-    if (params.direction !== expectedDirection) {
-      throw new Error(`canonical_source_direction_not_allowed:${profile.messageCode}:${params.direction}:${expectedDirection}`)
-    }
-
-    const guide = resolveAuthoritativeEdielGuide({
-      family: 'PRODAT',
-      referenceDate: params.businessDate,
-      associationAssignedCode: profile.associationAssignedCode,
-    })
-    assertGuideFieldMatrixCertified(guide)
-    return {
-      family: 'PRODAT',
-      guide,
-      associationAssignedCode: profile.associationAssignedCode,
-      profileKey: profile.profileKey,
-      businessProcess: profile.processGroup,
-      phase: null,
-      profile: {
-        ...sourceProfileSnapshot(profile),
-        transactionSubtype: subtype.subtype,
-        transactionReasonCode: subtype.transactionReasonCode,
-        bilateralRequired: subtype.bilateralRequired,
-      },
-    }
-  }
-
-  const profile = getCanonicalUtiltsProfile(params.messageCode)
-  if (!profile) throw new Error(`canonical_source_profile_missing:UTILTS:${params.messageCode}`)
-  const guide = resolveAuthoritativeEdielGuide({
-    family: 'UTILTS',
+  // Catalog/evidence mode is non-operational. A first policy resolution obtains
+  // the canonical application reference without inventing a local code mapping;
+  // the second resolution uses the real direction and the same policy authority.
+  const bootstrap = resolveCanonicalEdielPolicy({
+    family: params.family,
+    messageCode: params.messageCode,
+    subtypeOrReasonCode: params.transactionSubtype,
+    direction: 'outbound',
     referenceDate: params.businessDate,
-    associationAssignedCode: profile.associationAssignedCode,
+    mode: 'catalog_evidence',
   })
-  assertGuideFieldMatrixCertified(guide)
+  const policy = resolveCanonicalEdielPolicy({
+    family: params.family,
+    messageCode: params.messageCode,
+    subtypeOrReasonCode: params.transactionSubtype,
+    direction: params.direction,
+    referenceDate: params.businessDate,
+    applicationReference: bootstrap.applicationReference,
+    mode: 'catalog_evidence',
+  })
+  assertPolicyDirection(policy, params.direction)
+
+  if (policy.family !== 'PRODAT' && policy.family !== 'UTILTS') {
+    throw new Error(`canonical_source_family_invalid:${policy.family}`)
+  }
+  if (!policy.profileKey) throw new Error(`canonical_source_profile_key_missing:${policy.family}:${policy.code}`)
+  if (!policy.associationAssignedCode) throw new Error(`canonical_source_association_missing:${policy.family}:${policy.code}`)
+
   return {
-    family: 'UTILTS',
-    guide,
-    associationAssignedCode: profile.associationAssignedCode,
-    profileKey: profile.profileKey,
-    businessProcess: profile.businessProcess,
-    phase: profile.phase,
-    profile: sourceProfileSnapshot(profile),
+    policy,
+    family: policy.family,
+    associationAssignedCode: policy.associationAssignedCode,
+    profileKey: policy.profileKey,
+    businessProcess: policy.processGroup ?? policy.semantics.businessProcess,
+    phase: policy.phase,
+    profile: policyProfileSnapshot(policy),
   }
 }
 
@@ -245,19 +210,22 @@ function assertDbEvidenceMatchesSource(input: {
   if (evidence.validFrom > businessDate || (evidence.validTo && evidence.validTo < businessDate)) {
     throw new Error(`canonical_rule_pack_evidence_date_mismatch:${businessDate}:${evidence.validFrom}:${evidence.validTo ?? 'open'}`)
   }
+  if (evidence.profileKey !== source.profileKey) {
+    throw new Error(`canonical_rule_pack_evidence_profile_mismatch:${evidence.profileKey}:${source.profileKey}`)
+  }
 
   const dbGuideTokens = [evidence.guideVersion, evidence.guideRevision].map(normalizeIdentifier)
-  const sourceGuideTokens = [source.guide.guideRevision, source.associationAssignedCode].map(normalizeIdentifier)
+  const sourceGuideTokens = [source.policy.guide.guideRevision, source.associationAssignedCode].map(normalizeIdentifier)
   if (!dbGuideTokens.some((token) => sourceGuideTokens.includes(token))) {
-    throw new Error(`canonical_rule_pack_evidence_guide_mismatch:${evidence.guideVersion}:${source.guide.guideRevision}`)
+    throw new Error(`canonical_rule_pack_evidence_guide_mismatch:${evidence.guideVersion}:${source.policy.guide.guideRevision}`)
   }
 }
 
 /**
- * Source code resolves all normative Ediel semantics first. Supabase is queried
- * only for an activated evidence row (stable IDs, checksum and readiness flags)
- * matching that source decision. DB profile JSON can never redefine the runtime
- * message function, subtype, direction, Application Reference or guide window.
+ * Canonical policy resolves all normative Ediel semantics first. Supabase is
+ * queried only for an activated evidence row (stable IDs, checksum/readiness)
+ * matching that policy decision. DB profile JSON can never redefine runtime
+ * message function, subtype, direction, Application Reference, ACK or guide.
  */
 export async function resolveCanonicalRulePack(params: {
   family: 'PRODAT' | 'UTILTS'
@@ -274,13 +242,13 @@ export async function resolveCanonicalRulePack(params: {
 
   const source = resolveSourceCanonical(params)
   const subtype = params.family === 'PRODAT'
-    ? String(params.transactionSubtype ?? '').trim().toUpperCase()
+    ? String(source.policy.subtype ?? '').trim().toUpperCase()
     : ''
 
   const { data, error } = await supabaseService.rpc('resolve_canonical_ediel_rule_pack', {
     p_market: 'electricity',
-    p_family: params.family,
-    p_message_code: params.messageCode.trim().toUpperCase(),
+    p_family: source.family,
+    p_message_code: source.policy.code,
     p_transaction_subtype: subtype,
     p_direction: params.direction,
     p_business_date: params.businessDate,
@@ -307,14 +275,12 @@ export async function resolveCanonicalRulePack(params: {
   return {
     ...evidence,
     family: source.family,
-    guideVersion: source.guide.guideRevision,
-    guideRevision: source.family === 'PRODAT'
-      ? getCanonicalProdatProfile(params.messageCode)?.guideRevision ?? source.guide.guideRevision
-      : getCanonicalUtiltsProfile(params.messageCode)?.guideRevision ?? source.guide.guideRevision,
+    guideVersion: source.policy.guide.guideRevision,
+    guideRevision: source.policy.guide.guideRevision,
     unhAssociationCode: source.associationAssignedCode,
-    validFrom: source.guide.effectiveFrom,
-    validTo: source.guide.effectiveTo,
-    sourceDocument: source.guide.documentName,
+    validFrom: source.policy.guide.effectiveFrom,
+    validTo: source.policy.guide.effectiveTo,
+    sourceDocument: source.policy.guide.documentName,
     profileKey: source.profileKey,
     businessProcess: source.businessProcess,
     phase: source.phase,
