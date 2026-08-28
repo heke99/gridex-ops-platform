@@ -110,6 +110,7 @@ export function assertUtiltsMessageUseAllowed(input: {
   if (code === 'S08') {
     if (input.mode === 'historical_replay') return
     if (date <= S08_LAST_LIVE_USE_DATE && policy.guideRevision === '25-A-3') return
+    if (input.mode === 'outbound') throw new Error(`utilts_s08_outbound_discontinued:${date}`)
     throw new Error(`utilts_s08_live_use_discontinued:${date}`)
   }
 
