@@ -423,24 +423,6 @@ export function buildEdielRouteRuntimeIssues(params: {
 
   issues.push(...evaluateProductionTransportSecurity({ runtime: params.runtime }).issues)
 
-  if (!sanitize(params.runtime.application_reference)) {
-    issues.push({
-      key: 'application_reference_missing',
-      severity: 'warning',
-      label: 'application_reference saknas',
-      resolution: 'Fyll i application_reference så runtime inte behöver falla tillbaka på default.',
-    })
-  }
-
-  if (!sanitize(params.runtime.default_message_version)) {
-    issues.push({
-      key: 'default_message_version_missing',
-      severity: 'warning',
-      label: 'default_message_version saknas',
-      resolution: 'Fyll i routeprofilens version-default om du vill ha explicita route overrides.',
-    })
-  }
-
   return issues
 }
 
@@ -465,18 +447,23 @@ export function explainEdielRouteRuntime(params: {
   }
 }
 
+/**
+ * Legacy-only default helper.
+ *
+ * Canonical EDIFACT families require message-level context and must resolve
+ * Application Reference through the canonical rulebooks. A route/subaddress is
+ * not sufficient evidence and may never manufacture a protocol value.
+ */
 export function buildDefaultApplicationReference(params: {
   actorSubAddress?: string | null
   process: string
 }) {
-  const rawSub = sanitize(params.actorSubAddress)?.toUpperCase() ?? 'DDQ'
   const process = sanitize(params.process)?.toUpperCase() ?? 'EDIEL'
+  if (['PRODAT', 'UTILTS', 'UTILTS_ERR', 'APERAK', 'CONTRL'].includes(process)) {
+    throw new Error(`canonical_application_reference_message_context_required:${process}`)
+  }
+
+  const rawSub = sanitize(params.actorSubAddress)?.toUpperCase() ?? 'DDQ'
   const sub = rawSub.includes('DGI') ? 'DGI' : rawSub.includes('DDQ') ? 'DDQ' : rawSub.slice(0, 3) || 'DDQ'
-
-  if (process === 'PRODAT') return `23-${sub}-PRODAT`.slice(0, 14)
-  if (process === 'UTILTS' || process === 'UTILTS_ERR') return `23-${sub}-UTILTS`.slice(0, 14)
-  if (process === 'APERAK') return `23-${sub}-APERAK`.slice(0, 14)
-  if (process === 'CONTRL') return `23-${sub}-CONTRL`.slice(0, 14)
-
   return `23-${sub}-${process.replace(/[^A-Z0-9]/g, '').slice(0, 6)}`.slice(0, 14)
 }
