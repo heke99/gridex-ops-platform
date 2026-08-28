@@ -11,7 +11,7 @@ import { classifyEdielMessage } from '@/lib/ediel/rulebook/ruleProfileSelector'
 
 const CUSTOM_UNA_UTILTS = [
   'UNA;*.? !',
-  'UNB*UNOC;3*SENDER;;14*RECEIVER;;14*260829;0030*REF1***23-DDQ-E66-T!',
+  'UNB*UNOC;3*SENDER;;14*RECEIVER;;14*260829;0030*REF1**23-DDQ-E66-T!',
   'UNH*1*UTILTS;D;96A;UN;E5SE5A!',
   'BGM*E66*DOC1*9!',
   'DTM*354;15;804!',
@@ -27,7 +27,7 @@ const CUSTOM_UNA_UTILTS = [
 
 const CUSTOM_UNA_PRODAT_Z14N = [
   'UNA;*.? !',
-  'UNB*UNOC;3*GRIDOWNER;;14*ESCO;;14*260829;0030*REF2***23-DGI-PRODAT!',
+  'UNB*UNOC;3*GRIDOWNER;;14*ESCO;;14*260829;0030*REF2**23-DGI-PRODAT!',
   'UNH*2*PRODAT;D;96A;UN;E2SE6A!',
   'BGM*Z14*DOC2*9!',
   'CCI**Z23!',
@@ -105,9 +105,13 @@ describe('canonical inbound EDIFACT parser v2', () => {
       path.join(process.cwd(), 'lib/ediel/core/edifactSegments.ts'),
       'utf8',
     )
+    const classifier = fs.readFileSync(
+      path.join(process.cwd(), 'lib/ediel/classify.ts'),
+      'utf8',
+    )
 
     expect(selector).toContain('canonicalMessageFacts')
-    expect(selector).not.toContain('.split("\'")')
+    expect(selector).not.toContain(".split(\"'\")")
     expect(selector).not.toContain(".split('+')")
     expect(selector).not.toContain("raw.includes('DTM+")
 
@@ -116,5 +120,9 @@ describe('canonical inbound EDIFACT parser v2', () => {
     expect(compatibility).not.toContain('function readServiceChars')
     expect(compatibility).not.toContain('function splitSegments')
     expect(compatibility).not.toContain('function splitReleased')
+
+    expect(classifier).toContain('parseCanonicalEdifactAst')
+    expect(classifier).not.toContain('function matchEdifactToken')
+    expect(classifier).not.toContain('BGM\\+')
   })
 })
