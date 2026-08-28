@@ -24,20 +24,17 @@ export function projectCanonicalAckMode(params: {
   const family = normalize(params.messageFamily)
   const code = normalize(params.messageCode)
 
-  if (family === 'CONTRL' || family === 'APERAK' || family === 'AI_LIST' || family === 'OTHER') return 'none'
-  if (family === 'UTILTS_ERR') return 'contrl_only'
+  // Non-Ediel compatibility families do not participate in the canonical ACK
+  // matrix. CONTRL is explicitly no-ack in the canonical matrix.
+  if (family === 'CONTRL' || family === 'AI_LIST' || family === 'OTHER') return 'none'
 
   if (family === 'PRODAT') {
     if (!code) throw new Error('ediel_ack_mode_prodat_code_required')
     if (!getCanonicalProdatProfile(code)) throw new Error(`ediel_ack_mode_prodat_profile_missing:${code}`)
   } else if (family === 'UTILTS') {
     if (!code) return 'default'
-    const profile = getCanonicalUtiltsProfile(code)
-    if (!profile) throw new Error(`ediel_ack_mode_utilts_profile_missing:${code}`)
-    // DB route compatibility only. Canonical ACK policy is enforced separately
-    // and cannot be downgraded by the persisted ack_mode value.
-    if (profile.messageCode === 'ERR') return 'contrl_only'
-  } else {
+    if (!getCanonicalUtiltsProfile(code)) throw new Error(`ediel_ack_mode_utilts_profile_missing:${code}`)
+  } else if (family !== 'APERAK' && family !== 'UTILTS_ERR') {
     throw new Error(`ediel_ack_mode_family_unsupported:${family || 'missing'}`)
   }
 
