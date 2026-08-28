@@ -140,6 +140,18 @@ export function resolveAuthoritativeEdielGuide(input: {
   })
 
   if (candidates.length !== 1) {
+    if (candidates.length === 0 && input.family === 'UTILTS') {
+      const firstCompatibleGuide = AUTHORITATIVE_EDIEL_GUIDES
+        .filter((guide) => {
+          if (guide.family !== 'UTILTS') return false
+          if (association && guide.associationAssignedCode?.toUpperCase() !== association) return false
+          return true
+        })
+        .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))[0] ?? null
+      if (firstCompatibleGuide && date < firstCompatibleGuide.effectiveFrom) {
+        throw new Error(`utilts_profile_not_effective:${date}`)
+      }
+    }
     throw new Error(`ediel_guide_resolution_${candidates.length === 0 ? 'missing' : 'ambiguous'}:${input.family}:${date}:${association || 'none'}`)
   }
   return candidates[0]
