@@ -1,10 +1,7 @@
 import type { AckFamily, AckOutcome } from '@/lib/ediel/ack'
+import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
 import { CANONICAL_EDIEL_ERRORS } from '@/lib/ediel/rulebook/mapEdielError'
-import {
-  isUtiltsApplicationReferenceMessageCode,
-  isUtiltsRequestMessageCode,
-  resolveVerifiedUtiltsApplicationReference,
-} from '@/lib/ediel/rulebook/utiltsApplicationReference'
+import { validateProdatApplicationReference } from '@/lib/ediel/rulebook/prodatRulebook'
 
 export type CanonicalRuleSeverity = 'blocking' | 'manual_review' | 'warning'
 export type CanonicalRuleScope = 'common' | 'routing' | 'security' | 'ack_lifecycle' | 'unsupported' | 'application_reference'
@@ -214,35 +211,32 @@ export function evaluateApplicationReferenceGuard(input: {
   applicationReference: string | null | undefined
   requestedMessageCode?: string | null | undefined
 }): ApplicationReferenceGuardResult {
-  const family = String(input.family ?? '').toUpperCase()
-  const code = String(input.messageCode ?? '').toUpperCase()
+  const family = String(input.family ?? '').trim().toUpperCase()
+  const code = String(input.messageCode ?? '').trim().toUpperCase()
   const appRef = String(input.applicationReference ?? '').trim().toUpperCase()
-  const permissionCodes = new Set(['Z13', 'Z14', 'Z15', 'Z18'])
-  const supplierCodes = new Set(['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09', 'Z10'])
 
   if (appRef === '27-DDQ-PRODAT') {
     return { ok: false, expectedApplicationReference: null, ruleKeys: ['UNSUPPORTED_GAS'], reason: 'Gas/naturgas ingår inte i Batch 4.' }
   }
 
-  if (family === 'UTILTS') {
-    if (!isUtiltsApplicationReferenceMessageCode(code) && !isUtiltsRequestMessageCode(code)) {
-      return {
-        ok: false,
-        expectedApplicationReference: null,
-        ruleKeys: ['APPREF_UTILTS_EXACT_MATRIX'],
-        reason: `UTILTS ${code || 'utan meddelandekod'} saknar verifierad Application Reference-regel.`,
-      }
-    }
+  if (family === 'PRODAT') {
+    return validateProdatApplicationReference({
+      messageCode: code,
+      applicationReference: input.applicationReference,
+    })
+  }
 
+  if (family === 'UTILTS') {
     try {
-      const resolved = resolveVerifiedUtiltsApplicationReference({
-        messageCode: code,
+      const expected = resolveApplicationReference({
+        messageFamily: 'UTILTS',
+        businessCode: code,
         requestedMessageCode: input.requestedMessageCode,
-        applicationReference: appRef || null,
+        routeProfile: appRef ? { applicationReference: appRef } : null,
       })
       return {
         ok: true,
-        expectedApplicationReference: resolved,
+        expectedApplicationReference: expected,
         ruleKeys: [],
         reason: null,
       }
@@ -256,36 +250,7 @@ export function evaluateApplicationReferenceGuard(input: {
     }
   }
 
-  if (family !== 'PRODAT') {
-    return { ok: true, expectedApplicationReference: null, ruleKeys: [], reason: null }
-  }
-
-  if (permissionCodes.has(code)) {
-    const ok = !appRef || appRef === '23-DGI-PRODAT'
-    return {
-      ok,
-      expectedApplicationReference: '23-DGI-PRODAT',
-      ruleKeys: ok ? [] : ['APPREF_DGI_FOR_PERMISSION'],
-      reason: ok ? null : `${code} ska använda 23-DGI-PRODAT, inte ${input.applicationReference}.`,
-    }
-  }
-
-  if (supplierCodes.has(code)) {
-    const ok = !appRef || appRef === '23-DDQ-PRODAT'
-    return {
-      ok,
-      expectedApplicationReference: '23-DDQ-PRODAT',
-      ruleKeys: ok ? [] : ['APPREF_DDQ_FOR_SUPPLIER'],
-      reason: ok ? null : `${code} ska använda 23-DDQ-PRODAT, inte ${input.applicationReference}.`,
-    }
-  }
-
-  return {
-    ok: false,
-    expectedApplicationReference: null,
-    ruleKeys: ['APPREF_DDQ_FOR_SUPPLIER'],
-    reason: `PRODAT ${code || 'utan meddelandekod'} ingår inte i den verifierade svenska 26.A-funktionslistan.`,
-  }
+  return { ok: true, expectedApplicationReference: null, ruleKeys: [], reason: null }
 }
 
 export function canonicalRulebookSummary() {
