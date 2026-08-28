@@ -1,5 +1,6 @@
 import type { BusinessProcess, RouteScope, OutboundIntent } from '@/lib/routes/routeDecisionTypes'
-import { ackModeForProcess, routeScopeForProcess } from '@/lib/ediel/routeMatrix'
+import { routeScopeForProcess } from '@/lib/ediel/routeMatrix'
+import { projectCanonicalAckMode } from '@/lib/ediel/ack/routeAckModeProjection'
 import { resolveProdatApplicationReferenceForProcess } from '@/lib/ediel/core/applicationReferenceResolver'
 import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 
@@ -62,13 +63,14 @@ export function expectedApplicationReference(scope: RouteScope): string | null {
 }
 
 /**
- * Compatibility projection only. ACK semantics are read from canonical message
- * profiles through ackModeForProcess/getCanonicalUtiltsProfile.
+ * Route-readiness projection only. ACK semantics come from the canonical ACK
+ * engine through projectCanonicalAckMode; UTILTS functional-error support is
+ * projected from the canonical UTILTS profile.
  */
 export function buildAckPolicy(params: { family: string; code?: string | null }): Record<string, unknown> {
   const family = params.family.toUpperCase()
   const code = String(params.code ?? '').toUpperCase()
-  const mode = ackModeForProcess({ messageFamily: family, messageCode: code || null })
+  const mode = projectCanonicalAckMode({ messageFamily: family, messageCode: code || null })
   const requiresContrl = mode === 'contrl_only' || mode === 'contrl_and_aperak'
   const requiresAperak = mode === 'contrl_and_aperak'
   const utiltsProfile = family === 'UTILTS' && code ? getCanonicalUtiltsProfile(code) : null
