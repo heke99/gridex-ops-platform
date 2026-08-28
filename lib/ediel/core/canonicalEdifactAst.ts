@@ -3,7 +3,7 @@ import {
   tokenizeEdifact,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
-import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type CanonicalEdifactLineGroup = {
   lineIndex: number
@@ -38,6 +38,45 @@ export type CanonicalEdifactAst = {
 function clean(value: string | null | undefined): string | null {
   const trimmed = String(value ?? '').trim()
   return trimmed ? trimmed : null
+}
+
+function normalizedMimeText(value: string): string {
+  return value
+    .replace(/=\r?\n/g, '')
+    .replace(/=27/gi, "'")
+    .replace(/=2B/gi, '+')
+    .replace(/=3A/gi, ':')
+    .replace(/=0D=0A/gi, '\n')
+}
+
+/**
+ * Sole EDIFACT payload extractor for text/mail surfaces.
+ * Extraction is UNA-aware and does not assume the default apostrophe terminator.
+ */
+export function extractCanonicalEdifactPayload(input: string | null | undefined): string | null {
+  const raw = clean(input)
+  if (!raw) return null
+
+  for (const candidate of [raw, normalizedMimeText(raw)]) {
+    const upper = candidate.toUpperCase()
+    const unaIndex = upper.indexOf('UNA')
+    const unbIndex = upper.indexOf('UNB')
+    const start = unaIndex >= 0 && unbIndex >= 0
+      ? Math.min(unaIndex, unbIndex)
+      : unaIndex >= 0
+        ? unaIndex
+        : unbIndex
+    if (start < 0) continue
+
+    const payload = candidate.slice(start).trim()
+    const una = parseUna(payload)
+    const unzIndex = payload.toUpperCase().lastIndexOf('UNZ')
+    if (unzIndex < 0) return payload
+    const end = payload.indexOf(una.segmentTerminator, unzIndex)
+    return end < 0 ? payload : payload.slice(0, end + 1).trim()
+  }
+
+  return null
 }
 
 export function canonicalElement(
