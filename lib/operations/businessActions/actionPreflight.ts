@@ -30,6 +30,7 @@ function firstNonBlank(...values: unknown[]): string | null {
 export async function actionPreflight(input: {
   actorUserId: string
   customerId: string
+  switchRequestId?: string | null
   siteId?: string | null
   meteringPointId?: string | null
   actionType?: string | null
@@ -89,6 +90,51 @@ export async function actionPreflight(input: {
     issues.push({ code: 'metering_point_missing', label: 'Mätpunkt', blocking: true })
   } else if (!hasMeteringPointIdentity(typedMeteringPoint)) {
     issues.push({ code: 'meter_point_id_missing', label: 'Mätpunkts-ID', blocking: true })
+  }
+
+  if (input.switchRequestId) {
+    const { data: switchRequest, error: switchError } = await supabaseService
+      .from('supplier_switch_requests')
+      .select('id,company_id,customer_id,site_id,metering_point_id')
+      .eq('id', input.switchRequestId)
+      .eq('company_id', companyId)
+      .eq('customer_id', input.customerId)
+      .maybeSingle()
+    if (switchError) throw switchError
+
+    const switchRow = switchRequest as {
+      id?: string
+      site_id?: string | null
+      metering_point_id?: string | null
+    } | null
+    if (!switchRow?.id) {
+      issues.push({
+        code: 'switch_request_scope_mismatch',
+        label: 'Leverantörsbytesärendet tillhör inte samma bolag och kund.',
+        blocking: true,
+      })
+    } else {
+      const selectedSiteId = typeof site?.id === 'string' ? site.id : null
+      const selectedMeteringPointId = typeof meteringPoint?.id === 'string' ? meteringPoint.id : null
+      if (switchRow.site_id && selectedSiteId && switchRow.site_id !== selectedSiteId) {
+        issues.push({
+          code: 'switch_request_site_mismatch',
+          label: 'Leverantörsbytesärendet tillhör en annan anläggning.',
+          blocking: true,
+        })
+      }
+      if (
+        switchRow.metering_point_id &&
+        selectedMeteringPointId &&
+        switchRow.metering_point_id !== selectedMeteringPointId
+      ) {
+        issues.push({
+          code: 'switch_request_metering_point_mismatch',
+          label: 'Leverantörsbytesärendet tillhör en annan mätpunkt.',
+          blocking: true,
+        })
+      }
+    }
   }
 
   const gridOwnerId = firstNonBlank(meteringPoint?.grid_owner_id, site?.grid_owner_id)
