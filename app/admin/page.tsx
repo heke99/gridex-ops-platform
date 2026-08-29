@@ -199,6 +199,9 @@ export default async function AdminDashboardPage() {
  const supabase = await createSupabaseServerClient()
  const companyScope = await getOperationalCompanyScope(context.userId)
  const companyId = companyScope.companyId
+ // Platform admins must use the verified platform aggregate, not a selected tenant membership.
+ // Keep companyId for actor/tenant-profile display; metrics use summaryCompanyId.
+ const summaryCompanyId = isPlatformAdmin ? null : companyId
  const todayDate = new Date()
  const inThirtyDaysDate = new Date(todayDate)
  inThirtyDaysDate.setUTCDate(inThirtyDaysDate.getUTCDate() + 30)
@@ -207,7 +210,7 @@ export default async function AdminDashboardPage() {
  const today = todayDate.toISOString().slice(0, 10)
  const inThirtyDays = inThirtyDaysDate.toISOString().slice(0, 10)
  const latestMeteringSince = latestMeteringSinceDate.toISOString()
- const dashboardSummary = await getCompanyDashboardSummary(supabase, companyId)
+ const dashboardSummary = await getCompanyDashboardSummary(supabase, summaryCompanyId)
 
  const [
  ediel,
@@ -235,30 +238,42 @@ export default async function AdminDashboardPage() {
  networkOwners,
  suppliers,
  ] = await Promise.all([
- getEdielSummary(supabase, isPlatformAdmin ? null : companyId).catch(() => EMPTY_EDIEL_SUMMARY),
+ getEdielSummary(supabase, summaryCompanyId).catch(() => EMPTY_EDIEL_SUMMARY),
  getActiveEdielActorSettings('production', companyId).catch(() => null),
  getActiveEdielActorSettings('test', companyId).catch(() => null),
- dashboardSummary ? Promise.resolve(dashboardSummary.customersTotal) : safeVisibleCustomerCount(supabase, companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.contractsTotal) : safeCount(supabase, 'customer_contracts', companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.sitesTotal) : safeCount(supabase, 'customer_sites', companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.meteringPointsTotal) : safeCount(supabase, 'metering_points', companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.openTasks) : safeCount(supabase, 'customer_operation_tasks', companyId, [{ column: 'status', value: 'open' }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.openGridOwnerRequests) : safeCount(supabase, 'grid_owner_data_requests', companyId, [{ column: 'status', value: 'sent' }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.openSwitches) : safeCount(supabase, 'supplier_switch_requests', companyId, [{ column: 'status', value: 'open' }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.outboundRequestsTotal) : safeCount(supabase, 'outbound_requests', companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.meteringValuesTotal) : safeCount(supabase, 'metering_values', companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.billingUnderlaysTotal) : safeCount(supabase, 'billing_underlays', companyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.ongoingSupplierSwitches) : safeCount(supabase, 'supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.waitingForGridOwner) : safeCount(supabase, 'grid_owner_data_requests', companyId, [{ column: 'status', op: 'in', value: ['sent', 'waiting_response', 'queued'] }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.negativeAcknowledgements) : safeCount(supabase, 'ediel_messages', companyId, [{ column: 'ack_outcome', value: 'negative' }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.missingMeteringValues) : safeCount(supabase, 'data_quality_issues', companyId, [{ column: 'status', value: 'open' }, { column: 'issue_type', value: 'missing_metering_values' }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.customersActionRequired) : safeCount(supabase, 'customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.latestMeteringValues) : safeCount(supabase, 'metering_values', companyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.upcomingTerminations) : safeCount(supabase, 'customer_contracts', companyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.pendingCustomerApplications) : safeCount(supabase, 'external_contract_intakes', companyId, [{ column: 'status', op: 'in', value: ['needs_review', 'partially_created', 'failed'] }]),
- isPlatformAdmin ? safeCount(supabase, 'companies') : Promise.resolve(0),
- isPlatformAdmin ? safeCount(supabase, 'grid_owners') : Promise.resolve(0),
- isPlatformAdmin ? safeCount(supabase, 'electricity_suppliers') : Promise.resolve(0),
+ dashboardSummary ? Promise.resolve(dashboardSummary.customersTotal) : safeVisibleCustomerCount(supabase, summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.contractsTotal) : safeCount(supabase, 'customer_contracts', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.sitesTotal) : safeCount(supabase, 'customer_sites', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.meteringPointsTotal) : safeCount(supabase, 'metering_points', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.openTasks) : safeCount(supabase, 'customer_operation_tasks', summaryCompanyId, [{ column: 'status', value: 'open' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.openGridOwnerRequests) : safeCount(supabase, 'grid_owner_data_requests', summaryCompanyId, [{ column: 'status', value: 'sent' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.openSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', value: 'open' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.outboundRequestsTotal) : safeCount(supabase, 'outbound_requests', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.meteringValuesTotal) : safeCount(supabase, 'metering_values', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.billingUnderlaysTotal) : safeCount(supabase, 'billing_underlays', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.ongoingSupplierSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.waitingForGridOwner) : safeCount(supabase, 'grid_owner_data_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['sent', 'waiting_response', 'queued'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.negativeAcknowledgements) : safeCount(supabase, 'ediel_messages', summaryCompanyId, [{ column: 'ack_outcome', value: 'negative' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.missingMeteringValues) : safeCount(supabase, 'data_quality_issues', summaryCompanyId, [{ column: 'status', value: 'open' }, { column: 'issue_type', value: 'missing_metering_values' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.customersActionRequired) : safeCount(supabase, 'customer_operation_tasks', summaryCompanyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.latestMeteringValues) : safeCount(supabase, 'metering_values', summaryCompanyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.upcomingTerminations) : safeCount(supabase, 'customer_contracts', summaryCompanyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.pendingCustomerApplications) : safeCount(supabase, 'external_contract_intakes', summaryCompanyId, [{ column: 'status', op: 'in', value: ['needs_review', 'partially_created', 'failed'] }]),
+ isPlatformAdmin
+  ? typeof dashboardSummary?.companiesTotal === 'number'
+   ? Promise.resolve(dashboardSummary.companiesTotal)
+   : safeCount(supabase, 'companies')
+  : Promise.resolve(0),
+ isPlatformAdmin
+  ? typeof dashboardSummary?.gridOwnersTotal === 'number'
+   ? Promise.resolve(dashboardSummary.gridOwnersTotal)
+   : safeCount(supabase, 'grid_owners')
+  : Promise.resolve(0),
+ isPlatformAdmin
+  ? typeof dashboardSummary?.electricitySuppliersTotal === 'number'
+   ? Promise.resolve(dashboardSummary.electricitySuppliersTotal)
+   : safeCount(supabase, 'electricity_suppliers')
+  : Promise.resolve(0),
  ])
 
  const actor = productionActor ?? testActor
