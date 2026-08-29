@@ -8,6 +8,7 @@ import {
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 import { isSupportEvent, parseCustomerEventPayload, recordWebsiteCustomerEvent } from '@/lib/customer-portal/customerEvents'
+import { createSupportCaseFromCustomerEvent } from '@/lib/customer-cases/support'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,14 +34,6 @@ export async function POST(request: NextRequest) {
         details: parsed.error.issues,
       }), { status: 422 })
     }
-    if (isSupportEvent(parsed.data.event_type)) {
-      return customerPortalJson(canonicalApiError({
-        code: 'support_out_of_scope',
-        message: 'Supporthantering ligger utanför Gridex Ops API.',
-        requestId,
-        hint: 'Elbolaget hanterar support i sina egna kanaler.',
-      }), { status: 422 })
-    }
 
     const data = await recordWebsiteCustomerEvent({
       request,
@@ -50,6 +43,25 @@ export async function POST(request: NextRequest) {
       source: 'website',
     })
     const { _internal_customer_id: internalCustomerId, ...responseData } = data
+    let supportCaseReused: boolean | null = null
+    if (isSupportEvent(parsed.data.event_type)) {
+      const idempotencyKey = request.headers.get('idempotency-key')?.trim()
+      if (!idempotencyKey) {
+        return customerPortalJson(canonicalApiError({ code: 'idempotency_key_required', message: 'Idempotency-Key krävs för supportevent.', requestId }), { status: 400 })
+      }
+      const supportCase = await createSupportCaseFromCustomerEvent({
+        companyId: auth.context.companyId,
+        customerId: internalCustomerId,
+        eventType: parsed.data.event_type,
+        eventReference: parsed.data.event_reference,
+        data: parsed.data.data,
+        idempotencyKey,
+        channel: 'api',
+        apiClientId: auth.client.id,
+      })
+      supportCaseReused = supportCase.reused
+    }
+
     await logIntegrationApiRequest({
       client: auth.client,
       request,
@@ -60,6 +72,7 @@ export async function POST(request: NextRequest) {
         event_type: data.event_type,
         customer_id: internalCustomerId,
         idempotency_replay: data.replayed,
+        support_case_reused: supportCaseReused,
       },
     })
     return customerPortalJson({ data: responseData, request_id: requestId, correlation_id: requestId })
