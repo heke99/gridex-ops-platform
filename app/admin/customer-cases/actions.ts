@@ -27,7 +27,7 @@ function revalidate() {
 }
 
 export async function createCustomerCaseFromFormAction(formData: FormData): Promise<void> {
-  const admin = await requireAdminActionAccess('cases.write')
+  const admin = await requireAdminActionAccess(['cases.write'])
   const companyId = await companyIdFor(admin.userId)
   const customerId = value(formData, 'customer_id')
   const title = value(formData, 'title')
@@ -49,7 +49,7 @@ export async function createCustomerCaseFromFormAction(formData: FormData): Prom
 }
 
 export async function updateCustomerCaseStatusAction(formData: FormData): Promise<void> {
-  const admin = await requireAdminActionAccess('cases.write')
+  const admin = await requireAdminActionAccess(['cases.write'])
   const companyId = await companyIdFor(admin.userId)
   const caseId = value(formData, 'case_id')
   const status = value(formData, 'status')
