@@ -68,6 +68,7 @@ const regressions = [
   'gridex-website-application-ops-chain-regression.cjs',
   'gridex-customer-application-continuation-regression.cjs',
   'gridex-customer-application-review-regression.cjs',
+  'gridex-website-facility-intake-regression.cjs',
   'gridex-canonical-finalization-regression.cjs',
   'gridex-ops-continuation-hardening-regression.cjs',
   'gridex-website-api-power-of-attorney-regression.cjs',
