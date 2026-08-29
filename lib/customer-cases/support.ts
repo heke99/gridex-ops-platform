@@ -25,6 +25,12 @@ function text(value: unknown, maxLength = 4_000): string | null {
   return normalized ? normalized.slice(0, maxLength) : null
 }
 
+function supportPriority(value: unknown): CustomerCasePriority {
+  return ['low', 'normal', 'high', 'urgent'].includes(String(value ?? '').toLowerCase())
+    ? String(value).toLowerCase() as CustomerCasePriority
+    : 'normal'
+}
+
 async function assertCustomerScope(input: { companyId: string; customerId: string }) {
   const { data, error } = await supabaseService
     .from('customers')
@@ -64,11 +70,7 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
   await assertCustomerScope({ companyId: input.companyId, customerId: input.customerId })
 
   if (idempotencyKey) {
-    const existing = await findIdempotentSupportCase({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      idempotencyKey,
-    })
+    const existing = await findIdempotentSupportCase({ companyId: input.companyId, customerId: input.customerId, idempotencyKey })
     if (existing) return { case: existing, reused: true }
   }
 
@@ -94,6 +96,41 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
   })
 
   return { case: row, reused: false }
+}
+
+export async function createSupportCaseFromCustomerEvent(input: {
+  companyId: string
+  customerId: string
+  eventType: string
+  eventReference: string
+  data: Record<string, unknown>
+  idempotencyKey: string
+  channel?: SupportChannel
+  apiClientId?: string | null
+}) {
+  const title = text(input.data.title, 180)
+    ?? text(input.data.subject, 180)
+    ?? text(input.data.message, 180)
+    ?? 'Supportärende från API'
+  const description = text(input.data.description, 8_000) ?? text(input.data.message, 8_000)
+  const category = text(input.data.category, 120) ?? input.eventType.replace(/^customer\./, '')
+
+  return createTenantSupportCase({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    title,
+    description,
+    category,
+    priority: supportPriority(input.data.priority),
+    channel: input.channel ?? 'api',
+    idempotencyKey: input.idempotencyKey,
+    metadata: {
+      event_type: input.eventType,
+      event_reference: input.eventReference,
+      api_client_id: input.apiClientId ?? null,
+      source_event_data: input.data,
+    },
+  })
 }
 
 export async function listTenantSupportCases(input: {
