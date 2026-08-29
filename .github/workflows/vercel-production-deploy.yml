@@ -1,0 +1,86 @@
+name: Vercel production deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-production-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: team_e3htkJPyBNSw3Ix1KQLlf180
+      VERCEL_PROJECT_ID: prj_xA3EDI1xztkkyx21e3LY4UhgYrWt
+      VERCEL_REPO_ID: '1190539955'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require Vercel deployment credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${VERCEL_TOKEN:-}" ]]; then
+            echo 'Missing required repository secret: VERCEL_TOKEN' >&2
+            exit 1
+          fi
+
+      - name: Create production deployment from current main commit
+        id: create
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload=$(jq -n \
+            --arg name 'gridex-ops-platform' \
+            --arg project "$VERCEL_PROJECT_ID" \
+            --arg repoId "$VERCEL_REPO_ID" \
+            --arg ref "$GITHUB_REF_NAME" \
+            --arg sha "$GITHUB_SHA" \
+            '{name:$name,project:$project,target:"production",gitSource:{type:"github",repoId:$repoId,ref:$ref,sha:$sha}}')
+
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H 'Content-Type: application/json' \
+            "https://api.vercel.com/v13/deployments?teamId=$VERCEL_TEAM_ID" \
+            --data "$payload")
+
+          deployment_id=$(jq -r '.id // empty' <<<"$response")
+          deployment_url=$(jq -r '.url // empty' <<<"$response")
+          if [[ -z "$deployment_id" || -z "$deployment_url" ]]; then
+            echo "$response" >&2
+            exit 1
+          fi
+
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "Created Vercel deployment $deployment_id ($deployment_url) for $GITHUB_SHA"
+
+      - name: Wait for production deployment
+        shell: bash
+        env:
+          DEPLOYMENT_ID: ${{ steps.create.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 80); do
+            response=$(curl --fail-with-body --silent --show-error \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID?teamId=$VERCEL_TEAM_ID")
+            state=$(jq -r '.readyState // .state // empty' <<<"$response")
+            echo "Vercel state: ${state:-unknown}"
+            case "$state" in
+              READY) exit 0 ;;
+              ERROR|CANCELED) echo "$response" >&2; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo 'Timed out waiting for Vercel production deployment.' >&2
+          exit 1
