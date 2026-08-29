@@ -45,3 +45,5 @@ jobs:
           git add types/supabase.ts
           git commit -m 'chore(types): refresh Supabase schema manifest'
           git push origin HEAD:test/zero-admin-production-crawler
+
+# Existing-before-push trigger marker.
