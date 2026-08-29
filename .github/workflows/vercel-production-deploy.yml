@@ -24,16 +24,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Require Vercel deployment credential
+      - name: Detect Vercel deployment credential
+        id: credential
         shell: bash
         run: |
           set -euo pipefail
           if [[ -z "${VERCEL_TOKEN:-}" ]]; then
-            echo 'Missing required repository secret: VERCEL_TOKEN' >&2
-            exit 1
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::VERCEL_TOKEN is not configured; skipping repository-driven production deployment.'
+          else
+            echo 'available=true' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create production deployment from current main commit
+        if: steps.credential.outputs.available == 'true'
         id: create
         shell: bash
         run: |
@@ -65,6 +69,7 @@ jobs:
           echo "Created Vercel deployment $deployment_id ($deployment_url) for $GITHUB_SHA"
 
       - name: Wait for production deployment
+        if: steps.credential.outputs.available == 'true'
         shell: bash
         env:
           DEPLOYMENT_ID: ${{ steps.create.outputs.deployment_id }}
