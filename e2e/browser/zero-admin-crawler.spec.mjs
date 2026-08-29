@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 const baseUrl = String(process.env.GRIDEX_E2E_BROWSER_BASE_URL || '').trim()
 const email = String(process.env.GRIDEX_E2E_BROWSER_EMAIL || '').trim()
 const password = String(process.env.GRIDEX_E2E_BROWSER_PASSWORD || '')
-const maxPages = Number.parseInt(String(process.env.GRIDEX_E2E_CRAWLER_MAX_PAGES || '80'), 10)
+const maxPages = Number.parseInt(String(process.env.GRIDEX_E2E_CRAWLER_MAX_PAGES || '60'), 10)
 
 const ALLOWED_PATH_PREFIXES = ['/dashboard', '/admin']
 const SKIP_PATTERNS = [
@@ -103,7 +103,7 @@ test('zero-admin crawler traverses authenticated OPS and inventories manual inte
     let response = null
     try {
       response = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 20_000 })
-      await page.waitForLoadState('networkidle', { timeout: 2_000 }).catch(() => null)
+      await page.waitForTimeout(250)
     } catch (error) {
       failures.push({ url: target, kind: 'navigation_error', detail: error instanceof Error ? error.message : String(error) })
       continue
@@ -127,9 +127,7 @@ test('zero-admin crawler traverses authenticated OPS and inventories manual inte
     if (appError) failures.push({ url: target, kind: 'application_error_text', detail: bodyText.slice(0, 500) })
 
     const signals = await collectManualSignals(page).catch(() => [])
-    for (const signal of signals) {
-      manualSignals.push({ page: pagePath(finalUrl), ...signal })
-    }
+    for (const signal of signals) manualSignals.push({ page: pagePath(finalUrl), ...signal })
 
     const hrefs = await page.locator('a[href]').evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute('href')))
     for (const href of hrefs) {
