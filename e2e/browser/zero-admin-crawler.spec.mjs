@@ -7,7 +7,14 @@ const password = String(process.env.GRIDEX_E2E_BROWSER_PASSWORD || '')
 const maxPages = Number.parseInt(String(process.env.GRIDEX_E2E_CRAWLER_MAX_PAGES || '400'), 10)
 
 const ALLOWED_PATH_PREFIXES = ['/dashboard', '/admin']
-const SKIP_PATTERNS = [/\/logout(?:\/|$)/i, /\/api\//i, /\/auth\//i, /\/download(?:\/|$)/i, /\/export(?:\/|$)/i]
+const SKIP_PATTERNS = [
+  /\/logout(?:\/|$)/i,
+  /\/api\//i,
+  /\/auth\//i,
+  /\/download(?:\/|$)/i,
+  /\/export(?:\/|$)/i,
+  /\/evidence\/(?:pdf|csv|raw)(?:\/|$)/i,
+]
 const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const MANUAL_ACTION_TERMS = [
   'manuell', 'manual', 'godkänn', 'approve', 'retry', 'försök igen', 'kör ', 'skapa ',
