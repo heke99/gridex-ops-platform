@@ -86,6 +86,7 @@ vi.mock('@/lib/website/publicContractApi', async (importOriginal) => {
 
 import { GET as getPublicContracts } from '@/app/api/v1/website/public-contracts/route'
 import { GET as getPublishedOpenApi } from '@/app/api/v1/openapi/website-integration-v1.json/route'
+import { PublicContractFeedConsistencyError } from '@/lib/website/publicContracts'
 
 type JsonObject = Record<string, unknown>
 
@@ -265,5 +266,37 @@ describe('real public contracts route against published OpenAPI', () => {
     expect(body.error.code).toBe('PUBLIC_CONTRACT_FEED_INCONSISTENT')
     expect(body.error.details ?? body.error.affected_contracts).not.toEqual([])
     expect(body.data).toBeUndefined()
+  })
+
+  it('keeps tenant_reference on feed errors when the parallel offer load fails', async () => {
+    mocks.listPublicContractOffers.mockRejectedValue(
+      new PublicContractFeedConsistencyError([
+        {
+          canonical_offer_reference: 'offer_parallel_fail',
+          publication_version_id: null,
+          diagnostic_code: 'CANONICAL_VISIBLE_ROW_MISSING_FROM_FEED_SOURCE',
+        },
+      ]),
+    )
+
+    const response = await getPublicContracts(
+      new NextRequest(
+        'https://app.gridex.se/api/v1/website/public-contracts?customer_type=private',
+        { headers: { Authorization: 'Bearer test-only-token' } },
+      ),
+    )
+    expect(response.status).toBe(503)
+    const body = await response.json()
+    expect(body.error.code).toBe('PUBLIC_CONTRACT_FEED_INCONSISTENT')
+    expect(body.error.details?.tenant_reference).toBe(
+      publicContractsFixture.meta.tenant_reference,
+    )
+    expect(body.error.details?.affected_contracts).toEqual([
+      {
+        canonical_offer_reference: 'offer_parallel_fail',
+        publication_version_id: null,
+        diagnostic_code: 'CANONICAL_VISIBLE_ROW_MISSING_FROM_FEED_SOURCE',
+      },
+    ])
   })
 })

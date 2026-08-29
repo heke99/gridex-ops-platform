@@ -18,9 +18,11 @@ describe('authenticated shell performance invariants', () => {
     expect(authHelper).toContain('createSupabaseServerClient')
     expect(authHelper).toContain('.auth.getUser()')
     expect(authHelper).toContain('cache(async () =>')
+    expect(authHelper).toContain('if (error || !user) return null')
 
     expect(layout).toContain('getVerifiedAuthUser')
     expect(layout).toContain('await getVerifiedAuthUser()')
+    expect(layout).toContain("if (!user) redirect('/login')")
     expect(page).toContain('getVerifiedAuthUser')
     expect(page).toContain('await getVerifiedAuthUser()')
   })
