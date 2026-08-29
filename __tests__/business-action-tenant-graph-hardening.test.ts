@@ -45,4 +45,10 @@ describe('business action tenant graph hardening', () => {
     expect(resolver).toContain('row?.source_type === "supplier_switch_request"')
     expect(resolver).toContain('row?.source_type === "grid_owner_data_request"')
   })
+
+  it('fails closed when the server-verified auth lookup returns an error or no user', () => {
+    const auth = source('lib/auth/currentUser.ts')
+    expect(auth).toContain('error,')
+    expect(auth).toContain('if (error || !user) return null')
+  })
 })
