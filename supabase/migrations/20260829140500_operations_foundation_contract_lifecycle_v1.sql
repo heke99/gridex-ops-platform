@@ -98,6 +98,11 @@ set search_path = pg_catalog, public
 as $$
 declare
   v_site_id uuid;
+  v_site_address_hash text;
+  v_site_grid_owner_id uuid;
+  v_site_grid_area_code text;
+  v_site_facility_id text;
+  v_site_snapshot jsonb;
   v_operation_id uuid := gen_random_uuid();
   v_trace_id uuid := gen_random_uuid();
   v_job_id uuid;
@@ -167,15 +172,38 @@ begin
 
   v_site_id := coalesce(new.customer_site_id, new.site_id);
 
-  -- Fail closed into REVIEW rather than creating a worker job that can only fail
-  -- when a signed contract does not have a tenant-safe site relation.
-  if v_site_id is null or not exists (
-    select 1
+  if v_site_id is not null then
+    select
+      coalesce(
+        nullif(trim(s.address_hash), ''),
+        nullif(
+          lower(concat_ws(
+            '|',
+            nullif(trim(s.street), ''),
+            nullif(regexp_replace(coalesce(s.postal_code, ''), '\D', '', 'g'), ''),
+            nullif(trim(s.city), '')
+          )),
+          ''
+        ),
+        'missing'
+      ),
+      s.grid_owner_id,
+      s.grid_area_code,
+      s.facility_id
+    into
+      v_site_address_hash,
+      v_site_grid_owner_id,
+      v_site_grid_area_code,
+      v_site_facility_id
     from public.customer_sites s
     where s.id = v_site_id
       and s.company_id = new.company_id
-      and s.customer_id = new.customer_id
-  ) then
+      and s.customer_id = new.customer_id;
+  end if;
+
+  -- Fail closed into REVIEW rather than creating a worker job that can only fail
+  -- when a signed contract does not have a tenant-safe site relation.
+  if v_site_id is null or v_site_address_hash is null then
     v_review_reason := case
       when v_site_id is null then 'signed_contract_site_missing'
       else 'signed_contract_site_tenant_mismatch'
@@ -214,7 +242,7 @@ begin
         'contract_id', new.id,
         'trigger', 'contract_signed',
         'signed_at', new.signed_at,
-        'requested_started_date', coalesce(new.requested_start_date, new.expected_start_at),
+        'requested_start_date', coalesce(new.requested_start_date, new.expected_start_at),
         'operation_id', v_operation_id,
         'trace_id', v_trace_id
       ),
@@ -287,6 +315,19 @@ begin
     v_event_title := 'Signerat avtal kräver granskning';
     v_event_message := 'Avtalet kan inte gå vidare automatiskt förrän anläggningskopplingen är tenant-säker.';
   else
+    v_site_snapshot := jsonb_build_object(
+      'site_id', v_site_id,
+      'address_hash', v_site_address_hash,
+      'grid_owner_id', v_site_grid_owner_id,
+      'grid_area_code', v_site_grid_area_code,
+      'route_profile_id', null,
+      'facility_id', v_site_facility_id,
+      'captured_at', now(),
+      'contract_id', new.id,
+      'operation_id', v_operation_id,
+      'trace_id', v_trace_id
+    );
+
     insert into public.customer_operation_jobs (
       company_id,
       customer_id,
@@ -320,7 +361,8 @@ begin
         'signed_at', new.signed_at,
         'requested_start_date', coalesce(new.requested_start_date, new.expected_start_at),
         'operation_id', v_operation_id,
-        'trace_id', v_trace_id
+        'trace_id', v_trace_id,
+        'site_snapshot', v_site_snapshot
       ),
       '{}'::jsonb,
       0,
@@ -329,13 +371,7 @@ begin
       coalesce(new.updated_by, new.created_by),
       v_operation_id,
       v_trace_id,
-      jsonb_build_object(
-        'contract_id', new.id,
-        'customer_site_id', v_site_id,
-        'metering_point_id', new.metering_point_id,
-        'trigger', 'contract_signed',
-        'captured_at', now()
-      )
+      v_site_snapshot
     )
     on conflict (company_id, job_type, idempotency_key)
       where job_type = 'start_supplier_switch' and idempotency_key like 'contract-signed:%'
