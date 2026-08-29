@@ -66,10 +66,11 @@ export async function actionPreflight(input: {
     .from('metering_points')
     .select('*')
     .eq('company_id', companyId)
+    .eq('customer_id', input.customerId)
     .order('created_at', { ascending: false })
     .limit(1)
   if (input.meteringPointId) meteringQuery.eq('id', input.meteringPointId)
-  else if (site?.id) meteringQuery.eq('site_id', site.id)
+  if (site?.id) meteringQuery.eq('site_id', site.id)
   const { data: meteringPoints, error: meteringError } = await meteringQuery
   if (meteringError) throw meteringError
   const meteringPoint = (meteringPoints ?? [])[0] as Record<string, unknown> | undefined
@@ -111,9 +112,6 @@ export async function actionPreflight(input: {
       requestedDate: input.requestedDate,
       historicalStartDate: input.historicalStartDate,
       historicalEndDate: input.historicalEndDate,
-      // In the current site model move_in_date is the available current-customer
-      // grid-agreement start evidence. The canonical Z13 engine takes the later
-      // of this date and the handbook's three-year history limit.
       networkContractStartDate: firstNonBlank(site?.move_in_date),
     })
 
