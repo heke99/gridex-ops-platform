@@ -143,6 +143,7 @@
     "20260827201000_canonical_ediel_tenant_identity_valid_from_post_backfill.sql": "9777caf2b87ae5433a9909b7159266b393885cd14c13bd9449e59ef218cbc022",
     "20260828225000_ediel_canonical_deadline_authority.sql": "0b0144be42db1173302b500e4dc10c83d7ad1084dab1b44f1c818cf7e235925c",
     "20260829140500_operations_foundation_contract_lifecycle_v1.sql": "b34335acaa90ccb24adae106e345d62d3ef1d46f8e987c2bb6fdc8164327d7c3",
-    "20260829143000_operations_outcome_search_path_hardening.sql": "ff9ff1537e42600c681b4c45a9f01df9dfe5b3cfb23b8b6e408f548ffe825923"
+    "20260829143000_operations_outcome_search_path_hardening.sql": "ff9ff1537e42600c681b4c45a9f01df9dfe5b3cfb23b8b6e408f548ffe825923",
+    "20260829194612_white_label_membership_rls_recursion_fix.sql": "f814229f15045079ccbdcb4156577e9812c1b50d17e0318adfd02ae0031a6afe"
   }
 }
