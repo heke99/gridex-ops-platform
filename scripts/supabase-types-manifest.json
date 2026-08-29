@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "3cc9a7c47857a46783ab6bfd17989aea9d9ebdcd2b068069b27ed0f7f897fa2d",
-  "latest_migration": "20260829194612_white_label_membership_rls_recursion_fix.sql",
-  "latest_migration_schema_effect": "rls_policy_and_internal_helper_no_app_type_dependency"
+  "latest_migration": "20260830012500_tenant_integrity_outbound_schema_safe_v2.sql",
+  "latest_migration_schema_effect": "function_redefinition_only_no_generated_type_shape_change"
 }
