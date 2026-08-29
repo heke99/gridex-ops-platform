@@ -50,5 +50,9 @@ describe('business action tenant graph hardening', () => {
     const auth = source('lib/auth/currentUser.ts')
     expect(auth).toContain('error,')
     expect(auth).toContain('if (error || !user) return null')
+
+    const dashboard = source('app/dashboard/layout.tsx')
+    expect(dashboard).toContain("import { redirect } from 'next/navigation'")
+    expect(dashboard).toContain("if (!user) redirect('/login')")
   })
 })
