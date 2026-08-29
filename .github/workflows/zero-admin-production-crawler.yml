@@ -48,7 +48,7 @@ jobs:
       - name: Run read-only authenticated zero-admin crawler
         run: |
           mkdir -p e2e-artifacts
-          npx playwright test e2e/browser/zero-admin-crawler.spec.mjs --config=playwright.config.mjs
+          npx playwright test e2e/browser/zero-admin-crawler.spec.mjs --config=playwright.crawler.config.mjs
       - name: Upload crawler evidence
         if: always()
         uses: actions/upload-artifact@v4
