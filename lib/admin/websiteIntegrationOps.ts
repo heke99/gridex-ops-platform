@@ -393,7 +393,7 @@ async function listLegacyWebsiteApplications(
   let query = supabaseService
     .from("website_customer_applications")
     .select(
-      "*,companies(name),customers(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
+      "*,companies(name),customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
     )
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
@@ -496,7 +496,7 @@ export async function getWebsiteApplicationAdminRow(
     let query = supabaseService
       .from("website_customer_applications")
       .select(
-        "*,companies(name),customers(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
+        "*,companies(name),customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
       )
       .eq("id", applicationId);
     if (options.companyId) query = query.eq("company_id", options.companyId);
