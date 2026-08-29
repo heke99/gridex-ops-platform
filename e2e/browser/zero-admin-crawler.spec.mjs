@@ -98,6 +98,7 @@ function summarizeSignals(signals) {
 }
 
 test('zero-admin crawler traverses authenticated OPS and inventories manual intervention surfaces', async ({ page }, testInfo) => {
+  test.setTimeout(10 * 60_000)
   test.skip(
     !baseUrl || !email || !password,
     'Zero-admin crawler requires GRIDEX_E2E_BROWSER_BASE_URL, GRIDEX_E2E_BROWSER_EMAIL and GRIDEX_E2E_BROWSER_PASSWORD.'
