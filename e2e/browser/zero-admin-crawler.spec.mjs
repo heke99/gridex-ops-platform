@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 const baseUrl = String(process.env.GRIDEX_E2E_BROWSER_BASE_URL || '').trim()
 const email = String(process.env.GRIDEX_E2E_BROWSER_EMAIL || '').trim()
 const password = String(process.env.GRIDEX_E2E_BROWSER_PASSWORD || '')
-const maxPages = Number.parseInt(String(process.env.GRIDEX_E2E_CRAWLER_MAX_PAGES || '140'), 10)
+const maxPages = Number.parseInt(String(process.env.GRIDEX_E2E_CRAWLER_MAX_PAGES || '400'), 10)
 
 const ALLOWED_PATH_PREFIXES = ['/dashboard', '/admin']
 const SKIP_PATTERNS = [
@@ -28,9 +28,13 @@ function normalizedInternalUrl(rawHref, currentUrl) {
     if (!ALLOWED_PATH_PREFIXES.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`))) return null
     if (SKIP_PATTERNS.some((pattern) => pattern.test(url.pathname))) return null
     url.hash = ''
+
+    // Filters, search strings, pagination and source selectors are state variants of
+    // the same OPS route. Crawl each route surface once, while retaining explicit
+    // tabs because they can expose materially different server-rendered content.
     const kept = new URLSearchParams()
     for (const [key, value] of url.searchParams.entries()) {
-      if (['status', 'priority', 'type', 'q', 'page', 'stage', 'tab', 'source'].includes(key)) kept.append(key, value)
+      if (key === 'tab') kept.append(key, value)
     }
     url.search = kept.toString()
     return url.toString()
@@ -98,7 +102,7 @@ function summarizeSignals(signals) {
 }
 
 test('zero-admin crawler traverses authenticated OPS and inventories manual intervention surfaces', async ({ page }, testInfo) => {
-  test.setTimeout(10 * 60_000)
+  test.setTimeout(20 * 60_000)
   test.skip(
     !baseUrl || !email || !password,
     'Zero-admin crawler requires GRIDEX_E2E_BROWSER_BASE_URL, GRIDEX_E2E_BROWSER_EMAIL and GRIDEX_E2E_BROWSER_PASSWORD.'
@@ -197,7 +201,7 @@ test('zero-admin crawler traverses authenticated OPS and inventories manual inte
   })
   const dedupedManualSignals = dedupeSignals(manualSignals)
   const report = {
-    schema_version: 2,
+    schema_version: 3,
     target_origin: new URL(baseUrl).origin,
     max_pages: maxPages,
     pages_visited: visited.size,
@@ -225,4 +229,5 @@ test('zero-admin crawler traverses authenticated OPS and inventories manual inte
   expect(failures, 'Authenticated OPS crawler found broken routes or auth loops').toEqual([])
   expect(pageErrors, 'Authenticated OPS crawler observed browser page errors').toEqual([])
   expect(sameOriginRequestFailures, 'Authenticated OPS crawler observed non-aborted same-origin request failures').toEqual([])
+  expect(report.pages_remaining, 'Crawler hit its route cap before exhausting the deduplicated OPS route surface').toBe(0)
 })
