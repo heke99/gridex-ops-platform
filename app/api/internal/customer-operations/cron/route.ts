@@ -6,6 +6,7 @@ import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-oper
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
+import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilityRequestReconciliation'
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
 
 export const runtime = 'nodejs'
@@ -64,6 +65,14 @@ async function run(request: NextRequest) {
       limit: Math.min(requestedLimit, 5),
     })
 
+    // Legacy rows may already have a real, sent grid-owner information request
+    // but lack the website-application back-link. Correlate only an exact,
+    // unique company + customer + site match. This step never creates or sends
+    // an external request; ambiguous cases remain review-only.
+    const legacyFacilityRequestReconciliation = await reconcileLegacyFacilityRequestLinks({
+      limit: Math.min(requestedLimit * 2, 100),
+    })
+
     const customerApplicationReconciliation = await reconcileCustomerApplicationContinuationJobs({
       limit: Math.min(requestedLimit * 2, 100),
     })
@@ -86,6 +95,7 @@ async function run(request: NextRequest) {
       ok: true,
       result: {
         exactAddressResolution,
+        legacyFacilityRequestReconciliation,
         customerApplicationReconciliation,
         customerOperations,
         facilityLookupDispatch,
