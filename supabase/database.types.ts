@@ -15355,6 +15355,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_application_workflows_last_job_fk"
+            columns: ["last_job_id"]
+            isOneToOne: false
+            referencedRelation: "customer_operation_outcomes_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_application_workflows_metering_point_id_fkey"
             columns: ["metering_point_id"]
             isOneToOne: false
@@ -22414,6 +22421,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_operation_events_customer_operation_job_id_fkey"
+            columns: ["customer_operation_job_id"]
+            isOneToOne: false
+            referencedRelation: "customer_operation_outcomes_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_operation_events_customer_site_id_fkey"
             columns: ["customer_site_id"]
             isOneToOne: false
@@ -22823,6 +22837,13 @@ export type Database = {
             columns: ["customer_operation_job_id"]
             isOneToOne: false
             referencedRelation: "customer_operation_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_request_snaps_customer_operation_job_id_fkey"
+            columns: ["customer_operation_job_id"]
+            isOneToOne: false
+            referencedRelation: "customer_operation_outcomes_v"
             referencedColumns: ["id"]
           },
           {
@@ -75164,6 +75185,257 @@ export type Database = {
           },
         ]
       }
+      customer_operation_outcomes_v: {
+        Row: {
+          attempts: number | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_site_id: string | null
+          id: string | null
+          idempotency_key: string | null
+          job_type: string | null
+          last_error_code: string | null
+          last_error_message: string | null
+          max_attempts: number | null
+          metering_point_id: string | null
+          operation_id: string | null
+          outcome_class: string | null
+          result: Json | null
+          review_reason_code: string | null
+          review_sla_due_at: string | null
+          run_after: string | null
+          status: string | null
+          trace_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_site_id?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          job_type?: string | null
+          last_error_code?: string | null
+          last_error_message?: string | null
+          max_attempts?: number | null
+          metering_point_id?: string | null
+          operation_id?: string | null
+          outcome_class?: never
+          result?: Json | null
+          review_reason_code?: string | null
+          review_sla_due_at?: string | null
+          run_after?: string | null
+          status?: string | null
+          trace_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_site_id?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          job_type?: string | null
+          last_error_code?: string | null
+          last_error_message?: string | null
+          max_attempts?: number | null
+          metering_point_id?: string | null
+          operation_id?: string | null
+          outcome_class?: never
+          result?: Json | null
+          review_reason_code?: string | null
+          review_sla_due_at?: string | null
+          run_after?: string | null
+          status?: string | null
+          trace_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["site_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_ops_master_readiness_v: {
         Row: {
           blocking_reasons: string[] | null
@@ -85167,6 +85439,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      gridex_customer_operation_outcome_class: {
+        Args: { p_attempts: number; p_max_attempts: number; p_status: string }
+        Returns: string
       }
       gridex_customer_status_counts_v1: {
         Args: {
