@@ -77,6 +77,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Report Phase 1/2 migration checksums
+        run: sha256sum supabase/migrations/20260829140500_operations_foundation_contract_lifecycle_v1.sql supabase/migrations/20260829143000_operations_outcome_search_path_hardening.sql
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
