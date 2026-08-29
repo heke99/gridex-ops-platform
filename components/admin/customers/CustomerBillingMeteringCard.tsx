@@ -59,8 +59,13 @@ export default function CustomerBillingMeteringCard({
   )
   const blockedUnderlays = billingUnderlays.filter((underlay) => {
     const readiness = String(underlay.readiness_status ?? '')
+    const invoiceReadiness = String(underlay.invoice_readiness_status ?? '')
     const status = String(underlay.status ?? '')
-    return readiness === 'blocked' || ['failed', 'needs_review', 'pricing_failed'].includes(status)
+    return (
+      readiness === 'blocked' ||
+      invoiceReadiness === 'needs_review' ||
+      ['failed', 'needs_review', 'pricing_failed'].includes(status)
+    )
   })
   const waitingForMetering = Boolean(
     (latestMeterRequest && ['pending', 'sent'].includes(latestMeterRequest.status)) ||
@@ -69,18 +74,28 @@ export default function CustomerBillingMeteringCard({
   const hasMeteringValues = meteringValues.length > 0
   const hasReadyUnderlay = readyUnderlays.length > 0
   const hasBlocker = blockedUnderlays.length > 0
+  const hasInvoiced = billingUnderlays.some((underlay) =>
+    ['invoiced', 'exported'].includes(String(underlay.invoice_readiness_status ?? '')),
+  )
+  const hasReadyForInvoice = billingUnderlays.some(
+    (underlay) => String(underlay.invoice_readiness_status ?? '') === 'ready_for_invoice',
+  )
   const billingStatusLabel = hasBlocker
     ? GRIDEX_TENANT_BUSINESS_ACTIONS.requiresAction
-    : hasReadyUnderlay
-      ? 'Underlag klart'
-      : hasMeteringValues
-        ? 'Mätvärden mottagna'
-        : waitingForMetering
-          ? GRIDEX_TENANT_BUSINESS_ACTIONS.waitingForMeteringValues
-          : GRIDEX_TENANT_BUSINESS_ACTIONS.billingAutomatic
+    : hasInvoiced
+      ? 'Fakturerad'
+      : hasReadyForInvoice
+        ? 'Klar för faktura'
+        : hasReadyUnderlay
+          ? 'Underlag klart'
+          : hasMeteringValues
+            ? 'Mätvärden mottagna'
+            : waitingForMetering
+              ? GRIDEX_TENANT_BUSINESS_ACTIONS.waitingForMeteringValues
+              : GRIDEX_TENANT_BUSINESS_ACTIONS.billingAutomatic
   const statusClasses = hasBlocker
     ? 'border-amber-200 bg-amber-50'
-    : hasReadyUnderlay
+    : hasInvoiced || hasReadyForInvoice || hasReadyUnderlay
       ? 'border-emerald-200 bg-emerald-50'
       : 'border-slate-200 bg-slate-50'
   const latestBlocked = [...blockedUnderlays].sort((a, b) => rowTime(b) - rowTime(a))[0] ?? null
