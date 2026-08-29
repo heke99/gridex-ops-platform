@@ -2,6 +2,16 @@ import { supabaseService } from '@/lib/supabase/service'
 
 type JsonRecord = Record<string, unknown>
 
+type ReconciliationMatch = {
+  companyId: string
+  applicationId: string
+  customerId: string
+  siteId: string
+  requestId: string
+  request: JsonRecord
+  requestAlreadyLinked: boolean
+}
+
 const WAITING_WORKFLOW_STATES = ['waiting_for_facility_response', 'waiting_for_customer_data_response']
 const EXTERNAL_WAIT_REQUEST_STATUSES = ['waiting_manual_response', 'awaiting_response', 'sent']
 
@@ -28,6 +38,14 @@ function isEligibleExistingRequest(workflow: JsonRecord, request: JsonRecord) {
   const status = clean(request.status)
   if (!status || !EXTERNAL_WAIT_REQUEST_STATUSES.includes(status)) return false
   return Boolean(clean(request.sent_at) || status === 'waiting_manual_response' || status === 'awaiting_response')
+}
+
+function taskMatches(task: JsonRecord, match: ReconciliationMatch) {
+  if (clean(task.company_id) !== match.companyId || clean(task.customer_id) !== match.customerId) return false
+  const metadata = task.metadata && typeof task.metadata === 'object' && !Array.isArray(task.metadata)
+    ? task.metadata as JsonRecord
+    : {}
+  return clean(metadata.website_application_id) === match.applicationId
 }
 
 /**
@@ -72,8 +90,7 @@ export async function reconcileLegacyFacilityRequestLinks(input: { limit?: numbe
   }
 
   const requestRows = (requests ?? []) as JsonRecord[]
-  let linked = 0
-  let tasksCompleted = 0
+  const matches: ReconciliationMatch[] = []
   let ambiguous = 0
   let skipped = 0
 
@@ -100,81 +117,107 @@ export async function reconcileLegacyFacilityRequestLinks(input: { limit?: numbe
       skipped += 1
       continue
     }
+    matches.push({
+      companyId,
+      applicationId,
+      customerId,
+      siteId,
+      requestId,
+      request,
+      requestAlreadyLinked: Boolean(clean(request.customer_application_id)),
+    })
+  }
 
-    const alreadyLinkedApplication = clean(request.customer_application_id)
-    if (!alreadyLinkedApplication) {
-      const { error: linkError } = await supabaseService
-        .from('grid_owner_information_requests')
-        .update({ customer_application_id: applicationId, updated_at: new Date().toISOString() })
-        .eq('id', requestId)
-        .eq('company_id', companyId)
-        .eq('customer_id', customerId)
-        .eq('customer_site_id', siteId)
-        .is('customer_application_id', null)
-      if (linkError) throw linkError
-    }
+  if (matches.length === 0) {
+    return { checked: workflowRows.length, linked: 0, tasksCompleted: 0, ambiguous, skipped, schemaMissing: false }
+  }
 
+  const now = new Date().toISOString()
+  const requestLinkResults = await Promise.all(matches
+    .filter((match) => !match.requestAlreadyLinked)
+    .map((match) => supabaseService
+      .from('grid_owner_information_requests')
+      .update({ customer_application_id: match.applicationId, updated_at: now })
+      .eq('id', match.requestId)
+      .eq('company_id', match.companyId)
+      .eq('customer_id', match.customerId)
+      .eq('customer_site_id', match.siteId)
+      .is('customer_application_id', null)))
+  const requestLinkError = requestLinkResults.find((result) => result.error)?.error
+  if (requestLinkError) throw requestLinkError
+
+  const applicationResults = await Promise.all(matches.map((match) => {
     const projectionUpdate: JsonRecord = {
-      grid_owner_information_request_id: requestId,
+      grid_owner_information_request_id: match.requestId,
       next_step: 'wait_for_grid_owner',
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     }
-    const gridOwnerId = clean(request.grid_owner_id)
-    const gridAreaCode = clean(request.grid_area_code)
-    const priceArea = clean(request.price_area)
+    const gridOwnerId = clean(match.request.grid_owner_id)
+    const gridAreaCode = clean(match.request.grid_area_code)
+    const priceArea = clean(match.request.price_area)
     if (gridOwnerId) projectionUpdate.grid_owner_id = gridOwnerId
     if (gridAreaCode) projectionUpdate.grid_area_code = gridAreaCode
     if (priceArea) projectionUpdate.price_area_code = priceArea
 
-    const { error: applicationError } = await supabaseService
+    return supabaseService
       .from('website_customer_applications')
       .update(projectionUpdate)
-      .eq('id', applicationId)
-      .eq('company_id', companyId)
-      .eq('customer_id', customerId)
-      .eq('customer_site_id', siteId)
-    if (applicationError) throw applicationError
+      .eq('id', match.applicationId)
+      .eq('company_id', match.companyId)
+      .eq('customer_id', match.customerId)
+      .eq('customer_site_id', match.siteId)
+  }))
+  const applicationError = applicationResults.find((result) => result.error)?.error
+  if (applicationError) throw applicationError
 
-    linked += 1
+  const customerIds = [...new Set(matches.map((match) => match.customerId))]
+  const companyIds = [...new Set(matches.map((match) => match.companyId))]
+  const { data: openTasks, error: tasksError } = await supabaseService
+    .from('customer_operation_tasks')
+    .select('id,company_id,customer_id,metadata')
+    .in('company_id', companyIds)
+    .in('customer_id', customerIds)
+    .eq('task_type', 'customer_data_review')
+    .eq('status', 'open')
+  if (tasksError && !missingSchema(tasksError)) throw tasksError
 
-    const { data: openTasks, error: tasksError } = await supabaseService
-      .from('customer_operation_tasks')
-      .select('id,metadata')
-      .eq('company_id', companyId)
-      .eq('customer_id', customerId)
-      .eq('task_type', 'customer_data_review')
-      .eq('status', 'open')
-      .contains('metadata', { website_application_id: applicationId })
-    if (tasksError && !missingSchema(tasksError)) throw tasksError
+  const taskUpdates = ((openTasks ?? []) as JsonRecord[]).flatMap((task) => {
+    const match = matches.find((candidate) => taskMatches(task, candidate))
+    const taskId = clean(task.id)
+    if (!match || !taskId) return []
+    const existingMetadata = task.metadata && typeof task.metadata === 'object' && !Array.isArray(task.metadata)
+      ? task.metadata as JsonRecord
+      : {}
+    return [{ task, taskId, match, existingMetadata }]
+  })
 
-    for (const task of (openTasks ?? []) as JsonRecord[]) {
-      const taskId = clean(task.id)
-      if (!taskId) continue
-      const existingMetadata = task.metadata && typeof task.metadata === 'object' && !Array.isArray(task.metadata)
-        ? task.metadata as JsonRecord
-        : {}
-      const { error: taskUpdateError } = await supabaseService
-        .from('customer_operation_tasks')
-        .update({
-          status: 'completed',
-          resolved_at: new Date().toISOString(),
-          metadata: {
-            ...existingMetadata,
-            zero_admin_reconciled: true,
-            zero_admin_reason: 'canonical_facility_request_waiting_external_response',
-            grid_owner_information_request_id: requestId,
-          },
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', taskId)
-        .eq('company_id', companyId)
-        .eq('customer_id', customerId)
-        .eq('task_type', 'customer_data_review')
-        .eq('status', 'open')
-      if (taskUpdateError) throw taskUpdateError
-      tasksCompleted += 1
-    }
+  const taskResults = await Promise.all(taskUpdates.map(({ taskId, match, existingMetadata }) => supabaseService
+    .from('customer_operation_tasks')
+    .update({
+      status: 'completed',
+      resolved_at: now,
+      metadata: {
+        ...existingMetadata,
+        zero_admin_reconciled: true,
+        zero_admin_reason: 'canonical_facility_request_waiting_external_response',
+        grid_owner_information_request_id: match.requestId,
+      },
+      updated_at: now,
+    })
+    .eq('id', taskId)
+    .eq('company_id', match.companyId)
+    .eq('customer_id', match.customerId)
+    .eq('task_type', 'customer_data_review')
+    .eq('status', 'open')))
+  const taskUpdateError = taskResults.find((result) => result.error)?.error
+  if (taskUpdateError) throw taskUpdateError
+
+  return {
+    checked: workflowRows.length,
+    linked: matches.length,
+    tasksCompleted: taskUpdates.length,
+    ambiguous,
+    skipped,
+    schemaMissing: false,
   }
-
-  return { checked: workflowRows.length, linked, tasksCompleted, ambiguous, skipped, schemaMissing: false }
 }
