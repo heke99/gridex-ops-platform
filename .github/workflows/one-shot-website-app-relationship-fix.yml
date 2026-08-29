@@ -1,4 +1,4 @@
-name: One-shot website application relation repair
+name: Remove completed one-shot website application repair
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  repair:
+  remove-self:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -17,37 +17,10 @@ jobs:
         with:
           ref: test/zero-admin-production-crawler
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Replace only the ambiguous customer embeds
-        shell: python
-        run: |
-          from pathlib import Path
-          path = Path('lib/admin/websiteIntegrationOps.ts')
-          text = path.read_text()
-          old = 'customers(full_name,company_name,email,phone)'
-          new = 'customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone)'
-          count = text.count(old)
-          if count != 2:
-              raise SystemExit(f'Expected exactly 2 ambiguous customer embeds, found {count}')
-          path.write_text(text.replace(old, new))
-      - name: Verify targeted regression
-        run: |
-          npm ci
-          npm run typecheck
-          node - <<'NODE'
-          const fs = require('fs')
-          const text = fs.readFileSync('lib/admin/websiteIntegrationOps.ts', 'utf8')
-          if (text.includes('customers(full_name,company_name,email,phone)')) throw new Error('ambiguous embed remains')
-          const fixed = 'customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone)'
-          if ((text.match(new RegExp(fixed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length !== 2) throw new Error('expected two explicit tenant-safe embeds')
-          NODE
-      - name: Commit repair
+      - name: Remove completed one-shot workflow
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add lib/admin/websiteIntegrationOps.ts
-          git diff --cached --quiet && exit 0
-          git commit -m 'fix(ops): disambiguate website application customer relation'
+          git rm .github/workflows/one-shot-website-app-relationship-fix.yml
+          git commit -m 'chore(ci): remove completed one-shot repair'
           git push origin HEAD:test/zero-admin-production-crawler
