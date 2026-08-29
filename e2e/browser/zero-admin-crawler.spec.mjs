@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 
+// PR247 verification trigger: dynamic entity URLs are deduplicated by route surface.
 const baseUrl = String(process.env.GRIDEX_E2E_BROWSER_BASE_URL || '').trim()
 const email = String(process.env.GRIDEX_E2E_BROWSER_EMAIL || '').trim()
 const password = String(process.env.GRIDEX_E2E_BROWSER_PASSWORD || '')
