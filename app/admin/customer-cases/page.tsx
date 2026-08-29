@@ -1,13 +1,11 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { supabaseService } from '@/lib/supabase/service'
 import { listCustomerCases } from '@/lib/customer-cases/db'
+import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from './actions'
 
 export const dynamic = 'force-dynamic'
-
-type CustomerOption = { id: string; label: string }
 
 function isSupportCase(row: { source?: string | null; metadata?: Record<string, unknown> | null }) {
   return row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_')
@@ -18,28 +16,12 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-async function customerOptions(companyId: string | null): Promise<CustomerOption[]> {
-  let query = supabaseService
-    .from('customers')
-    .select('id,customer_number,full_name,first_name,last_name,company_name')
-    .order('created_at', { ascending: false })
-    .limit(200)
-  if (companyId) query = query.eq('company_id', companyId)
-  const { data, error } = await query
-  if (error) throw error
-  return (data ?? []).map((row) => {
-    const person = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
-    const name = row.full_name ?? (person || row.company_name || row.customer_number || row.id)
-    return { id: String(row.id), label: `${name}${row.customer_number ? ` · ${row.customer_number}` : ''}` }
-  })
-}
-
 export default async function CustomerCasesPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const scope = await resolveAdminTenantReadScope(context)
   const [allCases, customers] = await Promise.all([
     listCustomerCases({ companyId: scope.companyId, limit: 200 }),
-    customerOptions(scope.companyId),
+    scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
   ])
   const cases = allCases.filter(isSupportCase)
   const open = cases.filter((row) => !['resolved', 'closed', 'cancelled'].includes(row.status))
