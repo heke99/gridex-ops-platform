@@ -29,7 +29,7 @@ async function customerOptions(companyId: string | null): Promise<CustomerOption
   if (error) throw error
   return (data ?? []).map((row) => {
     const person = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
-    const name = row.full_name ?? person || row.company_name ?? row.customer_number ?? row.id
+    const name = row.full_name ?? (person || row.company_name || row.customer_number || row.id)
     return { id: String(row.id), label: `${name}${row.customer_number ? ` · ${row.customer_number}` : ''}` }
   })
 }
@@ -47,11 +47,7 @@ export default async function CustomerCasesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AdminHeader
-        title="Support"
-        subtitle="Tenant-isolerade supportärenden från API, kundportal och intern handläggning."
-        userEmail={context.email}
-      />
+      <AdminHeader title="Support" subtitle="Tenant-isolerade supportärenden från API, kundportal och intern handläggning." userEmail={context.email} />
       <main className="space-y-6 p-6 lg:p-8">
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Öppna supportärenden</p><p className="mt-2 text-3xl font-semibold">{open.length}</p></div>
@@ -80,10 +76,7 @@ export default async function CustomerCasesPage() {
         ) : null}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">Supportkö</h2>
-            <p className="mt-1 text-sm text-slate-600">Normal drift visas inte här. Endast uttryckliga supportärenden från tenantens kanaler.</p>
-          </div>
+          <div><h2 className="text-lg font-semibold text-slate-950">Supportkö</h2><p className="mt-1 text-sm text-slate-600">Normal drift visas inte här. Endast uttryckliga supportärenden från tenantens kanaler.</p></div>
           <div className="mt-5 space-y-3">
             {cases.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga supportärenden i valt scope.</p> : null}
             {cases.map((row) => (
@@ -101,8 +94,7 @@ export default async function CustomerCasesPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {['action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'].map((status) => (
                       <form key={status} action={updateCustomerCaseStatusAction}>
-                        <input type="hidden" name="case_id" value={row.id} />
-                        <input type="hidden" name="status" value={status} />
+                        <input type="hidden" name="case_id" value={row.id} /><input type="hidden" name="status" value={status} />
                         <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{status}</button>
                       </form>
                     ))}
