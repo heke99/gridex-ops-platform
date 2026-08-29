@@ -200,8 +200,25 @@ export async function listGridOwners(
       role_aware_blocking_reasons: (row.role_aware_blocking_reasons as string[] | null) ?? null,
     })) as GridOwnerRow[];
 
-    if (!options.customerFlowOnly) return rows;
-    return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked" && row.excluded_from_electricity_scope !== true && row.is_electricity_grid_owner_scope === true && row.can_start_supplier_switch === true && Boolean(row.ediel_id));
+    // Actor-match fan-out can emit multiple verified-view rows per grid owner.
+    // Keep one row per id, preferring the stronger readiness signal.
+    const readinessScore = (row: GridOwnerRow) =>
+      (row.can_start_supplier_switch ? 4 : 0) +
+      (row.verified_for_customer_flow ? 2 : 0) +
+      (row.platform_market_actor_id ? 1 : 0);
+    const dedupedById = new Map<string, GridOwnerRow>();
+    for (const row of rows) {
+      const existing = dedupedById.get(row.id);
+      if (!existing || readinessScore(row) > readinessScore(existing)) {
+        dedupedById.set(row.id, row);
+      }
+    }
+    const deduped = Array.from(dedupedById.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "sv"),
+    );
+
+    if (!options.customerFlowOnly) return deduped;
+    return deduped.filter((row) => row.is_active && row.lifecycle_status !== "blocked" && row.excluded_from_electricity_scope !== true && row.is_electricity_grid_owner_scope === true && row.can_start_supplier_switch === true && Boolean(row.ediel_id));
   }
 
   if (!missingSchema(verifiedView.error)) throw verifiedView.error;
