@@ -16,14 +16,16 @@ describe('canonical billing chain regression', () => {
     expect(source).toMatch(/createCustomerDataRequestPackageAction[\s\S]*runCustomerActionWithMeterValuePreparation/)
   })
 
-  it('generates underlays before preparing per-customer invoice drafts and never sends from monthly automation', () => {
+  it('runs metering autopilot before underlays, then prepares per-customer invoice drafts and never sends from monthly automation', () => {
     const source = read('lib/billing/monthlyAutomation.ts')
+    const meteringIndex = source.indexOf('runMeteringMarketDataAutopilot({')
     const underlayIndex = source.indexOf('generateBillingUnderlaysForMonth({')
     const prepareIndex = source.indexOf('prepareInvoiceDraftsForReview({')
 
-    expect(underlayIndex).toBeGreaterThan(-1)
+    expect(meteringIndex).toBeGreaterThan(-1)
+    expect(underlayIndex).toBeGreaterThan(meteringIndex)
     expect(prepareIndex).toBeGreaterThan(underlayIndex)
-    expect(source).toContain("source: 'monthly_billing_prepare_only_v2'")
+    expect(source).toContain("source: 'monthly_billing_prepare_only_v3'")
     expect(source).toContain('approval_required: true')
     expect(source).not.toContain('sendInvoiceExportRun')
     expect(source).not.toContain('sendToPartner')
