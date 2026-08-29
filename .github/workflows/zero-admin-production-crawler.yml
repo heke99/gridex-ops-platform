@@ -26,7 +26,7 @@ jobs:
       GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
       GRIDEX_E2E_BROWSER_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
       GRIDEX_E2E_BROWSER_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
-      GRIDEX_E2E_CRAWLER_MAX_PAGES: '140'
+      GRIDEX_E2E_CRAWLER_MAX_PAGES: '260'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
