@@ -1,0 +1,59 @@
+name: Gridex zero-admin production crawler
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gridex-zero-admin-production-crawler-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  crawl-production-readonly:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'production-crawler-approved')
+    runs-on: ubuntu-latest
+    environment: production-e2e
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble-amd64@sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9
+      options: --user 1001
+    env:
+      GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+      GRIDEX_E2E_BROWSER_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+      GRIDEX_E2E_BROWSER_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
+      GRIDEX_E2E_CRAWLER_MAX_PAGES: '200'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Require explicit production target and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GRIDEX_E2E_BROWSER_BASE_URL" == "https://app.gridex.se" || "$GRIDEX_E2E_BROWSER_BASE_URL" == "https://app.gridex.se/" ]] || {
+            echo 'Production crawler is hard-locked to https://app.gridex.se.' >&2
+            exit 1
+          }
+          for name in GRIDEX_E2E_BROWSER_EMAIL GRIDEX_E2E_BROWSER_PASSWORD; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required production crawler secret: $name" >&2; exit 1; }
+          done
+      - name: Run read-only authenticated zero-admin crawler
+        run: |
+          mkdir -p e2e-artifacts
+          npx playwright test e2e/browser/zero-admin-crawler.spec.mjs --config=playwright.config.mjs
+      - name: Upload crawler evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-zero-admin-production-crawler-${{ github.run_id }}
+          path: e2e-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
