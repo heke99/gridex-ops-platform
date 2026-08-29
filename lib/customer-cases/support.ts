@@ -4,6 +4,8 @@ import type { CustomerCaseListRow, CustomerCasePriority, CustomerCaseRow } from 
 
 type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'operations_automation'
 
+export type TenantSupportCustomerOption = { id: string; label: string }
+
 type CreateTenantSupportCaseInput = {
   companyId: string
   customerId: string
@@ -58,6 +60,21 @@ async function findIdempotentSupportCase(input: {
     .maybeSingle()
   if (error) throw error
   return (data as CustomerCaseRow | null) ?? null
+}
+
+export async function listTenantSupportCustomerOptions(companyId: string): Promise<TenantSupportCustomerOption[]> {
+  const { data, error } = await supabaseService
+    .from('customers')
+    .select('id,customer_number,full_name,first_name,last_name,company_name')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (error) throw error
+  return (data ?? []).map((row) => {
+    const person = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
+    const name = row.full_name ?? (person || row.company_name || row.customer_number || row.id)
+    return { id: String(row.id), label: `${name}${row.customer_number ? ` · ${row.customer_number}` : ''}` }
+  })
 }
 
 export async function createTenantSupportCase(input: CreateTenantSupportCaseInput): Promise<{ case: CustomerCaseRow; reused: boolean }> {
