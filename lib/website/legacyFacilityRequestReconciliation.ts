@@ -194,7 +194,7 @@ export async function reconcileLegacyFacilityRequestLinks(input: { limit?: numbe
   const taskResults = await Promise.all(taskUpdates.map(({ taskId, match, existingMetadata }) => supabaseService
     .from('customer_operation_tasks')
     .update({
-      status: 'completed',
+      status: 'done',
       resolved_at: now,
       metadata: {
         ...existingMetadata,
