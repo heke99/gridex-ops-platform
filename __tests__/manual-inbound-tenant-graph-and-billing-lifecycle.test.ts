@@ -48,6 +48,14 @@ describe('billing review lifecycle', () => {
     expect(source).toContain("'awaiting_invoice_projection'")
     expect(source).toContain('invoice: invoiceRow')
     expect(source).toContain('lifecycleStage')
+    expect(source).toContain("if (input.item && !input.invoice)")
+    expect(source).toContain("label: 'Faktura projiceras'")
+
+    const lifecycleStart = source.indexOf('const lifecycleStage: InvoiceReviewLifecycleStage')
+    const lifecycleEnd = source.indexOf('const snapshotId', lifecycleStart)
+    const lifecycle = source.slice(lifecycleStart, lifecycleEnd)
+    expect(lifecycle.indexOf('!invoiceRow')).toBeGreaterThanOrEqual(0)
+    expect(lifecycle.indexOf("text(approval.status) === 'approved'")).toBeGreaterThan(lifecycle.indexOf('!invoiceRow'))
   })
 
   it('renders an explicit intermediate state instead of dereferencing a missing invoice', () => {
