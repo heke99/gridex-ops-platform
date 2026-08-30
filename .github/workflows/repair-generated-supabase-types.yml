@@ -1,13 +1,58 @@
-name: Repair generated Supabase types (manual)
+name: Repair generated Supabase types (one-shot)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - hardening/system-crawl-round2-20260830
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  note:
+  repair:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - run: echo "Historical one-shot repair workflow retained as inert evidence; canonical generated types are enforced by ops-hardening.yml."
+      - uses: actions/checkout@v4
+        with:
+          ref: hardening/system-crawl-round2-20260830
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Regenerate canonical Supabase types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          supabase gen types typescript --local > supabase/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          GENERATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          node - "$GENERATED_HASH" "$GENERATED_AT" <<'NODE'
+          const fs = require('node:fs')
+          const [hash, generatedAt] = process.argv.slice(2)
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.sha256 = hash
+          manifest.generated_at = generatedAt
+          manifest.generated_with = 'supabase-cli-2.101.0-clean-replay'
+          manifest.generated_types = 'supabase/database.types.ts'
+          manifest.latest_migration = '20260830103610_manual_inbound_tenant_graph_trigger_contract.sql'
+          manifest.latest_migration_schema_effect = 'manual_inbound_tenant_graph_hardened_without_public_type_relationship_drift'
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
+          NODE
+          test "$GENERATED_HASH" = "$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
+          git diff --check
+          if git diff --quiet; then
+            echo 'Generated Supabase types are already canonical.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          git commit -m 'Regenerate canonical Supabase types'
+          git push origin HEAD:hardening/system-crawl-round2-20260830
