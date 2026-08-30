@@ -7,6 +7,7 @@ import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRu
 import { resolveEdielTestCenterIsolation } from '@/lib/ediel/testing/testCenterSafety'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
 import { importRawEdifactAndRunTestCenterChain } from '@/lib/ediel/testing/testCenterRawEdifactImport'
+import { materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import { supabaseService } from '@/lib/supabase/service'
 import { formatErrorMessage } from '@/lib/errors'
 
@@ -15,6 +16,14 @@ function stringValue(formData: FormData, key: string): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function scenarioValue(formData: FormData): TestCenterScenario {
+  const value = stringValue(formData, 'testScenario') ?? 'baseline'
+  if (!['baseline', 'duplicate', 'missing_values', 'correction', 'rebilling'].includes(value)) {
+    throw new Error('Ogiltigt Testcenter-scenario.')
+  }
+  return value as TestCenterScenario
 }
 
 async function rawEdifactFromForm(formData: FormData): Promise<{ raw: string; filename: string | null }> {
@@ -28,6 +37,12 @@ async function rawEdifactFromForm(formData: FormData): Promise<{ raw: string; fi
   }
   if (!pasted) throw new Error('Ladda upp en EDIFACT-fil eller klistra in EDIFACT-innehåll.')
   return { raw: pasted, filename: null }
+}
+
+function traceHref(input: { edielMessageId: string; billingMonth: string; billingUnderlayId?: string | null }) {
+  const query = new URLSearchParams({ billingMonth: input.billingMonth })
+  if (input.billingUnderlayId) query.set('underlayId', input.billingUnderlayId)
+  return `/admin/ediel/test-center/metering-to-invoice/trace/${encodeURIComponent(input.edielMessageId)}?${query.toString()}`
 }
 
 export async function prepareEdielTestCenterRunAction(formData: FormData) {
@@ -74,6 +89,7 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
 export async function importRawEdifactAndRunTestCenterAction(formData: FormData) {
   let status: 'success' | 'error' = 'success'
   let message = 'EDIFACT importerades och testkedjan kördes.'
+  let target: string | null = null
 
   try {
     const context = await requirePlatformAdminActionAccess()
@@ -84,18 +100,44 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
       throw new Error('Bolag, testkund och fakturamånad krävs.')
     }
     const source = await rawEdifactFromForm(formData)
-    const result = await importRawEdifactAndRunTestCenterChain({
-      actorUserId: context.userId,
-      companyId,
-      customerId,
-      billingMonth,
-      rawEdifact: source.raw,
-      filename: source.filename,
-    })
+    const scenario = scenarioValue(formData)
+    const plan = materializeTestCenterScenario(source.raw, scenario)
+    let lastResult: Awaited<ReturnType<typeof importRawEdifactAndRunTestCenterChain>> | null = null
+    let expectedBlock: string | null = null
 
-    message = result.runtime.billingUnderlayId
-      ? `EDIFACT verifierad och behandlad via canonical inbound. ${result.runtime.meteringValueIds.length} mätvärdesrader skapades, billing-underlag ${result.runtime.billingUnderlayId} och fakturautkast förbereddes i testmiljö. SHA256 ${result.sourceSha256.slice(0, 12)}…`
-      : `EDIFACT verifierad och behandlad via canonical inbound. ${result.runtime.meteringValueIds.length} mätvärdesrader skapades. Inget faktureringsunderlag skapades. SHA256 ${result.sourceSha256.slice(0, 12)}…`
+    for (const run of plan.runs) {
+      try {
+        lastResult = await importRawEdifactAndRunTestCenterChain({
+          actorUserId: context.userId,
+          companyId,
+          customerId,
+          billingMonth,
+          rawEdifact: run.rawEdifact,
+          filename: source.filename ? `${run.label}-${source.filename}` : `fixture-${scenario}-${run.label}.edi`,
+        })
+      } catch (error) {
+        if (run.expectation === 'blocked_missing_values') {
+          expectedBlock = formatErrorMessage(error, 'Missing-values-scenariot blockerades som väntat.')
+          break
+        }
+        throw error
+      }
+    }
+
+    if (expectedBlock && !lastResult) {
+      message = `Scenario ${scenario} verifierat: kedjan blockerade den deterministiskt ofullständiga UTILTS-filen. ${expectedBlock}`
+    } else if (lastResult) {
+      message = lastResult.runtime.billingUnderlayId
+        ? `Scenario ${scenario} kördes. ${lastResult.runtime.meteringValueIds.length} mätvärdesrader skapades, billing-underlag ${lastResult.runtime.billingUnderlayId} och fakturautkast förbereddes i testmiljö.`
+        : `Scenario ${scenario} kördes. ${lastResult.runtime.meteringValueIds.length} mätvärdesrader skapades utan billing-underlag.`
+      target = traceHref({
+        edielMessageId: lastResult.edielMessageId,
+        billingMonth,
+        billingUnderlayId: lastResult.runtime.billingUnderlayId,
+      })
+    } else {
+      throw new Error('Testcenter-scenariot gav inget verifierbart resultat.')
+    }
 
     revalidatePath('/admin/ediel/test-center')
     revalidatePath('/admin/ediel/test-center/metering-to-invoice')
@@ -106,12 +148,13 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
     message = formatErrorMessage(error, 'EDIFACT-importen eller testkedjan misslyckades.')
   }
 
-  redirect(`/admin/ediel/test-center/metering-to-invoice?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
+  redirect(target ?? `/admin/ediel/test-center/metering-to-invoice?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
 }
 
 export async function runTestCenterMeteringToInvoiceAction(formData: FormData) {
   let status: 'success' | 'error' = 'success'
   let message = 'Testkedjan kördes i isolerad testmiljö.'
+  let target: string | null = null
 
   try {
     const context = await requirePlatformAdminActionAccess()
@@ -135,6 +178,7 @@ export async function runTestCenterMeteringToInvoiceAction(formData: FormData) {
     message = result.billingUnderlayId
       ? `Testkedjan kördes: ${result.meteringValueIds.length} mätvärdesrader, billing-underlag ${result.billingUnderlayId} och fakturautkast förbereddes i testmiljö.`
       : `UTILTS behandlades i testmiljö och ${result.meteringValueIds.length} mätvärdesrader skapades. Inget faktureringsunderlag skapades för detta meddelande.`
+    target = traceHref({ edielMessageId, billingMonth, billingUnderlayId: result.billingUnderlayId })
 
     revalidatePath('/admin/ediel/test-center')
     revalidatePath('/admin/metering')
@@ -144,7 +188,7 @@ export async function runTestCenterMeteringToInvoiceAction(formData: FormData) {
     message = formatErrorMessage(error, 'Testkedjan kunde inte köras.')
   }
 
-  redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
+  redirect(target ?? `/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
 }
 
 export async function releaseEdielTestRunLockAction(formData: FormData) {
