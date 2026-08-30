@@ -8,6 +8,7 @@ SEED="$SUPABASE/seed.sql"
 LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HISTORY="$ROOT/scripts/migration-history-manifest.json"
 HISTORY_ADDITIONS="$ROOT/scripts/migration-history-manifest.additions.json"
+HISTORY_RUNTIME_ADDITIONS="$ROOT/scripts/migration-history-manifest.runtime.additions.json"
 FOUNDATION_PLAN="$ROOT/scripts/gridex-aud-003-legacy-foundation.json"
 FOUNDATION_ADDITIONS="$ROOT/scripts/gridex-aud-003-legacy-foundation.additions.json"
 FOUNDATION_ORDER="$ROOT/scripts/gridex-aud-003-foundation-order.json"
@@ -61,26 +62,28 @@ rm -f "$MIGRATIONS"/*.sql
 #    timestamped migration that consumes it; this reconciles live schema provenance without rewriting
 #    the already-applied 20260824140830 migration;
 # 7) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
-python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
+python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HISTORY_RUNTIME_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
 history_add_path=pathlib.Path(sys.argv[2])
-plan_path=pathlib.Path(sys.argv[3])
-plan_add_path=pathlib.Path(sys.argv[4])
-order_path=pathlib.Path(sys.argv[5])
-noncanonical_path=pathlib.Path(sys.argv[6])
-supabase=pathlib.Path(sys.argv[7])
-hold=pathlib.Path(sys.argv[8])
-foundation_out=pathlib.Path(sys.argv[9])
-timestamp_out=pathlib.Path(sys.argv[10])
+history_runtime_add_path=pathlib.Path(sys.argv[3])
+plan_path=pathlib.Path(sys.argv[4])
+plan_add_path=pathlib.Path(sys.argv[5])
+order_path=pathlib.Path(sys.argv[6])
+noncanonical_path=pathlib.Path(sys.argv[7])
+supabase=pathlib.Path(sys.argv[8])
+hold=pathlib.Path(sys.argv[9])
+foundation_out=pathlib.Path(sys.argv[10])
+timestamp_out=pathlib.Path(sys.argv[11])
 
 history=json.loads(history_path.read_text())
 history_add=json.loads(history_add_path.read_text()) if history_add_path.exists() else {'files':{}}
+history_runtime_add=json.loads(history_runtime_add_path.read_text()) if history_runtime_add_path.exists() else {'files':{}}
 plan=json.loads(plan_path.read_text())
 plan_add=json.loads(plan_add_path.read_text()) if plan_add_path.exists() else {'foundation':[],'derivedBootstrap':{},'interleaved':[]}
 order=json.loads(order_path.read_text())
 noncanonical=json.loads(noncanonical_path.read_text())
-checksums={**history.get('files',{}),**history_add.get('files',{})}
+checksums={**history.get('files',{}),**history_add.get('files',{}),**history_runtime_add.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 derived={**(plan.get('derivedBootstrap') or {}),**(plan_add.get('derivedBootstrap') or {})}
 declared=set([*(plan.get('foundation') or []),*(plan_add.get('foundation') or [])])
