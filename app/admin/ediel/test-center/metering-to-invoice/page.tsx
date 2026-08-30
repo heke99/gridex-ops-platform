@@ -98,7 +98,7 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
             Filen går först genom samma canonical EDIFACT-parser som ordinarie inbound. Innan något behandlas verifieras att det är UTILTS,
             att mätpunktsreferensen tillhör vald testkund och tenant, och att importen kan hållas i testmiljö. Därefter skapas ett test-inbound-envelope,
-            samma inbound-processor körs, och resultatet fortsätter genom canonical mätvärde → billing → fakturautkast.
+            samma inbound-processor körs, och resultatet fortsätter genom canonical mätvärde → billing → fakturautkast. Efter en lyckad körning öppnas en komplett trace-vy.
           </p>
 
           <form action={importRawEdifactAndRunTestCenterAction} className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -107,6 +107,18 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
             <label className="space-y-2 text-sm font-bold text-slate-800">
               <span>Fakturamånad</span>
               <input type="month" name="runtimeBillingMonth" required disabled={disabled} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium disabled:bg-slate-100" />
+            </label>
+
+            <label className="space-y-2 text-sm font-bold text-slate-800">
+              <span>Deterministiskt scenario</span>
+              <select name="testScenario" defaultValue="baseline" disabled={disabled} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium disabled:bg-slate-100">
+                <option value="baseline">Baseline · normal körning</option>
+                <option value="duplicate">Duplicate · exakt replay två gånger</option>
+                <option value="missing_values">Missing values · första QTY tas bort</option>
+                <option value="correction">Correction · baseline + deterministisk QTY-rättning</option>
+                <option value="rebilling">Rebilling · baseline + rättning + omkörning</option>
+              </select>
+              <span className="block text-xs font-medium leading-5 text-slate-500">Scenarierna muterar/replayar samma uppladdade UTILTS. De använder fortfarande samma canonical parser och runtime.</span>
             </label>
 
             <label className="space-y-2 text-sm font-bold text-slate-800">
@@ -127,7 +139,7 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
 
             <div className="lg:col-span-2 flex justify-end">
               <button disabled={disabled} className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400">
-                Importera och kör hela kedjan
+                Importera, kör och öppna trace
               </button>
             </div>
           </form>
@@ -162,19 +174,21 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
 
             <div className="flex items-end">
               <button disabled={disabled} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400">
-                Kör befintligt meddelande
+                Kör och öppna trace
               </button>
             </div>
           </form>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-7">
           {[
-            ['1', 'Raw EDIFACT', 'Fil/text hashad och test-scopad.'],
-            ['2', 'Canonical inbound', 'Samma parser, tenant-resolution och matchning som ordinarie inbound.'],
-            ['3', 'Mätvärden', 'Samma UTILTS-policy och persistence som produktion.'],
-            ['4', 'Pricing', 'Samma pricing core, snapshot och låsning som faktureringen.'],
-            ['5', 'Fakturautkast', 'Samma invoice-review builder, alltid environment=test och utan dispatch.'],
+            ['1', 'Originalfil', 'Råfil, SHA256 och segmentindex.'],
+            ['2', 'Canonical', 'Parsed payload och validation report.'],
+            ['3', 'Mätvärden', 'Normaliserade rader för vald månad.'],
+            ['4', 'Billing', 'Underlag, readiness och blockerare.'],
+            ['5', 'Pricing', 'Snapshot, run och pricing-rader.'],
+            ['6', 'Faktura', 'Export item och fakturautkast.'],
+            ['7', 'Provenance', 'ID-kedja tillbaka till originalfilen.'],
           ].map(([step, title, text]) => (
             <div key={step} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-xs font-black text-emerald-700">STEG {step}</div>
