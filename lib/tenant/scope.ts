@@ -74,14 +74,14 @@ function roleFromRpcRow(row: UserRoleRpcRow): string | null {
   return resolveRoleKey(row)
 }
 
-async function isPlatformAdminUser(userId: string): Promise<boolean> {
+const isPlatformAdminUser = cache(async function isPlatformAdminUser(userId: string): Promise<boolean> {
   const { data, error } = await supabaseService.rpc('gridex_get_user_roles', { p_user_id: userId })
   if (error || !Array.isArray(data)) return false
 
   return (data as UserRoleRpcRow[])
     .map(roleFromRpcRow)
     .some(isPlatformAdminRole)
-}
+})
 
 async function getSelectedMembershipCompany(
   memberships: CompanyMembershipSummary[]
