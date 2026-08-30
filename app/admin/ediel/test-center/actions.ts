@@ -6,6 +6,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
 import { resolveEdielTestCenterIsolation } from '@/lib/ediel/testing/testCenterSafety'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
+import { importRawEdifactAndRunTestCenterChain } from '@/lib/ediel/testing/testCenterRawEdifactImport'
 import { supabaseService } from '@/lib/supabase/service'
 import { formatErrorMessage } from '@/lib/errors'
 
@@ -14,6 +15,19 @@ function stringValue(formData: FormData, key: string): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+async function rawEdifactFromForm(formData: FormData): Promise<{ raw: string; filename: string | null }> {
+  const pasted = stringValue(formData, 'rawEdifact')
+  const file = formData.get('edifactFile')
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 2 * 1024 * 1024) throw new Error('EDIFACT-filen får vara högst 2 MB.')
+    const raw = (await file.text()).trim()
+    if (!raw) throw new Error('Den uppladdade EDIFACT-filen är tom.')
+    return { raw, filename: file.name || null }
+  }
+  if (!pasted) throw new Error('Ladda upp en EDIFACT-fil eller klistra in EDIFACT-innehåll.')
+  return { raw: pasted, filename: null }
 }
 
 export async function prepareEdielTestCenterRunAction(formData: FormData) {
@@ -55,6 +69,44 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     message = formatErrorMessage(error, 'Test-run kunde inte förberedas.')
   }
   redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
+}
+
+export async function importRawEdifactAndRunTestCenterAction(formData: FormData) {
+  let status: 'success' | 'error' = 'success'
+  let message = 'EDIFACT importerades och testkedjan kördes.'
+
+  try {
+    const context = await requirePlatformAdminActionAccess()
+    const companyId = stringValue(formData, 'runtimeCompanyId')
+    const customerId = stringValue(formData, 'runtimeCustomerId')
+    const billingMonth = stringValue(formData, 'runtimeBillingMonth')
+    if (!companyId || !customerId || !billingMonth) {
+      throw new Error('Bolag, testkund och fakturamånad krävs.')
+    }
+    const source = await rawEdifactFromForm(formData)
+    const result = await importRawEdifactAndRunTestCenterChain({
+      actorUserId: context.userId,
+      companyId,
+      customerId,
+      billingMonth,
+      rawEdifact: source.raw,
+      filename: source.filename,
+    })
+
+    message = result.runtime.billingUnderlayId
+      ? `EDIFACT verifierad och behandlad via canonical inbound. ${result.runtime.meteringValueIds.length} mätvärdesrader skapades, billing-underlag ${result.runtime.billingUnderlayId} och fakturautkast förbereddes i testmiljö. SHA256 ${result.sourceSha256.slice(0, 12)}…`
+      : `EDIFACT verifierad och behandlad via canonical inbound. ${result.runtime.meteringValueIds.length} mätvärdesrader skapades. Inget faktureringsunderlag skapades. SHA256 ${result.sourceSha256.slice(0, 12)}…`
+
+    revalidatePath('/admin/ediel/test-center')
+    revalidatePath('/admin/ediel/test-center/metering-to-invoice')
+    revalidatePath('/admin/metering')
+    revalidatePath('/admin/billing')
+  } catch (error) {
+    status = 'error'
+    message = formatErrorMessage(error, 'EDIFACT-importen eller testkedjan misslyckades.')
+  }
+
+  redirect(`/admin/ediel/test-center/metering-to-invoice?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
 }
 
 export async function runTestCenterMeteringToInvoiceAction(formData: FormData) {
