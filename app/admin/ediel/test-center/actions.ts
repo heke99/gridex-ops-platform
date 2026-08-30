@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
+import { resolveEdielTestCenterIsolation } from '@/lib/ediel/testing/testCenterSafety'
 import { supabaseService } from '@/lib/supabase/service'
 import { formatErrorMessage } from '@/lib/errors'
 
@@ -16,15 +17,17 @@ function stringValue(formData: FormData, key: string): string | null {
 
 export async function prepareEdielTestCenterRunAction(formData: FormData) {
   let status: 'success' | 'error' = 'success'
-  let message = 'Test-run förbereddes. Du kan fortsätta i AGT/Systemtester.'
+  let message = 'Test-run förbereddes i isolerad testmiljö. Du kan fortsätta i AGT/Systemtester.'
   try {
     const context = await requirePlatformAdminActionAccess()
     const companyId = stringValue(formData, 'companyId')
     const testSuite = stringValue(formData, 'testSuite') ?? 'PRODAT'
     const roleCode = stringValue(formData, 'roleCode')
     const testCaseCode = stringValue(formData, 'testCaseCode')
-    const environmentType = stringValue(formData, 'environmentType') ?? 'agt_test'
-    const environment = environmentType === 'production' ? 'production' : 'test'
+    const isolation = resolveEdielTestCenterIsolation({
+      environmentType: stringValue(formData, 'environmentType') ?? 'agt_test',
+      productionLike: formData.get('productionLike') === 'true',
+    })
     const encryptionMode = stringValue(formData, 'encryptionMode') ?? 'none'
 
     if (!companyId) throw new Error('Välj bolag/tenant.')
@@ -37,9 +40,9 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
       testSuite,
       roleCode,
       testCaseCode,
-      environment,
-      environmentType,
-      productionLike: formData.get('productionLike') === 'true',
+      environment: isolation.environment,
+      environmentType: isolation.environmentType,
+      productionLike: isolation.productionLike,
       encryptionMode,
     })
 
