@@ -97,7 +97,9 @@ export function buildCapwayInvoicePayload(input: {
 }): CapwayPutInvoice {
   const financingMode = input.financingMode ?? input.config.defaultFinancingMode
   const invoiceDate = input.invoiceDate ?? new Date().toISOString()
-  const paymentConditionDays = Math.max(20, input.paymentConditionDays ?? 20)
+  // Caller derives customer-type-specific terms before dueDate. Do not silently
+  // re-clamp B2B terms to 20 days after that dueDate has already been calculated.
+  const paymentConditionDays = Math.max(1, input.paymentConditionDays ?? 20)
   const dueDate = input.dueDate ?? new Date(Date.now() + paymentConditionDays * 86_400_000).toISOString()
   const name = customerName(input.customer)
   const { firstname, lastname } = splitName(name)

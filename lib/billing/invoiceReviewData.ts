@@ -74,7 +74,7 @@ function deriveStatus(input: { underlay: Row; item: Row | null; invoice: Row | n
   const itemStatus = text(input.item?.status)
   const invoiceStatus = text(input.invoice?.status)
   if (itemStatus === 'sent' || invoiceStatus === 'sent') return { status: 'sent', label: 'Skickad', blocker: null }
-  if (['failed', 'rejected', 'configuration_error', 'needs_review'].includes(itemStatus ?? '')) {
+  if (['failed', 'rejected', 'configuration_error', 'needs_review', 'failed_retryable'].includes(itemStatus ?? '')) {
     return {
       status: 'failed',
       label: 'Kräver åtgärd',
@@ -186,7 +186,7 @@ export async function listInvoiceReviewRows(input: {
       billingMonth: input.billingMonth,
       periodStart: text(underlay.billing_period_start),
       periodEnd: text(underlay.billing_period_end),
-      totalKwh: num(underlay.total_kwh),
+      totalKwh: num(item?.total_kwh) ?? num(invoice?.total_kwh) ?? num(invoice?.consumption_kwh) ?? num(underlay.total_kwh),
       amountIncVat: num(invoice?.amount_inc_vat) ?? num(item?.amount_inc_vat),
       priceArea: text(underlay.price_area) ?? text(contract?.price_area_used),
       contractType: text(contract?.contract_type),

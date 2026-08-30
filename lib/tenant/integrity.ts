@@ -134,6 +134,8 @@ export async function loadTenantIntegrityDashboard(): Promise<{
     supabaseService
       .from('tenant_integrity_latest_findings_v')
       .select('id, run_id, rule_key, company_id, entity_type, entity_id, severity, title, message, evidence, detected_at, category, enforcement_mode, description, remediation_hint, scope, audit_started_at, audit_finished_at')
+      .order('severity', { ascending: true })
+      .order('detected_at', { ascending: false })
       .limit(250),
     supabaseService
       .from('tenant_integrity_rule_registry')

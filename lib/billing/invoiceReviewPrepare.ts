@@ -74,6 +74,7 @@ async function loadExistingUnderlayIds(companyId: string, underlayIds: string[])
       .from('invoice_export_items')
       .select('billing_underlay_id')
       .eq('company_id', companyId)
+      .neq('status', 'cancelled')
       .in('billing_underlay_id', chunk)
     if (result.error) throw result.error
     for (const row of (result.data ?? []) as Row[]) {
@@ -226,7 +227,7 @@ async function createDraft(input: {
   if (!pricing.pricingRunId) throw new Error('Låst pricing_run saknas.')
   const snapshotId = text(input.underlay.contract_price_snapshot_id) ?? text(input.underlay.pricing_snapshot_id) ?? text(input.contract.contract_price_snapshot_id)
   const priceSnapshot = await loadPriceSnapshot(input.companyId, snapshotId)
-  if (!priceSnapshot && !snapshotId) throw new Error('Exakt kontraktsprissnapshot saknas.')
+  if (!priceSnapshot) throw new Error('Exakt kontraktsprissnapshot saknas.')
   const calculationSnapshot = buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth })
   const calculationHash = hash(calculationSnapshot)
   const customerNumber = await loadCustomerNumber(input.companyId, customerId)
@@ -373,8 +374,31 @@ async function createDraft(input: {
     .eq('invoice_export_item_id', itemId)
     .select('id')
     .maybeSingle()
-  if (invoiceUpdate.error) throw invoiceUpdate.error
-  if (!invoiceUpdate.data) throw new Error('Draftfakturan kunde inte verifieras efter skapande.')
+  if (invoiceUpdate.error || !invoiceUpdate.data) {
+    // Compensate incomplete reservation so prepare can retry instead of sticking forever.
+    await supabaseService
+      .from('invoice_export_items')
+      .update({
+        status: 'cancelled',
+        error_code: 'calculation_snapshot_enrichment_failed',
+        error_payload: { message: invoiceUpdate.error?.message ?? 'Draftfakturan kunde inte verifieras efter skapande.' },
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', itemId)
+      .then(() => null)
+    await supabaseService
+      .from('customer_invoices')
+      .update({
+        status: 'cancelled',
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('invoice_export_item_id', itemId)
+      .then(() => null)
+    if (invoiceUpdate.error) throw invoiceUpdate.error
+    throw new Error('Draftfakturan kunde inte verifieras efter skapande.')
+  }
 
   await emitDomainEvent({
     companyId: input.companyId,

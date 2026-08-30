@@ -357,7 +357,7 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   if (input.outboundRequestId) {
     let query = supabaseService
       .from("outbound_requests")
-      .select("id,company_id,grid_owner_id,metering_point_id,site_id,customer_site_id,supplier_switch_request_id,source_type,source_id")
+      .select("id,company_id,grid_owner_id,metering_point_id,site_id,customer_site_id,source_type,source_id")
       .eq("id", input.outboundRequestId);
     if (input.companyId) query = query.eq("company_id", input.companyId);
     const { data, error } = await query.maybeSingle();
@@ -368,7 +368,6 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
       metering_point_id?: string | null;
       site_id?: string | null;
       customer_site_id?: string | null;
-      supplier_switch_request_id?: string | null;
       source_type?: string | null;
       source_id?: string | null;
     } | null;
@@ -407,11 +406,19 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
       });
     }
 
-    if (row?.supplier_switch_request_id) {
+    if (row?.source_type === "supplier_switch_request" && row.source_id) {
       return resolveGridOwnerIdFromContext({
         ...input,
         outboundRequestId: null,
-        supplierSwitchRequestId: row.supplier_switch_request_id,
+        supplierSwitchRequestId: row.source_id,
+      });
+    }
+
+    if (row?.source_type === "grid_owner_data_request" && row.source_id) {
+      return resolveGridOwnerIdFromContext({
+        ...input,
+        outboundRequestId: null,
+        dataRequestId: row.source_id,
       });
     }
 
@@ -419,7 +426,7 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
       trace(
         "dynamic_receiver_context",
         "warning",
-        "Outbound-begäran saknar vald nätägare och kunde inte peka ut mätpunkt/anläggning.",
+        "Outbound-begäran saknar vald nätägare och kunde inte peka ut mätpunkt/anläggning eller canonical source-kedja.",
         { outboundRequestId: input.outboundRequestId },
       ),
     );
@@ -674,9 +681,7 @@ export async function resolveDynamicReceiver(
     trace: [
       ...context.trace,
       trace(
-        issues.length > 0
-          ? "dynamic_receiver_resolver"
-          : "dynamic_receiver_resolver",
+        "dynamic_receiver_resolver",
         issues.length > 0 ? "blocked" : "success",
         issues.length > 0
           ? "Vald nätägare kunde inte användas som mottagare."

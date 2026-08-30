@@ -53,8 +53,8 @@ export default async function TenantIntegrityPage() {
   const { companies, findings, rules, runs } = await loadTenantIntegrityDashboard()
   const companyNameById = new Map(companies.map((company) => [company.company_id, company.company_name || company.company_id]))
 
-  const critical = findings.filter((finding) => finding.severity === 'critical').length
-  const high = findings.filter((finding) => finding.severity === 'high').length
+  const critical = companies.reduce((total, company) => total + (company.critical_count ?? 0), 0)
+  const high = companies.reduce((total, company) => total + (company.high_count ?? 0), 0)
   const releaseGate = findings.filter((finding) => finding.enforcement_mode === 'release_gate').length
   const healthyCompanies = companies.filter((company) => company.integrity_status === 'healthy').length
 
