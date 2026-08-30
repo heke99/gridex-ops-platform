@@ -29,6 +29,12 @@ export type InvoiceReviewRow = {
   blocker: string | null
 }
 
+export type InvoiceReviewLifecycleStage =
+  | 'awaiting_invoice_projection'
+  | 'invoice_projected'
+  | 'approved'
+  | 'dispatched'
+
 type Row = Record<string, unknown>
 
 function text(value: unknown): string | null {
@@ -228,12 +234,22 @@ export async function getInvoiceReviewDetail(input: {
     supabaseService.from('billing_underlays').select('*').eq('company_id', input.companyId).eq('id', underlayId).single(),
     supabaseService.from('customers').select('*').eq('company_id', input.companyId).eq('id', customerId).single(),
     supabaseService.from('customer_contracts').select('*').eq('company_id', input.companyId).eq('id', contractId).single(),
-    supabaseService.from('customer_invoices').select('*').eq('company_id', input.companyId).eq('invoice_export_item_id', input.invoiceExportItemId).single(),
+    supabaseService.from('customer_invoices').select('*').eq('company_id', input.companyId).eq('invoice_export_item_id', input.invoiceExportItemId).maybeSingle(),
     supabaseService.from('pricing_runs').select('*').eq('company_id', input.companyId).eq('id', pricingRunId).single(),
     supabaseService.from('pricing_preview_lines').select('*').eq('company_id', input.companyId).eq('pricing_run_id', pricingRunId).order('sort_order', { ascending: true }),
   ])
   for (const result of [underlay, customer, contract, invoice, pricingRun, pricingLines]) if (result.error) throw result.error
   const underlayRow = underlay.data as Row
+  const invoiceRow = (invoice.data as Row | null) ?? null
+  const approval = objectValue(objectValue(item.metadata).approval)
+  const lifecycleStage: InvoiceReviewLifecycleStage =
+    text(item.status) === 'sent' || text(invoiceRow?.status) === 'sent'
+      ? 'dispatched'
+      : text(approval.status) === 'approved'
+        ? 'approved'
+        : invoiceRow
+          ? 'invoice_projected'
+          : 'awaiting_invoice_projection'
   const snapshotId = text(underlayRow.contract_price_snapshot_id) ?? text(underlayRow.pricing_snapshot_id)
   let priceSnapshot: Row | null = null
   if (snapshotId) {
@@ -246,10 +262,11 @@ export async function getInvoiceReviewDetail(input: {
     underlay: underlayRow,
     customer: customer.data as Row,
     contract: contract.data as Row,
-    invoice: invoice.data as Row,
+    invoice: invoiceRow,
+    lifecycleStage,
     pricingRun: pricingRun.data as Row,
     pricingLines: (pricingLines.data ?? []) as Row[],
     priceSnapshot,
-    approval: objectValue(objectValue(item.metadata).approval),
+    approval,
   }
 }
