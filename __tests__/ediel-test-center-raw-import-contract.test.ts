@@ -56,6 +56,7 @@ describe('Test Center raw EDIFACT import contract', () => {
     expect(actions).toContain('importRawEdifactAndRunTestCenterChain')
     expect(page).toContain('type="file"')
     expect(page).toContain('name="rawEdifact"')
-    expect(page).toContain('Importera och kör hela kedjan')
+    expect(page).toContain('name="testScenario"')
+    expect(page).toContain('Importera, kör och öppna trace')
   })
 })
