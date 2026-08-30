@@ -1,7 +1,7 @@
--- Compatibility replay for repositories that previously tracked this parity migration
--- at 20260830111000. The live database already contains the same schema under
--- 20260830091937; every operation remains idempotent so normal migration deploy can
--- safely converge history without rewriting an applied migration.
+-- Restore schema parity for the canonical manual inbound correlation engine.
+-- The runtime already persists raw mail first and then enriches the row with
+-- tenant/entity correlation. Keep all additions nullable/backward-compatible so
+-- existing raw messages remain valid while current workers can safely enrich them.
 
 alter table public.manual_inbound_messages
   add column if not exists mailbox_company_id uuid,
@@ -38,22 +38,48 @@ create index if not exists manual_inbound_messages_grid_owner_idx
   on public.manual_inbound_messages (grid_owner_id, received_at desc)
   where grid_owner_id is not null;
 
+-- Raw inbound rows may exist before tenant/entity resolution, therefore these
+-- references are intentionally nullable and use SET NULL on lifecycle cleanup.
 do $$
 begin
-  if not exists (select 1 from pg_constraint where conname = 'manual_inbound_messages_mailbox_company_id_fkey') then
-    alter table public.manual_inbound_messages add constraint manual_inbound_messages_mailbox_company_id_fkey foreign key (mailbox_company_id) references public.companies(id) on delete set null;
+  if not exists (
+    select 1 from pg_constraint where conname = 'manual_inbound_messages_mailbox_company_id_fkey'
+  ) then
+    alter table public.manual_inbound_messages
+      add constraint manual_inbound_messages_mailbox_company_id_fkey
+      foreign key (mailbox_company_id) references public.companies(id) on delete set null;
   end if;
-  if not exists (select 1 from pg_constraint where conname = 'manual_inbound_messages_grid_owner_id_fkey') then
-    alter table public.manual_inbound_messages add constraint manual_inbound_messages_grid_owner_id_fkey foreign key (grid_owner_id) references public.grid_owners(id) on delete set null;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'manual_inbound_messages_grid_owner_id_fkey'
+  ) then
+    alter table public.manual_inbound_messages
+      add constraint manual_inbound_messages_grid_owner_id_fkey
+      foreign key (grid_owner_id) references public.grid_owners(id) on delete set null;
   end if;
-  if not exists (select 1 from pg_constraint where conname = 'manual_inbound_messages_customer_id_fkey') then
-    alter table public.manual_inbound_messages add constraint manual_inbound_messages_customer_id_fkey foreign key (customer_id) references public.customers(id) on delete set null;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'manual_inbound_messages_customer_id_fkey'
+  ) then
+    alter table public.manual_inbound_messages
+      add constraint manual_inbound_messages_customer_id_fkey
+      foreign key (customer_id) references public.customers(id) on delete set null;
   end if;
-  if not exists (select 1 from pg_constraint where conname = 'manual_inbound_messages_customer_site_id_fkey') then
-    alter table public.manual_inbound_messages add constraint manual_inbound_messages_customer_site_id_fkey foreign key (customer_site_id) references public.customer_sites(id) on delete set null;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'manual_inbound_messages_customer_site_id_fkey'
+  ) then
+    alter table public.manual_inbound_messages
+      add constraint manual_inbound_messages_customer_site_id_fkey
+      foreign key (customer_site_id) references public.customer_sites(id) on delete set null;
   end if;
-  if not exists (select 1 from pg_constraint where conname = 'manual_inbound_messages_metering_point_id_fkey') then
-    alter table public.manual_inbound_messages add constraint manual_inbound_messages_metering_point_id_fkey foreign key (metering_point_id) references public.metering_points(id) on delete set null;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'manual_inbound_messages_metering_point_id_fkey'
+  ) then
+    alter table public.manual_inbound_messages
+      add constraint manual_inbound_messages_metering_point_id_fkey
+      foreign key (metering_point_id) references public.metering_points(id) on delete set null;
   end if;
 end
 $$;
