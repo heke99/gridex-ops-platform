@@ -16,6 +16,16 @@ describe('Operations Autopilot phase 5 — tenant support', () => {
     expect(source).not.toContain("from('tenant_support_cases')")
   })
 
+  it('binds optional site and metering-point references to the exact tenant/customer graph', () => {
+    const source = read('lib/customer-cases/support.ts')
+    expect(source).toContain('assertSupportGraph')
+    expect(source).toContain(".from('customer_sites')")
+    expect(source).toContain(".from('metering_points')")
+    expect(source).toContain("support_site_not_found_in_customer_graph")
+    expect(source).toContain("support_metering_point_not_found_in_customer_graph")
+    expect(source).toContain("query = query.eq('customer_site_id', input.siteId)")
+  })
+
   it('routes already-published customer event APIs into canonical support instead of exposing a parallel endpoint', () => {
     for (const path of ['app/api/v1/events/route.ts', 'app/api/v1/website/customer-events/route.ts']) {
       const source = read(path)
