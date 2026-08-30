@@ -135,6 +135,13 @@ async function loadByIds(input: {
   return rows
 }
 
+function activeInvoiceItemByUnderlay(items: Row[]): Map<string, Row> {
+  const active = items
+    .filter((row) => text(row.status) !== 'cancelled')
+    .sort((a, b) => (text(a.created_at) ?? '').localeCompare(text(b.created_at) ?? ''))
+  return new Map(active.map((row) => [text(row.billing_underlay_id) ?? '', row]))
+}
+
 export async function listInvoiceReviewRows(input: {
   companyId: string
   billingMonth: string
@@ -143,16 +150,17 @@ export async function listInvoiceReviewRows(input: {
   const underlayIds = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const items = await loadByIds({
     table: 'invoice_export_items',
-    select: 'id,billing_underlay_id,customer_id,status,amount_inc_vat,metadata,error_payload,export_run_id',
+    select: 'id,billing_underlay_id,customer_id,status,total_kwh,amount_inc_vat,metadata,error_payload,export_run_id,created_at',
     companyId: input.companyId,
     column: 'billing_underlay_id',
     ids: underlayIds,
   })
-  const itemByUnderlay = new Map(items.map((row) => [text(row.billing_underlay_id) ?? '', row]))
-  const itemIds = items.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
+  const itemByUnderlay = activeInvoiceItemByUnderlay(items)
+  const activeItems = Array.from(itemByUnderlay.values())
+  const itemIds = activeItems.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const invoices = await loadByIds({
     table: 'customer_invoices',
-    select: 'id,invoice_export_item_id,status,amount_inc_vat',
+    select: 'id,invoice_export_item_id,status,total_kwh,consumption_kwh,amount_inc_vat',
     companyId: input.companyId,
     column: 'invoice_export_item_id',
     ids: itemIds,
