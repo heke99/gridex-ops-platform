@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
 import { resolveEdielTestCenterIsolation } from '@/lib/ediel/testing/testCenterSafety'
+import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
 import { supabaseService } from '@/lib/supabase/service'
 import { formatErrorMessage } from '@/lib/errors'
 
@@ -53,6 +54,44 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     status = 'error'
     message = formatErrorMessage(error, 'Test-run kunde inte förberedas.')
   }
+  redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
+}
+
+export async function runTestCenterMeteringToInvoiceAction(formData: FormData) {
+  let status: 'success' | 'error' = 'success'
+  let message = 'Testkedjan kördes i isolerad testmiljö.'
+
+  try {
+    const context = await requirePlatformAdminActionAccess()
+    const companyId = stringValue(formData, 'runtimeCompanyId')
+    const customerId = stringValue(formData, 'runtimeCustomerId')
+    const edielMessageId = stringValue(formData, 'runtimeEdielMessageId')
+    const billingMonth = stringValue(formData, 'runtimeBillingMonth')
+
+    if (!companyId || !customerId || !edielMessageId || !billingMonth) {
+      throw new Error('Bolag, testkund, Ediel-meddelande och fakturamånad krävs.')
+    }
+
+    const result = await runTestCenterMeteringToInvoiceChain({
+      actorUserId: context.userId,
+      companyId,
+      customerId,
+      edielMessageId,
+      billingMonth,
+    })
+
+    message = result.billingUnderlayId
+      ? `Testkedjan kördes: ${result.meteringValueIds.length} mätvärdesrader, billing-underlag ${result.billingUnderlayId} och fakturautkast förbereddes i testmiljö.`
+      : `UTILTS behandlades i testmiljö och ${result.meteringValueIds.length} mätvärdesrader skapades. Inget faktureringsunderlag skapades för detta meddelande.`
+
+    revalidatePath('/admin/ediel/test-center')
+    revalidatePath('/admin/metering')
+    revalidatePath('/admin/billing')
+  } catch (error) {
+    status = 'error'
+    message = formatErrorMessage(error, 'Testkedjan kunde inte köras.')
+  }
+
   redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
 }
 
