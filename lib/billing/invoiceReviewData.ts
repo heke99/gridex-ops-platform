@@ -79,7 +79,9 @@ function deriveStatus(input: { underlay: Row; item: Row | null; invoice: Row | n
 } {
   const itemStatus = text(input.item?.status)
   const invoiceStatus = text(input.invoice?.status)
-  if (itemStatus === 'sent' || invoiceStatus === 'sent') return { status: 'sent', label: 'Skickad', blocker: null }
+  if (input.invoice && (itemStatus === 'sent' || invoiceStatus === 'sent')) {
+    return { status: 'sent', label: 'Skickad', blocker: null }
+  }
   if (['failed', 'rejected', 'configuration_error', 'needs_review', 'failed_retryable'].includes(itemStatus ?? '')) {
     return {
       status: 'failed',
@@ -87,14 +89,21 @@ function deriveStatus(input: { underlay: Row; item: Row | null; invoice: Row | n
       blocker: text(objectValue(input.item?.error_payload).message) ?? text(input.underlay.billing_block_reason) ?? 'Fakturaexporten kräver åtgärd.',
     }
   }
-  if (approvalStatus(input.item?.metadata) === 'approved') return { status: 'approved', label: 'Godkänd', blocker: null }
-  if (itemStatus === 'pending') return { status: 'ready_for_review', label: 'Klar för granskning', blocker: null }
   const blockReason = text(input.underlay.billing_block_reason)
   if ((num(input.underlay.missing_values_count) ?? 0) > 0 || blockReason === 'missing_meter_values') {
     return { status: 'missing_meter_values', label: 'Saknar mätvärden', blocker: 'Kompletta mätvärden saknas för fakturaperioden.' }
   }
   if (input.underlay.status !== 'validated' || input.underlay.readiness_status !== 'ready') {
     return { status: 'blocked', label: 'Flaggad', blocker: blockReason ?? 'Faktureringsunderlaget är inte klart.' }
+  }
+  if (input.item && !input.invoice) {
+    return { status: 'preparing', label: 'Faktura projiceras', blocker: null }
+  }
+  if (input.invoice && approvalStatus(input.item?.metadata) === 'approved') {
+    return { status: 'approved', label: 'Godkänd', blocker: null }
+  }
+  if (input.invoice && itemStatus === 'pending') {
+    return { status: 'ready_for_review', label: 'Klar för granskning', blocker: null }
   }
   return { status: 'preparing', label: 'Förbereds', blocker: null }
 }
@@ -242,14 +251,13 @@ export async function getInvoiceReviewDetail(input: {
   const underlayRow = underlay.data as Row
   const invoiceRow = (invoice.data as Row | null) ?? null
   const approval = objectValue(objectValue(item.metadata).approval)
-  const lifecycleStage: InvoiceReviewLifecycleStage =
-    text(item.status) === 'sent' || text(invoiceRow?.status) === 'sent'
+  const lifecycleStage: InvoiceReviewLifecycleStage = !invoiceRow
+    ? 'awaiting_invoice_projection'
+    : text(item.status) === 'sent' || text(invoiceRow.status) === 'sent'
       ? 'dispatched'
       : text(approval.status) === 'approved'
         ? 'approved'
-        : invoiceRow
-          ? 'invoice_projected'
-          : 'awaiting_invoice_projection'
+        : 'invoice_projected'
   const snapshotId = text(underlayRow.contract_price_snapshot_id) ?? text(underlayRow.pricing_snapshot_id)
   let priceSnapshot: Row | null = null
   if (snapshotId) {
