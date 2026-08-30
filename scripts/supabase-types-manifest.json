@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "10be45a4f7b6f0a6bcf0d67997132d262aefe4ba2724dace291d11004a47307d",
-  "latest_migration": "20260830103610_manual_inbound_tenant_graph_trigger_contract.sql",
-  "latest_migration_schema_effect": "manual_inbound_tenant_graph_hardened_without_public_type_relationship_drift"
+  "latest_migration": "20260830144914_validate_ediel_active_binding_constraint.sql",
+  "latest_migration_schema_effect": "validate_existing_ediel_active_binding_check_without_public_type_drift"
 }
