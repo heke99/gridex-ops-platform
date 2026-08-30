@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "3cc9a7c47857a46783ab6bfd17989aea9d9ebdcd2b068069b27ed0f7f897fa2d",
-  "latest_migration": "20260830111000_manual_inbound_canonical_correlation_parity.sql",
-  "latest_migration_schema_effect": "schema_parity_only_live_generated_types_already_include_manual_inbound_correlation_columns"
+  "latest_migration": "20260830103610_manual_inbound_tenant_graph_trigger_contract.sql",
+  "latest_migration_schema_effect": "manual_inbound_tenant_graph_hardened_without_public_type_relationship_drift"
 }
