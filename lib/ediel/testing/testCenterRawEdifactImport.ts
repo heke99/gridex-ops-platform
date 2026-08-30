@@ -24,6 +24,7 @@ export type TestCenterRawImportResult = {
   parsed: ParsedEdifactEnvelope
   runtime: Awaited<ReturnType<typeof runTestCenterMeteringToInvoiceChain>>
   sourceSha256: string
+  reusedInboundEnvelope: boolean
 }
 
 function required(value: string, label: string) {
@@ -91,13 +92,37 @@ async function assertSelectedCustomerMeteringPoint(input: {
   }
 }
 
-async function createTestInboundEnvelope(input: {
+async function findExistingTestInboundEnvelope(input: {
+  companyId: string
+  rawEdifact: string
+}): Promise<string | null> {
+  const result = await supabaseService
+    .from('inbound_email_messages')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('environment', 'test')
+    .eq('raw_edifact_payload', input.rawEdifact)
+    .eq('match_status', 'test_center_raw_import')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (result.error) throw result.error
+  return result.data?.id ? String(result.data.id) : null
+}
+
+async function getOrCreateTestInboundEnvelope(input: {
   companyId: string
   actorUserId: string
   rawEdifact: string
   filename: string | null
   sourceSha256: string
-}) {
+}): Promise<{ id: string; reused: boolean }> {
+  const existing = await findExistingTestInboundEnvelope({
+    companyId: input.companyId,
+    rawEdifact: input.rawEdifact,
+  })
+  if (existing) return { id: existing, reused: true }
+
   const id = randomUUID()
   const now = new Date().toISOString()
   const result = await supabaseService.from('inbound_email_messages').insert({
@@ -120,7 +145,7 @@ async function createTestInboundEnvelope(input: {
   }).select('id').single()
 
   if (result.error) throw result.error
-  return String(result.data.id)
+  return { id: String(result.data.id), reused: false }
 }
 
 async function resolveCreatedInboundEdielMessage(input: {
@@ -159,7 +184,7 @@ export async function importRawEdifactAndRunTestCenterChain(
   await assertSelectedCustomerMeteringPoint({ companyId, customerId, parsed })
 
   const sourceSha256 = createHash('sha256').update(rawEdifact).digest('hex')
-  const inboundEmailMessageId = await createTestInboundEnvelope({
+  const envelope = await getOrCreateTestInboundEnvelope({
     companyId,
     actorUserId,
     rawEdifact,
@@ -167,7 +192,7 @@ export async function importRawEdifactAndRunTestCenterChain(
     sourceSha256,
   })
 
-  const inbound = await processInboundEmailMessage({ inboundEmailMessageId, actorUserId })
+  const inbound = await processInboundEmailMessage({ inboundEmailMessageId: envelope.id, actorUserId })
   if (inbound.companyId !== companyId) {
     throw new Error('Canonical inbound-resolvern gav annan tenant än vald Test Center-tenant.')
   }
@@ -175,7 +200,7 @@ export async function importRawEdifactAndRunTestCenterChain(
   const edielMessageId = await resolveCreatedInboundEdielMessage({
     companyId,
     customerId,
-    inboundEmailMessageId,
+    inboundEmailMessageId: envelope.id,
   })
 
   const runtime = await runTestCenterMeteringToInvoiceChain({
@@ -187,11 +212,12 @@ export async function importRawEdifactAndRunTestCenterChain(
   })
 
   return {
-    inboundEmailMessageId,
+    inboundEmailMessageId: envelope.id,
     edielMessageId,
     parseResultId: inbound.parseResultId,
     parsed,
     runtime,
     sourceSha256,
+    reusedInboundEnvelope: envelope.reused,
   }
 }
