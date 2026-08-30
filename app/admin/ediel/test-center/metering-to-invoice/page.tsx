@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
-import { supabaseService } from '@/lib/supabase/service'
+import { loadTestCenterRuntimeOptions } from '@/lib/ediel/testing/testCenterRuntimeReadModel'
 import { runTestCenterMeteringToInvoiceAction } from '@/app/admin/ediel/test-center/actions'
 
 export const dynamic = 'force-dynamic'
@@ -10,43 +10,11 @@ type PageProps = {
   searchParams?: Promise<{ runStatus?: string; runMessage?: string }>
 }
 
-type CompanyRow = { id: string; name?: string | null }
-type CustomerRow = { id: string; company_id?: string | null; customer_number?: string | null }
-type MessageRow = {
-  id: string
-  company_id?: string | null
-  customer_id?: string | null
-  message_code?: string | null
-  status?: string | null
-  created_at?: string | null
-}
-
 export default async function MeteringToInvoiceTestCenterPage({ searchParams }: PageProps) {
   const context = await requirePlatformAdminAccess()
   const params = await searchParams
   const runStatus = params?.runStatus === 'success' ? 'success' : params?.runStatus === 'error' ? 'error' : null
-
-  const [companiesResult, customersResult, messagesResult] = await Promise.all([
-    supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(100),
-    supabaseService
-      .from('customers')
-      .select('id,company_id,customer_number')
-      .order('created_at', { ascending: false })
-      .limit(300),
-    supabaseService
-      .from('ediel_messages')
-      .select('id,company_id,customer_id,message_code,status,created_at')
-      .eq('environment', 'test')
-      .eq('direction', 'inbound')
-      .eq('message_family', 'UTILTS')
-      .not('customer_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(300),
-  ])
-
-  const companies = (companiesResult.data ?? []) as CompanyRow[]
-  const customers = (customersResult.data ?? []) as CustomerRow[]
-  const messages = (messagesResult.data ?? []) as MessageRow[]
+  const { companies, customers, messages, error } = await loadTestCenterRuntimeOptions()
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -86,7 +54,7 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
             Backend verifierar tenant, kund, riktning, meddelandefamilj och miljö innan mätvärdesingest. Fakturautkast skapas alltid med billing environment=test och skickas aldrig härifrån.
           </p>
 
-          {(companiesResult.error || customersResult.error || messagesResult.error) ? (
+          {error ? (
             <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900">
               Testdata kunde inte laddas komplett. Kör inte kedjan förrän listorna kan läsas utan databasfel.
             </div>
@@ -95,7 +63,7 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
           <form action={runTestCenterMeteringToInvoiceAction} className="mt-6 grid gap-4 lg:grid-cols-2">
             <label className="space-y-2 text-sm font-bold text-slate-800">
               <span>Bolag / tenant</span>
-              <select name="runtimeCompanyId" required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium">
+              <select name="runtimeCompanyId" required disabled={Boolean(error)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium disabled:bg-slate-100">
                 <option value="">Välj bolag</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>{company.name ?? company.id}</option>
@@ -105,7 +73,7 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
 
             <label className="space-y-2 text-sm font-bold text-slate-800">
               <span>Testkund</span>
-              <select name="runtimeCustomerId" required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium">
+              <select name="runtimeCustomerId" required disabled={Boolean(error)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium disabled:bg-slate-100">
                 <option value="">Välj kund</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
@@ -117,7 +85,7 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
 
             <label className="space-y-2 text-sm font-bold text-slate-800 lg:col-span-2">
               <span>Inkommande test-UTILTS</span>
-              <select name="runtimeEdielMessageId" required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium">
+              <select name="runtimeEdielMessageId" required disabled={Boolean(error)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium disabled:bg-slate-100">
                 <option value="">Välj testmeddelande</option>
                 {messages.map((message) => (
                   <option key={message.id} value={message.id}>
@@ -133,12 +101,13 @@ export default async function MeteringToInvoiceTestCenterPage({ searchParams }: 
                 type="month"
                 name="runtimeBillingMonth"
                 required
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium"
+                disabled={Boolean(error)}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-medium disabled:bg-slate-100"
               />
             </label>
 
             <div className="flex items-end">
-              <button className="w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
+              <button disabled={Boolean(error)} className="w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400">
                 Kör mätvärde → faktura
               </button>
             </div>
