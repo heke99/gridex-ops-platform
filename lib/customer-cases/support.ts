@@ -33,15 +33,45 @@ function supportPriority(value: unknown): CustomerCasePriority {
     : 'normal'
 }
 
-async function assertCustomerScope(input: { companyId: string; customerId: string }) {
-  const { data, error } = await supabaseService
+async function assertSupportGraph(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+}) {
+  const { data: customer, error: customerError } = await supabaseService
     .from('customers')
     .select('id,company_id')
     .eq('id', input.customerId)
     .eq('company_id', input.companyId)
     .maybeSingle()
-  if (error) throw error
-  if (!data?.id) throw new Error('support_customer_not_found_in_tenant')
+  if (customerError) throw customerError
+  if (!customer?.id) throw new Error('support_customer_not_found_in_tenant')
+
+  if (input.siteId) {
+    const { data: site, error: siteError } = await supabaseService
+      .from('customer_sites')
+      .select('id,company_id,customer_id')
+      .eq('id', input.siteId)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .maybeSingle()
+    if (siteError) throw siteError
+    if (!site?.id) throw new Error('support_site_not_found_in_customer_graph')
+  }
+
+  if (input.meteringPointId) {
+    let query = supabaseService
+      .from('metering_points')
+      .select('id,company_id,customer_id,customer_site_id')
+      .eq('id', input.meteringPointId)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+    if (input.siteId) query = query.eq('customer_site_id', input.siteId)
+    const { data: meteringPoint, error: meteringPointError } = await query.maybeSingle()
+    if (meteringPointError) throw meteringPointError
+    if (!meteringPoint?.id) throw new Error('support_metering_point_not_found_in_customer_graph')
+  }
 }
 
 async function findIdempotentSupportCase(input: {
@@ -84,7 +114,12 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
   const category = text(input.category, 120) ?? 'support'
   const idempotencyKey = text(input.idempotencyKey, 200)
 
-  await assertCustomerScope({ companyId: input.companyId, customerId: input.customerId })
+  await assertSupportGraph({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId ?? null,
+  })
 
   if (idempotencyKey) {
     const existing = await findIdempotentSupportCase({ companyId: input.companyId, customerId: input.customerId, idempotencyKey })

@@ -50,12 +50,14 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
   const companyId = scope?.companyId ?? null
   if (!companyId) throw new Error('Välj en tenant innan fakturan granskas.')
   const detail = await getInvoiceReviewDetail({ companyId, invoiceExportItemId: id })
-  const calculation = detail.invoice.calculation_snapshot && typeof detail.invoice.calculation_snapshot === 'object' && !Array.isArray(detail.invoice.calculation_snapshot)
-    ? detail.invoice.calculation_snapshot as Row
+  const invoice: Row = detail.invoice ?? {}
+  const calculation = invoice.calculation_snapshot && typeof invoice.calculation_snapshot === 'object' && !Array.isArray(invoice.calculation_snapshot)
+    ? invoice.calculation_snapshot as Row
     : {}
   const approvalStatus = text(detail.approval.status) ?? 'pending_review'
   const billingMonth = text(calculation.billing_month) ?? text(detail.item.period_start)?.slice(0, 7) ?? ''
-  const priceArea = text(detail.invoice.price_area_code) ?? text(detail.underlay.price_area) ?? text(detail.contract.price_area_used)
+  const priceArea = text(invoice.price_area_code) ?? text(detail.underlay.price_area) ?? text(detail.contract.price_area_used)
+  const awaitingProjection = detail.lifecycleStage === 'awaiting_invoice_projection'
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -70,9 +72,18 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
             ← Till fakturor
           </Link>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-            {detail.item.status === 'sent' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
+            {awaitingProjection ? 'Faktura projiceras' : detail.lifecycleStage === 'dispatched' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
           </span>
         </div>
+
+        {awaitingProjection ? (
+          <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950 shadow-sm">
+            <h2 className="font-semibold">Fakturaprojektion pågår</h2>
+            <p className="mt-1 text-sky-800">
+              Faktureringsunderlaget och exportposten finns, men den kanoniska fakturaraden har ännu inte skapats. Du kan granska underlaget nedan; utskicks- och fakturafält visas när projektionen är klar.
+            </p>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
@@ -123,9 +134,9 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
               <tfoot className="border-t border-slate-200 bg-slate-50 font-semibold text-slate-950">
                 <tr>
                   <td className="px-5 py-4" colSpan={3}>Totalt</td>
-                  <td className="px-4 py-4 text-right tabular-nums">{money(detail.invoice.amount_ex_vat)}</td>
-                  <td className="px-4 py-4 text-right tabular-nums">{money(detail.invoice.vat_amount)}</td>
-                  <td className="px-5 py-4 text-right tabular-nums">{money(detail.invoice.amount_inc_vat)}</td>
+                  <td className="px-4 py-4 text-right tabular-nums">{money(invoice.amount_ex_vat)}</td>
+                  <td className="px-4 py-4 text-right tabular-nums">{money(invoice.vat_amount)}</td>
+                  <td className="px-5 py-4 text-right tabular-nums">{money(invoice.amount_inc_vat ?? detail.item.amount_inc_vat)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -143,7 +154,7 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
                 ['Pricing run', text(detail.pricingRun.id) ?? '—'],
                 ['Prissnapshot', text(calculation.contract_price_snapshot_id) ?? text(detail.priceSnapshot?.id) ?? '—'],
                 ['Snapshot-hash', text(calculation.contract_price_snapshot_hash) ?? '—'],
-                ['Beräkningshash', text(detail.invoice.calculation_snapshot_sha256) ?? '—'],
+                ['Beräkningshash', text(invoice.calculation_snapshot_sha256) ?? (awaitingProjection ? 'Skapas vid projektion' : '—')],
                 ['Status pricing', text(detail.pricingRun.status) ?? '—'],
               ].map(([label, value]) => (
                 <div key={label}>
@@ -156,11 +167,14 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="font-semibold text-slate-950">Utskick</h2>
+            {awaitingProjection ? (
+              <p className="mt-3 text-sm text-slate-600">Utskicksfält aktiveras först när den kanoniska fakturaraden har projicerats.</p>
+            ) : null}
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               {[
-                ['Fakturareferens', text(detail.invoice.invoice_reference) ?? '—'],
-                ['Partner-ID', text(detail.item.provider_invoice_guid) ?? text(detail.invoice.partner_invoice_reference) ?? 'Ej skickad'],
-                ['Förfallodatum', text(detail.invoice.due_date) ?? 'Skapas vid utskick'],
+                ['Fakturareferens', text(invoice.invoice_reference) ?? (awaitingProjection ? 'Inväntar projektion' : '—')],
+                ['Partner-ID', text(detail.item.provider_invoice_guid) ?? text(invoice.partner_invoice_reference) ?? 'Ej skickad'],
+                ['Förfallodatum', text(invoice.due_date) ?? 'Skapas vid utskick'],
                 ['Godkänd av', text(detail.approval.approved_by) ?? 'Ej godkänd'],
                 ['Godkänd', text(detail.approval.approved_at) ?? '—'],
                 ['Review-hash', text(detail.approval.review_hash) ?? '—'],

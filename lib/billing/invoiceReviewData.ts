@@ -29,6 +29,12 @@ export type InvoiceReviewRow = {
   blocker: string | null
 }
 
+export type InvoiceReviewLifecycleStage =
+  | 'awaiting_invoice_projection'
+  | 'invoice_projected'
+  | 'approved'
+  | 'dispatched'
+
 type Row = Record<string, unknown>
 
 function text(value: unknown): string | null {
@@ -73,7 +79,9 @@ function deriveStatus(input: { underlay: Row; item: Row | null; invoice: Row | n
 } {
   const itemStatus = text(input.item?.status)
   const invoiceStatus = text(input.invoice?.status)
-  if (itemStatus === 'sent' || invoiceStatus === 'sent') return { status: 'sent', label: 'Skickad', blocker: null }
+  if (input.invoice && (itemStatus === 'sent' || invoiceStatus === 'sent')) {
+    return { status: 'sent', label: 'Skickad', blocker: null }
+  }
   if (['failed', 'rejected', 'configuration_error', 'needs_review', 'failed_retryable'].includes(itemStatus ?? '')) {
     return {
       status: 'failed',
@@ -81,14 +89,21 @@ function deriveStatus(input: { underlay: Row; item: Row | null; invoice: Row | n
       blocker: text(objectValue(input.item?.error_payload).message) ?? text(input.underlay.billing_block_reason) ?? 'Fakturaexporten kräver åtgärd.',
     }
   }
-  if (approvalStatus(input.item?.metadata) === 'approved') return { status: 'approved', label: 'Godkänd', blocker: null }
-  if (itemStatus === 'pending') return { status: 'ready_for_review', label: 'Klar för granskning', blocker: null }
   const blockReason = text(input.underlay.billing_block_reason)
   if ((num(input.underlay.missing_values_count) ?? 0) > 0 || blockReason === 'missing_meter_values') {
     return { status: 'missing_meter_values', label: 'Saknar mätvärden', blocker: 'Kompletta mätvärden saknas för fakturaperioden.' }
   }
   if (input.underlay.status !== 'validated' || input.underlay.readiness_status !== 'ready') {
     return { status: 'blocked', label: 'Flaggad', blocker: blockReason ?? 'Faktureringsunderlaget är inte klart.' }
+  }
+  if (input.item && !input.invoice) {
+    return { status: 'preparing', label: 'Faktura projiceras', blocker: null }
+  }
+  if (input.invoice && approvalStatus(input.item?.metadata) === 'approved') {
+    return { status: 'approved', label: 'Godkänd', blocker: null }
+  }
+  if (input.invoice && itemStatus === 'pending') {
+    return { status: 'ready_for_review', label: 'Klar för granskning', blocker: null }
   }
   return { status: 'preparing', label: 'Förbereds', blocker: null }
 }
@@ -135,6 +150,13 @@ async function loadByIds(input: {
   return rows
 }
 
+function activeInvoiceItemByUnderlay(items: Row[]): Map<string, Row> {
+  const active = items
+    .filter((row) => text(row.status) !== 'cancelled')
+    .sort((a, b) => (text(a.created_at) ?? '').localeCompare(text(b.created_at) ?? ''))
+  return new Map(active.map((row) => [text(row.billing_underlay_id) ?? '', row]))
+}
+
 export async function listInvoiceReviewRows(input: {
   companyId: string
   billingMonth: string
@@ -143,16 +165,17 @@ export async function listInvoiceReviewRows(input: {
   const underlayIds = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const items = await loadByIds({
     table: 'invoice_export_items',
-    select: 'id,billing_underlay_id,customer_id,status,amount_inc_vat,metadata,error_payload,export_run_id',
+    select: 'id,billing_underlay_id,customer_id,status,total_kwh,amount_inc_vat,metadata,error_payload,export_run_id,created_at',
     companyId: input.companyId,
     column: 'billing_underlay_id',
     ids: underlayIds,
   })
-  const itemByUnderlay = new Map(items.map((row) => [text(row.billing_underlay_id) ?? '', row]))
-  const itemIds = items.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
+  const itemByUnderlay = activeInvoiceItemByUnderlay(items)
+  const activeItems = Array.from(itemByUnderlay.values())
+  const itemIds = activeItems.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const invoices = await loadByIds({
     table: 'customer_invoices',
-    select: 'id,invoice_export_item_id,status,amount_inc_vat',
+    select: 'id,invoice_export_item_id,status,total_kwh,consumption_kwh,amount_inc_vat',
     companyId: input.companyId,
     column: 'invoice_export_item_id',
     ids: itemIds,
@@ -220,12 +243,21 @@ export async function getInvoiceReviewDetail(input: {
     supabaseService.from('billing_underlays').select('*').eq('company_id', input.companyId).eq('id', underlayId).single(),
     supabaseService.from('customers').select('*').eq('company_id', input.companyId).eq('id', customerId).single(),
     supabaseService.from('customer_contracts').select('*').eq('company_id', input.companyId).eq('id', contractId).single(),
-    supabaseService.from('customer_invoices').select('*').eq('company_id', input.companyId).eq('invoice_export_item_id', input.invoiceExportItemId).single(),
+    supabaseService.from('customer_invoices').select('*').eq('company_id', input.companyId).eq('invoice_export_item_id', input.invoiceExportItemId).maybeSingle(),
     supabaseService.from('pricing_runs').select('*').eq('company_id', input.companyId).eq('id', pricingRunId).single(),
     supabaseService.from('pricing_preview_lines').select('*').eq('company_id', input.companyId).eq('pricing_run_id', pricingRunId).order('sort_order', { ascending: true }),
   ])
   for (const result of [underlay, customer, contract, invoice, pricingRun, pricingLines]) if (result.error) throw result.error
   const underlayRow = underlay.data as Row
+  const invoiceRow = (invoice.data as Row | null) ?? null
+  const approval = objectValue(objectValue(item.metadata).approval)
+  const lifecycleStage: InvoiceReviewLifecycleStage = !invoiceRow
+    ? 'awaiting_invoice_projection'
+    : text(item.status) === 'sent' || text(invoiceRow.status) === 'sent'
+      ? 'dispatched'
+      : text(approval.status) === 'approved'
+        ? 'approved'
+        : 'invoice_projected'
   const snapshotId = text(underlayRow.contract_price_snapshot_id) ?? text(underlayRow.pricing_snapshot_id)
   let priceSnapshot: Row | null = null
   if (snapshotId) {
@@ -238,10 +270,11 @@ export async function getInvoiceReviewDetail(input: {
     underlay: underlayRow,
     customer: customer.data as Row,
     contract: contract.data as Row,
-    invoice: invoice.data as Row,
+    invoice: invoiceRow,
+    lifecycleStage,
     pricingRun: pricingRun.data as Row,
     pricingLines: (pricingLines.data ?? []) as Row[],
     priceSnapshot,
-    approval: objectValue(objectValue(item.metadata).approval),
+    approval,
   }
 }

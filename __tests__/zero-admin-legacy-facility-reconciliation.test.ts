@@ -32,9 +32,10 @@ describe('zero-admin legacy facility reconciliation', () => {
     expect(reconciliation).not.toContain('createGridOwner')
   })
 
-  it('auto-completes only stale customer-data review tasks, never contract lifecycle reconciliation', () => {
+  it('closes only stale customer-data review tasks using the canonical task status', () => {
     expect(reconciliation).toContain(".eq('task_type', 'customer_data_review')")
-    expect(reconciliation).toContain("status: 'completed'")
+    expect(reconciliation).toContain("status: 'done'")
+    expect(reconciliation).not.toContain("status: 'completed'")
     expect(reconciliation).toContain("zero_admin_reason: 'canonical_facility_request_waiting_external_response'")
     expect(reconciliation).not.toContain("task_type', 'contract_lifecycle_reconciliation")
   })

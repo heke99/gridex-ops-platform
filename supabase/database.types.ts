@@ -52350,6 +52350,118 @@ export type Database = {
             referencedColumns: ["company_id", "id"]
           },
           {
+            foreignKeyName: "manual_inbound_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_customer_site_id_fkey"
+            columns: ["customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["site_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_blocked_grid_owner_certificate_refresh_candidates_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_certificate_refresh_candidates_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "grid_owner_supplier_switch_readiness_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "grid_owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_route_readiness_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_business_readiness_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_duplicate_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_materialization_readiness_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_grid_owner_id_fkey"
+            columns: ["grid_owner_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_verified_grid_owners_v"
+            referencedColumns: ["grid_owner_id"]
+          },
+          {
             foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
             columns: ["mailbox_company_id"]
             isOneToOne: false
@@ -52460,6 +52572,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_metering_point_id_fkey"
+            columns: ["metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "manual_inbound_messages_request_id_fkey"
