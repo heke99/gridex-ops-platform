@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assertTestCenterRuntimeMessage,
   normalizeTestCenterBillingMonth,
-} from '@/lib/ediel/testing/testCenterRuntimeChain'
+} from '@/lib/ediel/testing/testCenterRuntimePolicy'
 
 const baseMessage = {
   id: 'msg-test-1',
@@ -17,7 +17,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
   it('allows only an explicitly linked inbound UTILTS test message', () => {
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: baseMessage as never,
+        message: baseMessage,
         companyId: 'company-1',
         customerId: 'customer-1',
       }),
@@ -27,7 +27,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
   it('fails closed for production messages', () => {
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: { ...baseMessage, environment: 'production' } as never,
+        message: { ...baseMessage, environment: 'production' },
         companyId: 'company-1',
         customerId: 'customer-1',
       }),
@@ -37,7 +37,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
   it('fails closed for outbound messages', () => {
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: { ...baseMessage, direction: 'outbound' } as never,
+        message: { ...baseMessage, direction: 'outbound' },
         companyId: 'company-1',
         customerId: 'customer-1',
       }),
@@ -47,7 +47,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
   it('fails closed for non-UTILTS messages', () => {
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: { ...baseMessage, message_family: 'PRODAT' } as never,
+        message: { ...baseMessage, message_family: 'PRODAT' },
         companyId: 'company-1',
         customerId: 'customer-1',
       }),
@@ -57,7 +57,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
   it('fails closed on tenant mismatch', () => {
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: baseMessage as never,
+        message: baseMessage,
         companyId: 'company-2',
         customerId: 'customer-1',
       }),
@@ -67,7 +67,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
   it('requires explicit selected-customer linkage before ingest', () => {
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: { ...baseMessage, customer_id: null } as never,
+        message: { ...baseMessage, customer_id: null },
         companyId: 'company-1',
         customerId: 'customer-1',
       }),
@@ -75,7 +75,7 @@ describe('Test Center metering-to-invoice runtime guard', () => {
 
     expect(() =>
       assertTestCenterRuntimeMessage({
-        message: baseMessage as never,
+        message: baseMessage,
         companyId: 'company-1',
         customerId: 'customer-2',
       }),
