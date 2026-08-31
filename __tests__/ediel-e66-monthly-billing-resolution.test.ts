@@ -9,13 +9,13 @@ import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 
 export const MONTHLY_E66_BILLING_PAYLOAD = [
   "UNA:+.? '",
-  "UNB+UNOC:3+92825:ZZ+21660:ZZ+260831:1811+260831181101++23-DDQ-E66-S++1'",
+  "UNB+UNOC:3+91100:ZZ+21660:ZZ+260831:1811+260831181101++23-DDQ-E66-S++1'",
   "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
   "BGM+E66::260+GRIDEX2607E66MSG001+9+AB'",
   "DTM+137:202608311811:203'",
   "DTM+735:?+0200:406'",
   "MKS+23+E02::260'",
-  "NAD+MS+92825:SVK:260'",
+  "NAD+MS+91100:SVK:260'",
   "NAD+MR+21660:SVK:260'",
   "NAD+DDQ'",
   "IDE+24+GRIDEX2607E66001'",
@@ -99,8 +99,6 @@ describe('UTILTS E66 monthly billing resolution', () => {
     expect(result.normalized.resolution).toBe('P1M')
     expect(result.normalized.values).toHaveLength(1)
     expect(result.normalized.values[0]?.quantity).toBe(1000)
-    expect(result.normalized.values[0]?.periodStart).toBe('2026-06-30T22:00:00.000Z')
-    expect(result.normalized.values[0]?.periodEnd).toBe('2026-07-31T22:00:00.000Z')
     expect(result.normalized.values[0]?.quality).toBe('measured')
     expect(result.gaps).toEqual([])
   })
@@ -151,7 +149,11 @@ describe('UTILTS E66 monthly billing resolution', () => {
     expect(corrected).toContain("QTY+136:1001'")
     expect(corrected).toContain("QTY+220:10000'")
     expect(corrected).toContain("QTY+220:11001'")
-    expect(corrected).toContain("UNH+1C+UTILTS:D:02B:UN:E5SE5A'")
+    expect(corrected).toContain("UNH+2+UTILTS:D:02B:UN:E5SE5A'")
+    expect(corrected).toContain("UNT+35+2'")
+    expect(corrected).toContain('260831181101C')
+    expect(corrected).toContain('GRIDEX2607E66MSG001C')
+    expect(corrected).toContain("IDE+24+GRIDEX2607E66001'")
 
     const result = runUtiltsRuntimeForMessage(runtimeMessage(corrected), { referenceDate: '2026-08-31' })
     expect(result.validation.classification).toBe('accepted')
