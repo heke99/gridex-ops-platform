@@ -5,6 +5,6 @@
     "20260830103610_manual_inbound_tenant_graph_trigger_contract.sql": "9847181ae630d904393af7faa4429ef1a9e5bd1821da17b9884c65fc87679aaf",
     "20260830144914_validate_ediel_active_binding_constraint.sql": "117145a1ba41859d99f8927ed9eaee370335bec96ba5a05ef7673f1a128ea006",
     "20260831093531_fix_contract_snapshot_null_schema_guard.sql": "22d04463619156df167cb6ecfcc1e670fbf58c95796d52f4750e328b718ec2e1",
-    "20260831095000_admin_signed_contract_import_canonicalization.sql": "0000000000000000000000000000000000000000000000000000000000000000"
+    "20260831095000_admin_signed_contract_import_canonicalization.sql": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef"
   }
 }
