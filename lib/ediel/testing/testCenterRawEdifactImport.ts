@@ -2,6 +2,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { parseInboundEmailContent, type ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { supabaseService } from '@/lib/supabase/service'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
 import { materializeInvoiceTestEdifactMasterdata } from '@/lib/ediel/testing/invoiceTestEdifactMaterialization'
@@ -46,22 +48,84 @@ function canonicalMeteringCandidates(parsed: ParsedEdifactEnvelope): string[] {
   ].filter((value): value is string => Boolean(value?.trim())).map((value) => value.trim())))
 }
 
-export function assertRawTestEdifactPreflight(raw: string): ParsedEdifactEnvelope {
+function billingMonthBounds(value: string) {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value.trim())
+  if (!match) throw new Error('Fakturamånad måste anges som YYYY-MM.')
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const nextYear = month === 12 ? year + 1 : year
+  const nextMonth = month === 12 ? 1 : month + 1
+  return {
+    value: value.trim(),
+    startDate: `${year}-${String(month).padStart(2, '0')}-01`,
+    endDateExclusive: `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`,
+  }
+}
+
+export function assertRawTestEdifactPreflight(raw: string, billingMonth?: string): ParsedEdifactEnvelope {
   const bytes = Buffer.byteLength(raw, 'utf8')
   if (bytes === 0) throw new Error('EDIFACT-innehåll saknas.')
   if (bytes > MAX_TEST_EDIFACT_BYTES) throw new Error('Test Center accepterar högst 2 MB EDIFACT per körning.')
 
   const parsed = parseInboundEmailContent({ attachmentText: raw })
   if (!parsed) throw new Error('Innehållet innehåller ingen canonical EDIFACT-payload.')
-  if (parsed.messageFamily !== 'UTILTS') {
-    throw new Error(`Mätvärde→faktura-testet accepterar endast UTILTS, inte ${parsed.messageFamily}.`)
+  if (parsed.messageFamily !== 'UTILTS' || String(parsed.messageCode ?? '').toUpperCase() !== 'E66') {
+    throw new Error(`Mätvärde→faktura-testet accepterar endast UTILTS E66, inte ${parsed.messageFamily} ${parsed.messageCode ?? ''}.`.trim())
   }
   if (!parsed.senderEdielId || !parsed.receiverEdielId) {
-    throw new Error('UTILTS saknar entydig UNB-avsändare eller mottagare.')
+    throw new Error('UTILTS E66 saknar entydig UNB-avsändare eller mottagare.')
   }
   if (canonicalMeteringCandidates(parsed).length === 0) {
-    throw new Error('UTILTS saknar canonical LOC+172/Z07/MG/TN/LI-referens för mätpunktsmatchning.')
+    throw new Error('UTILTS E66 saknar canonical LOC+172/Z07/MG/TN/LI-referens för mätpunktsmatchning.')
   }
+
+  // Run the same canonical runtime before any customer/site/contract write. The
+  // synthetic row is parse/validation-only; no persistence or acknowledgement is
+  // performed here. This prevents a malformed E66 from binding and signing the
+  // Fakturatest contract before the normal inbound chain gets a chance to reject it.
+  const validationMessage = {
+    id: 'invoice-test-preflight',
+    message_family: 'UTILTS',
+    message_code: 'E66',
+    direction: 'inbound',
+    environment: 'test',
+    raw_payload: raw,
+    validation_report: null,
+    syntax_check_status: 'not_checked',
+    functional_check_status: 'not_checked',
+    message_received_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  } as unknown as EdielMessageRow
+  const preflightRuntime = runUtiltsRuntimeForMessage(validationMessage)
+  const blockingIssues = preflightRuntime.validation.issues.filter((issue) => issue.severity === 'error')
+  if (blockingIssues.length > 0 || preflightRuntime.validation.classification !== 'accepted') {
+    const summary = blockingIssues.slice(0, 5).map((issue) => `${issue.code}: ${issue.description}`).join(' · ')
+    throw new Error(`UTILTS E66 stoppades i canonical preflight före masterdataändring: ${summary || preflightRuntime.validation.classification}`)
+  }
+
+  const transactions = preflightRuntime.facts.transactions
+  if (transactions.length !== 1) {
+    throw new Error(`Fakturatest kräver exakt en E66-transaktion för vald testkund; filen innehåller ${transactions.length}.`)
+  }
+  const transaction = transactions[0]
+  const energyValues = transaction.quantities
+    .filter((quantity) => String(quantity.qualifier ?? '').trim() === '136')
+    .map((quantity) => quantity.value)
+    .filter((value): value is number => value !== null && Number.isFinite(value))
+  const totalEnergy = energyValues.reduce((sum, value) => sum + value, 0)
+  if (energyValues.length === 0 || totalEnergy <= 0) {
+    throw new Error('Fakturatest kräver positiv fakturerbar periodenergi i QTY+136. Mätarställning QTY+220 räknas inte som förbruknings-kWh.')
+  }
+
+  if (billingMonth) {
+    const bounds = billingMonthBounds(billingMonth)
+    const periodStart = String(transaction.deliveryPeriodStart ?? '').slice(0, 10)
+    const periodEnd = String(transaction.deliveryPeriodEnd ?? '').slice(0, 10)
+    if (periodStart !== bounds.startDate || periodEnd !== bounds.endDateExclusive) {
+      throw new Error(`E66-perioden ${periodStart || 'saknas'}–${periodEnd || 'saknas'} matchar inte vald fakturamånad ${bounds.value} (${bounds.startDate}–${bounds.endDateExclusive}).`)
+    }
+  }
+
   return parsed
 }
 
@@ -97,7 +161,7 @@ async function assertSelectedCustomerMeteringPoint(input: {
   }
 }
 
-async function assertNoConflictingInboundTenant(input: {
+async function assertInboundTenantMatchesSelection(input: {
   companyId: string
   parsed: ParsedEdifactEnvelope
 }) {
@@ -107,11 +171,11 @@ async function assertNoConflictingInboundTenant(input: {
     parsed: input.parsed,
   })
 
-  if (resolution.status === 'resolved' && resolution.companyId && resolution.companyId !== input.companyId) {
-    throw new Error('Canonical inbound-routing matchade en annan tenant än vald Test Center-tenant; import stoppad fail-closed.')
+  if (resolution.status !== 'resolved' || !resolution.companyId) {
+    throw new Error(`Canonical inbound-routing kunde inte entydigt verifiera vald Test Center-tenant före masterdataändring: ${resolution.reasons.join(' ') || resolution.status}.`)
   }
-  if (resolution.status === 'ambiguous' && resolution.candidates.some((candidate) => candidate !== input.companyId)) {
-    throw new Error('Canonical inbound-routing har konflikt mellan vald Test Center-tenant och annan tenant; import stoppad fail-closed.')
+  if (resolution.companyId !== input.companyId) {
+    throw new Error('Canonical inbound-routing matchade en annan tenant än vald Test Center-tenant; import stoppad fail-closed.')
   }
 }
 
@@ -183,7 +247,7 @@ async function resolveCreatedInboundEdielMessage(input: {
 }) {
   const result = await supabaseService
     .from('ediel_messages')
-    .select('id,company_id,customer_id,message_family,direction,environment')
+    .select('id,company_id,customer_id,message_family,message_code,direction,environment')
     .eq('company_id', input.companyId)
     .eq('inbound_email_message_id', input.inboundEmailMessageId)
     .eq('direction', 'inbound')
@@ -194,8 +258,8 @@ async function resolveCreatedInboundEdielMessage(input: {
   const rows = (result.data ?? []) as Row[]
   if (rows.length !== 1) throw new Error('Test Center kunde inte entydigt hitta skapad inbound Ediel-post.')
   const row = rows[0]
-  if (row.environment !== 'test' || row.message_family !== 'UTILTS' || row.customer_id !== input.customerId) {
-    throw new Error('Skapad inbound Ediel-post saknar korrekt test-/UTILTS-/kundbindning; runtime stoppad.')
+  if (row.environment !== 'test' || row.message_family !== 'UTILTS' || row.message_code !== 'E66' || row.customer_id !== input.customerId) {
+    throw new Error('Skapad inbound Ediel-post saknar korrekt test-/UTILTS E66-/kundbindning; runtime stoppad.')
   }
   return String(row.id)
 }
@@ -206,9 +270,16 @@ export async function importRawEdifactAndRunTestCenterChain(
   const actorUserId = required(input.actorUserId, 'actorUserId')
   const companyId = required(input.companyId, 'companyId')
   const customerId = required(input.customerId, 'customerId')
+  const billingMonth = required(input.billingMonth, 'billingMonth')
   const rawEdifact = required(input.rawEdifact, 'EDIFACT-payload')
-  const parsed = assertRawTestEdifactPreflight(rawEdifact)
+  const parsed = assertRawTestEdifactPreflight(rawEdifact, billingMonth)
   const sourceSha256 = createHash('sha256').update(rawEdifact).digest('hex')
+
+  // Routing is verified before the first customer/site/contract write. The later
+  // testCenterTenantBinding may preserve an already verified tenant, but it must
+  // never be the mechanism that turns an otherwise unresolved receiver into a
+  // successful Fakturatest tenant match.
+  await assertInboundTenantMatchesSelection({ companyId, parsed })
 
   // Fakturatest masterdata is deliberately derived from the same canonical parser
   // result that is about to enter the normal inbound chain. No facility/metering
@@ -221,7 +292,6 @@ export async function importRawEdifactAndRunTestCenterChain(
     sourceSha256,
   })
   await assertSelectedCustomerMeteringPoint({ companyId, customerId, parsed })
-  await assertNoConflictingInboundTenant({ companyId, parsed })
 
   const envelope = await getOrCreateTestInboundEnvelope({
     companyId,
@@ -255,7 +325,7 @@ export async function importRawEdifactAndRunTestCenterChain(
     companyId,
     customerId,
     edielMessageId,
-    billingMonth: input.billingMonth,
+    billingMonth,
   })
 
   return {

@@ -10,19 +10,23 @@ describe('Test Center deterministic scenarios', () => {
     expect(plan.runs[0].rawEdifact).toBe(plan.runs[1].rawEdifact)
   })
 
-  it('removes exactly the first QTY for missing-values fixture', () => {
+  it('removes exactly the first billable QTY+136 for missing-values fixture', () => {
     const plan = materializeTestCenterScenario(SAMPLE, 'missing_values')
     expect(plan.runs).toHaveLength(1)
     expect(plan.runs[0].rawEdifact).not.toContain('QTY+136:12.5:KWH')
     expect(plan.runs[0].expectation).toBe('blocked_missing_values')
   })
 
-  it('creates a deterministic correction while preserving baseline', () => {
+  it('creates a deterministic correction while preserving business identity and unique message envelope', () => {
     const plan = materializeTestCenterScenario(SAMPLE, 'correction')
     expect(plan.runs).toHaveLength(2)
     expect(plan.runs[0].rawEdifact).toBe(SAMPLE)
-    expect(plan.runs[1].rawEdifact).toContain('QTY+136:13.500:KWH')
-    expect(plan.runs[1].rawEdifact).toContain('UNH+1C+UTILTS')
+    expect(plan.runs[1].rawEdifact).toContain('QTY+136:13.5:KWH')
+    expect(plan.runs[1].rawEdifact).toContain("UNB+UNOC:3+SENDER+RECEIVER+260830:1200+1C'")
+    expect(plan.runs[1].rawEdifact).toContain("UNH+2+UTILTS:D:02B:UN:S02'")
+    expect(plan.runs[1].rawEdifact).toContain("BGM+Z04+1C+9'")
+    expect(plan.runs[1].rawEdifact).toContain("UNT+6+2'")
+    expect(plan.runs[1].rawEdifact).toContain("UNZ+1+1C'")
   })
 
   it('materializes rebilling as baseline, correction, then correction replay', () => {

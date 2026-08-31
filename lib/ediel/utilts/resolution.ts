@@ -39,9 +39,23 @@ export function normalizeEdifactResolution(input: EdifactResolutionInput): strin
   return `P${amount}${unit}`
 }
 
+function isFloatingDateTime(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/.test(value)
+}
+
 function parseDate(value: string): Date | null {
-  const date = new Date(value)
+  // Ediel DTM values are local wall-clock values until DTM+735 is applied.
+  // Anchor floating timestamps to UTC only for deterministic calendar arithmetic;
+  // addNormalizedResolution renders them back as floating values so the caller
+  // can apply the declared Ediel offset exactly once afterwards.
+  const date = new Date(isFloatingDateTime(value) ? `${value}Z` : value)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+function renderDate(date: Date, preserveFloating: boolean): string {
+  const iso = date.toISOString()
+  if (!preserveFloating) return iso
+  return iso.endsWith('.000Z') ? iso.slice(0, -5) : iso.slice(0, -1)
 }
 
 export function addNormalizedResolution(
@@ -50,6 +64,7 @@ export function addNormalizedResolution(
   steps = 1,
 ): string | null {
   if (!value || !resolution || !Number.isFinite(steps) || steps < 0) return null
+  const preserveFloating = isFloatingDateTime(value)
   const date = parseDate(value)
   if (!date) return null
 
@@ -72,7 +87,7 @@ export function addNormalizedResolution(
     (((weeks * 7 + days) * 24 + hours) * 60 * 60 + minutes * 60 + seconds) * 1000
   if (fixedMilliseconds) date.setTime(date.getTime() + fixedMilliseconds)
 
-  return date.toISOString()
+  return renderDate(date, preserveFloating)
 }
 
 export function expectedObservationCountForResolution(input: {
