@@ -75,6 +75,17 @@ function appendCorrectionSuffix(value: string, maxLength = 35): string {
   return `${base.slice(0, Math.max(1, maxLength - 1))}C`
 }
 
+function nextMessageReference(value: string, maxLength = 14): string {
+  const base = value.trim()
+  if (!base) throw new Error('correction-fixturen saknar UNH message reference.')
+  if (/^\d+$/.test(base) && base.length <= maxLength) {
+    const modulus = 10 ** base.length
+    const next = (Number(base) + 1) % modulus
+    return String(next).padStart(base.length, '0')
+  }
+  return appendCorrectionSuffix(base, maxLength)
+}
+
 function markCorrectedMessageEnvelope(parts: string[]) {
   const unbIndex = parts.findIndex((segment) => /^UNB\+/i.test(segment))
   const unzIndex = parts.findIndex((segment) => /^UNZ\+/i.test(segment))
@@ -98,7 +109,10 @@ function markCorrectedMessageEnvelope(parts: string[]) {
   const unh = parts[unhIndex].split('+')
   const originalMessageReference = unh[1]?.trim()
   if (!originalMessageReference) throw new Error('correction-fixturen saknar UNH message reference.')
-  const correctedMessageReference = appendCorrectionSuffix(originalMessageReference, 14)
+  // The Swedish portal/runtime fixtures use numeric UNH references. Increment a
+  // numeric source reference instead of appending a letter, while still allowing
+  // alphanumeric references from other valid senders to remain deterministic.
+  const correctedMessageReference = nextMessageReference(originalMessageReference)
   unh[1] = correctedMessageReference
   parts[unhIndex] = unh.join('+')
 
