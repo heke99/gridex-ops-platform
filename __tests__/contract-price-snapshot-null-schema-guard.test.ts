@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const migration = readFileSync(
-  resolve(__dirname, '../supabase/migrations/20260831093000_fix_contract_snapshot_null_schema_guard.sql'),
+  resolve(__dirname, '../supabase/migrations/20260831093531_fix_contract_snapshot_null_schema_guard.sql'),
   'utf8',
 )
 
