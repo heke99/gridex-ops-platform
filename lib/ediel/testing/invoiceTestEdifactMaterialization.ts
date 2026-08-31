@@ -164,7 +164,7 @@ async function bindInvoiceTestContractAndSupply(input: {
   })
   const contractResult = await supabaseService
     .from('customer_contracts')
-    .select('id,status,start_date,starts_at,metering_point_id,site_id,customer_site_id,metadata')
+    .select('id,status,starts_at,metering_point_id,site_id,customer_site_id,metadata')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('id', contractId)
@@ -217,7 +217,7 @@ async function bindInvoiceTestContractAndSupply(input: {
 
     const signed = await supabaseService
       .from('customer_contracts')
-      .select('id,status,start_date,starts_at,metering_point_id,site_id,customer_site_id,metadata')
+      .select('id,status,starts_at,metering_point_id,site_id,customer_site_id,metadata')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .eq('id', contractId)
@@ -235,7 +235,7 @@ async function bindInvoiceTestContractAndSupply(input: {
     throw new Error('Signerade testavtalets låsta mätpunktsidentitet matchar inte importerad EDIFACT.')
   }
 
-  const startDate = (text(contract.starts_at) ?? text(contract.start_date))?.slice(0, 10) ?? null
+  const startDate = text(contract.starts_at)?.slice(0, 10) ?? null
   if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
     throw new Error('Fakturatest-avtalet saknar giltigt startdatum för leveransperioden.')
   }
