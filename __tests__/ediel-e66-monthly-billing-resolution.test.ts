@@ -4,6 +4,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { ingestUtiltsE66MeteringValues } from '@/lib/ediel/metering/meteringValueEngine'
 import { parseE66, parseE66Observations } from '@/lib/ediel/utilts/e66'
 import { flattenUtiltsTransactionSeries } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import { materializeTestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 
 export const MONTHLY_E66_BILLING_PAYLOAD = [
@@ -80,8 +81,6 @@ describe('UTILTS E66 monthly billing resolution', () => {
       measurementResolution: 'P1M',
       meteringPointExternalId: '735999260731000007',
       gridAreaId: 'TES',
-      // DTM+324 is Swedish local wall-clock time and DTM+735 is +0200.
-      // The July billing month therefore starts/ends at 22:00Z the day before.
       periodStart: '2026-06-30T22:00:00.000Z',
       periodEnd: '2026-07-31T22:00:00.000Z',
       sourceOrder: 2,
@@ -136,5 +135,28 @@ describe('UTILTS E66 monthly billing resolution', () => {
 
     expect(result.validation.classification).toBe('functional_rejected')
     expect(result.validation.issues.some((issue) => issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH' && issue.utiltsErrCode === 'E19')).toBe(true)
+  })
+
+  it('builds missing-values by removing billable QTY+136 rather than register evidence', () => {
+    const plan = materializeTestCenterScenario(MONTHLY_E66_BILLING_PAYLOAD, 'missing_values')
+    const payload = plan.runs[0]?.rawEdifact ?? ''
+    expect(payload).not.toContain("QTY+136:1000'")
+    expect(payload).toContain("QTY+220:10000'")
+    expect(payload).toContain("QTY+220:11000'")
+  })
+
+  it('builds correction by changing QTY+136 and matching final QTY+220, preserving E66 processability', () => {
+    const plan = materializeTestCenterScenario(MONTHLY_E66_BILLING_PAYLOAD, 'correction')
+    const corrected = plan.runs[1]?.rawEdifact ?? ''
+    expect(corrected).toContain("QTY+136:1001'")
+    expect(corrected).toContain("QTY+220:10000'")
+    expect(corrected).toContain("QTY+220:11001'")
+    expect(corrected).toContain("UNH+1C+UTILTS:D:02B:UN:E5SE5A'")
+
+    const result = runUtiltsRuntimeForMessage(runtimeMessage(corrected), { referenceDate: '2026-08-31' })
+    expect(result.validation.classification).toBe('accepted')
+    const series = flattenUtiltsTransactionSeries(result.normalizedPayload, runtimeMessage(corrected))
+    expect(series).toHaveLength(1)
+    expect(series[0]?.quantity).toBe(1001)
   })
 })
