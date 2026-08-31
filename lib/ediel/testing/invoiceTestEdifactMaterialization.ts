@@ -90,6 +90,58 @@ function matchesIdentity(row: Row, identity: InvoiceTestEdifactIdentity) {
   ].some((value) => text(value) === identity.primaryMeteringReference)
 }
 
+async function loadCurrentTestPoints(input: { companyId: string; customerId: string }) {
+  const result = await supabaseService
+    .from('metering_points')
+    .select('id,site_id,customer_id,meter_point_id,metering_point_id,site_facility_id,ediel_reference,anlage_id,ediel_metering_point_id,metadata,is_test_data,archived_at')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('is_test_data', true)
+    .is('archived_at', null)
+    .limit(2)
+  if (result.error) throw result.error
+  return (result.data ?? []) as Row[]
+}
+
+async function assertIdentityNotOwnedElsewhere(input: {
+  companyId: string
+  customerId: string
+  identity: InvoiceTestEdifactIdentity
+}) {
+  const identity = input.identity.primaryMeteringReference
+  const meterConflict = await supabaseService
+    .from('metering_points')
+    .select('id')
+    .or([
+      `meter_point_id.eq.${identity}`,
+      `metering_point_id.eq.${identity}`,
+      `site_facility_id.eq.${identity}`,
+      `ediel_reference.eq.${identity}`,
+      `anlage_id.eq.${identity}`,
+      `ediel_metering_point_id.eq.${identity}`,
+    ].join(','))
+    .neq('customer_id', input.customerId)
+    .limit(1)
+  if (meterConflict.error) throw meterConflict.error
+  if ((meterConflict.data ?? []).length > 0) {
+    throw new Error('EDIFACT-identiteten är redan bunden till en annan kund. Fakturatest stoppades före masterdataändring.')
+  }
+
+  if (input.identity.facilityId) {
+    const siteConflict = await supabaseService
+      .from('customer_sites')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('facility_id', input.identity.facilityId)
+      .neq('customer_id', input.customerId)
+      .limit(1)
+    if (siteConflict.error) throw siteConflict.error
+    if ((siteConflict.data ?? []).length > 0) {
+      throw new Error('EDIFACT-anläggningen är redan bunden till en annan kund i valt bolag. Fakturatest stoppades före masterdataändring.')
+    }
+  }
+}
+
 export async function materializeInvoiceTestEdifactMasterdata(input: {
   companyId: string
   customerId: string
@@ -101,6 +153,26 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
   const identity = deriveInvoiceTestEdifactIdentity(input.parsed)
   const site = await loadSingleTestSite(input)
   const siteId = String(site.id)
+  const pointRows = await loadCurrentTestPoints(input)
+
+  // Complete all identity checks before the first write so a mismatched file
+  // cannot partially rewrite the selected Fakturatest customer graph.
+  if (pointRows.length > 1) {
+    throw new Error('Fakturatest-kunden har flera aktiva test-mätpunkter; EDIFACT-bindning stoppad fail-closed.')
+  }
+  if (pointRows.length === 1 && !matchesIdentity(pointRows[0], identity)) {
+    throw new Error('Vald testkund är redan bunden till en annan EDIFACT-identitet. Radera testkunden och skapa en ny för den nya filen.')
+  }
+  const existingFacilityId = text(site.facility_id)
+  if (existingFacilityId && identity.facilityId && existingFacilityId !== identity.facilityId) {
+    throw new Error('Vald testkund är redan bunden till en annan EDIFACT-anläggning. Fakturatest stoppades före masterdataändring.')
+  }
+  await assertIdentityNotOwnedElsewhere({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    identity,
+  })
+
   const now = new Date().toISOString()
   const parsedMetadata = {
     source: 'canonical_edifact_parser',
@@ -142,25 +214,8 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
   if (siteUpdate.error) throw siteUpdate.error
   if (!siteUpdate.data) throw new Error('Fakturatest kunde inte verifiera EDIFACT-bindningen till test-anläggningen.')
 
-  const points = await supabaseService
-    .from('metering_points')
-    .select('id,site_id,customer_id,meter_point_id,metering_point_id,site_facility_id,ediel_reference,anlage_id,ediel_metering_point_id,metadata,is_test_data,archived_at')
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('is_test_data', true)
-    .is('archived_at', null)
-    .limit(2)
-  if (points.error) throw points.error
-  const pointRows = (points.data ?? []) as Row[]
-  if (pointRows.length > 1) {
-    throw new Error('Fakturatest-kunden har flera aktiva test-mätpunkter; EDIFACT-bindning stoppad fail-closed.')
-  }
-
   if (pointRows.length === 1) {
     const existing = pointRows[0]
-    if (!matchesIdentity(existing, identity)) {
-      throw new Error('Vald testkund är redan bunden till en annan EDIFACT-identitet. Radera testkunden och skapa en ny för den nya filen.')
-    }
     const metadata = {
       ...objectValue(existing.metadata),
       invoice_test_edifact: parsedMetadata,
@@ -197,6 +252,8 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
     },
     invoice_test_edifact: parsedMetadata,
   }
+  const siteType = text(site.site_type)
+  const measurementType = siteType === 'production' || siteType === 'mixed' ? siteType : 'consumption'
   const insert = await supabaseService
     .from('metering_points')
     .insert({
@@ -214,8 +271,8 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
       meter_number: identity.meterNumber,
       grid_owner_id: text(site.grid_owner_id),
       price_area_code: text(site.price_area_code),
-      metering_type: text(site.site_type) === 'production' ? 'production' : 'consumption',
-      measurement_type: text(site.site_type) === 'production' ? 'production' : 'consumption',
+      metering_type: measurementType,
+      measurement_type: measurementType,
       reading_frequency: 'hourly',
       is_settlement_relevant: true,
       status: 'draft',
