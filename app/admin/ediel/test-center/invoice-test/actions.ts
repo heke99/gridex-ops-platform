@@ -10,7 +10,6 @@ import { importRawEdifactAndRunTestCenterChain } from '@/lib/ediel/testing/testC
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
 import { materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import {
-  archiveInvoiceTestCustomer,
   assertInvoiceTestCompanyAndOffer,
   assertInvoiceTestCustomer,
   markInvoiceTestCustomerGraph,
@@ -20,6 +19,7 @@ import {
   getInvoiceTestOnboardingGeneration,
   resolveSingleInvoiceTestContractId,
 } from '@/lib/ediel/testing/invoiceTestCenterCreation'
+import { archiveInvoiceTestCustomerSafely } from '@/lib/ediel/testing/invoiceTestCenterArchive'
 import { quarantineCreatedInvoiceTestGraph } from '@/lib/ediel/testing/invoiceTestCenterQuarantine'
 import { approveAndSendInvoiceTestItem } from '@/lib/billing/invoiceTestCenterDispatch'
 
@@ -336,7 +336,7 @@ export async function archiveInvoiceTestCustomerAction(formData: FormData) {
     companyId = stringValue(formData, 'companyId')
     customerId = stringValue(formData, 'customerId')
     if (!companyId || !customerId) throw new Error('Välj testkund.')
-    await archiveInvoiceTestCustomer({ companyId, customerId, actorUserId: context.userId })
+    await archiveInvoiceTestCustomerSafely({ companyId, customerId, actorUserId: context.userId })
     revalidatePath(WORKSPACE)
     workspaceRedirect({ status: 'success', message: 'Testkunden togs bort från Fakturatest genom säker arkivering. Provider- och auditspår bevarades.', companyId })
   } catch (error) {
