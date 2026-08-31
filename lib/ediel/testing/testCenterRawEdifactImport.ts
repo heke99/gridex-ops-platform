@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { parseInboundEmailContent, type ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
+import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
 import { supabaseService } from '@/lib/supabase/service'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
 import { materializeInvoiceTestEdifactMasterdata } from '@/lib/ediel/testing/invoiceTestEdifactMaterialization'
@@ -93,6 +94,24 @@ async function assertSelectedCustomerMeteringPoint(input: {
     throw new Error(rows.length === 0
       ? 'EDIFACT-identiteten kunde inte verifieras mot vald testkund efter materialisering.'
       : 'EDIFACT-identiteten matchar flera mätpunkter för vald testkund; import stoppad fail-closed.')
+  }
+}
+
+async function assertNoConflictingInboundTenant(input: {
+  companyId: string
+  parsed: ParsedEdifactEnvelope
+}) {
+  const resolution = await resolveTenantForInboundEdiel({
+    mailboxCompanyId: input.companyId,
+    environment: 'test',
+    parsed: input.parsed,
+  })
+
+  if (resolution.status === 'resolved' && resolution.companyId && resolution.companyId !== input.companyId) {
+    throw new Error('Canonical inbound-routing matchade en annan tenant än vald Test Center-tenant; import stoppad fail-closed.')
+  }
+  if (resolution.status === 'ambiguous' && resolution.candidates.some((candidate) => candidate !== input.companyId)) {
+    throw new Error('Canonical inbound-routing har konflikt mellan vald Test Center-tenant och annan tenant; import stoppad fail-closed.')
   }
 }
 
@@ -202,6 +221,7 @@ export async function importRawEdifactAndRunTestCenterChain(
     sourceSha256,
   })
   await assertSelectedCustomerMeteringPoint({ companyId, customerId, parsed })
+  await assertNoConflictingInboundTenant({ companyId, parsed })
 
   const envelope = await getOrCreateTestInboundEnvelope({
     companyId,
@@ -212,7 +232,14 @@ export async function importRawEdifactAndRunTestCenterChain(
     sourceSha256,
   })
 
-  const inbound = await processInboundEmailMessage({ inboundEmailMessageId: envelope.id, actorUserId })
+  const inbound = await processInboundEmailMessage({
+    inboundEmailMessageId: envelope.id,
+    actorUserId,
+    testCenterTenantBinding: { companyId, customerId },
+  })
+  if (!inbound.companyId) {
+    throw new Error(`Canonical inbound-resolvern kunde inte behålla vald Test Center-tenant (${inbound.status}).`)
+  }
   if (inbound.companyId !== companyId) {
     throw new Error('Canonical inbound-resolvern gav annan tenant än vald Test Center-tenant.')
   }
