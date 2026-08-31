@@ -1,4 +1,5 @@
 import type { ParsedUtilts } from '@/lib/ediel/utilts/parseUtilts'
+import { addNormalizedResolution, normalizeEdifactResolution } from '@/lib/ediel/utilts/resolution'
 
 export type ParsedMeteringObservation = {
   timestamp: string | null
@@ -17,19 +18,10 @@ export type ParsedMeteringObservation = {
   sourceOrder: number
 }
 
-function dateAddMinutes(value: string | null, minutes: number): string | null {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Date(date.getTime() + minutes * 60000).toISOString()
-}
+const E66_BILLING_ENERGY_QUALIFIERS = new Set(['136'])
 
-function resolutionMinutes(value: string | null | undefined): number | null {
-  const normalized = String(value ?? '').trim().toUpperCase()
-  if (normalized === 'PT15M') return 15
-  if (normalized === 'PT60M') return 60
-  const parsed = Number(normalized.replace(',', '.'))
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+function qualifier(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase()
 }
 
 function intervalPeriod(params: {
@@ -38,21 +30,15 @@ function intervalPeriod(params: {
   resolution: string | null
   index: number
 }): { periodStart: string | null; periodEnd: string | null; timestamp: string | null } {
-  const minutes = resolutionMinutes(params.resolution)
-  if (!minutes || !params.start) {
-    return {
-      periodStart: params.start,
-      periodEnd: params.end,
-      timestamp: params.end ?? params.start,
-    }
+  if (!params.resolution || !params.start) {
+    return { periodStart: params.start, periodEnd: params.end, timestamp: params.end ?? params.start }
   }
-
-  const periodStart = dateAddMinutes(params.start, params.index * minutes)
-  const periodEnd = periodStart ? dateAddMinutes(periodStart, minutes) : params.end
+  const periodStart = addNormalizedResolution(params.start, params.resolution, params.index)
+  const periodEnd = periodStart ? addNormalizedResolution(periodStart, params.resolution) : null
   return {
-    periodStart,
-    periodEnd,
-    timestamp: periodEnd ?? periodStart,
+    periodStart: periodStart ?? params.start,
+    periodEnd: periodEnd ?? params.end,
+    timestamp: periodEnd ?? params.end ?? periodStart ?? params.start,
   }
 }
 
@@ -65,19 +51,28 @@ export function parseMeteringObservations(parsed: ParsedUtilts): ParsedMeteringO
     deliveryPeriodEnd: parsed.deliveryPeriodEnd,
     registrationTime: parsed.registrationTime,
     resolution: parsed.resolution,
+    resolutionFormat: null,
     unit: parsed.unit,
     quantities: parsed.quantities,
   }]
 
-  return transactions.flatMap((transaction, transactionIndex) =>
-    transaction.quantities.map((quantity, quantityIndex) => {
+  return transactions.flatMap((transaction, transactionIndex) => {
+    const measurementResolution = normalizeEdifactResolution({
+      value: transaction.resolution ?? parsed.resolution,
+      format: transaction.resolutionFormat,
+    })
+    const quantities = transaction.quantities.flatMap((quantity, sourceIndex) => {
+      if (String(parsed.messageCode ?? '').toUpperCase() !== 'E66') return [{ quantity, sourceIndex }]
+      return E66_BILLING_ENERGY_QUALIFIERS.has(qualifier(quantity.qualifier)) ? [{ quantity, sourceIndex }] : []
+    })
+
+    return quantities.map(({ quantity, sourceIndex }, quantityIndex) => {
       const period = intervalPeriod({
         start: transaction.deliveryPeriodStart ?? parsed.deliveryPeriodStart,
         end: transaction.deliveryPeriodEnd ?? parsed.deliveryPeriodEnd,
-        resolution: transaction.resolution ?? parsed.resolution,
+        resolution: measurementResolution,
         index: quantityIndex,
       })
-
       return {
         timestamp: period.timestamp ?? transaction.registrationTime ?? parsed.registrationTime,
         periodStart: period.periodStart,
@@ -86,14 +81,14 @@ export function parseMeteringObservations(parsed: ParsedUtilts): ParsedMeteringO
         unit: transaction.unit ?? parsed.unit ?? 'KWH',
         qualityStatus: quantity.qualifier,
         registerCode: parsed.references.find((reference) => reference.qualifier === 'AES')?.value ?? null,
-        meterNumber: null,
+        meterNumber: parsed.references.find((reference) => reference.qualifier === 'MG')?.value ?? null,
         transactionReference: transaction.transactionId ?? parsed.transactionId,
         meteringPointExternalId: transaction.meterPointId ?? parsed.meterPointId,
         gridAreaId: transaction.gridAreaId ?? parsed.gridAreaId,
-        measurementResolution: transaction.resolution ?? parsed.resolution,
+        measurementResolution,
         utiltsSubtype: parsed.utiltsSubtype,
-        sourceOrder: transactionIndex * 10000 + quantityIndex,
+        sourceOrder: transactionIndex * 10000 + sourceIndex,
       }
     })
-  )
+  })
 }
