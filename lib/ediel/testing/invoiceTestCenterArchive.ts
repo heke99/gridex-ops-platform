@@ -58,7 +58,7 @@ export async function archiveInvoiceTestCustomerSafely(input: {
       .eq('is_test_data', true),
     supabaseService
       .from('customer_contracts')
-      .select('id,status,ends_at,metadata')
+      .select('id,status,ended_at,status_reason_code,metadata')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId),
   ])
@@ -70,9 +70,6 @@ export async function archiveInvoiceTestCustomerSafely(input: {
   const points = (pointsResult.data ?? []) as Row[]
   const contracts = (contractsResult.data ?? []) as Row[]
 
-  // A freshly created Fakturatest customer intentionally has no metering point
-  // until the first canonical EDIFACT import. Safe removal must therefore accept
-  // zero or one test point. More than one point is still an integrity violation.
   if (sites.length !== 1 || contracts.length !== 1 || points.length > 1) {
     throw new Error('Fakturatest vägrade arkivera: testkunden måste ha exakt en testanläggning, exakt ett canonical avtal och högst en testmätpunkt.')
   }
@@ -100,21 +97,31 @@ export async function archiveInvoiceTestCustomerSafely(input: {
       archived_at: now,
     },
   }
+  const terminalStatus = ['cancelled', 'terminated', 'expired'].includes(text(contract.status) ?? '')
   const contractUpdate = await supabaseService
     .from('customer_contracts')
     .update({
-      status: 'cancelled',
-      ends_at: text(contract.ends_at) ?? now,
+      ...(terminalStatus ? {} : {
+        status: 'cancelled',
+        ended_at: text(contract.ended_at) ?? now,
+        status_reason_code: text(contract.status_reason_code) ?? 'invoice_test_archive',
+      }),
       metadata: contractMetadata,
       updated_by: input.actorUserId,
       updated_at: now,
     })
     .eq('company_id', input.companyId)
     .eq('id', contractId)
-    .select('id')
+    .select('id,status,ended_at,status_reason_code')
     .maybeSingle()
   if (contractUpdate.error) throw contractUpdate.error
   if (!contractUpdate.data) throw new Error('Fakturatest kunde inte verifiera avslut av testavtalet.')
+  if (!['cancelled', 'terminated', 'expired'].includes(String(contractUpdate.data.status))) {
+    throw new Error('Fakturatest kunde inte verifiera terminal status på testavtalet.')
+  }
+  if (!text(contractUpdate.data.ended_at) || !text(contractUpdate.data.status_reason_code)) {
+    throw new Error('Fakturatest kunde inte verifiera terminal evidence på testavtalet.')
+  }
 
   if (point && pointId && archivedMeteringPointId) {
     const pointMetadata = {

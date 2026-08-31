@@ -56,4 +56,14 @@ describe('Fakturatest canonical contract lifecycle', () => {
     expect(quarantine).toContain("status_reason_code: 'invoice_test_quarantine'")
     expect(quarantine).not.toContain('ends_at: now')
   })
+
+  it('uses the same terminal evidence contract during normal Fakturatest archive', () => {
+    const archive = read('lib/ediel/testing/invoiceTestCenterArchive.ts')
+    expect(archive).toContain("status: 'cancelled'")
+    expect(archive).toContain("status_reason_code: text(contract.status_reason_code) ?? 'invoice_test_archive'")
+    expect(archive).toContain('ended_at: text(contract.ended_at) ?? now')
+    expect(archive).toContain(".select('id,status,ended_at,status_reason_code')")
+    expect(archive).toContain('terminal evidence')
+    expect(archive).not.toContain('ends_at: text(contract.ends_at) ?? now')
+  })
 })
