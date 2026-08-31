@@ -33,6 +33,17 @@ describe('Test Center raw EDIFACT import contract', () => {
     expect(source).toContain("row.customer_id !== input.customerId")
   })
 
+  it('contains no fixed EDIFACT masterdata identity in the invoice-test harness', () => {
+    const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
+    const materialization = read('lib/ediel/testing/invoiceTestEdifactMaterialization.ts')
+    const form = read('app/admin/ediel/test-center/invoice-test/InvoiceTestCustomerForm.tsx')
+    for (const value of ['735999888777777778', 'GRIDEX-TEST-001']) {
+      expect(source).not.toContain(value)
+      expect(materialization).not.toContain(value)
+      expect(form).not.toContain(value)
+    }
+  })
+
   it('persists only a test-scoped inbound envelope and records side effects as disabled', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     expect(source).toContain("environment: 'test'")
