@@ -4,6 +4,8 @@ import {
   assertInvoiceTestCustomer,
   INVOICE_TEST_CUSTOMER_KIND,
 } from '@/lib/ediel/testing/invoiceTestCenterWorkspace'
+import { resolveSingleInvoiceTestContractId } from '@/lib/ediel/testing/invoiceTestCenterCreation'
+import { signInvoiceTestContractCanonically } from '@/lib/ediel/testing/invoiceTestContractLifecycle'
 
 type Row = Record<string, unknown>
 
@@ -149,6 +151,148 @@ async function assertIdentityNotOwnedElsewhere(input: {
   }
 }
 
+async function bindInvoiceTestContractAndSupply(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  meteringPointId: string
+  actorUserId: string
+}) {
+  const contractId = await resolveSingleInvoiceTestContractId({
+    companyId: input.companyId,
+    customerId: input.customerId,
+  })
+  const contractResult = await supabaseService
+    .from('customer_contracts')
+    .select('id,status,start_date,starts_at,metering_point_id,site_id,customer_site_id,metadata')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('id', contractId)
+    .maybeSingle()
+  if (contractResult.error) throw contractResult.error
+  if (!contractResult.data) throw new Error('Fakturatest kunde inte återläsa testkundens canonical avtal.')
+  let contract = contractResult.data as Row
+  const currentMeteringPointId = text(contract.metering_point_id)
+  const status = text(contract.status)
+
+  if (status === 'pending_signature' || status === 'draft') {
+    if (currentMeteringPointId && currentMeteringPointId !== input.meteringPointId) {
+      throw new Error('Testavtalet är redan bundet till en annan mätpunkt före signering.')
+    }
+    const now = new Date().toISOString()
+    const contractUpdate = await supabaseService
+      .from('customer_contracts')
+      .update({
+        metering_point_id: input.meteringPointId,
+        site_id: text(contract.site_id) ?? input.siteId,
+        customer_site_id: text(contract.customer_site_id) ?? input.siteId,
+        metadata: {
+          ...objectValue(contract.metadata),
+          invoice_test_edifact_binding: {
+            metering_point_id: input.meteringPointId,
+            site_id: input.siteId,
+            bound_at: now,
+            bound_by: input.actorUserId,
+            test_only: true,
+          },
+        },
+        updated_by: input.actorUserId,
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('id', contractId)
+      .in('status', ['draft', 'pending_signature'])
+      .select('id,status')
+      .maybeSingle()
+    if (contractUpdate.error) throw contractUpdate.error
+    if (!contractUpdate.data) throw new Error('Fakturatest kunde inte binda mätpunkten till avtalet före signering.')
+
+    await signInvoiceTestContractCanonically({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      contractId,
+      actorUserId: input.actorUserId,
+    })
+
+    const signed = await supabaseService
+      .from('customer_contracts')
+      .select('id,status,start_date,starts_at,metering_point_id,site_id,customer_site_id,metadata')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('id', contractId)
+      .maybeSingle()
+    if (signed.error) throw signed.error
+    if (!signed.data || !['signed', 'active'].includes(String(signed.data.status))) {
+      throw new Error('Fakturatest kunde inte verifiera canonical signering efter EDIFACT-bindning.')
+    }
+    contract = signed.data as Row
+  } else if (!['signed', 'active'].includes(status ?? '')) {
+    throw new Error(`Fakturatest-avtalet har ogiltig status för EDIFACT-bindning: ${status ?? 'saknas'}.`)
+  }
+
+  if (text(contract.metering_point_id) !== input.meteringPointId) {
+    throw new Error('Signerade testavtalets låsta mätpunktsidentitet matchar inte importerad EDIFACT.')
+  }
+
+  const startDate = (text(contract.starts_at) ?? text(contract.start_date))?.slice(0, 10) ?? null
+  if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    throw new Error('Fakturatest-avtalet saknar giltigt startdatum för leveransperioden.')
+  }
+
+  const periodResult = await supabaseService
+    .from('customer_supply_periods')
+    .select('id,company_id,customer_id,metering_point_id,contract_id,start_date,end_date,status')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .in('status', ['active', 'confirmed_by_grid_owner'])
+    .limit(3)
+  if (periodResult.error) throw periodResult.error
+  const periods = (periodResult.data ?? []) as Row[]
+  if (periods.length > 1) {
+    throw new Error('Fakturatest-kunden har flera aktiva leveransperioder; billing-bindning stoppad fail-closed.')
+  }
+  if (periods.length === 1) {
+    const existing = periods[0]
+    if (
+      text(existing.metering_point_id) !== input.meteringPointId ||
+      text(existing.contract_id) !== contractId ||
+      text(existing.start_date)?.slice(0, 10) !== startDate ||
+      text(existing.end_date)
+    ) {
+      throw new Error('Fakturatest-kundens befintliga leveransperiod motsäger EDIFACT-/avtalsbindningen.')
+    }
+    return { contractId, supplyPeriodId: String(existing.id), startDate }
+  }
+
+  const now = new Date().toISOString()
+  const insert = await supabaseService
+    .from('customer_supply_periods')
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      metering_point_id: input.meteringPointId,
+      contract_id: contractId,
+      start_date: startDate,
+      actual_start_date: startDate,
+      end_date: null,
+      source: 'invoice_test_center_edifact',
+      source_process: 'invoice_test_center',
+      status: 'active',
+      metadata: {
+        test_center: true,
+        source: 'canonical_edifact_parser',
+        bound_by: input.actorUserId,
+        bound_at: now,
+      },
+      updated_at: now,
+    })
+    .select('id')
+    .single()
+  if (insert.error) throw insert.error
+  return { contractId, supplyPeriodId: String(insert.data.id), startDate }
+}
+
 export async function materializeInvoiceTestEdifactMasterdata(input: {
   companyId: string
   customerId: string
@@ -221,6 +365,9 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
   if (siteUpdate.error) throw siteUpdate.error
   if (!siteUpdate.data) throw new Error('Fakturatest kunde inte verifiera EDIFACT-bindningen till test-anläggningen.')
 
+  let meteringPointId: string
+  let createdMeteringPoint = false
+
   if (pointRows.length === 1) {
     const existing = pointRows[0]
     const metadata = {
@@ -234,6 +381,7 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
         ...(identity.gridAreaCode ? { grid_area_code: identity.gridAreaCode } : {}),
         ...(identity.meterNumber ? { meter_number: identity.meterNumber } : {}),
         ediel_reference: identity.primaryMeteringReference,
+        status: 'active',
         metadata,
         updated_by: input.actorUserId,
         updated_at: now,
@@ -247,54 +395,71 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
       .maybeSingle()
     if (update.error) throw update.error
     if (!update.data) throw new Error('Fakturatest kunde inte verifiera uppdaterad EDIFACT-mätpunkt.')
-    return { identity, siteId, meteringPointId: String(existing.id), createdMeteringPoint: false }
+    meteringPointId = String(existing.id)
+  } else {
+    const pointMetadata = {
+      test_center: {
+        kind: INVOICE_TEST_CUSTOMER_KIND,
+        version: 1,
+        created_by: input.actorUserId,
+        marked_at: now,
+      },
+      invoice_test_edifact: parsedMetadata,
+    }
+    const siteType = text(site.site_type)
+    const measurementType = siteType === 'production' || siteType === 'mixed' ? siteType : 'consumption'
+    const insert = await supabaseService
+      .from('metering_points')
+      .insert({
+        company_id: input.companyId,
+        customer_id: input.customerId,
+        site_id: siteId,
+        customer_site_id: siteId,
+        metering_point_id: identity.primaryMeteringReference,
+        meter_point_id: identity.primaryMeteringReference,
+        ediel_metering_point_id: identity.primaryMeteringReference,
+        ediel_reference: identity.primaryMeteringReference,
+        site_facility_id: identity.facilityId ?? identity.primaryMeteringReference,
+        anlage_id: identity.facilityId,
+        grid_area_code: identity.gridAreaCode,
+        meter_number: identity.meterNumber,
+        grid_owner_id: text(site.grid_owner_id),
+        price_area_code: text(site.price_area_code),
+        metering_type: measurementType,
+        measurement_type: measurementType,
+        reading_frequency: 'hourly',
+        is_settlement_relevant: true,
+        status: 'active',
+        is_test_data: true,
+        metadata: pointMetadata,
+        created_by: input.actorUserId,
+        updated_by: input.actorUserId,
+        created_at: now,
+        updated_at: now,
+      })
+      .select('id')
+      .single()
+    if (insert.error) throw insert.error
+    meteringPointId = String(insert.data.id)
+    createdMeteringPoint = true
   }
 
-  const pointMetadata = {
-    test_center: {
-      kind: INVOICE_TEST_CUSTOMER_KIND,
-      version: 1,
-      created_by: input.actorUserId,
-      marked_at: now,
-    },
-    invoice_test_edifact: parsedMetadata,
-  }
-  const siteType = text(site.site_type)
-  const measurementType = siteType === 'production' || siteType === 'mixed' ? siteType : 'consumption'
-  const insert = await supabaseService
-    .from('metering_points')
-    .insert({
-      company_id: input.companyId,
-      customer_id: input.customerId,
-      site_id: siteId,
-      customer_site_id: siteId,
-      metering_point_id: identity.primaryMeteringReference,
-      meter_point_id: identity.primaryMeteringReference,
-      ediel_metering_point_id: identity.primaryMeteringReference,
-      ediel_reference: identity.primaryMeteringReference,
-      site_facility_id: identity.facilityId ?? identity.primaryMeteringReference,
-      anlage_id: identity.facilityId,
-      grid_area_code: identity.gridAreaCode,
-      meter_number: identity.meterNumber,
-      grid_owner_id: text(site.grid_owner_id),
-      price_area_code: text(site.price_area_code),
-      metering_type: measurementType,
-      measurement_type: measurementType,
-      reading_frequency: 'hourly',
-      is_settlement_relevant: true,
-      status: 'draft',
-      is_test_data: true,
-      metadata: pointMetadata,
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
-      created_at: now,
-      updated_at: now,
-    })
-    .select('id')
-    .single()
-  if (insert.error) throw insert.error
+  const billingBinding = await bindInvoiceTestContractAndSupply({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId,
+    meteringPointId,
+    actorUserId: input.actorUserId,
+  })
 
-  return { identity, siteId, meteringPointId: String(insert.data.id), createdMeteringPoint: true }
+  return {
+    identity,
+    siteId,
+    meteringPointId,
+    createdMeteringPoint,
+    contractId: billingBinding.contractId,
+    supplyPeriodId: billingBinding.supplyPeriodId,
+  }
 }
 
 export async function loadInvoiceTestEdifactSummary(input: {

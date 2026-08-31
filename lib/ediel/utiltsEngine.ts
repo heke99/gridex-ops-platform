@@ -1,5 +1,6 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveUtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
+import { resolutionFormatNeedsLegacyCountCorrection } from '@/lib/ediel/utilts/resolution'
 import {
   decideUtiltsRuntimeAckPlan,
   resolveUtiltsTransactionDispositions,
@@ -56,6 +57,47 @@ function rebuildValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValida
   }
 }
 
+function rebuildRuntimeResult(input: {
+  message: EdielMessageRow
+  result: UtiltsRuntimeResult
+  issues: UtiltsValidationIssue[]
+}): UtiltsRuntimeResult {
+  if (input.issues.length === input.result.validation.issues.length) return input.result
+  const validation = rebuildValidation(input.issues)
+  const transactionDispositions = resolveUtiltsTransactionDispositions({
+    syntaxOk: validation.syntaxOk,
+    transactions: input.result.facts.transactions,
+    issues: validation.issues,
+  })
+  const ackPlan = decideUtiltsRuntimeAckPlan({
+    message: input.message,
+    facts: input.result.facts,
+    validation,
+  })
+  return { ...input.result, validation, transactionDispositions, ackPlan }
+}
+
+export function applyUtiltsResolutionFormatPolicyToRuntimeResult(input: {
+  message: EdielMessageRow
+  result: UtiltsRuntimeResult
+}): UtiltsRuntimeResult {
+  const issues = input.result.validation.issues.filter((issue) => {
+    if (issue.code !== 'UTILTS_DST_INTERVAL_COUNT_MISMATCH') return true
+    const reference = String(issue.referenceNumber ?? issue.lineItemReference ?? '').trim()
+    const transaction = input.result.facts.transactions.find((entry) =>
+      reference ? String(entry.transactionId ?? '').trim() === reference : false,
+    ) ?? (input.result.facts.transactions.length === 1 ? input.result.facts.transactions[0] : null)
+
+    // The legacy interval validator treated DTM+354's numeric value as minutes
+    // regardless of EDIFACT 2379. For calendar/hour/second formats this creates
+    // a false DST/interval-count rejection. Minute format 806 remains governed
+    // by the existing strict count check.
+    return !resolutionFormatNeedsLegacyCountCorrection(transaction?.resolutionFormat)
+  })
+
+  return rebuildRuntimeResult({ message: input.message, result: input.result, issues })
+}
+
 export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   message: EdielMessageRow
   result: UtiltsRuntimeResult
@@ -79,26 +121,7 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
     return true
   })
 
-  if (issues.length === input.result.validation.issues.length) return input.result
-
-  const validation = rebuildValidation(issues)
-  const transactionDispositions = resolveUtiltsTransactionDispositions({
-    syntaxOk: validation.syntaxOk,
-    transactions: input.result.facts.transactions,
-    issues: validation.issues,
-  })
-  const ackPlan = decideUtiltsRuntimeAckPlan({
-    message: input.message,
-    facts: input.result.facts,
-    validation,
-  })
-
-  return {
-    ...input.result,
-    validation,
-    transactionDispositions,
-    ackPlan,
-  }
+  return rebuildRuntimeResult({ message: input.message, result: input.result, issues })
 }
 
 export function runUtiltsRuntimeForMessage(
@@ -106,6 +129,14 @@ export function runUtiltsRuntimeForMessage(
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
   const referenceDate = normalizedReferenceDate(message, options)
-  const result = runLegacyUtiltsRuntimeForMessage(message)
-  return applyUtiltsEffectiveDatePolicyToRuntimeResult({ message, result, referenceDate })
+  const legacyResult = runLegacyUtiltsRuntimeForMessage(message)
+  const resolutionCorrected = applyUtiltsResolutionFormatPolicyToRuntimeResult({
+    message,
+    result: legacyResult,
+  })
+  return applyUtiltsEffectiveDatePolicyToRuntimeResult({
+    message,
+    result: resolutionCorrected,
+    referenceDate,
+  })
 }
