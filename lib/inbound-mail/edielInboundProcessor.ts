@@ -16,9 +16,52 @@ import {
 } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { supabaseService } from '@/lib/supabase/service'
 
+type TestCenterTenantBinding = {
+  companyId: string
+  customerId: string
+}
+
+function text(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed || null
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function resolveTrustedTestCenterCompanyId(input: {
+  row: Record<string, unknown>
+  environment: string | null
+  binding?: TestCenterTenantBinding | null
+}): string | null {
+  if (!input.binding) return null
+  const companyId = text(input.binding.companyId)
+  const customerId = text(input.binding.customerId)
+  const rowCompanyId = text(input.row.company_id)
+  const payload = objectValue(input.row.match_payload)
+
+  if (
+    !companyId ||
+    !customerId ||
+    input.environment !== 'test' ||
+    rowCompanyId !== companyId ||
+    text(input.row.match_status) !== 'test_center_raw_import' ||
+    text(payload.source) !== 'test_center_raw_edifact_import_v1' ||
+    text(payload.test_center_customer_id) !== customerId ||
+    payload.external_side_effects_allowed !== false
+  ) {
+    throw new Error('Test Center tenantbindning kunde inte verifieras mot isolerad inbound-envelope.')
+  }
+
+  return companyId
+}
+
 export async function processInboundEmailMessage(input: {
   inboundEmailMessageId: string
   actorUserId?: string | null
+  testCenterTenantBinding?: TestCenterTenantBinding | null
 }): Promise<{ status: string; companyId: string | null; parseResultId: string | null }> {
   const { data, error } = await supabaseService
     .from('inbound_email_messages')
@@ -87,8 +130,14 @@ export async function processInboundEmailMessage(input: {
     mailbox?.environment ??
     (typeof row.environment === 'string' ? row.environment : null) ??
     (typeof row.mailbox_environment === 'string' ? row.mailbox_environment : null)
+  const trustedExistingCompanyId = resolveTrustedTestCenterCompanyId({
+    row,
+    environment,
+    binding: input.testCenterTenantBinding,
+  })
 
   const tenant = await resolveTenantForInboundEdiel({
+    existingCompanyId: trustedExistingCompanyId,
     mailboxCompanyId: typeof row.company_id === 'string' ? row.company_id : mailbox?.company_id ?? null,
     mailboxId,
     mailbox: mailboxAddress,
