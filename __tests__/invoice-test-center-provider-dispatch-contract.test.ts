@@ -13,6 +13,16 @@ describe('Fakturatest provider dispatch contract', () => {
     expect(source).toContain("text(run.provider) !== 'capway_aptic'")
   })
 
+  it('requires an explicit ready/active Capway test connection instead of env fallback', () => {
+    expect(source).toContain(".eq('provider', 'capway_aptic')")
+    expect(source).toContain(".eq('environment', 'test')")
+    expect(source).toContain("!['ready', 'active'].includes(status)")
+    const readinessIndex = source.indexOf('await assertReadyTestProviderConnection')
+    const dispatchIndex = source.indexOf('await sendApprovedInvoiceExportRun')
+    expect(readinessIndex).toBeGreaterThan(-1)
+    expect(dispatchIndex).toBeGreaterThan(readinessIndex)
+  })
+
   it('requires an explicit Fakturatest customer before approval and dispatch', () => {
     const assertIndex = source.indexOf('await assertInvoiceTestCustomer')
     const dispatchIndex = source.indexOf('await sendApprovedInvoiceExportRun')
