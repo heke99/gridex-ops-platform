@@ -15383,6 +15383,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          customer_contract_id: string | null
           customer_id: string | null
           document_type: string
           file_checksum: string | null
@@ -15411,6 +15412,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_contract_id?: string | null
           customer_id?: string | null
           document_type?: string
           file_checksum?: string | null
@@ -15439,6 +15441,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_contract_id?: string | null
           customer_id?: string | null
           document_type?: string
           file_checksum?: string | null
@@ -84427,6 +84430,10 @@ export type Database = {
       }
       canonical_json_sha256: { Args: { p_payload: Json }; Returns: string }
       canonical_manage_platform_user_access: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      canonical_onboard_customer_graph: {
         Args: { p_command: Json }
         Returns: Json
       }
