@@ -39,6 +39,19 @@ export type InvoiceTestEdifactIdentity = {
   quantities: ParsedEdifactEnvelope['quantities']
 }
 
+export type InvoiceTestEdifactObjectMaterialization = {
+  identity: InvoiceTestEdifactIdentity
+  siteId: string
+  meteringPointId: string
+  createdMeteringPoint: boolean
+}
+
+export type InvoiceTestEdifactBillingBinding = {
+  contractId: string
+  supplyPeriodId: string
+  startDate: string
+}
+
 /**
  * Fakturatest never owns a separate masterdata parser. The values below are
  * derived exclusively from the canonical ParsedEdifactEnvelope produced by
@@ -157,7 +170,7 @@ async function bindInvoiceTestContractAndSupply(input: {
   siteId: string
   meteringPointId: string
   actorUserId: string
-}) {
+}): Promise<InvoiceTestEdifactBillingBinding> {
   const contractId = await resolveSingleInvoiceTestContractId({
     companyId: input.companyId,
     customerId: input.customerId,
@@ -281,7 +294,7 @@ async function bindInvoiceTestContractAndSupply(input: {
       status: 'active',
       metadata: {
         test_center: true,
-        source: 'canonical_edifact_parser',
+        source: 'invoice_test_center_edifact',
         bound_by: input.actorUserId,
         bound_at: now,
       },
@@ -293,13 +306,19 @@ async function bindInvoiceTestContractAndSupply(input: {
   return { contractId, supplyPeriodId: String(insert.data.id), startDate }
 }
 
-export async function materializeInvoiceTestEdifactMasterdata(input: {
+/**
+ * Materialize only the test-owned object identity. Contract signing and supply
+ * activation intentionally happen later, after the canonical runtime has been
+ * rerun with this real object context. This avoids both circular preflight and
+ * signing a contract for an E66 that still fails object-aware validation.
+ */
+export async function materializeInvoiceTestEdifactObjectMasterdata(input: {
   companyId: string
   customerId: string
   actorUserId: string
   parsed: ParsedEdifactEnvelope
   sourceSha256: string
-}) {
+}): Promise<InvoiceTestEdifactObjectMaterialization> {
   await assertInvoiceTestCustomer({ companyId: input.companyId, customerId: input.customerId })
   const identity = deriveInvoiceTestEdifactIdentity(input.parsed)
   const site = await loadSingleTestSite(input)
@@ -444,19 +463,47 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
     createdMeteringPoint = true
   }
 
-  const billingBinding = await bindInvoiceTestContractAndSupply({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId,
-    meteringPointId,
-    actorUserId: input.actorUserId,
-  })
-
   return {
     identity,
     siteId,
     meteringPointId,
     createdMeteringPoint,
+  }
+}
+
+export async function finalizeInvoiceTestEdifactBillingBinding(input: {
+  companyId: string
+  customerId: string
+  actorUserId: string
+  siteId: string
+  meteringPointId: string
+}): Promise<InvoiceTestEdifactBillingBinding> {
+  await assertInvoiceTestCustomer({ companyId: input.companyId, customerId: input.customerId })
+  return bindInvoiceTestContractAndSupply(input)
+}
+
+/**
+ * Backwards-compatible wrapper for callers that already have separately proven
+ * canonical object validity. New Test Center raw imports use the two-phase API.
+ */
+export async function materializeInvoiceTestEdifactMasterdata(input: {
+  companyId: string
+  customerId: string
+  actorUserId: string
+  parsed: ParsedEdifactEnvelope
+  sourceSha256: string
+}) {
+  const objectMaterialization = await materializeInvoiceTestEdifactObjectMasterdata(input)
+  const billingBinding = await finalizeInvoiceTestEdifactBillingBinding({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    actorUserId: input.actorUserId,
+    siteId: objectMaterialization.siteId,
+    meteringPointId: objectMaterialization.meteringPointId,
+  })
+
+  return {
+    ...objectMaterialization,
     contractId: billingBinding.contractId,
     supplyPeriodId: billingBinding.supplyPeriodId,
   }
