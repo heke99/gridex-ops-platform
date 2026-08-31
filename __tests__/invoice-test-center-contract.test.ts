@@ -20,13 +20,17 @@ describe('Fakturatest workspace contract', () => {
     expect(actions).toContain('markInvoiceTestCustomerGraph')
   })
 
-  it('does not ask for or hardcode EDIFACT facility/metering identifiers in customer creation', () => {
+  it('does not ask for, accept, or hardcode EDIFACT facility/metering identifiers at customer creation', () => {
     const form = read('app/admin/ediel/test-center/invoice-test/InvoiceTestCustomerForm.tsx')
+    const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
     expect(form).not.toContain('name="meterPointId"')
     expect(form).not.toContain('name="facilityId"')
     expect(form).not.toContain('735999888777777778')
     expect(form).not.toContain('GRIDEX-TEST-001')
     expect(form).toContain('De läses från den importerade EDIFACT-filen')
+    expect(actions).toContain('facilityId: null')
+    expect(actions).toContain('meterPointId: null')
+    expect(actions).toContain('customer.__createdMeteringPointId')
   })
 
   it('materializes test-only facility/metering masterdata from the canonical parsed EDIFACT envelope', () => {
@@ -38,6 +42,8 @@ describe('Fakturatest workspace contract', () => {
     expect(materialization).toContain("source: 'canonical_edifact_parser'")
     expect(materialization).toContain('is_test_data: true')
     expect(materialization).toContain('primary_metering_reference')
+    expect(materialization).toContain('assertIdentityNotOwnedElsewhere')
+    expect(materialization.indexOf('await assertIdentityNotOwnedElsewhere')).toBeLessThan(materialization.indexOf(".from('customer_sites')\n    .update"))
     expect(rawImport).toContain('materializeInvoiceTestEdifactMasterdata')
     expect(rawImport.indexOf('materializeInvoiceTestEdifactMasterdata')).toBeLessThan(rawImport.indexOf('await processInboundEmailMessage'))
   })
