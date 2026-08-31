@@ -3,6 +3,7 @@ import { parseInboundEmailContent, type ParsedEdifactEnvelope } from '@/lib/inbo
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import { supabaseService } from '@/lib/supabase/service'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
+import { materializeInvoiceTestEdifactMasterdata } from '@/lib/ediel/testing/invoiceTestEdifactMaterialization'
 
 const MAX_TEST_EDIFACT_BYTES = 2 * 1024 * 1024
 
@@ -25,6 +26,7 @@ export type TestCenterRawImportResult = {
   runtime: Awaited<ReturnType<typeof runTestCenterMeteringToInvoiceChain>>
   sourceSha256: string
   reusedInboundEnvelope: boolean
+  materializedMeteringPointId: string
 }
 
 function required(value: string, label: string) {
@@ -77,9 +79,11 @@ async function assertSelectedCustomerMeteringPoint(input: {
 
   const result = await supabaseService
     .from('metering_points')
-    .select('id,company_id,customer_id,meter_point_id,metering_point_id,site_facility_id,ediel_reference')
+    .select('id,company_id,customer_id,meter_point_id,metering_point_id,site_facility_id,ediel_reference,is_test_data,archived_at')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
+    .eq('is_test_data', true)
+    .is('archived_at', null)
     .or(ors.join(','))
     .limit(2)
 
@@ -87,8 +91,8 @@ async function assertSelectedCustomerMeteringPoint(input: {
   const rows = (result.data ?? []) as Row[]
   if (rows.length !== 1) {
     throw new Error(rows.length === 0
-      ? 'EDIFACT-mätpunkten tillhör inte vald testkund i valt bolag.'
-      : 'EDIFACT-mätpunkten matchar flera mätpunkter för vald testkund; import stoppad fail-closed.')
+      ? 'EDIFACT-identiteten kunde inte verifieras mot vald testkund efter materialisering.'
+      : 'EDIFACT-identiteten matchar flera mätpunkter för vald testkund; import stoppad fail-closed.')
   }
 }
 
@@ -185,10 +189,20 @@ export async function importRawEdifactAndRunTestCenterChain(
   const customerId = required(input.customerId, 'customerId')
   const rawEdifact = required(input.rawEdifact, 'EDIFACT-payload')
   const parsed = assertRawTestEdifactPreflight(rawEdifact)
+  const sourceSha256 = createHash('sha256').update(rawEdifact).digest('hex')
 
+  // Fakturatest masterdata is deliberately derived from the same canonical parser
+  // result that is about to enter the normal inbound chain. No facility/metering
+  // identifiers are supplied by the test-customer form or invented by the harness.
+  const materialized = await materializeInvoiceTestEdifactMasterdata({
+    companyId,
+    customerId,
+    actorUserId,
+    parsed,
+    sourceSha256,
+  })
   await assertSelectedCustomerMeteringPoint({ companyId, customerId, parsed })
 
-  const sourceSha256 = createHash('sha256').update(rawEdifact).digest('hex')
   const envelope = await getOrCreateTestInboundEnvelope({
     companyId,
     customerId,
@@ -225,5 +239,6 @@ export async function importRawEdifactAndRunTestCenterChain(
     runtime,
     sourceSha256,
     reusedInboundEnvelope: envelope.reused,
+    materializedMeteringPointId: materialized.meteringPointId,
   }
 }
