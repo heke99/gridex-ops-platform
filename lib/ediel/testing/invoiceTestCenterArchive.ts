@@ -52,7 +52,7 @@ export async function archiveInvoiceTestCustomerSafely(input: {
       .eq('is_test_data', true),
     supabaseService
       .from('metering_points')
-      .select('id,site_id,meter_point_id,metering_point_id,ediel_reference,site_facility_id,metadata,archived_at,is_test_data')
+      .select('id,site_id,meter_point_id,metering_point_id,ediel_metering_point_id,ediel_reference,site_facility_id,anlage_id,metadata,archived_at,is_test_data')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .eq('is_test_data', true),
@@ -69,27 +69,28 @@ export async function archiveInvoiceTestCustomerSafely(input: {
   const sites = (sitesResult.data ?? []) as Row[]
   const points = (pointsResult.data ?? []) as Row[]
   const contracts = (contractsResult.data ?? []) as Row[]
-  if (sites.length !== 1 || points.length !== 1 || contracts.length !== 1) {
-    throw new Error('Fakturatest vägrade arkivera: testkunden måste ha exakt en testanläggning, en testmätpunkt och ett canonical avtal.')
+
+  // A freshly created Fakturatest customer intentionally has no metering point
+  // until the first canonical EDIFACT import. Safe removal must therefore accept
+  // zero or one test point. More than one point is still an integrity violation.
+  if (sites.length !== 1 || contracts.length !== 1 || points.length > 1) {
+    throw new Error('Fakturatest vägrade arkivera: testkunden måste ha exakt en testanläggning, exakt ett canonical avtal och högst en testmätpunkt.')
   }
-  for (const [row, label] of [
-    [sites[0], 'testanläggningen'],
-    [points[0], 'testmätpunkten'],
-    [contracts[0], 'testavtalet'],
-  ] as Array<[Row, string]>) {
-    assertMarkedGraphRow(row, label)
-  }
+
+  assertMarkedGraphRow(sites[0], 'testanläggningen')
+  assertMarkedGraphRow(contracts[0], 'testavtalet')
+  if (points.length === 1) assertMarkedGraphRow(points[0], 'testmätpunkten')
 
   const now = new Date().toISOString()
   const reason = 'Arkiverad från Fakturatest. Provider-/auditspår bevaras.'
   const site = sites[0]
-  const point = points[0]
+  const point = points[0] ?? null
   const contract = contracts[0]
   const siteId = String(site.id)
-  const pointId = String(point.id)
+  const pointId = point ? String(point.id) : null
   const contractId = String(contract.id)
   const archivedFacilityId = `ARCHIVED-FAKTURATEST-SITE-${siteId}`
-  const archivedMeteringPointId = `ARCHIVED-FAKTURATEST-MP-${pointId}`
+  const archivedMeteringPointId = pointId ? `ARCHIVED-FAKTURATEST-MP-${pointId}` : null
 
   const contractMetadata = {
     ...objectValue(contract.metadata),
@@ -115,42 +116,48 @@ export async function archiveInvoiceTestCustomerSafely(input: {
   if (contractUpdate.error) throw contractUpdate.error
   if (!contractUpdate.data) throw new Error('Fakturatest kunde inte verifiera avslut av testavtalet.')
 
-  const pointMetadata = {
-    ...objectValue(point.metadata),
-    test_center: {
-      ...testMarker(point.metadata),
-      kind: INVOICE_TEST_CUSTOMER_KIND,
-      archived_at: now,
-      archived_original_identifiers: originalIdentifiers(point.metadata, {
-        meter_point_id: text(point.meter_point_id),
-        metering_point_id: text(point.metering_point_id),
-        ediel_reference: text(point.ediel_reference),
-        site_facility_id: text(point.site_facility_id),
-      }),
-    },
+  if (point && pointId && archivedMeteringPointId) {
+    const pointMetadata = {
+      ...objectValue(point.metadata),
+      test_center: {
+        ...testMarker(point.metadata),
+        kind: INVOICE_TEST_CUSTOMER_KIND,
+        archived_at: now,
+        archived_original_identifiers: originalIdentifiers(point.metadata, {
+          meter_point_id: text(point.meter_point_id),
+          metering_point_id: text(point.metering_point_id),
+          ediel_metering_point_id: text(point.ediel_metering_point_id),
+          ediel_reference: text(point.ediel_reference),
+          site_facility_id: text(point.site_facility_id),
+          anlage_id: text(point.anlage_id),
+        }),
+      },
+    }
+    const pointUpdate = await supabaseService
+      .from('metering_points')
+      .update({
+        meter_point_id: archivedMeteringPointId,
+        metering_point_id: archivedMeteringPointId,
+        ediel_metering_point_id: archivedMeteringPointId,
+        ediel_reference: null,
+        site_facility_id: archivedFacilityId,
+        anlage_id: null,
+        status: 'ended',
+        archived_at: now,
+        archived_by: input.actorUserId,
+        archive_reason: reason,
+        metadata: pointMetadata,
+        updated_by: input.actorUserId,
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', pointId)
+      .eq('is_test_data', true)
+      .select('id')
+      .maybeSingle()
+    if (pointUpdate.error) throw pointUpdate.error
+    if (!pointUpdate.data) throw new Error('Fakturatest kunde inte verifiera arkivering av testmätpunkten.')
   }
-  const pointUpdate = await supabaseService
-    .from('metering_points')
-    .update({
-      meter_point_id: archivedMeteringPointId,
-      metering_point_id: archivedMeteringPointId,
-      ediel_reference: null,
-      site_facility_id: archivedFacilityId,
-      status: 'ended',
-      archived_at: now,
-      archived_by: input.actorUserId,
-      archive_reason: reason,
-      metadata: pointMetadata,
-      updated_by: input.actorUserId,
-      updated_at: now,
-    })
-    .eq('company_id', input.companyId)
-    .eq('id', pointId)
-    .eq('is_test_data', true)
-    .select('id')
-    .maybeSingle()
-  if (pointUpdate.error) throw pointUpdate.error
-  if (!pointUpdate.data) throw new Error('Fakturatest kunde inte verifiera arkivering av testmätpunkten.')
 
   const siteMetadata = {
     ...objectValue(site.metadata),
