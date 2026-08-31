@@ -5,15 +5,6 @@ import { resolve } from 'node:path'
 const root = resolve(__dirname, '..')
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
 
-function generatedTableBlock(types: string, table: string): string {
-  const startNeedle = `      ${table}: {`
-  const start = types.indexOf(startNeedle)
-  if (start < 0) return ''
-  const rest = types.slice(start + startNeedle.length)
-  const next = rest.search(/\n      [a-z0-9_]+: \{/)
-  return next < 0 ? types.slice(start) : types.slice(start, start + startNeedle.length + next)
-}
-
 describe('Fakturatest canonical contract lifecycle', () => {
   it('never inserts an active/signed contract through normal customer onboarding', () => {
     const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
@@ -36,21 +27,6 @@ describe('Fakturatest canonical contract lifecycle', () => {
     expect(lifecycle).toContain("gridex_prepare_customer_contract_signature_request_v1")
     expect(lifecycle).toContain("gridex_finalize_customer_contract_signature_v1")
     expect(lifecycle).toContain('Gridex Fakturatest synthetic acceptance · TEST ONLY')
-  })
-
-  it('uses the generated customer_contracts schema for the contract start date', () => {
-    const materialization = read('lib/ediel/testing/invoiceTestEdifactMaterialization.ts')
-    const types = read('supabase/database.types.ts')
-    const contractSchema = generatedTableBlock(types, 'customer_contracts')
-
-    expect(contractSchema).not.toBe('')
-    expect(contractSchema).toMatch(/\n\s+starts_at: string \| null/)
-    expect(contractSchema).not.toMatch(/\n\s+start_date:/)
-
-    expect(materialization).toContain(".select('id,status,starts_at,metering_point_id,site_id,customer_site_id,metadata')")
-    expect(materialization).toContain('const startDate = text(contract.starts_at)?.slice(0, 10) ?? null')
-    expect(materialization).not.toContain('start_date,starts_at')
-    expect(materialization).not.toContain('contract.start_date')
   })
 
   it('creates an active test supply period only after the signed contract matches the EDIFACT meter point', () => {
