@@ -5,26 +5,30 @@ import { describe, expect, it } from 'vitest'
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), 'utf8')
 
 describe('Test Center raw EDIFACT import contract', () => {
-  it('reuses the canonical inbound parser and processor before the metering-to-invoice runtime', () => {
+  it('reuses the canonical parser, materializes test-only masterdata, then runs the normal inbound processor and runtime', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
-    expect(source).toContain("parseInboundEmailContent")
-    expect(source).toContain("processInboundEmailMessage")
-    expect(source).toContain("runTestCenterMeteringToInvoiceChain")
+    expect(source).toContain('parseInboundEmailContent')
+    expect(source).toContain('materializeInvoiceTestEdifactMasterdata')
+    expect(source).toContain('processInboundEmailMessage')
+    expect(source).toContain('runTestCenterMeteringToInvoiceChain')
 
     const parseAt = source.indexOf('assertRawTestEdifactPreflight(rawEdifact)')
+    const materializeAt = source.indexOf('await materializeInvoiceTestEdifactMasterdata')
     const inboundAt = source.indexOf('await processInboundEmailMessage')
     const runtimeAt = source.indexOf('await runTestCenterMeteringToInvoiceChain')
     expect(parseAt).toBeGreaterThanOrEqual(0)
-    expect(inboundAt).toBeGreaterThan(parseAt)
+    expect(materializeAt).toBeGreaterThan(parseAt)
+    expect(inboundAt).toBeGreaterThan(materializeAt)
     expect(runtimeAt).toBeGreaterThan(inboundAt)
   })
 
-  it('fails closed to UTILTS and selected customer/tenant metering ownership', () => {
+  it('fails closed to UTILTS and selected test-customer/tenant ownership after materialization', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     expect(source).toContain("parsed.messageFamily !== 'UTILTS'")
     expect(source).toContain(".eq('company_id', input.companyId)")
     expect(source).toContain(".eq('customer_id', input.customerId)")
-    expect(source).toContain("EDIFACT-mätpunkten tillhör inte vald testkund")
+    expect(source).toContain(".eq('is_test_data', true)")
+    expect(source).toContain('EDIFACT-identiteten kunde inte verifieras mot vald testkund')
     expect(source).toContain("row.environment !== 'test'")
     expect(source).toContain("row.customer_id !== input.customerId")
   })
@@ -33,8 +37,8 @@ describe('Test Center raw EDIFACT import contract', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     expect(source).toContain("environment: 'test'")
     expect(source).toContain("match_status: 'test_center_raw_import'")
-    expect(source).toContain("test_center_customer_id: input.customerId")
-    expect(source).toContain("external_side_effects_allowed: false")
+    expect(source).toContain('test_center_customer_id: input.customerId')
+    expect(source).toContain('external_side_effects_allowed: false')
     expect(source).not.toContain('invoiceApprovedDispatch')
     expect(source).not.toContain('dispatchApproved')
   })
@@ -52,7 +56,7 @@ describe('Test Center raw EDIFACT import contract', () => {
   it('accepts file or pasted EDIFACT in the superadmin server action and caps files at 2 MB', () => {
     const actions = read('app/admin/ediel/test-center/actions.ts')
     const page = read('app/admin/ediel/test-center/metering-to-invoice/page.tsx')
-    expect(actions).toContain("requirePlatformAdminActionAccess()")
+    expect(actions).toContain('requirePlatformAdminActionAccess()')
     expect(actions).toContain("formData.get('edifactFile')")
     expect(actions).toContain('2 * 1024 * 1024')
     expect(actions).toContain('importRawEdifactAndRunTestCenterChain')
