@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "10be45a4f7b6f0a6bcf0d67997132d262aefe4ba2724dace291d11004a47307d",
-  "latest_migration": "20260831093531_fix_contract_snapshot_null_schema_guard.sql",
-  "latest_migration_schema_effect": "replace_contract_snapshot_trigger_function_null_guard_without_public_type_drift"
+  "latest_migration": "20260831095000_admin_signed_contract_import_canonicalization.sql",
+  "latest_migration_schema_effect": "canonicalize_admin_signed_contract_import_runtime_without_public_type_drift"
 }
