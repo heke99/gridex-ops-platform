@@ -437,23 +437,47 @@ export async function generateBillingUnderlaysForMonth(input: {
   companyId: string;
   billingMonth: string;
   createdBy?: string | null;
+  customerId?: string | null;
+  meteringPointId?: string | null;
 }) {
   await assertPlatformSchemaReady();
   await assertBillingPeriodOpen({
     companyId: input.companyId,
     billingMonth: input.billingMonth,
   });
+  const customerScope = input.customerId === undefined || input.customerId === null
+    ? null
+    : text(input.customerId);
+  const meteringPointScope = input.meteringPointId === undefined || input.meteringPointId === null
+    ? null
+    : text(input.meteringPointId);
+  if (input.customerId !== undefined && input.customerId !== null && !customerScope) {
+    throw new Error("Billing-underlag fick ett tomt customerId-scope.");
+  }
+  if (input.meteringPointId !== undefined && input.meteringPointId !== null && !meteringPointScope) {
+    throw new Error("Billing-underlag fick ett tomt meteringPointId-scope.");
+  }
+
   const bounds = stockholmMonthBounds(input.billingMonth);
-  const values = await loadNormalizedValues(
+  const allValues = await loadNormalizedValues(
     input.companyId,
     bounds.start,
     bounds.end,
   );
-  const periods = await loadSupplyPeriods(
+  const allPeriods = await loadSupplyPeriods(
     input.companyId,
     bounds.start.slice(0, 10),
     addDays(bounds.endDateExclusive, -1),
   );
+  const values = allValues.filter((row) =>
+    (!customerScope || text(row.customer_id) === customerScope) &&
+    (!meteringPointScope || text(row.metering_point_id) === meteringPointScope),
+  );
+  const periods = allPeriods.filter((row) =>
+    (!customerScope || text(row.customer_id) === customerScope) &&
+    (!meteringPointScope || text(row.metering_point_id) === meteringPointScope),
+  );
+
   const periodsByMeter = new Map<string, JsonRecord[]>();
   for (const period of periods) {
     const meter = text(period.metering_point_id);
@@ -925,6 +949,10 @@ export async function generateBillingUnderlaysForMonth(input: {
 
   return {
     billingMonth: input.billingMonth,
+    scope: {
+      customerId: customerScope,
+      meteringPointId: meteringPointScope,
+    },
     sourceTable: "normalized_metering_values" as const,
     sourceRows: values.length,
     underlays: results.length,
