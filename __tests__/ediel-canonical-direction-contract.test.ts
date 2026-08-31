@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 
 const CONTRL_PAYLOAD = [
   "UNA:+.? '",
   "UNB+UNOC:3+21660:ZZ+91100:ZZ+260831:1600+ABC123'",
-  "UNH+1+CONTRL:D:3:UN'",
+  "UNH+1+CONTRL:2:2:UN:EDIEL2'",
   "UCI+SOURCE123+91100:ZZ+21660:ZZ+1'",
   "UNT+3+1'",
   "UNZ+1+ABC123'",
+].join('')
+
+const SOURCE_PAYLOAD = [
+  "UNA:+.? '",
+  "UNB+UNOC:3+91100:ZZ+21660:ZZ+260831:1555+SOURCE123++E66-T'",
+  "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
+  "BGM+E66+SOURCE-DOC'",
+  "UNT+3+1'",
+  "UNZ+1+SOURCE123'",
 ].join('')
 
 function hasDirectionRequired(result: ReturnType<typeof validateRulebookMessage>): boolean {
@@ -47,5 +57,25 @@ describe('canonical Ediel runtime direction contract', () => {
     })
 
     expect(hasDirectionRequired(result)).toBe(false)
+  })
+
+  it('renders Ediel positive CONTRL with UCI action code 1', () => {
+    const rendered = renderContrl2Ediel2({
+      source: { rawPayload: SOURCE_PAYLOAD },
+      outcome: 'positive',
+    })
+
+    expect(rendered.diagnostics.syntaxActionCode).toBe('1')
+    expect(rendered.segments).toEqual(['UCI+SOURCE123+91100:ZZ+21660:ZZ+1'])
+  })
+
+  it('renders Ediel negative CONTRL with UCI action code 4', () => {
+    const rendered = renderContrl2Ediel2({
+      source: { rawPayload: SOURCE_PAYLOAD },
+      outcome: 'negative',
+    })
+
+    expect(rendered.diagnostics.syntaxActionCode).toBe('4')
+    expect(rendered.segments).toEqual(['UCI+SOURCE123+91100:ZZ+21660:ZZ+4'])
   })
 })
