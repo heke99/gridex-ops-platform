@@ -19,6 +19,22 @@ describe('Fakturatest workspace contract', () => {
     expect(actions).toContain('markInvoiceTestCustomerGraph')
   })
 
+  it('quarantines a newly created graph fail-closed if test marking fails', () => {
+    const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
+    const quarantine = read('lib/ediel/testing/invoiceTestCenterQuarantine.ts')
+    expect(actions).toContain('quarantineCreatedInvoiceTestGraph')
+    expect(quarantine).toContain('Fakturatest-markering misslyckades')
+    expect(quarantine).toContain('is_test_data: true')
+    expect(quarantine).toContain('archived_at: now')
+    expect(quarantine).toContain("source: INVOICE_TEST_CUSTOMER_SOURCE")
+  })
+
+  it('does not turn successful Next redirects into error redirects', () => {
+    const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
+    expect(actions).toContain("digest.startsWith('NEXT_REDIRECT')")
+    expect(actions.match(/rethrowNextRedirect\(error\)/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+
   it('hard-identifies invoice-test customers with both is_test_data and source/metadata marker', () => {
     const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
     expect(service).toContain("row.is_test_data === true")
