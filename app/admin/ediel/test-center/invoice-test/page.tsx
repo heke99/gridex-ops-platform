@@ -2,9 +2,10 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { loadInvoiceTestCenterWorkspace } from '@/lib/ediel/testing/invoiceTestCenterWorkspace'
+import { loadInvoiceTestEdifactSummary } from '@/lib/ediel/testing/invoiceTestEdifactMaterialization'
+import InvoiceTestCustomerForm from '@/app/admin/ediel/test-center/invoice-test/InvoiceTestCustomerForm'
 import {
   archiveInvoiceTestCustomerAction,
-  createInvoiceTestCustomerAction,
   importInvoiceTestEdifactAction,
   rerunInvoiceTestMessageAction,
   resetInvoiceTestCustomerAction,
@@ -38,6 +39,10 @@ function num(value: unknown): number | null {
   return null
 }
 
+function objectValue(value: unknown): Row {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}
+}
+
 function money(value: unknown) {
   const amount = num(value)
   return amount === null ? '—' : `${amount.toFixed(2)} kr`
@@ -65,8 +70,8 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
   const invoices = workspace.invoices as Row[]
   const pricingLines = workspace.pricingLines as Row[]
   const providerConnections = workspace.providerConnections as Row[]
+
   const companyNames = new Map(companies.map((row) => [String(row.id), text(row.name) ?? String(row.id)]))
-  const customerNames = new Map(customers.map((row) => [String(row.id), text(row.full_name) ?? text(row.customer_number) ?? String(row.id)]))
   const invoiceByItem = new Map(invoices.map((row) => [text(row.invoice_export_item_id), row]))
   const linesByPricingRun = new Map<string, Row[]>()
   for (const line of pricingLines) {
@@ -76,17 +81,32 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
     list.push(line)
     linesByPricingRun.set(pricingRunId, list)
   }
+
   const selectedCompanyId = params?.companyId && companies.some((row) => String(row.id) === params.companyId)
     ? params.companyId
     : text(customers[0]?.company_id) ?? text(companies[0]?.id) ?? ''
-  const selectedCustomerId = params?.customerId && customers.some((row) => String(row.id) === params.customerId)
+  const companyCustomers = customers.filter((row) => text(row.company_id) === selectedCompanyId)
+  const selectedCustomerId = params?.customerId && companyCustomers.some((row) => String(row.id) === params.customerId)
     ? params.customerId
-    : text(customers.find((row) => text(row.company_id) === selectedCompanyId)?.id) ?? text(customers[0]?.id) ?? ''
+    : text(companyCustomers[0]?.id) ?? ''
+  const selectedCustomer = companyCustomers.find((row) => String(row.id) === selectedCustomerId)
   const safeTraceHref = params?.traceHref?.startsWith('/admin/ediel/test-center/metering-to-invoice/trace/') ? params.traceHref : null
   const selectedMeteringPoints = meteringPoints.filter((row) => text(row.customer_id) === selectedCustomerId)
   const selectedMessages = messages.filter((row) => text(row.customer_id) === selectedCustomerId)
   const selectedItems = invoiceItems.filter((row) => text(row.customer_id) === selectedCustomerId)
   const selectedProvider = providerConnections.find((row) => text(row.company_id) === selectedCompanyId)
+  const providerReady = Boolean(selectedProvider && text(selectedProvider.status) === 'active')
+
+  let edifactSummary: Row | null = null
+  if (selectedCompanyId && selectedCustomerId) {
+    try {
+      edifactSummary = await loadInvoiceTestEdifactSummary({ companyId: selectedCompanyId, customerId: selectedCustomerId })
+    } catch {
+      edifactSummary = null
+    }
+  }
+  const imported = objectValue(edifactSummary?.imported)
+  const importedQuantities = Array.isArray(imported.quantities) ? imported.quantities as Row[] : []
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -102,7 +122,7 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
           <div>
             <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Isolerad testmiljö</div>
-            <div className="mt-1 text-sm font-semibold text-emerald-950">Endast kunder med is_test_data + Fakturatest-markör får användas. Leverantörsskick accepterar endast environment=test.</div>
+            <div className="mt-1 text-sm font-semibold text-emerald-950">Testkunden innehåller kund/avtal/prisområde. Anläggnings- och mätpunktsidentiteter hämtas först när EDIFACT-filen importeras.</div>
           </div>
           <div className="rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-white">Capway/Aptic TEST only</div>
         </section>
@@ -122,49 +142,20 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">1 · Testkund</p>
-          <h1 className="mt-2 text-2xl font-black text-slate-950">Skapa en riktig kundgraf — märkt som testdata</h1>
+          <h1 className="mt-2 text-2xl font-black text-slate-950">Skapa testkund och välj riktigt internt avtal</h1>
           <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-700">
-            Kunden skapas via samma canonical kundintag som ordinarie kunder, med riktig anläggning, mätpunkt, valt internt avtal och prissnapshot. Efter commit märks kund/anläggning/mätpunkt som Fakturatest-data så resten av arbetsytan kan fail-closed-blockera alla riktiga kunder.
+            Kund, avtal, fakturauppgifter och prisområde skapas via canonical kundintag. Inga EDIFACT-identiteter matas in manuellt. De materialiseras från parserresultatet när filen importeras i steg 2.
           </p>
-          <form action={createInvoiceTestCustomerAction} className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <label className="space-y-2 text-sm font-bold text-slate-800">
-              <span>Bolag / tenant</span>
-              <select name="companyId" required defaultValue={selectedCompanyId} className="w-full rounded-xl border border-slate-300 px-3 py-2">
-                <option value="">Välj bolag</option>
-                {companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{text(company.name) ?? String(company.id)}</option>)}
-              </select>
-            </label>
-            <label className="space-y-2 text-sm font-bold text-slate-800 xl:col-span-2">
-              <span>Riktigt internt avtal</span>
-              <select name="contractOfferId" required defaultValue="" className="w-full rounded-xl border border-slate-300 px-3 py-2">
-                <option value="">Välj publicerat/säljbart avtal</option>
-                {offers.map((offer) => (
-                  <option key={String(offer.id)} value={String(offer.id)}>
-                    {text(offer.name) ?? String(offer.id)} · {companyNames.get(String(offer.company_id)) ?? String(offer.company_id)} · {text(offer.contract_type) ?? '—'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-2 text-sm font-bold text-slate-800">
-              <span>Avtalsstart</span>
-              <input type="date" name="contractStartDate" required defaultValue="2026-07-01" className="w-full rounded-xl border border-slate-300 px-3 py-2" />
-            </label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Förnamn</span><input name="firstName" required defaultValue="Test" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Efternamn</span><input name="lastName" required defaultValue="Fakturakund" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>E-post</span><input type="email" name="email" required defaultValue="testfaktura@gridex.se" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Telefon</span><input name="phone" required defaultValue="0701234567" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800 xl:col-span-2"><span>Mätpunkts-ID · måste matcha LOC+172 i UTILTS</span><input name="meterPointId" required defaultValue="735999888777777778" className="w-full rounded-xl border border-slate-300 px-3 py-2 font-mono" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Anläggnings-ID</span><input name="facilityId" required defaultValue="GRIDEX-TEST-001" className="w-full rounded-xl border border-slate-300 px-3 py-2 font-mono" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Elområde</span><select name="priceAreaCode" required defaultValue="SE3" className="w-full rounded-xl border border-slate-300 px-3 py-2"><option>SE1</option><option>SE2</option><option>SE3</option><option>SE4</option></select></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800 xl:col-span-2"><span>Adress</span><input name="street" required defaultValue="Testgatan 1" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Postnummer</span><input name="postalCode" required defaultValue="11122" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Ort</span><input name="city" required defaultValue="Stockholm" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Årsförbrukning kWh</span><input type="number" name="annualConsumptionKwh" min="0" defaultValue="12000" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Faktura-e-post</span><input type="email" name="invoiceEmail" required defaultValue="testfaktura@gridex.se" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
-            <input type="hidden" name="siteName" value="Fakturatest-anläggning" />
-            <input type="hidden" name="invoiceRecipient" value="Test Fakturakund" />
-            <div className="flex items-end xl:col-span-2"><button className="w-full rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Skapa testkund</button></div>
-          </form>
+          <InvoiceTestCustomerForm
+            initialCompanyId={selectedCompanyId}
+            companies={companies.map((row) => ({ id: String(row.id), name: text(row.name) ?? String(row.id) }))}
+            offers={offers.map((row) => ({
+              id: String(row.id),
+              company_id: String(row.company_id),
+              name: text(row.name) ?? String(row.id),
+              contract_type: text(row.contract_type),
+            }))}
+          />
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -182,7 +173,7 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
                       <div>
                         <div className="font-black text-slate-950">{text(customer.full_name) ?? 'Testkund'} · {text(customer.customer_number) ?? id}</div>
                         <div className="mt-1 text-xs text-slate-600">{companyNames.get(String(customer.company_id)) ?? String(customer.company_id)} · {text(customer.email) ?? '—'}</div>
-                        <div className="mt-2 font-mono text-xs text-slate-700">Mätpunkt: {points.map((point) => text(point.metering_point_id)).filter(Boolean).join(', ') || 'saknas'}</div>
+                        <div className="mt-2 font-mono text-xs text-slate-700">EDIFACT-identitet: {points.map((point) => text(point.metering_point_id) ?? text(point.meter_point_id)).filter(Boolean).join(', ') || 'väntar på filimport'}</div>
                       </div>
                       <Link href={`${WORKSPACE_LINK}?companyId=${encodeURIComponent(String(customer.company_id))}&customerId=${encodeURIComponent(id)}`} className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-black text-emerald-800">Använd kunden</Link>
                     </div>
@@ -206,18 +197,40 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
         </section>
 
         <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">2 · EDIFACT → fakturautkast</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">Importera UTILTS och kör hela riktiga kedjan</h2>
-          <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-700">Filen går genom befintlig canonical parser, test-inbound, normaliserade mätvärden, billing-underlag, låst pricing och customer_invoices/invoice_export_items. Ingen egen test-prismotor används.</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">2 · EDIFACT → masterdata → fakturautkast</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">Importera UTILTS och låt filen definiera identiteterna</h2>
+          <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-700">Canonical parser läser först filen. Parserresultatet materialiserar endast testkundens test-site/mätpunkt. Därefter går samma payload genom ordinarie inbound-matchning, normaliserade mätvärden, billing-underlag, låst pricing och fakturautkast.</p>
+
+          {selectedCustomerId ? (
+            <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-sky-800">{edifactSummary ? 'Inläst från EDIFACT' : 'Väntar på EDIFACT'}</div>
+              {edifactSummary ? (
+                <div className="mt-3 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
+                  <div><div className="text-xs font-bold text-slate-500">Anläggnings-/mätpunkts-ID</div><div className="mt-1 break-all font-mono font-black">{text(imported.primary_metering_reference) ?? text(edifactSummary.metering_point_id) ?? '—'}</div><div className="text-xs text-slate-500">Källa: {text(imported.primary_reference_source) ?? 'canonical parser'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">LOC+172 / facility</div><div className="mt-1 break-all font-mono font-black">{text(imported.facility_id) ?? text(edifactSummary.facility_id) ?? '—'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">Nätområde · LOC+239</div><div className="mt-1 font-mono font-black">{text(imported.grid_area_code) ?? text(edifactSummary.grid_area_code) ?? '—'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">Mätarnummer · RFF+MG</div><div className="mt-1 break-all font-mono font-black">{text(imported.meter_number) ?? text(edifactSummary.meter_number) ?? '—'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">Avsändare → mottagare</div><div className="mt-1 font-mono font-black">{text(imported.sender_ediel_id) ?? '—'} → {text(imported.receiver_ediel_id) ?? '—'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">Meddelande</div><div className="mt-1 font-mono font-black">{text(imported.message_code) ?? 'UTILTS'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">Period · DTM+324</div><div className="mt-1 break-all font-mono font-black">{text(imported.period) ?? '—'}</div></div>
+                  <div><div className="text-xs font-bold text-slate-500">Transaktionsreferens</div><div className="mt-1 break-all font-mono font-black">{text(imported.transaction_reference) ?? '—'}</div></div>
+                  <div className="md:col-span-2 xl:col-span-4"><div className="text-xs font-bold text-slate-500">Kvantiteter från QTY</div><div className="mt-2 flex flex-wrap gap-2">{importedQuantities.length === 0 ? <span>—</span> : importedQuantities.map((quantity, index) => <span key={index} className="rounded-lg bg-white px-2.5 py-1 font-mono text-xs shadow-sm">{text(quantity.qualifier) ?? '?'}: {num(quantity.value) ?? text(quantity.rawValue) ?? '—'} {text(quantity.unit) ?? ''}</span>)}</div></div>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-sky-950">Ingen anläggnings- eller mätpunktsidentitet är skapad ännu. Den kommer från nästa importerade UTILTS-fil.</p>
+              )}
+            </div>
+          ) : null}
+
           <form action={importInvoiceTestEdifactAction} className="mt-6 grid gap-4 lg:grid-cols-2">
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Bolag</span><select name="companyId" required defaultValue={selectedCompanyId} className="w-full rounded-xl border border-slate-300 px-3 py-2"><option value="">Välj</option>{companies.map((row) => <option key={String(row.id)} value={String(row.id)}>{text(row.name) ?? String(row.id)}</option>)}</select></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Testkund</span><select name="customerId" required defaultValue={selectedCustomerId} className="w-full rounded-xl border border-slate-300 px-3 py-2"><option value="">Välj</option>{customers.map((row) => <option key={String(row.id)} value={String(row.id)}>{text(row.customer_number) ?? String(row.id)} · {text(row.full_name) ?? 'Testkund'} · {companyNames.get(String(row.company_id))}</option>)}</select></label>
+            <input type="hidden" name="companyId" value={selectedCompanyId} />
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"><span className="font-bold">Bolag:</span> {companyNames.get(selectedCompanyId) ?? 'Välj testkund'}</div>
+            <label className="space-y-2 text-sm font-bold text-slate-800"><span>Testkund</span><select name="customerId" required defaultValue={selectedCustomerId} className="w-full rounded-xl border border-slate-300 px-3 py-2"><option value="">Välj</option>{companyCustomers.map((row) => <option key={String(row.id)} value={String(row.id)}>{text(row.customer_number) ?? String(row.id)} · {text(row.full_name) ?? 'Testkund'}</option>)}</select></label>
             <label className="space-y-2 text-sm font-bold text-slate-800"><span>Fakturamånad</span><input type="month" name="billingMonth" required defaultValue="2026-07" className="w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
             <label className="space-y-2 text-sm font-bold text-slate-800"><span>Scenario</span><select name="testScenario" defaultValue="baseline" className="w-full rounded-xl border border-slate-300 px-3 py-2"><option value="baseline">Baseline</option><option value="duplicate">Duplicate</option><option value="missing_values">Missing values</option><option value="correction">Correction</option><option value="rebilling">Rebilling</option></select></label>
-            <label className="space-y-2 text-sm font-bold text-slate-800"><span>EDIFACT-fil · max 2 MB</span><input type="file" name="edifactFile" accept=".edi,.edifact,.txt,text/plain" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" /></label>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">Vald kunds mätpunkt: <span className="font-mono font-black">{selectedMeteringPoints.map((row) => text(row.metering_point_id)).filter(Boolean).join(', ') || 'välj/skapa kund först'}</span>. Den måste matcha UTILTS.</div>
+            <label className="space-y-2 text-sm font-bold text-slate-800 lg:col-span-2"><span>EDIFACT-fil · max 2 MB</span><input type="file" name="edifactFile" accept=".edi,.edifact,.txt,text/plain" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" /></label>
             <label className="space-y-2 text-sm font-bold text-slate-800 lg:col-span-2"><span>Eller klistra in rå EDIFACT</span><textarea name="rawEdifact" rows={8} placeholder="UNA:+.? 'UNB+UNOC:3+..." className="w-full rounded-xl border border-slate-300 bg-slate-950 px-3 py-3 font-mono text-xs leading-5 text-slate-100" /></label>
-            <div className="flex justify-end lg:col-span-2"><button disabled={!selectedCustomerId} className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white disabled:bg-slate-400">Importera → kör → skapa fakturautkast</button></div>
+            <div className="flex justify-end lg:col-span-2"><button disabled={!selectedCustomerId} className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white disabled:bg-slate-400">Importera → läs masterdata → skapa fakturautkast</button></div>
           </form>
         </section>
 
@@ -239,10 +252,11 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">3 · Faktura & leverantör</p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">Granska fakturan och skapa den hos Capway/Aptic TEST</h2>
             </div>
-            <div className={`rounded-full px-3 py-1.5 text-xs font-black ${selectedProvider && text(selectedProvider.status) === 'active' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}`}>
+            <div className={`rounded-full px-3 py-1.5 text-xs font-black ${providerReady ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}`}>
               Testanslutning: {selectedProvider ? text(selectedProvider.status) ?? 'konfigurerad' : 'saknas'}
             </div>
           </div>
+          {!providerReady && selectedCustomerId ? <p className="mt-3 text-sm font-semibold text-amber-800">Intern fakturaberäkning kan testas, men provider-skick är blockerat tills Capway/Aptic TEST är active/ready.</p> : null}
           {!selectedCustomerId ? <p className="mt-4 text-sm text-slate-600">Välj en testkund för att se fakturor.</p> : selectedItems.length === 0 ? <p className="mt-4 text-sm text-slate-600">Ingen testfaktura finns ännu. Importera UTILTS ovan.</p> : (
             <div className="mt-5 space-y-5">
               {selectedItems.map((item) => {
@@ -250,7 +264,7 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
                 const invoice = invoiceByItem.get(itemId)
                 const lines = linesByPricingRun.get(text(item.pricing_run_id) ?? '') ?? []
                 const status = text(item.status) ?? '—'
-                const canSend = status === 'pending' && text(item.environment) === 'test' && text(item.provider) === 'capway_aptic'
+                const canSend = providerReady && status === 'pending' && text(item.environment) === 'test' && text(item.provider) === 'capway_aptic'
                 return (
                   <article key={itemId} className="overflow-hidden rounded-2xl border border-slate-200">
                     <div className="flex flex-wrap items-start justify-between gap-4 bg-slate-50 p-4">
