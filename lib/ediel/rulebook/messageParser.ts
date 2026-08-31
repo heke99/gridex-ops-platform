@@ -95,13 +95,20 @@ function parseContrlFacts(rawSegments: string[]): Record<string, unknown> {
   const uci = first(rawSegments, 'UCI+')
   const ucm = all(rawSegments, 'UCM+')
   const ucs = all(rawSegments, 'UCS+')
-  const statusToken = [uci, ...ucm, ...ucs].join('+').toUpperCase()
+  const actionCode = part(uci, 4)?.split(':')[0]?.trim() || null
+  const status = actionCode === '1'
+    ? 'positive'
+    : actionCode === '4'
+      ? 'negative'
+      : 'unknown'
+
   return {
     uci,
     ucm,
     ucs,
-    acknowledgedInterchangeReference: uci?.split('+')[1] ?? null,
-    status: statusToken.includes('+7') || statusToken.includes(':7') ? 'negative' : 'positive',
+    acknowledgedInterchangeReference: part(uci, 1),
+    actionCode,
+    status,
   }
 }
 
@@ -172,11 +179,17 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   if (!unb && rawSegments.length > 0) warnings.push('UNB saknas eller kunde inte läsas.')
   if (!unh && !raw.includes(';')) warnings.push('UNH saknas eller kunde inte läsas.')
   if (family !== 'CONTRL' && family !== 'AI_LIST' && family !== 'UNKNOWN' && !bgm) warnings.push('BGM saknas eller kunde inte läsas.')
+  if (family === 'CONTRL') {
+    const actionCode = typeof facts.actionCode === 'string' ? facts.actionCode : null
+    if (actionCode !== '1' && actionCode !== '4') {
+      errors.push(`CONTRL UCI/0083 måste vara 1 eller 4 enligt Ediel; fick ${actionCode ?? 'saknas'}.`)
+    }
+  }
 
   const outcome = family === 'APERAK'
     ? (all(rawSegments, 'ERC+').length > 0 ? 'negative' : 'positive')
     : family === 'CONTRL'
-      ? ((facts.status as string | undefined) === 'negative' ? 'negative' : 'positive')
+      ? (facts.status === 'positive' ? 'positive' : facts.status === 'negative' ? 'negative' : null)
       : null
 
   return {
