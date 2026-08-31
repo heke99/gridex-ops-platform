@@ -37,6 +37,11 @@ export type InvoiceTestEdifactIdentity = {
   quantities: ParsedEdifactEnvelope['quantities']
 }
 
+/**
+ * Fakturatest never owns a separate masterdata parser. The values below are
+ * derived exclusively from the canonical ParsedEdifactEnvelope produced by
+ * the normal inbound parser. No facility/metering identity is invented here.
+ */
 export function deriveInvoiceTestEdifactIdentity(parsed: ParsedEdifactEnvelope): InvoiceTestEdifactIdentity {
   const loc172 = text(parsed.locations['172']?.[0])
   const fallback = firstReference(parsed, ['Z07', 'LI', 'TN', 'MG'])
