@@ -24,6 +24,51 @@ export function isInvoiceTestCustomerRow(row: Row | null | undefined): boolean {
     && text(marker(row.metadata).kind) === INVOICE_TEST_CUSTOMER_KIND
 }
 
+export async function assertInvoiceTestCompanyAndOffer(input: {
+  companyId: string
+  contractOfferId: string
+}) {
+  const [companyResult, offerResult] = await Promise.all([
+    supabaseService
+      .from('companies')
+      .select('id,name,status,lifecycle_status,is_active,archived_at')
+      .eq('id', input.companyId)
+      .maybeSingle(),
+    supabaseService
+      .from('canonical_internal_contract_offers_v')
+      .select('id,company_id,name,status,lifecycle_status,is_active,contract_type,internal_publication_ready')
+      .eq('id', input.contractOfferId)
+      .eq('company_id', input.companyId)
+      .maybeSingle(),
+  ])
+  if (companyResult.error) throw companyResult.error
+  if (offerResult.error) throw offerResult.error
+
+  const company = companyResult.data as Row | null
+  if (
+    !company ||
+    text(company.status) !== 'active' ||
+    text(company.lifecycle_status) !== 'active' ||
+    company.is_active !== true ||
+    text(company.archived_at)
+  ) {
+    throw new Error('Fakturatest blockerad: valt bolag är inte en aktiv tenant.')
+  }
+
+  const offer = offerResult.data as Row | null
+  if (
+    !offer ||
+    text(offer.company_id) !== input.companyId ||
+    text(offer.status) !== 'active' ||
+    text(offer.lifecycle_status) !== 'published' ||
+    offer.is_active !== true ||
+    offer.internal_publication_ready !== true
+  ) {
+    throw new Error('Fakturatest blockerad: valt avtal är inte ett aktivt publicerat internt avtal för vald tenant.')
+  }
+  return { company, offer }
+}
+
 export async function assertInvoiceTestCustomer(input: {
   companyId: string
   customerId: string
@@ -205,11 +250,22 @@ export async function archiveInvoiceTestCustomer(input: {
 
 export async function loadInvoiceTestCenterWorkspace() {
   const [companies, offers, customers, providerConnections] = await Promise.all([
-    supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(100),
+    supabaseService
+      .from('companies')
+      .select('id,name,status,lifecycle_status,is_active,archived_at')
+      .eq('status', 'active')
+      .eq('lifecycle_status', 'active')
+      .eq('is_active', true)
+      .is('archived_at', null)
+      .order('name', { ascending: true })
+      .limit(100),
     supabaseService
       .from('canonical_internal_contract_offers_v')
-      .select('id,company_id,name,contract_type,currently_sellable,internal_publication_ready')
-      .eq('currently_sellable', true)
+      .select('id,company_id,name,contract_type,status,lifecycle_status,is_active,currently_sellable,internal_publication_ready')
+      .eq('status', 'active')
+      .eq('lifecycle_status', 'published')
+      .eq('is_active', true)
+      .eq('internal_publication_ready', true)
       .order('name', { ascending: true })
       .limit(300),
     supabaseService
@@ -248,7 +304,7 @@ export async function loadInvoiceTestCenterWorkspace() {
   const [meteringPoints, messages, invoiceItems, invoices] = await Promise.all([
     supabaseService
       .from('metering_points')
-      .select('id,company_id,customer_id,metering_point_id,price_area_code,status,is_test_data,archived_at')
+      .select('id,company_id,customer_id,meter_point_id,price_area_code,status,is_test_data,archived_at')
       .in('customer_id', customerIds)
       .eq('is_test_data', true)
       .is('archived_at', null),
