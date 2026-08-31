@@ -19,7 +19,6 @@ import {
   getInvoiceTestOnboardingGeneration,
   resolveSingleInvoiceTestContractId,
 } from '@/lib/ediel/testing/invoiceTestCenterCreation'
-import { signInvoiceTestContractCanonically } from '@/lib/ediel/testing/invoiceTestContractLifecycle'
 import { archiveInvoiceTestCustomerSafely } from '@/lib/ediel/testing/invoiceTestCenterArchive'
 import { quarantineCreatedInvoiceTestGraph } from '@/lib/ediel/testing/invoiceTestCenterQuarantine'
 import { approveAndSendInvoiceTestItem } from '@/lib/billing/invoiceTestCenterDispatch'
@@ -130,8 +129,9 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       city,
       country: 'SE',
       contractStartDate: startDate,
-      // Normal onboarding may not insert signed/active contracts. The canonical
-      // signing RPC locks publication, legal and price evidence after creation.
+      // The test contract must remain mutable until the canonical EDIFACT identity
+      // has been bound. Signing happens during EDIFACT materialization, immediately
+      // after the meter point is attached and before any meter value is ingested.
       contractStatus: 'pending_signature',
       overrideReason: null,
       contractTypeOverride: null,
@@ -182,12 +182,6 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
         contractId,
         actorUserId: context.userId,
       })
-      await signInvoiceTestContractCanonically({
-        companyId,
-        customerId: customer.id,
-        contractId,
-        actorUserId: context.userId,
-      })
     } catch (markError) {
       try {
         await quarantineCreatedInvoiceTestGraph({
@@ -199,7 +193,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
         })
       } catch (quarantineError) {
         throw new Error(
-          `Fakturatest-markering/signering misslyckades och kundgrafen kunde inte verifieras som arkiverad. Markering/signering: ${formatErrorMessage(markError, 'okänt fel')}. Karantän: ${formatErrorMessage(quarantineError, 'okänt fel')}.`,
+          `Fakturatest-markering misslyckades och kundgrafen kunde inte verifieras som arkiverad. Markering: ${formatErrorMessage(markError, 'okänt fel')}. Karantän: ${formatErrorMessage(quarantineError, 'okänt fel')}.`,
         )
       }
       throw markError
@@ -208,7 +202,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
     revalidatePath(WORKSPACE)
     workspaceRedirect({
       status: 'success',
-      message: `Testkund ${customer.customer_number ?? customer.id} skapades och avtalet signerades via canonical testkedja. Anläggnings-/mätpunktsidentitet väntar på EDIFACT-import.`,
+      message: `Testkund ${customer.customer_number ?? customer.id} skapades. Avtalet väntar osignerat tills EDIFACT-importen har bundit den riktiga testmätpunkten; därefter signeras det canonical före mätvärdesingest.`,
       companyId,
       customerId: customer.id,
     })
@@ -266,7 +260,7 @@ export async function importInvoiceTestEdifactAction(formData: FormData) {
       ?? 'okänd'
     workspaceRedirect({
       status: 'success',
-      message: `${scenario} kördes genom canonical UTILTS → masterdata (${parsedIdentity}) → mätvärden → billing → pricing → fakturautkast.`,
+      message: `${scenario} verifierad end-to-end: UTILTS → masterdata (${parsedIdentity}) → ${last.runtime.meteringValueIds.length} mätvärde(n) → ${last.runtime.totalKwh} kWh → billing → låst pricing → faktura ${last.runtime.customerInvoiceId}.`,
       companyId,
       customerId,
       traceHref: traceHref({ edielMessageId: last.edielMessageId, billingMonth, underlayId: last.runtime.billingUnderlayId }),
@@ -298,7 +292,7 @@ export async function rerunInvoiceTestMessageAction(formData: FormData) {
     revalidatePath(WORKSPACE)
     workspaceRedirect({
       status: 'success',
-      message: 'Befintlig test-UTILTS kördes om genom samma fakturakedja.',
+      message: `Befintlig test-UTILTS verifierades om genom samma fakturakedja: ${result.totalKwh} kWh, faktura ${result.customerInvoiceId}.`,
       companyId,
       customerId,
       traceHref: traceHref({ edielMessageId, billingMonth, underlayId: result.billingUnderlayId }),
