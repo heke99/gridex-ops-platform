@@ -16,6 +16,7 @@ describe('Fakturatest workspace contract', () => {
     const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
     expect(actions).toContain('buildCreateCustomerParams')
     expect(actions).toContain('createCustomerGraph')
+    expect(actions).toContain('resolveSingleInvoiceTestContractId')
     expect(actions).toContain('markInvoiceTestCustomerGraph')
   })
 
@@ -47,7 +48,16 @@ describe('Fakturatest workspace contract', () => {
     expect(service).toContain("text(offer.lifecycle_status) !== 'published'")
   })
 
-  it('quarantines a newly created graph fail-closed if test marking fails', () => {
+  it('keeps double-submit idempotent but changes onboarding generation after archived tests', () => {
+    const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
+    const creation = read('lib/ediel/testing/invoiceTestCenterCreation.ts')
+    expect(actions).toContain('getInvoiceTestOnboardingGeneration')
+    expect(actions).toContain('generation ${generation + 1}')
+    expect(creation).toContain(".not('archived_at', 'is', null)")
+    expect(creation).toContain(".eq('source', INVOICE_TEST_CUSTOMER_SOURCE)")
+  })
+
+  it('quarantines a newly created graph fail-closed and releases reusable identifiers if test marking fails', () => {
     const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
     const quarantine = read('lib/ediel/testing/invoiceTestCenterQuarantine.ts')
     expect(actions).toContain('quarantineCreatedInvoiceTestGraph')
@@ -55,6 +65,9 @@ describe('Fakturatest workspace contract', () => {
     expect(quarantine).toContain('is_test_data: true')
     expect(quarantine).toContain('archived_at: now')
     expect(quarantine).toContain("source: INVOICE_TEST_CUSTOMER_SOURCE")
+    expect(quarantine).toContain('ARCHIVED-FAKTURATEST-MP-')
+    expect(quarantine).toContain('ARCHIVED-FAKTURATEST-SITE-')
+    expect(quarantine).toContain('archived_original_identifiers')
   })
 
   it('does not turn successful Next redirects into error redirects', () => {
@@ -71,15 +84,18 @@ describe('Fakturatest workspace contract', () => {
     expect(service).toContain('assertInvoiceTestCustomer')
   })
 
-  it('releases reusable test facility and metering identifiers while preserving originals in metadata', () => {
-    const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
-    expect(service).toContain("archivedIdentifier('ARCHIVED-FAKTURATEST-SITE'")
-    expect(service).toContain("archivedIdentifier('ARCHIVED-FAKTURATEST-MP'")
-    expect(service).toContain('archived_original_identifiers')
-    expect(service).toContain('facility_id: text(raw.facility_id)')
-    expect(service).toContain('metering_point_id: text(raw.metering_point_id)')
-    expect(service).toContain("status: 'closed'")
-    expect(service).toContain("status: 'ended'")
+  it('archives the whole test graph fail-closed and releases reusable test identifiers', () => {
+    const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
+    const archive = read('lib/ediel/testing/invoiceTestCenterArchive.ts')
+    expect(actions).toContain('archiveInvoiceTestCustomerSafely')
+    expect(archive).toContain('contracts.length !== 1')
+    expect(archive).toContain("status: 'cancelled'")
+    expect(archive).toContain('ARCHIVED-FAKTURATEST-SITE-')
+    expect(archive).toContain('ARCHIVED-FAKTURATEST-MP-')
+    expect(archive).toContain('archived_original_identifiers')
+    expect(archive).toContain("status: 'closed'")
+    expect(archive).toContain("status: 'ended'")
+    expect(archive).toContain(".eq('source', INVOICE_TEST_CUSTOMER_SOURCE)")
   })
 
   it('runs uploaded EDIFACT through the existing canonical test-center chain', () => {
@@ -91,8 +107,8 @@ describe('Fakturatest workspace contract', () => {
 
   it('preserves audit/provider history on reset and safe customer removal', () => {
     const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
+    const archive = read('lib/ediel/testing/invoiceTestCenterArchive.ts')
     expect(service).toContain("!['sent', 'credited'].includes")
-    expect(service).toContain('archived_at')
-    expect(service).toContain('Provider-/auditspår bevaras')
+    expect(archive).toContain('Provider-/auditspår bevaras')
   })
 })
