@@ -11,6 +11,8 @@ import { materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ed
 import { supabaseService } from '@/lib/supabase/service'
 import { formatErrorMessage } from '@/lib/errors'
 
+type RawImportResult = Awaited<ReturnType<typeof importRawEdifactAndRunTestCenterChain>>
+
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -24,6 +26,91 @@ function scenarioValue(formData: FormData): TestCenterScenario {
     throw new Error('Ogiltigt Testcenter-scenario.')
   }
   return value as TestCenterScenario
+}
+
+function closeNumber(left: number, right: number, tolerance = 0.001) {
+  return Math.abs(left - right) <= tolerance
+}
+
+function requireScenarioResultCount(scenario: TestCenterScenario, results: RawImportResult[], expected: number) {
+  if (results.length !== expected) {
+    throw new Error(`Scenario ${scenario} gav ${results.length} verifierade körningar; ${expected} krävdes.`)
+  }
+}
+
+function assertScenarioRunEvidence(scenario: TestCenterScenario, results: RawImportResult[]) {
+  if (scenario === 'missing_values') {
+    if (results.length !== 0) {
+      throw new Error('Missing-values-scenariot får inte lämna ett lyckat faktureringsresultat.')
+    }
+    return
+  }
+
+  if (scenario === 'baseline') {
+    requireScenarioResultCount(scenario, results, 1)
+    return
+  }
+
+  if (scenario === 'duplicate') {
+    requireScenarioResultCount(scenario, results, 2)
+    const [original, duplicate] = results
+    if (!duplicate.reusedInboundEnvelope) {
+      throw new Error('Duplicate-scenariot återanvände inte samma inbound-envelope idempotent.')
+    }
+    if (
+      duplicate.inboundEmailMessageId !== original.inboundEmailMessageId ||
+      duplicate.edielMessageId !== original.edielMessageId ||
+      duplicate.materializedMeteringPointId !== original.materializedMeteringPointId
+    ) {
+      throw new Error('Duplicate-scenariot skapade en ny envelope-, Ediel- eller mätpunktsidentitet.')
+    }
+    if (
+      duplicate.runtime.billingUnderlayId !== original.runtime.billingUnderlayId ||
+      duplicate.runtime.customerInvoiceId !== original.runtime.customerInvoiceId ||
+      duplicate.runtime.pricingRunId !== original.runtime.pricingRunId ||
+      !closeNumber(duplicate.runtime.totalKwh, original.runtime.totalKwh)
+    ) {
+      throw new Error('Duplicate-scenariot var inte idempotent genom billing-/fakturagrafen.')
+    }
+    return
+  }
+
+  if (scenario === 'correction') {
+    requireScenarioResultCount(scenario, results, 2)
+    const [original, correction] = results
+    if (correction.edielMessageId === original.edielMessageId || correction.inboundEmailMessageId === original.inboundEmailMessageId) {
+      throw new Error('Correction-scenariot skapade inte en separat korrigerings-envelope/Ediel-post.')
+    }
+    if (correction.materializedMeteringPointId !== original.materializedMeteringPointId) {
+      throw new Error('Correction-scenariot bytte mätpunkt i stället för att skapa en revision på samma objekt.')
+    }
+    if (!closeNumber(correction.runtime.totalKwh, original.runtime.totalKwh + 1)) {
+      throw new Error('Correction-scenariot gav inte den deterministiska +1 kWh-revisionen i fakturaunderlaget.')
+    }
+    return
+  }
+
+  requireScenarioResultCount(scenario, results, 3)
+  const [original, correction, rebilling] = results
+  if (correction.materializedMeteringPointId !== original.materializedMeteringPointId || rebilling.materializedMeteringPointId !== original.materializedMeteringPointId) {
+    throw new Error('Rebilling-scenariot lämnade den ursprungliga mätpunkten.')
+  }
+  if (correction.edielMessageId === original.edielMessageId || correction.inboundEmailMessageId === original.inboundEmailMessageId) {
+    throw new Error('Rebilling-scenariot saknar separat korrigeringsmeddelande.')
+  }
+  if (!rebilling.reusedInboundEnvelope || rebilling.inboundEmailMessageId !== correction.inboundEmailMessageId || rebilling.edielMessageId !== correction.edielMessageId) {
+    throw new Error('Rebilling-verifieringen återanvände inte den korrigerade inbound-/Ediel-identiteten idempotent.')
+  }
+  if (!closeNumber(correction.runtime.totalKwh, original.runtime.totalKwh + 1) || !closeNumber(rebilling.runtime.totalKwh, correction.runtime.totalKwh)) {
+    throw new Error('Rebilling-scenariot bevarade inte den korrigerade +1 kWh-revisionen.')
+  }
+  if (
+    rebilling.runtime.billingUnderlayId !== correction.runtime.billingUnderlayId ||
+    rebilling.runtime.customerInvoiceId !== correction.runtime.customerInvoiceId ||
+    rebilling.runtime.pricingRunId !== correction.runtime.pricingRunId
+  ) {
+    throw new Error('Rebilling-verifieringen skapade dubbla aktiva billing-/fakturaobjekt i stället för idempotent återanvändning.')
+  }
 }
 
 async function rawEdifactFromForm(formData: FormData): Promise<{ raw: string; filename: string | null }> {
@@ -102,12 +189,13 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
     const source = await rawEdifactFromForm(formData)
     const scenario = scenarioValue(formData)
     const plan = materializeTestCenterScenario(source.raw, scenario)
-    let lastResult: Awaited<ReturnType<typeof importRawEdifactAndRunTestCenterChain>> | null = null
+    const results: RawImportResult[] = []
+    let lastResult: RawImportResult | null = null
     let expectedBlock: string | null = null
 
     for (const run of plan.runs) {
       try {
-        lastResult = await importRawEdifactAndRunTestCenterChain({
+        const result = await importRawEdifactAndRunTestCenterChain({
           actorUserId: context.userId,
           companyId,
           customerId,
@@ -115,21 +203,33 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
           rawEdifact: run.rawEdifact,
           filename: source.filename ? `${run.label}-${source.filename}` : `fixture-${scenario}-${run.label}.edi`,
         })
+        results.push(result)
+        lastResult = result
       } catch (error) {
         if (run.expectation === 'blocked_missing_values') {
-          expectedBlock = formatErrorMessage(error, 'Missing-values-scenariot blockerades som väntat.')
+          const detail = formatErrorMessage(error, 'Missing-values-scenariot blockerades.')
+          if (!detail.includes('Fakturatest kräver positiv fakturerbar periodenergi i QTY+136')) {
+            throw error
+          }
+          expectedBlock = detail
           break
         }
         throw error
       }
     }
 
+    if (expectedBlock) {
+      assertScenarioRunEvidence(scenario, results)
+    } else {
+      assertScenarioRunEvidence(scenario, results)
+    }
+
     if (expectedBlock && !lastResult) {
-      message = `Scenario ${scenario} verifierat: kedjan blockerade den deterministiskt ofullständiga UTILTS-filen. ${expectedBlock}`
+      message = `Scenario ${scenario} verifierat: kedjan blockerade den deterministiskt ofullständiga UTILTS-filen av rätt orsak. ${expectedBlock}`
     } else if (lastResult) {
       message = lastResult.runtime.billingUnderlayId
-        ? `Scenario ${scenario} kördes. ${lastResult.runtime.meteringValueIds.length} mätvärdesrader skapades, billing-underlag ${lastResult.runtime.billingUnderlayId} och fakturautkast förbereddes i testmiljö.`
-        : `Scenario ${scenario} kördes. ${lastResult.runtime.meteringValueIds.length} mätvärdesrader skapades utan billing-underlag.`
+        ? `Scenario ${scenario} kördes och verifierades semantiskt. ${lastResult.runtime.meteringValueIds.length} mätvärdesrader skapades, billing-underlag ${lastResult.runtime.billingUnderlayId} och fakturautkast förbereddes i testmiljö.`
+        : `Scenario ${scenario} kördes och verifierades semantiskt. ${lastResult.runtime.meteringValueIds.length} mätvärdesrader skapades utan billing-underlag.`
       target = traceHref({
         edielMessageId: lastResult.edielMessageId,
         billingMonth,
