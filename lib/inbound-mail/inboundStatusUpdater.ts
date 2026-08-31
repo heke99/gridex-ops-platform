@@ -335,6 +335,9 @@ export async function createInboundEdielMessage(input: {
       : null
   const matchedMeteringPointId = input.meteringPointMatch?.status === 'matched' ? input.meteringPointMatch.entityId : null
   const matchedOutbound = input.outboundMatch?.candidates?.[0] ?? {}
+  const matchedMetering = input.meteringPointMatch?.status === 'matched'
+    ? input.meteringPointMatch.candidates?.[0] ?? {}
+    : {}
 
   const payload = payloadForInbound({
     parsed: input.parsed,
@@ -385,9 +388,21 @@ export async function createInboundEdielMessage(input: {
     related_message_id: matchedOutboundEdielMessageId,
     outbound_request_id: matchedOutboundRequestId,
     metering_point_id: matchedMeteringPointId,
-    customer_id: typeof matchedOutbound.customer_id === 'string' ? matchedOutbound.customer_id : null,
-    site_id: typeof matchedOutbound.site_id === 'string' ? matchedOutbound.site_id : null,
-    grid_owner_id: typeof matchedOutbound.grid_owner_id === 'string' ? matchedOutbound.grid_owner_id : null,
+    customer_id: typeof matchedOutbound.customer_id === 'string'
+      ? matchedOutbound.customer_id
+      : typeof matchedMetering.customer_id === 'string'
+        ? matchedMetering.customer_id
+        : null,
+    site_id: typeof matchedOutbound.site_id === 'string'
+      ? matchedOutbound.site_id
+      : typeof matchedMetering.site_id === 'string'
+        ? matchedMetering.site_id
+        : null,
+    grid_owner_id: typeof matchedOutbound.grid_owner_id === 'string'
+      ? matchedOutbound.grid_owner_id
+      : typeof matchedMetering.grid_owner_id === 'string'
+        ? matchedMetering.grid_owner_id
+        : null,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
     ...ackColumnsForParsed(input.parsed),
