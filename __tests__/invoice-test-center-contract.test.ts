@@ -19,6 +19,34 @@ describe('Fakturatest workspace contract', () => {
     expect(actions).toContain('markInvoiceTestCustomerGraph')
   })
 
+  it('only exposes active non-archived tenants in Fakturatest', () => {
+    const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
+    expect(service).toContain(".eq('status', 'active')")
+    expect(service).toContain(".eq('lifecycle_status', 'active')")
+    expect(service).toContain(".eq('is_active', true)")
+    expect(service).toContain(".is('archived_at', null)")
+  })
+
+  it('uses internal publication readiness rather than website/current sellability for billing tests', () => {
+    const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
+    expect(service).toContain(".eq('internal_publication_ready', true)")
+    expect(service).toContain(".eq('lifecycle_status', 'published')")
+    expect(service).not.toContain(".eq('currently_sellable', true)")
+  })
+
+  it('validates tenant and contract pairing before canonical customer creation', () => {
+    const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
+    const guardIndex = actions.indexOf('await assertInvoiceTestCompanyAndOffer')
+    const createIndex = actions.indexOf('const customer = await createCustomerGraph')
+    expect(guardIndex).toBeGreaterThan(-1)
+    expect(createIndex).toBeGreaterThan(guardIndex)
+
+    const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
+    expect(service).toContain(".eq('company_id', input.companyId)")
+    expect(service).toContain("offer.internal_publication_ready !== true")
+    expect(service).toContain("text(offer.lifecycle_status) !== 'published'")
+  })
+
   it('quarantines a newly created graph fail-closed if test marking fails', () => {
     const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
     const quarantine = read('lib/ediel/testing/invoiceTestCenterQuarantine.ts')
