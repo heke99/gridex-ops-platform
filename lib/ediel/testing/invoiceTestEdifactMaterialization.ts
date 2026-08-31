@@ -232,3 +232,33 @@ export async function materializeInvoiceTestEdifactMasterdata(input: {
 
   return { identity, siteId, meteringPointId: String(insert.data.id), createdMeteringPoint: true }
 }
+
+export async function loadInvoiceTestEdifactSummary(input: {
+  companyId: string
+  customerId: string
+}): Promise<Row | null> {
+  if (!input.companyId || !input.customerId) return null
+  await assertInvoiceTestCustomer(input)
+  const result = await supabaseService
+    .from('metering_points')
+    .select('id,metering_point_id,meter_point_id,site_facility_id,grid_area_code,meter_number,metadata,created_at,updated_at')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('is_test_data', true)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (result.error) throw result.error
+  if (!result.data) return null
+  const row = result.data as Row
+  return {
+    id: row.id,
+    metering_point_id: text(row.metering_point_id) ?? text(row.meter_point_id),
+    facility_id: text(row.site_facility_id),
+    grid_area_code: text(row.grid_area_code),
+    meter_number: text(row.meter_number),
+    imported: objectValue(objectValue(row.metadata).invoice_test_edifact),
+    updated_at: row.updated_at,
+  }
+}
