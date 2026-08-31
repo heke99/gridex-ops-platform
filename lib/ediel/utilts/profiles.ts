@@ -1,5 +1,6 @@
 import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 import type { UtiltsRuntimeFacts, UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine'
+import { expectedObservationCountForResolution } from '@/lib/ediel/utilts/resolution'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 function issue(code: string, title: string, description: string, reference?: string | null): UtiltsValidationIssue {
@@ -18,14 +19,21 @@ function issue(code: string, title: string, description: string, reference?: str
   }
 }
 
-function intervalCount(start: string | null, end: string | null, resolution: string | null): number | null {
-  if (!start || !end || !resolution) return null
-  const startMs = Date.parse(start)
-  const endMs = Date.parse(end)
-  const minutes = Number(resolution)
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || !Number.isFinite(minutes) || minutes <= 0 || endMs <= startMs) return null
-  const count = (endMs - startMs) / 60_000 / minutes
-  return Number.isInteger(count) ? count : null
+function qualifier(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function intervalQuantities(
+  messageCode: string | null | undefined,
+  quantities: Array<{ qualifier: string | null; value: number | null; raw: string }>,
+) {
+  if (String(messageCode ?? '').trim().toUpperCase() !== 'E66') return quantities
+
+  // Field 516 in the Swedish 25-A-3 matrix is QTY+136 (periodic energy).
+  // Field 517 is QTY+220 (meter reading). Register readings are evidence for
+  // E66 reconciliation, not interval energy rows and must never inflate the
+  // expected observation count.
+  return quantities.filter((quantity) => qualifier(quantity.qualifier) === '136')
 }
 
 export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): UtiltsValidationIssue[] {
@@ -40,6 +48,7 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
     deliveryPeriodStart: facts.deliveryPeriodStart,
     deliveryPeriodEnd: facts.deliveryPeriodEnd,
     resolution: facts.resolution,
+    resolutionFormat: null,
     unit: facts.unit,
     quantities: facts.quantities,
   }]
@@ -60,15 +69,17 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
     const quantities = transaction.quantities?.length ? transaction.quantities : facts.quantities
     if (profile.requiresQuantities && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden.`, reference))
 
-    if (profile.validatesDst && quantities.length > 0) {
-      const expected = intervalCount(
-        transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart,
-        transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd,
-        transaction.resolution ?? facts.resolution,
-      )
-      if (expected !== null && quantities.length !== expected) {
+    const countedQuantities = intervalQuantities(facts.messageCode, quantities)
+    if (profile.validatesDst && countedQuantities.length > 0) {
+      const expected = expectedObservationCountForResolution({
+        start: transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart,
+        end: transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd,
+        value: transaction.resolution ?? facts.resolution,
+        format: transaction.resolutionFormat ?? null,
+      })
+      if (expected !== null && countedQuantities.length !== expected) {
         issues.push({
-          ...issue('UTILTS_DST_INTERVAL_COUNT_MISMATCH', 'Fel antal intervall', `${profile.profileKey} förväntar ${expected} intervall utifrån tidszon/DST och upplösning men innehåller ${quantities.length}.`, reference),
+          ...issue('UTILTS_DST_INTERVAL_COUNT_MISMATCH', 'Fel antal intervall', `${profile.profileKey} förväntar ${expected} energiobservationer utifrån leveransperiod och DTM+354 men innehåller ${countedQuantities.length}.`, reference),
           kind: 'functional',
           utiltsErrCode: 'E87',
         })
