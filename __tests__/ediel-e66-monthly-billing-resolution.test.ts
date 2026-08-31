@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { ingestUtiltsE66MeteringValues } from '@/lib/ediel/metering/meteringValueEngine'
 import { parseE66, parseE66Observations } from '@/lib/ediel/utilts/e66'
+import { flattenUtiltsTransactionSeries } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 
 export const MONTHLY_E66_BILLING_PAYLOAD = [
@@ -46,6 +47,24 @@ export const MONTHLY_E66_BILLING_PAYLOAD = [
   "UNZ+1+260831181101'",
 ].join('\n')
 
+function runtimeMessage(rawPayload = MONTHLY_E66_BILLING_PAYLOAD) {
+  return {
+    id: 'monthly-e66-runtime-regression',
+    company_id: '11111111-1111-4111-8111-111111111111',
+    message_family: 'UTILTS',
+    message_code: 'E66',
+    direction: 'inbound',
+    environment: 'test',
+    raw_payload: rawPayload,
+    validation_report: null,
+    syntax_check_status: 'not_checked',
+    message_received_at: '2026-08-31T18:11:00+02:00',
+    created_at: '2026-08-31T18:11:00+02:00',
+    metering_point_id: '22222222-2222-4222-8222-222222222222',
+    business_match_status: 'matched',
+  } as unknown as EdielMessageRow
+}
+
 describe('UTILTS E66 monthly billing resolution', () => {
   it('preserves EDIFACT 802 as one month and only emits QTY+136 as billable energy', () => {
     const parsed = parseE66(MONTHLY_E66_BILLING_PAYLOAD)
@@ -61,13 +80,15 @@ describe('UTILTS E66 monthly billing resolution', () => {
       measurementResolution: 'P1M',
       meteringPointExternalId: '735999260731000007',
       gridAreaId: 'TES',
-      periodStart: '2026-07-01T00:00:00.000Z',
-      periodEnd: '2026-08-01T00:00:00.000Z',
+      // DTM+324 is Swedish local wall-clock time and DTM+735 is +0200.
+      // The July billing month therefore starts/ends at 22:00Z the day before.
+      periodStart: '2026-06-30T22:00:00.000Z',
+      periodEnd: '2026-07-31T22:00:00.000Z',
       sourceOrder: 2,
     })
   })
 
-  it('normalizes the billing ingest to monthly resolution without treating register reads as kWh', async () => {
+  it('normalizes the dedicated billing ingest to monthly resolution without treating register reads as kWh', async () => {
     const result = await ingestUtiltsE66MeteringValues({
       companyId: '11111111-1111-4111-8111-111111111111',
       meteringPointId: '22222222-2222-4222-8222-222222222222',
@@ -79,26 +100,41 @@ describe('UTILTS E66 monthly billing resolution', () => {
     expect(result.normalized.resolution).toBe('P1M')
     expect(result.normalized.values).toHaveLength(1)
     expect(result.normalized.values[0]?.quantity).toBe(1000)
+    expect(result.normalized.values[0]?.periodStart).toBe('2026-06-30T22:00:00.000Z')
+    expect(result.normalized.values[0]?.periodEnd).toBe('2026-07-31T22:00:00.000Z')
     expect(result.normalized.values[0]?.quality).toBe('measured')
     expect(result.gaps).toEqual([])
   })
 
-  it('does not reject the official monthly 802 structure with a minute-based DST count error', () => {
-    const message = {
-      id: 'monthly-e66-runtime-regression',
-      company_id: '11111111-1111-4111-8111-111111111111',
-      message_family: 'UTILTS',
-      message_code: 'E66',
-      raw_payload: MONTHLY_E66_BILLING_PAYLOAD,
-      validation_report: null,
-      syntax_check_status: 'not_checked',
-      message_received_at: '2026-08-31T18:11:00+02:00',
-      metering_point_id: '22222222-2222-4222-8222-222222222222',
-      business_match_status: 'matched',
-    } as unknown as EdielMessageRow
+  it('feeds the real inbound persistence extractor exactly one 1000 kWh July row', () => {
+    const message = runtimeMessage()
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-08-31' })
+    const series = flattenUtiltsTransactionSeries(runtime.normalizedPayload, message)
 
-    const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-08-31' })
+    expect(runtime.validation.classification).toBe('accepted')
+    expect(runtime.validation.issues.some((issue) => issue.code === 'UTILTS_E66_ENERGY_ONLY_WITHOUT_METER_READING')).toBe(false)
+    expect(runtime.normalizedPayload.resolution).toBe('P1M')
+    expect(runtime.normalizedPayload.edifactTimezoneOffset).toBe('+0200')
+    expect(series).toHaveLength(1)
+    expect(series[0]).toMatchObject({
+      quantity: 1000,
+      periodStart: '2026-06-30T22:00:00.000Z',
+      periodEnd: '2026-07-31T22:00:00.000Z',
+    })
+  })
+
+  it('does not reject the 802 monthly structure with a minute-based interval-count error', () => {
+    const result = runUtiltsRuntimeForMessage(runtimeMessage(), { referenceDate: '2026-08-31' })
     expect(result.validation.issues.some((issue) => issue.code === 'UTILTS_DST_INTERVAL_COUNT_MISMATCH')).toBe(false)
+    expect(result.validation.issues.some((issue) => issue.code === 'UTILTS_E66_OBSERVATION_COUNT_MISMATCH')).toBe(false)
     expect(result.validation.classification).toBe('accepted')
+  })
+
+  it('uses QTY+220 as meter readings and rejects a real reading/energy mismatch', () => {
+    const mismatched = MONTHLY_E66_BILLING_PAYLOAD.replace("QTY+220:11000'", "QTY+220:11001'")
+    const result = runUtiltsRuntimeForMessage(runtimeMessage(mismatched), { referenceDate: '2026-08-31' })
+
+    expect(result.validation.classification).toBe('functional_rejected')
+    expect(result.validation.issues.some((issue) => issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH' && issue.utiltsErrCode === 'E19')).toBe(true)
   })
 })
