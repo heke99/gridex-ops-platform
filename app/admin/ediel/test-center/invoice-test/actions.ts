@@ -11,6 +11,7 @@ import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCen
 import { materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import {
   archiveInvoiceTestCustomer,
+  assertInvoiceTestCompanyAndOffer,
   assertInvoiceTestCustomer,
   markInvoiceTestCustomerGraph,
   resetInvoiceTestCustomerRun,
@@ -80,8 +81,11 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
   try {
     const context = await requirePlatformAdminActionAccess()
     companyId = stringValue(formData, 'companyId')
+    const contractOfferId = stringValue(formData, 'contractOfferId')
     if (!companyId) throw new Error('Välj bolag/tenant.')
-    if (!stringValue(formData, 'contractOfferId')) throw new Error('Välj ett riktigt internt avtal för testkunden.')
+    if (!contractOfferId) throw new Error('Välj ett riktigt internt avtal för testkunden.')
+    await assertInvoiceTestCompanyAndOffer({ companyId, contractOfferId })
+
     const built = buildCreateCustomerParams(formData, context.userId, companyId)
     const startDate = stringValue(formData, 'contractStartDate')
     const email = stringValue(formData, 'email')
