@@ -81,7 +81,13 @@ function isSourceBoundAckFamily(family: ActiveCanonicalFamily): family is Source
 }
 
 function direction(input: RulebookValidationInput): EdielDirection | null {
-  return input.direction === 'inbound' || input.direction === 'outbound' ? input.direction : null
+  if (input.direction === 'inbound' || input.direction === 'outbound') return input.direction
+
+  // A send validation is an outbound transport operation by definition. This is
+  // the only safe implicit direction: parse/test payloads may represent either
+  // side and therefore remain fail-closed unless the caller supplies direction.
+  if (input.mode === 'send') return 'outbound'
+  return null
 }
 
 function record(value: unknown): Record<string, unknown> | null {
