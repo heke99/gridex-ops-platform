@@ -1,5 +1,9 @@
 import type { ParsedUtilts } from '@/lib/ediel/utilts/parseUtilts'
 import { addNormalizedResolution, normalizeEdifactResolution } from '@/lib/ediel/utilts/resolution'
+import {
+  localEdifactDateTimeToUtc,
+  parseEdifactTimezoneOffsetFromSegments,
+} from '@/lib/ediel/utilts/timezone'
 
 export type ParsedMeteringObservation = {
   timestamp: string | null
@@ -43,6 +47,7 @@ function intervalPeriod(params: {
 }
 
 export function parseMeteringObservations(parsed: ParsedUtilts): ParsedMeteringObservation[] {
+  const timezone = parseEdifactTimezoneOffsetFromSegments(parsed.rawSegments)
   const transactions = parsed.transactions.length > 0 ? parsed.transactions : [{
     transactionId: parsed.transactionId,
     meterPointId: parsed.meterPointId,
@@ -67,16 +72,28 @@ export function parseMeteringObservations(parsed: ParsedUtilts): ParsedMeteringO
     })
 
     return quantities.map(({ quantity, sourceIndex }, quantityIndex) => {
-      const period = intervalPeriod({
+      // Resolution arithmetic is intentionally done on the Ediel local wall-clock
+      // values first. Calendar resolutions such as P1M must advance 1 July ->
+      // 1 August before DTM+735 is applied; advancing the already converted UTC
+      // instant would turn 30 June 22:00Z + one UTC month into 30 July 22:00Z.
+      const localPeriod = intervalPeriod({
         start: transaction.deliveryPeriodStart ?? parsed.deliveryPeriodStart,
         end: transaction.deliveryPeriodEnd ?? parsed.deliveryPeriodEnd,
         resolution: measurementResolution,
         index: quantityIndex,
       })
+      const periodStart = localEdifactDateTimeToUtc(localPeriod.periodStart, timezone) ?? localPeriod.periodStart
+      const periodEnd = localEdifactDateTimeToUtc(localPeriod.periodEnd, timezone) ?? localPeriod.periodEnd
+      const registrationTime = localEdifactDateTimeToUtc(
+        transaction.registrationTime ?? parsed.registrationTime,
+        timezone,
+      ) ?? transaction.registrationTime ?? parsed.registrationTime
+      const timestamp = periodEnd ?? registrationTime ?? periodStart
+
       return {
-        timestamp: period.timestamp ?? transaction.registrationTime ?? parsed.registrationTime,
-        periodStart: period.periodStart,
-        periodEnd: period.periodEnd,
+        timestamp,
+        periodStart,
+        periodEnd,
         quantity: quantity.value,
         unit: transaction.unit ?? parsed.unit ?? 'KWH',
         qualityStatus: quantity.qualifier,
