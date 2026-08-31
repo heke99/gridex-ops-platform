@@ -37,6 +37,27 @@ function sha256(value: unknown) {
   return createHash('sha256').update(stableJson(value)).digest('hex')
 }
 
+async function assertReadyTestProviderConnection(companyId: string) {
+  const result = await supabaseService
+    .from('billing_provider_connections')
+    .select('id,status,environment,provider,last_tested_at,last_test_result,readiness_issues')
+    .eq('company_id', companyId)
+    .eq('provider', 'capway_aptic')
+    .eq('environment', 'test')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (result.error) throw result.error
+  if (!result.data) {
+    throw new Error('Fakturatest blockerad: Capway/Aptic TEST-anslutning saknas för bolaget.')
+  }
+  const status = text((result.data as Row).status)
+  if (!status || !['ready', 'active'].includes(status)) {
+    throw new Error(`Fakturatest blockerad: Capway/Aptic TEST-anslutningen är ${status ?? 'okänd'}; OAuth/Ping-readiness måste vara ready eller active.`)
+  }
+  return result.data as Row
+}
+
 export async function approveAndSendInvoiceTestItem(input: {
   companyId: string
   itemId: string
@@ -65,6 +86,7 @@ export async function approveAndSendInvoiceTestItem(input: {
     throw new Error('Fakturatest skickar endast ett oskickat pending-utkast. Skickade fakturor kan inte skickas igen från denna knapp.')
   }
   await assertInvoiceTestCustomer({ companyId: input.companyId, customerId })
+  await assertReadyTestProviderConnection(input.companyId)
 
   const [runResult, invoiceResult, underlayResult, pricingResult, runItemsResult] = await Promise.all([
     supabaseService
