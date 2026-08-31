@@ -419,10 +419,32 @@ export async function prepareInvoiceDraftsForReview(input: {
   billingMonth: string
   environment?: 'test' | 'production'
   actorUserId?: string | null
+  customerId?: string | null
+  billingUnderlayId?: string | null
 }) {
   await requireCompanyOperationalForWrites(input.companyId)
   monthParts(input.billingMonth)
-  const underlays = await loadUnderlays(input.companyId, input.billingMonth)
+
+  const customerScope = input.customerId === undefined || input.customerId === null ? null : text(input.customerId)
+  const underlayScope = input.billingUnderlayId === undefined || input.billingUnderlayId === null
+    ? null
+    : text(input.billingUnderlayId)
+  if (input.customerId !== undefined && input.customerId !== null && !customerScope) {
+    throw new Error('Fakturaförberedelse fick ett tomt customerId-scope.')
+  }
+  if (input.billingUnderlayId !== undefined && input.billingUnderlayId !== null && !underlayScope) {
+    throw new Error('Fakturaförberedelse fick ett tomt billingUnderlayId-scope.')
+  }
+
+  const allUnderlays = await loadUnderlays(input.companyId, input.billingMonth)
+  const underlays = allUnderlays.filter((row) =>
+    (!customerScope || text(row.customer_id) === customerScope) &&
+    (!underlayScope || text(row.id) === underlayScope),
+  )
+  if (underlayScope && underlays.length !== 1) {
+    throw new Error('Exakt faktureringsunderlag kunde inte hittas inom valt bolag, kund och månad.')
+  }
+
   const underlayIds = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const reservedUnderlays = await loadExistingUnderlayIds(input.companyId, underlayIds)
   const ready = underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !reservedUnderlays.has(String(row.id)))
@@ -457,6 +479,10 @@ export async function prepareInvoiceDraftsForReview(input: {
   const blocked = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready').length
   return {
     billingMonth: input.billingMonth,
+    scope: {
+      customerId: customerScope,
+      billingUnderlayId: underlayScope,
+    },
     underlays: underlays.length,
     alreadyPrepared: reservedUnderlays.size,
     candidates: ready.length,
