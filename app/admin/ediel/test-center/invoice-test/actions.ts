@@ -208,7 +208,7 @@ export async function importInvoiceTestEdifactAction(formData: FormData) {
       message: `${scenario} kördes genom canonical UTILTS → mätvärden → billing → pricing → fakturautkast.`,
       companyId,
       customerId,
-      traceHref: traceHref({ edielMessageId: last.edielMessageId, billingMonth, underlayId: last.billingUnderlayId }),
+      traceHref: traceHref({ edielMessageId: last.edielMessageId, billingMonth, underlayId: last.runtime.billingUnderlayId }),
     })
   } catch (error) {
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'EDIFACT/Fakturatest misslyckades.'), companyId, customerId })
