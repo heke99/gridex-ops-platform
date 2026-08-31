@@ -142,6 +142,7 @@ function adaptResolution(resolution: SharedInboundTenantResolution): InboundTena
 }
 
 export async function resolveTenantForInboundEdiel(input: {
+  existingCompanyId?: string | null
   mailboxCompanyId?: string | null
   mailboxId?: string | null
   mailbox?: string | null
@@ -151,7 +152,7 @@ export async function resolveTenantForInboundEdiel(input: {
   const marketActorEdielId = firstParty(input.parsed, 'DO', 'DDQ', 'MR', 'MS') ?? input.parsed.receiverEdielId
   const outbound = await findCompanyIdFromMatchedOutbound(input.parsed, input.environment)
   const resolution = await resolveInboundTenantFromIdentifiers({
-    existingCompanyId: outbound.companyId,
+    existingCompanyId: input.existingCompanyId ?? outbound.companyId,
     mailboxCompanyId: input.mailboxCompanyId,
     mailboxId: input.mailboxId,
     mailbox: input.mailbox,
