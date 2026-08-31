@@ -23,26 +23,76 @@ function rebuild(parts: string[]): string {
   return `${parts.join("'")}'`
 }
 
-function removeFirstQuantity(raw: string): string {
+function quantityValue(segment: string, expectedQualifier?: string): { prefix: string; value: number; suffix: string; decimals: number } | null {
+  const match = /^(QTY\+([^:+'\s]+):)(-?\d+(?:[.,]\d+)?)(.*)$/.exec(segment)
+  if (!match) return null
+  if (expectedQualifier && match[2].trim().toUpperCase() !== expectedQualifier.toUpperCase()) return null
+  const value = Number(match[3].replace(',', '.'))
+  if (!Number.isFinite(value)) return null
+  const decimalPart = match[3].replace(',', '.').split('.')[1] ?? ''
+  return { prefix: match[1], value, suffix: match[4], decimals: decimalPart.length }
+}
+
+function replaceQuantityValue(segment: string, nextValue: number, expectedQualifier: string): string {
+  const parsed = quantityValue(segment, expectedQualifier)
+  if (!parsed) throw new Error(`Scenario-fixturen kunde inte tolka QTY+${expectedQualifier}.`)
+  const rendered = nextValue.toFixed(parsed.decimals)
+  return `${parsed.prefix}${rendered}${parsed.suffix}`
+}
+
+function removeFirstBillableEnergy(raw: string): string {
   const parts = segments(raw)
-  const index = parts.findIndex((segment) => segment.startsWith('QTY+'))
-  if (index < 0) throw new Error('missing_values-fixturen kräver minst ett QTY-segment.')
+  const index = parts.findIndex((segment) => /^QTY\+136:/i.test(segment))
+  if (index < 0) throw new Error('missing_values-fixturen kräver minst ett fakturerbart QTY+136-segment.')
   parts.splice(index, 1)
   return rebuild(parts)
 }
 
-function mutateFirstQuantity(raw: string): string {
+function meterConstant(parts: string[]): number {
+  for (let index = 0; index < parts.length; index += 1) {
+    if (!/^CCI\+.*Z02(?:[:+]|$)/i.test(parts[index] ?? '')) continue
+    const next = String(parts[index + 1] ?? '')
+    const match = /^CAV\+([^:+'\s]+)/i.exec(next)
+    if (!match) continue
+    const parsed = Number(match[1].replace(',', '.'))
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return 1
+}
+
+function mutateBillableEnergy(raw: string): string {
   const parts = segments(raw)
-  const index = parts.findIndex((segment) => segment.startsWith('QTY+'))
-  if (index < 0) throw new Error('correction-fixturen kräver minst ett QTY-segment.')
+  const energyIndex = parts.findIndex((segment) => /^QTY\+136:/i.test(segment))
+  if (energyIndex < 0) throw new Error('correction-fixturen kräver minst ett fakturerbart QTY+136-segment.')
 
-  const match = /^(QTY\+[^:+'\s]+:)(-?\d+(?:[.,]\d+)?)(.*)$/.exec(parts[index])
-  if (!match) throw new Error('correction-fixturen kunde inte tolka första QTY-värdet deterministiskt.')
-  const original = Number(match[2].replace(',', '.'))
-  if (!Number.isFinite(original)) throw new Error('correction-fixturen hittade ett ogiltigt QTY-värde.')
-  const corrected = (original + 1).toFixed(Number.isInteger(original) ? 0 : 3)
-  parts[index] = `${match[1]}${corrected}${match[3]}`
+  const energy = quantityValue(parts[energyIndex], '136')
+  if (!energy) throw new Error('correction-fixturen kunde inte tolka QTY+136-värdet deterministiskt.')
+  const energyDelta = 1
+  parts[energyIndex] = replaceQuantityValue(parts[energyIndex], energy.value + energyDelta, '136')
 
+  // If the E66 also carries canonical field 517 register readings (QTY+220),
+  // keep the register-difference reconciliation internally consistent. A
+  // billing correction must alter billable QTY+136, not manufacture an E19 by
+  // changing only one side of the register/energy evidence pair.
+  const readingIndexes = parts
+    .map((segment, index) => /^QTY\+220:/i.test(segment) ? index : -1)
+    .filter((index) => index >= 0)
+  if (readingIndexes.length >= 2) {
+    const lastReadingIndex = readingIndexes[readingIndexes.length - 1]
+    const latest = quantityValue(parts[lastReadingIndex], '220')
+    if (!latest) throw new Error('correction-fixturen kunde inte tolka senaste QTY+220-mätarställningen.')
+    const constant = meterConstant(parts)
+    parts[lastReadingIndex] = replaceQuantityValue(
+      parts[lastReadingIndex],
+      latest.value + energyDelta / constant,
+      '220',
+    )
+  }
+
+  // Preserve the business transaction identity so the normal metering revision
+  // engine sees a correction of the same value, while changing the UNH message
+  // reference so the corrected EDIFACT message itself remains independently
+  // traceable.
   const unhIndex = parts.findIndex((segment) => segment.startsWith('UNH+'))
   if (unhIndex >= 0) {
     const tokens = parts[unhIndex].split('+')
@@ -66,23 +116,25 @@ export function materializeTestCenterScenario(rawEdifact: string, scenario: Test
         ],
       }
     case 'missing_values':
-      return { scenario, runs: [{ label: 'missing-first-qty', rawEdifact: removeFirstQuantity(baseline), expectation: 'blocked_missing_values' }] }
+      return { scenario, runs: [{ label: 'missing-billable-energy', rawEdifact: removeFirstBillableEnergy(baseline), expectation: 'blocked_missing_values' }] }
     case 'correction':
       return {
         scenario,
         runs: [
           { label: 'original', rawEdifact: baseline, expectation: 'success' },
-          { label: 'correction-plus-1-kwh', rawEdifact: mutateFirstQuantity(baseline), expectation: 'corrected' },
+          { label: 'correction-plus-1-kwh', rawEdifact: mutateBillableEnergy(baseline), expectation: 'corrected' },
         ],
       }
-    case 'rebilling':
+    case 'rebilling': {
+      const corrected = mutateBillableEnergy(baseline)
       return {
         scenario,
         runs: [
           { label: 'original-billing', rawEdifact: baseline, expectation: 'success' },
-          { label: 'corrected-metering', rawEdifact: mutateFirstQuantity(baseline), expectation: 'corrected' },
-          { label: 'rebilling-verification', rawEdifact: mutateFirstQuantity(baseline), expectation: 'rebilled' },
+          { label: 'corrected-metering', rawEdifact: corrected, expectation: 'corrected' },
+          { label: 'rebilling-verification', rawEdifact: corrected, expectation: 'rebilled' },
         ],
       }
+    }
   }
 }
