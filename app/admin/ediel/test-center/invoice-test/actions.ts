@@ -16,6 +16,10 @@ import {
   markInvoiceTestCustomerGraph,
   resetInvoiceTestCustomerRun,
 } from '@/lib/ediel/testing/invoiceTestCenterWorkspace'
+import {
+  getInvoiceTestOnboardingGeneration,
+  resolveSingleInvoiceTestContractId,
+} from '@/lib/ediel/testing/invoiceTestCenterCreation'
 import { quarantineCreatedInvoiceTestGraph } from '@/lib/ediel/testing/invoiceTestCenterQuarantine'
 import { approveAndSendInvoiceTestItem } from '@/lib/billing/invoiceTestCenterDispatch'
 
@@ -86,6 +90,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
     if (!contractOfferId) throw new Error('Välj ett riktigt internt avtal för testkunden.')
     await assertInvoiceTestCompanyAndOffer({ companyId, contractOfferId })
 
+    const generation = await getInvoiceTestOnboardingGeneration(companyId)
     const built = buildCreateCustomerParams(formData, context.userId, companyId)
     const startDate = stringValue(formData, 'contractStartDate')
     const email = stringValue(formData, 'email')
@@ -101,6 +106,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       intakeFlowType: null,
       email,
       phone: stringValue(formData, 'phone') ?? '0701234567',
+      siteName: `${built.siteName ?? 'Fakturatest-anläggning'} · generation ${generation + 1}`,
       siteType: 'consumption',
       currentSupplierId: null,
       currentSupplierName: null,
@@ -156,12 +162,13 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       postCreateRequestTarget: 'both',
     })
     try {
+      const contractId = await resolveSingleInvoiceTestContractId({ companyId, customerId: customer.id })
       await markInvoiceTestCustomerGraph({
         companyId,
         customerId: customer.id,
         siteId: customer.__createdSiteId,
         meteringPointId: customer.__createdMeteringPointId,
-        contractId: null,
+        contractId,
         actorUserId: context.userId,
       })
     } catch (markError) {
