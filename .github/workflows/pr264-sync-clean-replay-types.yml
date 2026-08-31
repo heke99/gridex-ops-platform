@@ -1,0 +1,57 @@
+name: PR264 sync clean-replay types
+
+on:
+  push:
+    branches:
+      - fix/admin-catalog-commercial-snapshot-identity
+
+permissions:
+  contents: write
+
+jobs:
+  sync-types:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/admin-catalog-commercial-snapshot-identity
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Reconstruct schema and sync generated types
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          supabase gen types typescript --local > supabase/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts
+          GENERATED_HASH="$(sha256sum supabase/database.types.ts | awk '{print $1}')"
+          node - "$GENERATED_HASH" <<'NODE'
+          const fs = require('fs')
+          const hash = process.argv[2]
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.generated_at = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+          manifest.generated_with = 'supabase-cli-2.101.0-clean-replay'
+          manifest.generated_types = 'supabase/database.types.ts'
+          manifest.sha256 = hash
+          manifest.latest_migration = '20260831095000_admin_signed_contract_import_canonicalization.sql'
+          manifest.latest_migration_schema_effect = 'canonical_signed_contract_import_with_customer_contract_document_link'
+          fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
+          NODE
+          test "$GENERATED_HASH" = "56d79dc4143131317be0a0d38f22ed7828454e25095794a82ba212d336a03bdb"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if git diff --cached --quiet; then
+            echo 'Generated types already synchronized.'
+            exit 0
+          fi
+          git commit -m 'Sync clean replay generated Supabase types'
+          git push origin HEAD:fix/admin-catalog-commercial-snapshot-identity
