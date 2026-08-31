@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
+import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 
 const CONTRL_PAYLOAD = [
@@ -19,6 +20,10 @@ const SOURCE_PAYLOAD = [
   "UNT+3+1'",
   "UNZ+1+SOURCE123'",
 ].join('')
+
+function contrlPayload(actionCode: string): string {
+  return CONTRL_PAYLOAD.replace("+21660:ZZ+1'", `+21660:ZZ+${actionCode}'`)
+}
 
 function hasDirectionRequired(result: ReturnType<typeof validateRulebookMessage>): boolean {
   return result.issues.some((issue) =>
@@ -77,5 +82,29 @@ describe('canonical Ediel runtime direction contract', () => {
 
     expect(rendered.diagnostics.syntaxActionCode).toBe('4')
     expect(rendered.segments).toEqual(['UCI+SOURCE123+91100:ZZ+21660:ZZ+4'])
+  })
+
+  it('parses Ediel UCI action code 1 as positive', () => {
+    const parsed = parseRulebookMessage(contrlPayload('1'))
+
+    expect(parsed.facts.actionCode).toBe('1')
+    expect(parsed.outcome).toBe('positive')
+    expect(parsed.errors).toEqual([])
+  })
+
+  it('parses Ediel UCI action code 4 as negative', () => {
+    const parsed = parseRulebookMessage(contrlPayload('4'))
+
+    expect(parsed.facts.actionCode).toBe('4')
+    expect(parsed.outcome).toBe('negative')
+    expect(parsed.errors).toEqual([])
+  })
+
+  it.each(['7', '8'])('fails closed for non-Ediel UCI action code %s', (actionCode) => {
+    const parsed = parseRulebookMessage(contrlPayload(actionCode))
+
+    expect(parsed.facts.actionCode).toBe(actionCode)
+    expect(parsed.outcome).toBeNull()
+    expect(parsed.errors.some((error) => error.includes('måste vara 1 eller 4'))).toBe(true)
   })
 })
