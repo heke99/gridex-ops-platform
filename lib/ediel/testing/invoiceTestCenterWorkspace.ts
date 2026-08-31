@@ -17,11 +17,60 @@ function marker(metadata: unknown): Row {
   return objectValue(objectValue(metadata).test_center)
 }
 
+function archivedIdentifier(prefix: string, id: string) {
+  return `${prefix}-${id}`
+}
+
 export function isInvoiceTestCustomerRow(row: Row | null | undefined): boolean {
   if (!row) return false
   return row.is_test_data === true
     && text(row.source) === INVOICE_TEST_CUSTOMER_SOURCE
     && text(marker(row.metadata).kind) === INVOICE_TEST_CUSTOMER_KIND
+}
+
+export async function assertInvoiceTestCompanyAndOffer(input: {
+  companyId: string
+  contractOfferId: string
+}) {
+  const [companyResult, offerResult] = await Promise.all([
+    supabaseService
+      .from('companies')
+      .select('id,name,status,lifecycle_status,is_active,archived_at')
+      .eq('id', input.companyId)
+      .maybeSingle(),
+    supabaseService
+      .from('canonical_internal_contract_offers_v')
+      .select('id,company_id,name,status,lifecycle_status,is_active,contract_type,internal_publication_ready')
+      .eq('id', input.contractOfferId)
+      .eq('company_id', input.companyId)
+      .maybeSingle(),
+  ])
+  if (companyResult.error) throw companyResult.error
+  if (offerResult.error) throw offerResult.error
+
+  const company = companyResult.data as Row | null
+  if (
+    !company ||
+    text(company.status) !== 'active' ||
+    text(company.lifecycle_status) !== 'active' ||
+    company.is_active !== true ||
+    text(company.archived_at)
+  ) {
+    throw new Error('Fakturatest blockerad: valt bolag är inte en aktiv tenant.')
+  }
+
+  const offer = offerResult.data as Row | null
+  if (
+    !offer ||
+    text(offer.company_id) !== input.companyId ||
+    text(offer.status) !== 'active' ||
+    text(offer.lifecycle_status) !== 'published' ||
+    offer.is_active !== true ||
+    offer.internal_publication_ready !== true
+  ) {
+    throw new Error('Fakturatest blockerad: valt avtal är inte ett aktivt publicerat internt avtal för vald tenant.')
+  }
+  return { company, offer }
 }
 
 export async function assertInvoiceTestCustomer(input: {
@@ -173,10 +222,112 @@ export async function archiveInvoiceTestCustomer(input: {
   customerId: string
   actorUserId: string
 }) {
-  await assertInvoiceTestCustomer(input)
-  await resetInvoiceTestCustomerRun(input)
+  const customerRow = await assertInvoiceTestCustomer({ ...input, allowArchived: true })
+  if (!text(customerRow.archived_at)) {
+    await resetInvoiceTestCustomerRun(input)
+  }
+
+  const [sitesResult, pointsResult] = await Promise.all([
+    supabaseService
+      .from('customer_sites')
+      .select('id,facility_id,facility_reference,metadata,archived_at,is_test_data')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('is_test_data', true),
+    supabaseService
+      .from('metering_points')
+      .select('id,site_id,meter_point_id,metering_point_id,ediel_reference,site_facility_id,metadata,archived_at,is_test_data')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('is_test_data', true),
+  ])
+  if (sitesResult.error) throw sitesResult.error
+  if (pointsResult.error) throw pointsResult.error
+
   const now = new Date().toISOString()
   const reason = 'Arkiverad från Fakturatest. Provider-/auditspår bevaras.'
+  const archivedFacilityBySiteId = new Map<string, string>()
+
+  for (const raw of (sitesResult.data ?? []) as Row[]) {
+    const siteId = text(raw.id)
+    if (!siteId) throw new Error('Fakturatest kunde inte arkivera anläggning utan ID.')
+    const archivedFacilityId = archivedIdentifier('ARCHIVED-FAKTURATEST-SITE', siteId)
+    archivedFacilityBySiteId.set(siteId, archivedFacilityId)
+    const siteMetadata = {
+      ...objectValue(raw.metadata),
+      test_center: {
+        ...marker(raw.metadata),
+        archived_at: now,
+        archived_original_identifiers: {
+          facility_id: text(raw.facility_id),
+          facility_reference: text(raw.facility_reference),
+        },
+      },
+    }
+    const siteUpdate = await supabaseService
+      .from('customer_sites')
+      .update({
+        facility_id: archivedFacilityId,
+        status: 'closed',
+        archived_at: now,
+        archived_by: input.actorUserId,
+        archive_reason: reason,
+        is_active: false,
+        metadata: siteMetadata,
+        updated_by: input.actorUserId,
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', siteId)
+      .eq('is_test_data', true)
+      .select('id')
+      .maybeSingle()
+    if (siteUpdate.error) throw siteUpdate.error
+    if (!siteUpdate.data) throw new Error('Fakturatest kunde inte verifiera arkivering av testanläggningen.')
+  }
+
+  for (const raw of (pointsResult.data ?? []) as Row[]) {
+    const pointId = text(raw.id)
+    if (!pointId) throw new Error('Fakturatest kunde inte arkivera mätpunkt utan ID.')
+    const archivedMeteringPointId = archivedIdentifier('ARCHIVED-FAKTURATEST-MP', pointId)
+    const pointMetadata = {
+      ...objectValue(raw.metadata),
+      test_center: {
+        ...marker(raw.metadata),
+        archived_at: now,
+        archived_original_identifiers: {
+          meter_point_id: text(raw.meter_point_id),
+          metering_point_id: text(raw.metering_point_id),
+          ediel_reference: text(raw.ediel_reference),
+          site_facility_id: text(raw.site_facility_id),
+        },
+      },
+    }
+    const siteId = text(raw.site_id)
+    const pointUpdate = await supabaseService
+      .from('metering_points')
+      .update({
+        meter_point_id: archivedMeteringPointId,
+        metering_point_id: archivedMeteringPointId,
+        ediel_reference: null,
+        site_facility_id: siteId ? archivedFacilityBySiteId.get(siteId) ?? text(raw.site_facility_id) : text(raw.site_facility_id),
+        status: 'ended',
+        archived_at: now,
+        archived_by: input.actorUserId,
+        archive_reason: reason,
+        metadata: pointMetadata,
+        updated_by: input.actorUserId,
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', pointId)
+      .eq('is_test_data', true)
+      .select('id')
+      .maybeSingle()
+    if (pointUpdate.error) throw pointUpdate.error
+    if (!pointUpdate.data) throw new Error('Fakturatest kunde inte verifiera arkivering av testmätpunkten.')
+  }
+
   const customer = await supabaseService
     .from('customers')
     .update({ archived_at: now, archived_by: input.actorUserId, archive_reason: reason, updated_by: input.actorUserId, updated_at: now })
@@ -188,28 +339,27 @@ export async function archiveInvoiceTestCustomer(input: {
     .maybeSingle()
   if (customer.error) throw customer.error
   if (!customer.data) throw new Error('Fakturatest vägrade arkivera kunden eftersom testmarkören ändrades.')
-  await supabaseService
-    .from('customer_sites')
-    .update({ archived_at: now, archived_by: input.actorUserId, archive_reason: reason, is_active: false, updated_by: input.actorUserId, updated_at: now })
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('is_test_data', true)
-  await supabaseService
-    .from('metering_points')
-    .update({ archived_at: now, archived_by: input.actorUserId, archive_reason: reason, updated_by: input.actorUserId, updated_at: now })
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('is_test_data', true)
   return { customerId: input.customerId, archivedAt: now }
 }
 
 export async function loadInvoiceTestCenterWorkspace() {
   const [companies, offers, customers, providerConnections] = await Promise.all([
-    supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(100),
+    supabaseService
+      .from('companies')
+      .select('id,name,status,lifecycle_status,is_active,archived_at')
+      .eq('status', 'active')
+      .eq('lifecycle_status', 'active')
+      .eq('is_active', true)
+      .is('archived_at', null)
+      .order('name', { ascending: true })
+      .limit(100),
     supabaseService
       .from('canonical_internal_contract_offers_v')
-      .select('id,company_id,name,contract_type,currently_sellable,internal_publication_ready')
-      .eq('currently_sellable', true)
+      .select('id,company_id,name,contract_type,status,lifecycle_status,is_active,currently_sellable,internal_publication_ready')
+      .eq('status', 'active')
+      .eq('lifecycle_status', 'published')
+      .eq('is_active', true)
+      .eq('internal_publication_ready', true)
       .order('name', { ascending: true })
       .limit(300),
     supabaseService
@@ -248,7 +398,7 @@ export async function loadInvoiceTestCenterWorkspace() {
   const [meteringPoints, messages, invoiceItems, invoices] = await Promise.all([
     supabaseService
       .from('metering_points')
-      .select('id,company_id,customer_id,metering_point_id,price_area_code,status,is_test_data,archived_at')
+      .select('id,company_id,customer_id,meter_point_id,price_area_code,status,is_test_data,archived_at')
       .in('customer_id', customerIds)
       .eq('is_test_data', true)
       .is('archived_at', null),
