@@ -109,9 +109,9 @@ async function assertIdentityNotOwnedElsewhere(input: {
   identity: InvoiceTestEdifactIdentity
 }) {
   const identity = input.identity.primaryMeteringReference
-  const meterConflict = await supabaseService
+  const meterMatches = await supabaseService
     .from('metering_points')
-    .select('id')
+    .select('id,company_id,customer_id')
     .or([
       `meter_point_id.eq.${identity}`,
       `metering_point_id.eq.${identity}`,
@@ -120,23 +120,25 @@ async function assertIdentityNotOwnedElsewhere(input: {
       `anlage_id.eq.${identity}`,
       `ediel_metering_point_id.eq.${identity}`,
     ].join(','))
-    .neq('customer_id', input.customerId)
-    .limit(1)
-  if (meterConflict.error) throw meterConflict.error
-  if ((meterConflict.data ?? []).length > 0) {
-    throw new Error('EDIFACT-identiteten är redan bunden till en annan kund. Fakturatest stoppades före masterdataändring.')
+    .limit(10)
+  if (meterMatches.error) throw meterMatches.error
+  const conflictingMeter = (meterMatches.data ?? []).some((row) =>
+    text(row.company_id) !== input.companyId || text(row.customer_id) !== input.customerId,
+  )
+  if (conflictingMeter) {
+    throw new Error('EDIFACT-identiteten är redan bunden utanför vald testkund. Fakturatest stoppades före masterdataändring.')
   }
 
   if (input.identity.facilityId) {
-    const siteConflict = await supabaseService
+    const siteMatches = await supabaseService
       .from('customer_sites')
-      .select('id')
+      .select('id,company_id,customer_id')
       .eq('company_id', input.companyId)
       .eq('facility_id', input.identity.facilityId)
-      .neq('customer_id', input.customerId)
-      .limit(1)
-    if (siteConflict.error) throw siteConflict.error
-    if ((siteConflict.data ?? []).length > 0) {
+      .limit(10)
+    if (siteMatches.error) throw siteMatches.error
+    const conflictingSite = (siteMatches.data ?? []).some((row) => text(row.customer_id) !== input.customerId)
+    if (conflictingSite) {
       throw new Error('EDIFACT-anläggningen är redan bunden till en annan kund i valt bolag. Fakturatest stoppades före masterdataändring.')
     }
   }
