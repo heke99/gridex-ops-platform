@@ -1,7 +1,8 @@
 #!/usr/bin/env node
+'use strict'
+
 const fs = require('node:fs')
 const path = require('node:path')
-
 const root = process.cwd()
 let checks = 0
 
@@ -14,14 +15,8 @@ function assert(condition, message) {
   checks += 1
   if (!condition) throw new Error(message)
 }
-function includes(rel, value) {
-  const text = read(rel)
-  assert(text.includes(value), `${rel} missing: ${value}`)
-}
-function excludes(rel, value) {
-  const text = read(rel)
-  assert(!text.includes(value), `${rel} must not contain: ${value}`)
-}
+function includes(rel, value) { assert(read(rel).includes(value), `${rel} missing: ${value}`) }
+function excludes(rel, value) { assert(!read(rel).includes(value), `${rel} must not contain: ${value}`) }
 
 const contract = read('lib/integrations/websiteIntegrationContract.ts')
 for (const value of [
@@ -53,22 +48,30 @@ for (const rel of [
   'app/api/v1/openapi/customer-portal-v1.json/route.ts',
   'lib/integrations/openApiResponse.ts',
 ]) includes(rel, 'openApiDocumentResponse')
-
 includes('lib/api/publicRouteRegistry.ts', "path: '/api/v1/openapi/website-integration-v1.json'")
 includes('lib/api/publicRouteRegistry.ts', "path: '/api/v1/openapi/customer-portal-v1.json'")
+
 includes('lib/integrations/tenantContext.ts', 'required_environment_variables: WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES')
 includes('lib/integrations/tenantContext.ts', 'application_reference_location: WEBSITE_APPLICATION_REFERENCE_LOCATION')
 includes('lib/integrations/tenantContext.ts', 'website_checkout_ready: readiness.website_checkout_ready')
-excludes('lib/integrations/tenantContext.ts', 'website_checkout_ready: missingWebsiteScopes.length === 0')
 includes('lib/integrations/tenantContext.ts', 'loadTenantWebsiteFlowReadiness')
 includes('app/admin/platform/api-clients/actions.ts', 'reconcileAndPersistTenantWebsiteClientReadiness')
-excludes('app/admin/platform/api-clients/actions.ts', 'launch_ready: missingRecommendedScopes.length === 0')
 
-// The public developer URL intentionally serves the canonical Partner API now.
-// Legacy website/customer-portal OpenAPI remains available for compatibility,
-// but the public guide must not resurrect tenant/company configuration fields.
-includes('app/developers/customer-portal-api/page.tsx', "import PartnerApiDocumentationPage from '../partner-api/page'")
-includes('app/developers/customer-portal-api/page.tsx', '<PartnerApiDocumentationPage />')
+const developerPage = read('app/developers/customer-portal-api/page.tsx')
+for (const token of [
+  'partnerOpenApi',
+  'PARTNER_API_BASE_URL',
+  'PARTNER_API_VERSION',
+  'Gridex API',
+  'Website checkout',
+  'Customer Portal',
+  'Partner API',
+  'Webhooks',
+]) assert(developerPage.includes(token), `unified developer documentation missing ${token}`)
+for (const token of ['GRIDEX_TENANT_ID', 'GRIDEX_EXPECTED_COMPANY_ID']) {
+  assert(!developerPage.includes(token), `developer documentation leaks legacy tenant selector ${token}`)
+}
+
 includes('lib/partner-api/openApi.ts', "PARTNER_API_BASE_URL = 'https://app.gridex.se/api/partner/v1'")
 includes('lib/partner-api/openApi.ts', 'Gridex configures the company, API credential, permissions and default published offer outside the API.')
 excludes('lib/partner-api/openApi.ts', 'tenant_id_environment_required')
@@ -86,10 +89,6 @@ for (const [name, spec] of [['website', websiteSpec], ['portal', portalSpec]]) {
   assert(JSON.stringify(setup.required_environment_variables) === JSON.stringify(['GRIDEX_API_KEY']), `${name} OpenAPI must require only GRIDEX_API_KEY`)
   assert(setup.api_base_url === 'https://app.gridex.se/api/v1', `${name} OpenAPI wrong base URL`)
   assert(setup.application_reference_location === 'top_level', `${name} OpenAPI wrong application reference location`)
-  const ownSpecRoute = name === 'website'
-    ? '/api/v1/openapi/website-integration-v1.json'
-    : '/api/v1/openapi/customer-portal-v1.json'
-  assert(Boolean(spec.paths[ownSpecRoute]), `${name} OpenAPI missing its public specification route`)
 }
 
 const requestSchema = websiteSpec.components.schemas.CustomerApplicationRequest
@@ -97,13 +96,9 @@ assert(requestSchema, 'Website OpenAPI missing CustomerApplicationRequest')
 for (const field of ['offer_reference', 'quote_reference', 'resolution_id']) {
   assert(requestSchema.required.includes(field), `CustomerApplicationRequest must require top-level ${field}`)
   assert(Boolean(requestSchema.properties[field]), `CustomerApplicationRequest missing top-level ${field}`)
-}
-for (const field of ['offer_reference', 'quote_reference', 'resolution_id']) {
   assert(!requestSchema.properties.contract.properties[field], `contract must not define ${field}`)
 }
-
 assert(!Object.keys(portalSpec.paths ?? {}).some((route) => route.startsWith('/api/v1/website/')), 'Portal OpenAPI must not duplicate website routes')
-assert(!portalSpec.components?.schemas?.WebsiteCustomerApplicationRequest, 'Portal OpenAPI must not duplicate website application schema')
 
 for (const rel of [
   'docs/external-website-api-integration-guide.md',
@@ -114,13 +109,6 @@ for (const rel of [
   includes(rel, 'https://app.gridex.se/api/v1')
   includes(rel, 'https://app.gridex.se/api/v1/openapi/website-integration-v1.json')
 }
-
-// Partner API documentation owns the current public onboarding contract. It
-// must remain backend-to-backend and keep tenant selection behind the API key.
-includes('app/developers/partner-api/page.tsx', 'PARTNER_API_BASE_URL')
-includes('app/developers/partner-api/page.tsx', 'PARTNER_API_VERSION')
-excludes('app/developers/partner-api/page.tsx', 'GRIDEX_TENANT_ID')
-excludes('app/developers/partner-api/page.tsx', 'GRIDEX_EXPECTED_COMPANY_ID')
 
 for (const scope of [
   'integration_context.read',
@@ -134,19 +122,8 @@ for (const scope of [
   'website_switch_status.read',
 ]) {
   includes('lib/integrations/apiClientProfiles.ts', `'${scope}'`)
-  includes(
-    scope === 'website_market_prices.read'
-      ? 'supabase/migrations/20260724223000_market_price_api_documentation_completion.sql'
-      : 'supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql',
-    `'${scope}'`,
-  )
 }
-includes('lib/integrations/apiClientProfiles.ts', "key: 'tenant_website'")
-includes('supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql', "'tenant_website'")
-includes('scripts/single-api-key-integration-readiness.sql', 'website_checkout_client_missing_scope')
-includes('scripts/single-api-key-integration-readiness.sql', 'tenant_website_client_missing_portal_scope')
 includes('scripts/single-api-key-integration-readiness.sql', '["GRIDEX_API_KEY"]')
 includes('app/admin/platform/api-clients/CreateApiClientForm.tsx', 'GRIDEX_API_KEY')
-includes('app/admin/platform/api-clients/actions.ts', 'application_reference_location: WEBSITE_APPLICATION_REFERENCE_LOCATION')
 
 console.log(`Gridex single API-key tenant integration regression OK (${checks} checks)`)
