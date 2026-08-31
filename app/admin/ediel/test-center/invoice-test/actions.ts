@@ -19,6 +19,7 @@ import {
   getInvoiceTestOnboardingGeneration,
   resolveSingleInvoiceTestContractId,
 } from '@/lib/ediel/testing/invoiceTestCenterCreation'
+import { signInvoiceTestContractCanonically } from '@/lib/ediel/testing/invoiceTestContractLifecycle'
 import { archiveInvoiceTestCustomerSafely } from '@/lib/ediel/testing/invoiceTestCenterArchive'
 import { quarantineCreatedInvoiceTestGraph } from '@/lib/ediel/testing/invoiceTestCenterQuarantine'
 import { approveAndSendInvoiceTestItem } from '@/lib/billing/invoiceTestCenterDispatch'
@@ -108,8 +109,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       email,
       phone: stringValue(formData, 'phone') ?? '0701234567',
       siteName: `${built.siteName ?? 'Fakturatest-anläggning'} · generation ${generation + 1}`,
-      // Fakturatest must never accept/invent EDIFACT identifiers at customer-create time.
-      // They are materialized later from the canonical parsed UTILTS envelope.
+      // EDIFACT identity is intentionally absent until the imported UTILTS is parsed.
       facilityId: null,
       meterPointId: null,
       siteType: 'consumption',
@@ -123,14 +123,16 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       authorizationValidTo: null,
       expectedStartDate: startDate,
       confirmedStartDate: startDate,
-      actualStartDate: startDate,
+      actualStartDate: null,
       startDateSource: 'manual_admin',
       street,
       postalCode,
       city,
       country: 'SE',
       contractStartDate: startDate,
-      contractStatus: 'active',
+      // Normal onboarding may not insert signed/active contracts. The canonical
+      // signing RPC locks publication, legal and price evidence after creation.
+      contractStatus: 'pending_signature',
       overrideReason: null,
       contractTypeOverride: null,
       fixedPriceOrePerKwh: null,
@@ -166,6 +168,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       postCreateAction: 'open_customer',
       postCreateRequestTarget: 'both',
     })
+
     try {
       if (customer.__createdMeteringPointId) {
         throw new Error('Fakturatest skapade oväntat en mätpunkt före EDIFACT-import; kundgrafen sätts i karantän.')
@@ -176,6 +179,12 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
         customerId: customer.id,
         siteId: customer.__createdSiteId,
         meteringPointId: null,
+        contractId,
+        actorUserId: context.userId,
+      })
+      await signInvoiceTestContractCanonically({
+        companyId,
+        customerId: customer.id,
         contractId,
         actorUserId: context.userId,
       })
@@ -190,15 +199,16 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
         })
       } catch (quarantineError) {
         throw new Error(
-          `Fakturatest-markering misslyckades och kundgrafen kunde inte verifieras som arkiverad. Markering: ${formatErrorMessage(markError, 'okänt fel')}. Karantän: ${formatErrorMessage(quarantineError, 'okänt fel')}.`,
+          `Fakturatest-markering/signering misslyckades och kundgrafen kunde inte verifieras som arkiverad. Markering/signering: ${formatErrorMessage(markError, 'okänt fel')}. Karantän: ${formatErrorMessage(quarantineError, 'okänt fel')}.`,
         )
       }
       throw markError
     }
+
     revalidatePath(WORKSPACE)
     workspaceRedirect({
       status: 'success',
-      message: `Testkund ${customer.customer_number ?? customer.id} skapades. Anläggnings-/mätpunktsidentitet väntar på EDIFACT-import.`,
+      message: `Testkund ${customer.customer_number ?? customer.id} skapades och avtalet signerades via canonical testkedja. Anläggnings-/mätpunktsidentitet väntar på EDIFACT-import.`,
       companyId,
       customerId: customer.id,
     })

@@ -29,8 +29,8 @@ export async function resolveSingleInvoiceTestContractId(input: {
   if (rows.length !== 1 || !rows[0]?.id) {
     throw new Error('Fakturatest blockerad: den nya testkunden måste ha exakt ett canonical avtal.')
   }
-  if (!['active', 'signed'].includes(String(rows[0].status))) {
-    throw new Error('Fakturatest blockerad: testkundens canonical avtal är inte aktivt/signerat.')
+  if (!['draft', 'pending_signature', 'signed', 'active'].includes(String(rows[0].status))) {
+    throw new Error('Fakturatest blockerad: testkundens canonical avtal har en ogiltig skapandestatus.')
   }
   return String(rows[0].id)
 }

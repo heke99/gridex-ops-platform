@@ -28,7 +28,7 @@ function marker(metadata: unknown): Row {
 
 export async function quarantineCreatedInvoiceTestGraph(input: QuarantineInput) {
   const now = new Date().toISOString()
-  const reason = 'Fakturatest-markering misslyckades; nyss skapad kundgraf arkiverades fail-closed.'
+  const reason = 'Fakturatest-markering misslyckades eller canonical test-signering misslyckades; nyss skapad kundgraf arkiverades fail-closed.'
   const archivedFacilityId = input.siteId ? `ARCHIVED-FAKTURATEST-SITE-${input.siteId}` : null
 
   if (input.meteringPointId) {
@@ -129,7 +129,7 @@ export async function quarantineCreatedInvoiceTestGraph(input: QuarantineInput) 
 
   const contracts = await supabaseService
     .from('customer_contracts')
-    .select('id,metadata')
+    .select('id,metadata,status')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
   if (contracts.error) throw contracts.error
@@ -145,18 +145,21 @@ export async function quarantineCreatedInvoiceTestGraph(input: QuarantineInput) 
         quarantined_at: now,
       },
     }
-    const contract = await supabaseService
-      .from('customer_contracts')
-      .update({
-        status: 'cancelled',
-        ends_at: now,
-        metadata,
-        updated_by: input.actorUserId,
-        updated_at: now,
-      })
-      .eq('company_id', input.companyId)
-      .eq('id', contractId)
-    if (contract.error) throw contract.error
+    if (!['cancelled', 'terminated', 'expired'].includes(text(raw.status) ?? '')) {
+      const contract = await supabaseService
+        .from('customer_contracts')
+        .update({
+          status: 'cancelled',
+          ended_at: now,
+          status_reason_code: 'invoice_test_quarantine',
+          metadata,
+          updated_by: input.actorUserId,
+          updated_at: now,
+        })
+        .eq('company_id', input.companyId)
+        .eq('id', contractId)
+      if (contract.error) throw contract.error
+    }
   }
 
   const customerCurrent = await supabaseService
