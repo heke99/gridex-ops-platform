@@ -69,24 +69,58 @@ function meterConstant(parts: string[]): number {
   return 1
 }
 
-function markCorrectedMessageReference(parts: string[]) {
+function appendCorrectionSuffix(value: string, maxLength = 35): string {
+  const base = value.trim()
+  if (!base) throw new Error('correction-fixturen saknar referensvärde.')
+  return `${base.slice(0, Math.max(1, maxLength - 1))}C`
+}
+
+function markCorrectedMessageEnvelope(parts: string[]) {
+  const unbIndex = parts.findIndex((segment) => /^UNB\+/i.test(segment))
+  const unzIndex = parts.findIndex((segment) => /^UNZ\+/i.test(segment))
+  if (unbIndex < 0 || unzIndex < 0) throw new Error('correction-fixturen saknar UNB/UNZ.')
+  const unb = parts[unbIndex].split('+')
+  const originalInterchangeReference = unb[5]?.trim()
+  if (!originalInterchangeReference) throw new Error('correction-fixturen saknar UNB interchange reference.')
+  const correctedInterchangeReference = appendCorrectionSuffix(originalInterchangeReference)
+  unb[5] = correctedInterchangeReference
+  parts[unbIndex] = unb.join('+')
+
+  const unz = parts[unzIndex].split('+')
+  if (unz.length < 3 || unz[2]?.trim() !== originalInterchangeReference) {
+    throw new Error('correction-fixturen har UNB/UNZ-referenser som inte matchar före mutation.')
+  }
+  unz[2] = correctedInterchangeReference
+  parts[unzIndex] = unz.join('+')
+
   const unhIndex = parts.findIndex((segment) => /^UNH\+/i.test(segment))
   if (unhIndex < 0) throw new Error('correction-fixturen saknar UNH.')
   const unh = parts[unhIndex].split('+')
-  const originalReference = unh[1]?.trim()
-  if (!originalReference) throw new Error('correction-fixturen saknar UNH message reference.')
-  const correctedReference = `${originalReference}C`
-  unh[1] = correctedReference
+  const originalMessageReference = unh[1]?.trim()
+  if (!originalMessageReference) throw new Error('correction-fixturen saknar UNH message reference.')
+  const correctedMessageReference = appendCorrectionSuffix(originalMessageReference, 14)
+  unh[1] = correctedMessageReference
   parts[unhIndex] = unh.join('+')
 
   const untIndex = parts.findIndex((segment) => /^UNT\+/i.test(segment))
   if (untIndex < 0) throw new Error('correction-fixturen saknar UNT.')
   const unt = parts[untIndex].split('+')
-  if (unt.length < 3 || unt[2]?.trim() !== originalReference) {
+  if (unt.length < 3 || unt[2]?.trim() !== originalMessageReference) {
     throw new Error('correction-fixturen har UNH/UNT-referenser som inte matchar före mutation.')
   }
-  unt[2] = correctedReference
+  unt[2] = correctedMessageReference
   parts[untIndex] = unt.join('+')
+
+  // The inbound database also has duplicate protection on transaction/external
+  // message identity. Keep IDE+24 unchanged so metering revision semantics refer
+  // to the same business value, but give the corrected message a new BGM document
+  // reference so the envelope itself is independently ingestible and traceable.
+  const bgmIndex = parts.findIndex((segment) => /^BGM\+/i.test(segment))
+  if (bgmIndex < 0) throw new Error('correction-fixturen saknar BGM.')
+  const bgm = parts[bgmIndex].split('+')
+  if (!bgm[2]?.trim()) throw new Error('correction-fixturen saknar BGM document reference.')
+  bgm[2] = appendCorrectionSuffix(bgm[2])
+  parts[bgmIndex] = bgm.join('+')
 }
 
 function mutateBillableEnergy(raw: string): string {
@@ -118,10 +152,7 @@ function mutateBillableEnergy(raw: string): string {
     )
   }
 
-  // Preserve the business transaction identity so the normal metering revision
-  // engine sees a correction of the same value. The EDIFACT message itself gets
-  // a new UNH reference, and UNT is changed to the exact same reference.
-  markCorrectedMessageReference(parts)
+  markCorrectedMessageEnvelope(parts)
   return rebuild(parts)
 }
 
