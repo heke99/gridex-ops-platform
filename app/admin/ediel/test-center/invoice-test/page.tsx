@@ -131,6 +131,7 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
           <section className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${params.runStatus === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-red-200 bg-red-50 text-red-950'}`}>
             {params.runMessage}
             {safeTraceHref ? <Link href={safeTraceHref} className="ml-3 font-black underline">Öppna komplett trace</Link> : null}
+            {selectedItems.length > 0 ? <Link href="#invoice-test-invoices" className="ml-3 font-black underline">Visa faktura</Link> : null}
           </section>
         ) : null}
 
@@ -167,6 +168,7 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
               {customers.map((customer) => {
                 const id = String(customer.id)
                 const points = meteringPoints.filter((point) => text(point.customer_id) === id)
+                const customerInvoiceItems = invoiceItems.filter((item) => text(item.customer_id) === id)
                 return (
                   <article key={id} className={`rounded-2xl border p-4 ${id === selectedCustomerId ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -183,6 +185,9 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
                         <input type="hidden" name="customerId" value={id} />
                         <button className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900">Återställ fakturakörning</button>
                       </form>
+                      {customerInvoiceItems.length > 0 ? (
+                        <Link href={`${WORKSPACE_LINK}?companyId=${encodeURIComponent(String(customer.company_id))}&customerId=${encodeURIComponent(id)}#invoice-test-invoices`} className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-900">Visa faktura</Link>
+                      ) : null}
                       <form action={archiveInvoiceTestCustomerAction}>
                         <input type="hidden" name="companyId" value={String(customer.company_id)} />
                         <input type="hidden" name="customerId" value={id} />
@@ -246,7 +251,7 @@ export default async function InvoiceTestCenterPage({ searchParams }: PageProps)
           </form>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section id="invoice-test-invoices" className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">3 · Faktura & leverantör</p>
