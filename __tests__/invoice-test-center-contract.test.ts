@@ -71,6 +71,17 @@ describe('Fakturatest workspace contract', () => {
     expect(service).toContain('assertInvoiceTestCustomer')
   })
 
+  it('releases reusable test facility and metering identifiers while preserving originals in metadata', () => {
+    const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
+    expect(service).toContain("archivedIdentifier('ARCHIVED-FAKTURATEST-SITE'")
+    expect(service).toContain("archivedIdentifier('ARCHIVED-FAKTURATEST-MP'")
+    expect(service).toContain('archived_original_identifiers')
+    expect(service).toContain('facility_id: text(raw.facility_id)')
+    expect(service).toContain('metering_point_id: text(raw.metering_point_id)')
+    expect(service).toContain("status: 'closed'")
+    expect(service).toContain("status: 'ended'")
+  })
+
   it('runs uploaded EDIFACT through the existing canonical test-center chain', () => {
     const actions = read('app/admin/ediel/test-center/invoice-test/actions.ts')
     expect(actions).toContain('importRawEdifactAndRunTestCenterChain')
