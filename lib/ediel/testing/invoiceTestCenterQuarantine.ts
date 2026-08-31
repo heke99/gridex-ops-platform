@@ -28,7 +28,7 @@ function marker(metadata: unknown): Row {
 
 export async function quarantineCreatedInvoiceTestGraph(input: QuarantineInput) {
   const now = new Date().toISOString()
-  const reason = 'Fakturatest-markering/signering misslyckades; nyss skapad kundgraf arkiverades fail-closed.'
+  const reason = 'Fakturatest-markering misslyckades eller canonical test-signering misslyckades; nyss skapad kundgraf arkiverades fail-closed.'
   const archivedFacilityId = input.siteId ? `ARCHIVED-FAKTURATEST-SITE-${input.siteId}` : null
 
   if (input.meteringPointId) {
