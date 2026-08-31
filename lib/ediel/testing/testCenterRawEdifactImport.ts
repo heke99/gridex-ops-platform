@@ -94,6 +94,7 @@ async function assertSelectedCustomerMeteringPoint(input: {
 
 async function findExistingTestInboundEnvelope(input: {
   companyId: string
+  customerId: string
   rawEdifact: string
 }): Promise<string | null> {
   const result = await supabaseService
@@ -103,6 +104,7 @@ async function findExistingTestInboundEnvelope(input: {
     .eq('environment', 'test')
     .eq('raw_edifact_payload', input.rawEdifact)
     .eq('match_status', 'test_center_raw_import')
+    .contains('match_payload', { test_center_customer_id: input.customerId })
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -112,6 +114,7 @@ async function findExistingTestInboundEnvelope(input: {
 
 async function getOrCreateTestInboundEnvelope(input: {
   companyId: string
+  customerId: string
   actorUserId: string
   rawEdifact: string
   filename: string | null
@@ -119,6 +122,7 @@ async function getOrCreateTestInboundEnvelope(input: {
 }): Promise<{ id: string; reused: boolean }> {
   const existing = await findExistingTestInboundEnvelope({
     companyId: input.companyId,
+    customerId: input.customerId,
     rawEdifact: input.rawEdifact,
   })
   if (existing) return { id: existing, reused: true }
@@ -135,6 +139,7 @@ async function getOrCreateTestInboundEnvelope(input: {
     match_status: 'test_center_raw_import',
     match_payload: {
       source: 'test_center_raw_edifact_import_v1',
+      test_center_customer_id: input.customerId,
       filename: input.filename,
       sha256: input.sourceSha256,
       actor_user_id: input.actorUserId,
@@ -186,6 +191,7 @@ export async function importRawEdifactAndRunTestCenterChain(
   const sourceSha256 = createHash('sha256').update(rawEdifact).digest('hex')
   const envelope = await getOrCreateTestInboundEnvelope({
     companyId,
+    customerId,
     actorUserId,
     rawEdifact,
     filename: input.filename?.trim() || null,
