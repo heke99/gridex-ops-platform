@@ -98,6 +98,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
     const postalCode = stringValue(formData, 'postalCode')
     const city = stringValue(formData, 'city')
     if (!startDate) throw new Error('Avtalsstart krävs för testkunden.')
+
     const customer = await createCustomerGraph({
       ...built,
       actorUserId: context.userId,
@@ -107,6 +108,10 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       email,
       phone: stringValue(formData, 'phone') ?? '0701234567',
       siteName: `${built.siteName ?? 'Fakturatest-anläggning'} · generation ${generation + 1}`,
+      // Fakturatest must never accept/invent EDIFACT identifiers at customer-create time.
+      // They are materialized later from the canonical parsed UTILTS envelope.
+      facilityId: null,
+      meterPointId: null,
       siteType: 'consumption',
       currentSupplierId: null,
       currentSupplierName: null,
@@ -162,12 +167,15 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       postCreateRequestTarget: 'both',
     })
     try {
+      if (customer.__createdMeteringPointId) {
+        throw new Error('Fakturatest skapade oväntat en mätpunkt före EDIFACT-import; kundgrafen sätts i karantän.')
+      }
       const contractId = await resolveSingleInvoiceTestContractId({ companyId, customerId: customer.id })
       await markInvoiceTestCustomerGraph({
         companyId,
         customerId: customer.id,
         siteId: customer.__createdSiteId,
-        meteringPointId: customer.__createdMeteringPointId,
+        meteringPointId: null,
         contractId,
         actorUserId: context.userId,
       })
@@ -190,7 +198,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
     revalidatePath(WORKSPACE)
     workspaceRedirect({
       status: 'success',
-      message: `Testkund ${customer.customer_number ?? customer.id} skapades via canonical kundintag och märktes is_test_data.`,
+      message: `Testkund ${customer.customer_number ?? customer.id} skapades. Anläggnings-/mätpunktsidentitet väntar på EDIFACT-import.`,
       companyId,
       customerId: customer.id,
     })
@@ -240,9 +248,15 @@ export async function importInvoiceTestEdifactAction(formData: FormData) {
     }
     if (!last) throw new Error('Fakturatest gav inget verifierbart körresultat.')
     revalidatePath(WORKSPACE)
+    const parsedIdentity = last.parsed.locations['172']?.[0]
+      ?? last.parsed.references.Z07?.[0]
+      ?? last.parsed.references.LI?.[0]
+      ?? last.parsed.references.TN?.[0]
+      ?? last.parsed.references.MG?.[0]
+      ?? 'okänd'
     workspaceRedirect({
       status: 'success',
-      message: `${scenario} kördes genom canonical UTILTS → mätvärden → billing → pricing → fakturautkast.`,
+      message: `${scenario} kördes genom canonical UTILTS → masterdata (${parsedIdentity}) → mätvärden → billing → pricing → fakturautkast.`,
       companyId,
       customerId,
       traceHref: traceHref({ edielMessageId: last.edielMessageId, billingMonth, underlayId: last.runtime.billingUnderlayId }),
