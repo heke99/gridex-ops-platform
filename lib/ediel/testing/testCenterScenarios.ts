@@ -16,7 +16,17 @@ function normalize(raw: string): string {
 }
 
 function segments(raw: string): string[] {
-  return normalize(raw).split("'").map((segment) => segment.trim()).filter(Boolean)
+  return normalize(raw)
+    .split("'")
+    .map((segment, index) => {
+      const leftTrimmed = segment.replace(/^\s+/, '')
+      // UNA is fixed-width service string advice. Its final character before the
+      // segment terminator is the reserved character (normally a literal space),
+      // so generic trim() corrupts a valid "UNA:+.? '" into invalid syntax.
+      if (index === 0 && leftTrimmed.toUpperCase().startsWith('UNA')) return leftTrimmed.slice(0, 8)
+      return segment.trim()
+    })
+    .filter(Boolean)
 }
 
 function rebuild(parts: string[]): string {
