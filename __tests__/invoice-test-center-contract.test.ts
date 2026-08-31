@@ -20,6 +20,39 @@ describe('Fakturatest workspace contract', () => {
     expect(actions).toContain('markInvoiceTestCustomerGraph')
   })
 
+  it('does not ask for or hardcode EDIFACT facility/metering identifiers in customer creation', () => {
+    const form = read('app/admin/ediel/test-center/invoice-test/InvoiceTestCustomerForm.tsx')
+    expect(form).not.toContain('name="meterPointId"')
+    expect(form).not.toContain('name="facilityId"')
+    expect(form).not.toContain('735999888777777778')
+    expect(form).not.toContain('GRIDEX-TEST-001')
+    expect(form).toContain('De läses från den importerade EDIFACT-filen')
+  })
+
+  it('materializes test-only facility/metering masterdata from the canonical parsed EDIFACT envelope', () => {
+    const materialization = read('lib/ediel/testing/invoiceTestEdifactMaterialization.ts')
+    const rawImport = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
+    expect(materialization).toContain("parsed.locations['172']")
+    expect(materialization).toContain("parsed.locations['239']")
+    expect(materialization).toContain("parsed.references.MG")
+    expect(materialization).toContain("source: 'canonical_edifact_parser'")
+    expect(materialization).toContain('is_test_data: true')
+    expect(materialization).toContain('primary_metering_reference')
+    expect(rawImport).toContain('materializeInvoiceTestEdifactMasterdata')
+    expect(rawImport.indexOf('materializeInvoiceTestEdifactMasterdata')).toBeLessThan(rawImport.indexOf('await processInboundEmailMessage'))
+  })
+
+  it('shows parsed EDIFACT masterdata back in the Fakturatest workspace', () => {
+    const page = read('app/admin/ediel/test-center/invoice-test/page.tsx')
+    expect(page).toContain('loadInvoiceTestEdifactSummary')
+    expect(page).toContain('Inläst från EDIFACT')
+    expect(page).toContain('Anläggnings-/mätpunkts-ID')
+    expect(page).toContain('Nätområde · LOC+239')
+    expect(page).toContain('Mätarnummer · RFF+MG')
+    expect(page).toContain('Avsändare → mottagare')
+    expect(page).toContain('Kvantiteter från QTY')
+  })
+
   it('only exposes active non-archived tenants in Fakturatest', () => {
     const service = read('lib/ediel/testing/invoiceTestCenterWorkspace.ts')
     expect(service).toContain(".eq('status', 'active')")
