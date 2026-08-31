@@ -5,43 +5,48 @@ import { describe, expect, it } from 'vitest'
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), 'utf8')
 
 describe('Test Center raw EDIFACT import contract', () => {
-  it('reuses the canonical parser, materializes test-only masterdata, then runs the normal inbound processor and runtime', () => {
+  it('validates and routes before writes, then materializes and runs the normal inbound processor/runtime', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     expect(source).toContain('parseInboundEmailContent')
+    expect(source).toContain('runUtiltsRuntimeForMessage')
+    expect(source).toContain('assertInboundTenantMatchesSelection')
     expect(source).toContain('materializeInvoiceTestEdifactMasterdata')
     expect(source).toContain('processInboundEmailMessage')
     expect(source).toContain('runTestCenterMeteringToInvoiceChain')
 
-    const parseAt = source.indexOf('assertRawTestEdifactPreflight(rawEdifact)')
+    const parseAt = source.indexOf('assertRawTestEdifactPreflight(rawEdifact, billingMonth)')
+    const routingAt = source.indexOf('await assertInboundTenantMatchesSelection')
     const materializeAt = source.indexOf('await materializeInvoiceTestEdifactMasterdata')
     const inboundAt = source.indexOf('await processInboundEmailMessage')
     const runtimeAt = source.indexOf('await runTestCenterMeteringToInvoiceChain')
     expect(parseAt).toBeGreaterThanOrEqual(0)
-    expect(materializeAt).toBeGreaterThan(parseAt)
+    expect(routingAt).toBeGreaterThan(parseAt)
+    expect(materializeAt).toBeGreaterThan(routingAt)
     expect(inboundAt).toBeGreaterThan(materializeAt)
     expect(runtimeAt).toBeGreaterThan(inboundAt)
   })
 
-  it('fails closed to UTILTS and selected test-customer/tenant ownership after materialization', () => {
+  it('fails closed to a canonical accepted UTILTS E66 for exactly the selected billing month', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
-    expect(source).toContain("parsed.messageFamily !== 'UTILTS'")
-    expect(source).toContain(".eq('company_id', input.companyId)")
-    expect(source).toContain(".eq('customer_id', input.customerId)")
-    expect(source).toContain(".eq('is_test_data', true)")
-    expect(source).toContain('EDIFACT-identiteten kunde inte verifieras mot vald testkund')
-    expect(source).toContain("row.environment !== 'test'")
-    expect(source).toContain("row.customer_id !== input.customerId")
+    expect(source).toContain("parsed.messageFamily !== 'UTILTS' || String(parsed.messageCode ?? '').toUpperCase() !== 'E66'")
+    expect(source).toContain("preflightRuntime.validation.classification !== 'accepted'")
+    expect(source).toContain('transactions.length !== 1')
+    expect(source).toContain("String(quantity.qualifier ?? '').trim() === '136'")
+    expect(source).toContain('totalEnergy <= 0')
+    expect(source).toContain('periodStart !== bounds.startDate || periodEnd !== bounds.endDateExclusive')
+    expect(source).toContain('stoppades i canonical preflight före masterdataändring')
   })
 
-  it('uses the selected tenant only as verified isolated Test Center evidence, never as a production mailbox fallback', () => {
+  it('requires canonical inbound routing to resolve to the selected tenant before masterdata/signing', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     const processor = read('lib/inbound-mail/edielInboundProcessor.ts')
     const resolver = read('lib/inbound-mail/inboundTenantResolver.ts')
 
-    expect(source).toContain('assertNoConflictingInboundTenant')
+    expect(source).toContain('assertInboundTenantMatchesSelection')
     expect(source).toContain("environment: 'test'")
+    expect(source).toContain("resolution.status !== 'resolved' || !resolution.companyId")
+    expect(source).toContain('resolution.companyId !== input.companyId')
     expect(source).toContain('testCenterTenantBinding: { companyId, customerId }')
-    expect(source).toContain('resolution.candidates.some((candidate) => candidate !== input.companyId)')
 
     expect(processor).toContain('testCenterTenantBinding?: TestCenterTenantBinding | null')
     expect(processor).toContain("input.environment !== 'test'")
@@ -52,6 +57,17 @@ describe('Test Center raw EDIFACT import contract', () => {
 
     expect(resolver).toContain('existingCompanyId?: string | null')
     expect(resolver).toContain('existingCompanyId: input.existingCompanyId ?? outbound.companyId')
+  })
+
+  it('verifies selected test-customer ownership after EDIFACT masterdata materialization', () => {
+    const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
+    expect(source).toContain(".eq('company_id', input.companyId)")
+    expect(source).toContain(".eq('customer_id', input.customerId)")
+    expect(source).toContain(".eq('is_test_data', true)")
+    expect(source).toContain('EDIFACT-identiteten kunde inte verifieras mot vald testkund')
+    expect(source).toContain("row.environment !== 'test'")
+    expect(source).toContain("row.message_code !== 'E66'")
+    expect(source).toContain("row.customer_id !== input.customerId")
   })
 
   it('contains no fixed EDIFACT masterdata identity in the invoice-test harness', () => {
