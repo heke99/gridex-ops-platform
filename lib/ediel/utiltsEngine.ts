@@ -51,12 +51,17 @@ function rebuildValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValida
   const hasFunctionalErrors = issues.some(
     (issue) => issue.severity === 'error' && issue.kind === 'functional',
   )
+  // Preserve the canonical runtime's established precedence: a processability
+  // failure must produce UTILTS_ERR even when the same message also contains
+  // guide/application errors. Transaction-scoped APERAK details are retained in
+  // the issue set for sibling transactions; they must not demote a functional
+  // rejection to message-level application_rejected.
   const classification: UtiltsRuntimeValidation['classification'] = !syntaxOk
     ? 'syntax_rejected'
-    : hasApplicationErrors
-      ? 'application_rejected'
-      : hasFunctionalErrors
-        ? 'functional_rejected'
+    : hasFunctionalErrors
+      ? 'functional_rejected'
+      : hasApplicationErrors
+        ? 'application_rejected'
         : 'accepted'
 
   return {
