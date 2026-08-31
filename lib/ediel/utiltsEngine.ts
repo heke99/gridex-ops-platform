@@ -27,6 +27,33 @@ export type UtiltsRuntimeReferenceOptions = {
   referenceDate?: string | Date | null
 }
 
+const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
+
+function runtimeValidationMessage(message: EdielMessageRow): EdielMessageRow {
+  const companyId = String(message.company_id ?? '').trim()
+  if (companyId) return message
+
+  // Object/processability errors such as UNKNOWN_METERING_POINT are assertions
+  // about a specific tenant's persisted production graph. Before tenant
+  // resolution that assertion is not logically available. Run the exact same
+  // UTILTS kernel with a non-persisted resolved-object sentinel so syntax,
+  // guide, period, quantity, timing and all other functional checks still run.
+  // Once company_id exists, the original message is used unchanged and object
+  // matching remains fully fail-closed.
+  const parsedPayload = message.parsed_payload && typeof message.parsed_payload === 'object' && !Array.isArray(message.parsed_payload)
+    ? { ...(message.parsed_payload as Record<string, unknown>) }
+    : {}
+  delete parsedPayload.utiltsTransactionMatches
+
+  return {
+    ...message,
+    metering_point_id: PRE_TENANT_OBJECT_SENTINEL,
+    grid_owner_id: PRE_TENANT_OBJECT_SENTINEL,
+    business_match_status: 'matched',
+    parsed_payload: parsedPayload,
+  }
+}
+
 function normalizedReferenceDate(
   message: EdielMessageRow,
   options?: UtiltsRuntimeReferenceOptions,
@@ -437,7 +464,8 @@ export function runUtiltsRuntimeForMessage(
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
   const referenceDate = normalizedReferenceDate(message, options)
-  const legacyResult = runLegacyUtiltsRuntimeForMessage(message)
+  const validationMessage = runtimeValidationMessage(message)
+  const legacyResult = runLegacyUtiltsRuntimeForMessage(validationMessage)
   const resolutionCorrected = applyUtiltsResolutionFormatPolicyToRuntimeResult({
     message,
     result: legacyResult,
