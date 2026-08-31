@@ -33,6 +33,27 @@ describe('Test Center raw EDIFACT import contract', () => {
     expect(source).toContain("row.customer_id !== input.customerId")
   })
 
+  it('uses the selected tenant only as verified isolated Test Center evidence, never as a production mailbox fallback', () => {
+    const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
+    const processor = read('lib/inbound-mail/edielInboundProcessor.ts')
+    const resolver = read('lib/inbound-mail/inboundTenantResolver.ts')
+
+    expect(source).toContain('assertNoConflictingInboundTenant')
+    expect(source).toContain("environment: 'test'")
+    expect(source).toContain('testCenterTenantBinding: { companyId, customerId }')
+    expect(source).toContain('resolution.candidates.some((candidate) => candidate !== input.companyId)')
+
+    expect(processor).toContain('testCenterTenantBinding?: TestCenterTenantBinding | null')
+    expect(processor).toContain("input.environment !== 'test'")
+    expect(processor).toContain("text(input.row.match_status) !== 'test_center_raw_import'")
+    expect(processor).toContain("text(payload.source) !== 'test_center_raw_edifact_import_v1'")
+    expect(processor).toContain('payload.external_side_effects_allowed !== false')
+    expect(processor).toContain('existingCompanyId: trustedExistingCompanyId')
+
+    expect(resolver).toContain('existingCompanyId?: string | null')
+    expect(resolver).toContain('existingCompanyId: input.existingCompanyId ?? outbound.companyId')
+  })
+
   it('contains no fixed EDIFACT masterdata identity in the invoice-test harness', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     const materialization = read('lib/ediel/testing/invoiceTestEdifactMaterialization.ts')
