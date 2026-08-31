@@ -20,6 +20,15 @@ function segments(raw: string): string[] {
 }
 
 function rebuild(parts: string[]): string {
+  const unhIndex = parts.findIndex((segment) => /^UNH\+/i.test(segment))
+  const untIndex = parts.findIndex((segment) => /^UNT\+/i.test(segment))
+  if (unhIndex >= 0 && untIndex >= unhIndex) {
+    const tokens = parts[untIndex].split('+')
+    if (tokens.length >= 3) {
+      tokens[1] = String(untIndex - unhIndex + 1)
+      parts[untIndex] = tokens.join('+')
+    }
+  }
   return `${parts.join("'")}'`
 }
 
@@ -60,6 +69,26 @@ function meterConstant(parts: string[]): number {
   return 1
 }
 
+function markCorrectedMessageReference(parts: string[]) {
+  const unhIndex = parts.findIndex((segment) => /^UNH\+/i.test(segment))
+  if (unhIndex < 0) throw new Error('correction-fixturen saknar UNH.')
+  const unh = parts[unhIndex].split('+')
+  const originalReference = unh[1]?.trim()
+  if (!originalReference) throw new Error('correction-fixturen saknar UNH message reference.')
+  const correctedReference = `${originalReference}C`
+  unh[1] = correctedReference
+  parts[unhIndex] = unh.join('+')
+
+  const untIndex = parts.findIndex((segment) => /^UNT\+/i.test(segment))
+  if (untIndex < 0) throw new Error('correction-fixturen saknar UNT.')
+  const unt = parts[untIndex].split('+')
+  if (unt.length < 3 || unt[2]?.trim() !== originalReference) {
+    throw new Error('correction-fixturen har UNH/UNT-referenser som inte matchar före mutation.')
+  }
+  unt[2] = correctedReference
+  parts[untIndex] = unt.join('+')
+}
+
 function mutateBillableEnergy(raw: string): string {
   const parts = segments(raw)
   const energyIndex = parts.findIndex((segment) => /^QTY\+136:/i.test(segment))
@@ -90,15 +119,9 @@ function mutateBillableEnergy(raw: string): string {
   }
 
   // Preserve the business transaction identity so the normal metering revision
-  // engine sees a correction of the same value, while changing the UNH message
-  // reference so the corrected EDIFACT message itself remains independently
-  // traceable.
-  const unhIndex = parts.findIndex((segment) => segment.startsWith('UNH+'))
-  if (unhIndex >= 0) {
-    const tokens = parts[unhIndex].split('+')
-    if (tokens[1]) tokens[1] = `${tokens[1]}C`
-    parts[unhIndex] = tokens.join('+')
-  }
+  // engine sees a correction of the same value. The EDIFACT message itself gets
+  // a new UNH reference, and UNT is changed to the exact same reference.
+  markCorrectedMessageReference(parts)
   return rebuild(parts)
 }
 
