@@ -1,0 +1,144 @@
+name: Production invoice routing hardening
+
+on:
+  push:
+    branches: [fix/production-invoice-routing-hardening]
+
+permissions:
+  contents: write
+
+jobs:
+  harden-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[hardening-bot]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/production-invoice-routing-hardening
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply remaining canonical code changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/ediel/core/kernelLegacy.ts')
+          text = path.read_text()
+          old = """export async function resolveCanonicalOutboundContext(params: {
+            requestType: CanonicalRouteRequestType
+            gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
+            preferredRouteId?: string | null
+            companyId: string
+            /**
+             * Required: outbound routing must never fall back to a silent test
+             * environment. Every caller resolves the runtime environment explicitly
+             * (resolveOutboundRuntimeEnvironment or an admin/test action choice).
+             */
+            environment: EdielEnvironment
+            messageStandard?: EdielMessageStandard
+          }) {
+            if (!params.environment) {
+              throw new Error('ediel_outbound_environment_required')
+            }
+            return resolveCanonicalRouteContext({
+              requestType: params.requestType,
+              gridOwner: (params.gridOwner ?? null) as never,
+              preferredRouteId: params.preferredRouteId ?? null,
+              companyId: params.companyId,
+              environment: params.environment,
+              messageStandard: params.messageStandard ?? 'edifact',
+            })
+          }"""
+          new = """export async function resolveCanonicalOutboundContext(params: {
+            requestType: CanonicalRouteRequestType
+            gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
+            preferredRouteId?: string | null
+            companyId: string
+            /**
+             * Required: outbound routing must never fall back to a silent test
+             * environment. Every caller resolves the runtime environment explicitly
+             * (resolveOutboundRuntimeEnvironment or an admin/test action choice).
+             */
+            environment: EdielEnvironment
+            messageStandard?: EdielMessageStandard
+            receiverEdielId?: string | null
+            applicationReference?: string | null
+          }) {
+            if (!params.environment) {
+              throw new Error('ediel_outbound_environment_required')
+            }
+            return resolveCanonicalRouteContext({
+              requestType: params.requestType,
+              gridOwner: (params.gridOwner ?? null) as never,
+              preferredRouteId: params.preferredRouteId ?? null,
+              companyId: params.companyId,
+              environment: params.environment,
+              messageStandard: params.messageStandard ?? 'edifact',
+              receiverEdielId: params.receiverEdielId ?? null,
+              applicationReference: params.applicationReference ?? null,
+            })
+          }"""
+          if old not in text:
+            raise SystemExit('kernelLegacy outbound context block not found')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('lib/ediel/core/kernel.ts')
+          text = path.read_text()
+          old = "const routeContext = await resolveCanonicalOutboundContext({ requestType: 'ediel_ack', companyId, environment, messageStandard: params.draft.messageStandard ?? 'edifact' })"
+          new = """const routeContext = await resolveCanonicalOutboundContext({
+            requestType: 'ediel_ack',
+            companyId,
+            environment,
+            messageStandard: params.draft.messageStandard ?? 'edifact',
+            receiverEdielId: params.draft.receiverEdielId ?? params.sourceMessage.sender_ediel_id ?? null,
+            applicationReference: params.draft.applicationReference ?? params.sourceMessage.application_reference ?? null,
+          })"""
+          if old not in text:
+            raise SystemExit('kernel ACK route context line not found')
+          path.write_text(text.replace(old, new, 1))
+
+          regression = Path('scripts/gridex-production-invoice-routing-regression.cjs')
+          regression.write_text(r'''const fs = require('node:fs')
+          const assert = require('node:assert/strict')
+
+          const routes = fs.readFileSync('lib/cis/db-routes.ts', 'utf8')
+          const registry = fs.readFileSync('lib/ediel/core/routeRegistry.ts', 'utf8')
+          const kernelLegacy = fs.readFileSync('lib/ediel/core/kernelLegacy.ts', 'utf8')
+          const kernel = fs.readFileSync('lib/ediel/core/kernel.ts', 'utf8')
+          const tasks = fs.readFileSync('lib/inbound-mail/inboundTaskFactory.ts', 'utf8')
+          const migration = fs.readFileSync('supabase/migrations/20260901120500_harden_canonical_ediel_runtime_contracts.sql', 'utf8')
+
+          assert(routes.includes(".eq('environment_type', 'production')"), 'production routes must be environment scoped')
+          assert(routes.includes(".in('environment_type', ['tgt_test', 'agt_test', 'bilateral_test'])"), 'test routes must be environment scoped')
+          assert(registry.includes('canonical_route_environment_mismatch'), 'explicit routes must fail closed on environment mismatch')
+          assert(registry.includes('trimOrNull(params.receiverEdielId)'), 'canonical routing must support a dynamic receiver')
+          assert(registry.includes('trimOrNull(params.applicationReference)'), 'canonical routing must support source application reference')
+          assert(kernelLegacy.includes('receiverEdielId?: string | null'), 'outbound context must pass receiver override')
+          assert(kernel.includes('params.sourceMessage.sender_ediel_id'), 'ACK must route back to original inbound sender')
+          assert(kernel.includes('params.sourceMessage.application_reference'), 'ACK must preserve source application reference')
+          assert(tasks.includes('if (!customerId)'), 'customer task creation must reject unresolved customer context')
+          assert(!tasks.includes('customer_id: input.customerId ?? null'), 'customer task must not persist null customer_id')
+          assert(migration.includes('execution_context_snapshot'), 'canonical execution evidence column migration missing')
+          assert(migration.includes('inbound_mail_processed'), 'inbound event taxonomy migration missing')
+          assert(migration.includes('ack_received_via_inbound_mail'), 'ACK receive event taxonomy migration missing')
+          assert(migration.includes('ack_sla_breached'), 'ACK SLA event taxonomy migration missing')
+          assert(migration.includes('communication_routes_ediel_ack_environment_required'), 'ACK environment DB guard missing')
+          console.log('gridex-production-invoice-routing-regression: PASS')
+          ''')
+      - run: npm ci
+      - run: node scripts/gridex-production-invoice-routing-regression.cjs
+      - run: node scripts/gridex-canonical-ack-persistence-regression.cjs
+      - run: npm run typecheck
+      - name: Commit verified hardening
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/ediel/core/kernelLegacy.ts lib/ediel/core/kernel.ts scripts/gridex-production-invoice-routing-regression.cjs
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Complete production invoice routing hardening [hardening-bot]'
+          git push origin HEAD:fix/production-invoice-routing-hardening
