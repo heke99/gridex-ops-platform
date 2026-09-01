@@ -18,16 +18,20 @@ assert(/Starta leverantörsbyte/.test(labels), 'business label exists for suppli
 assert(/'UTILTS:E66': 'Validerade mätvärden mottagna'/.test(labels), 'business label exists for validated E66 metering values')
 assert(/Avvisad av mottagaren/.test(labels), 'business label exists for negative APERAK')
 
+// The customer card is deliberately a single business-facing status surface.
+// Detailed price review and invoice approval live in Billing, so this card must
+// not reintroduce technical timeline/manual metering controls.
 const billingCard = read('components/admin/customers/CustomerBillingMeteringCard.tsx')
-assert(/isPlatformAdmin\?: boolean/.test(billingCard), 'billing/metering card accepts platform-admin flag')
-assert(/if \(!isPlatformAdmin\)/.test(billingCard), 'tenant billing card has non-technical branch')
-assert(/billingAutomatic/.test(billingCard) || /Fakturaunderlag skapas automatiskt/.test(billingCard), 'tenant sees automatic billing status')
-assert(!/if \(!isPlatformAdmin\)[\s\S]*Begär mätvärden/.test(billingCard), 'tenant billing branch has no manual metering button')
-assert(/CustomerTimelinePanel/.test(billingCard), 'platform technical billing details keep timeline panel')
+assert(/billingAutomatic/.test(billingCard) || /Skapas automatiskt/.test(billingCard), 'billing card exposes automatic billing status')
+assert(/title="Fakturering"/.test(billingCard), 'billing card keeps the business-facing billing title')
+assert(/Detaljerad prisgranskning och utskick hanteras i Fakturor/.test(billingCard), 'billing card delegates review and sending to the canonical Billing surface')
+assert(/\/admin\/billing\?customer=/.test(billingCard), 'billing card links to customer-scoped Billing review')
+assert(!/Begär mätvärden/.test(billingCard), 'billing card has no manual metering button')
+assert(!/CustomerTimelinePanel/.test(billingCard), 'billing card does not expose the technical Ediel timeline')
+assert(!/CustomerBillingUnderlaysPanel/.test(billingCard), 'billing card does not expose raw underlay controls')
 
 const page = read('app/admin/customers/[id]/page.tsx')
-assert(/isPlatformAdmin=\{isPlatformAdmin\}/.test(page), 'customer page passes platform-admin flag to child cards')
-assert(/Status för mätvärden, fakturaunderlag och fakturapartner/.test(page) || /Fakturering/.test(page), 'customer page explains automatic billing')
+assert(/Fakturering/.test(page), 'customer page exposes the billing business surface')
 
 const routeReadiness = read('lib/customer-operations/customerProcessRouteReadiness.ts')
 assert(/grid_owner_information_request/.test(routeReadiness), 'route readiness knows grid owner information request process')
@@ -45,6 +49,7 @@ assert(/assertOutboundAllowed/.test(monthly), 'monthly automation keeps outbound
 const cron = read('app/api/cron/billing/monthly/route.ts')
 assert(/BILLING_AUTOMATION_CRON_SECRET/.test(cron), 'monthly billing cron is protected by secret')
 assert(/runMonthlyBillingAutomation/.test(cron), 'monthly billing cron calls automation engine')
+assert(/mode: 'prepare_only'/.test(cron) && /approval_required: true/.test(cron), 'scheduled billing does not bypass review and approval')
 
 const migration = read('supabase/migrations/20260624120000_gridex_supplier_ombud_business_automation.sql')
 assert(/billing_automation_runs/.test(migration), 'billing automation run table migration exists')
