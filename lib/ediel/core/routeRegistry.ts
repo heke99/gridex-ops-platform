@@ -56,6 +56,12 @@ function trimOrNull(value?: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function routeMatchesEnvironment(route: CommunicationRouteRow, environment: EdielEnvironment): boolean {
+  const routeEnvironment = String((route as CommunicationRouteRow & { environment_type?: unknown }).environment_type ?? '').trim()
+  if (environment === 'production') return routeEnvironment === 'production'
+  return routeEnvironment === 'tgt_test' || routeEnvironment === 'agt_test' || routeEnvironment === 'bilateral_test'
+}
+
 async function getCommunicationRouteById(
   id: string,
   companyId?: string | null
@@ -67,12 +73,9 @@ async function getCommunicationRouteById(
     .eq('id', id)
 
   const scopedCompanyId = trimOrNull(companyId)
-  if (scopedCompanyId) {
-    query = query.eq('company_id', scopedCompanyId)
-  }
+  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
 
   const { data, error } = await query.maybeSingle()
-
   if (error) throw error
   return (data as CommunicationRouteRow | null) ?? null
 }
@@ -82,6 +85,7 @@ async function resolveCommunicationRoute(params: {
   gridOwnerId?: string | null
   preferredRouteId?: string | null
   companyId?: string | null
+  environment: EdielEnvironment
 }): Promise<{
   route: CommunicationRouteRow | null
   source: 'explicit_route' | 'auto_route'
@@ -89,10 +93,10 @@ async function resolveCommunicationRoute(params: {
   if (params.preferredRouteId) {
     const explicitRoute = await getCommunicationRouteById(params.preferredRouteId, params.companyId)
     if (explicitRoute?.is_active) {
-      return {
-        route: explicitRoute,
-        source: 'explicit_route',
+      if (!routeMatchesEnvironment(explicitRoute, params.environment)) {
+        throw new Error(`canonical_route_environment_mismatch:${explicitRoute.id}:${params.environment}`)
       }
+      return { route: explicitRoute, source: 'explicit_route' }
     }
   }
 
@@ -101,6 +105,7 @@ async function resolveCommunicationRoute(params: {
       companyId: params.companyId ?? null,
       requestType: params.requestType,
       gridOwnerId: params.gridOwnerId ?? null,
+      environment: params.environment,
     }),
     source: 'auto_route',
   }
@@ -113,28 +118,37 @@ export async function resolveCanonicalRouteContext(params: {
   companyId: string
   environment: EdielEnvironment
   messageStandard?: EdielMessageStandard
+  receiverEdielId?: string | null
+  applicationReference?: string | null
 }): Promise<CanonicalRouteContext> {
   const environment = params.environment
   const companyId = trimOrNull(params.companyId)
   if (!companyId) throw new Error('canonical_route_company_required')
+
   const actor = await resolveCanonicalActorContext(environment, companyId)
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
     gridOwnerId: params.gridOwner?.id ?? null,
     preferredRouteId: params.preferredRouteId ?? null,
     companyId,
+    environment,
   })
   const route = resolvedRoute.route
 
   if (!route) {
     throw new Error(
-      `Ingen aktiv communication_route hittades för ${params.requestType}${
-        params.gridOwner?.name ? ` / ${params.gridOwner.name}` : ''
-      }.`
+      `Ingen aktiv communication_route hittades för ${params.requestType}${params.gridOwner?.name ? ` / ${params.gridOwner.name}` : ''}.`
     )
   }
 
+  if (!routeMatchesEnvironment(route, environment)) {
+    throw new Error(`canonical_route_environment_mismatch:${route.id}:${environment}`)
+  }
+
   const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id, { companyId })
+  if (routeRuntime?.environment && routeRuntime.environment !== environment) {
+    throw new Error(`canonical_route_profile_environment_mismatch:${route.id}:${environment}:${routeRuntime.environment}`)
+  }
 
   const targetSystem = String(route.target_system ?? '').toLowerCase()
   const isEdielPortalTgtRoute = targetSystem.includes('ediel_portal_tgt') || targetSystem.includes('tgt')
@@ -145,18 +159,18 @@ export async function resolveCanonicalRouteContext(params: {
     trimOrNull(routeRuntime?.sender_sub_address) ??
     actor.senderSubAddress
 
+  // ACKs use the actual inbound sender as receiver. Static route data is only
+  // a fallback for ordinary outbound business flows.
   const receiverEdielId =
+    trimOrNull(params.receiverEdielId) ??
     trimOrNull(routeRuntime?.receiver_ediel_id) ??
     trimOrNull(params.gridOwner?.ediel_id)
 
   if (!receiverEdielId) {
-    throw new Error(
-      `Route ${route.route_name} saknar receiver_ediel_id och grid owner saknar ediel_id.`
-    )
+    throw new Error(`Route ${route.route_name} saknar receiver_ediel_id och canonical receiver override saknas.`)
   }
 
-  const receiverName =
-    trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name)
+  const receiverName = trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name)
   const receiverSubAddress =
     trimOrNull(routeRuntime?.receiver_subaddress) ??
     trimOrNull(routeRuntime?.receiver_sub_address)
@@ -165,16 +179,14 @@ export async function resolveCanonicalRouteContext(params: {
   const subaddressRequired = routeRuntime?.subaddress_required === true
 
   if (subaddressRequired && !receiverMessageSubAddress && !senderSubAddress) {
-    throw new Error(
-      'Route saknar registrerad subadress. Kontrollera route-inställningar innan meddelandet skickas.'
-    )
+    throw new Error('Route saknar registrerad subadress. Kontrollera route-inställningar innan meddelandet skickas.')
   }
 
-  // Edielportalen PRODAT can use values such as 91100:ZZ:PRODAT, but the
-  // route must carry that value explicitly; we do not synthesize subaddress.
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
   const applicationReference =
-    trimOrNull(routeRuntime?.application_reference) ?? actor.defaultApplicationReference
+    trimOrNull(params.applicationReference) ??
+    trimOrNull(routeRuntime?.application_reference) ??
+    actor.defaultApplicationReference
 
   if (route.company_id !== companyId) {
     throw new Error(`canonical_route_tenant_mismatch:${route.id}`)
@@ -184,7 +196,7 @@ export async function resolveCanonicalRouteContext(params: {
     if (!applicationReference) {
       throw new Error(`production_application_reference_required:${route.id}`)
     }
-    const normalizedApplicationReference = String(applicationReference ?? '').toUpperCase()
+    const normalizedApplicationReference = String(applicationReference).toUpperCase()
     const normalizedReceiverEmail = String(route.target_email ?? '').toLowerCase()
 
     if (isEdielPortalTgtRoute || isEdielPortalParty(receiverEdielId) || normalizedReceiverEmail.endsWith('@ediel.se')) {
@@ -217,10 +229,8 @@ export async function resolveCanonicalRouteContext(params: {
 
   const routeDecisionReason =
     resolvedRoute.source === 'explicit_route'
-      ? `Explicit route ${route.route_name} valdes för ${params.requestType}. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverMessageSubAddress ?? receiverSubAddress ?? 'ingen'}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
-      : `Route ${route.route_name} valdes automatiskt för ${params.requestType}${
-          params.gridOwner?.name ? ` mot ${params.gridOwner.name}` : ''
-        }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverMessageSubAddress ?? receiverSubAddress ?? 'ingen'}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
+      ? `Explicit route ${route.route_name} valdes för ${params.requestType} i ${environment}. Receiver ${receiverEdielId}, application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
+      : `Route ${route.route_name} valdes automatiskt för ${params.requestType} i ${environment}${params.gridOwner?.name ? ` mot ${params.gridOwner.name}` : ''}. Receiver ${receiverEdielId}, application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
 
   return {
     companyId,
