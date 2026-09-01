@@ -9,15 +9,21 @@ permissions:
   contents: read
 
 jobs:
-  contract-go-live:
+  invoice-live-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run contract API signature visibility regression
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run isolated Fakturatest E66 to invoice
         env:
-          NODE_OPTIONS: --max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs
-        run: node scripts/gridex-contract-api-signature-visibility-regression.cjs
+          GRIDEX_E2E_ACTOR_USER_ID: ${{ secrets.GRIDEX_E2E_ACTOR_USER_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: gridex-test-harness-required-public-key-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx vitest run __tests__/invoice-test-live-e2e-20260901.test.ts --reporter=verbose
