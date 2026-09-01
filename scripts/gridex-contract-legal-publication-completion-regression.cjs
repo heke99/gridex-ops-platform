@@ -21,7 +21,7 @@ const page = read("app/admin/contracts/page.tsx");
 const actions = read("app/admin/contracts/actions.ts");
 const canonical = read("lib/contracts/canonical.ts");
 const publicContracts = read("lib/website/publicContracts.ts");
-const applications = read("lib/website/customerApplications.ts");
+const applicationCommunication = read("lib/website/customerApplicationCommunication.ts");
 const contractDocuments = read("lib/customer-contracts/documents.ts");
 const contractDocumentRoute = read("app/api/admin/customer-contract-documents/[documentId]/route.ts");
 const finalizationMigration = read("supabase/migrations/20260716183000_contract_canonical_finalization.sql");
@@ -44,7 +44,7 @@ const contractGoLiveMigration = read(
 const tenantPlatformControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
-const docs = read("app/developers/customer-portal-api/page.tsx");
+const websiteOpenApi = read("docs/openapi/website-integration-v1.json");
 const required = [
   [
     "legal rule matrix",
@@ -129,7 +129,7 @@ const required = [
   ],
   [
     "PDF evidence archive",
-    applications.includes("archiveSignedCustomerContractPdf") &&
+    applicationCommunication.includes("archiveSignedCustomerContractPdf") &&
       contractDocuments.includes("CUSTOMER_CONTRACT_DOCUMENT_BUCKET") &&
       contractDocuments.includes("document_sha256") &&
       contractDocumentRoute.includes("downloadAndVerifyCustomerContractDocument") &&
@@ -137,8 +137,8 @@ const required = [
   ],
   [
     "strict offer selector documented",
-    docs.includes("offer_reference") &&
-      docs.includes("offer_reference_mismatch"),
+    websiteOpenApi.includes("offer_reference") &&
+      websiteOpenApi.includes("offer_reference_mismatch"),
   ],
   [
     "publication readiness uses the exact canonical price and product ids",
