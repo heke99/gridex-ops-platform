@@ -212,6 +212,9 @@ export type EdielMessageRow = {
   related_message_id: string | null;
 
   communication_route_id: string | null;
+  route_profile_id?: string | null;
+  canonical_rule_pack_id?: string | null;
+  source_operation_id?: string | null;
   rule_profile_key?: string | null;
   rule_profile_version_id?: string | null;
   rule_profile_version?: string | null;
@@ -567,6 +570,9 @@ export type CreateEdielMessageInput = {
   relatedMessageId?: string | null;
 
   communicationRouteId?: string | null;
+  routeProfileId?: string | null;
+  canonicalRulePackId?: string | null;
+  sourceOperationId?: string | null;
   ruleProfileKey?: string | null;
   ruleProfileVersionId?: string | null;
   ruleProfileVersion?: string | null;

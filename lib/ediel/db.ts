@@ -455,6 +455,9 @@ export async function createEdielMessage(
     related_message_id: input.relatedMessageId ?? null,
 
     communication_route_id: input.communicationRouteId ?? null,
+    route_profile_id: input.routeProfileId ?? null,
+    canonical_rule_pack_id: input.canonicalRulePackId ?? null,
+    source_operation_id: input.sourceOperationId ?? null,
     rule_profile_key: input.ruleProfileKey ?? null,
     rule_profile_version_id: input.ruleProfileVersionId ?? null,
     rule_profile_version: input.ruleProfileVersion ?? null,

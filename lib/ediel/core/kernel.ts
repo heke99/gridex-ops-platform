@@ -131,6 +131,14 @@ export async function createCanonicalAckMessage(params: {
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const sourceSnapshot = inheritedSourceRulePackSnapshot(params.sourceMessage)
+  const companyId = params.draft.companyId ?? params.sourceMessage.company_id ?? null
+  if (!companyId) throw new Error('canonical_ack_company_required')
+  const canonicalRulePackId = params.sourceMessage.canonical_rule_pack_id ?? null
+  if (!canonicalRulePackId) throw new Error(`canonical_ack_source_rule_pack_id_missing:${params.sourceMessage.id}`)
+  const environment = params.draft.environment ?? params.sourceMessage.environment
+  const routeContext = await resolveCanonicalOutboundContext({ requestType: 'ediel_ack', companyId, environment, messageStandard: params.draft.messageStandard ?? 'edifact' })
+  const routeProfileId = routeContext.routeRuntime?.route_profile_id ?? null
+  if (!routeProfileId) throw new Error(`canonical_ack_route_profile_required:${routeContext.route.id}`)
 
   const draftWithSourceSnapshot: CreateEdielMessageInput = {
     ...params.draft,
@@ -250,7 +258,11 @@ export async function createCanonicalAckMessage(params: {
   const input: CreateEdielMessageInput = {
     ...draftWithSourceSnapshot,
     actorUserId,
-    companyId: draftWithSourceSnapshot.companyId ?? params.sourceMessage.company_id ?? null,
+    companyId,
+    communicationRouteId: routeContext.route.id,
+    routeProfileId,
+    canonicalRulePackId,
+    sourceOperationId: `ediel_ack:${params.sourceMessage.id}:${params.ackFamily}:${sequenceToken ?? 'message'}`,
     externalReference: refs.externalReference,
     transactionReference: refs.transactionReference,
     correlationReference: refs.correlationReference,
