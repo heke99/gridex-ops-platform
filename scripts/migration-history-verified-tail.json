@@ -5,7 +5,7 @@
   "evidence": {
     "e2eRuns": [32043019481, 32043678808, 33445766560, 33446168027],
     "provenanceReviewed": true,
-    "note": "The added August 30-31 migrations were replayed successfully by OPS hardening clean-migration-replay run 33445766560; the subsequent full release run 33446168027 also passed migration integrity, typecheck, unit/integration tests and production build."
+    "note": "The added August 30-31 migrations were replayed successfully by OPS hardening clean-migration-replay run 33445766560; the September 1 search_path repair is forward-only, checksum-pinned here, and must pass the same clean-migration-replay gate before merge."
   },
   "files": {
     "20260815233411_tenant_website_installation_completion_trigger_v1.sql": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827",
@@ -22,6 +22,7 @@
     "20260830144914_validate_ediel_active_binding_constraint.sql": "117145a1ba41859d99f8927ed9eaee370335bec96ba5a05ef7673f1a128ea006",
     "20260831093531_fix_contract_snapshot_null_schema_guard.sql": "22d04463619156df167cb6ecfcc1e670fbf58c95796d52f4750e328b718ec2e1",
     "20260831094500_customer_authorization_documents_contract_link_foundation.sql": "f196e714bb49310f354f795d2d86f52b8dc8679433e6adcdb268f3b3277a8a84",
-    "20260831095000_admin_signed_contract_import_canonicalization.sql": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef"
+    "20260831095000_admin_signed_contract_import_canonicalization.sql": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef",
+    "20260901084000_harden_gridex_point_to_grid_area_search_path.sql": "05b0681cd089adf61b4a184b8db40fdba2545f815c1fd7ec47615ecb8cc0c34e"
   }
 }
