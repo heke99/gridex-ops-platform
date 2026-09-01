@@ -59,7 +59,13 @@ const version = String(website.info?.version ?? '').trim()
 assert.ok(version, 'website OpenAPI must declare a canonical release version')
 assert.equal(portal.info?.version, version, 'website and customer portal contracts must share the release version')
 
-const finalize = read('scripts/finalize-openapi-release.cjs')
+// The OpenAPI release finalizer is one logical implementation split across the
+// coordinator and portal module. Assertions must cover both so safe source
+// decomposition cannot look like lost version-normalization behavior.
+const finalize = [
+  read('scripts/finalize-openapi-release.cjs'),
+  read('scripts/finalize-openapi-release.portal.cjs'),
+].join('\n')
 assert.match(finalize, new RegExp(`const version = ['\"]${escapeRegExp(version)}['\"]`))
 assert.match(finalize, /quoteData\.properties\.offer = permissiveObject/)
 assert.ok(finalize.includes('// Re-normalize after late example assignment'))
