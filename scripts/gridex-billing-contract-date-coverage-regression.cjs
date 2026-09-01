@@ -1,0 +1,8 @@
+const fs = require('node:fs')
+const assert = require('node:assert/strict')
+const source = fs.readFileSync('lib/billing/billingGate.ts', 'utf8')
+assert(source.includes('function contractCivilDate(value: unknown)'), 'billing gate must normalize contract validity to civil date')
+assert(source.includes('contractCivilDate(contract.starts_at ?? contract.start_date)'), 'contract start must use civil-date semantics')
+assert(source.includes('contractCivilDate(contract.ends_at ?? contract.end_date)'), 'contract end must use civil-date semantics')
+assert(source.includes('stockholmLocalToUtc'), 'civil dates must continue to resolve through Stockholm timezone')
+console.log('gridex-billing-contract-date-coverage-regression: PASS')

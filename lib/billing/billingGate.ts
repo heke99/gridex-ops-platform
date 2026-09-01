@@ -84,6 +84,13 @@ function instant(value: unknown, endOfDate = false): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function contractCivilDate(value: unknown): string | null {
+  const raw = text(value);
+  if (!raw) return null;
+  const datePart = raw.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : raw;
+}
+
 function covers(
   startValue: unknown,
   endValue: unknown,
@@ -313,8 +320,8 @@ export function evaluateBillingGate(input: {
       periodStart !== null &&
       periodEnd !== null &&
       !covers(
-        contract.starts_at ?? contract.start_date,
-        contract.ends_at ?? contract.end_date,
+        contractCivilDate(contract.starts_at ?? contract.start_date),
+        contractCivilDate(contract.ends_at ?? contract.end_date),
         periodStart,
         periodEnd,
       )
