@@ -12,12 +12,12 @@ jobs:
   contract-go-live:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      NODE_OPTIONS: --max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Run contract API signature visibility regression
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs
         run: node scripts/gridex-contract-api-signature-visibility-regression.cjs
