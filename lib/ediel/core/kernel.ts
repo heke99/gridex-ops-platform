@@ -152,6 +152,8 @@ export async function createCanonicalAckMessage(params: {
     parsedPayload: {
       ...(params.draft.parsedPayload ?? {}),
       canonicalSourceRulePackSnapshot: sourceSnapshot,
+      canonicalSourceMessageFamily: params.sourceMessage.message_family,
+      canonicalSourceMessageCode: params.sourceMessage.message_code,
     },
   }
 

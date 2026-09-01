@@ -144,6 +144,7 @@ function assertAckFamilyRuntimeVersion(input: {
   providedVersion: string | null | undefined
   referenceDate: string
   policy: CanonicalEdielPolicy
+  sourceMessageFamily?: string | null
 }): void {
   const provided = normalizeIdentifier(input.providedVersion)
   if (!provided) return
@@ -153,10 +154,13 @@ function assertAckFamilyRuntimeVersion(input: {
     code: input.policy.code,
     referenceDate: input.referenceDate,
   })
+  const sourceFamily = normalize(input.sourceMessageFamily)
   const accepted = new Set([
     normalizeIdentifier(selection.selectedVersion),
     normalizeIdentifier(input.policy.guide.guideRevision),
     normalizeIdentifier(input.policy.guide.associationAssignedCode),
+    ...(input.family === 'APERAK' && sourceFamily === 'UTILTS' ? ['E5SE5A'] : []),
+    ...(input.family === 'APERAK' && sourceFamily === 'PRODAT' ? ['E2SE6A'] : []),
   ].filter(Boolean))
 
   if (!accepted.has(provided)) {
@@ -212,6 +216,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
       providedVersion: input.version,
       referenceDate,
       policy,
+      sourceMessageFamily: record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined,
     })
   }
 
