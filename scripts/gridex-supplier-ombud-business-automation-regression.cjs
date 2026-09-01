@@ -15,8 +15,8 @@ function assert(condition, message) {
 const labels = read('lib/ediel/businessLabels.ts')
 assert(/Begär uppgifter från nätägare/.test(labels), 'business label exists for grid owner information request')
 assert(/Starta leverantörsbyte/.test(labels), 'business label exists for supplier switch')
-assert(/Mätvärden mottagna/.test(labels), 'business label exists for metering values')
-assert(/Avvisad av nätägare/.test(labels), 'business label exists for negative APERAK')
+assert(/'UTILTS:E66': 'Validerade mätvärden mottagna'/.test(labels), 'business label exists for validated E66 metering values')
+assert(/Avvisad av mottagaren/.test(labels), 'business label exists for negative APERAK')
 
 const billingCard = read('components/admin/customers/CustomerBillingMeteringCard.tsx')
 assert(/isPlatformAdmin\?: boolean/.test(billingCard), 'billing/metering card accepts platform-admin flag')

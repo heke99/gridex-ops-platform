@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { readSourceModule } = require('./lib/read-source-module.cjs')
 
 const root = process.cwd()
 const registryPath = path.join(root, 'lib/ediel/rulebook/testCaseRuleRegistry.ts')
@@ -13,7 +14,6 @@ const tgtAutopilotPath = path.join(root, 'lib/ediel/testing/tgtAutopilot.ts')
 const prodatGenericBuilderPath = path.join(root, 'lib/ediel/prodat/builders/profileRenderer.ts')
 const prodatRenderValidatePath = path.join(root, 'lib/ediel/prodat/render/validate.ts')
 const payloadPreflightPath = path.join(root, 'lib/ediel/core/messageBuilder/payloadPreflight.ts')
-
 const tgtEdifactPath = path.join(root, 'lib/ediel/testing/tgtEdifact.ts')
 
 const required = [registryPath, migrationPath, pagePath, decisionPath, tgtRegistryPath, systemTestPagePath, systemTestActionsPath, tgtAutopilotPath, tgtEdifactPath, prodatGenericBuilderPath, prodatRenderValidatePath, payloadPreflightPath]
@@ -22,17 +22,22 @@ for (const file of required) {
   if (!fs.existsSync(file)) failures.push(`Missing file: ${path.relative(root, file)}`)
 }
 
-const registry = fs.existsSync(registryPath) ? fs.readFileSync(registryPath, 'utf8') : ''
-const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : ''
-const decision = fs.existsSync(decisionPath) ? fs.readFileSync(decisionPath, 'utf8') : ''
-const tgtRegistry = fs.existsSync(tgtRegistryPath) ? fs.readFileSync(tgtRegistryPath, 'utf8') : ''
-const systemTestPage = fs.existsSync(systemTestPagePath) ? fs.readFileSync(systemTestPagePath, 'utf8') : ''
-const systemTestActions = fs.existsSync(systemTestActionsPath) ? fs.readFileSync(systemTestActionsPath, 'utf8') : ''
-const tgtAutopilot = fs.existsSync(tgtAutopilotPath) ? fs.readFileSync(tgtAutopilotPath, 'utf8') : ''
-const tgtEdifact = fs.existsSync(tgtEdifactPath) ? fs.readFileSync(tgtEdifactPath, 'utf8') : ''
-const prodatGenericBuilder = fs.existsSync(prodatGenericBuilderPath) ? fs.readFileSync(prodatGenericBuilderPath, 'utf8') : ''
-const prodatRenderValidate = fs.existsSync(prodatRenderValidatePath) ? fs.readFileSync(prodatRenderValidatePath, 'utf8') : ''
-const payloadPreflight = fs.existsSync(payloadPreflightPath) ? fs.readFileSync(payloadPreflightPath, 'utf8') : ''
+const read = (absolute) => fs.existsSync(absolute) ? fs.readFileSync(absolute, 'utf8') : ''
+const readLogical = (relative) => fs.existsSync(path.join(root, relative)) ? readSourceModule(relative, root) : ''
+
+const registry = read(registryPath)
+const migration = read(migrationPath)
+const decision = read(decisionPath)
+// These modules are stable facades whose characterized implementations live in
+// .part-* siblings. Certification must inspect the complete logical module.
+const tgtRegistry = readLogical('lib/ediel/testing/tgtRegistry.ts')
+const systemTestPage = read(systemTestPagePath)
+const systemTestActions = readLogical('app/admin/ediel/system-tests/actions.ts')
+const tgtAutopilot = read(tgtAutopilotPath)
+const tgtEdifact = readLogical('lib/ediel/testing/tgtEdifact.ts')
+const prodatGenericBuilder = read(prodatGenericBuilderPath)
+const prodatRenderValidate = read(prodatRenderValidatePath)
+const payloadPreflight = read(payloadPreflightPath)
 
 const requiredCases = [
   'L1','L2','L3','L4','L5','L7',
@@ -73,17 +78,16 @@ if (!tgtEdifact.includes('DTM+164:${reportingEndDate}:203')) failures.push('E8/Z
 if (!tgtEdifact.includes('RFF+Z09:${permissionId}')) failures.push('E8/Z18 Systemtest must render RFF+Z09 for permission id')
 if (!tgtEdifact.includes('step.code !== "Z13" && step.code !== "Z18"')) failures.push('E8/Z18 Systemtest must not render SG17 NAD+IT; it must render SG17 NAD+UD')
 if (!tgtEdifact.includes('GRIDEX TESTKUND')) failures.push('E8/Z18 Systemtest must have deterministic end-user fallback for AGT validation')
-if (!prodatGenericBuilder.includes("context.code === 'Z18'")) failures.push('Production PRODAT builder must have explicit Z18 branch')
+if (!prodatGenericBuilder.includes("policy.code === 'Z18'")) failures.push('Production PRODAT builder must have explicit Z18 branch')
 if (!prodatGenericBuilder.includes('DTM+693:${permissionCreatedAt}:203')) failures.push('Production PRODAT Z18 must render DTM+693')
 if (!prodatGenericBuilder.includes('DTM+164:${reportingEndDate}:203')) failures.push('Production PRODAT Z18 must render DTM+164')
 if (!prodatGenericBuilder.includes('RFF+Z09:${z18PermissionId}')) failures.push('Production PRODAT Z18 must render RFF+Z09')
-if (!prodatGenericBuilder.includes("context.code !== 'Z03' && context.code !== 'Z18'")) failures.push('Production PRODAT Z18 must not render NAD+IT')
+if (!prodatGenericBuilder.includes("policy.code !== 'Z03' && policy.code !== 'Z18'")) failures.push('Production PRODAT Z18 must not render NAD+IT')
 if (!prodatRenderValidate.includes('prodat_z18_end_user_missing')) failures.push('Production PRODAT Z18 must block/manual-review when end-user data is missing')
 if (!prodatRenderValidate.includes('prodat_z18_permission_id_missing')) failures.push('Production PRODAT Z18 must block/manual-review when permission id is missing')
 if (!payloadPreflight.includes('PRODAT_Z18_NAD_IT_FORBIDDEN')) failures.push('Send preflight must block PRODAT Z18 with NAD+IT')
 if (!payloadPreflight.includes('PRODAT_Z18_NAD_UD_MISSING')) failures.push('Send preflight must block PRODAT Z18 without NAD+UD')
 if (!payloadPreflight.includes('PRODAT_Z18_DTM_164_MISSING')) failures.push('Send preflight must block PRODAT Z18 without DTM+164')
-
 
 if (failures.length > 0) {
   console.error('Certification regression failed:')

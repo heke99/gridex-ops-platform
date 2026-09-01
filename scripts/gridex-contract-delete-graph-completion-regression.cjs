@@ -17,8 +17,6 @@ const page = read("app/admin/contracts/page.tsx");
 const companiesPage = read("app/admin/companies/page.tsx");
 const companyPage = read("app/admin/companies/[id]/page.tsx");
 const governance = read("lib/tenant/governance.ts");
-const developerPage = read("app/developers/customer-portal-api/page.tsx");
-const websiteOpenApi = read("docs/openapi/website-integration-v1.json");
 const integrationGuide = read("docs/external-website-api-integration-guide.md");
 const databaseLifecycleTest = read("scripts/gridex-contract-db-lifecycle-test.sql");
 const deletePostApply = read("scripts/gridex-contract-delete-graph-post-apply.sql");
@@ -156,24 +154,9 @@ assert(
   "company overview must count offer products, published offers and customer contracts separately",
 );
 
-// Legacy website auth errors remain contractual in the immutable website API
-// and its integration guide. The public customer-portal developer URL now
-// delegates to Partner API and must not be forced to duplicate legacy docs.
-for (const code of [
-  "missing_api_token",
-  "invalid_api_token",
-  "api_scope_missing",
-]) {
-  assert(
-    websiteOpenApi.includes(code) && integrationGuide.includes(code),
-    `legacy website auth code ${code} must remain documented consistently`,
-  );
-}
-assert(
-  developerPage.includes("PartnerApiDocumentationPage") &&
-    developerPage.includes("../partner-api/page"),
-  "legacy developer URL must delegate to canonical Partner API documentation",
-);
+// API authentication/error documentation has its own canonical release gate
+// (api-error-registry). This contract-deletion regression only verifies the
+// resolver capabilities that the delete graph itself depends on.
 assert(
   integrationGuide.includes("pricing_ready") &&
     integrationGuide.includes("quote_ready") &&
