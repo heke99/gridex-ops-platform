@@ -40,11 +40,12 @@ assert(!/facility_lookup_manual_route_allowed/.test(routeReadiness), 'facility l
 
 const monthly = read('lib/billing/monthlyAutomation.ts')
 assert(/runMonthlyBillingAutomationForCompany/.test(monthly), 'monthly billing automation entrypoint exists')
+assert(/runMeteringMarketDataAutopilot/.test(monthly), 'monthly automation runs metering and market-data preparation before billing')
 assert(/generateBillingUnderlaysForMonth/.test(monthly), 'monthly automation generates billing underlays')
-assert(/createInvoiceExportRun/.test(monthly), 'monthly automation creates canonical invoice export runs')
-assert(/exportRun\.itemCount/.test(monthly), 'monthly automation derives queued export rows from the canonical export run')
-assert(/sendInvoiceExportRun/.test(monthly), 'monthly automation sends through the canonical invoice export service')
-assert(/assertOutboundAllowed/.test(monthly), 'monthly automation keeps outbound traffic behind the platform freeze guard')
+assert(/prepareInvoiceDraftsForReview/.test(monthly), 'monthly automation creates canonical invoice drafts for review')
+assert(/approval_required:\s*true/.test(monthly), 'monthly automation records explicit approval requirement')
+assert(!/sendInvoiceExportRun/.test(monthly), 'monthly preparation cannot send invoice exports directly')
+assert(!/createInvoiceExportRun/.test(monthly), 'monthly preparation cannot bypass review by creating sendable export runs directly')
 
 const cron = read('app/api/cron/billing/monthly/route.ts')
 assert(/BILLING_AUTOMATION_CRON_SECRET/.test(cron), 'monthly billing cron is protected by secret')
