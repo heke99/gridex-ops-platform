@@ -4,6 +4,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const { spawnSync } = require('node:child_process')
 
 const root = process.cwd()
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
@@ -21,7 +22,6 @@ const routeReadiness = read('lib/routes/routeReadiness.ts')
 const materializer = read('lib/ediel/routeMaterializer.ts')
 const fixMigration = read('supabase/migrations/20260622150000_ediel_route_ack_mode_fix_and_extended_materializer.sql')
 
-// 1. routeMatrix is transport-only.
 assert(/export function routeScopeForProcess/.test(routeMatrix), 'routeMatrix exports routeScopeForProcess')
 assert(/export function shouldMaterializePerGridOwner/.test(routeMatrix), 'routeMatrix exports shouldMaterializePerGridOwner')
 for (const forbidden of [
@@ -35,7 +35,6 @@ for (const forbidden of [
 }
 assert(routeMatrix.includes('getCanonicalProdatProfile'), 'routeMatrix derives PRODAT route scope from canonical profiles')
 
-// 2. Route scopes remain DB-valid and fail closed for unknown PRODAT messages.
 for (const scope of [
   'customer_masterdata',
   'supplier_switch',
@@ -49,7 +48,6 @@ for (const scope of [
 assert(/ediel_route_scope_prodat_profile_missing/.test(routeMatrix), 'unknown PRODAT profile fails closed')
 assert(/CONTRL.*APERAK.*UTILTS_ERR.*return null/s.test(routeMatrix), 'ACK/error families reuse source transport route')
 
-// 3. ACK mode is a separate compatibility projection of canonical semantics.
 assert(/export function projectCanonicalAckMode/.test(ackProjection), 'ACK projection exports projectCanonicalAckMode')
 assert(ackProjection.includes('canonicalAckRequirements'), 'ACK projection delegates to canonical ACK engine')
 assert(ackProjection.includes('getCanonicalProdatProfile'), 'ACK projection validates PRODAT code canonically')
@@ -59,30 +57,30 @@ for (const mode of ['default', 'none', 'contrl_only', 'contrl_and_aperak']) {
   assert(ackProjection.includes(`'${mode}'`), `ACK projection contains DB-valid ack_mode ${mode}`)
 }
 
-// 4. Readiness and materialization consume canonical projections directly.
 assert(routeReadiness.includes('projectCanonicalAckMode'), 'routeReadiness delegates ACK mode to canonical projection')
 assert(routeReadiness.includes('resolveProdatApplicationReferenceForProcess'), 'routeReadiness delegates PRODAT Application Reference canonically')
 assert(!routeReadiness.includes('ackModeForProcess'), 'routeReadiness has no legacy route ACK helper')
-
 assert(materializer.includes('projectCanonicalAckMode'), 'routeMaterializer delegates ACK mode to canonical projection')
 assert(materializer.includes('validateRouteDeclaredApplicationReference'), 'routeMaterializer validates route Application Reference against canonical policy')
 assert(materializer.includes('policyApplicationReference'), 'routeMaterializer persists canonical Application Reference')
 assert(!materializer.includes('ackModeForProcess'), 'routeMaterializer has no legacy route ACK helper')
 assert(!materializer.includes('applicationReferenceForProcess'), 'routeMaterializer has no legacy route Application Reference helper')
 
-// 5. Historical SQL migration still writes DB-valid transport values.
 assert(/Z13.*Z14.*Z15.*Z18.*metering_access|metering_access.*Z13/s.test(fixMigration), 'fix migration maps metering-access rows to metering_access')
 assert(/Z03.*Z04.*Z05.*Z06.*Z09.*Z10.*supplier_switch|supplier_switch.*Z03/s.test(fixMigration), 'fix migration maps supplier-switch rows to supplier_switch')
 assert(!/set\s+ack_mode\s*=\s*'contrl_aperak'/i.test(fixMigration), 'fix migration never writes invalid contrl_aperak')
 
-// 6. Final architecture scanner is part of this release gate.
-const { scanNormativeAuthority } = require('./ediel-normative-authority-guard.cjs')
-const violations = scanNormativeAuthority(root)
-if (violations.length) {
-  console.error(`❌ Ediel normative authority guard found ${violations.length} violation(s):`)
-  for (const violation of violations) console.error(`- ${violation}`)
-  process.exit(1)
-}
-console.log('✅ Ediel normative authority guard passed')
+// Full-E2E preloads a logical-module reader for legacy static Gridex scripts.
+// The normative authority scanner must inspect PHYSICAL source ownership so
+// that an allowlisted utiltsEngine.part-1.ts literal is never attributed to its
+// facade. Execute it in a clean child process whose entrypoint is not gridex-*.
+const authority = spawnSync(process.execPath, [path.join(root, 'scripts/ediel-normative-authority-guard.cjs')], {
+  cwd: root,
+  encoding: 'utf8',
+  env: process.env,
+})
+if (authority.stdout) process.stdout.write(authority.stdout)
+if (authority.stderr) process.stderr.write(authority.stderr)
+assert(authority.status === 0, 'Ediel normative authority guard passes against physical source files')
 
 console.log('\nEDIEL route matrix regression passed.')
