@@ -44,10 +44,17 @@ export function resolveBillingUnderlayPriceArea(input: {
   const contractArea = normalizedPriceArea(input.contract?.price_area_used);
   const meteringAreas = new Set(
     (input.rows ?? [])
-      .map((row) => normalizedPriceArea(row.price_area ?? row.price_area_code ?? row.bidding_zone_code))
+      .map((row) =>
+        normalizedPriceArea(
+          row.price_area ?? row.price_area_code ?? row.bidding_zone_code,
+        ),
+      )
       .filter((area): area is string => Boolean(area)),
   );
-  const priceArea = snapshotArea ?? contractArea ?? (meteringAreas.size === 1 ? [...meteringAreas][0] : null);
+  const priceArea =
+    snapshotArea ??
+    contractArea ??
+    (meteringAreas.size === 1 ? [...meteringAreas][0] : null);
   const conflicts: string[] = [];
   if (snapshotArea && contractArea && snapshotArea !== contractArea) {
     conflicts.push(`contract:${contractArea}`);
@@ -57,7 +64,8 @@ export function resolveBillingUnderlayPriceArea(input: {
       if (area !== priceArea) conflicts.push(`metering_value:${area}`);
     }
   }
-  if (meteringAreas.size > 1) conflicts.push("metering_values_multiple_price_areas");
+  if (meteringAreas.size > 1)
+    conflicts.push("metering_values_multiple_price_areas");
   return { priceArea, conflicts: [...new Set(conflicts)] };
 }
 
@@ -92,7 +100,10 @@ function quantityKwh(row: JsonRecord): number {
   throw new Error(`Mätenheten ${unit} stöds inte för fakturering.`);
 }
 
-type EnergyDirection = "consumption" | "production" | "consumption_correction";
+type EnergyDirection =
+  | "consumption"
+  | "production"
+  | "consumption_correction";
 
 function normalizeEnergyDirection(row: JsonRecord): EnergyDirection {
   const explicit = text(row.direction)?.toLowerCase() ?? null;
@@ -104,9 +115,11 @@ function normalizeEnergyDirection(row: JsonRecord): EnergyDirection {
   }
   if (
     explicit &&
-    ["consumption_correction", "negative_consumption", "correction"].includes(
-      explicit,
-    )
+    [
+      "consumption_correction",
+      "negative_consumption",
+      "correction",
+    ].includes(explicit)
   ) {
     return "consumption_correction";
   }
@@ -142,7 +155,11 @@ function addDays(date: string, days: number): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
   const cursor = new Date(
-    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days),
+    Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]) + days,
+    ),
   );
   return cursor.toISOString().slice(0, 10);
 }
@@ -155,6 +172,23 @@ function localDateBoundary(date: string): string {
     month: Number(match[2]),
     day: Number(match[3]),
   }).toISOString();
+}
+
+export function stockholmCivilDate(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime())) {
+    throw new Error(`Ogiltig tidpunkt för svensk kalenderdag: ${value}`);
+  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function readinessIssues(warnings: string[]) {
@@ -251,7 +285,7 @@ async function loadSnapshot(
   segmentStart: string,
 ): Promise<JsonRecord | null> {
   if (!contractId) return null;
-  const date = segmentStart.slice(0, 10);
+  const date = stockholmCivilDate(segmentStart);
   const response = await supabaseService
     .from("contract_price_snapshots")
     .select("*")
@@ -282,12 +316,16 @@ function contractCoversSegment(
   if (!contract) return false;
   const startsAt = text(contract.starts_at) ?? text(contract.start_date);
   const endsAt = text(contract.ends_at) ?? text(contract.end_date);
-  if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
+  const segmentStartDate = stockholmCivilDate(segmentStart);
+  const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
+  const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
+  const contractEndExclusiveDate = endsAt
+    ? addDays(stockholmCivilDate(endsAt), 1)
+    : null;
+  if (contractStartDate && contractStartDate > segmentStartDate) return false;
   if (
-    endsAt &&
-    Date.parse(
-      endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
-    ) < Date.parse(segmentEnd)
+    contractEndExclusiveDate &&
+    contractEndExclusiveDate < segmentEndExclusiveDate
   )
     return false;
   return true;
@@ -386,7 +424,8 @@ function validateIntervalCoverage(
     gapCount += 1;
     warnings.push(`Mätvärdeslucka finns fram till ${segmentEnd}.`);
   }
-  if (rows.length === 0) warnings.push("Mätvärden saknas i fakturasegmentet.");
+  if (rows.length === 0)
+    warnings.push("Mätvärden saknas i fakturasegmentet.");
   return { missing: gapCount, warnings: [...new Set(warnings)] };
 }
 
@@ -400,10 +439,10 @@ function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
   if (schemaVersion === "gridex_contract_pricing_v6_selection") {
     const contractType = text(snapshotJson.contract_type);
     if (
-      !text(snapshot.price_option_reference) &&
-        !text(snapshotJson.price_option_reference) ||
-      !text(snapshot.invoice_delivery_method) &&
-        !text(snapshotJson.invoice_delivery_method) ||
+      (!text(snapshot.price_option_reference) &&
+        !text(snapshotJson.price_option_reference)) ||
+      (!text(snapshot.invoice_delivery_method) &&
+        !text(snapshotJson.invoice_delivery_method)) ||
       (contractType === "fixed" &&
         !text(snapshot.area_price_reference) &&
         !text(snapshotJson.area_price_reference)) ||
@@ -445,16 +484,26 @@ export async function generateBillingUnderlaysForMonth(input: {
     companyId: input.companyId,
     billingMonth: input.billingMonth,
   });
-  const customerScope = input.customerId === undefined || input.customerId === null
-    ? null
-    : text(input.customerId);
-  const meteringPointScope = input.meteringPointId === undefined || input.meteringPointId === null
-    ? null
-    : text(input.meteringPointId);
-  if (input.customerId !== undefined && input.customerId !== null && !customerScope) {
+  const customerScope =
+    input.customerId === undefined || input.customerId === null
+      ? null
+      : text(input.customerId);
+  const meteringPointScope =
+    input.meteringPointId === undefined || input.meteringPointId === null
+      ? null
+      : text(input.meteringPointId);
+  if (
+    input.customerId !== undefined &&
+    input.customerId !== null &&
+    !customerScope
+  ) {
     throw new Error("Billing-underlag fick ett tomt customerId-scope.");
   }
-  if (input.meteringPointId !== undefined && input.meteringPointId !== null && !meteringPointScope) {
+  if (
+    input.meteringPointId !== undefined &&
+    input.meteringPointId !== null &&
+    !meteringPointScope
+  ) {
     throw new Error("Billing-underlag fick ett tomt meteringPointId-scope.");
   }
 
@@ -469,20 +518,27 @@ export async function generateBillingUnderlaysForMonth(input: {
     bounds.start.slice(0, 10),
     addDays(bounds.endDateExclusive, -1),
   );
-  const values = allValues.filter((row) =>
-    (!customerScope || text(row.customer_id) === customerScope) &&
-    (!meteringPointScope || text(row.metering_point_id) === meteringPointScope),
+  const values = allValues.filter(
+    (row) =>
+      (!customerScope || text(row.customer_id) === customerScope) &&
+      (!meteringPointScope ||
+        text(row.metering_point_id) === meteringPointScope),
   );
-  const periods = allPeriods.filter((row) =>
-    (!customerScope || text(row.customer_id) === customerScope) &&
-    (!meteringPointScope || text(row.metering_point_id) === meteringPointScope),
+  const periods = allPeriods.filter(
+    (row) =>
+      (!customerScope || text(row.customer_id) === customerScope) &&
+      (!meteringPointScope ||
+        text(row.metering_point_id) === meteringPointScope),
   );
 
   const periodsByMeter = new Map<string, JsonRecord[]>();
   for (const period of periods) {
     const meter = text(period.metering_point_id);
     if (!meter) continue;
-    periodsByMeter.set(meter, [...(periodsByMeter.get(meter) ?? []), period]);
+    periodsByMeter.set(meter, [
+      ...(periodsByMeter.get(meter) ?? []),
+      period,
+    ]);
   }
 
   const valuesByMeter = new Map<string, JsonRecord[]>();
@@ -516,7 +572,8 @@ export async function generateBillingUnderlaysForMonth(input: {
     const hasSupplyConflict = overlappingPeriods.some(
       (entry, index) =>
         index > 0 &&
-        Date.parse(entry.start) < Date.parse(overlappingPeriods[index - 1].end),
+        Date.parse(entry.start) <
+          Date.parse(overlappingPeriods[index - 1].end),
     );
     if (hasSupplyConflict) {
       results.push({
@@ -580,8 +637,7 @@ export async function generateBillingUnderlaysForMonth(input: {
         pendingStores.push({
           underlay: {
             customer_id: customerId,
-            site_id:
-              text(period.customer_site_id) ?? text(period.site_id),
+            site_id: text(period.customer_site_id) ?? text(period.site_id),
             customer_site_id:
               text(period.customer_site_id) ?? text(period.site_id),
             metering_point_id: meteringPointId,
@@ -590,16 +646,17 @@ export async function generateBillingUnderlaysForMonth(input: {
             customer_contract_id: contractId,
             pricing_snapshot_id: text(snapshot?.id),
             contract_price_snapshot_id: text(snapshot?.id),
-            price_plan_id: text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id),
+            price_plan_id:
+              text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id),
             price_plan_version_id: text(snapshot?.price_plan_version_id),
             price_book_id: text(snapshot?.price_book_id),
             price_area: contractAreaContext.priceArea,
             energy_direction: canonicalContractDirection,
             settlement_type:
               canonicalContractDirection === "production"
-                ? (text(production.settlement_mode) === "self_billing"
-                    ? "self_billing"
-                    : "credit_invoice")
+                ? text(production.settlement_mode) === "self_billing"
+                  ? "self_billing"
+                  : "credit_invoice"
                 : "invoice",
             underlay_month: bounds.month,
             underlay_year: bounds.year,
@@ -623,9 +680,9 @@ export async function generateBillingUnderlaysForMonth(input: {
               energy_direction: canonicalContractDirection,
               settlement_type:
                 canonicalContractDirection === "production"
-                  ? (text(production.settlement_mode) === "self_billing"
-                      ? "self_billing"
-                      : "credit_invoice")
+                  ? text(production.settlement_mode) === "self_billing"
+                    ? "self_billing"
+                    : "credit_invoice"
                   : "invoice",
               timezone: "Europe/Stockholm",
             },
@@ -844,7 +901,9 @@ export async function generateBillingUnderlaysForMonth(input: {
             raw_payload: object(row.raw_payload),
             energy_direction: energyDirection,
             original_quantity_kwh: quantityKwh(row),
-            source_price_area: normalizedPriceArea(row.price_area ?? row.price_area_code ?? row.bidding_zone_code),
+            source_price_area: normalizedPriceArea(
+              row.price_area ?? row.price_area_code ?? row.bidding_zone_code,
+            ),
           },
         }));
 
@@ -930,11 +989,16 @@ export async function generateBillingUnderlaysForMonth(input: {
     if (storedIds.length !== pendingStores.length)
       throw new Error("billing_underlay_batch_result_count_mismatch");
     pendingStores.forEach((entry, index) => {
-      results.push({ underlayId: storedIds[index] ?? null, ...entry.result });
+      results.push({
+        underlayId: storedIds[index] ?? null,
+        ...entry.result,
+      });
     });
   }
 
-  const orphaned = values.filter((row) => !coveredValueIds.has(String(row.id)));
+  const orphaned = values.filter(
+    (row) => !coveredValueIds.has(String(row.id)),
+  );
   if (orphaned.length > 0) {
     results.push({
       underlayId: null,
@@ -956,8 +1020,9 @@ export async function generateBillingUnderlaysForMonth(input: {
     sourceTable: "normalized_metering_values" as const,
     sourceRows: values.length,
     underlays: results.length,
-    readyForPricing: results.filter((row) => row.status === "ready_for_pricing")
-      .length,
+    readyForPricing: results.filter(
+      (row) => row.status === "ready_for_pricing",
+    ).length,
     needsReview: results.filter((row) => row.status === "needs_review").length,
     results,
   };
