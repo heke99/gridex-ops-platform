@@ -1,0 +1,79 @@
+name: Fix APERAK canonical evidence
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[aperak-fix-bot]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply APERAK canonical fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/ediel/ack.ts')
+          text = path.read_text()
+          old = """        : params.ackFamily === 'APERAK'\n          ? params.sourceMessage.message_family === 'UTILTS'\n            ? 'APERAK:D:04A:UN:E5SE5A'\n            : 'APERAK:D:96A:UN:E2SE6A'\n          : 'UTILTS:D:02B:UN:E5SE5A',"""
+          new = """        : params.ackFamily === 'APERAK'\n          ? 'APERAK:D:96A:UN:E2SE6A'\n          : 'UTILTS:D:02B:UN:E5SE5A',"""
+          if old not in text:
+            raise SystemExit('APERAK UNH token block not found')
+          text = text.replace(old, new, 1)
+
+          old = """        : params.ackFamily === 'APERAK'\n          ? params.sourceMessage.message_family === 'UTILTS'\n            ? 'E5SE5A'\n            : 'E2SE6A'\n          : 'E5SE5A',"""
+          new = """        : params.ackFamily === 'APERAK'\n          ? 'E2SE6A'\n          : 'E5SE5A',"""
+          if old not in text:
+            raise SystemExit('APERAK messageVersion block not found')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('lib/ediel/core/kernel.ts')
+          text = path.read_text()
+          old = """  if (validation.fieldRuleSource !== 'registry' || !validation.rulePackSnapshot) {\n    throw new Error(`outbound_ediel_canonical_policy_evidence_missing:${params.draft.messageFamily}:${params.draft.messageCode}`)\n  }\n  const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)\n  if (blocking.length > 0) {\n    const first = blocking[0]\n    throw new Error(\n      `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av canonical Ediel-policy: ${first.code} - ${first.description}`,\n    )\n  }\n  return validation.rulePackSnapshot"""
+          new = """  const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)\n  if (blocking.length > 0) {\n    const first = blocking[0]\n    throw new Error(\n      `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av canonical Ediel-policy: ${first.code} - ${first.description}`,\n    )\n  }\n  if (validation.fieldRuleSource !== 'registry' || !validation.rulePackSnapshot) {\n    throw new Error(`outbound_ediel_canonical_policy_evidence_missing:${params.draft.messageFamily}:${params.draft.messageCode}`)\n  }\n  return validation.rulePackSnapshot"""
+          if old not in text:
+            raise SystemExit('kernel evidence-order block not found')
+          path.write_text(text.replace(old, new, 1))
+
+          regression = Path('scripts/gridex-aperak-canonical-evidence-regression.cjs')
+          regression.write_text(r'''const fs = require('node:fs')
+          const assert = require('node:assert/strict')
+          const ack = fs.readFileSync('lib/ediel/ack.ts', 'utf8')
+          const kernel = fs.readFileSync('lib/ediel/core/kernel.ts', 'utf8')
+          const guide = fs.readFileSync('lib/ediel/rulebook/guideRegistry.ts', 'utf8')
+
+          assert(guide.includes("family: 'APERAK'") && guide.includes("associationAssignedCode: 'E2SE6A'"), 'canonical APERAK guide must use E2SE6A')
+          assert(ack.includes("? 'APERAK:D:96A:UN:E2SE6A'"), 'APERAK UNH must use canonical E2SE6A token')
+          assert(!ack.includes("'APERAK:D:04A:UN:E5SE5A'"), 'APERAK must not reuse UTILTS E5SE5A association')
+          assert(ack.includes("params.ackFamily === 'APERAK'\n          ? 'E2SE6A'"), 'APERAK messageVersion must be E2SE6A')
+          const blockingIndex = kernel.indexOf("const blocking = validation.issues.filter")
+          const evidenceIndex = kernel.indexOf("outbound_ediel_canonical_policy_evidence_missing")
+          assert(blockingIndex >= 0 && evidenceIndex > blockingIndex, 'real canonical policy blockers must be reported before evidence fallback')
+          console.log('gridex-aperak-canonical-evidence-regression: PASS')
+          ''')
+      - run: npm ci
+      - run: node scripts/gridex-aperak-canonical-evidence-regression.cjs
+      - run: node scripts/gridex-canonical-ack-persistence-regression.cjs
+      - run: npm run typecheck
+      - name: Commit verified APERAK fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/ediel/ack.ts lib/ediel/core/kernel.ts scripts/gridex-aperak-canonical-evidence-regression.cjs
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Fix canonical APERAK policy evidence [aperak-fix-bot]'
+          git push origin HEAD:main
