@@ -61,6 +61,14 @@ The `settlement` object on a website quote is the canonical interpretation of wh
 
 For every non-fixed model, checkout market data is **indicative preview/audit evidence only**. It does not become the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
 
+### Pricing components and website visibility
+
+`calculation_components` is the authoritative calculation set. Every applicable calculated component must remain in that set even when the website chooses not to render the component as a separate row.
+
+`website_visibility=hidden` controls presentation only. It does not remove a fee, markup, tax or other applicable component from the Gridex calculation. Dolda komponenter filtreras inte bort från den auktoritativa beräkningen; an integration must never recalculate the contract by using only the visible/display subset.
+
+Use `display_components` and the component visibility metadata for presentation. Use the authoritative quote totals and complete calculation data for acceptance, reconciliation and later audit.
+
 `valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does not expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, integrity mismatch or a commercially unavailable or withdrawn offer can still block submission.
 
 `valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.
