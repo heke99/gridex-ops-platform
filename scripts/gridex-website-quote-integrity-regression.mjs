@@ -4,6 +4,10 @@ import {
   canonicalQuoteTimestamptz,
   canonicalQuoteValidUntil,
 } from '../lib/pricing/quoteIntegrity.ts'
+import {
+  CANONICAL_CONTRACT_PRICING_SCHEMA,
+  normalizeWebsiteQuotePersistenceInput,
+} from '../lib/pricing/canonicalContractEngine.ts'
 
 const read = (relative) => fs.readFileSync(new URL(`../${relative}`, import.meta.url), 'utf8')
 const readJson = (relative) => JSON.parse(read(relative))
@@ -16,15 +20,38 @@ assert.equal(canonicalQuoteTimestamptz(zulu), zulu)
 assert.equal(canonicalQuoteTimestamptz(postgresUtc), zulu)
 assert.equal(canonicalQuoteValidUntil(postgresUtc), zulu)
 
+const normalized = normalizeWebsiteQuotePersistenceInput({
+  pricingSnapshotSchemaVersion: 'legacy_schema',
+  quoteSnapshot: {
+    pricing: { source: 'test' },
+    pricing_snapshot: { source: 'test' },
+  },
+})
+assert.equal(normalized.pricingSnapshotSchemaVersion, CANONICAL_CONTRACT_PRICING_SCHEMA)
+assert.equal(normalized.quoteSnapshot.snapshot_schema, CANONICAL_CONTRACT_PRICING_SCHEMA)
+assert.equal(normalized.quoteSnapshot.pricing_snapshot_schema_version, CANONICAL_CONTRACT_PRICING_SCHEMA)
+assert.equal(normalized.quoteSnapshot.pricing.snapshot_schema, CANONICAL_CONTRACT_PRICING_SCHEMA)
+assert.equal(normalized.quoteSnapshot.pricing_snapshot.snapshot_schema, CANONICAL_CONTRACT_PRICING_SCHEMA)
+
 const quotes = read('lib/pricing/websiteQuotes.ts')
+assert.ok(quotes.includes('normalizeWebsiteQuotePersistenceInput(input)'), 'website quote persistence must pass through the canonical contract engine')
+assert.ok(quotes.includes('assertWebsiteQuotePersistenceInvariant(canonicalInput)'), 'canonicalized quote must be validated before INSERT')
 assert.ok(quotes.includes('valid_until: canonicalQuoteTimestamptz(input.validUntil),'))
 assert.ok(quotes.includes('canonicalQuoteTimestamptz(input.marketDataTimestamp)'))
 assert.ok(
   quotes.includes("input.priceArea.toUpperCase() !== canonicalResolution.priceArea"),
   'create/validate gate must compare price_area case-insensitively against resolution',
 )
-assert.match(quotes, /price_area:\s*input\.priceArea\.trim\(\)\.toUpperCase\(\)/)
-assert.match(quotes, /quote\.price_area\.toUpperCase\(\)\s*!==\s*String\(canonicalPriceArea\)\.toUpperCase\(\)/)
+assert.match(
+  quotes,
+  /price_area:\s*canonicalInput\.priceArea\.trim\(\)\.toUpperCase\(\)/,
+  'website quote INSERT must persist uppercase canonical price_area',
+)
+assert.match(
+  quotes,
+  /quote\.price_area\.toUpperCase\(\)\s*!==\s*String\(canonicalPriceArea\)\.toUpperCase\(\)/,
+  'quote validation must compare persisted price_area case-insensitively',
+)
 
 const website = readJson('docs/openapi/website-integration-v1.json')
 const portal = readJson('docs/openapi/customer-portal-v1.json')
