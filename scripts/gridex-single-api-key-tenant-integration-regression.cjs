@@ -13,6 +13,16 @@ function read(rel) {
 function assert(condition, message) { checks += 1; if (!condition) throw new Error(message) }
 function includes(rel, value) { assert(read(rel).includes(value), `${rel} missing: ${value}`) }
 function excludes(rel, value) { assert(!read(rel).includes(value), `${rel} must not contain: ${value}`) }
+function securityRequirements(spec) {
+  const requirements = Array.isArray(spec.security) ? [...spec.security] : []
+  for (const pathItem of Object.values(spec.paths ?? {})) {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+      const operation = pathItem?.[method]
+      if (Array.isArray(operation?.security)) requirements.push(...operation.security)
+    }
+  }
+  return requirements
+}
 
 const contract = read('lib/integrations/websiteIntegrationContract.ts')
 for (const value of [
@@ -67,7 +77,7 @@ const websiteSpec = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 const portalSpec = JSON.parse(read('docs/openapi/customer-portal-v1.json'))
 for (const [name, spec] of [['website', websiteSpec], ['portal', portalSpec]]) {
   assert(Array.isArray(spec.servers) && spec.servers.some((server) => server.url === 'https://app.gridex.se'), `${name} OpenAPI wrong server origin`)
-  const security = Array.isArray(spec.security) ? spec.security : []
+  const security = securityRequirements(spec)
   assert(security.some((item) => Object.hasOwn(item, 'bearerAuth')), `${name} OpenAPI must support canonical Bearer authentication`)
   assert(security.some((item) => Object.hasOwn(item, 'legacyApiKeyAuth')), `${name} OpenAPI must preserve the documented legacy API-key transport`)
   const schemes = spec.components?.securitySchemes ?? {}
