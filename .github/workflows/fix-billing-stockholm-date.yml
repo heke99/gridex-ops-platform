@@ -27,45 +27,19 @@ jobs:
           from pathlib import Path
           p = Path('lib/billing/underlayEngine.ts')
           s = p.read_text()
-          old = '''function localDateBoundary(date: string): string {
-            const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
-            if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
-            return stockholmLocalToUtc({
-              year: Number(match[1]),
-              month: Number(match[2]),
-              day: Number(match[3]),
-            }).toISOString();
-          }
-          '''.replace('          ', '')
-          new = '''function localDateBoundary(date: string): string {
-            const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
-            if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
-            return stockholmLocalToUtc({
-              year: Number(match[1]),
-              month: Number(match[2]),
-              day: Number(match[3]),
-            }).toISOString();
-          }
 
-          export function stockholmCivilDate(value: string): string {
-            if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value;
-            const instant = new Date(value);
-            if (!Number.isFinite(instant.getTime())) {
-              throw new Error(`Ogiltig tidpunkt för svensk kalenderdag: ${value}`);
-            }
-            const parts = new Intl.DateTimeFormat('en-CA', {
-              timeZone: 'Europe/Stockholm',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }).formatToParts(instant);
-            const part = (type: Intl.DateTimeFormatPartTypes) =>
-              parts.find((entry) => entry.type === type)?.value ?? '';
-            return `${part('year')}-${part('month')}-${part('day')}`;
-          }
-          '''.replace(/          /g if False else '','')
-          # Build the helper explicitly to avoid YAML/Python indentation changing source whitespace.
-          new = old + '''\nexport function stockholmCivilDate(value: string): string {
+          old = '''function localDateBoundary(date: string): string {
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
+  if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
+  return stockholmLocalToUtc({
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  }).toISOString();
+}
+'''
+          helper = old + '''
+export function stockholmCivilDate(value: string): string {
   if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value;
   const instant = new Date(value);
   if (!Number.isFinite(instant.getTime())) {
@@ -80,45 +54,50 @@ jobs:
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((entry) => entry.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
-}\n'''
-          if old not in s:
-              raise SystemExit('localDateBoundary anchor not found')
-          s = s.replace(old, new, 1)
-          old_date = '  const date = segmentStart.slice(0, 10);\n'
-          if old_date not in s:
+}
+'''
+          if 'export function stockholmCivilDate' not in s:
+              if old not in s:
+                  raise SystemExit('localDateBoundary anchor not found')
+              s = s.replace(old, helper, 1)
+
+          if 'const date = segmentStart.slice(0, 10);' in s:
+              s = s.replace('const date = segmentStart.slice(0, 10);', 'const date = stockholmCivilDate(segmentStart);', 1)
+          elif 'const date = stockholmCivilDate(segmentStart);' not in s:
               raise SystemExit('loadSnapshot date anchor not found')
-          s = s.replace(old_date, '  const date = stockholmCivilDate(segmentStart);\n', 1)
+
           old_cover = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
-          const endsAt = text(contract.ends_at) ?? text(contract.end_date);
-          if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
-          if (
-            endsAt &&
-            Date.parse(
-              endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
-            ) < Date.parse(segmentEnd)
-          )
-            return false;
-          return true;
-          '''.replace('          ', '')
+  const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+  if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
+  if (
+    endsAt &&
+    Date.parse(
+      endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
+    ) < Date.parse(segmentEnd)
+  )
+    return false;
+  return true;
+'''
           new_cover = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
-          const endsAt = text(contract.ends_at) ?? text(contract.end_date);
-          const segmentStartDate = stockholmCivilDate(segmentStart);
-          const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
-          const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
-          const contractEndExclusiveDate = endsAt
-            ? addDays(stockholmCivilDate(endsAt), 1)
-            : null;
-          if (contractStartDate && contractStartDate > segmentStartDate) return false;
-          if (
-            contractEndExclusiveDate &&
-            contractEndExclusiveDate < segmentEndExclusiveDate
-          )
-            return false;
-          return true;
-          '''.replace('          ', '')
-          if old_cover not in s:
-              raise SystemExit('contractCoversSegment anchor not found')
-          s = s.replace(old_cover, new_cover, 1)
+  const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+  const segmentStartDate = stockholmCivilDate(segmentStart);
+  const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
+  const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
+  const contractEndExclusiveDate = endsAt
+    ? addDays(stockholmCivilDate(endsAt), 1)
+    : null;
+  if (contractStartDate && contractStartDate > segmentStartDate) return false;
+  if (
+    contractEndExclusiveDate &&
+    contractEndExclusiveDate < segmentEndExclusiveDate
+  )
+    return false;
+  return true;
+'''
+          if 'const segmentStartDate = stockholmCivilDate(segmentStart);' not in s:
+              if old_cover not in s:
+                  raise SystemExit('contractCoversSegment anchor not found')
+              s = s.replace(old_cover, new_cover, 1)
           p.write_text(s)
           PY
 
@@ -132,9 +111,12 @@ jobs:
           assert.doesNotMatch(source, /const date = segmentStart\.slice\(0, 10\)/)
           assert.match(source, /const segmentStartDate = stockholmCivilDate\(segmentStart\)/)
           assert.match(source, /const segmentEndExclusiveDate = stockholmCivilDate\(segmentEnd\)/)
+          assert.match(source, /addDays\(stockholmCivilDate\(endsAt\), 1\)/)
+
           function stockholmDate(value) {
-            const d = new Date(value)
-            const parts = new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Stockholm',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d)
+            const parts = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).formatToParts(new Date(value))
             const get = t => parts.find(p => p.type === t)?.value
             return `${get('year')}-${get('month')}-${get('day')}`
           }
@@ -155,6 +137,10 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add lib/billing/underlayEngine.ts scripts/gridex-billing-stockholm-civil-date-regression.cjs
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
           git commit -m 'Fix billing Stockholm civil-date readiness semantics'
           git pull --rebase origin main
           git push origin HEAD:main
