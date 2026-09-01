@@ -43,14 +43,14 @@ function runtimeVersionForGuide(family: string, guide: ReturnType<typeof resolve
     return guide.associationAssignedCode
   }
   if (family === 'APERAK') return normalizeGuideRevision(guide.guideRevision)
-  if (family === 'CONTRL') return '1.0'
+  if (family === 'CONTRL') return 'EDIEL2'
   throw new Error(`ediel_runtime_version_family_unsupported:${family || 'missing'}`)
 }
 
 function messageTypeTokenFor(family: string, selectedVersion: string): string {
   if (family === 'PRODAT') return `PRODAT:D:97A:UN:${selectedVersion === '26A' ? 'E2SE6A' : selectedVersion}`
   if (family === 'APERAK') return `APERAK:D:96A:UN:${selectedVersion === '16B' ? 'E2SE6A' : selectedVersion}`
-  if (family === 'CONTRL') return 'CONTRL:D:96A:UN:1.0'
+  if (family === 'CONTRL') return 'CONTRL:2:2:UN:EDIEL2'
   if (family === 'UTILTS' || family === 'UTILTS_ERR') return `UTILTS:D:02B:UN:${selectedVersion}`
   return `${family}:${selectedVersion}`
 }
