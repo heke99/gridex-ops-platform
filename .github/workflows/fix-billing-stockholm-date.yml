@@ -1,0 +1,158 @@
+name: Fix billing Stockholm civil-date semantics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-billing-stockholm-date.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply permanent civil-date fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/billing/underlayEngine.ts')
+          s = p.read_text()
+
+          old = '''function localDateBoundary(date: string): string {
+            const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
+            if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
+            return stockholmLocalToUtc({
+              year: Number(match[1]),
+              month: Number(match[2]),
+              day: Number(match[3]),
+            }).toISOString();
+          }
+          '''
+          new = '''function localDateBoundary(date: string): string {
+            const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
+            if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
+            return stockholmLocalToUtc({
+              year: Number(match[1]),
+              month: Number(match[2]),
+              day: Number(match[3]),
+            }).toISOString();
+          }
+
+          export function stockholmCivilDate(value: string): string {
+            if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value;
+            const instant = new Date(value);
+            if (!Number.isFinite(instant.getTime())) {
+              throw new Error(`Ogiltig tidpunkt för svensk kalenderdag: ${value}`);
+            }
+            const parts = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Europe/Stockholm',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            }).formatToParts(instant);
+            const part = (type: Intl.DateTimeFormatPartTypes) =>
+              parts.find((entry) => entry.type === type)?.value ?? '';
+            return `${part('year')}-${part('month')}-${part('day')}`;
+          }
+          '''
+          if old not in s:
+              raise SystemExit('localDateBoundary anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''  const date = segmentStart.slice(0, 10);
+          '''
+          new = '''  const date = stockholmCivilDate(segmentStart);
+          '''
+          if old not in s:
+              raise SystemExit('loadSnapshot date anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
+            const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+            if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
+            if (
+              endsAt &&
+              Date.parse(
+                endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
+              ) < Date.parse(segmentEnd)
+            )
+              return false;
+            return true;
+          '''
+          new = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
+            const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+            const segmentStartDate = stockholmCivilDate(segmentStart);
+            const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
+            const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
+            const contractEndExclusiveDate = endsAt
+              ? addDays(stockholmCivilDate(endsAt), 1)
+              : null;
+            if (contractStartDate && contractStartDate > segmentStartDate) return false;
+            if (
+              contractEndExclusiveDate &&
+              contractEndExclusiveDate < segmentEndExclusiveDate
+            )
+              return false;
+            return true;
+          '''
+          if old not in s:
+              raise SystemExit('contractCoversSegment anchor not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+          cat > scripts/gridex-billing-stockholm-civil-date-regression.cjs <<'EOF'
+          const assert = require('node:assert/strict')
+          const fs = require('node:fs')
+
+          const source = fs.readFileSync('lib/billing/underlayEngine.ts', 'utf8')
+          assert.match(source, /export function stockholmCivilDate/)
+          assert.match(source, /timeZone:\s*['"]Europe\/Stockholm['"]/)
+          assert.match(source, /const date = stockholmCivilDate\(segmentStart\)/)
+          assert.doesNotMatch(source, /const date = segmentStart\.slice\(0, 10\)/)
+          assert.match(source, /const segmentStartDate = stockholmCivilDate\(segmentStart\)/)
+          assert.match(source, /const segmentEndExclusiveDate = stockholmCivilDate\(segmentEnd\)/)
+          assert.match(source, /contractEndExclusiveDate = endsAt[\s\S]*addDays\(stockholmCivilDate\(endsAt\), 1\)/)
+
+          function stockholmDate(value) {
+            const d = new Date(value)
+            const parts = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).formatToParts(d)
+            const get = t => parts.find(p => p.type === t)?.value
+            return `${get('year')}-${get('month')}-${get('day')}`
+          }
+
+          assert.equal(stockholmDate('2026-06-30T22:00:00.000Z'), '2026-07-01', 'CEST month boundary')
+          assert.equal(stockholmDate('2026-07-31T22:00:00.000Z'), '2026-08-01', 'CEST exclusive end')
+          assert.equal(stockholmDate('2026-11-30T23:00:00.000Z'), '2026-12-01', 'CET month boundary')
+          assert.equal(stockholmDate('2026-12-31T23:00:00.000Z'), '2027-01-01', 'CET exclusive end')
+          console.log('Billing Stockholm civil-date regression PASS')
+          EOF
+      - name: Install dependencies
+        run: npm ci
+      - name: Regression
+        run: node scripts/gridex-billing-stockholm-civil-date-regression.cjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Commit verified fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/billing/underlayEngine.ts scripts/gridex-billing-stockholm-civil-date-regression.cjs
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git commit -m 'Fix billing Stockholm civil-date readiness semantics'
+          git push origin HEAD:main
