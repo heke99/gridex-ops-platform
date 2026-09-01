@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { listActiveCompanies } from '@/lib/tenant/activeCompanies'
 
 export type TestCenterCompanyOption = { id: string; name?: string | null }
 export type TestCenterCustomerOption = {
@@ -24,7 +25,9 @@ export type TestCenterRuntimeOptions = {
 
 export async function loadTestCenterRuntimeOptions(): Promise<TestCenterRuntimeOptions> {
   const [companiesResult, customersResult, messagesResult] = await Promise.all([
-    supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(100),
+    listActiveCompanies(100)
+      .then((data) => ({ data, error: null as Error | null }))
+      .catch((error: Error) => ({ data: [] as TestCenterCompanyOption[], error })),
     supabaseService
       .from('customers')
       .select('id,company_id,customer_number')
@@ -45,10 +48,16 @@ export async function loadTestCenterRuntimeOptions(): Promise<TestCenterRuntimeO
     .filter(Boolean)
     .map((error) => error?.message ?? 'Okänt databasfel')
 
+  const activeCompanyIds = new Set(companiesResult.data.map((company) => company.id))
+
   return {
-    companies: (companiesResult.data ?? []) as TestCenterCompanyOption[],
-    customers: (customersResult.data ?? []) as TestCenterCustomerOption[],
-    messages: (messagesResult.data ?? []) as TestCenterMessageOption[],
+    companies: companiesResult.data as TestCenterCompanyOption[],
+    customers: ((customersResult.data ?? []) as TestCenterCustomerOption[]).filter((customer) =>
+      customer.company_id ? activeCompanyIds.has(customer.company_id) : false,
+    ),
+    messages: ((messagesResult.data ?? []) as TestCenterMessageOption[]).filter((message) =>
+      message.company_id ? activeCompanyIds.has(message.company_id) : false,
+    ),
     error: errors.length > 0 ? errors.join(' | ') : null,
   }
 }
