@@ -1,0 +1,109 @@
+name: canonical-active-companies-fix
+
+on:
+  push:
+    branches:
+      - fix/canonical-active-companies
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/canonical-active-companies
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Harden active company selectors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          filters = ".eq('status', 'active').eq('lifecycle_status', 'active').eq('is_active', true).is('archived_at', null)"
+          replacements = {
+            'app/admin/agreements/grid-owners/page.tsx': [
+              ("supabaseService.from('companies').select('id,name').order('name')",
+               "supabaseService.from('companies').select('id,name')" + filters + ".order('name')"),
+            ],
+            'app/admin/ediel/readiness/page.tsx': [
+              ("supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(200)",
+               "supabaseService.from('companies').select('id,name')" + filters + ".order('name', { ascending: true }).limit(200)"),
+            ],
+            'app/admin/platform/ediel/messages/page.tsx': [
+              ("supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(300)",
+               "supabaseService.from('companies').select('id,name')" + filters + ".order('name', { ascending: true }).limit(300)"),
+            ],
+          }
+
+          multiline = {
+            'app/admin/ediel/test-center/page.tsx': (
+              ".from('companies')\n      .select('id,name')\n      .order('name', { ascending: true })",
+              ".from('companies')\n      .select('id,name')\n      .eq('status', 'active')\n      .eq('lifecycle_status', 'active')\n      .eq('is_active', true)\n      .is('archived_at', null)\n      .order('name', { ascending: true })",
+            ),
+            'app/admin/pricing/portfolio-settlements/page.tsx': (
+              '.from("companies")\n    .select("id,name")\n    .order("name", { ascending: true })',
+              '.from("companies")\n    .select("id,name")\n    .eq("status", "active")\n    .eq("lifecycle_status", "active")\n    .eq("is_active", true)\n    .is("archived_at", null)\n    .order("name", { ascending: true })',
+            ),
+            'lib/ediel/platformGoLive.ts': (
+              '.from("companies")\n      .select("id,name")\n      .order("name", { ascending: true })',
+              '.from("companies")\n      .select("id,name")\n      .eq("status", "active")\n      .eq("lifecycle_status", "active")\n      .eq("is_active", true)\n      .is("archived_at", null)\n      .order("name", { ascending: true })',
+            ),
+          }
+
+          changed = []
+          for path, pairs in replacements.items():
+              p = Path(path)
+              text = p.read_text()
+              original = text
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'Expected selector not found in {path}')
+                  text = text.replace(old, new)
+              if text != original:
+                  p.write_text(text)
+                  changed.append(path)
+
+          for path, (old, new) in multiline.items():
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected multiline selector not found in {path}')
+              p.write_text(text.replace(old, new))
+              changed.append(path)
+
+          # Guard against the known unsafe selector shapes returning in operational pages.
+          for path in [
+              'app/admin/agreements/grid-owners/page.tsx',
+              'app/admin/ediel/readiness/page.tsx',
+              'app/admin/platform/ediel/messages/page.tsx',
+              'app/admin/ediel/test-center/page.tsx',
+              'app/admin/pricing/portfolio-settlements/page.tsx',
+              'lib/ediel/platformGoLive.ts',
+          ]:
+              text = Path(path).read_text()
+              if "from('companies')" in text or 'from("companies")' in text:
+                  if 'lifecycle_status' not in text or 'archived_at' not in text:
+                      raise SystemExit(f'Canonical lifecycle guard missing in {path}')
+
+          print('Patched:', ', '.join(changed))
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Commit hardened selectors
+        run: |
+          if git diff --quiet; then
+            echo "No selector changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/admin/agreements/grid-owners/page.tsx app/admin/ediel/readiness/page.tsx app/admin/platform/ediel/messages/page.tsx app/admin/ediel/test-center/page.tsx app/admin/pricing/portfolio-settlements/page.tsx lib/ediel/platformGoLive.ts
+          git commit -m "Enforce canonical active company selectors"
+          git push origin HEAD:fix/canonical-active-companies
