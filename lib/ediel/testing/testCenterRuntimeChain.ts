@@ -65,21 +65,46 @@ async function verifyMeterValues(input: {
   meteringValueIds: string[]
 }) {
   if (input.meteringValueIds.length === 0) {
-    throw new Error('Fakturatest blockerad: UTILTS skapade inga normaliserbara mätvärden.')
+    throw new Error('Fakturatest blockerad: UTILTS skapade eller återanvände inga normaliserbara mätvärden.')
   }
+
   const result = await supabaseService
     .from('metering_values')
     .select('id,company_id,customer_id,metering_point_id,source_ediel_message_id,period_start,period_end,quantity,quantity_kwh,unit,billing_status,billing_gate_status')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('metering_point_id', input.meteringPointId)
-    .eq('source_ediel_message_id', input.edielMessageId)
     .in('id', input.meteringValueIds)
   if (result.error) throw result.error
   const rows = (result.data ?? []) as Row[]
   if (rows.length !== input.meteringValueIds.length) {
-    throw new Error('Fakturatest blockerad: inte alla ingesterade mätvärden kunde verifieras mot exakt kund, mätpunkt och Ediel-källa.')
+    throw new Error('Fakturatest blockerad: inte alla ingesterade/återanvända mätvärden kunde verifieras mot exakt tenant, kund och mätpunkt.')
   }
+
+  const directSourceIds = new Set(
+    rows
+      .filter((row) => text(row.source_ediel_message_id) === input.edielMessageId)
+      .map((row) => String(row.id)),
+  )
+  const missingProvenanceIds = input.meteringValueIds.filter((id) => !directSourceIds.has(id))
+
+  if (missingProvenanceIds.length > 0) {
+    const provenanceResult = await supabaseService
+      .from('metering_value_sources')
+      .select('metering_value_id')
+      .eq('company_id', input.companyId)
+      .eq('source_ediel_message_id', input.edielMessageId)
+      .in('metering_value_id', missingProvenanceIds)
+    if (provenanceResult.error) throw provenanceResult.error
+    const linkedIds = new Set(
+      ((provenanceResult.data ?? []) as Row[]).map((row) => String(row.metering_value_id)),
+    )
+    const unlinked = missingProvenanceIds.filter((id) => !linkedIds.has(id))
+    if (unlinked.length > 0) {
+      throw new Error('Fakturatest blockerad: återanvänt canonical mätvärde saknar provenance-länk till aktuell Ediel-källa.')
+    }
+  }
+
   const notBillable = rows.filter((row) => text(row.billing_status) !== 'billable' || text(row.billing_gate_status) !== 'eligible')
   if (notBillable.length > 0) {
     throw new Error('Fakturatest blockerad: ett eller flera mätvärden är inte billable/eligible efter canonical billing gate.')
