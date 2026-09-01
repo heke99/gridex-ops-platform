@@ -25,99 +25,70 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path('lib/billing/underlayEngine.ts')
           s = p.read_text()
 
-          old = '''function localDateBoundary(date: string): string {
-            const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
-            if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
-            return stockholmLocalToUtc({
-              year: Number(match[1]),
-              month: Number(match[2]),
-              day: Number(match[3]),
-            }).toISOString();
-          }
-          '''
-          new = '''function localDateBoundary(date: string): string {
-            const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
-            if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
-            return stockholmLocalToUtc({
-              year: Number(match[1]),
-              month: Number(match[2]),
-              day: Number(match[3]),
-            }).toISOString();
-          }
-
-          export function stockholmCivilDate(value: string): string {
-            if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value;
-            const instant = new Date(value);
-            if (!Number.isFinite(instant.getTime())) {
-              throw new Error(`Ogiltig tidpunkt för svensk kalenderdag: ${value}`);
-            }
-            const parts = new Intl.DateTimeFormat('en-CA', {
-              timeZone: 'Europe/Stockholm',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }).formatToParts(instant);
-            const part = (type: Intl.DateTimeFormatPartTypes) =>
-              parts.find((entry) => entry.type === type)?.value ?? '';
-            return `${part('year')}-${part('month')}-${part('day')}`;
-          }
-          '''
-          if old not in s:
+          boundary = re.compile(r'''function localDateBoundary\(date: string\): string \{\n(?P<body>.*?)\n\}''', re.S)
+          m = boundary.search(s)
+          if not m:
               raise SystemExit('localDateBoundary anchor not found')
-          s = s.replace(old, new, 1)
+          original = m.group(0)
+          helper = original + '''
 
-          old = '''  const date = segmentStart.slice(0, 10);
-          '''
-          new = '''  const date = stockholmCivilDate(segmentStart);
-          '''
-          if old not in s:
+export function stockholmCivilDate(value: string): string {
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value;
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime())) {
+    throw new Error(`Ogiltig tidpunkt för svensk kalenderdag: ${value}`);
+  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}'''
+          if 'export function stockholmCivilDate' not in s:
+              s = s.replace(original, helper, 1)
+
+          s, count = re.subn(r'const date = segmentStart\.slice\(0, 10\);', 'const date = stockholmCivilDate(segmentStart);', s, count=1)
+          if count != 1 and 'const date = stockholmCivilDate(segmentStart);' not in s:
               raise SystemExit('loadSnapshot date anchor not found')
-          s = s.replace(old, new, 1)
 
-          old = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
-            const endsAt = text(contract.ends_at) ?? text(contract.end_date);
-            if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
-            if (
-              endsAt &&
-              Date.parse(
-                endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
-              ) < Date.parse(segmentEnd)
-            )
-              return false;
-            return true;
-          '''
-          new = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
-            const endsAt = text(contract.ends_at) ?? text(contract.end_date);
-            const segmentStartDate = stockholmCivilDate(segmentStart);
-            const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
-            const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
-            const contractEndExclusiveDate = endsAt
-              ? addDays(stockholmCivilDate(endsAt), 1)
-              : null;
-            if (contractStartDate && contractStartDate > segmentStartDate) return false;
-            if (
-              contractEndExclusiveDate &&
-              contractEndExclusiveDate < segmentEndExclusiveDate
-            )
-              return false;
-            return true;
-          '''
-          if old not in s:
+          pattern = re.compile(r'''  const startsAt = text\(contract\.starts_at\) \?\? text\(contract\.start_date\);\n  const endsAt = text\(contract\.ends_at\) \?\? text\(contract\.end_date\);\n  if \(startsAt && Date\.parse\(startsAt\) > Date\.parse\(segmentStart\)\) return false;\n  if \(\n    endsAt &&\n    Date\.parse\(\n      endsAt\.length === 10 \? localDateBoundary\(addDays\(endsAt, 1\)\) : endsAt,\n    \) < Date\.parse\(segmentEnd\)\n  \)\n    return false;\n  return true;''')
+          replacement = '''  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
+  const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+  const segmentStartDate = stockholmCivilDate(segmentStart);
+  const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
+  const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
+  const contractEndExclusiveDate = endsAt
+    ? addDays(stockholmCivilDate(endsAt), 1)
+    : null;
+  if (contractStartDate && contractStartDate > segmentStartDate) return false;
+  if (
+    contractEndExclusiveDate &&
+    contractEndExclusiveDate < segmentEndExclusiveDate
+  )
+    return false;
+  return true;'''
+          s, count = pattern.subn(replacement, s, count=1)
+          if count != 1 and 'const segmentStartDate = stockholmCivilDate(segmentStart);' not in s:
               raise SystemExit('contractCoversSegment anchor not found')
-          s = s.replace(old, new, 1)
+
           p.write_text(s)
           PY
 
           cat > scripts/gridex-billing-stockholm-civil-date-regression.cjs <<'EOF'
           const assert = require('node:assert/strict')
           const fs = require('node:fs')
-
           const source = fs.readFileSync('lib/billing/underlayEngine.ts', 'utf8')
           assert.match(source, /export function stockholmCivilDate/)
-          assert.match(source, /timeZone:\s*['"]Europe\/Stockholm['"]/)
+          assert.match(source, /timeZone:\s*["']Europe\/Stockholm["']/)
           assert.match(source, /const date = stockholmCivilDate\(segmentStart\)/)
           assert.doesNotMatch(source, /const date = segmentStart\.slice\(0, 10\)/)
           assert.match(source, /const segmentStartDate = stockholmCivilDate\(segmentStart\)/)
@@ -132,11 +103,10 @@ jobs:
             const get = t => parts.find(p => p.type === t)?.value
             return `${get('year')}-${get('month')}-${get('day')}`
           }
-
-          assert.equal(stockholmDate('2026-06-30T22:00:00.000Z'), '2026-07-01', 'CEST month boundary')
-          assert.equal(stockholmDate('2026-07-31T22:00:00.000Z'), '2026-08-01', 'CEST exclusive end')
-          assert.equal(stockholmDate('2026-11-30T23:00:00.000Z'), '2026-12-01', 'CET month boundary')
-          assert.equal(stockholmDate('2026-12-31T23:00:00.000Z'), '2027-01-01', 'CET exclusive end')
+          assert.equal(stockholmDate('2026-06-30T22:00:00.000Z'), '2026-07-01')
+          assert.equal(stockholmDate('2026-07-31T22:00:00.000Z'), '2026-08-01')
+          assert.equal(stockholmDate('2026-11-30T23:00:00.000Z'), '2026-12-01')
+          assert.equal(stockholmDate('2026-12-31T23:00:00.000Z'), '2027-01-01')
           console.log('Billing Stockholm civil-date regression PASS')
           EOF
       - name: Install dependencies
