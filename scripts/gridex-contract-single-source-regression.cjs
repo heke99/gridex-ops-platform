@@ -10,6 +10,7 @@ const publicRoute = read('app/api/v1/website/public-contracts/route.ts')
 const diagnosticsRoute = read('app/api/v1/website/public-contracts/diagnostics/route.ts')
 const publicContracts = read('lib/website/publicContracts.ts')
 const quote = read('lib/pricing/offerQuote.ts')
+const settlement = read('lib/pricing/websiteSettlement.ts')
 const marketSources = read('lib/pricing/marketPriceSources.ts')
 const sourceResolver = read('lib/pricing/priceSourceResolver.ts')
 const intervalPricing = read('lib/pricing/intervalPricing.ts')
@@ -132,8 +133,10 @@ includesAll(quote, [
   'pricing_interval: pricingInterval',
   'estimate_method:',
   'market_data_timestamp:',
-  'is_binding: false',
-], 'quote does not leak internal IDs and explains estimate evidence')
+  'is_binding: settlement.energy_price_locked_at_signup',
+], 'quote does not leak internal IDs and derives binding from settlement semantics')
+check(quote.includes('websiteSettlementForContract'), 'quote binding delegates to the canonical settlement policy')
+check(settlement.includes('energy_price_locked_at_signup'), 'settlement policy explicitly owns signup price-lock semantics')
 check(!quote.includes('gridex_contract_pricing_v4'), 'quote does not hardcode the obsolete V4 snapshot schema')
 check(!sourceResolver.includes('.eq("source", "elprisetjustnu")'), 'monthly quote resolver does not hardcode a provider')
 check(!intervalPricing.includes('.eq("source", "elprisetjustnu")'), 'interval resolver does not hardcode a provider')
