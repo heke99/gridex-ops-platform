@@ -103,11 +103,17 @@ includes(externalGuide, 'GRIDEX_API_KEY')
 includes(externalGuide, 'Base URL: `https://app.gridex.se`')
 includes(externalGuide, 'GET /api/v1/website/public-contracts')
 includes(externalGuide, '/api/v1/openapi/website-integration-v1.json')
-for (const rel of ['docs/gridex-customer-portal-api.md','docs/single-api-key-tenant-integration.md']) {
-  includes(rel, 'GRIDEX_API_KEY')
-  includes(rel, 'https://app.gridex.se/api/v1')
-  includes(rel, 'https://app.gridex.se/api/v1/openapi/website-integration-v1.json')
-}
+
+const portalGuide = 'docs/gridex-customer-portal-api.md'
+includes(portalGuide, '/developers/customer-portal-api#customer-portal')
+includes(portalGuide, '/api/v1/openapi/customer-portal-v1.json')
+includes(portalGuide, 'server-to-server')
+
+const authGuide = 'docs/single-api-key-tenant-integration.md'
+includes(authGuide, 'GRIDEX_API_KEY')
+includes(authGuide, '/developers/customer-portal-api#authentication')
+includes(authGuide, 'trusted backend')
+
 for (const scope of ['integration_context.read','website_contracts.read','website_energy_area.resolve','website_market_prices.read','website_quotes.write','website_quotes.validate','website_legal.read','website_applications.write','website_switch_status.read']) includes('lib/integrations/apiClientProfiles.ts', `'${scope}'`)
 includes('scripts/single-api-key-integration-readiness.sql', '["GRIDEX_API_KEY"]')
 includes('app/admin/platform/api-clients/CreateApiClientForm.tsx', 'GRIDEX_API_KEY')
