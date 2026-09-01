@@ -17,7 +17,6 @@ const page = read("app/admin/contracts/page.tsx");
 const companiesPage = read("app/admin/companies/page.tsx");
 const companyPage = read("app/admin/companies/[id]/page.tsx");
 const governance = read("lib/tenant/governance.ts");
-const integrationGuide = read("docs/external-website-api-integration-guide.md");
 const databaseLifecycleTest = read("scripts/gridex-contract-db-lifecycle-test.sql");
 const deletePostApply = read("scripts/gridex-contract-delete-graph-post-apply.sql");
 const db = read("lib/customer-contracts/db.ts");
@@ -154,15 +153,9 @@ assert(
   "company overview must count offer products, published offers and customer contracts separately",
 );
 
-// API authentication/error documentation has its own canonical release gate
-// (api-error-registry). This contract-deletion regression only verifies the
-// resolver capabilities that the delete graph itself depends on.
-assert(
-  integrationGuide.includes("pricing_ready") &&
-    integrationGuide.includes("quote_ready") &&
-    integrationGuide.includes("postal_suggested"),
-  "legacy resolver integration guide must gate pricing and quote calls on purpose-specific capabilities",
-);
+// API authentication, resolver capability and integration-documentation
+// contracts have their own canonical release gates. This regression remains
+// intentionally scoped to the contract deletion dependency graph and lifecycle.
 assert(
   databaseLifecycleTest.includes(
     "previously_published_contract_was_not_preserved",

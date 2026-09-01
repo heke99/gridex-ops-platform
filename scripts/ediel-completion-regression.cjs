@@ -1,11 +1,15 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const { readSourceModule } = require('./lib/read-source-module.cjs')
 const root = process.cwd()
-// TypeScript sources are formatter-dependent (single vs double quotes); the
-// static assertions below are structural, so quotes are normalized for
-// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+
+// TypeScript source checks operate on the complete logical module (public
+// facade plus characterized .part-* implementations). This keeps the release
+// gate stable across safe source splits without weakening the invariant.
 const read = (file) => {
-  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  const source = /\.(ts|tsx)$/.test(file)
+    ? readSourceModule(file, root)
+    : fs.readFileSync(path.join(root, file), 'utf8')
   return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
 }
 const failures = []
@@ -16,10 +20,11 @@ const forbidText = (file, token) => {
   if (read(file).includes(token)) failures.push(`${file}:forbidden:${token}`)
 }
 
-// The kernel now consumes the canonical rule pack via the registry-backed
-// validator: no outbound draft may pass without a registry rulePackSnapshot.
+// The kernel consumes the canonical rule pack through the registry-backed
+// validator. Outbound traffic fails closed unless the registry supplies the
+// exact rule-pack evidence snapshot persisted with the message.
 requireText('lib/ediel/core/kernel.ts', 'validateRulebookMessageWithRegistry')
-requireText('lib/ediel/core/kernel.ts', 'outbound_ediel_rule_pack_snapshot_missing')
+requireText('lib/ediel/core/kernel.ts', 'outbound_ediel_canonical_policy_evidence_missing')
 requireText('lib/ediel/core/kernel.ts', 'rulePackSnapshot')
 requireText('lib/ediel/rulebook/canonicalRulePackRegistry.ts', 'resolve_canonical_ediel_rule_pack')
 requireText('supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql', 'canonical_ediel_rule_pack_required')
