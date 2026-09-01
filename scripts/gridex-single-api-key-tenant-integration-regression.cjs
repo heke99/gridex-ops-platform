@@ -98,7 +98,12 @@ for (const field of ['offer_reference', 'quote_reference', 'resolution_id']) {
 }
 assert(!Object.keys(portalSpec.paths ?? {}).some((route) => route.startsWith('/api/v1/website/')), 'Portal OpenAPI must not duplicate website routes')
 
-for (const rel of ['docs/external-website-api-integration-guide.md','docs/gridex-customer-portal-api.md','docs/single-api-key-tenant-integration.md']) {
+const externalGuide = 'docs/external-website-api-integration-guide.md'
+includes(externalGuide, 'GRIDEX_API_KEY')
+includes(externalGuide, 'Base URL: `https://app.gridex.se`')
+includes(externalGuide, 'GET /api/v1/website/public-contracts')
+includes(externalGuide, 'https://app.gridex.se/api/v1/openapi/website-integration-v1.json')
+for (const rel of ['docs/gridex-customer-portal-api.md','docs/single-api-key-tenant-integration.md']) {
   includes(rel, 'GRIDEX_API_KEY')
   includes(rel, 'https://app.gridex.se/api/v1')
   includes(rel, 'https://app.gridex.se/api/v1/openapi/website-integration-v1.json')
