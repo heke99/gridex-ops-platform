@@ -88,6 +88,8 @@ export async function resolveCanonicalOutboundContext(params: {
    */
   environment: EdielEnvironment
   messageStandard?: EdielMessageStandard
+  receiverEdielId?: string | null
+  applicationReference?: string | null
 }) {
   if (!params.environment) {
     throw new Error('ediel_outbound_environment_required')
@@ -99,6 +101,8 @@ export async function resolveCanonicalOutboundContext(params: {
     companyId: params.companyId,
     environment: params.environment,
     messageStandard: params.messageStandard ?? 'edifact',
+    receiverEdielId: params.receiverEdielId ?? null,
+    applicationReference: params.applicationReference ?? null,
   })
 }
 
