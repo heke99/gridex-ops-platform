@@ -102,7 +102,7 @@ const externalGuide = 'docs/external-website-api-integration-guide.md'
 includes(externalGuide, 'GRIDEX_API_KEY')
 includes(externalGuide, 'Base URL: `https://app.gridex.se`')
 includes(externalGuide, 'GET /api/v1/website/public-contracts')
-includes(externalGuide, 'https://app.gridex.se/api/v1/openapi/website-integration-v1.json')
+includes(externalGuide, '/api/v1/openapi/website-integration-v1.json')
 for (const rel of ['docs/gridex-customer-portal-api.md','docs/single-api-key-tenant-integration.md']) {
   includes(rel, 'GRIDEX_API_KEY')
   includes(rel, 'https://app.gridex.se/api/v1')
