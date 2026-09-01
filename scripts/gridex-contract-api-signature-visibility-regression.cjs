@@ -65,8 +65,8 @@ const publicContracts = [
 ].map(read).join('\n')
 check(/diagnosePublicContractOffers/.test(publicContracts), 'Publiceringsdiagnostik finns per tenant')
 check(/loadLegalVersionsByBundle/.test(publicContracts) && /legal_bundle_version_id/.test(publicContracts) && /hasExactCanonicalLegalVersions\(legalVersions\)/.test(publicContracts), 'Erbjudandet verifieras i bulk mot sitt exakta juridikpaket utan latest-fallback')
-const route = read('app/api/v1/website/public-contracts/route.ts')
-check(/diagnostics/.test(route) && /diagnosePublicContractOffers/.test(route), 'public-contracts stöder diagnostics=1-kompatibilitet och canonical diagnostics')
+const diagnosticsRoute = read('app/api/v1/website/public-contracts/diagnostics/route.ts')
+check(/diagnosePublicContractOffers/.test(diagnosticsRoute), 'Canonical public-contract diagnostics endpoint använder samma readinessmotor')
 
 const migration = read('supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql')
 for (const column of ['public_contract_offer_id', 'offer_reference', 'legal_versions_snapshot', 'signature_snapshot_sha256', 'withdrawal_deadline_at']) check(migration.includes(column), `Migration innehåller ${column}`)
@@ -91,10 +91,10 @@ const docsPage = read('app/developers/customer-portal-api/page.tsx')
 const websiteDocs = read('docs/openapi/website-integration-v1.json')
 const portalDocs = read('docs/openapi/customer-portal-v1.json')
 check(/WEBSITE_INTEGRATION_CONTRACT_VERSION/.test(docsPage) && /signature_snapshot_sha256/.test(docsPage), 'Publika dokumentationssidan använder canonical kontraktsversion och visar signeringshash')
-for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', currentContractVersion]) {
+for (const term of ['/api/v1/website/public-contracts/diagnostics', 'website_contracts.diagnostics', 'can_send_agreement_confirmation', 'offer_reference_mismatch', currentContractVersion]) {
   check(websiteDocs.includes(term), `Website OpenAPI dokumenterar ${term}`)
 }
-check(/offer_reference_mismatch/.test(websiteDocs) && /diagnostics/.test(websiteDocs), 'Website OpenAPI dokumenterar strikt offer_reference och diagnostik')
+check(/offer_reference_mismatch/.test(websiteDocs) && /public-contracts\/diagnostics/.test(websiteDocs), 'Website OpenAPI dokumenterar strikt offer_reference och canonical diagnostik')
 check(/signature_snapshot_sha256/.test(portalDocs) && /2026-08-03\.1/.test(portalDocs), 'Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
 
 if (failed) process.exit(1)
