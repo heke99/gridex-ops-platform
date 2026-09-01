@@ -62,7 +62,7 @@ async function safeRows<T>(table: string, select: string, limit = 50): Promise<T
 export default async function EdielReadinessPage() {
   const context = await requirePlatformAdminAccess()
   const [companiesResult, readiness, locks, health] = await Promise.all([
-    supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(200),
+    supabaseService.from('companies').select('id,name').eq('status', 'active').eq('lifecycle_status', 'active').eq('is_active', true).is('archived_at', null).order('name', { ascending: true }).limit(200),
     safeRows<ReadinessRow>('ediel_agt_readiness', 'id,company_id,actor_role,message_family,readiness_status,needs_retest,retest_reason,test_resource_name,test_resource_email,updated_at', 100),
     safeRows<LockRow>('ediel_test_run_locks', 'id,company_id,actor_role,message_family,environment_type,locked_at,expires_at,released_at', 50),
     safeRows<HealthRow>('ediel_runtime_health_checks', 'id,status,measured_offset_ms,checked_at', 10),

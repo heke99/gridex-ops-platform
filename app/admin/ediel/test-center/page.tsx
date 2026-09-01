@@ -101,6 +101,10 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
     supabaseService
       .from('companies')
       .select('id,name')
+      .eq('status', 'active')
+      .eq('lifecycle_status', 'active')
+      .eq('is_active', true)
+      .is('archived_at', null)
       .order('name', { ascending: true })
       .limit(100),
     listRecentRuns(),

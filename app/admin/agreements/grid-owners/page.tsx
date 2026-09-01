@@ -19,7 +19,7 @@ export default async function GridOwnerAgreementsPage() {
   const admin = await requirePlatformAdminAccess()
 
   const [companiesResult, gridOwnersResult, routesResult, agreements] = await Promise.all([
-    supabaseService.from('companies').select('id,name').order('name'),
+    supabaseService.from('companies').select('id,name').eq('status', 'active').eq('lifecycle_status', 'active').eq('is_active', true).is('archived_at', null).order('name'),
     supabaseService.from('grid_owners').select('id,name,ediel_id,owner_code').order('name'),
     supabaseService.from('communication_routes').select('id,route_name,route_scope,route_type,grid_owner_id').order('updated_at', { ascending: false }).limit(250),
     listGridOwnerAccessAgreements({ limit: 250 }),

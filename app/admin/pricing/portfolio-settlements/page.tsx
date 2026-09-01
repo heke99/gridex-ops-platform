@@ -46,6 +46,10 @@ export default async function PortfolioSettlementsPage({
   const companiesResult = await supabaseService
     .from("companies")
     .select("id,name")
+    .eq("status", "active")
+    .eq("lifecycle_status", "active")
+    .eq("is_active", true)
+    .is("archived_at", null)
     .order("name", { ascending: true });
   if (companiesResult.error) throw companiesResult.error;
   const companies = companiesResult.data ?? [];

@@ -61,7 +61,7 @@ function Pill({ value }: { value: string | null | undefined }) {
 }
 
 async function listCompanies(): Promise<CompanyRow[]> {
-  const { data, error } = await supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(300)
+  const { data, error } = await supabaseService.from('companies').select('id,name').eq('status', 'active').eq('lifecycle_status', 'active').eq('is_active', true).is('archived_at', null).order('name', { ascending: true }).limit(300)
   if (error) {
     console.warn('[platform-ediel-messages] companies could not be loaded', error)
     return []
