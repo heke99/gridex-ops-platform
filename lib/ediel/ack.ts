@@ -980,9 +980,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:2:2:UN:EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? params.sourceMessage.message_family === 'UTILTS'
-            ? 'APERAK:D:04A:UN:E5SE5A'
-            : 'APERAK:D:96A:UN:E2SE6A'
+          ? 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:02B:UN:E5SE5A',
     applicationReference,
     segments,
@@ -1017,9 +1015,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? params.sourceMessage.message_family === 'UTILTS'
-            ? 'E5SE5A'
-            : 'E2SE6A'
+          ? 'E2SE6A'
           : 'E5SE5A',
     processType: 'ack',
     environment: params.sourceMessage.environment,

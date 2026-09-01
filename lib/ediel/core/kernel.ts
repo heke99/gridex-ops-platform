@@ -85,15 +85,15 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     companyId: params.draft.companyId ?? null,
   })
 
-  if (validation.fieldRuleSource !== 'registry' || !validation.rulePackSnapshot) {
-    throw new Error(`outbound_ediel_canonical_policy_evidence_missing:${params.draft.messageFamily}:${params.draft.messageCode}`)
-  }
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
   if (blocking.length > 0) {
     const first = blocking[0]
     throw new Error(
       `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av canonical Ediel-policy: ${first.code} - ${first.description}`,
     )
+  }
+  if (validation.fieldRuleSource !== 'registry' || !validation.rulePackSnapshot) {
+    throw new Error(`outbound_ediel_canonical_policy_evidence_missing:${params.draft.messageFamily}:${params.draft.messageCode}`)
   }
   return validation.rulePackSnapshot
 }
