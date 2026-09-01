@@ -21,7 +21,13 @@ type AdminSidebarProps = {
   companyOptions?: Array<{ id: string; name: string; status?: string | null }>
 }
 
-const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel', '/admin/controltower'])
+const EXACT_MATCH_ITEMS = new Set([
+  '/admin',
+  '/admin/ediel',
+  '/admin/controltower',
+  '/admin/billing',
+  '/admin/ediel/test-center',
+])
 
 function isActive(pathname: string, href: string) {
   if (EXACT_MATCH_ITEMS.has(href)) return pathname === href
