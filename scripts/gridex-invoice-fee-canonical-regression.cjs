@@ -133,6 +133,10 @@ must(openapi.info.version === currentContractVersion, `OpenAPI contract version 
 must(Boolean(openapi.paths['/api/v1/website/quote'].post.responses['201']) && openapi.paths['/api/v1/website/quote'].post['x-required-scopes'].includes('website_quotes.write'), 'canonical quote endpoint is documented as active')
 must(Boolean(openapi.components.schemas.PricingComponent.properties.calculation_inclusion), 'OpenAPI documents calculation inclusion')
 must(Boolean(openapi.components.schemas.PricingComponent.properties.website_visibility), 'OpenAPI documents website visibility')
-must(/calculation_components/.test(developerPage) && /display_components/.test(developerPage), 'developer guide documents complete calculation data and separate display data')
+must(
+  /applicable fees, markups and pricing rules/.test(developerPage) &&
+    /without locally changing the authoritative calculation or document versions/.test(developerPage),
+  'developer guide documents authoritative pricing while keeping presentation responsibility separate',
+)
 
 console.log('Canonical invoice fee regression passed.')
