@@ -1,0 +1,21 @@
+name: Target contract go-live regression v2
+
+on:
+  push:
+    branches:
+      - test/contract-go-live-target-v2-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  contract-go-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run contract API signature visibility regression
+        run: node scripts/gridex-contract-api-signature-visibility-regression.cjs
