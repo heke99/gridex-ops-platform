@@ -264,3 +264,21 @@ Status: `IMPLEMENTED_NOT_VERIFIED_IN_CI`
   (`20260814180000_tenant_website_activation_lifecycle_resume.sql`).
 - Force pause when permissions promote active non-canonical clients to
   tenant_website; share `isTenantWebsiteIntegrationClient`.
+
+## 2026-09-02 — tenant isolation remediation
+
+Fourteen of fifteen audit findings closed, F-15 contained by a ratchet. Five
+forward migrations applied and verified against `gridex-ops-dev`.
+
+Verified: typecheck clean, 169 test files / 1066 tests pass, migration integrity
+passes (558 files), the new tenant invariant gate passes against the live schema,
+and eslint is clean on the changed files.
+
+Two findings changed classification during remediation, both recorded in
+`quality/audits/TENANT_TARGET_ARCHITECTURE_AND_REGISTER_2026-09-02.md`:
+
+- F-3 was a misreading. The untenanted energy-flow rows are platform market
+  events, not drift; the schema simply could not express the difference.
+- F-9 was reported as latent and is a confirmed cross-tenant write:
+  `setOwnElectricitySupplier` cleared `is_own_supplier` on every row in the
+  database and was reachable by any tenant admin holding `switching.write`.

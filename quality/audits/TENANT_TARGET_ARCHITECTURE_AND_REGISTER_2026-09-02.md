@@ -195,3 +195,54 @@ tenant in production.
   addresses.
 - **Dataset size.** Three customers, seven EDIEL messages. Clean data proves little,
   which is why this register weighs schema guarantees above zeroed counts.
+
+---
+
+# Remediation status — 2026-09-02
+
+Implemented on `claude/system-consistency-tenant-isolation-dljtbw`. Five forward
+migrations applied and verified against `gridex-ops-dev`; no schema was rewritten.
+
+| ID | Status | What changed |
+|---|---|---|
+| F-1 | Fixed | `canonical_authenticated_tenant_context` delegates to the scoped resolver; the union branch is gone. Both `lib/admin/guards.ts` and `lib/admin/apiGuards.ts` pass the selected company and share one engine. Verified: a tenant owner resolves 36 permissions in their own company, **0** in a foreign one. |
+| F-2 | Fixed | `gridex_get_user_permissions` checks company, `status` and membership; a company-scoped role no longer grants platform-wide. `gridex_get_user_permissions_in_company` / `gridex_has_permission_in_company` added for policy use. Three redundant global `company_admin` rows repaired (verified identical permission sets to the users' `owner` role, so no access lost). |
+| F-3 | Corrected, then fixed | The original reading was wrong. All 21 752 untenanted rows are `market_price.*` / `energy_geodata.*` — platform-wide by nature; every tenant event type was already fully attributed. `event_scope` now makes the distinction explicit, coupled to `company_id` by a check constraint. |
+| F-4 | Fixed | `platform_inbound_quarantine` gives unresolvable inbound mail an owned queue. The 22 stranded messages are enrolled. Root cause recorded: the mailboxes themselves carry no company. |
+| F-5 | Fixed / declared | `customer_operation_tasks` backfilled (0 NULL left). The rest are declared `mixed` with what NULL means written down and enforced. |
+| F-6 | Fixed | `platform_table_classification` covers all 501 tables; `scripts/tenant-isolation-invariants.sql` (`npm run tenant:invariants`) fails the build on any breach. Passes against the live schema. |
+| F-7 | Fixed | `isPlatformAdmin` read from the database, never from role names. Trigger `gridex_user_roles_scope_consistent` forbids both a company-scoped platform role and a global company role. |
+| F-8 | Fixed | `UNIQUE (company_id, customer_number)`. Proven: two tenants allocate the same customer number; a duplicate inside one tenant is still rejected. |
+| F-9 | Upgraded, then fixed | Reclassified from latent to **confirmed cross-tenant write**: `setOwnElectricitySupplier` cleared `is_own_supplier` on every row in the database, reachable by any tenant admin with `switching.write`. Both it and the resolver are company-scoped, the hardcoded "Gridex" fallback is gone, and one own-supplier row per tenant is enforced. |
+| F-10 | Fixed | `UNIQUE (company_id, metering_point_id)` and the same for `meter_point_id` / `ediel_reference`. Proven in a rolled-back transaction: two tenants hold the same national metering point. |
+| F-11 | Fixed | `UNIQUE (company_id, content_sha256)`. |
+| F-12 | Fixed | Composite customer keys extended from 22 to **94 of 99** tables. Also surfaced a defect the audit missed: 26 tenant tables carried `customer_id` with no foreign key at all, and two held dangling ids to deleted customers (32 rows). Those two get the key `NOT VALID`. |
+| F-13 | Fixed | All 160 views run as invoker. |
+| F-14 | Fixed | 2 761 policies targeting roles that cannot reach their table removed, verified inert first. |
+| F-15 | Contained | `lib/supabase/tenantDb.ts` gives new code a wrapper where the company predicate cannot be forgotten. `npm run tenant:service-role-ratchet` freezes the count at 2 401 call sites across 451 files — it may fall, never rise. |
+
+## Verification
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | pass |
+| `npx vitest run` | 169 files / 1066 tests pass (8 new) |
+| `npm run db:migrations:integrity` | pass — 558 files, 462 version groups |
+| `npm run tenant:invariants` (live schema) | all checks pass |
+| `npm run tenant:service-role-ratchet` | 2401 call sites, at baseline |
+| `eslint` on changed files | clean |
+
+## Still open
+
+- **F-15 proper.** The destination is a database role without `BYPASSRLS` so the
+  policies do the enforcing. The ratchet holds the line meanwhile; it does not fix
+  the 2 401 existing call sites.
+- **Two `NOT VALID` keys** on `ediel_message_intents` and `route_decision_logs`,
+  pending a decision from whoever owns that log data about the 32 orphan rows.
+- **Inbound mailboxes carry no company.** The quarantine makes the backlog
+  visible, but assigning the 22 messages and binding the mailboxes to tenants is a
+  product decision, not one to guess.
+- **Production parity** remains unverified: no production Supabase project is
+  visible to this session. Everything here is verified against `gridex-ops-dev`.
+- **Per-message EDIEL business semantics** (Z03/Z04/APERAK field and state level)
+  were never in scope for this work.

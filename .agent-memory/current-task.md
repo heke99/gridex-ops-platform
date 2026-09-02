@@ -1,18 +1,26 @@
 # Current task
 
-Updated: 2026-08-25
+Updated: 2026-09-02
 
-Status: `IMPLEMENTED_NOT_VERIFIED`
+Status: `VERIFIED`
 
-Active work item: improve Gridex OPS runtime performance without changing tenant isolation, RBAC/RLS, pricing, customer/site ownership, EDIEL/supplier-switch behavior, legal evidence, API contracts, or write semantics.
+Active work item: remediate the tenant-isolation and multi-tenant consistency
+findings from the 2026-09-02 audit.
 
-## Current batch
+## Completed batch
 
-1. Install and lock the focused performance skill set.
-2. Deduplicate the dashboard's repeated server-verified `auth.getUser()` lookup with request-scoped React cache.
-3. Start the independent platform-role and operational-company-scope reads in parallel after verified authentication.
-4. Keep `/dashboard`, `/admin`, `/portal`, and other authenticated surfaces dynamic.
+1. Tenant-scoped unique business keys (F-8, F-9, F-10, F-11).
+2. Company-scoped permission engine, one path (F-1, F-2, F-7).
+3. Explicit tenant scope plus an owned inbound quarantine (F-3, F-4, F-5).
+4. View hardening and removal of inert policies (F-13, F-14).
+5. Table classification and the invariant gate (F-6).
+6. Composite customer keys on 94 of 99 tables (F-12).
+7. Service-role wrapper and ratchet (F-15, contained not closed).
 
 ## Exact next action
 
-Run the branch through targeted regression, typecheck, full Vitest, production build, existing performance/N+1/bundle guards, and Vercel preview. Keep only verified improvements; do not merge until explicitly requested.
+Decide the two open product questions before production promotion: the 32 orphan
+rows behind the `NOT VALID` keys on `ediel_message_intents` and
+`route_decision_logs`, and the tenant assignment for the 22 quarantined inbound
+messages plus the two mailboxes that carry no company. Then plan the move off
+`service_role` for request traffic (F-15 proper).
