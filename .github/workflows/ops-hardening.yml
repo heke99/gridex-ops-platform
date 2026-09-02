@@ -17,6 +17,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      # F-15: service_role bypasses RLS, so every direct call site carries tenant
+      # isolation on its own. The count may fall but never rise; new tenant-scoped
+      # queries use tenantDb(companyId) from lib/supabase/tenantDb.
+      - run: npm run tenant:service-role-ratchet
       - run: npm run gridex:contract-channel-publication-regression
       - run: node scripts/check-agent-memory-git-state.cjs
       - run: node scripts/gridex-aud-003-migration-provenance-regression.cjs

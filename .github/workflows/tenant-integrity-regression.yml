@@ -16,6 +16,13 @@ on:
       - 'app/admin/system/tenant-integrity/**'
       - 'scripts/gridex-tenant-integrity-regression.cjs'
       - 'scripts/gridex-tenant-shutdown-regression.cjs'
+      - 'lib/supabase/service.ts'
+      - 'lib/supabase/tenantDb.ts'
+      - 'lib/admin/guards.ts'
+      - 'lib/admin/apiGuards.ts'
+      - 'scripts/check-service-role-tenant-ratchet.cjs'
+      - 'scripts/service-role-tenant-ratchet.json'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
       - '.github/workflows/tenant-integrity-regression.yml'
   push:
     branches: [main]
@@ -33,6 +40,13 @@ on:
       - 'app/admin/system/tenant-integrity/**'
       - 'scripts/gridex-tenant-integrity-regression.cjs'
       - 'scripts/gridex-tenant-shutdown-regression.cjs'
+      - 'lib/supabase/service.ts'
+      - 'lib/supabase/tenantDb.ts'
+      - 'lib/admin/guards.ts'
+      - 'lib/admin/apiGuards.ts'
+      - 'scripts/check-service-role-tenant-ratchet.cjs'
+      - 'scripts/service-role-tenant-ratchet.json'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
       - '.github/workflows/tenant-integrity-regression.yml'
 
 permissions:
@@ -48,3 +62,8 @@ jobs:
         run: node scripts/gridex-tenant-integrity-regression.cjs
       - name: Verify tenant shutdown contracts
         run: node scripts/gridex-tenant-shutdown-regression.cjs
+      # F-15: service_role bypasses RLS, so every direct call site carries tenant
+      # isolation on its own. The count may fall but never rise; new tenant-scoped
+      # queries use tenantDb(companyId) from lib/supabase/tenantDb.
+      - name: Service-role tenant ratchet
+        run: node scripts/check-service-role-tenant-ratchet.cjs

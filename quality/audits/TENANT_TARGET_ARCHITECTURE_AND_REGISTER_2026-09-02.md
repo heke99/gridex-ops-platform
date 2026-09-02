@@ -236,7 +236,7 @@ migrations applied and verified against `gridex-ops-dev`; no schema was rewritte
 
 - **F-15 proper.** The destination is a database role without `BYPASSRLS` so the
   policies do the enforcing. The ratchet holds the line meanwhile; it does not fix
-  the 2 401 existing call sites.
+  the 2 402 existing call sites.
 - **Two `NOT VALID` keys** on `ediel_message_intents` and `route_decision_logs`,
   pending a decision from whoever owns that log data about the 32 orphan rows.
 - **Inbound mailboxes carry no company.** The quarantine makes the backlog
@@ -297,3 +297,31 @@ environment's data.
 Three previously open items closed as a result: zero orphan rows, so both
 `NOT VALID` foreign keys are now validated; zero unresolved quarantine entries.
 The tenant invariant gate passes.
+
+
+---
+
+# Gates wired into CI — 2026-09-02
+
+Both gates were only runnable by hand, which meant nothing stopped the invariants
+from eroding again. They now run automatically.
+
+| Gate | Where | Trigger |
+|---|---|---|
+| `tenant:service-role-ratchet` | `ops-hardening.yml` | every pull request and push to main |
+| `tenant:service-role-ratchet` | `tenant-integrity-regression.yml` | tenant-related paths, for earlier feedback |
+| `tenant:invariants` | `tenant-isolation-invariants.yml` | manual dispatch with confirmation, `workflow_call`, and a weekly drift check |
+
+The SQL gate needs a live schema, so it follows the shape already established by
+`canonical-quote-db-release-gate.yml`: an explicit confirmation string, the
+`production-e2e` environment and the `GRIDEX_OPS_DATABASE_URL` secret. It moved to
+`scripts/sql/` to match the other database gates.
+
+`tenant-integrity-regression.yml` now also watches `lib/supabase/service.ts`,
+`lib/supabase/tenantDb.ts`, `lib/admin/guards.ts`, `lib/admin/apiGuards.ts` and
+the gate files themselves.
+
+Verified by adding a throwaway file with one `supabaseService.from(` call: the
+ratchet reported 2403 against a baseline of 2402 and exited 1; removing the file
+returned it to 0. Migration integrity passes and 169 test files / 1066 tests pass
+with the gates in place.

@@ -290,7 +290,7 @@
     "gridex:post-108-health-residuals-regression": "node scripts/gridex-ops-post-108-health-residuals-regression.cjs",
     "gridex:post-332-field-511-health-residuals-regression": "node scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs",
     "test:coverage": "vitest run --coverage",
-    "tenant:invariants": "node scripts/run-tenant-sql.mjs scripts/tenant-isolation-invariants.sql",
+    "tenant:invariants": "node scripts/run-tenant-sql.mjs scripts/sql/tenant-isolation-invariants.sql",
     "tenant:service-role-ratchet": "node scripts/check-service-role-tenant-ratchet.cjs"
   },
   "dependencies": {
