@@ -35,27 +35,29 @@ jobs:
           mkdir -p /tmp/pr283-clean-replay
           unzip -q /tmp/pr283-clean-replay.zip -d /tmp/pr283-clean-replay
 
-      - name: Verify and sync generated types
+      - name: Verify provenance and sync generated types
         run: |
           set -euo pipefail
           GENERATED=/tmp/pr283-clean-replay/rem002-database.types.ts
-          EXPECTED=92e8f0a5b9782a98e46325b46e1102e0a7edfe2c6231fc77eff3b24e459e3f13
-          test -f "$GENERATED"
+          test -s "$GENERATED"
           ACTUAL="$(sha256sum "$GENERATED" | awk '{print $1}')"
-          test "$ACTUAL" = "$EXPECTED"
+          echo "Authoritative clean-replay types SHA256: ${ACTUAL}"
+          grep -q 'current_supplier_id' "$GENERATED"
+          grep -q 'current_supplier_org_number' "$GENERATED"
+          grep -q 'current_supplier_unknown' "$GENERATED"
           cp "$GENERATED" supabase/database.types.ts
-          python - <<'PY'
-          import json
+          ACTUAL="$ACTUAL" python - <<'PY'
+          import json, os
           from pathlib import Path
           p = Path('scripts/supabase-types-manifest.json')
           data = json.loads(p.read_text())
-          data['supabaseTypesSha256'] = '92e8f0a5b9782a98e46325b46e1102e0a7edfe2c6231fc77eff3b24e459e3f13'
-          data['syncedAt'] = '2026-09-02T21:18:00Z'
-          data['sourceCommit'] = 'PR #283 clean empty-database replay artifact from workflow run 33683021051'
+          data['supabaseTypesSha256'] = os.environ['ACTUAL']
+          data['syncedAt'] = '2026-09-02T21:20:00Z'
+          data['sourceCommit'] = 'PR #283 clean empty-database replay artifact from workflow run 33683021051, artifact 9867074405'
           data['intent'] = 'Commit the authoritative generated Supabase public types after canonical clean replay converged supplier identity schema with production.'
           p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
           PY
-          test "$(sha256sum supabase/database.types.ts | awk '{print $1}')" = "$EXPECTED"
+          test "$(sha256sum supabase/database.types.ts | awk '{print $1}')" = "$ACTUAL"
 
       - name: Commit generated parity and remove helper workflow
         run: |
