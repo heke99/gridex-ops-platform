@@ -1,6 +1,5 @@
 // lib/ediel/flows/shared.ts
 
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
@@ -300,6 +299,16 @@ export async function queuePreparedEdielMessage(params: {
   }
 }
 
+/**
+ * EDIEL domain flows are server-only and are authorized by their caller before
+ * entering the domain layer. They must not inherit a request-cookie/anon client:
+ * scheduled workers have no user session and would otherwise fail masterdata
+ * reads (for example grid_owners) even though the operation itself is valid.
+ *
+ * Use the service client here while retaining explicit company/actor scoping in
+ * every flow and actorUserId for audit provenance. This keeps cron, replay and
+ * interactive admin execution on the same deterministic database contract.
+ */
 export async function makeServerClient() {
-  return createSupabaseServerClient()
+  return supabaseService
 }
