@@ -130,12 +130,11 @@ async function ensureCompanyOwnedSupplier(
     throw new Error('Leverantören tillhör ett annat bolag och kan inte markeras som den egna.')
   }
 
-  const {
-    id: _ignoredId,
-    created_at: _ignoredCreatedAt,
-    updated_at: _ignoredUpdatedAt,
-    ...shared
-  } = row as ElectricitySupplierRow & Record<string, unknown>
+  const shared: Record<string, unknown> = { ...(row as Record<string, unknown>) }
+  // the clone is a new row in this company, so it takes fresh identity and stamps
+  delete shared.id
+  delete shared.created_at
+  delete shared.updated_at
 
   const clone = await supabase
     .from('electricity_suppliers')
