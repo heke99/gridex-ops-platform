@@ -5,5 +5,9 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "22d5ce450bd53f9333236ce69862e2fb03d7e94f08c27381139fd01880f1bc19",
   "latest_migration": "20260902221500_facility_initial_address_and_unknown_supplier_semantics.sql",
-  "latest_migration_schema_effect": "customer_site_schema_replay_convergence_and_runtime_trigger_semantics_no_expected_public_type_delta"
+  "latest_migration_schema_effect": "customer_site_schema_replay_convergence_and_runtime_trigger_semantics_no_expected_public_type_delta",
+  "supabaseTypesSha256": "92e8b0b7589fb33f1dcb2f6584beaeb1dbbaac9496a49fabb60cad1ec8114fd1",
+  "syncedAt": "2026-09-02T21:20:00Z",
+  "sourceCommit": "PR #283 clean empty-database replay artifact from workflow run 33683021051, artifact 9867074405",
+  "intent": "Commit the authoritative generated Supabase public types after canonical clean replay converged supplier identity schema with production."
 }

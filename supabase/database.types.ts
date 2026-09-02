@@ -26889,8 +26889,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           current_supplier_ediel_id: string | null
+          current_supplier_id: string | null
           current_supplier_name: string | null
           current_supplier_org_number: string | null
+          current_supplier_unknown: boolean
           customer_id: string | null
           customer_number: string | null
           customer_site_id: string | null
@@ -26970,8 +26972,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           current_supplier_ediel_id?: string | null
+          current_supplier_id?: string | null
           current_supplier_name?: string | null
           current_supplier_org_number?: string | null
+          current_supplier_unknown?: boolean
           customer_id?: string | null
           customer_number?: string | null
           customer_site_id?: string | null
@@ -27051,8 +27055,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           current_supplier_ediel_id?: string | null
+          current_supplier_id?: string | null
           current_supplier_name?: string | null
           current_supplier_org_number?: string | null
+          current_supplier_unknown?: boolean
           customer_id?: string | null
           customer_number?: string | null
           customer_site_id?: string | null
