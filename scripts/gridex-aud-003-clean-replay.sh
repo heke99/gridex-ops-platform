@@ -22,6 +22,8 @@ INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_inbound
 INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256="9c896c658e924b96e3598b0b103ff74fd01ca24e117f7901707cbf3dfb32b64e"
 GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_grid_owner_name_key_replay_prerequisite.sql"
 GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="4cedc24155993c8e61616769ec02b712542d69cf5cd91d3aafe4fe016345316d"
+WHITE_LABEL_HYGIENE_REPLAY_SHIM="$SUPABASE/bootstrap/20260902_white_label_admin_membership_hygiene_replay_shim.sql"
+WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256="73db4904c17a721b756dfa56efc4e38005f46ea8d1e40d6d05f2367ce44ccf38"
 EXPECTED_FINGERPRINT="a594bb02a06a96d6b1ba3d8233c066a7cae57c1984ca96272515d6498a514164"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
@@ -43,7 +45,7 @@ trap cleanup EXIT
 command -v supabase >/dev/null
 command -v psql >/dev/null
 command -v python3 >/dev/null
-for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE"; do
+for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
   test -f "$required" || { echo "missing replay provenance input: $required" >&2; exit 1; }
 done
 ACTUAL_POA_LIVE_PREREQUISITE_SHA256="$(sha256sum "$POA_LIVE_PREREQUISITE" | awk '{print $1}')"
@@ -64,6 +66,11 @@ fi
 ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="$(sha256sum "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" | awk '{print $1}')"
 if [[ "$ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" != "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" ]]; then
   echo "verified grid-owner name-key replay prerequisite checksum drift: $ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256 != $GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
+ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256="$(sha256sum "$WHITE_LABEL_HYGIENE_REPLAY_SHIM" | awk '{print $1}')"
+if [[ "$ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" != "$WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" ]]; then
+  echo "verified white-label hygiene replay shim checksum drift: $ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256 != $WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" >&2
   exit 1
 fi
 
@@ -88,7 +95,9 @@ rm -f "$MIGRATIONS"/*.sql
 #    20260902096000 tenant-attribution migration carries company ownership down the inbound pipeline;
 # 9) reconstruct only gridex_grid_owner_name_key immediately before 20260902100000 hardens it;
 #    the full canonical 20260902100045 source still replays later and remains authoritative;
-# 10) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
+# 10) when canonical clean replay intentionally lacks white_label_platform_memberships, create a
+#    fail-closed helper only while 20260902100500 applies privilege hygiene, then remove that shim;
+# 11) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
 python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HISTORY_RUNTIME_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
@@ -261,6 +270,8 @@ poa_live_prerequisite_applied=false
 inbound_dedupe_replay_prerequisite_applied=false
 inbound_ediel_pipeline_replay_prerequisite_applied=false
 grid_owner_name_key_replay_prerequisite_applied=false
+white_label_hygiene_boundary_reached=false
+white_label_hygiene_replay_shim_applied=false
 while IFS= read -r file; do
   if [[ "$(basename "$file")" == 20260824140830_* ]]; then
     apply_sql "$POA_LIVE_PREREQUISITE"
@@ -278,6 +289,18 @@ while IFS= read -r file; do
     apply_sql "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE"
     grid_owner_name_key_replay_prerequisite_applied=true
   fi
+  if [[ "$(basename "$file")" == 20260902100500_* ]]; then
+    white_label_hygiene_boundary_reached=true
+    if [[ "$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -c "select case when to_regclass('public.white_label_platform_memberships') is null and to_regprocedure('public.gridex_user_has_white_label_admin_membership(uuid)') is null then 'yes' else 'no' end")" == "yes" ]]; then
+      apply_sql "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"
+      white_label_hygiene_replay_shim_applied=true
+    fi
+    apply_sql "$file"
+    if [[ "$white_label_hygiene_replay_shim_applied" == true ]]; then
+      psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "drop function if exists public.gridex_user_has_white_label_admin_membership(uuid);"
+    fi
+    continue
+  fi
   apply_sql "$file"
 done < "$TIMESTAMP_EXEC"
 if [[ "$poa_live_prerequisite_applied" != true ]]; then
@@ -294,6 +317,10 @@ if [[ "$inbound_ediel_pipeline_replay_prerequisite_applied" != true ]]; then
 fi
 if [[ "$grid_owner_name_key_replay_prerequisite_applied" != true ]]; then
   echo "verified grid-owner name-key replay prerequisite boundary was not reached before 20260902100000" >&2
+  exit 1
+fi
+if [[ "$white_label_hygiene_boundary_reached" != true ]]; then
+  echo "verified white-label hygiene replay boundary was not reached at 20260902100500" >&2
   exit 1
 fi
 
