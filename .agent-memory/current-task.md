@@ -21,7 +21,8 @@ findings from the 2026-09-02 audit.
 
 Reconcile the repository against the database before anything else (N-2), then
 apply `20260824190000_gridex_inbound_operations_foundation.sql` to restore manual
-inbound ingestion (N-1). After that, the two open product questions remain: the
-32 orphan rows behind the `NOT VALID` keys on `ediel_message_intents` and
-`route_decision_logs`, and the two inbound mailboxes that carry no company. Then
-plan the move off `service_role` for request traffic (F-15 proper).
+inbound ingestion (N-1). The composite-key orphans are resolved -- no `NOT VALID`
+foreign key remains and a 451-key scan found no cross-tenant row -- so what is
+left of the product questions is the two inbound mailboxes that carry no company.
+Then type the Supabase client (N-7) and plan the move off `service_role` for
+request traffic (F-15 proper).

@@ -157,7 +157,83 @@ external write surface.
 
 ---
 
-## 5. What was not covered
+---
+
+## 5. Second pass — systematic drift sweeps
+
+The first pass found `inbound_operation_events` by hand. The obvious question is
+whether it is one of many. These sweeps answer that.
+
+### What came back clean
+
+| Sweep | Coverage | Result |
+|---|---|---|
+| RPC argument names | all 110 `.rpc(name, {…})` call sites in `app/` and `lib/`, matched against `pg_proc.proargnames` including overloads | **0 mismatches.** Every call's named arguments are a subset of some real overload. |
+| Column references | 191 relations, every literal `.select('a,b,c')` list | **0 missing columns.** |
+| Cross-tenant rows | 451 single-column foreign keys where both child and parent carry `company_id` | **0 rows** where the child's tenant differs from the parent's. |
+| `NOT VALID` foreign keys | whole database | **none.** |
+
+The third row is the direct answer to "is every customer consistent": across the
+whole graph — customer, site, metering point, contract, supply period, underlay,
+pricing run, invoice — no row references a parent belonging to another tenant.
+
+The fourth row also closes a stale entry: `current-task.md` recorded 32 orphan
+rows blocking the composite keys on `ediel_message_intents` and
+`route_decision_logs`. Both constraints are now present and validated; the data
+cleanup removed the orphans.
+
+Caveat on coverage: the column sweep skips `select()` lists containing PostgREST
+embeds or template literals, so it is a strong sample rather than a proof.
+
+### N-7 — The Supabase client is untyped, so nothing checks any of this at build time. Medium.
+
+`lib/supabase/service.ts:6` calls `createClient(url, serviceRoleKey, …)` with no
+`Database` type parameter. Without it, `.from()`, `.select()` and `.rpc()` accept
+any string. `npm run typecheck` therefore cannot fail on a table that does not
+exist, a column that was renamed, or an RPC argument that was dropped.
+
+This is the structural reason N-1 shipped: the code was correct against the
+repository's migrations and wrong against the database, and no gate compared the
+two. The sweeps above are that comparison run by hand; generating
+`Database` types from the live schema and passing them to `createClient` would
+make the compiler run it on every build.
+
+### N-8 — The billing webhook resolves a tenant on a column with no uniqueness. Medium.
+
+`lib/billing/providerWebhooks.ts:76` derives the tenant for an inbound provider
+webhook by looking up `invoice_export_items` on `(provider, provider_invoice_guid)`.
+`provider_invoice_guid` carries **no unique index** — not globally, and not per
+company. The four unique indexes on that table cover `idempotency_key`,
+`provider_request_id`, `provider_idempotency_key` and `provider_invoice_id`.
+
+The code compensates: it selects with `limit(3)` and rejects anything other than
+exactly one match, so it fails closed and never attributes a webhook to the wrong
+tenant. That is the right behaviour and this is not an isolation defect. But
+nothing prevents two rows sharing a guid — including two rows in the *same*
+company — and when that happens the webhook returns 500 for every delivery, with
+the provider retrying into the same failure. The tenant-resolution key should
+carry the constraint the code already assumes.
+
+### N-9 — 66 writes to tenant tables carry no tenant predicate. Low, defence in depth.
+
+Across `app/` and `lib/`, 66 `.update()` or `.delete()` calls on tables classified
+`tenant` filter by id alone. Every one examined is safe by derivation — either it
+sits behind `requirePlatformAdminActionAccess` on a deliberately cross-tenant
+platform surface, or it updates a row id that came from an earlier tenant-scoped
+read (`app/api/admin/customer-documents/relations/route.ts` is the pattern: it
+calls `loadCustomerTenantContext` first, then queries by `customer_id` alone,
+which the composite foreign keys make sufficient).
+
+So this is not an exploitable hole. It is that the guarantee rests on each call
+site's history rather than on the call itself, and `service_role` holds
+`BYPASSRLS`, so the database will not catch a mistake. `lib/supabase/tenantDb.ts`
+exists to make the predicate structural; these are the call sites it has not
+reached.
+
+(The same sweep found 203 unscoped *reads*; only one is in a request-handling
+route, and it is the guarded pattern described above.)
+
+## 6. What was not covered
 
 - Per-message EDIEL business semantics.
 - Whether the development database reflects production. No production project

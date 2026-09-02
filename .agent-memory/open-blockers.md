@@ -15,4 +15,12 @@ Updated: 2026-09-02
    lineages: 564 files against 258 recorded migrations, 136 versions in common.
    Until that is reconciled, a passing `db:migrations:integrity` says nothing
    about what the database actually contains. N-2 in the same audit.
+7. The Supabase client is constructed without a `Database` type parameter
+   (`lib/supabase/service.ts:6`), so `typecheck` validates no table, column or
+   RPC argument. Sweeps in the audit found no drift beyond blocker 5, but the
+   gate is manual. N-7.
+8. `invoice_export_items.provider_invoice_guid` has no unique index, and the
+   billing provider webhook resolves the tenant on it. It fails closed on a
+   collision, so it is not an isolation defect, but a duplicate guid takes the
+   webhook down for that tenant. N-8.
 
