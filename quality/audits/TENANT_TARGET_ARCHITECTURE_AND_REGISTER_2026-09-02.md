@@ -246,3 +246,54 @@ migrations applied and verified against `gridex-ops-dev`; no schema was rewritte
   visible to this session. Everything here is verified against `gridex-ops-dev`.
 - **Per-message EDIEL business semantics** (Z03/Z04/APERAK field and state level)
   were never in scope for this work.
+
+---
+
+# Data cleanup — 2026-09-02 (dev)
+
+Requested scope: keep Gridex El AB, Nibela AB and Test bolag; keep customers
+Mirvat and Hafez HOURANI; remove everything else as residue from incomplete
+deletions. Confirmed with the requester that tenant configuration is kept — the
+alternative reading would have removed 18 252 configuration rows including Gridex
+El AB's EDIEL identity 21660.
+
+## Before deleting: the quarantined inbound was not residue
+
+The 22 messages parked in `platform_inbound_quarantine` turned out to be real
+EDIEL traffic — UTILTS, APERAK and CONTRL from sender 91100, addressed to
+receiver 21660, which `ediel_actor_settings` confirms is Gridex El AB's active
+production supplier id, plus one to 92825, its test id. They had no tenant only
+because the mailbox carries no company, so the resolver never bound them.
+
+Migration `attribute_quarantined_inbound_by_receiver_ediel_id` derives the
+receiver from the interchange header and matches it against `ediel_actor_settings`,
+assigning a company only where exactly one owns that id. 20 messages were
+attributed to Gridex El AB and their parse results, attachments and processing
+jobs followed. Deleting them as "old data" would have destroyed live market
+messages.
+
+## Removed
+
+| What | Rows |
+|---|---|
+| Green Hero Energy AB (already flagged `deleted_test_only`) and all its data | 150 across 27 tables |
+| Customer "Test Fakturakund" (`is_test_data = true`) and its full graph | contract, site, metering point, invoice, supply period, acceptances, domain events |
+| Inbound shells with no sender, subject, payload or timestamp | 2 |
+| Rows referencing customers that no longer existed | 32 (`ediel_message_intents` 3, `route_decision_logs` 29) |
+
+Append-only guard triggers were disabled for the duration and restored in the
+same transaction. This is dev-data cleanup, deliberately not written as a
+migration: the same repair in another environment must be re-derived from that
+environment's data.
+
+## After
+
+| Company | Customers | Sites | Contracts | Inbound mail | EDIEL identities |
+|---|---|---|---|---|---|
+| Gridex El AB | 2 (Mirvat, Hafez HOURANI) | 2 | 2 | 42 | 4 |
+| Nibela AB | 0 | 0 | 0 | 0 | 0 |
+| Test bolag | 0 | 0 | 0 | 0 | 0 |
+
+Three previously open items closed as a result: zero orphan rows, so both
+`NOT VALID` foreign keys are now validated; zero unresolved quarantine entries.
+The tenant invariant gate passes.
