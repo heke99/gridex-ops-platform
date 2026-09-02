@@ -27,6 +27,7 @@ import {
 } from "@/lib/ediel/certificationEvidence";
 import { TenantWebsiteGoLivePanel } from "@/components/admin/go-live/TenantWebsiteGoLivePanel";
 import { CertificationEvidencePanel } from "@/components/admin/go-live/CertificationEvidencePanel";
+import { approveCompanyProductionAction } from "@/app/admin/platform/go-live/approval-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -118,38 +119,38 @@ export default async function PlatformGoLiveCompanyPage({
     <div className="min-h-screen">
       <AdminHeader
         title={`Produktionssättning · ${summary.company.name}`}
-        subtitle="Ett repeterbart superadmin-flöde: bolagssäkerhet och lifecycle, production-evidens, dry run, aktivering, därefter webb/Mina sidor och kundflöde."
+        subtitle="Normalvägen är en enda superadmin-åtgärd: systemet kör aktuell readiness, production dry run och live-aktivering automatiskt. Detaljstegen finns kvar för felsökning och revision."
         userEmail={admin.email}
         workspaceMode="platform"
       />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">
-            Repeterbart go-live-flöde
+            Enkel production approval
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">1. Bolaget är säkert</div>
+              <div className="text-sm font-black text-slate-950">1. Kontrollera bolaget</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Aktivt bolag, rätt roller, bolagsseparerad åtkomst och verifierade lifecycle-regler för pause, suspend och archive.
+                Aktiv tenant, rätt production-actor, BRP, routes, mailbox och giltig certifiering/evidens kontrolleras från aktuella masterdata.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">2. Bevis + dry run</div>
+              <div className="text-sm font-black text-slate-950">2. Kör dry run</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Verklig certifiering/pilot, Ediel-routes, transport och dry run måste passera utan genvägar.
+                Systemet skapar en aktuell production dry run utan att skicka något Ediel-meddelande.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">3. Sätt bolaget live</div>
+              <div className="text-sm font-black text-slate-950">3. Godkänn production</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                Production aktiveras först när backend-gaten är grön. Ingen UI-status får kringgå readiness.
+                Om allt passerar sätts canonical production live och send-lock låses upp i samma auditerade flöde.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-950">4. Webb & kundflöde</div>
+              <div className="text-sm font-black text-slate-950">4. Kundintag är separat</div>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                API-klient, origins, kundportal, mail och automation verifieras efter live. Nya elavtal kräver live-status även vid runtime.
+                Hemsidan kan ta emot giltiga avtal när webb/avtalsreadiness är klar. Ett tillfälligt Ediel send-lock stoppar bara själva marknadsutskicket, inte tenantens försäljning.
               </p>
             </div>
           </div>
@@ -175,6 +176,7 @@ export default async function PlatformGoLiveCompanyPage({
             Ediel routes
           </Link>
         </div>
+
         {notice?.message ? (
           <div
             className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === "live" || notice.status === "prepared" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : notice.status === "blocked" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-900"}`}
@@ -182,6 +184,33 @@ export default async function PlatformGoLiveCompanyPage({
             {notice.message}
           </div>
         ) : null}
+
+        <section className="rounded-3xl border border-emerald-300 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-5">
+            <div className="max-w-3xl">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Primär åtgärd</p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950">Kontrollera & godkänn bolaget</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                Ett klick kör ny readiness, ny production dry run och canonical live-aktivering. Om bolaget aldrig har haft sin första live-send godkänd ingår även det i samma explicita superadmin-godkännande. Vid en blockerare ändras ingen production-state och orsaken visas direkt.
+              </p>
+              {readiness ? (
+                <p className="mt-3 text-xs font-bold text-slate-600">
+                  Nuvarande readiness: {readiness.status} · {readiness.score}% · {readiness.blockingIssues.length} blockerare.
+                </p>
+              ) : null}
+            </div>
+            <form action={approveCompanyProductionAction}>
+              <input type="hidden" name="company_id" value={companyId} />
+              <input type="hidden" name="redirect_to" value={`/admin/platform/go-live/${companyId}`} />
+              <button
+                disabled={!readinessLoad.ok}
+                className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                Kontrollera & godkänn production
+              </button>
+            </form>
+          </div>
+        </section>
 
         <ActorCompanyIdentityCard summary={summary} />
 
