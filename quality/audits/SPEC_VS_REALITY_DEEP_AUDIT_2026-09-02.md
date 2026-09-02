@@ -233,6 +233,41 @@ reached.
 (The same sweep found 203 unscoped *reads*; only one is in a request-handling
 route, and it is the guarded pattern described above.)
 
+### N-10 — The generated-types gate compares a hash, not a schema, and is red. Confirmed, medium.
+
+`scripts/check-supabase-generated-types.cjs` asserts three things: that
+`supabase/database.types.ts` still hashes to the value in
+`scripts/supabase-types-manifest.json`, that the newest migration *filename*
+matches the manifest, and that two specific fields are nullable. It never
+connects to a database. A types file regenerated from the wrong project passes as
+long as the manifest is updated alongside it.
+
+It is currently failing, and therefore so is `db:migrations:check` and the CI job
+that calls it:
+
+```
+- migration tail changed (20260902100500_close_remaining_advisor_hygiene.sql);
+  regenerate Supabase types and update the manifest
+```
+
+This is not new to this branch. The manifest records
+`20260901084000_harden_gridex_point_to_grid_area_search_path.sql` as the tail,
+while the repository tail was already `20260902094600_fix_canonical_transition_request_hash_rewrite.sql`
+before the first migration on this branch. Main is red today.
+
+The types file is also stale in the way that matters: it declares
+`inbound_operation_events` and `customer_profiles`, and neither exists in the
+database — 545 typed relations against 661 in `gridex-ops-dev`.
+
+One detail is worth keeping: the manifest's `generated_with` reads
+`supabase-cli-2.101.0-clean-replay`. The correct procedure — replay the
+repository into a clean database, generate types from that — was already
+performed once. Its output was used for types and then discarded instead of being
+diffed against the database it describes. `REMEDIATION_PLAN_2026-09-02.md` PR 1
+turns that one-off into the standing artifact.
+
+
+
 ## 6. What was not covered
 
 - Per-message EDIEL business semantics.

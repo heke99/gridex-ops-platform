@@ -23,4 +23,12 @@ Updated: 2026-09-02
    billing provider webhook resolves the tenant on it. It fails closed on a
    collision, so it is not an isolation defect, but a duplicate guid takes the
    webhook down for that tenant. N-8.
+9. `db:migrations:check` is red on main: `db:types:check` fails because
+   `scripts/supabase-types-manifest.json` records an older migration tail than
+   the repository has. It predates this branch. Fixing it properly needs a clean
+   replay to regenerate types from; see `quality/audits/REMEDIATION_PLAN_2026-09-02.md`
+   PR 1. N-10.
+10. A clean replay of `supabase/migrations/` cannot run in this session: one
+    migration requires PostGIS, which is not among the extensions available here.
+    It needs the `supabase/postgres` image in CI.
 
