@@ -18,6 +18,8 @@ POA_LIVE_PREREQUISITE="$SUPABASE/bootstrap/20260824_powers_of_attorney_legal_bun
 POA_LIVE_PREREQUISITE_SHA256="57a0d0ec161d53ec4c938af7621dac4d23d9cd7c867a32129ee9868f0589e753"
 INBOUND_DEDUPE_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_inbound_email_dedupe_replay_prerequisite.sql"
 INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256="f41a8afa81c8e8327e89ae6a1a6c57b22d3bc9d0b94ea3af8891fa0cecb23f2a"
+GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_grid_owner_name_key_replay_prerequisite.sql"
+GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="4cedc24155993c8e61616769ec02b712542d69cf5cd91d3aafe4fe016345316d"
 EXPECTED_FINGERPRINT="a594bb02a06a96d6b1ba3d8233c066a7cae57c1984ca96272515d6498a514164"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
@@ -39,7 +41,7 @@ trap cleanup EXIT
 command -v supabase >/dev/null
 command -v psql >/dev/null
 command -v python3 >/dev/null
-for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE"; do
+for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE"; do
   test -f "$required" || { echo "missing replay provenance input: $required" >&2; exit 1; }
 done
 ACTUAL_POA_LIVE_PREREQUISITE_SHA256="$(sha256sum "$POA_LIVE_PREREQUISITE" | awk '{print $1}')"
@@ -50,6 +52,11 @@ fi
 ACTUAL_INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256="$(sha256sum "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" | awk '{print $1}')"
 if [[ "$ACTUAL_INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256" != "$INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256" ]]; then
   echo "verified inbound dedupe replay prerequisite checksum drift: $ACTUAL_INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256 != $INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
+ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="$(sha256sum "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" | awk '{print $1}')"
+if [[ "$ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" != "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" ]]; then
+  echo "verified grid-owner name-key replay prerequisite checksum drift: $ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256 != $GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" >&2
   exit 1
 fi
 
@@ -70,7 +77,9 @@ rm -f "$MIGRATIONS"/*.sql
 #    the already-applied 20260824140830 migration;
 # 7) reconstruct the checksum-pinned inbound dedupe columns sourced from the historical non-ledger
 #    20260615 migration immediately before 20260902093000 consumes raw_message_sha256;
-# 8) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
+# 8) reconstruct only gridex_grid_owner_name_key immediately before 20260902100000 hardens it;
+#    the full canonical 20260902100045 source still replays later and remains authoritative;
+# 9) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
 python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HISTORY_RUNTIME_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
@@ -241,6 +250,7 @@ apply_sql(){
 while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
 poa_live_prerequisite_applied=false
 inbound_dedupe_replay_prerequisite_applied=false
+grid_owner_name_key_replay_prerequisite_applied=false
 while IFS= read -r file; do
   if [[ "$(basename "$file")" == 20260824140830_* ]]; then
     apply_sql "$POA_LIVE_PREREQUISITE"
@@ -250,6 +260,10 @@ while IFS= read -r file; do
     apply_sql "$INBOUND_DEDUPE_REPLAY_PREREQUISITE"
     inbound_dedupe_replay_prerequisite_applied=true
   fi
+  if [[ "$(basename "$file")" == 20260902100000_* ]]; then
+    apply_sql "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE"
+    grid_owner_name_key_replay_prerequisite_applied=true
+  fi
   apply_sql "$file"
 done < "$TIMESTAMP_EXEC"
 if [[ "$poa_live_prerequisite_applied" != true ]]; then
@@ -258,6 +272,10 @@ if [[ "$poa_live_prerequisite_applied" != true ]]; then
 fi
 if [[ "$inbound_dedupe_replay_prerequisite_applied" != true ]]; then
   echo "verified inbound dedupe replay prerequisite boundary was not reached before 20260902093000" >&2
+  exit 1
+fi
+if [[ "$grid_owner_name_key_replay_prerequisite_applied" != true ]]; then
+  echo "verified grid-owner name-key replay prerequisite boundary was not reached before 20260902100000" >&2
   exit 1
 fi
 
