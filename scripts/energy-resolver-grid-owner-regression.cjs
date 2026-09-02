@@ -2,6 +2,7 @@
 // This script checks that the energy resolver grid owner migration and related code changes are present in the codebase.
 const fs = require('fs')
 
+const aliasRepair = 'supabase/migrations/20260902100045_fix_website_poa_scope_and_grid_owner_aliases.sql'
 const checks = [
   ['supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql', 'platform_grid_owners'],
   ['supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql', 'platform_grid_areas'],
@@ -35,14 +36,20 @@ const checks = [
   ['supabase/migrations/20260824080448_unique_postal_city_provisional_grid_owner.sql', "'purpose', 'facility_information_routing'"],
   ['lib/customer-operations/customerIntakeOrchestrator.ts', 'A safely selected provisional grid owner may therefore be used'],
   ['lib/customer-operations/customerIntakeOrchestrator.ts', 'Canonical grid-owner verification remains mandatory below before any switch starts'],
+  [aliasRepair, 'gridex_grid_owner_name_key', 'SVK trading names are normalized before canonical owner matching'],
+  [aliasRepair, 'candidate_count = 1', 'only an unambiguous canonical grid owner may replace a source alias'],
+  [aliasRepair, 'nullif(btrim(ediel_id)', 'canonical alias targets require an Ediel identity'],
+  [aliasRepair, 'ops_grid_owner_id is not null', 'canonical alias targets must be mapped into OPS'],
+  [aliasRepair, 'create or replace function public.gridex_import_grid_area_master_row', 'future SVK imports reuse canonical actor identities'],
 ]
 
 let ok = true
-for (const [file, needle] of checks) {
+for (const check of checks) {
+  const [file, needle, why] = check
   const content = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
   if (!content.includes(needle)) {
     ok = false
-    console.error(`Missing ${needle} in ${file}`)
+    console.error(`Missing ${needle} in ${file}${why ? ` (${why})` : ''}`)
   }
 }
 
