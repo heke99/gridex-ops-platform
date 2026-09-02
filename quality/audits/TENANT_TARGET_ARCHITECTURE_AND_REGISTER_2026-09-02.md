@@ -325,3 +325,81 @@ Verified by adding a throwaway file with one `supabaseService.from(` call: the
 ratchet reported 2403 against a baseline of 2402 and exited 1; removing the file
 returned it to 0. Migration integrity passes and 169 test files / 1066 tests pass
 with the gates in place.
+
+---
+
+# Second audit pass — 2026-09-02, after running the security advisor
+
+The first pass never ran Supabase's own security advisor. It reported 95 findings.
+Three were real, and two of those were caused or worsened by the remediation
+itself.
+
+## F-16 — SECURITY DEFINER helpers exposed as REST RPC (High)
+
+28 SECURITY DEFINER functions were executable by `authenticated` and 7 by `anon`.
+Most derive everything from `auth.uid()` and are safe. Two are not:
+`gridex_get_user_permissions(p_user_id)` and
+`gridex_get_user_permissions_in_company(p_user_id, p_company_id)` take an
+arbitrary user id and return that user's permission set, so any authenticated
+caller — and for the second, any anonymous caller — could read another user's
+permissions straight off `/rest/v1/rpc`. **The company-scoped one was introduced
+by this remediation.**
+
+Fixed by making `gridex_has_permission` SECURITY DEFINER so the 47 policies that
+use it keep working, then revoking the resolvers from all client roles. Trigger-only
+functions were revoked too, a dead function left behind by the F-7 work was
+dropped, and the mutable `search_path` warnings were pinned.
+
+Verified: `anon`-executable SECURITY DEFINER functions went 7 → 0; advisor
+findings 95 → 82, with the 17 remaining all legitimate policy predicates that
+either derive from `auth.uid()` or return a boolean rather than a data set.
+
+## F-17 — Storage document access checked the permission in the wrong company (High)
+
+`gridex_actor_has_company_permission` backs every storage policy on
+`customer-documents`, which holds powers of attorney and signed agreements. It
+required membership in the target company but then evaluated the permission with
+the company-blind resolver. A user who was finance in company A and viewer in
+company B satisfied "masterdata.read for company B" using A's permission.
+
+Fixed by resolving the permission in the company being asked about. Verified: an
+owner of Nibela AB reads their own documents and is denied Gridex El AB's.
+
+The rest of the storage layer held up: all nine buckets are private, and
+`gridex_private.customer_document_path_allows` validates the path shape, that the
+customer belongs to the company in the path, and that the site belongs to that
+customer and company.
+
+## F-18 — The F-2 fix over-tightened and broke shared masterdata (High, self-inflicted)
+
+Narrowing `gridex_has_permission` to platform roles closed the "a company role
+grants everywhere" hole, but the policies on grid owners, price areas and
+electricity suppliers grant on that predicate alone. Verified before the fix: an
+owner of Nibela AB evaluated `false` for reading `grid_owners` — those pickers
+would have been empty in the application.
+
+The mistake was treating one predicate as if it answered one question. It answers
+two: shared masterdata has no tenant, so the question is "anywhere the user is an
+active member"; tenant data must ask "in this company". `gridex_has_permission`
+regains the first semantic while keeping the status, role-activity and membership
+hygiene F-2 added, and the invariant gate asserts that tenant tables still carry
+their restrictive company guard.
+
+## Gate additions
+
+The invariant gate now also fails on a permission resolver executable by a client
+role, and on any SECURITY DEFINER function in `public` executable by `anon`.
+
+## Checked and clean
+
+- All nine storage buckets private; seven have no client policy at all and are
+  reachable only by `service_role`.
+- `anonymize_user_account` refuses to act on a user other than the caller.
+- `gridex_can(text)` is dead code — referenced by no policy and no function.
+- The 65 `rls_enabled_no_policy` findings are INFO: RLS on with no policy denies
+  every client role, which is the intended posture for service-only tables.
+
+## Verification
+
+Typecheck clean, 169 test files / 1066 tests pass, migration integrity passes
+(562 files), and the tenant invariant gate passes against the live schema.

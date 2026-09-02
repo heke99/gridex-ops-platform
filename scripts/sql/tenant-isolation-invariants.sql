@@ -187,6 +187,35 @@ begin
   end if;
 
   ------------------------------------------------------------------
+  -- F-16: the permission resolvers return another user's permission set and must
+  -- stay off the client RPC surface. Policies reach them through the SECURITY
+  -- DEFINER predicates, which do not require the caller to hold EXECUTE.
+  ------------------------------------------------------------------
+  for v_row in
+    select p.oid::regprocedure::text as signature, r.rolname
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+    cross join (values ('anon'), ('authenticated')) as r(rolname)
+    where p.proname in ('gridex_get_user_permissions', 'gridex_get_user_permissions_in_company')
+      and has_function_privilege(r.rolname, p.oid, 'EXECUTE')
+  loop
+    v_failures := v_failures || format(
+      'F-16: %s is executable by %s and is reachable as REST RPC', v_row.signature, v_row.rolname);
+  end loop;
+
+  -- No SECURITY DEFINER function in public may be executable by anon.
+  for v_row in
+    select p.oid::regprocedure::text as signature
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+    where p.prosecdef
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+  loop
+    v_failures := v_failures || format(
+      'F-16: SECURITY DEFINER function %s is executable by anon', v_row.signature);
+  end loop;
+
+  ------------------------------------------------------------------
   -- F-7: platform roles are global, company roles are not.
   ------------------------------------------------------------------
   select count(*) into v_count
