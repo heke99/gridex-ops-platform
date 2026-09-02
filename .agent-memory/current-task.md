@@ -19,8 +19,9 @@ findings from the 2026-09-02 audit.
 
 ## Exact next action
 
-Decide the two open product questions before production promotion: the 32 orphan
-rows behind the `NOT VALID` keys on `ediel_message_intents` and
-`route_decision_logs`, and the tenant assignment for the 22 quarantined inbound
-messages plus the two mailboxes that carry no company. Then plan the move off
-`service_role` for request traffic (F-15 proper).
+Reconcile the repository against the database before anything else (N-2), then
+apply `20260824190000_gridex_inbound_operations_foundation.sql` to restore manual
+inbound ingestion (N-1). After that, the two open product questions remain: the
+32 orphan rows behind the `NOT VALID` keys on `ediel_message_intents` and
+`route_decision_logs`, and the two inbound mailboxes that carry no company. Then
+plan the move off `service_role` for request traffic (F-15 proper).
