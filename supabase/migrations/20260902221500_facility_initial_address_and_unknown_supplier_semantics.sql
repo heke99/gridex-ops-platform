@@ -1,11 +1,84 @@
 -- Production hardening for website/manual facility onboarding.
 --
 -- 1. The first canonical address hash on a newly-created site is initialization,
---    not an address mutation. Only a change from an already-established hash may
---    invalidate derived grid/routing state.
+--    not an address mutation. Only a semantic change to an already established
+--    address may invalidate derived grid/routing state.
 -- 2. A site without any current-supplier identity is explicitly represented as
 --    current_supplier_unknown=true. The current supplier is useful contract data,
 --    but absence of that identity must not masquerade as a known supplier state.
+
+-- There is a table-level guard in addition to the canonical address RPC. The
+-- previous version coalesced OLD.address_hash to a raw-address fingerprint and
+-- then compared that raw fingerprint with NEW.address_hash. Consequently the
+-- first NULL -> canonical hash update always looked like an address change even
+-- when street/postal/city/country were semantically identical.
+create or replace function public.gridex_invalidate_site_operations_on_address_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_old_hash text := nullif(btrim(old.address_hash), '');
+  v_new_hash text := nullif(btrim(new.address_hash), '');
+  v_old_raw_fingerprint text;
+  v_new_raw_fingerprint text;
+  v_address_changed boolean;
+begin
+  v_old_raw_fingerprint := lower(concat_ws('|',
+    nullif(btrim(old.street), ''),
+    regexp_replace(coalesce(old.postal_code, ''), '\D', '', 'g'),
+    nullif(btrim(old.city), ''),
+    nullif(btrim(old.country), '')
+  ));
+  v_new_raw_fingerprint := lower(concat_ws('|',
+    nullif(btrim(new.street), ''),
+    regexp_replace(coalesce(new.postal_code, ''), '\D', '', 'g'),
+    nullif(btrim(new.city), ''),
+    nullif(btrim(new.country), '')
+  ));
+
+  if v_old_hash is null and v_new_hash is not null then
+    -- First canonicalization. A hash representation being added is not itself
+    -- an address mutation; only a simultaneous semantic raw-address change is.
+    v_address_changed := v_old_raw_fingerprint is distinct from v_new_raw_fingerprint;
+  elsif v_old_hash is not null and v_new_hash is not null then
+    -- Once canonical identity exists, the hash is authoritative. Also fail
+    -- closed if raw address data changes without the caller rotating the hash.
+    v_address_changed :=
+      v_old_hash is distinct from v_new_hash
+      or v_old_raw_fingerprint is distinct from v_new_raw_fingerprint;
+  else
+    -- Covers raw-address-only sites and removal of an established canonical
+    -- hash. Both are treated conservatively as mutations when identity changes.
+    v_address_changed :=
+      v_old_hash is distinct from v_new_hash
+      or v_old_raw_fingerprint is distinct from v_new_raw_fingerprint;
+  end if;
+
+  if v_address_changed then
+    update public.customer_operation_jobs
+       set status = 'needs_review',
+           stale_reason = 'site_address_changed_after_operation_started',
+           locked_at = null,
+           locked_by = null,
+           lock_token = null,
+           completed_at = now(),
+           updated_at = now()
+     where company_id = new.company_id
+       and customer_site_id = new.id
+       and status in ('queued', 'running', 'waiting_response');
+
+    update public.customer_operation_request_snapshots
+       set superseded_at = now()
+     where company_id = new.company_id
+       and customer_site_id = new.id
+       and superseded_at is null;
+  end if;
+
+  return new;
+end;
+$$;
 
 create or replace function public.gridex_commit_customer_site_address(
   p_company_id uuid,
