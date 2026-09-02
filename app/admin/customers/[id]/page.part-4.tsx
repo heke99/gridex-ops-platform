@@ -777,6 +777,66 @@ export async function CustomerAdminDetailPage({
           title="Översikt"
           description="Enkel översikt med process, status och ett tydligt nästa steg."
         >
+          <section
+            data-testid="customer-overview-contact-summary"
+            className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">Kunduppgifter</p>
+                <p className="mt-1 text-sm text-slate-600">Kontakt och aktiv adress för kunden.</p>
+              </div>
+              <Link
+                href={customerTabHref(id, "profile")}
+                className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                Visa alla kunduppgifter
+              </Link>
+            </div>
+
+            <dl className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Namn</dt>
+                <dd className="mt-2 text-sm font-semibold text-slate-950">{customerName}</dd>
+                <dd className="mt-1 text-xs text-slate-600">{customerTypeUiLabel}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">E-post</dt>
+                <dd className="mt-2 break-words text-sm font-semibold text-slate-950">{displayEmail ?? "Saknas"}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Telefon</dt>
+                <dd className="mt-2 text-sm font-semibold text-slate-950">{displayPhone ?? "Saknas"}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Kundnummer</dt>
+                <dd className="mt-2 text-sm font-semibold text-slate-950">{customer.customer_number ?? "Saknas"}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Adress</dt>
+                {activeAddressDisplay ? (
+                  <dd className="mt-2 text-sm font-semibold text-slate-950">
+                    <span className="block">{activeAddressDisplay.street}</span>
+                    <span className="mt-1 block font-medium text-slate-700">
+                      {[activeAddressDisplay.postalCode, activeAddressDisplay.city].filter(Boolean).join(" ") || "Postort saknas"}
+                    </span>
+                    <span className="mt-1 block text-xs font-medium text-slate-500">{activeAddressDisplay.type}</span>
+                  </dd>
+                ) : (
+                  <dd className="mt-2 text-sm font-semibold text-slate-950">Adress saknas</dd>
+                )}
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{primaryIdentityLabel}</dt>
+                <dd className="mt-2 text-sm font-semibold text-slate-950">{primaryIdentityValue}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{secondaryIdentityLabel}</dt>
+                <dd className="mt-2 text-sm font-semibold text-slate-950">{secondaryIdentityValue}</dd>
+              </div>
+            </dl>
+          </section>
+
           <CustomerBusinessActionsCard
             customerId={id}
             companyId={customerCompanyId ?? undefined}
