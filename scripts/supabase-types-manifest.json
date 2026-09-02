@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "22d5ce450bd53f9333236ce69862e2fb03d7e94f08c27381139fd01880f1bc19",
-  "latest_migration": "20260902100500_close_remaining_advisor_hygiene.sql",
-  "latest_migration_schema_effect": "canonical_forward_replay_through_tenant_integrity_poa_alias_and_advisor_hygiene"
+  "latest_migration": "20260902135605_restore_website_application_trigger_helper_privileges.sql",
+  "latest_migration_schema_effect": "private_trigger_execution_acl_only_no_public_type_change"
 }
