@@ -403,12 +403,17 @@
     "20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql": "98241372a19bb2c4db672cd2f28990d3a086fe2e959697e83a3bfa1b5b8242c2",
     "20260814232000_bind_website_sales_to_live_production.sql": "48a7eb20af6f7ba5d76cc24e0f91fa94b110a954d99d05e4d8a00c99dccf4f15",
     "20260814234000_certification_evidence_passed_integrity.sql": "67e9943bcaff02f1c099becbd7dac9eb9823626ed7b13e9f2d216a13925fc9c9",
+    "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991",
+    "20260815003554_conditional_limited_pilot_evidence_gate.sql": "d05eaff0ce10b5084d512187c10e06906fcd86c66f0a7ae33920e90463a6f513",
+    "20260902090000_tenant_scoped_unique_business_keys.sql": "bbb755c51bd128352d3b0d7a4e916dec01fa870c4c0083b83ebd82f3e7044035",
+    "20260902091000_company_scoped_permission_engine.sql": "dc72cc26cbb53ab814fcf214dc9324f27bfac9f4bf77940b9e9a0527428f359a",
+    "20260902092000_view_security_invoker_and_dead_policy_cleanup.sql": "911df38c226051d3b60726d8027f322bc566d30d72e51632b71797fb88ef0ed2",
+    "20260902093000_explicit_tenant_scope_and_inbound_quarantine.sql": "c1c6bfea03d93bbfd3b36662c23eb074c7542b783fe5cfc1b2cbcbd095c715fc",
+    "20260902094000_platform_table_classification_and_invariant_gate.sql": "29ea84caceca14260c6a909534c89a26a015568d9bf56741cd796a5cd1896470",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
-    "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991",
-    "20260815003554_conditional_limited_pilot_evidence_gate.sql": "d05eaff0ce10b5084d512187c10e06906fcd86c66f0a7ae33920e90463a6f513"
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
