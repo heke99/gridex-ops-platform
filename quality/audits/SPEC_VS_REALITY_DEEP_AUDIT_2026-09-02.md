@@ -263,7 +263,7 @@ One detail is worth keeping: the manifest's `generated_with` reads
 `supabase-cli-2.101.0-clean-replay`. The correct procedure — replay the
 repository into a clean database, generate types from that — was already
 performed once. Its output was used for types and then discarded instead of being
-diffed against the database it describes. `REMEDIATION_PLAN_2026-09-02.md` PR 1
+diffed against the database it describes. `MASTER_REMEDIATION_PLAN_2026-09-02.md` stage A
 turns that one-off into the standing artifact.
 
 

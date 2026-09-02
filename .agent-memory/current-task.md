@@ -17,6 +17,11 @@ findings from the 2026-09-02 audit.
 6. Composite customer keys on 94 of 99 tables (F-12).
 7. Service-role wrapper and ratchet (F-15, contained not closed).
 
+## Plan of record
+
+`quality/audits/MASTER_REMEDIATION_PLAN_2026-09-02.md` holds the full register
+(F-1 … F-18, N-1 … N-10) and the six-stage sequence. Work it in stage order.
+
 ## Exact next action
 
 Reconcile the repository against the database before anything else (N-2), then
