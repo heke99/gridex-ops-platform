@@ -290,3 +290,199 @@ TS/SQL divergence is real regardless.
 | Permission-resolution divergence | `pg_get_functiondef` on both context functions | confirmed (F-1, F-2) |
 
 No tests were executed and no build was run: this pass changed no code.
+
+---
+
+# Addendum — second pass: other mismatch classes
+
+Follow-up question: *"har vi andra mismatches utöver detta?"* and
+*"varje kund ska vara konsekvent så att inget blir fel också"*.
+The first pass tested one axis: `company_id`. This pass tests the axes it did
+not — the customer chain, unique business keys, views, and constraint validity.
+
+## 9. Customer-chain consistency
+
+**Data is clean.** Every check below returned zero rows:
+
+| Check | Result |
+|---|---|
+| `customers` without `company_id` | 0 |
+| `metering_points.customer_id` vs its site's customer | 0 |
+| `customer_contracts.site_id` pointing at another customer's site | 0 |
+| `customer_invoices.customer_id` vs its contract's customer | 0 |
+| `billing_underlays.customer_id` vs its metering point's customer | 0 |
+| `supplier_switch_requests` vs its site's customer | 0 |
+| `powers_of_attorney` vs its site's customer | 0 |
+| `customer_authorization_documents` vs its PoA's customer | 0 |
+| sites / metering points / contracts without `customer_id` | 0 |
+| generic `customer_id` drift over all single-column FK pairs | 1 pair, 6 rows, all NULL-side (`canonical_energy_flow_events.resolution_id`), 0 real conflicts |
+
+Caveat: the dev dataset holds 3 customers. Clean data here is weak evidence.
+What matters is whether it is *enforced*, which is F-12.
+
+### F-12 — The customer chain is enforced on 22 of 99 tables (Medium)
+
+36 composite foreign keys carrying `customer_id` exist, covering the
+money-and-legal path: `customer_contracts`, `customer_invoices`,
+`customer_sites`, `metering_points`, `powers_of_attorney`,
+`customer_authorization_documents`, `supplier_switch_requests`,
+`billing_underlays`, `invoice_export_items`, `customer_portal_identities`,
+`grid_owner_data_requests`, `website_customer_applications` and others. On
+those tables a row physically cannot reference a parent belonging to a
+different customer. That is the right design and it is working.
+
+77 of the 99 tables carrying `customer_id` have no such guard, including:
+
+`customer_addresses`, `customer_contacts`, `customer_documents`,
+`customer_internal_notes`, `customer_notifications`, `customer_communications`,
+`customer_cases`, `customer_case_events`, `customer_blockers`,
+`customer_operation_jobs`, `customer_operation_tasks`,
+`customer_portal_claims`, `customer_portal_completions`,
+`customer_portal_requests`, `customer_site_address_history`,
+`customer_site_resolution`, `customer_lifecycle_events`, `customer_merge_events`.
+
+On these, an address, a contact, a document, an internal note or a
+notification can be attached to the wrong customer with nothing in the schema
+objecting. Nothing is wrong today; nothing prevents it either. Given the first
+pass showed the application runs on `service_role` (RLS off), these tables are
+protected by application discipline alone.
+
+## 10. Unique keys that are not tenant-scoped
+
+Most unique indexes on tenant tables are scoped through a parent id that is
+itself tenant-bound (e.g. `contract_offer_versions(contract_offer_id,
+version_number)`) and are correct. The following are not, and each one means a
+second tenant collides with the first.
+
+### F-8 — Customer numbers can collide across tenants and block onboarding (High)
+
+`customers_customer_number_key` is `UNIQUE (customer_number)` **globally**,
+while numbers are allocated **per company**:
+`gridex_next_customer_number(p_company_id)` reads
+`max(...)+1` scoped to `where company_id = p_company_id`, defaulting to
+`100001`, and prefixes it with `gridex_default_customer_number_prefix()`.
+
+The prefix is derived, short, and **not unique**. Verified: no unique index on
+`company_customer_number_sequences.prefix`, none on
+`companies.customer_number_prefix`.
+`gridex_normalize_customer_number_prefix` strips exactly the words that
+distinguish Swedish electricity retailers — `EL`, `ENERGI`, `ELHANDEL`,
+`ENERGY`, `POWER`, `AB`, `HB`, `KB` — then collapses multi-word names to
+**initials**. Two-word names therefore become two letters. Live prefixes today:
+
+| Company | Prefix |
+|---|---|
+| Gridex El AB | `DX` |
+| Green Hero Energy AB | `GHE` |
+| Nibela AB | `NIBELA` |
+| Test bolag | `TESTIN` |
+
+Two tenants resolving to the same prefix both allocate `PREFIX-100001` for
+their first customer. The second insert fails on the global unique index
+(23505). Tenant B cannot onboard its first customer.
+
+### F-9 — Only one "own supplier" can exist platform-wide (High)
+
+```sql
+CREATE UNIQUE INDEX electricity_suppliers_single_own_supplier_idx
+  ON public.electricity_suppliers USING btree (is_own_supplier)
+  WHERE (is_own_supplier = true);
+```
+
+The predicate has no `company_id`. In a platform where every tenant *is* an
+electricity supplier and needs to mark itself, exactly one row in the entire
+database may carry `is_own_supplier = true`. This is a single-tenant leftover.
+Currently unexercised (0 such rows; all 9 supplier rows have `company_id IS
+NULL`), so it is latent, not yet failing.
+
+`electricity_suppliers_org_number_unique_idx` and
+`electricity_suppliers_name_unique_idx` are global for the same reason and
+prevent two tenants from holding their own record of the same counterparty.
+
+### F-10 — Metering point identifiers are globally unique (High)
+
+```sql
+CREATE UNIQUE INDEX metering_points_metering_point_id_key
+  ON public.metering_points USING btree (metering_point_id);
+```
+plus the same on `meter_point_id` and `ediel_reference`.
+
+`metering_points.metering_point_id` is NOT NULL and globally unique, while
+`company_id` and `customer_id` on the same table are nullable and the rows are
+tenant-scoped. A Swedish anläggnings-ID is a *national* identifier for a
+physical facility — and supplier switching, the core function of this product,
+means the same facility moves between suppliers. Two tenants on this platform
+cannot both hold a row for the same metering point, whether concurrently during
+a switch or sequentially after one.
+
+Verified the failure mode is a blocked insert, not silent corruption:
+`upsertApplicationMeteringPoint` (`app/admin/website-applications/actions.ts:504`)
+does a plain INSERT with no `onConflict`, and its UPDATE branch is correctly
+scoped by `.eq('company_id', …)`. The only `onConflict` on this key elsewhere
+is `company_id,metering_point_id,period_month` on a different table, correctly
+company-scoped. So tenant B's onboarding fails with 23505 rather than
+overwriting tenant A's row. The existing `facilityConflictStatus` branch
+suggests the conflict is known but handled as an application state, not fixed
+at the schema level.
+
+### F-11 — Identical legal text blocks the second tenant (Medium)
+
+`legal_bundle_versions_content_sha256_key` is `UNIQUE (content_sha256)`
+globally. Two tenants publishing the same standard terms — the normal case
+when both start from a template — produce the same hash, and the second
+insert fails.
+
+### Reviewed and accepted as correct
+
+- `ediel_actor_settings_unique_active_production_ediel_idx` — an EDIEL ID is a
+  genuine market-wide identifier; global uniqueness per environment is right.
+- `grid_owners_ediel_id_key` / `_code_key` / `_owner_code_key`,
+  `spot_price_import_jobs(provider, price_area, calendar_date)`,
+  `ediel_*_rules` keys — shared platform masterdata (all rows have
+  `company_id IS NULL`). Correct today, but they inherit F-5/F-6: nothing
+  distinguishes "shared reference row" from "tenant row" in the schema, so a
+  tenant-specific override would collide.
+- `automation_key` collisions: checked the generator
+  (`customer_site_${siteId}_supplier_switch`,
+  `lib/customer-operations/supplierSwitchOrchestration.ts:615`). The key embeds
+  a UUID, so it is globally unique by construction. **Not a finding.**
+- Token/credential uniques (`integration_api_clients.key_prefix`,
+  `customer_contract_signature_requests.token_hash`,
+  `company_invitations.token`) — global uniqueness is the point.
+
+## 11. Other structural checks
+
+| Check | Result |
+|---|---|
+| `NOT VALID` constraints (unenforced legacy) | **0** — clean |
+| Views with `security_invoker = true` | 157 |
+| Views without `security_invoker` (run as owner, bypass RLS) | 3 — F-13 |
+| Materialized views | 0 |
+| Composite FKs including `company_id` | 130 |
+
+### F-13 — Three views run with owner privileges (Low)
+
+`gridex_public_contract_offer_api_diagnostics_v`,
+`contract_publication_readiness_v`, `gridex_tenant_contract_readiness_v` are
+owned by `postgres` and lack `security_invoker`, so they read their base tables
+with RLS bypassed. **Verified not exploitable:** none of the three carries any
+grant to `anon`, `authenticated`, `authenticator` or `PUBLIC`, so PostgREST
+cannot reach them. Hygiene gap, and a trap if a grant is ever added.
+
+## 12. Revised priority
+
+1. F-10 metering point global uniqueness — blocks the product's core flow
+2. F-8 customer number prefix collision — blocks tenant onboarding
+3. F-1 permission union across companies (first pass)
+4. F-2 tenant-blind permission function (first pass)
+5. F-9 single own-supplier row
+6. F-3/F-4/F-5 untenanted rows (first pass)
+7. F-12 unguarded customer chain on 77 tables
+8. F-11 legal bundle hash, F-6 missing guard gate, F-7 platform-admin inference,
+   F-13 view hygiene
+
+F-8, F-9, F-10 and F-11 share one root cause: **unique constraints written for
+a single-tenant world were never re-scoped when the platform became
+multi-tenant.** The fix in each case is to add `company_id` to the index
+(and, where the identifier is genuinely market-wide, to say so explicitly
+rather than leaving it implied).
