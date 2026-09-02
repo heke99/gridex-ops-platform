@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "56d79dc4143131317be0a0d38f22ed7828454e25095794a82ba212d336a03bdb",
-  "latest_migration": "20260901084000_harden_gridex_point_to_grid_area_search_path.sql",
-  "latest_migration_schema_effect": "function_search_path_hardening_no_type_surface_change"
+  "latest_migration": "20260902100500_close_remaining_advisor_hygiene.sql",
+  "latest_migration_schema_effect": "poa_projection_plus_security_hygiene_no_additional_generated_type_surface"
 }

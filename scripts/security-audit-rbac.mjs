@@ -199,6 +199,11 @@ const reviewedServiceClientFiles = new Set([
   // certification writes are current-engine scoped, evidence-validated and
   // audit logged. No ordinary tenant-admin path can invoke these mutations.
   "app/admin/platform/go-live/actions.ts",
+  // Reviewed 2026-09-02: one-click production approval calls
+  // requirePlatformAdminActionAccess before every service-role read/RPC. It
+  // operates on the submitted company only after canonical readiness + dry-run
+  // evidence has passed and uses canonical audited transition RPCs.
+  "app/admin/platform/go-live/approval-actions.ts",
   // Reviewed 2026-07-27: contracts/page obtains contracts.read and resolves an
   // operational company scope before its tenant-scoped readiness RPC.
   "app/admin/contracts/page.tsx",
