@@ -308,11 +308,26 @@ export async function saveGridOwner(
   return data as GridOwnerRow;
 }
 
+/**
+ * F-9: the supplier register holds shared counterparty records (`company_id IS
+ * NULL`) alongside tenant-owned ones. Pass `companyId` so a tenant sees the shared
+ * registry plus its own records, never another tenant's.
+ */
+function scopeSupplierQueryToCompany<T extends { or: (filter: string) => T }>(
+  query: T,
+  companyId: string | null | undefined,
+): T {
+  const normalized = companyId?.trim();
+  if (!normalized) return query;
+  return query.or(`company_id.is.null,company_id.eq.${normalized}`);
+}
+
 export async function listElectricitySuppliers(
   supabase: SupabaseClient,
   options: {
     activeOnly?: boolean;
     customerFlowOnly?: boolean;
+    companyId?: string | null;
   } = {},
 ): Promise<ElectricitySupplierRow[]> {
   let query = supabase
@@ -320,6 +335,8 @@ export async function listElectricitySuppliers(
     .select("*")
     .order("is_own_supplier", { ascending: false })
     .order("name", { ascending: true });
+
+  query = scopeSupplierQueryToCompany(query, options.companyId);
 
   if (options.activeOnly) {
     query = query.eq("is_active", true);
@@ -341,12 +358,16 @@ export async function listElectricitySuppliers(
 export async function getElectricitySupplierById(
   supabase: SupabaseClient,
   id: string,
+  options: { companyId?: string | null } = {},
 ): Promise<ElectricitySupplierRow | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("electricity_suppliers")
     .select("*")
-    .eq("id", id)
-    .maybeSingle();
+    .eq("id", id);
+
+  query = scopeSupplierQueryToCompany(query, options.companyId);
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
   return (data as ElectricitySupplierRow | null) ?? null;
@@ -357,16 +378,23 @@ export async function findElectricitySupplierMatch(
   params: {
     name?: string | null;
     orgNumber?: string | null;
+    companyId?: string | null;
   },
 ): Promise<ElectricitySupplierRow | null> {
   const trimmedName = params.name?.trim() ?? null;
   const trimmedOrg = params.orgNumber?.trim() ?? null;
 
   if (trimmedOrg) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("electricity_suppliers")
       .select("*")
-      .eq("org_number", trimmedOrg)
+      .eq("org_number", trimmedOrg);
+
+    query = scopeSupplierQueryToCompany(query, params.companyId);
+
+    // a tenant-owned record wins over the shared registry entry
+    const { data, error } = await query
+      .order("company_id", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
 
@@ -375,10 +403,15 @@ export async function findElectricitySupplierMatch(
   }
 
   if (trimmedName) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("electricity_suppliers")
       .select("*")
-      .ilike("name", trimmedName)
+      .ilike("name", trimmedName);
+
+    query = scopeSupplierQueryToCompany(query, params.companyId);
+
+    const { data, error } = await query
+      .order("company_id", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
 
