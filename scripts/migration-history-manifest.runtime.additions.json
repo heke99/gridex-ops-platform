@@ -8,6 +8,6 @@
     "20260831094500_customer_authorization_documents_contract_link_foundation.sql": "f196e714bb49310f354f795d2d86f52b8dc8679433e6adcdb268f3b3277a8a84",
     "20260831095000_admin_signed_contract_import_canonicalization.sql": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef",
     "20260901084000_harden_gridex_point_to_grid_area_search_path.sql": "05b0681cd089adf61b4a184b8db40fdba2545f815c1fd7ec47615ecb8cc0c34e",
-    "20260902100045_fix_website_poa_scope_and_grid_owner_aliases.sql": "0000000000000000000000000000000000000000000000000000000000000000"
+    "20260902100045_fix_website_poa_scope_and_grid_owner_aliases.sql": "d069342180f5d86f39a8988ad6905fa4dca0e451ca8c23d96a1cd8b647895e10"
   }
 }
