@@ -199,3 +199,15 @@
 | tsc -p tsconfig.app.json | PASS |
 | hosted CI | NOT YET |
 | ggshield | BLOCKED |
+
+## 2026-09-02 tenant isolation remediation
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npm run typecheck` | pass |
+| Unit and regression tests | `npx vitest run` | 169 files / 1066 tests pass |
+| Migration integrity | `npm run db:migrations:integrity` | pass, 558 files / 462 groups |
+| Tenant invariants (live schema) | `npm run tenant:invariants` | all checks pass |
+| Service-role ratchet | `npm run tenant:service-role-ratchet` | 2401 call sites, at baseline |
+| Cross-tenant metering point / customer number | rolled-back transaction on dev | two tenants can hold both; duplicates within a tenant still rejected |
+| Permission scope | `gridex_get_user_permissions_in_company` on dev | tenant owner: 36 perms own company, 0 foreign |

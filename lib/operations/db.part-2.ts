@@ -381,22 +381,42 @@ export async function createSupplierSwitchRequest(
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase);
 
+  const switchCompanyId =
+    params.companyId ??
+    params.site.company_id ??
+    params.meteringPoint.company_id ??
+    null;
+
   await assertNoActiveSwitchLifecycleBlock(supabase, {
-    companyId:
-      params.companyId ??
-      params.site.company_id ??
-      params.meteringPoint.company_id ??
-      null,
+    companyId: switchCompanyId,
     customerId: params.readiness.customerId,
     siteId: params.site.id,
     meteringPointId: params.meteringPoint.id,
   });
 
-  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase);
+  // F-9: the incoming supplier on a switch to us is the operating tenant, never a
+  // platform-wide default. The previous "Gridex" literal attributed every tenant's
+  // switch to one company.
+  if (!switchCompanyId) {
+    throw new Error(
+      "Bolag saknas för leverantörsbytet och den egna leverantören kan därför inte avgöras.",
+    );
+  }
+
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(
+    supabase,
+    switchCompanyId,
+  );
   const ownSupplier = ownSupplierLookup.supplier;
 
-  const incomingSupplierName = ownSupplier?.name ?? "Gridex";
-  const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null;
+  if (!ownSupplier?.name) {
+    throw new Error(
+      "Bolaget saknar en registrerad egen elhandlare. Markera bolagets leverantör som den egna innan ett byte till oss skapas.",
+    );
+  }
+
+  const incomingSupplierName = ownSupplier.name;
+  const incomingSupplierOrgNumber = ownSupplier.org_number ?? null;
 
   // Compute the earliest legally/market-valid start date from notice period,
   // contract end and move-in date. We honor a provided requested date but fill

@@ -295,16 +295,19 @@ async function ensureOutboundForSwitch(params: {
 
 async function getSupplierById(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  companyId: string,
   supplierId: string,
 ): Promise<{
   id: string;
   name: string | null;
   org_number: string | null;
 } | null> {
+  // shared counterparty registry plus this tenant's own records
   const { data, error } = await supabase
     .from("electricity_suppliers")
     .select("id, name, org_number")
     .eq("id", supplierId)
+    .or(`company_id.is.null,company_id.eq.${companyId}`)
     .maybeSingle();
 
   if (error) throw error;
@@ -313,6 +316,7 @@ async function getSupplierById(
 
 async function ensureSupplierRecord(params: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  companyId: string;
   supplierId: string | null;
   supplierName: string | null;
   supplierOrgNumber: string | null;
@@ -327,6 +331,7 @@ async function ensureSupplierRecord(params: {
 }> {
   const {
     supabase,
+    companyId,
     supplierId,
     supplierName,
     supplierOrgNumber,
@@ -341,7 +346,11 @@ async function ensureSupplierRecord(params: {
   let resolvedSupplierOrgNumber = supplierOrgNumber;
 
   if (resolvedSupplierId) {
-    const supplier = await getSupplierById(supabase, resolvedSupplierId);
+    const supplier = await getSupplierById(
+      supabase,
+      companyId,
+      resolvedSupplierId,
+    );
     if (supplier) {
       resolvedSupplierName = resolvedSupplierName ?? supplier.name ?? null;
       resolvedSupplierOrgNumber =
@@ -365,6 +374,7 @@ async function ensureSupplierRecord(params: {
   const existing = await findElectricitySupplierMatch(supabase, {
     name: resolvedSupplierName,
     orgNumber: resolvedSupplierOrgNumber,
+    companyId,
   });
 
   if (existing) {
@@ -485,7 +495,10 @@ export async function createDynamicSupplierSwitchRequestAction(
     "incoming_supplier_org_number",
   );
 
-  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase);
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(
+    supabase,
+    companyId,
+  );
   const ownSupplier = ownSupplierLookup.supplier;
 
   if (switchDirection === "to_us" && ownSupplier) {
@@ -502,6 +515,7 @@ export async function createDynamicSupplierSwitchRequestAction(
 
   const currentSupplierResult = await ensureSupplierRecord({
     supabase,
+    companyId,
     supplierId: currentSupplierId,
     supplierName: currentSupplierName,
     supplierOrgNumber: currentSupplierOrgNumber,
@@ -516,6 +530,7 @@ export async function createDynamicSupplierSwitchRequestAction(
 
   const incomingSupplierResult = await ensureSupplierRecord({
     supabase,
+    companyId,
     supplierId: incomingSupplierId,
     supplierName: incomingSupplierName,
     supplierOrgNumber: incomingSupplierOrgNumber,
@@ -556,6 +571,7 @@ export async function createDynamicSupplierSwitchRequestAction(
     }
     await setOwnElectricitySupplier(
       supabase,
+      companyId,
       currentSupplierResult.resolvedSupplierId,
     );
   }
@@ -568,6 +584,7 @@ export async function createDynamicSupplierSwitchRequestAction(
     }
     await setOwnElectricitySupplier(
       supabase,
+      companyId,
       incomingSupplierResult.resolvedSupplierId,
     );
   }

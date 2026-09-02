@@ -1,7 +1,9 @@
 // lib/admin/guards.ts
 import { cache } from 'react'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { ADMIN_SELECTED_COMPANY_COOKIE } from '@/lib/admin/navigationPreferences'
 import {
   getAdminPageRequirement,
   hasPermissionRequirement,
@@ -19,6 +21,11 @@ export type GuardResult = {
   roles: string[]
   isAdmin: boolean
   isPlatformAdmin: boolean
+  /**
+   * The company these permissions were resolved for. F-1: `permissions` is scoped
+   * to this company, so a permission held in another company does not apply here.
+   */
+  companyId: string | null
 }
 
 type UserRoleRpcRow = string | {
@@ -35,8 +42,15 @@ type CanonicalTenantContext = {
   user_id?: string | null
   user_email?: string | null
   is_platform_admin?: boolean
+  selected_company_id?: string | null
   roles?: unknown[]
   permissions?: unknown[]
+}
+
+async function readSelectedCompanyIdCookie(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const value = cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value?.trim()
+  return value ? value : null
 }
 
 const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set([
@@ -84,7 +98,21 @@ function normalizeRequirement(
   return input
 }
 
-export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permissions'>): boolean {
+/**
+ * F-7: platform-admin status is decided by the database, never inferred from role
+ * names. `canonical_authenticated_tenant_context` derives `is_platform_admin` from
+ * a genuinely global platform role; re-deriving it here from the role list treated
+ * any role whose *name* looked like a platform role as one, regardless of whether
+ * it was scoped to a single company.
+ *
+ * The role-name check survives only as a fallback for callers that pass an object
+ * without the authoritative flag.
+ */
+export function isPlatformAdminContext(
+  input: Pick<GuardResult, 'roles' | 'permissions'> & { isPlatformAdmin?: boolean }
+): boolean {
+  if (typeof input.isPlatformAdmin === 'boolean') return input.isPlatformAdmin
+
   return input.roles.some((role) => {
     const normalized = normalizeRoleKey(role)
     return isPlatformAdminRole(normalized)
@@ -103,9 +131,16 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     redirect('/login')
   }
 
+  // F-1: permissions are resolved for the company actually being operated, not as
+  // a union across every company the user belongs to. The selected company comes
+  // from the same cookie the operational scope uses; the database validates the
+  // membership and falls back to the user's own company when it is absent or not
+  // theirs.
+  const selectedCompanyId = await readSelectedCompanyIdCookie()
+
   const { data: contextData, error: contextError } = await supabase.rpc(
     'canonical_authenticated_tenant_context',
-    { p_selected_company_id: null },
+    { p_selected_company_id: selectedCompanyId },
   )
   if (contextError) {
     console.error('[admin-guard] Canonical tenant context failed', {
@@ -130,18 +165,18 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     (permissions.length > 0 || roles.some(isPlatformAdminRole)) &&
     !(roles.length === 1 && roles[0] === 'customer')
 
-  const base = {
+  return {
     userId: user.id,
     email: context.user_email ?? user.email ?? null,
     permissions,
     roles,
     isAdmin,
+    // F-7: authoritative, from the database. Never re-derived from role names.
     isPlatformAdmin: Boolean(context.is_platform_admin),
-  }
-
-  return {
-    ...base,
-    isPlatformAdmin: isPlatformAdminContext(base),
+    companyId:
+      typeof context.selected_company_id === 'string' && context.selected_company_id
+        ? context.selected_company_id
+        : null,
   }
 })
 

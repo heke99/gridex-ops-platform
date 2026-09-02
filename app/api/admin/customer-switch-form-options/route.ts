@@ -59,10 +59,13 @@ export async function GET(request: NextRequest) {
       .from('electricity_suppliers')
       .select('id, name, org_number, is_active, is_own_supplier')
       .eq('is_active', true)
+      // shared counterparty registry plus this tenant's own records; never another
+      // tenant's supplier rows
+      .or(`company_id.is.null,company_id.eq.${companyId}`)
       .order('is_own_supplier', { ascending: false })
       .order('name', { ascending: true })
       .limit(250),
-    resolveOwnElectricitySupplier(supabase),
+    resolveOwnElectricitySupplier(supabase, companyId),
   ])
 
   if (customerResponse.error) {

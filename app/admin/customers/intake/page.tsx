@@ -58,6 +58,7 @@ export default async function CustomerIntakePage() {
       listElectricitySuppliers(supabase, {
         activeOnly: true,
         customerFlowOnly: true,
+        companyId: companyScope.companyId,
       }),
     ),
     safeLoad("Prisområden", () => listPriceAreas(supabase)),
