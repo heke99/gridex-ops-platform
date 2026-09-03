@@ -86,11 +86,19 @@ describe('Ediel recipient certificate subaddress scope', () => {
     expect(certificateSubaddressScopeBlocker(null, 'PRODAT')).toBeNull()
   })
 
+  it('accepts a party-scoped recipient certificate when the route itself has no subaddress', () => {
+    expect(certificateSubaddressScopeBlocker(null, null)).toBeNull()
+  })
+
   it('accepts an explicitly matching certificate subaddress', () => {
     expect(certificateSubaddressScopeBlocker('PRODAT', 'PRODAT')).toBeNull()
   })
 
   it('fails closed when an explicit certificate subaddress conflicts with the route', () => {
     expect(certificateSubaddressScopeBlocker('UTILTS', 'PRODAT')).toBe('receiver_certificate_subaddress_mismatch')
+  })
+
+  it('fails closed when the certificate is explicitly subaddress-scoped but the route omits subaddress', () => {
+    expect(certificateSubaddressScopeBlocker('PRODAT', null)).toBe('receiver_certificate_subaddress_mismatch')
   })
 })
