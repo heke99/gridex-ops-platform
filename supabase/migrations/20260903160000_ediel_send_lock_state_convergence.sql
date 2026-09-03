@@ -1,5 +1,10 @@
 begin;
 
+-- The reconstructed legacy foundation omits a company BRP projection that the
+-- canonical evidence-v3 snapshot consumes. Production already has this field.
+alter table public.companies
+  add column if not exists brp_ediel_id text;
+
 -- Reconstruct the canonical production send-lock projection when replaying from
 -- the older operational lock table. Production already has these columns and
 -- constraints, so every statement below is idempotent there.
