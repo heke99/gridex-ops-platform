@@ -122,6 +122,14 @@ function normalizeIdentifier(value: string | null | undefined): string {
   return String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
 }
 
+function requiredProfileText(profile: Record<string, unknown>, key: string): string {
+  const value = profile[key]
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`canonical_rule_pack_evidence_profile_field_missing:${key}`)
+  }
+  return value.trim()
+}
+
 function assertPolicyDirection(policy: CanonicalEdielPolicy, direction: EdielDirection): void {
   const canonicalDirection = policy.semantics.direction
   if (canonicalDirection !== 'both' && canonicalDirection !== direction) {
@@ -210,8 +218,41 @@ function assertDbEvidenceMatchesSource(input: {
   if (evidence.validFrom > businessDate || (evidence.validTo && evidence.validTo < businessDate)) {
     throw new Error(`canonical_rule_pack_evidence_date_mismatch:${businessDate}:${evidence.validFrom}:${evidence.validTo ?? 'open'}`)
   }
-  if (evidence.profileKey !== source.profileKey) {
-    throw new Error(`canonical_rule_pack_evidence_profile_mismatch:${evidence.profileKey}:${source.profileKey}`)
+
+  // ediel_message_profiles.profile_key is a stable DB evidence identifier
+  // (for example PRODAT:Z01:L:26.A:r3), not the semantic runtime profile key
+  // (for example prodat_z01_customer_identity_request). Verify the row by the
+  // normative identity fields it evidences instead of comparing those two
+  // different identifier namespaces.
+  const profileFamily = normalizeIdentifier(requiredProfileText(evidence.profile, 'family'))
+  if (profileFamily !== source.family) {
+    throw new Error(`canonical_rule_pack_evidence_profile_family_mismatch:${profileFamily}:${source.family}`)
+  }
+  const profileMessageCode = normalizeIdentifier(requiredProfileText(evidence.profile, 'messageCode'))
+  const sourceMessageCode = normalizeIdentifier(source.policy.code)
+  if (profileMessageCode !== sourceMessageCode) {
+    throw new Error(`canonical_rule_pack_evidence_message_code_mismatch:${profileMessageCode}:${sourceMessageCode}`)
+  }
+
+  if (source.family === 'PRODAT') {
+    const profileSubtype = normalizeIdentifier(requiredProfileText(evidence.profile, 'transactionSubtype'))
+    const sourceSubtype = normalizeIdentifier(source.policy.subtype)
+    if (profileSubtype !== sourceSubtype) {
+      throw new Error(`canonical_rule_pack_evidence_subtype_mismatch:${profileSubtype}:${sourceSubtype || 'missing'}`)
+    }
+
+    const profileDirection = requiredProfileText(evidence.profile, 'canonicalDirection').toLowerCase()
+    if (profileDirection !== source.policy.direction && profileDirection !== 'both') {
+      throw new Error(`canonical_rule_pack_evidence_direction_mismatch:${profileDirection}:${source.policy.direction}`)
+    }
+
+    const sourceReason = normalizeIdentifier(source.policy.transactionReasonCode)
+    if (sourceReason) {
+      const profileReason = normalizeIdentifier(requiredProfileText(evidence.profile, 'reasonForTransaction'))
+      if (profileReason !== sourceReason) {
+        throw new Error(`canonical_rule_pack_evidence_reason_mismatch:${profileReason}:${sourceReason}`)
+      }
+    }
   }
 
   const dbGuideTokens = [evidence.guideVersion, evidence.guideRevision].map(normalizeIdentifier)
