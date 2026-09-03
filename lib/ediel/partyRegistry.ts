@@ -84,6 +84,21 @@ export function normalizeTransportSecurityMode(value?: string | null): EdielTran
   return 'needs_verification'
 }
 
+export function resolveRouteTransportSecurityMode(params: {
+  transportSecurityMode?: unknown
+  encryptionMode?: unknown
+}): EdielTransportSecurityMode {
+  const explicit = String(params.transportSecurityMode ?? '').trim()
+  if (explicit) return normalizeTransportSecurityMode(explicit)
+
+  // transport_mode is a protocol (for example smtp_imap), never a security policy.
+  // Legacy/materialized routes persist the effective security decision in encryption_mode.
+  const encryption = String(params.encryptionMode ?? '').trim().toLowerCase()
+  if (encryption === 'encrypted' || encryption === 'smime' || encryption === 's/mime') return 'encrypted'
+  if (encryption === 'unencrypted' || encryption === 'none' || encryption === 'plain') return 'unencrypted'
+  return 'needs_verification'
+}
+
 export function transportSecurityModeToEncryptionMode(mode?: string | null): 'smime' | 'none' | null {
   const normalized = normalizeTransportSecurityMode(mode)
   if (normalized === 'required_encrypted' || normalized === 'encrypted') return 'smime'

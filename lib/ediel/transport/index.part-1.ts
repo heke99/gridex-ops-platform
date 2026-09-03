@@ -20,7 +20,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import { routeReceiverSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
-import { isAgtPortalProdatAddress, normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
+import { isAgtPortalProdatAddress, resolveRouteTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
@@ -644,10 +644,10 @@ export async function assertRouteTransportSecurity(params: {
   const effectiveEncryptionMode = params.effectiveEncryptionMode ?? routeProfile?.encryption_mode ?? null
   const effectiveCertificateId = params.effectiveCertificateId ?? routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
   const receiverSubaddress = routeReceiverSubaddress(routeProfile) ?? message.receiver_sub_address ?? null
-  const rawTransportSecurityMode = routeProfile?.transport_security_mode ?? routeProfile?.transport_mode ?? null
-  const transportSecurityMode = rawTransportSecurityMode
-    ? normalizeTransportSecurityMode(rawTransportSecurityMode)
-    : null
+  const transportSecurityMode = resolveRouteTransportSecurityMode({
+    transportSecurityMode: routeProfile?.transport_security_mode,
+    encryptionMode: effectiveEncryptionMode,
+  })
   const family = String(message.message_family ?? routeProfile?.message_family ?? '').toUpperCase()
   const nonProdatSmimeAllowed = family === 'PRODAT' || routeAllowsNonProdatSmime(routeProfile)
   const agtPortalUnencryptedAllowed =
