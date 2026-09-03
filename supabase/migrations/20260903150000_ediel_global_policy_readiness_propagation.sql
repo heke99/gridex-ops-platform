@@ -7,11 +7,11 @@
 
 begin;
 
-create or replace function public.ediel_global_policy_change_snapshot_trigger()
+create or replace function private.ediel_global_policy_change_snapshot_trigger()
 returns trigger
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public, private, pg_temp
 as $$
 declare
   v_company_id uuid;
@@ -39,10 +39,8 @@ begin
 end;
 $$;
 
-revoke all on function public.ediel_global_policy_change_snapshot_trigger()
+revoke all on function private.ediel_global_policy_change_snapshot_trigger()
   from public, anon, authenticated;
-grant execute on function public.ediel_global_policy_change_snapshot_trigger()
-  to service_role;
 
 drop trigger if exists canonical_snapshot_ediel_rule_versions
   on public.ediel_rule_versions;
@@ -50,6 +48,6 @@ drop trigger if exists canonical_snapshot_ediel_rule_versions
 create trigger canonical_snapshot_ediel_rule_versions
 after insert or update or delete on public.ediel_rule_versions
 for each statement
-execute function public.ediel_global_policy_change_snapshot_trigger();
+execute function private.ediel_global_policy_change_snapshot_trigger();
 
 commit;
