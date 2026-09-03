@@ -1,4 +1,4 @@
-import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { inboundRouteMessageCodeMatches } from '@/lib/ediel/tenant/inboundRouteSemantics'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InboundTenantResolutionStatus = 'resolved' | 'ambiguous' | 'unresolved'
@@ -70,37 +70,6 @@ function configuredMatches(configured: unknown, observed: unknown): boolean {
   const observedValue = upper(observed)
   if (!configuredValue || !observedValue) return true
   return configuredValue === observedValue
-}
-
-/**
- * Route profiles are normally message-code specific, but an outbound request
- * profile is also valid inbound tenant evidence for its canonical business
- * response when every other route identity still matches in reverse.
- *
- * The response relation comes from the central acknowledgement/business-response
- * matrix. Unknown families/codes remain fail-closed; there is no fuzzy Zxx match.
- */
-export function inboundRouteMessageCodeMatches(input: {
-  family: string | null | undefined
-  configuredCode: string | null | undefined
-  inboundCode: string | null | undefined
-}): boolean {
-  const family = upper(input.family)
-  const configuredCode = upper(input.configuredCode)
-  const inboundCode = upper(input.inboundCode)
-
-  if (!configuredCode || !inboundCode) return true
-  if (configuredCode === inboundCode) return true
-  if (!family) return false
-
-  try {
-    return canonicalAckRequirementsForFamilyCode({ family, code: configuredCode })
-      .businessResponses
-      .map(upper)
-      .includes(inboundCode)
-  } catch {
-    return false
-  }
 }
 
 function routeMessageCodeMatchKind(input: {

@@ -22,6 +22,7 @@ import { evaluateSiteFacilityIdentity, resumeCustomerIntake } from '@/lib/custom
 import type { MeteringPointRow } from '@/lib/masterdata/types'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import { makeCustomerOperationBlocker, routeIssueCodeToCustomerBlocker, type CustomerOperationBlocker } from '@/lib/customer-operations/blockers'
+import { canonicalAtomicZ02JobResult } from '@/lib/customer-operations/z02AtomicEvidence'
 
 import type { JobOutcome, JobRow, JsonRecord } from './automation.part-1'
 import { addressFingerprint, automationActorId, blockerResult, clean, customerDataResolutionReason, enqueueSupplierSwitchAutomation, missingSchema, nowIso, originalCustomerDataSnapshot, priceArea, record, resolveCustomerSiteGridOwner, setOperationSnapshotRequestReference, textField } from './automation.part-1'
@@ -707,19 +708,6 @@ export async function applyInboundGridOwnerResponse(input: {
   }
 
   return applied
-}
-
-export function canonicalAtomicZ02JobResult(result: JsonRecord | null): JsonRecord | null {
-  const root = record(result)
-  const core = record(root.z02_atomic_core)
-  if (
-    root.z02_correlation_status !== 'exact' ||
-    root.z02_payload_validation_status !== 'valid' ||
-    root.z02_snapshot_freshness_status !== 'valid' ||
-    root.z02_atomic_core_applied !== true ||
-    core.ok !== true
-  ) return null
-  return core
 }
 
 export async function processInboundResponse(job: JobRow): Promise<JobOutcome> {

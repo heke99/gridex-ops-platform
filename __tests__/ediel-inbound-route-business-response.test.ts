@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { inboundRouteMessageCodeMatches } from '@/lib/ediel/tenant/resolveInboundTenant'
+import { inboundRouteMessageCodeMatches } from '@/lib/ediel/tenant/inboundRouteSemantics'
 
 // Regression boundary: operational tenant routing consumes canonical response semantics through the Ediel facade.
 describe('inbound route business-response matching', () => {

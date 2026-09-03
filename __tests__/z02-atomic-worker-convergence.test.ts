@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { canonicalAtomicZ02JobResult } from '@/lib/customer-operations/automation.part-2'
+import { canonicalAtomicZ02JobResult } from '@/lib/customer-operations/z02AtomicEvidence'
 
 describe('canonical Z02 atomic worker convergence', () => {
   it('accepts only the complete DB gate chain', () => {
