@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay-schema-equivalent-tail",
   "generated_types": "supabase/database.types.ts",
   "sha256": "e1612c74585c7e7f87bdad1e6e79a7cf24263f772d734a8cd893f148e69e8abb",
-  "latest_migration": "20260903160000_ediel_send_lock_state_convergence.sql",
-  "latest_migration_schema_effect": "private_trigger_converges_legacy_ediel_send_lock_status_to_canonical_locked_boolean"
+  "latest_migration": "20260903161000_ediel_send_lock_release_requeues_outbox.sql",
+  "latest_migration_schema_effect": "private_trigger_requeues_outbox_rows_stranded_only_by_released_ediel_send_lock"
 }
