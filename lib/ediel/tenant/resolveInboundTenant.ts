@@ -315,7 +315,7 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
 
     const configuredCode = row.business_code ?? row.message_code
     const codeMatchKind = routeMessageCodeMatchKind({
-      family: row.message_family ?? input.messageFamily,
+      family: clean(row.message_family) ?? input.messageFamily,
       configuredCode: clean(configuredCode),
       inboundCode: input.messageCode,
     })
