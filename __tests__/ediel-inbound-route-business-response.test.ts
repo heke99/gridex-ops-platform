@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { inboundRouteMessageCodeMatches } from '@/lib/ediel/tenant/resolveInboundTenant'
 
+// Regression boundary: operational tenant routing consumes canonical response semantics through the Ediel facade.
 describe('inbound route business-response matching', () => {
   it('allows canonical Z02 as the business response to a configured PRODAT Z01 route', () => {
     expect(inboundRouteMessageCodeMatches({ family: 'PRODAT', configuredCode: 'Z01', inboundCode: 'Z02' })).toBe(true)
