@@ -7,7 +7,7 @@
     "20260831093531_fix_contract_snapshot_null_schema_guard.sql": "22d04463619156df167cb6ecfcc1e670fbf58c95796d52f4750e328b718ec2e1",
     "20260831094500_customer_authorization_documents_contract_link_foundation.sql": "f196e714bb49310f354f795d2d86f52b8dc8679433e6adcdb268f3b3277a8a84",
     "20260831095000_admin_signed_contract_import_canonicalization.sql": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef",
-    "20260901084000_harden_gridex_point_to_grid_area_search_path.sql": "05b0681cd089adf61b4a184b8db40a09fdb008d6",
+    "20260901084000_harden_gridex_point_to_grid_area_search_path.sql": "05b0681cd089adf61b4a184b8db40fdba2545f815c1fd7ec47615ecb8cc0c34e",
     "20260902100045_fix_website_poa_scope_and_grid_owner_aliases.sql": "d069342180f5d86f39a8988ad6905fa4dca0e451ca8c23d96a1cd8b647895e10",
     "20260902221400_restore_customer_site_current_supplier_org_number.sql": "b22c75f663b7ad846da05a76c79a36b79f865929a982a2020f5b45a447b81d57",
     "20260902221500_facility_initial_address_and_unknown_supplier_semantics.sql": "0bc8189d18d4c9e582a68ffe2424925db0a016bfc5f5ee412a66eff587e9bd5d",
