@@ -17,11 +17,16 @@ function lockMatchesEnvironment(row: Record<string, unknown>, environment: strin
 }
 
 function lockIsActive(row: Record<string, unknown>): boolean {
-  const status = clean(row.status)
+  // `ediel_send_locks.locked` is the canonical, NOT NULL lock state. The older
+  // `status` column defaults to `active` and is intentionally not projected by
+  // canonical_transition_ediel_production. Treating status='active' as a lock
+  // therefore re-locks a tenant immediately after the canonical transition has
+  // set locked=false. Keep expiry as an additional release condition, but let
+  // the canonical boolean own the decision.
   const locked = row.locked === true
   const expiresAt = clean(row.expires_at)
   const expired = expiresAt ? Date.parse(expiresAt) <= Date.now() : false
-  return !expired && (locked || status === 'active')
+  return locked && !expired
 }
 
 async function assertNoActiveSendLock(params: {
