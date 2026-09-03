@@ -27,7 +27,7 @@ import {
 } from '@/lib/ediel/intent/renderers/customerMasterdataZ01'
 import type { EdielIntentBlockingReason, EdielMessageIntent } from '@/lib/ediel/intent/types'
 import { assertProdatZ01Renderable } from '@/lib/ediel/profiles/prodatZ01Guard'
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 export type RenderGatewayResult =
   | {
@@ -69,8 +69,35 @@ async function loadValidatedIntent(intentId: string): Promise<
   return { ok: true, intent }
 }
 
+function structuredErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim()
+  if (typeof error === 'string' && error.trim()) return error.trim()
+  if (error && typeof error === 'object' && !Array.isArray(error)) {
+    const candidate = error as {
+      message?: unknown
+      details?: unknown
+      hint?: unknown
+      code?: unknown
+    }
+    const parts = [candidate.message, candidate.details, candidate.hint]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map((value) => value.trim())
+    const code = typeof candidate.code === 'string' && candidate.code.trim()
+      ? candidate.code.trim()
+      : null
+    if (parts.length > 0) return code ? `${code}: ${parts.join(' | ')}` : parts.join(' | ')
+    if (code) return code
+    try {
+      return JSON.stringify(error)
+    } catch {
+      return 'unknown_render_error'
+    }
+  }
+  return String(error ?? 'unknown_render_error')
+}
+
 function classifyRenderError(error: unknown): EdielIntentBlockingReason {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = structuredErrorMessage(error)
   const lower = message.toLowerCase()
   let code = 'render_failed'
   if (lower.includes('process_variant') || lower.includes('process_type')) {
@@ -94,14 +121,20 @@ function classifyRenderError(error: unknown): EdielIntentBlockingReason {
   }
 }
 
-async function ensureProdatZ01FacilityIdentifier(siteId: string | null) {
+async function ensureProdatZ01FacilityIdentifier(
+  siteId: string | null,
+  companyId: string | null | undefined,
+) {
   if (!siteId) {
     return assertProdatZ01Renderable({ facilityId: null })
   }
   try {
-    const { data } = await supabaseService
+    const db = tenantDb(companyId)
+    const { data } = await db
+      .unscoped()
       .from('customer_sites')
       .select('facility_id,normalized_facility_id')
+      .eq('company_id', db.companyId)
       .eq('id', siteId)
       .maybeSingle()
     const row = (data ?? null) as { facility_id?: unknown; normalized_facility_id?: unknown } | null
@@ -127,7 +160,10 @@ export async function renderAndQueueFacilityLookupZ01(params: {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
   }
 
-  const z01Gate = await ensureProdatZ01FacilityIdentifier(params.request.customer_site_id)
+  const z01Gate = await ensureProdatZ01FacilityIdentifier(
+    params.request.customer_site_id,
+    params.routeContext.companyId,
+  )
   if (!z01Gate.renderable) {
     const reason: EdielIntentBlockingReason = {
       code: z01Gate.blocker.blocker_code,
@@ -293,9 +329,12 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
       route_profile_id: params.routeProfileId,
     }
     if (params.operationId) messagePatch.operation_id = params.operationId
-    const { error: messageUpdateError } = await supabaseService
+    const db = tenantDb(params.routeContext.companyId)
+    const { error: messageUpdateError } = await db
+      .unscoped()
       .from('ediel_messages')
       .update(messagePatch)
+      .eq('company_id', db.companyId)
       .eq('id', message.id)
     if (
       messageUpdateError &&
