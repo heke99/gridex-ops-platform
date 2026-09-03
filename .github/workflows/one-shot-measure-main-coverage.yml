@@ -1,0 +1,25 @@
+name: one-shot measure main coverage
+
+on:
+  push:
+    branches:
+      - fix/inbound-z02-canonical-convergence-20260903
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: b8ea1851a87143e7d702435f592f32684a27af7d
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Measure exact main coverage without enforcing the historical threshold
+        run: npx vitest run --coverage --coverage.thresholds.statements=0 --coverage.thresholds.branches=0 --coverage.thresholds.functions=0 --coverage.thresholds.lines=0
