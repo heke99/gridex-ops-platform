@@ -6,6 +6,7 @@ import { supabaseService } from '@/lib/supabase/service'
 
 import { createCustomerInfoRequest, queueCustomerInfoRequestForDispatch } from '@/lib/onboarding/infoRequests'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
+import { getEdielMessageById } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 
@@ -15,6 +16,7 @@ import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEve
 
 
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
+import { listMeteringPointsForSite } from '@/lib/operations/db'
 import { ensureFacilityLookupAutomation } from '@/lib/customer-operations/facilityLookupAutomation'
 import { evaluateSiteFacilityIdentity, resumeCustomerIntake } from '@/lib/customer-operations/customerIntakeOrchestrator'
 import type { MeteringPointRow } from '@/lib/masterdata/types'
@@ -707,22 +709,114 @@ export async function applyInboundGridOwnerResponse(input: {
   return applied
 }
 
+export function canonicalAtomicZ02JobResult(result: JsonRecord | null): JsonRecord | null {
+  const root = record(result)
+  const core = record(root.z02_atomic_core)
+  if (
+    root.z02_correlation_status !== 'exact' ||
+    root.z02_payload_validation_status !== 'valid' ||
+    root.z02_snapshot_freshness_status !== 'valid' ||
+    root.z02_atomic_core_applied !== true ||
+    core.ok !== true
+  ) return null
+  return core
+}
+
 export async function processInboundResponse(job: JobRow): Promise<JobOutcome> {
   const payload = record(job.payload)
-  const requestId = clean(payload.customer_info_request_id)
-  const messageId = clean(payload.ediel_message_id)
-  if (!job.customer_site_id || !requestId || !messageId) return { status: 'failed', result: { reason: 'missing_inbound_job_context' } }
-  const result = await applyInboundGridOwnerResponse({
+  const requestId = normalizeUuidOrNull(payload.customer_info_request_id, 'customer_info_request_id')
+  const messageId = normalizeUuidOrNull(payload.ediel_message_id, 'ediel_message_id')
+  const siteId = normalizeUuidOrNull(job.customer_site_id, 'customer_site_id')
+  if (!siteId || !requestId || !messageId) return { status: 'failed', result: { reason: 'missing_inbound_job_context' } }
+
+  const atomicCore = canonicalAtomicZ02JobResult(job.result)
+  if (!atomicCore) {
+    return {
+      status: 'needs_review',
+      result: blockerResult('stale_response_requires_review', {
+        blocker_reason: 'Z02 saknar komplett canonical bevis för korrelation, payload, requestsnapshot eller atomisk apply. Ingen app-layer masterdataändring körs.',
+        next_required_action: 'Granska Z02-gaterna och originating Z01 innan automation återupptas.',
+      }, { operation_id: job.operation_id, ediel_message_id: messageId, customer_info_request_id: requestId }),
+    }
+  }
+
+  const meteringPointId = normalizeUuidOrNull(atomicCore.meteringPointRecordId, 'metering_point_record_id')
+  const externalMeteringPointId = clean(atomicCore.meteringPointExternalId)
+  if (!meteringPointId || !externalMeteringPointId) {
+    return { status: 'needs_review', result: { reason: 'z02_atomic_metering_point_evidence_missing', atomic_core: atomicCore } }
+  }
+
+  const [message, meteringPoints] = await Promise.all([
+    getEdielMessageById(messageId, { companyId: job.company_id }),
+    listMeteringPointsForSite(supabaseService, siteId),
+  ])
+  if (!message || message.company_id !== job.company_id || message.customer_id !== job.customer_id || message.site_id !== siteId) {
+    return { status: 'needs_review', result: { reason: 'z02_atomic_message_link_mismatch', atomic_core: atomicCore } }
+  }
+  const point = meteringPoints.find((candidate) => candidate.id === meteringPointId) ?? null
+  const pointRecord = record(point as unknown as JsonRecord)
+  if (
+    !point ||
+    clean(point.status) !== 'active' ||
+    clean(pointRecord.verification_status) !== 'verified' ||
+    clean(pointRecord.data_quality_status) !== 'verified' ||
+    getMeteringPointIdentity(point) !== externalMeteringPointId
+  ) {
+    return { status: 'needs_review', result: { reason: 'z02_atomic_metering_point_not_verified', atomic_core: atomicCore } }
+  }
+
+  const actorUserId = automationActorId(job.created_by)
+  await completeLinkedGridOwnerInformationRequest({
+    companyId: job.company_id,
+    outboundEdielMessageId: clean(message.related_message_id),
+    inboundEdielMessageId: messageId,
+    facilityId: clean(atomicCore.facilityId),
+    meteringPointExternalId: externalMeteringPointId,
+    gridAreaCode: clean(atomicCore.gridAreaCode),
+    priceArea: clean(atomicCore.priceAreaCode),
+    verified: true,
+    receivedPayload: { atomic_core: atomicCore },
+    actorUserId,
+  })
+
+  const switchJob = await enqueueSupplierSwitchAutomation({
     companyId: job.company_id,
     customerId: job.customer_id,
-    siteId: job.customer_site_id,
-    requestId,
-    edielMessageId: messageId,
-    actorUserId: job.created_by,
+    siteId,
+    meteringPointId,
+    actorUserId,
     operationId: job.operation_id ?? job.id,
-    customerOperationJobId: job.id,
+    source: 'z02_market_verified',
   })
-  return { status: 'completed', result }
+
+  await emitCustomerOperationEvent({
+    companyId: job.company_id,
+    customerId: job.customer_id,
+    actorUserId,
+    eventType: 'customer_data.received',
+    title: 'Nätägarens Z02 verifierad',
+    message: 'Z02 har applicerats atomiskt. Systemet använder verifierad anläggning/mätpunkt och kör nu canonical readiness för nästa leverantörsbytessteg.',
+    customerSiteId: siteId,
+    meteringPointId,
+    customerOperationJobId: job.id,
+    operationId: job.operation_id ?? job.id,
+    actionUrl: `/admin/customers/${job.customer_id}?tab=data-requests`,
+    payload: { atomic_core: atomicCore, supplier_switch_job_id: switchJob.id, supplier_switch_job_status: switchJob.status },
+    idempotencyKey: `z02-atomic-finalized:${messageId}`,
+  })
+
+  return {
+    status: 'completed',
+    result: {
+      reason: 'z02_atomic_core_finalized',
+      customer_info_request_id: requestId,
+      ediel_message_id: messageId,
+      metering_point_id: meteringPointId,
+      atomic_core: atomicCore,
+      supplier_switch_job_id: switchJob.id,
+      supplier_switch_job_status: switchJob.status,
+    },
+  }
 }
 
 export type DispatchBlockerEntry = { code: string; message: string; source?: string }

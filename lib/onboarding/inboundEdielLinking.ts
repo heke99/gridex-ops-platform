@@ -322,57 +322,29 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     uuidOrNull(request.created_by) ??
     uuidOrNull(params.message.created_by)
   const eventActorId = persistenceActorId ?? params.actorUserId
-  const currentPayload = readJson(request.verified_payload)
   const z02Payload = prodatPayloadSnapshot(params.message)
-
-  const { error } = await supabaseService
-    .from('customer_info_requests')
-    .update({
-      status: 'z02_received',
-      received_at: new Date().toISOString(),
-      blocker_reason: null,
-      verified_payload: {
-        ...currentPayload,
-        z02: z02Payload,
-        z02MessageId: params.message.id,
-        linkedAutomaticallyAt: new Date().toISOString(),
-      },
-      updated_by: persistenceActorId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('company_id', companyId)
-    .eq('id', request.id)
-
-  if (error) throw error
-
-  await linkEdielMessage({
-    actorUserId: eventActorId,
-    edielMessageId: params.message.id,
-    customerId: String(request.customer_id ?? '') || params.message.customer_id,
-    siteId: String(request.site_id ?? '') || params.message.site_id,
-    meteringPointId: String(request.metering_point_id ?? '') || params.message.metering_point_id,
-    gridOwnerId: String(request.grid_owner_id ?? '') || params.message.grid_owner_id,
-    relatedMessageId: params.message.related_message_id,
-  })
-
-  await supabaseService.from('customer_info_request_events').insert({
-    company_id: companyId,
-    customer_info_request_id: request.id,
-    customer_id: request.customer_id,
-    event_type: 'z02_received',
-    message: 'PRODAT Z02 kopplades automatiskt till uppgiftsbegäran och verifierade uppgifter sparades.',
-    payload: z02Payload,
-    created_by: persistenceActorId,
-  })
-
   const linkedCustomerId = String(request.customer_id ?? '') || String(params.message.customer_id ?? '')
   const linkedSiteId = String(request.site_id ?? '') || String(params.message.site_id ?? '')
+
+  // Receipt is message-level evidence only. Do not mark the candidate request
+  // verified or pre-link customer/site before the canonical DB gates run.
+  await createEdielMessageEvent({
+    actorUserId: eventActorId,
+    edielMessageId: params.message.id,
+    eventType: 'manual_note',
+    eventStatus: 'info',
+    message: 'PRODAT Z02 mottaget. Canonical korrelation och identitetskontroll startas innan kunddata får ändras.',
+    payload: { candidateCustomerInfoRequestId: request.id, z02: z02Payload },
+  })
+
   if (!linkedCustomerId || !linkedSiteId) {
     await supabaseService
       .from('customer_info_requests')
       .update({
         status: 'manual_review_required',
+        blocker_code: 'z02_missing_customer_or_site_link',
         blocker_reason: 'Svaret saknar säker koppling till kundens anläggning.',
+        next_required_action: 'Granska Z02 och koppla rätt kund/anläggning innan svaret behandlas.',
         updated_by: persistenceActorId,
         updated_at: new Date().toISOString(),
       })
@@ -390,32 +362,84 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   }
 
   const operationId = uuidOrNull(request.operation_id)
-  const responseJob = await enqueueInboundGridOwnerResponseAutomation({
-    companyId,
-    customerId: linkedCustomerId,
-    siteId: linkedSiteId,
-    meteringPointId: String(request.metering_point_id ?? '') || String(params.message.metering_point_id ?? '') || null,
-    requestId: String(request.id),
-    edielMessageId: params.message.id,
-    actorUserId: persistenceActorId,
-    operationId,
-  })
+  let responseJob: Awaited<ReturnType<typeof enqueueInboundGridOwnerResponseAutomation>>
+  try {
+    responseJob = await enqueueInboundGridOwnerResponseAutomation({
+      companyId,
+      customerId: linkedCustomerId,
+      siteId: linkedSiteId,
+      meteringPointId: String(request.metering_point_id ?? '') || String(params.message.metering_point_id ?? '') || null,
+      requestId: String(request.id),
+      edielMessageId: params.message.id,
+      actorUserId: persistenceActorId,
+      operationId,
+    })
+  } catch (enqueueError) {
+    const errorMessage = enqueueError instanceof Error ? enqueueError.message : String(enqueueError)
+    await supabaseService
+      .from('customer_info_requests')
+      .update({
+        status: 'manual_review_required',
+        blocker_code: 'z02_processing_enqueue_failed',
+        blocker_reason: errorMessage,
+        next_required_action: 'Granska requestsnapshot och Z02 innan kunddata uppdateras.',
+        updated_by: persistenceActorId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', companyId)
+      .eq('id', request.id)
+    await createEdielMessageEvent({
+      actorUserId: eventActorId,
+      edielMessageId: params.message.id,
+      eventType: 'manual_note',
+      eventStatus: 'error',
+      message: 'Z02 kunde inte starta canonical verifiering och applicerades inte.',
+      payload: { customerInfoRequestId: request.id, error: errorMessage },
+    })
+    return { applied: false, targetId: String(request.id), reason: 'z02_processing_enqueue_failed' }
+  }
 
-  if (responseJob.status === 'needs_review' || responseJob.status === 'blocked') {
-    const gateResult = readJson(responseJob.result)
-    const reasonCode = stringOrNull(gateResult.reason_code) ?? stringOrNull(gateResult.reason) ?? 'z02_payload_requires_review'
-    const blockerReason = stringOrNull(gateResult.blocker_reason) ?? 'Z02 uppfyllde inte canonical payload- eller identitetskontroller och applicerades inte.'
+  const gateResult = readJson(responseJob.result)
+  const atomicCore = readJson(gateResult.z02_atomic_core)
+  const atomicApplied =
+    gateResult.z02_correlation_status === 'exact' &&
+    gateResult.z02_payload_validation_status === 'valid' &&
+    gateResult.z02_snapshot_freshness_status === 'valid' &&
+    gateResult.z02_atomic_core_applied === true &&
+    atomicCore.ok === true
 
-    await supabaseService.from('customer_info_request_events').insert({
-      company_id: companyId,
+  if (responseJob.status === 'needs_review' || responseJob.status === 'blocked' || !atomicApplied) {
+    const reasonCode = stringOrNull(gateResult.reason_code) ?? stringOrNull(gateResult.reason) ?? 'z02_atomic_apply_not_confirmed'
+    const blockerReason = stringOrNull(gateResult.blocker_reason) ?? 'Z02 klarade inte hela canonical verifieringskedjan och applicerades inte.'
+
+    if (responseJob.status !== 'needs_review' && responseJob.status !== 'blocked') {
+      await supabaseService
+        .from('customer_info_requests')
+        .update({
+          status: 'manual_review_required',
+          blocker_code: reasonCode,
+          blocker_reason: blockerReason,
+          next_required_action: 'Granska Z02-gaterna innan automation återupptas.',
+          updated_by: persistenceActorId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('company_id', companyId)
+        .eq('id', request.id)
+      await supabaseService
+        .from('customer_operation_jobs')
+        .update({ status: 'needs_review', last_error: blockerReason, updated_at: new Date().toISOString() })
+        .eq('company_id', companyId)
+        .eq('id', responseJob.id)
+    }
+
+    await tenantDb(companyId).from('customer_info_request_events').insert({
       customer_info_request_id: request.id,
       customer_id: request.customer_id,
       event_type: 'z02_needs_review',
       message: blockerReason,
-      payload: { customerOperationJobId: responseJob.id, operationId: responseJob.operationId, reasonCode, gateResult, z02: z02Payload },
+      payload: { customerOperationJobId: responseJob.id, operationId: responseJob.operationId, reasonCode, gateResult },
       created_by: persistenceActorId,
     })
-
     await createEdielMessageEvent({
       actorUserId: eventActorId,
       edielMessageId: params.message.id,
@@ -424,36 +448,24 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       message: blockerReason,
       payload: { customerInfoRequestId: request.id, customerOperationJobId: responseJob.id, reasonCode, gateResult },
     })
-
     return { applied: false, targetId: String(request.id), reason: reasonCode }
   }
 
-  if (operationId) {
-    const messageOperationUpdate = await supabaseService
-      .from('ediel_messages')
-      .update({ operation_id: operationId })
-      .eq('id', params.message.id)
-      .eq('company_id', companyId)
-    if (messageOperationUpdate.error && !isMissingRelationError(messageOperationUpdate.error)) throw messageOperationUpdate.error
-  }
-
-  await supabaseService.from('customer_info_request_events').insert({
-    company_id: companyId,
+  await tenantDb(companyId).from('customer_info_request_events').insert({
     customer_info_request_id: request.id,
     customer_id: request.customer_id,
-    event_type: 'z02_processing_queued',
-    message: 'Svar från nätägaren kopplades automatiskt och bearbetas nu i bakgrunden.',
-    payload: { customerOperationJobId: responseJob.id, operationId: responseJob.operationId, z02: z02Payload },
+    event_type: 'z02_market_verified',
+    message: 'PRODAT Z02 passerade canonical korrelation, identitetskontroll, requestsnapshot och atomisk masterdataapply.',
+    payload: { customerOperationJobId: responseJob.id, operationId: responseJob.operationId, atomicCore },
     created_by: persistenceActorId,
   })
-
   await createEdielMessageEvent({
     actorUserId: eventActorId,
     edielMessageId: params.message.id,
     eventType: 'linked',
     eventStatus: 'success',
-    message: 'PRODAT Z02 kopplades automatiskt till uppgiftsbegäran.',
-    payload: { customerInfoRequestId: request.id },
+    message: 'PRODAT Z02 verifierades och applicerades atomiskt mot exakt uppgiftsbegäran.',
+    payload: { customerInfoRequestId: request.id, customerOperationJobId: responseJob.id },
   })
 
   return { applied: true, targetId: String(request.id) }
