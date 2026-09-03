@@ -1,0 +1,44 @@
+name: Mariam canonical Gridex go-live one-shot
+
+on:
+  push:
+    branches:
+      - ops/mariam-go-live-20260903
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mariam-canonical-gridex-go-live
+  cancel-in-progress: false
+
+jobs:
+  go-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-e2e
+    steps:
+      - name: Confirm exact production target and credentials
+        shell: bash
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+          GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se" || "$GRIDEX_E2E_PROD_BASE_URL" == "https://app.gridex.se/" ]] || { echo "Refusing target other than https://app.gridex.se" >&2; exit 1; }
+          [[ -n "$GRIDEX_E2E_SUPERADMIN_EMAIL" ]] || { echo "Missing superadmin email" >&2; exit 1; }
+          [[ -n "$GRIDEX_E2E_SUPERADMIN_PASSWORD" ]] || { echo "Missing superadmin password" >&2; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: bash scripts/install-browser-e2e-tooling.sh
+      - name: Run canonical readiness dry-run and live activation
+        env:
+          GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
+          GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
+          GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
+        run: npx playwright test e2e/production/mariam-go-live-one-shot.spec.mjs --config=playwright.production-certification.config.mjs
