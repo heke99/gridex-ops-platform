@@ -14,6 +14,7 @@ import {
   hasCanonicalAckDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import { supabaseService } from '@/lib/supabase/service'
 import {
   createCanonicalOutboundMessage,
   resolveCanonicalOutboundContext,
@@ -57,6 +58,28 @@ function isLegacyAckPerSourceConstraint(error: unknown): boolean {
 
 function sequenceString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function sourceOperationIdFromDraft(draft: CreateEdielMessageInput): string | null {
+  return sequenceString(draft.sourceOperationId)
+    ?? sequenceString(draft.parsedPayload?.operation_id)
+    ?? sequenceString(draft.parsedPayload?.operationId)
+}
+
+async function canonicalRulePackIdForMessageProfile(profileVersionId: string): Promise<string> {
+  const { data, error } = await supabaseService
+    .from('ediel_message_profiles')
+    .select('rule_pack_id')
+    .eq('id', profileVersionId)
+    .eq('is_enabled', true)
+    .maybeSingle()
+
+  if (error) throw error
+  const rulePackId = sequenceString((data as { rule_pack_id?: unknown } | null)?.rule_pack_id)
+  if (!rulePackId) {
+    throw new Error(`canonical_ediel_rule_pack_for_message_profile_missing:${profileVersionId}`)
+  }
+  return rulePackId
 }
 
 const FINAL_CANONICAL_ACK_STATUSES = new Set(['sent', 'acknowledged', 'validated'])
@@ -425,9 +448,23 @@ export async function finalizeCanonicalOutboundDraft(params: {
     draft: baseInput,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
   })
+  const routeProfileId = sequenceString(baseInput.routeProfileId)
+    ?? sequenceString(params.routeContext.routeRuntime?.route_profile_id)
+  if (!routeProfileId) {
+    throw new Error(`canonical_ediel_route_profile_required:${params.routeContext.route.id}`)
+  }
+  const canonicalRulePackId = sequenceString(baseInput.canonicalRulePackId)
+    ?? await canonicalRulePackIdForMessageProfile(rulePackSnapshot.profileVersionId)
+  const sourceOperationId = sourceOperationIdFromDraft(baseInput)
+  if (!sourceOperationId) {
+    throw new Error(`canonical_ediel_source_operation_required:${messageFamily}:${messageCode}`)
+  }
 
   const canonicalInput: CreateEdielMessageInput = {
     ...baseInput,
+    routeProfileId,
+    canonicalRulePackId,
+    sourceOperationId,
     ruleProfileKey: rulePackSnapshot.profileKey,
     ruleProfileVersionId: rulePackSnapshot.profileVersionId,
     ruleProfileVersion: rulePackSnapshot.version,
