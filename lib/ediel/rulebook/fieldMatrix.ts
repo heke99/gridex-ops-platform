@@ -378,6 +378,81 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+
+  // The canonical PRODAT 26-A matrix is field-level, while several rows share
+  // the same EDIFACT segment. Segment-level presence therefore cannot be used
+  // for those rows: a normal LIN does not imply a sub-line number, and the
+  // mandatory NAD+FR party identity does not imply field 315 (organisation no).
+  // Resolve the shared-segment cells explicitly before the generic field-key
+  // switch so PRODAT names such as net_area also cannot collide with UTILTS.
+  if (normalize(rule.family) === 'PRODAT' && rule.source === 'static') {
+    const lin = first(rawSegments, 'LIN+')
+    const nadUd = first(rawSegments, 'NAD+UD+')
+    const nadIt = first(rawSegments, 'NAD+IT+')
+    const nadIv = first(rawSegments, 'NAD+IV+')
+
+    switch (rule.fieldNumber) {
+      case '315': {
+        const nadFr = first(rawSegments, 'NAD+FR+')
+        const identity = components(element(nadFr, 2))
+        if (identity.length === 0) return false
+        // 160:SVK identifies the Ediel party carried by the mandatory NAD+FR
+        // segment. It is not the optional sender organisation-number field 315.
+        return !(normalize(identity[1]) === '160' && normalize(identity[2]) === 'SVK')
+      }
+      case '314':
+        return Boolean(element(lin, 1))
+      case '209':
+        return Boolean(components(element(lin, 3))[0])
+      case '258':
+        return Boolean(element(lin, 4))
+      case '260':
+        return hasPrefix(rawSegments, 'RFF+Z05:')
+      case 'END_USER_GROUP':
+        return Boolean(nadUd)
+      case '227':
+        return Boolean(element(nadUd, 2))
+      case '228':
+        return Boolean(element(nadUd, 4))
+      case '229':
+        return Boolean(element(nadUd, 5))
+      case '231':
+        return Boolean(element(nadUd, 8))
+      case '232':
+        return Boolean(element(nadUd, 6))
+      case '316':
+        return Boolean(element(nadUd, 9))
+      case 'INSTALLATION_GROUP':
+        return Boolean(nadIt)
+      case '233':
+        return Boolean(element(nadIt, 2))
+      case '234':
+        return Boolean(element(nadIt, 5))
+      case '235':
+        return Boolean(element(nadIt, 8))
+      case '236':
+        return Boolean(element(nadIt, 6))
+      case '237':
+        return Boolean(element(nadIt, 9))
+      case 'INVOICEE_GROUP':
+        return Boolean(nadIv)
+      case '250':
+        return Boolean(element(nadIv, 2))
+      case '251':
+        return Boolean(element(nadIv, 4))
+      case '252':
+        return Boolean(element(nadIv, 5))
+      case '253':
+        return Boolean(element(nadIv, 8))
+      case '317':
+        return Boolean(element(nadIv, 6))
+      case '318':
+        return Boolean(element(nadIv, 9))
+      default:
+        break
+    }
+  }
+
   switch (rule.fieldKey) {
     case 'application_reference':
       return Boolean(applicationReference)
