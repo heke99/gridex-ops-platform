@@ -1,5 +1,53 @@
 begin;
 
+-- Reconstruct the canonical production send-lock projection when replaying from
+-- the older operational lock table. Production already has these columns and
+-- constraints, so every statement below is idempotent there.
+alter table public.ediel_send_locks
+  add column if not exists environment text not null default 'production',
+  add column if not exists locked boolean not null default true,
+  add column if not exists locked_reason text,
+  add column if not exists unlocked_by uuid references auth.users(id) on delete set null,
+  add column if not exists unlocked_at timestamptz;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.ediel_send_locks'::regclass
+      and conname = 'ediel_send_locks_environment_check'
+  ) then
+    alter table public.ediel_send_locks
+      add constraint ediel_send_locks_environment_check
+      check (environment in ('test', 'production'));
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.ediel_send_locks'::regclass
+      and conname = 'ediel_send_locks_company_environment_key'
+  ) then
+    if exists (
+      select 1
+      from public.ediel_send_locks
+      group by company_id, environment
+      having count(*) > 1
+    ) then
+      raise exception 'ediel_send_locks_company_environment_duplicates';
+    end if;
+
+    alter table public.ediel_send_locks
+      add constraint ediel_send_locks_company_environment_key
+      unique (company_id, environment);
+  end if;
+end;
+$$;
+
+create index if not exists ediel_send_locks_company_env_locked_idx
+  on public.ediel_send_locks(company_id, environment, locked);
+
 create or replace function private.ediel_send_lock_state_convergence_trigger()
 returns trigger
 language plpgsql
