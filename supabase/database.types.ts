@@ -8574,6 +8574,7 @@ export type Database = {
           billing_settings: Json
           billing_terms_summary: string | null
           branding: Json
+          brp_ediel_id: string | null
           city: string | null
           closed_at: string | null
           closed_by: string | null
@@ -8713,6 +8714,7 @@ export type Database = {
           billing_settings?: Json
           billing_terms_summary?: string | null
           branding?: Json
+          brp_ediel_id?: string | null
           city?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -8852,6 +8854,7 @@ export type Database = {
           billing_settings?: Json
           billing_terms_summary?: string | null
           branding?: Json
+          brp_ediel_id?: string | null
           city?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -35983,6 +35986,7 @@ export type Database = {
           imap_host: string | null
           imap_port: number
           is_active: boolean
+          is_shared_platform_mailbox: boolean
           last_error: string | null
           last_polled_at: string | null
           last_time_sync_check_at: string | null
@@ -35992,6 +35996,7 @@ export type Database = {
           mailbox_type: string
           metadata: Json
           poll_interval_minutes: number
+          provider: string | null
           secret_reference: string | null
           security_status: string
           signing_mode: string
@@ -36014,6 +36019,7 @@ export type Database = {
           imap_host?: string | null
           imap_port?: number
           is_active?: boolean
+          is_shared_platform_mailbox?: boolean
           last_error?: string | null
           last_polled_at?: string | null
           last_time_sync_check_at?: string | null
@@ -36023,6 +36029,7 @@ export type Database = {
           mailbox_type?: string
           metadata?: Json
           poll_interval_minutes?: number
+          provider?: string | null
           secret_reference?: string | null
           security_status?: string
           signing_mode?: string
@@ -36045,6 +36052,7 @@ export type Database = {
           imap_host?: string | null
           imap_port?: number
           is_active?: boolean
+          is_shared_platform_mailbox?: boolean
           last_error?: string | null
           last_polled_at?: string | null
           last_time_sync_check_at?: string | null
@@ -36054,6 +36062,7 @@ export type Database = {
           mailbox_type?: string
           metadata?: Json
           poll_interval_minutes?: number
+          provider?: string | null
           secret_reference?: string | null
           security_status?: string
           signing_mode?: string
@@ -42909,39 +42918,54 @@ export type Database = {
           company_id: string
           created_at: string
           ediel_message_id: string | null
+          environment: string
           expires_at: string | null
           id: string
           lock_key: string
+          locked: boolean
           locked_at: string
           locked_by: string | null
+          locked_reason: string | null
           metadata: Json
           status: string
+          unlocked_at: string | null
+          unlocked_by: string | null
           updated_at: string
         }
         Insert: {
           company_id: string
           created_at?: string
           ediel_message_id?: string | null
+          environment?: string
           expires_at?: string | null
           id?: string
           lock_key: string
+          locked?: boolean
           locked_at?: string
           locked_by?: string | null
+          locked_reason?: string | null
           metadata?: Json
           status?: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
           updated_at?: string
         }
         Update: {
           company_id?: string
           created_at?: string
           ediel_message_id?: string | null
+          environment?: string
           expires_at?: string | null
           id?: string
           lock_key?: string
+          locked?: boolean
           locked_at?: string
           locked_by?: string | null
+          locked_reason?: string | null
           metadata?: Json
           status?: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
           updated_at?: string
         }
         Relationships: []

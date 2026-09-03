@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-03T09:22:27Z",
+  "generated_at": "2026-09-03T15:10:16Z",
   "generated_with": "supabase-cli-2.101.0-clean-replay-schema-equivalent-tail",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "e1612c74585c7e7f87bdad1e6e79a7cf24263f772d734a8cd893f148e69e8abb",
+  "sha256": "375c2b41b58c9849df7981b017fa9b7ed5697d9fedc123b7bd0bb45f6ee13e78",
   "latest_migration": "20260903164000_ediel_readiness_trigger_convergence.sql",
   "latest_migration_schema_effect": "tenant_snapshot_jobs_auto_revalidate_readiness_only_and_converge_global_policy_trigger"
 }
