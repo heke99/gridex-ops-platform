@@ -139,6 +139,35 @@ function canonicalMessageCode(family: ActiveCanonicalFamily, code: string): stri
   return code
 }
 
+function associationAssignedCodeForPolicy(input: {
+  family: ActiveCanonicalFamily
+  code: string
+  providedVersion: string | null | undefined
+  referenceDate: string
+  sourceBoundAck: boolean
+}): string | null {
+  if (input.sourceBoundAck) return null
+
+  const providedRaw = String(input.providedVersion ?? '').trim()
+  if (!providedRaw) return null
+  if (input.family !== 'PRODAT') return providedRaw
+
+  // PRODAT persists the human guide revision (for example 26A) as the runtime
+  // message version, while the UNH association-assigned code is E2SE6A. Do not
+  // feed a guide revision into the association-code selector. Unknown versions
+  // are deliberately returned unchanged so canonical policy still fails closed.
+  const provided = normalizeIdentifier(providedRaw)
+  const selection = selectRulebookVersion({
+    family: 'PRODAT',
+    code: input.code,
+    referenceDate: input.referenceDate,
+  })
+  const selectedVersion = normalizeIdentifier(selection.selectedVersion)
+  const guideRevision = normalizeIdentifier(selection.guideRevision)
+  if (provided === selectedVersion || provided === guideRevision) return null
+  return providedRaw
+}
+
 function assertAckFamilyRuntimeVersion(input: {
   family: SourceBoundAckFamily
   providedVersion: string | null | undefined
@@ -195,6 +224,13 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   if (!dir) throw new Error(`canonical_policy_direction_required:${familyValue}:${code}`)
   const referenceDate = businessDate(input, parsed)
   const sourceBoundAck = isSourceBoundAckFamily(familyValue)
+  const associationAssignedCode = associationAssignedCodeForPolicy({
+    family: familyValue,
+    code,
+    providedVersion: input.version,
+    referenceDate,
+    sourceBoundAck,
+  })
 
   const policy = resolveCanonicalEdielPolicy({
     family: familyValue,
@@ -202,10 +238,10 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     subtypeOrReasonCode: parsed.subtype,
     direction: dir,
     referenceDate,
-    // APERAK/CONTRL runtime version aliases (16B / 1.0) are not association
-    // codes. Their version is checked against the same source-controlled guide
-    // immediately below instead of being misinterpreted as UNH association.
-    associationAssignedCode: sourceBoundAck ? null : input.version ?? null,
+    // Runtime guide aliases such as PRODAT 26A and APERAK/CONTRL aliases are
+    // not UNH association codes. associationAssignedCodeForPolicy preserves
+    // actual association codes and lets unknown values fail closed.
+    associationAssignedCode,
     applicationReference: input.applicationReference ?? parsed.applicationReference ?? null,
     mode: input.mode === 'send' ? 'catalog_evidence' : 'parse',
   })
