@@ -15,6 +15,9 @@
     "20260903070000_harden_inbound_z02_required_payload_gate.sql": "cf8d81ac33d8687a817fba537791e25d89ccaf3f7ee342988ddb1dc0a9141d0b",
     "20260903090000_atomic_supplier_switch_activation_sweep.sql": "8d6d8f8bb7e19e4ecf7b0a4e0ffce68eca923b66c00449bbad13e36a6949462a",
     "20260903140000_customer_info_blocker_details_contract_guard.sql": "9371c2f130adaafba63fded11a203401826891e8897a50636527561e67a2f581",
-    "20260903150000_ediel_global_policy_readiness_propagation.sql": "99e0485b21c74d4449fd66185577cbffac9b73e5610478e19323138ff9db89a0"
+    "20260903150000_ediel_global_policy_readiness_propagation.sql": "99e0485b21c74d4449fd66185577cbffac9b73e5610478e19323138ff9db89a0",
+    "20260903162000_ediel_tenant_readiness_revalidation.sql": "bd83c15402a34c4f2a599393491d27466edfdda5fcce5de1afd13c4ddc7d795e",
+    "20260903163000_ediel_system_readiness_snapshot_access.sql": "20d5ba43ddec5635f2a220ea9b5dfa84d7d89288fc98addc684882f09c0666eb",
+    "20260903164000_ediel_readiness_trigger_convergence.sql": "56e532f4022bb421ccb387e8e541be62fe5664d961ddbf162b939f23e0d79793"
   }
 }
