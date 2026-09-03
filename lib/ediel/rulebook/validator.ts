@@ -170,6 +170,32 @@ function assertAckFamilyRuntimeVersion(input: {
   }
 }
 
+function assertProdatRuntimeVersion(input: {
+  providedVersion: string | null | undefined
+  referenceDate: string
+  policy: CanonicalEdielPolicy
+}): void {
+  const provided = normalizeIdentifier(input.providedVersion)
+  if (!provided) return
+
+  const selection = selectRulebookVersion({
+    family: 'PRODAT',
+    code: input.policy.code,
+    referenceDate: input.referenceDate,
+  })
+  const accepted = new Set([
+    normalizeIdentifier(selection.selectedVersion),
+    normalizeIdentifier(input.policy.guide.guideRevision),
+    normalizeIdentifier(input.policy.guide.associationAssignedCode),
+  ].filter(Boolean))
+
+  if (!accepted.has(provided)) {
+    throw new Error(
+      `canonical_ediel_version_not_allowed:PRODAT:${provided}:${[...accepted].join(',')}`,
+    )
+  }
+}
+
 function inheritedSourceRulePackSnapshot(input: RulebookValidationInput): RegistryRulePackSnapshot | null {
   const payload = record(input.parsedPayload)
   const snapshot = record(payload?.canonicalSourceRulePackSnapshot)
@@ -202,10 +228,11 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     subtypeOrReasonCode: parsed.subtype,
     direction: dir,
     referenceDate,
-    // APERAK/CONTRL runtime version aliases (16B / 1.0) are not association
-    // codes. Their version is checked against the same source-controlled guide
-    // immediately below instead of being misinterpreted as UNH association.
-    associationAssignedCode: sourceBoundAck ? null : input.version ?? null,
+    // `message_version` is a runtime/catalog version, not universally the
+    // UNH association-assigned code. PRODAT stores 26A while its UNH S009/0057
+    // is E2SE6A. Source-bound ACK families have the same distinction. Only
+    // UTILTS uses the runtime version itself as the guide association selector.
+    associationAssignedCode: sourceBoundAck || familyValue === 'PRODAT' ? null : input.version ?? null,
     applicationReference: input.applicationReference ?? parsed.applicationReference ?? null,
     mode: input.mode === 'send' ? 'catalog_evidence' : 'parse',
   })
@@ -217,6 +244,13 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
       referenceDate,
       policy,
       sourceMessageFamily: record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined,
+    })
+  }
+  if (familyValue === 'PRODAT') {
+    assertProdatRuntimeVersion({
+      providedVersion: input.version,
+      referenceDate,
+      policy,
     })
   }
 
