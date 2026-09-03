@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { certificateMessageScopeBlocker } from '@/lib/ediel/certificateScope'
+import { certificateMessageScopeBlocker, certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
 import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
 import { resolveRouteTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
@@ -78,5 +78,19 @@ describe('Ediel recipient certificate message scope', () => {
       { message_family: 'UTILTS', message_type: 'UTILTS' },
       { message_family: 'PRODAT', message_code: 'Z01' },
     )).toBe('receiver_certificate_message_family_mismatch')
+  })
+})
+
+describe('Ediel recipient certificate subaddress scope', () => {
+  it('accepts a party-scoped recipient certificate without owner_subaddress for a subaddressed route', () => {
+    expect(certificateSubaddressScopeBlocker(null, 'PRODAT')).toBeNull()
+  })
+
+  it('accepts an explicitly matching certificate subaddress', () => {
+    expect(certificateSubaddressScopeBlocker('PRODAT', 'PRODAT')).toBeNull()
+  })
+
+  it('fails closed when an explicit certificate subaddress conflicts with the route', () => {
+    expect(certificateSubaddressScopeBlocker('UTILTS', 'PRODAT')).toBe('receiver_certificate_subaddress_mismatch')
   })
 })

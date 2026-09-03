@@ -36,3 +36,18 @@ export function certificateMessageScopeBlocker(
 
   return null
 }
+
+export function certificateSubaddressScopeBlocker(
+  certificateOwnerSubaddress: unknown,
+  receiverSubaddress: unknown,
+): 'receiver_certificate_subaddress_mismatch' | null {
+  const certificateSubaddress = upper(certificateOwnerSubaddress)
+  const routeSubaddress = upper(receiverSubaddress)
+
+  // Recipient X.509 certificates are commonly party-scoped in the production
+  // registry. A missing certificate subaddress therefore means general scope
+  // for that Ediel owner. When a certificate explicitly carries a subaddress,
+  // it remains restrictive and must match the route exactly.
+  if (!certificateSubaddress || !routeSubaddress) return null
+  return certificateSubaddress === routeSubaddress ? null : 'receiver_certificate_subaddress_mismatch'
+}
