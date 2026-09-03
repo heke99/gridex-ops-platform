@@ -1,0 +1,57 @@
+name: one-shot Z02 narrow facade verification
+
+on:
+  push:
+    branches:
+      - fix/inbound-z02-canonical-convergence-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/inbound-z02-canonical-convergence-20260903
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Switch tenant resolver to narrow canonical ACK facade
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/ediel/tenant/resolveInboundTenant.ts')
+          s = p.read_text()
+          old_import = "import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'"
+          new_import = "import { canonicalBusinessResponsesForFamilyCode } from '@/lib/ediel/rulebook/canonicalAckFacade'"
+          if s.count(old_import) != 1:
+              raise SystemExit(f'expected one broad facade import, found {s.count(old_import)}')
+          s = s.replace(old_import, new_import, 1)
+          old_call = "return canonicalAckRequirementsForFamilyCode({ family, code: configuredCode })\n      .businessResponses\n      .map(upper)"
+          new_call = "return canonicalBusinessResponsesForFamilyCode({ family, code: configuredCode })\n      .map(upper)"
+          if s.count(old_call) != 1:
+              raise SystemExit(f'expected one broad facade call, found {s.count(old_call)}')
+          s = s.replace(old_call, new_call, 1)
+          p.write_text(s)
+          PY
+      - name: Verify architecture behavior typecheck and coverage ratchet
+        run: |
+          npx vitest run __tests__/ediel-normative-authority-boundary.test.ts __tests__/ediel-inbound-route-business-response.test.ts
+          npm run typecheck
+          npm run test:coverage
+      - name: Commit clean narrow-facade fix
+        shell: bash
+        run: |
+          rm .github/workflows/one-shot-z02-narrow-facade.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/ediel/tenant/resolveInboundTenant.ts lib/ediel/rulebook/canonicalAckFacade.ts .github/workflows/one-shot-z02-narrow-facade.yml
+          git commit -m "Use narrow canonical ACK facade for inbound routing"
+          git push origin HEAD:fix/inbound-z02-canonical-convergence-20260903
