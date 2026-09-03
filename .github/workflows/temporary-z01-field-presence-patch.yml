@@ -1,0 +1,59 @@
+name: Temporary Z01 field presence repair
+
+on:
+  push:
+    branches:
+      - fix/prodat-z01-field-presence-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/prodat-z01-field-presence-20260903
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Patch field-level PRODAT presence semantics
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/ediel/rulebook/fieldMatrix.ts')
+          text = path.read_text()
+          needle = """export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {\n  const rawSegments = input.rawSegments ?? []\n  const applicationReference = input.applicationReference ?? null\n  switch (rule.fieldKey) {\n"""
+          replacement = """export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {\n  const rawSegments = input.rawSegments ?? []\n  const applicationReference = input.applicationReference ?? null\n\n  // The canonical PRODAT 26-A matrix is field-level, while several rows share\n  // the same EDIFACT segment. Segment-level presence therefore cannot be used\n  // for those rows: a normal LIN does not imply a sub-line number, and the\n  // mandatory NAD+FR party identity does not imply field 315 (organisation no).\n  // Resolve the shared-segment cells explicitly before the generic field-key\n  // switch so PRODAT names such as net_area also cannot collide with UTILTS.\n  if (normalize(rule.family) === 'PRODAT' && rule.source === 'static') {\n    const lin = first(rawSegments, 'LIN+')\n    const nadUd = first(rawSegments, 'NAD+UD+')\n    const nadIt = first(rawSegments, 'NAD+IT+')\n    const nadIv = first(rawSegments, 'NAD+IV+')\n\n    switch (rule.fieldNumber) {\n      case '315': {\n        const nadFr = first(rawSegments, 'NAD+FR+')\n        const identity = components(element(nadFr, 2))\n        if (identity.length === 0) return false\n        // 160:SVK identifies the Ediel party carried by the mandatory NAD+FR\n        // segment. It is not the optional sender organisation-number field 315.\n        return !(normalize(identity[1]) === '160' && normalize(identity[2]) === 'SVK')\n      }\n      case '314':\n        return Boolean(element(lin, 1))\n      case '209':\n        return Boolean(components(element(lin, 3))[0])\n      case '258':\n        return Boolean(element(lin, 4))\n      case '260':\n        return hasPrefix(rawSegments, 'RFF+Z05:')\n      case 'END_USER_GROUP':\n        return Boolean(nadUd)\n      case '227':\n        return Boolean(element(nadUd, 2))\n      case '228':\n        return Boolean(element(nadUd, 4))\n      case '229':\n        return Boolean(element(nadUd, 5))\n      case '231':\n        return Boolean(element(nadUd, 8))\n      case '232':\n        return Boolean(element(nadUd, 6))\n      case '316':\n        return Boolean(element(nadUd, 9))\n      case 'INSTALLATION_GROUP':\n        return Boolean(nadIt)\n      case '233':\n        return Boolean(element(nadIt, 2))\n      case '234':\n        return Boolean(element(nadIt, 5))\n      case '235':\n        return Boolean(element(nadIt, 8))\n      case '236':\n        return Boolean(element(nadIt, 6))\n      case '237':\n        return Boolean(element(nadIt, 9))\n      case 'INVOICEE_GROUP':\n        return Boolean(nadIv)\n      case '250':\n        return Boolean(element(nadIv, 2))\n      case '251':\n        return Boolean(element(nadIv, 4))\n      case '252':\n        return Boolean(element(nadIv, 5))\n      case '253':\n        return Boolean(element(nadIv, 8))\n      case '317':\n        return Boolean(element(nadIv, 6))\n      case '318':\n        return Boolean(element(nadIv, 9))\n      default:\n        break\n    }\n  }\n\n  switch (rule.fieldKey) {\n"""
+          if needle not in text:
+              raise SystemExit('fieldRulePresent anchor not found')
+          path.write_text(text.replace(needle, replacement, 1))
+
+          test = Path('__tests__/prodat-z01-field-presence-regression.test.ts')
+          test.write_text("""import { describe, expect, it } from 'vitest'\nimport { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'\nimport { fieldRulePresent, validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'\n\nconst segments = [\n  'UNB+UNOC:3+21660:14+27700:14+260903:0940+Z01REF+++++23-DDQ-PRODAT',\n  'UNH+1+PRODAT:D:97A:UN:E2SE6A',\n  'BGM+Z01+AUTO-Z01-17C57E37+9+AB',\n  'DTM+137:202609030940:203',\n  'DTM+ZZZ:1:805',\n  'NAD+FR+21660:160:SVK+++++++SE',\n  'NAD+DO+27700:160:SVK+++++++SE',\n  'LIN+1++735999147062804224:::9',\n  'DTM+92:202609030000:203',\n  'CCI++Z13',\n  'CAV+Z22',\n  'RFF+LI:AUTO-Z01-17C57E37',\n  'RFF+Z05:MBY',\n  'RFF+ANJ:AUTO-Z01-17C57E37',\n  'NAD+UD+199905242328:SE2:260++Mariam Said El Hessi+Stjärngatan 14+Mjölby++59533+SE',\n  'NAD+IT+735999147062804224::9+++Stjärngatan 14+Mjölby++59533+SE',\n]\n\nconst rules = canonicalProdat26AFieldRules('Z01')\nconst rule = (fieldNumber: string) => {\n  const found = rules.find((item) => item.fieldNumber === fieldNumber)\n  if (!found) throw new Error(`Missing canonical Z01 rule ${fieldNumber}`)\n  return found\n}\n\ndescribe('PRODAT Z01 field-level matrix presence', () => {\n  it('does not confuse normal party/LIN segments with forbidden sibling fields', () => {\n    expect(fieldRulePresent(rule('315'), { family: 'PRODAT', code: 'Z01', rawSegments: segments })).toBe(false)\n    expect(fieldRulePresent(rule('258'), { family: 'PRODAT', code: 'Z01', rawSegments: segments })).toBe(false)\n  })\n\n  it('detects the Z01 grid area using RFF+Z05 rather than the UTILTS LOC+239 alias', () => {\n    expect(fieldRulePresent(rule('260'), { family: 'PRODAT', code: 'Z01', rawSegments: segments })).toBe(true)\n  })\n\n  it('accepts a complete canonical Z01 payload without the three production false positives', () => {\n    const issues = validateFieldMatrixPayload({\n      family: 'PRODAT',\n      code: 'Z01',\n      rawSegments: segments,\n      applicationReference: '23-DDQ-PRODAT',\n      mode: 'send',\n    }, rules)\n\n    const blockerDescriptions = issues\n      .filter((issue) => issue.blocking)\n      .map((issue) => `${issue.code}:${issue.description}`)\n\n    expect(blockerDescriptions.some((value) => value.includes('NAD+FR är markerat som -'))).toBe(false)\n    expect(blockerDescriptions.some((value) => value.includes('LIN är markerat som -'))).toBe(false)\n    expect(blockerDescriptions.some((value) => value.includes('RFF+Z05 krävs'))).toBe(false)\n  })\n})\n""")
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run targeted regression
+        run: npx vitest run __tests__/prodat-z01-field-presence-regression.test.ts
+
+      - name: Commit verified repair
+        shell: bash
+        run: |
+          rm .github/workflows/temporary-z01-field-presence-patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/ediel/rulebook/fieldMatrix.ts __tests__/prodat-z01-field-presence-regression.test.ts .github/workflows/temporary-z01-field-presence-patch.yml
+          git commit -m 'Fix PRODAT Z01 field-level matrix presence'
+          git push origin HEAD:fix/prodat-z01-field-presence-20260903
