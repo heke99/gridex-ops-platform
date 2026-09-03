@@ -4,6 +4,7 @@ import {
   getEdielRouteRuntimeByCommunicationRouteId,
   type EdielRouteRuntimeRow,
 } from '@/lib/ediel/config'
+import { certificateMessageScopeBlocker } from '@/lib/ediel/certificateScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { expectedApplicationReference } from '@/lib/routes/routeReadiness'
 
@@ -83,8 +84,8 @@ function certificateUsable(row: CertificateRow, message: EdielMessageRow, runtim
   if (clean(row.owner_ediel_id) && !same(row.owner_ediel_id, runtime.receiver_ediel_id)) return 'receiver_certificate_owner_mismatch'
   const runtimeSubaddress = effectiveRuntimeSubaddress(runtime)
   if (clean(row.owner_subaddress) && runtimeSubaddress && !same(row.owner_subaddress, runtimeSubaddress)) return 'receiver_certificate_subaddress_mismatch'
-  if (clean(row.message_family) && !same(row.message_family, message.message_family)) return 'receiver_certificate_message_family_mismatch'
-  if (clean(row.message_type) && !same(row.message_type, message.message_code)) return 'receiver_certificate_message_code_mismatch'
+  const messageScopeBlocker = certificateMessageScopeBlocker(row, message)
+  if (messageScopeBlocker) return messageScopeBlocker
   return null
 }
 
