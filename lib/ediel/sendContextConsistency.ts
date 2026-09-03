@@ -2,7 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow, EdielRouteProfileRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 import {
   isAgtPortalProdatAddress,
-  normalizeTransportSecurityMode,
+  resolveRouteTransportSecurityMode,
   transportSecurityModeToEncryptionMode,
 } from '@/lib/ediel/partyRegistry'
 
@@ -34,23 +34,6 @@ function normalizeEncryptionMode(value: unknown): 'none' | 'smime' | null {
   if (normalized === 'encrypted' || normalized === 'smime' || normalized === 's/mime') return 'smime'
   if (normalized === 'unencrypted' || normalized === 'none' || normalized === 'plain') return 'none'
   return null
-}
-
-export function resolveRouteTransportSecurityMode(params: {
-  transportSecurityMode?: unknown
-  encryptionMode?: unknown
-}): 'required_encrypted' | 'encrypted' | 'unencrypted' | 'needs_verification' {
-  const explicit = String(params.transportSecurityMode ?? '').trim()
-  if (explicit) return normalizeTransportSecurityMode(explicit)
-
-  // `transport_mode` describes the protocol (for example smtp_imap), not the
-  // security policy. Legacy/materialized route profiles already persist the
-  // effective encryption decision in `encryption_mode`, so that is the only
-  // safe fallback when the dedicated transport-security field is absent.
-  const encryption = normalizeEncryptionMode(params.encryptionMode)
-  if (encryption === 'smime') return 'encrypted'
-  if (encryption === 'none') return 'unencrypted'
-  return 'needs_verification'
 }
 
 function expectedMessageEnvironment(run: EdielTestRunRow): 'test' | 'production' | null {

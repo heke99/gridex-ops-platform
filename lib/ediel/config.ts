@@ -16,7 +16,7 @@ import {
   type ResolvedInboundEdielMessageRuleRow,
   type ResolvedVersionWindow,
 } from '@/lib/ediel/core/versionRegistry'
-import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
+import { resolveRouteTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 type ResolveMessageVersionInput = {
   family: string
@@ -174,7 +174,10 @@ export function evaluateProductionTransportSecurity(params: {
   const issues: EdielRouteRuntimeIssue[] = []
   const overrideActive = hasActiveUnencryptedProductionOverride(runtime, params.now)
   const family = sanitize(params.messageFamily ?? runtime.message_family)?.toUpperCase()
-  const transportSecurityMode = normalizeTransportSecurityMode(runtime.transport_security_mode)
+  const transportSecurityMode = resolveRouteTransportSecurityMode({
+    transportSecurityMode: runtime.transport_security_mode,
+    encryptionMode: runtime.encryption_mode,
+  })
   const encryptionMode =
     transportSecurityMode === 'required_encrypted' || transportSecurityMode === 'encrypted'
       ? 'smime'
