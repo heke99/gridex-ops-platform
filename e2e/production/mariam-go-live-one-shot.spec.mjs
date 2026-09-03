@@ -45,10 +45,15 @@ test('canonical Gridex v14 readiness, dry-run and live activation', async ({ pag
   ])
   if (new URL(page.url()).searchParams.get('status') === 'blocked') throw new Error(`Production dry-run blocked: ${page.url()}`)
 
-  const confirmation = page.getByPlaceholder('ACTIVATE PRODUCTION')
+  const activationForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Aktivera production', exact: true }) })
+  await expect(activationForm).toHaveCount(1)
+  const confirmation = activationForm.locator('input[name="confirmation"]')
+  const activateButton = activationForm.getByRole('button', { name: 'Aktivera production', exact: true })
   await expect(confirmation).toBeVisible()
   await confirmation.fill('ACTIVATE PRODUCTION')
-  const activateButton = page.getByRole('button', { name: 'Aktivera production', exact: true })
+  await expect(confirmation).toHaveValue('ACTIVATE PRODUCTION')
+  const submittedConfirmation = await activationForm.evaluate((form) => new FormData(form).get('confirmation'))
+  expect(submittedConfirmation).toBe('ACTIVATE PRODUCTION')
   await expect(activateButton).toBeEnabled()
   await Promise.all([
     page.waitForURL((url) => url.pathname === `/admin/platform/go-live/${companyId}` && ['live', 'blocked', 'error'].includes(url.searchParams.get('status') ?? ''), { timeout: 60_000 }),
