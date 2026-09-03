@@ -1,0 +1,214 @@
+name: Fix canonical readiness test authority one-shot
+
+on:
+  push:
+    branches:
+      - fix/canonical-production-readiness-test-authority-20260903
+    paths:
+      - .github/workflows/fix-canonical-readiness-test-authority-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/canonical-production-readiness-test-authority-20260903
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Patch readiness authority and add regression coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > lib/ediel/productionReadinessTestAuthority.ts <<'TS'
+          export type CanonicalGoLiveReadinessSnapshot = {
+            status?: unknown
+            blockers?: unknown
+            prodat_passed?: unknown
+            prodat_total?: unknown
+            utilts_passed?: unknown
+            utilts_total?: unknown
+            evidence_ready?: unknown
+          }
+
+          export type CanonicalActorTestReadiness = {
+            ready: boolean
+            prodatPassed: number | null
+            prodatTotal: number | null
+            utiltsPassed: number | null
+            utiltsTotal: number | null
+            reason: string | null
+          }
+
+          function nonNegativeInteger(value: unknown): number | null {
+            return typeof value === 'number' && Number.isInteger(value) && value >= 0
+              ? value
+              : null
+          }
+
+          export function evaluateCanonicalActorTestReadiness(
+            snapshot: CanonicalGoLiveReadinessSnapshot | null,
+            expectedProdat: number,
+            expectedUtilts: number,
+          ): CanonicalActorTestReadiness {
+            if (!snapshot) {
+              return {
+                ready: false,
+                prodatPassed: null,
+                prodatTotal: null,
+                utiltsPassed: null,
+                utiltsTotal: null,
+                reason: 'Canonical go-live readiness saknas.',
+              }
+            }
+
+            const prodatPassed = nonNegativeInteger(snapshot.prodat_passed)
+            const prodatTotal = nonNegativeInteger(snapshot.prodat_total)
+            const utiltsPassed = nonNegativeInteger(snapshot.utilts_passed)
+            const utiltsTotal = nonNegativeInteger(snapshot.utilts_total)
+            if (
+              prodatPassed === null ||
+              prodatTotal === null ||
+              utiltsPassed === null ||
+              utiltsTotal === null
+            ) {
+              return {
+                ready: false,
+                prodatPassed,
+                prodatTotal,
+                utiltsPassed,
+                utiltsTotal,
+                reason: 'Canonical go-live readiness saknar giltiga PRODAT/UTILTS-räknare.',
+              }
+            }
+
+            const canonicalReady = snapshot.status === 'ready'
+            const evidenceReady = snapshot.evidence_ready === true
+            const countsReady =
+              prodatTotal >= expectedProdat &&
+              utiltsTotal >= expectedUtilts &&
+              prodatPassed >= expectedProdat &&
+              utiltsPassed >= expectedUtilts
+
+            if (canonicalReady && evidenceReady && countsReady) {
+              return {
+                ready: true,
+                prodatPassed,
+                prodatTotal,
+                utiltsPassed,
+                utiltsTotal,
+                reason: null,
+              }
+            }
+
+            const blockers = Array.isArray(snapshot.blockers)
+              ? snapshot.blockers.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+              : []
+            const suffix = blockers.length > 0 ? ` Blockerare: ${blockers.join(' · ')}` : ''
+            return {
+              ready: false,
+              prodatPassed,
+              prodatTotal,
+              utiltsPassed,
+              utiltsTotal,
+              reason: `Canonical Ediel-testreadiness är inte komplett: PRODAT ${prodatPassed}/${prodatTotal}, UTILTS ${utiltsPassed}/${utiltsTotal}, evidence_ready=${String(evidenceReady)}.${suffix}`,
+            }
+          }
+          TS
+
+          cat > __tests__/ediel-production-readiness-test-authority.test.ts <<'TS'
+          import fs from 'node:fs'
+          import path from 'node:path'
+          import { describe, expect, it } from 'vitest'
+          import { evaluateCanonicalActorTestReadiness } from '@/lib/ediel/productionReadinessTestAuthority'
+
+          describe('canonical production readiness test authority', () => {
+            it('accepts canonical 6/6 PRODAT and 5/5 UTILTS with current evidence', () => {
+              expect(evaluateCanonicalActorTestReadiness({
+                status: 'ready',
+                blockers: [],
+                prodat_passed: 6,
+                prodat_total: 6,
+                utilts_passed: 5,
+                utilts_total: 5,
+                evidence_ready: true,
+              }, 6, 5)).toMatchObject({ ready: true, reason: null })
+            })
+
+            it('fails closed when canonical counts are incomplete', () => {
+              const result = evaluateCanonicalActorTestReadiness({
+                status: 'blocked',
+                blockers: ['Canonical Ediel-evidens är inte komplett'],
+                prodat_passed: 5,
+                prodat_total: 6,
+                utilts_passed: 5,
+                utilts_total: 5,
+                evidence_ready: false,
+              }, 6, 5)
+              expect(result.ready).toBe(false)
+              expect(result.reason).toContain('PRODAT 5/6')
+              expect(result.reason).toContain('evidence_ready=false')
+            })
+
+            it('fails closed when canonical readiness is unavailable or malformed', () => {
+              expect(evaluateCanonicalActorTestReadiness(null, 6, 5).ready).toBe(false)
+              expect(evaluateCanonicalActorTestReadiness({
+                status: 'ready',
+                prodat_passed: '6',
+                prodat_total: 6,
+                utilts_passed: 5,
+                utilts_total: 5,
+                evidence_ready: true,
+              }, 6, 5).ready).toBe(false)
+            })
+
+            it('does not use actor_test_results as a second production certification authority', () => {
+              const source = fs.readFileSync(path.join(process.cwd(), 'lib/ediel/productionReadiness.part-2.ts'), 'utf8')
+              expect(source).toContain("rpc('gridex_company_go_live_readiness'")
+              expect(source).not.toContain('actor_test_results')
+              expect(source).toContain('canonical_required_tests_unavailable')
+            })
+          })
+          TS
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('lib/ediel/productionReadiness.part-2.ts')
+          text = path.read_text()
+          import_anchor = 'import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting"\n'
+          helper_import = "import { evaluateCanonicalActorTestReadiness, type CanonicalGoLiveReadinessSnapshot } from '@/lib/ediel/productionReadinessTestAuthority'\n"
+          if helper_import not in text:
+              if import_anchor not in text:
+                  raise SystemExit('actor testing import anchor missing')
+              text = text.replace(import_anchor, import_anchor + helper_import, 1)
+
+          pattern = re.compile(r'''  const requiredTests = ACTOR_TEST_CASES\.filter\(\n    \(testCase\) => testCase\.required,\n  \);\n  const testRows = await safeSelect<Record<string, unknown>>\(\n    "actor_test_results",\n    \(query\) =>\n      query\.select\("test_key,status,passed_at"\)\.eq\("company_id", companyId\),\n  \);\n  const approved = new Set\(\n    testRows\n      \.filter\(\(row\) =>\n        \["passed", "manual_verified"\]\.includes\(String\(row\.status\)\),\n      \)\n      \.map\(\(row\) => String\(row\.test_key\)\),\n  \);\n  const missingTests = requiredTests\.filter\(\n    \(testCase\) => !approved\.has\(testCase\.key\),\n  \);\n  if \(missingTests\.length === 0\)\n    pass\(\n      "tests",\n      "required_tests_approved",\n      "Aktörstester är godkända",\n      "Alla obligatoriska PRODAT/UTILTS-testfall är godkända\.",\n    \);\n  else\n    block\(\n      "tests",\n      "required_tests_missing",\n      "Aktörstester saknas",\n      `Saknar godkända testfall: \$\{missingTests\.map\(\(testCase\) => testCase\.key\)\.join\(", "\)\}\.`,\n    \);\n''')
+          replacement = '''  const requiredTests = ACTOR_TEST_CASES.filter((testCase) => testCase.required);\n  const expectedProdatTests = requiredTests.filter((testCase) => testCase.messageFamily === "PRODAT").length;\n  const expectedUtiltsTests = requiredTests.filter((testCase) => testCase.messageFamily === "UTILTS").length;\n  const { data: canonicalGoLiveReadinessData, error: canonicalGoLiveReadinessError } =\n    await supabaseService.rpc('gridex_company_go_live_readiness', {\n      p_company_id: companyId,\n    });\n  if (canonicalGoLiveReadinessError) {\n    block(\n      "tests",\n      "canonical_required_tests_unavailable",\n      "Canonical testreadiness kan inte verifieras",\n      `Kunde inte läsa canonical go-live readiness: ${canonicalGoLiveReadinessError.message}.`,\n    );\n  } else {\n    const canonicalActorTests = evaluateCanonicalActorTestReadiness(\n      canonicalGoLiveReadinessData as CanonicalGoLiveReadinessSnapshot | null,\n      expectedProdatTests,\n      expectedUtiltsTests,\n    );\n    if (canonicalActorTests.ready)\n      pass(\n        "tests",\n        "required_tests_approved",\n        "Aktörstester är godkända",\n        `Canonical runtime verifierar PRODAT ${canonicalActorTests.prodatPassed}/${canonicalActorTests.prodatTotal} och UTILTS ${canonicalActorTests.utiltsPassed}/${canonicalActorTests.utiltsTotal}.`,\n      );\n    else\n      block(\n        "tests",\n        "required_tests_missing",\n        "Aktörstester saknas",\n        canonicalActorTests.reason ?? "Canonical testreadiness är inte komplett.",\n      );\n  }\n'''
+          new_text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'expected to replace exactly one legacy actor_test_results gate, replaced={count}')
+          path.write_text(new_text)
+          PY
+      - name: Verify focused regression and types
+        run: |
+          npx vitest run __tests__/ediel-production-readiness-test-authority.test.ts
+          npm run typecheck
+      - name: Commit canonical authority fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/ediel/productionReadiness.part-2.ts lib/ediel/productionReadinessTestAuthority.ts __tests__/ediel-production-readiness-test-authority.test.ts
+          git diff --cached --check
+          git commit -m "Use canonical Ediel test readiness authority"
+          git push origin HEAD:fix/canonical-production-readiness-test-authority-20260903
