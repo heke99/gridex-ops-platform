@@ -1,5 +1,5 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -8,6 +8,20 @@ function clean(value: unknown): string | null {
 function upper(value: unknown): string | null {
   const value = clean(value)
   return value ? value.toUpperCase() : null
+}
+
+type DbError = { message?: string; code?: string } | null
+
+type FilterQuery<T> = {
+  eq: (column: string, value: unknown) => FilterQuery<T>
+  limit: (count: number) => FilterQuery<T>
+  select: (columns?: string) => FilterQuery<T>
+  maybeSingle: () => PromiseLike<{ data: T | null; error: DbError }>
+  then: PromiseLike<{ data: T[] | null; error: DbError }>['then']
+}
+
+function asFilterQuery<T>(value: unknown): FilterQuery<T> {
+  return value as FilterQuery<T>
 }
 
 export type CustomerInfoPostSendStatus =
@@ -39,11 +53,12 @@ async function projectOutboundRequest(params: {
   sentAt: string
   actorUserId: string
 }): Promise<void> {
-  const { data: row, error: readError } = await supabaseService
-    .from('outbound_requests')
-    .select('id,status,sent_at')
+  const db = tenantDb(params.companyId)
+  const readQuery = asFilterQuery<{ id: string; status: string | null; sent_at: string | null }>(
+    db.from('outbound_requests').select('id,status,sent_at'),
+  )
+  const { data: row, error: readError } = await readQuery
     .eq('id', params.outboundRequestId)
-    .eq('company_id', params.companyId)
     .maybeSingle()
   if (readError) throw readError
   if (!row) throw new Error('ediel_post_send_outbound_request_missing_or_cross_tenant')
@@ -59,17 +74,17 @@ async function projectOutboundRequest(params: {
   if (alreadySentAt && ['sent', 'acknowledged'].includes(String(status))) return
 
   const nextStatus = status === 'acknowledged' ? 'acknowledged' : 'sent'
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .update({
+  const updateQuery = asFilterQuery<{ id: string }>(
+    db.from('outbound_requests').update({
       status: nextStatus,
       sent_at: alreadySentAt ?? params.sentAt,
       failure_reason: null,
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
-    })
+    }),
+  )
+  const { data, error } = await updateQuery
     .eq('id', params.outboundRequestId)
-    .eq('company_id', params.companyId)
     .select('id')
     .maybeSingle()
   if (error) throw error
@@ -82,11 +97,12 @@ async function projectGridOwnerDataRequest(params: {
   sentAt: string
   actorUserId: string
 }): Promise<void> {
-  const { data: row, error: readError } = await supabaseService
-    .from('grid_owner_data_requests')
-    .select('id,status,sent_at')
+  const db = tenantDb(params.companyId)
+  const readQuery = asFilterQuery<{ id: string; status: string | null; sent_at: string | null }>(
+    db.from('grid_owner_data_requests').select('id,status,sent_at'),
+  )
+  const { data: row, error: readError } = await readQuery
     .eq('id', params.gridOwnerDataRequestId)
-    .eq('company_id', params.companyId)
     .maybeSingle()
   if (readError) throw readError
   if (!row) throw new Error('ediel_post_send_grid_owner_data_request_missing_or_cross_tenant')
@@ -102,18 +118,18 @@ async function projectGridOwnerDataRequest(params: {
   if (alreadySentAt && ['sent', 'received'].includes(String(status))) return
 
   const nextStatus = status === 'received' ? 'received' : 'sent'
-  const { data, error } = await supabaseService
-    .from('grid_owner_data_requests')
-    .update({
+  const updateQuery = asFilterQuery<{ id: string }>(
+    db.from('grid_owner_data_requests').update({
       status: nextStatus,
       sent_at: alreadySentAt ?? params.sentAt,
       failed_at: null,
       failure_reason: null,
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
-    })
+    }),
+  )
+  const { data, error } = await updateQuery
     .eq('id', params.gridOwnerDataRequestId)
-    .eq('company_id', params.companyId)
     .select('id')
     .maybeSingle()
   if (error) throw error
@@ -128,10 +144,11 @@ async function projectCustomerInfoRequest(params: {
 }): Promise<void> {
   if (upper(params.message.message_family) !== 'PRODAT' || upper(params.message.message_code) !== 'Z01') return
 
-  const { data: rows, error: readError } = await supabaseService
-    .from('customer_info_requests')
-    .select('id,status,sent_at')
-    .eq('company_id', params.companyId)
+  const db = tenantDb(params.companyId)
+  const readQuery = asFilterQuery<{ id: string; status: string | null; sent_at: string | null }>(
+    db.from('customer_info_requests').select('id,status,sent_at'),
+  )
+  const { data: rows, error: readError } = await readQuery
     .eq('ediel_message_id', params.message.id)
     .limit(2)
   if (readError) throw readError
@@ -151,11 +168,15 @@ async function projectCustomerInfoRequest(params: {
 
   if (progressedStatuses.has(String(status))) {
     if (alreadySentAt) return
-    const { data, error } = await supabaseService
-      .from('customer_info_requests')
-      .update({ sent_at: params.sentAt, updated_by: params.actorUserId, updated_at: new Date().toISOString() })
+    const updateQuery = asFilterQuery<{ id: string }>(
+      db.from('customer_info_requests').update({
+        sent_at: params.sentAt,
+        updated_by: params.actorUserId,
+        updated_at: new Date().toISOString(),
+      }),
+    )
+    const { data, error } = await updateQuery
       .eq('id', row.id)
-      .eq('company_id', params.companyId)
       .select('id')
       .maybeSingle()
     if (error) throw error
@@ -168,9 +189,8 @@ async function projectCustomerInfoRequest(params: {
   }
 
   const nextStatus = customerInfoPostSendStatus(params.message)
-  const { data, error } = await supabaseService
-    .from('customer_info_requests')
-    .update({
+  const updateQuery = asFilterQuery<{ id: string }>(
+    db.from('customer_info_requests').update({
       status: nextStatus,
       sent_at: alreadySentAt ?? params.sentAt,
       blocker_code: null,
@@ -179,9 +199,10 @@ async function projectCustomerInfoRequest(params: {
       next_required_action: nextActionForCustomerInfo(nextStatus),
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
-    })
+    }),
+  )
+  const { data, error } = await updateQuery
     .eq('id', row.id)
-    .eq('company_id', params.companyId)
     .select('id')
     .maybeSingle()
   if (error) throw error
