@@ -195,7 +195,9 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     messageFamily: 'PRODAT',
     messageCode: 'Z01',
     messageVersion: input.messageVersion,
-    processType: 'customer_masterdata_request',
+    // process_type is the canonical business process. Keep the legacy request
+    // label only in parsedPayload for audit/backward-compatible UI semantics.
+    processType: 'customer_masterdata',
     environment: input.routeContext.environment,
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
     status: 'draft',
