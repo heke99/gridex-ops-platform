@@ -5,6 +5,14 @@ begin;
 alter table public.companies
   add column if not exists brp_ediel_id text;
 
+-- The same historical readiness source carried mailbox classification fields
+-- consumed by canonical evidence-v3. Keep the replay schema aligned with the
+-- production projection without overwriting any existing values.
+alter table public.ediel_mailboxes
+  add column if not exists provider text,
+  add column if not exists mailbox_type text,
+  add column if not exists is_shared_platform_mailbox boolean not null default false;
+
 -- Reconstruct the canonical production send-lock projection when replaying from
 -- the older operational lock table. Production already has these columns and
 -- constraints, so every statement below is idempotent there.
