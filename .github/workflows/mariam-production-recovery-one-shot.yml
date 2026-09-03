@@ -1,0 +1,139 @@
+name: Mariam production recovery one-shot
+
+on:
+  push:
+    branches:
+      - ops/mariam-production-recovery-20260903
+    paths:
+      - .github/workflows/mariam-production-recovery-one-shot.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mariam-production-recovery-20260903
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: recovery-runner-unused-anon-placeholder
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      GRIDEX_E2E_ACTOR_USER_ID: ${{ secrets.GRIDEX_E2E_ACTOR_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fail closed unless protected secrets target Gridex production
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID; do
+            [[ -n "${!name:-}" ]] || { echo "Missing protected recovery secret: $name" >&2; exit 1; }
+          done
+          node - <<'NODE'
+          const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
+          if (url.hostname !== 'piidsfebjqjmnepdpnas.supabase.co') {
+            throw new Error(`Recovery secret does not target the production project; refusing to mutate ${url.hostname}`)
+          }
+          if (!/^[0-9a-f-]{36}$/i.test(process.env.GRIDEX_E2E_ACTOR_USER_ID || '')) {
+            throw new Error('Protected actor secret is not a UUID; refusing production recovery')
+          }
+          console.log('Production project identity verified; secrets remain masked.')
+          NODE
+      - name: Run canonical v14 readiness, dry-run and live transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > .mariam-production-recovery.ts <<'TS'
+          import { getCompanyProductionReadiness, runProductionDryRun } from './lib/ediel/productionReadiness'
+          import { supabaseService } from './lib/supabase/service'
+
+          const companyId = 'b3ad1bf6-fa45-41a6-8054-2e0862e82aca'
+          const expectedSnapshotId = '743fb593-840c-43a6-957e-fed2bbcd17f4'
+          const actorUserId = String(process.env.GRIDEX_E2E_ACTOR_USER_ID || '').trim()
+
+          function fail(message: string): never { throw new Error(message) }
+          function issueSummary(items: Array<{code?: string; message?: string}>) {
+            return items.map((x) => `${x.code ?? 'unknown'}:${x.message ?? ''}`).join(' | ')
+          }
+
+          const systemReadiness = await getCompanyProductionReadiness(companyId, { checkedBy: null, persist: true })
+          if (systemReadiness.configurationSnapshot.id !== expectedSnapshotId) {
+            fail(`Snapshot changed during recovery: ${systemReadiness.configurationSnapshot.id}`)
+          }
+          console.log(JSON.stringify({
+            phase: 'system_readiness',
+            snapshotId: systemReadiness.configurationSnapshot.id,
+            status: systemReadiness.status,
+            readinessCheckId: systemReadiness.latestCheck.id,
+            blockerCodes: systemReadiness.blockingIssues.map((x) => x.code),
+            warningCodes: systemReadiness.warnings.map((x) => x.code),
+          }))
+          if (systemReadiness.blockingIssues.length > 0) {
+            fail(`Production readiness blocked: ${issueSummary(systemReadiness.blockingIssues)}`)
+          }
+
+          const dryRun = await runProductionDryRun(companyId, actorUserId)
+          console.log(JSON.stringify({
+            phase: 'dry_run',
+            success: dryRun.success,
+            status: dryRun.status,
+            blockerCodes: dryRun.blockingIssues.map((x) => x.code),
+            warningCodes: dryRun.warnings.map((x) => x.code),
+          }))
+          if (!dryRun.success) fail(`Production dry-run blocked: ${issueSummary(dryRun.blockingIssues)}`)
+
+          const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: actorUserId, persist: true })
+          if (readiness.configurationSnapshot.id !== expectedSnapshotId) fail('Configuration snapshot drifted after dry-run')
+          if (readiness.blockingIssues.length > 0) fail(`Post-dry-run readiness blocked: ${issueSummary(readiness.blockingIssues)}`)
+          if (!['allowed', 'warning'].includes(readiness.latestDryRun.status ?? '')) fail('Current production dry-run is not allowed/warning')
+          if (!readiness.latestCheck.id || !readiness.latestDryRun.id) fail('Canonical readiness/dry-run evidence IDs are missing')
+
+          const stateResult = await supabaseService
+            .from('ediel_production_state')
+            .select('state_version,first_live_send_approved_at')
+            .eq('company_id', companyId)
+            .single()
+          if (stateResult.error) throw stateResult.error
+          const state = stateResult.data as { state_version: number; first_live_send_approved_at: string | null }
+
+          const transition = await supabaseService.rpc('canonical_transition_ediel_production', {
+            p_company_id: companyId,
+            p_target_state: 'live',
+            p_expected_state_version: state.state_version,
+            p_configuration_snapshot_id: expectedSnapshotId,
+            p_readiness_check_id: readiness.latestCheck.id,
+            p_dry_run_id: readiness.latestDryRun.id,
+            p_reason: 'Mariam production recovery after canonical v14 readiness and production dry-run.',
+            p_actor_user_id: actorUserId,
+            p_idempotency_key: `mariam-production-recovery:${companyId}:${readiness.latestCheck.id}`,
+          })
+          if (transition.error) throw transition.error
+
+          if (!state.first_live_send_approved_at) {
+            const firstSend = await supabaseService.rpc('canonical_approve_first_live_send', {
+              p_company_id: companyId,
+              p_readiness_check_id: readiness.latestCheck.id,
+              p_actor_user_id: actorUserId,
+              p_idempotency_key: `mariam-first-live-send:${companyId}:${readiness.latestCheck.id}`,
+            })
+            if (firstSend.error) throw firstSend.error
+          }
+
+          console.log(JSON.stringify({
+            phase: 'live_transition',
+            snapshotId: expectedSnapshotId,
+            readinessCheckId: readiness.latestCheck.id,
+            dryRunId: readiness.latestDryRun.id,
+            status: 'completed',
+          }))
+          TS
+          npm exec --yes --package=tsx@4.20.6 -- tsx .mariam-production-recovery.ts
+          rm -f .mariam-production-recovery.ts
