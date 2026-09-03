@@ -1,0 +1,52 @@
+name: Temporary guarded production Z01 retry
+
+on:
+  push:
+    branches:
+      - fix/prodat-z01-field-presence-20260903
+
+permissions:
+  contents: read
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      CUSTOMER_OPERATION_CRON_SECRET: ${{ secrets.CUSTOMER_OPERATION_CRON_SECRET }}
+      EDIEL_CRON_SECRET: ${{ secrets.EDIEL_CRON_SECRET }}
+    steps:
+      - name: Resume customer operation intents through production guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${CUSTOMER_OPERATION_CRON_SECRET:-${CRON_SECRET:-}}"
+          if [[ -z "$token" ]]; then
+            echo 'No customer operations cron secret configured in GitHub Actions.' >&2
+            exit 1
+          fi
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $token" \
+            'https://app.gridex.se/api/internal/customer-operations/cron?limit=25')
+          jq '{ok, result: {customerOperations: .result.customerOperations, resumedIntents: .result.resumedIntents, automationUserConfig: .result.automationUserConfig}}' <<<"$response"
+          test "$(jq -r '.ok' <<<"$response")" = 'true'
+
+      - name: Process production Ediel outbox through normal send guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${EDIEL_CRON_SECRET:-${CRON_SECRET:-}}"
+          if [[ -z "$token" ]]; then
+            echo 'No Ediel cron secret configured in GitHub Actions.' >&2
+            exit 1
+          fi
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $token" \
+            -H 'Content-Type: application/json' \
+            'https://app.gridex.se/api/ediel/outbox/process' \
+            --data '{"environment":"production","limit":25}')
+          jq '{ok, source, environment, result}' <<<"$response"
+          test "$(jq -r '.ok' <<<"$response")" = 'true'
