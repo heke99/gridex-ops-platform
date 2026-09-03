@@ -1,0 +1,60 @@
+name: one-shot Z02 facade boundary fix
+
+on:
+  push:
+    branches:
+      - fix/inbound-z02-canonical-convergence-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/inbound-z02-canonical-convergence-20260903
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Use canonical Ediel facade
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/ediel/tenant/resolveInboundTenant.ts')
+          s = p.read_text()
+          old_import = "import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'"
+          new_import = "import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'"
+          if s.count(old_import) != 1:
+              raise SystemExit(f'expected one low-level ACK import, found {s.count(old_import)}')
+          s = s.replace(old_import, new_import, 1)
+          old_call = 'return canonicalAckRequirements({ family, code: configuredCode })'
+          new_call = 'return canonicalAckRequirementsForFamilyCode({ family, code: configuredCode })'
+          if s.count(old_call) != 1:
+              raise SystemExit(f'expected one ACK requirements call, found {s.count(old_call)}')
+          s = s.replace(old_call, new_call, 1)
+          unused = '  const messageCode = upper(input.messageCode)\n'
+          if s.count(unused) != 1:
+              raise SystemExit(f'expected one unused messageCode local, found {s.count(unused)}')
+          s = s.replace(unused, '', 1)
+          p.write_text(s)
+          PY
+      - name: Verify boundary and inbound route behavior
+        run: |
+          npx vitest run __tests__/ediel-normative-authority-boundary.test.ts __tests__/ediel-inbound-route-business-response.test.ts
+          npm run typecheck
+      - name: Commit clean final fix
+        shell: bash
+        run: |
+          rm .github/workflows/one-shot-z02-facade-boundary-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/ediel/tenant/resolveInboundTenant.ts .github/workflows/one-shot-z02-facade-boundary-fix.yml
+          git commit -m "Route inbound Z02 through canonical Ediel facade"
+          git push origin HEAD:fix/inbound-z02-canonical-convergence-20260903
