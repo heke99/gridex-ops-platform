@@ -231,3 +231,111 @@ revoke execute on function public.gridex_finalize_supplier_switch_activation(uui
   from public, anon, authenticated;
 grant execute on function public.gridex_finalize_supplier_switch_activation(uuid, uuid, uuid)
   to service_role;
+
+create or replace function public.gridex_process_ready_supplier_switch_activations(
+  p_actor_user_id uuid,
+  p_limit integer default 50
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_limit integer := least(greatest(coalesce(p_limit, 50), 1), 100);
+  v_market_date date := (now() at time zone 'Europe/Stockholm')::date;
+  v_row record;
+  v_activation jsonb;
+  v_status text;
+  v_activated integer := 0;
+  v_already_completed integer := 0;
+  v_waiting integer := 0;
+  v_blocked integer := 0;
+  v_failed integer := 0;
+  v_scanned integer := 0;
+  v_failures jsonb := '[]'::jsonb;
+  v_activated_customers jsonb := '[]'::jsonb;
+begin
+  if p_actor_user_id is null then
+    raise exception 'supplier_switch_activation_actor_required';
+  end if;
+
+  for v_row in
+    select
+      r.id,
+      r.company_id,
+      r.customer_id
+    from public.supplier_switch_requests r
+    where r.status = 'accepted'
+      and r.company_id is not null
+      and r.inbound_z04_message_id is not null
+      and coalesce(r.confirmed_start_date, r.requested_start_date) is not null
+      and coalesce(r.confirmed_start_date, r.requested_start_date) <= v_market_date
+    order by coalesce(r.confirmed_start_date, r.requested_start_date), r.created_at, r.id
+    limit v_limit
+  loop
+    v_scanned := v_scanned + 1;
+
+    begin
+      v_activation := public.gridex_finalize_supplier_switch_activation(
+        v_row.company_id,
+        v_row.id,
+        p_actor_user_id
+      );
+      v_status := coalesce(v_activation->>'status', 'unknown');
+
+      if v_status = 'activated' then
+        v_activated := v_activated + 1;
+        if not (v_activated_customers @> jsonb_build_array(v_row.customer_id::text)) then
+          v_activated_customers := v_activated_customers || jsonb_build_array(v_row.customer_id::text);
+        end if;
+      elsif v_status = 'already_completed' then
+        v_already_completed := v_already_completed + 1;
+      elsif v_status = 'waiting' then
+        v_waiting := v_waiting + 1;
+      elsif v_status = 'blocked' then
+        v_blocked := v_blocked + 1;
+        v_failures := v_failures || jsonb_build_array(jsonb_build_object(
+          'requestId', v_row.id,
+          'companyId', v_row.company_id,
+          'code', coalesce(v_activation->>'reason_code', 'supplier_switch_activation_blocked')
+        ));
+      else
+        v_failed := v_failed + 1;
+        v_failures := v_failures || jsonb_build_array(jsonb_build_object(
+          'requestId', v_row.id,
+          'companyId', v_row.company_id,
+          'code', coalesce(v_activation->>'reason_code', 'supplier_switch_activation_unexpected_result'),
+          'status', v_status
+        ));
+      end if;
+    exception when others then
+      v_failed := v_failed + 1;
+      v_failures := v_failures || jsonb_build_array(jsonb_build_object(
+        'requestId', v_row.id,
+        'companyId', v_row.company_id,
+        'code', 'supplier_switch_activation_failed',
+        'message', sqlerrm
+      ));
+    end;
+  end loop;
+
+  return jsonb_build_object(
+    'marketDate', v_market_date,
+    'scanned', v_scanned,
+    'ready', v_scanned,
+    'activated', v_activated,
+    'alreadyCompleted', v_already_completed,
+    'waiting', v_waiting,
+    'blocked', v_blocked,
+    'failed', v_failed,
+    'failures', v_failures,
+    'activatedCustomerIds', v_activated_customers
+  );
+end;
+$$;
+
+revoke execute on function public.gridex_process_ready_supplier_switch_activations(uuid, integer)
+  from public, anon, authenticated;
+grant execute on function public.gridex_process_ready_supplier_switch_activations(uuid, integer)
+  to service_role;
