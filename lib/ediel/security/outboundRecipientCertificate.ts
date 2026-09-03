@@ -1,3 +1,4 @@
+import { certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import type { EdielRouteProfileRow } from '@/lib/ediel/types'
@@ -244,7 +245,6 @@ export async function resolveOutboundRecipientCertificate(input: {
       .limit(20)
 
     if (certificateEnvironment) query = query.eq('environment', certificateEnvironment)
-    if (receiverSubaddress) query = query.eq('owner_subaddress', receiverSubaddress)
 
     const { data: candidates, error: lookupError } = await query
     if (lookupError) throw lookupError
@@ -252,8 +252,10 @@ export async function resolveOutboundRecipientCertificate(input: {
     const usable = ((candidates ?? []) as CertificateRow[]).find((candidate) => {
       const family = normalize(textFrom(candidate, 'message_family', 'messageFamily') ?? textFrom(candidate, 'message_type', 'messageType'))
       const code = normalize(textFrom(candidate, 'business_code', 'businessCode'))
+      const candidateSubaddress = inferOwnerSubaddress(candidate)
       if (family && messageFamily && family !== normalize(messageFamily)) return false
       if (code && businessCode && code !== normalize(businessCode) && code !== '*') return false
+      if (certificateSubaddressScopeBlocker(candidateSubaddress, receiverSubaddress)) return false
       if (!textFrom(candidate, 'public_certificate_pem', 'publicCertificatePem')?.includes('BEGIN CERTIFICATE')) return false
       const status = evaluateCertificateStatus(candidate)
       return status.isUsableForSmime
@@ -318,13 +320,7 @@ export async function resolveOutboundRecipientCertificate(input: {
     )
   }
 
-  if (receiverSubaddress && !ownerSubaddress) {
-    throw new Error(
-      `Sändning stoppad: mottagaren kräver subadress ${receiverSubaddress}, men certifikatet saknar owner_subaddress.`,
-    )
-  }
-
-  if (receiverSubaddress && ownerSubaddress && normalize(ownerSubaddress) !== normalize(receiverSubaddress)) {
+  if (certificateSubaddressScopeBlocker(ownerSubaddress, receiverSubaddress)) {
     throw new Error(
       `Sändning stoppad: valt S/MIME-certifikat har subadress ${ownerSubaddress}, men routen kräver ${receiverSubaddress}.`,
     )

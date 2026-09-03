@@ -36,3 +36,21 @@ export function certificateMessageScopeBlocker(
 
   return null
 }
+
+export function certificateSubaddressScopeBlocker(
+  certificateOwnerSubaddress: unknown,
+  receiverSubaddress: unknown,
+): 'receiver_certificate_subaddress_mismatch' | null {
+  const certificateSubaddress = upper(certificateOwnerSubaddress)
+  const routeSubaddress = upper(receiverSubaddress)
+
+  // A recipient certificate without owner_subaddress is party-scoped and may
+  // serve any route subaddress for that same Ediel owner. Once a certificate
+  // explicitly carries a subaddress it is restrictive: the route must also
+  // carry that exact subaddress, otherwise the certificate must not be used.
+  if (!certificateSubaddress) return null
+  if (!routeSubaddress || certificateSubaddress !== routeSubaddress) {
+    return 'receiver_certificate_subaddress_mismatch'
+  }
+  return null
+}
