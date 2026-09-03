@@ -27,7 +27,7 @@ import {
 } from '@/lib/ediel/intent/renderers/customerMasterdataZ01'
 import type { EdielIntentBlockingReason, EdielMessageIntent } from '@/lib/ediel/intent/types'
 import { assertProdatZ01Renderable } from '@/lib/ediel/profiles/prodatZ01Guard'
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 export type RenderGatewayResult =
   | {
@@ -121,14 +121,20 @@ function classifyRenderError(error: unknown): EdielIntentBlockingReason {
   }
 }
 
-async function ensureProdatZ01FacilityIdentifier(siteId: string | null) {
+async function ensureProdatZ01FacilityIdentifier(
+  siteId: string | null,
+  companyId: string | null | undefined,
+) {
   if (!siteId) {
     return assertProdatZ01Renderable({ facilityId: null })
   }
   try {
-    const { data } = await supabaseService
+    const db = tenantDb(companyId)
+    const { data } = await db
+      .unscoped()
       .from('customer_sites')
       .select('facility_id,normalized_facility_id')
+      .eq('company_id', db.companyId)
       .eq('id', siteId)
       .maybeSingle()
     const row = (data ?? null) as { facility_id?: unknown; normalized_facility_id?: unknown } | null
@@ -154,7 +160,10 @@ export async function renderAndQueueFacilityLookupZ01(params: {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
   }
 
-  const z01Gate = await ensureProdatZ01FacilityIdentifier(params.request.customer_site_id)
+  const z01Gate = await ensureProdatZ01FacilityIdentifier(
+    params.request.customer_site_id,
+    params.routeContext.companyId,
+  )
   if (!z01Gate.renderable) {
     const reason: EdielIntentBlockingReason = {
       code: z01Gate.blocker.blocker_code,
@@ -320,9 +329,12 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
       route_profile_id: params.routeProfileId,
     }
     if (params.operationId) messagePatch.operation_id = params.operationId
-    const { error: messageUpdateError } = await supabaseService
+    const db = tenantDb(params.routeContext.companyId)
+    const { error: messageUpdateError } = await db
+      .unscoped()
       .from('ediel_messages')
       .update(messagePatch)
+      .eq('company_id', db.companyId)
       .eq('id', message.id)
     if (
       messageUpdateError &&
