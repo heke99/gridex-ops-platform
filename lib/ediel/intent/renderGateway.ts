@@ -69,8 +69,35 @@ async function loadValidatedIntent(intentId: string): Promise<
   return { ok: true, intent }
 }
 
+function structuredErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim()
+  if (typeof error === 'string' && error.trim()) return error.trim()
+  if (error && typeof error === 'object' && !Array.isArray(error)) {
+    const candidate = error as {
+      message?: unknown
+      details?: unknown
+      hint?: unknown
+      code?: unknown
+    }
+    const parts = [candidate.message, candidate.details, candidate.hint]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map((value) => value.trim())
+    const code = typeof candidate.code === 'string' && candidate.code.trim()
+      ? candidate.code.trim()
+      : null
+    if (parts.length > 0) return code ? `${code}: ${parts.join(' | ')}` : parts.join(' | ')
+    if (code) return code
+    try {
+      return JSON.stringify(error)
+    } catch {
+      return 'unknown_render_error'
+    }
+  }
+  return String(error ?? 'unknown_render_error')
+}
+
 function classifyRenderError(error: unknown): EdielIntentBlockingReason {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = structuredErrorMessage(error)
   const lower = message.toLowerCase()
   let code = 'render_failed'
   if (lower.includes('process_variant') || lower.includes('process_type')) {
