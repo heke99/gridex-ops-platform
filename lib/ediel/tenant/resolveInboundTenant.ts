@@ -1,4 +1,4 @@
-import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
+import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InboundTenantResolutionStatus = 'resolved' | 'ambiguous' | 'unresolved'
@@ -94,7 +94,7 @@ export function inboundRouteMessageCodeMatches(input: {
   if (!family) return false
 
   try {
-    return canonicalAckRequirements({ family, code: configuredCode })
+    return canonicalAckRequirementsForFamilyCode({ family, code: configuredCode })
       .businessResponses
       .map(upper)
       .includes(inboundCode)
@@ -280,7 +280,6 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
   const senderSub = upper(input.senderSubaddress)
   const applicationReference = upper(input.applicationReference)
   const messageFamily = upper(input.messageFamily)
-  const messageCode = upper(input.messageCode)
 
   return ((data ?? []) as Array<Record<string, unknown>>).flatMap((row) => {
     const companyId = clean(row.company_id)
