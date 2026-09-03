@@ -1,3 +1,4 @@
+import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InboundTenantResolutionStatus = 'resolved' | 'ambiguous' | 'unresolved'
@@ -69,6 +70,49 @@ function configuredMatches(configured: unknown, observed: unknown): boolean {
   const observedValue = upper(observed)
   if (!configuredValue || !observedValue) return true
   return configuredValue === observedValue
+}
+
+/**
+ * Route profiles are normally message-code specific, but an outbound request
+ * profile is also valid inbound tenant evidence for its canonical business
+ * response when every other route identity still matches in reverse.
+ *
+ * The response relation comes from the central acknowledgement/business-response
+ * matrix. Unknown families/codes remain fail-closed; there is no fuzzy Zxx match.
+ */
+export function inboundRouteMessageCodeMatches(input: {
+  family: string | null | undefined
+  configuredCode: string | null | undefined
+  inboundCode: string | null | undefined
+}): boolean {
+  const family = upper(input.family)
+  const configuredCode = upper(input.configuredCode)
+  const inboundCode = upper(input.inboundCode)
+
+  if (!configuredCode || !inboundCode) return true
+  if (configuredCode === inboundCode) return true
+  if (!family) return false
+
+  try {
+    return canonicalAckRequirements({ family, code: configuredCode })
+      .businessResponses
+      .map(upper)
+      .includes(inboundCode)
+  } catch {
+    return false
+  }
+}
+
+function routeMessageCodeMatchKind(input: {
+  family: string | null | undefined
+  configuredCode: string | null | undefined
+  inboundCode: string | null | undefined
+}): 'unscoped' | 'exact' | 'business_response' | 'none' {
+  const configuredCode = upper(input.configuredCode)
+  const inboundCode = upper(input.inboundCode)
+  if (!configuredCode || !inboundCode) return 'unscoped'
+  if (configuredCode === inboundCode) return 'exact'
+  return inboundRouteMessageCodeMatches(input) ? 'business_response' : 'none'
 }
 
 function subaddressMatches(params: {
@@ -268,7 +312,14 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
 
     if (!configuredMatches(row.application_reference, applicationReference)) return []
     if (!configuredMatches(row.message_family, messageFamily)) return []
-    if (!configuredMatches(row.business_code ?? row.message_code, messageCode)) return []
+
+    const configuredCode = row.business_code ?? row.message_code
+    const codeMatchKind = routeMessageCodeMatchKind({
+      family: row.message_family ?? input.messageFamily,
+      configuredCode: clean(configuredCode),
+      inboundCode: input.messageCode,
+    })
+    if (codeMatchKind === 'none') return []
 
     let score = matchedMarketActor ? 140 : 100
     if (matchedTransport) score += 20
@@ -276,7 +327,8 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
     if (upper(configuredSenderSub) && senderSub) score += 15
     if (upper(row.application_reference) && applicationReference) score += 35
     if (upper(row.message_family) && messageFamily) score += 15
-    if (upper(row.business_code ?? row.message_code) && messageCode) score += 10
+    if (codeMatchKind === 'exact') score += 10
+    if (codeMatchKind === 'business_response') score += 8
     if (input.mailbox && clean(row.mailbox) === input.mailbox) score += 20
 
     return [{
@@ -295,6 +347,8 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
         applicationReference: input.applicationReference,
         messageFamily: input.messageFamily,
         messageCode: input.messageCode,
+        configuredMessageCode: clean(configuredCode),
+        messageCodeMatch: codeMatchKind,
       },
     }]
   })
