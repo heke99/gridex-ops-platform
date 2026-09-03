@@ -1,7 +1,6 @@
 // lib/ediel/flows/inboundAckProcessing.ts
 
 import { supabaseService } from "@/lib/supabase/service";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   EdielAckStatus,
   EdielMessageFamily,
@@ -817,7 +816,7 @@ async function syncSwitchFromInboundAck(params: {
   );
   if (!current) return null;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = supabaseService;
 
   if (params.outcome === "negative") {
     const updated = await updateSupplierSwitchRequestStatus(supabase, {

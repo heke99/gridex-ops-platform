@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -96,6 +97,18 @@ function prodatPayloadSnapshot(message: EdielMessageRow): JsonRecord {
       caseReference: line.lineItemReference,
       permissionReference: line.permissionId,
       customerId: line.customerId,
+      endUserId: line.endUserId,
+      endUserIdQualifier: line.endUserIdQualifier,
+      endUserName: line.endUserName,
+      endUserAddress: line.endUserAddress,
+      endUserPostcode: line.endUserPostcode,
+      endUserCity: line.endUserCity,
+      endUserCountry: line.endUserCountry,
+      installationId: line.installationId,
+      installationAddress: line.installationAddress,
+      installationPostcode: line.installationPostcode,
+      installationCity: line.installationCity,
+      installationCountry: line.installationCountry,
       measuringMethod: line.measuringMethod,
       observationLength: line.timeSeriesProduct,
       reportingFrequency: line.reportingFrequency,
@@ -365,8 +378,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       })
       .eq('company_id', companyId)
       .eq('id', request.id)
-    await supabaseService.from('customer_info_request_events').insert({
-      company_id: companyId,
+    await tenantDb(companyId).from('customer_info_request_events').insert({
       customer_info_request_id: request.id,
       customer_id: request.customer_id,
       event_type: 'z02_needs_review',
@@ -388,6 +400,33 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     actorUserId: persistenceActorId,
     operationId,
   })
+
+  if (responseJob.status === 'needs_review' || responseJob.status === 'blocked') {
+    const gateResult = readJson(responseJob.result)
+    const reasonCode = stringOrNull(gateResult.reason_code) ?? stringOrNull(gateResult.reason) ?? 'z02_payload_requires_review'
+    const blockerReason = stringOrNull(gateResult.blocker_reason) ?? 'Z02 uppfyllde inte canonical payload- eller identitetskontroller och applicerades inte.'
+
+    await supabaseService.from('customer_info_request_events').insert({
+      company_id: companyId,
+      customer_info_request_id: request.id,
+      customer_id: request.customer_id,
+      event_type: 'z02_needs_review',
+      message: blockerReason,
+      payload: { customerOperationJobId: responseJob.id, operationId: responseJob.operationId, reasonCode, gateResult, z02: z02Payload },
+      created_by: persistenceActorId,
+    })
+
+    await createEdielMessageEvent({
+      actorUserId: eventActorId,
+      edielMessageId: params.message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: blockerReason,
+      payload: { customerInfoRequestId: request.id, customerOperationJobId: responseJob.id, reasonCode, gateResult },
+    })
+
+    return { applied: false, targetId: String(request.id), reason: reasonCode }
+  }
 
   if (operationId) {
     const messageOperationUpdate = await supabaseService

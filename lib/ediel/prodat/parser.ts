@@ -10,6 +10,18 @@ export type ParsedProdatLineItem = {
   gridAreaId: string | null
   agreementReference: string | null
   customerId: string | null
+  endUserId: string | null
+  endUserIdQualifier: string | null
+  endUserName: string | null
+  endUserAddress: string | null
+  endUserPostcode: string | null
+  endUserCity: string | null
+  endUserCountry: string | null
+  installationId: string | null
+  installationAddress: string | null
+  installationPostcode: string | null
+  installationCity: string | null
+  installationCountry: string | null
   balanceResponsibleId: string | null
   reportingFrequency: string | null
   energyProductId: string | null
@@ -83,11 +95,38 @@ function lineDateTimeValue(segments: { raw: string }[], qualifiers: string[]): s
   return null
 }
 
-function partyIdFromNad(segments: { raw: string; elements: string[] }[], qualifier: string): string | null {
+type ParsedNadParty = {
+  id: string | null
+  idQualifier: string | null
+  name: string | null
+  address: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+}
+
+function nadText(value: string | null | undefined): string | null {
+  const cleaned = String(value ?? '').trim()
+  return cleaned || null
+}
+
+function partyFromNad(segments: { raw: string; elements: string[] }[], qualifier: string): ParsedNadParty {
   const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
   const composite = segment?.elements[2] ?? ''
-  const value = composite.split(':')[0]?.trim() ?? ''
-  return value.length > 0 ? value : null
+  const parts = composite.split(':').map((part) => part.trim())
+  return {
+    id: nadText(parts[0]),
+    idQualifier: nadText(parts[1]),
+    name: nadText(segment?.elements[4]),
+    address: nadText(segment?.elements[5]),
+    city: nadText(segment?.elements[6]),
+    postalCode: nadText(segment?.elements[8]),
+    country: nadText(segment?.elements[9]),
+  }
+}
+
+function partyIdFromNad(segments: { raw: string; elements: string[] }[], qualifier: string): string | null {
+  return partyFromNad(segments, qualifier).id
 }
 
 export function parseProdatMessage(input: EdielMessageRow | string): ParsedProdatMessage {
@@ -111,6 +150,18 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       gridAreaId: line.rffZ05 ?? null,
       agreementReference: line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+ANJ:'))?.replace(/^RFF\+ANJ:/, '').split(':')[0]?.trim() ?? null,
       customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
+      endUserId: partyFromNad(line.segments, 'UD').id,
+      endUserIdQualifier: partyFromNad(line.segments, 'UD').idQualifier,
+      endUserName: partyFromNad(line.segments, 'UD').name,
+      endUserAddress: partyFromNad(line.segments, 'UD').address,
+      endUserPostcode: partyFromNad(line.segments, 'UD').postalCode,
+      endUserCity: partyFromNad(line.segments, 'UD').city,
+      endUserCountry: partyFromNad(line.segments, 'UD').country,
+      installationId: partyFromNad(line.segments, 'IT').id,
+      installationAddress: partyFromNad(line.segments, 'IT').address,
+      installationPostcode: partyFromNad(line.segments, 'IT').postalCode,
+      installationCity: partyFromNad(line.segments, 'IT').city,
+      installationCountry: partyFromNad(line.segments, 'IT').country,
       balanceResponsibleId: partyIdFromNad(line.segments, 'Z02'),
       reportingFrequency: cciCavValue(line.segments, 'Z12'),
       energyProductId: cciCavValue(line.segments, 'Z14'),
