@@ -104,6 +104,9 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     throw new Error('PRODAT Z01 kan inte byggas utan anläggnings-id/mätpunkt.')
   }
 
+  const endUserAddressAvailable = Boolean(clean(context.site?.street))
+  const installationAddressAvailable = Boolean(clean(context.site?.street))
+
   const isTgt = isEdielPortalParty(input.routeContext.receiverEdielId)
   const senderSubAddress = isTgt ? 'PRODAT' : input.routeContext.senderSubAddress
   const receiverSubAddress = isTgt ? 'PRODAT' : input.routeContext.receiverSubAddress
@@ -158,6 +161,17 @@ export async function buildCustomerMasterdataZ01Draft(input: {
       siteCountry: context.site?.country ?? 'SE',
       reasonForTransaction: variant.z01Reason,
       powerOfAttorneyReference: input.dataRequest.external_reference ?? input.externalReference,
+      // PRODAT 26-A marks fields 229/233/234 as dependent (D). These facts are
+      // projected from the canonical customer/site snapshot rather than guessed
+      // from rendered segment presence. A missing value is an explicit false;
+      // when present the production validator can deterministically require it.
+      dependentConditionFacts: {
+        endUserAddressAvailable,
+        byCell: {
+          'Z01:233': Boolean(meterPointId),
+          'Z01:234': installationAddressAvailable,
+        },
+      },
     },
   })
 

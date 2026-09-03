@@ -5,6 +5,7 @@ import { validateAutomationUserConfig } from '@/lib/customer-operations/automati
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
+import { processReadySupplierSwitchActivations } from '@/lib/operations/supplierSwitchActivationSweep'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
 import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilityRequestReconciliation'
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
@@ -91,6 +92,28 @@ async function run(request: NextRequest) {
     // Persist POA expiry: previously only evaluated at read time, leaving rows
     // 'signed' forever in the admin UI and audit trail.
     const poaExpiry = await expireOverduePowersOfAttorney({ limit: 100 })
+
+    // Becoming the active electricity supplier is a market-state transition,
+    // not an ACK transition. Run only with a verified automation actor; the
+    // atomic RPC re-checks tenant, inbound Z04 and Stockholm effective date.
+    const supplierSwitchActivations = automationUserConfig.ok && automationUserConfig.userId
+      ? await processReadySupplierSwitchActivations({
+          limit: Math.min(requestedLimit, 50),
+          actorUserId: automationUserConfig.userId,
+        })
+      : {
+          marketDate: null,
+          scanned: 0,
+          ready: 0,
+          activated: 0,
+          alreadyCompleted: 0,
+          waiting: 0,
+          blocked: 0,
+          failed: 0,
+          failures: [],
+          configurationBlocked: true,
+        }
+
     return NextResponse.json({
       ok: true,
       result: {
@@ -101,6 +124,7 @@ async function run(request: NextRequest) {
         facilityLookupDispatch,
         resumedIntents,
         poaExpiry,
+        supplierSwitchActivations,
         automationUserConfig: {
           ok: automationUserConfig.ok,
           issue: automationUserConfig.issue,
