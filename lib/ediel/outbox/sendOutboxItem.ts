@@ -4,6 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { getEdielOutboundReadinessBlocker } from '@/lib/ediel/outbox/readinessGuard'
 import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
 import { claimEdielOutboxItem } from '@/lib/ediel/outbox/claimOutboxItems'
+import { projectSentEdielSourceState } from '@/lib/ediel/outbox/projectSentSources'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 
 function clean(value: unknown): string | null {
@@ -175,13 +176,19 @@ export async function sendOutboxItem(params: {
     if (!message) throw new Error('ediel_message_not_found')
 
     if (['provider_accepted', 'sent', 'delivered', 'acknowledged'].includes(String(message.status))) {
+      const technicalSentAt = message.message_sent_at ?? new Date().toISOString()
+      await projectSentEdielSourceState({
+        message,
+        sentAt: technicalSentAt,
+        actorUserId: params.actorUserId,
+      })
       await updateOutboxStatus({
         outboxItemId: params.outboxItemId,
         sendAttemptId,
         workerId,
         payload: {
           status: 'superseded',
-          sent_at: message.message_sent_at ?? new Date().toISOString(),
+          sent_at: technicalSentAt,
           last_error: 'Superseded: Ediel-meddelandet har redan tekniskt skickats.',
           locked_at: null,
           locked_by: null,
@@ -256,17 +263,33 @@ export async function sendOutboxItem(params: {
     providerAccepted = true
     providerMessageId = result.messageId ?? null
 
+    // sendEdielMessageViaSmtp persists the canonical technical send first. Read
+    // it back and project that exact timestamp into linked source records before
+    // the outbox is allowed to become `sent`. If this projection fails after
+    // SMTP acceptance, the catch path marks the outbox delivery_uncertain so a
+    // retry cannot accidentally resend the already accepted message.
+    const persistedMessage = await getEdielMessageById(edielMessageId, { companyId })
+    if (!persistedMessage || !['provider_accepted', 'sent', 'delivered', 'acknowledged'].includes(String(persistedMessage.status))) {
+      throw new Error('ediel_post_send_canonical_message_not_persisted')
+    }
+    const technicalSentAt = persistedMessage.message_sent_at ?? new Date().toISOString()
+    await projectSentEdielSourceState({
+      message: persistedMessage,
+      sentAt: technicalSentAt,
+      actorUserId: params.actorUserId,
+    })
+
     await updateOutboxStatus({
       outboxItemId: params.outboxItemId,
       sendAttemptId,
       workerId,
       payload: {
         status: 'sent',
-        sent_at: new Date().toISOString(),
+        sent_at: technicalSentAt,
         smtp_message_id: providerMessageId,
         transport_channel: 'smtp',
-        receiver_ediel_id: message.receiver_ediel_id ?? null,
-        receiver_subaddress: message.receiver_sub_address ?? null,
+        receiver_ediel_id: persistedMessage.receiver_ediel_id ?? null,
+        receiver_subaddress: persistedMessage.receiver_sub_address ?? null,
         last_error: null,
         locked_at: null,
         locked_by: null,
