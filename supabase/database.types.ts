@@ -47923,10 +47923,12 @@ export type Database = {
           failure_reason: string | null
           grid_owner_id: string | null
           id: string
+          last_partner_response_at: string | null
           metadata: Json | null
           metering_point_id: string | null
           notes: string | null
           operation_id: string | null
+          partner_response_log: Json
           readiness_issues: Json
           readiness_status: string | null
           received_at: string | null
@@ -47955,10 +47957,12 @@ export type Database = {
           failure_reason?: string | null
           grid_owner_id?: string | null
           id?: string
+          last_partner_response_at?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
           notes?: string | null
           operation_id?: string | null
+          partner_response_log?: Json
           readiness_issues?: Json
           readiness_status?: string | null
           received_at?: string | null
@@ -47987,10 +47991,12 @@ export type Database = {
           failure_reason?: string | null
           grid_owner_id?: string | null
           id?: string
+          last_partner_response_at?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
           notes?: string | null
           operation_id?: string | null
+          partner_response_log?: Json
           readiness_issues?: Json
           readiness_status?: string | null
           received_at?: string | null
@@ -88858,8 +88864,16 @@ export type Database = {
           total_messages: number
         }[]
       }
+      gridex_edifact_cci_cav_value: {
+        Args: { p_cci_code: string; p_raw: string }
+        Returns: string
+      }
       gridex_edifact_first_lin_item_id: {
         Args: { p_raw: string }
+        Returns: string
+      }
+      gridex_edifact_nad_element: {
+        Args: { p_element_index: number; p_qualifier: string; p_raw: string }
         Returns: string
       }
       gridex_edifact_rff_value: {
@@ -88906,6 +88920,14 @@ export type Database = {
           p_signed_ip_hash?: string
           p_signed_user_agent?: string
           p_token_hash: string
+        }
+        Returns: Json
+      }
+      gridex_finalize_supplier_switch_activation: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_request_id: string
         }
         Returns: Json
       }
@@ -89640,6 +89662,10 @@ export type Database = {
         }[]
       }
       gridex_price_option_unique_objects_v1: { Args: never; Returns: Json }
+      gridex_process_ready_supplier_switch_activations: {
+        Args: { p_actor_user_id: string; p_limit?: number }
+        Returns: Json
+      }
       gridex_prodat_variant_from_raw: {
         Args: { p_raw: string }
         Returns: string
