@@ -1,11 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveAutomationActorId } from '@/lib/customer-operations/automationConfig'
 import { syncCustomerOperationsForCustomer } from '@/lib/operations/db'
-import {
-  getSupplierSwitchActivationReadiness,
-  stockholmMarketDate,
-} from '@/lib/operations/supplierSwitchActivation'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import { stockholmMarketDate } from '@/lib/operations/supplierSwitchActivation'
 
 type JsonRecord = Record<string, unknown>
 
@@ -39,53 +35,42 @@ function text(value: unknown): string | null {
   return cleaned || null
 }
 
+function integer(value: unknown): number {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0
+}
+
 function boundedLimit(value: number | undefined): number {
   const parsed = Number(value ?? 50)
   if (!Number.isFinite(parsed)) return 50
   return Math.min(Math.max(Math.floor(parsed), 1), 100)
 }
 
+function activationFailures(value: unknown): ActivationFailure[] {
+  if (!Array.isArray(value)) return []
+  return value.map((entry) => {
+    const row = record(entry)
+    const code = text(row.code) ?? 'supplier_switch_activation_failed'
+    return {
+      requestId: text(row.requestId) ?? 'unknown',
+      companyId: text(row.companyId),
+      code,
+      message: text(row.message) ?? `Automatisk leveransstart blockerades: ${code}.`,
+    }
+  })
+}
+
 /**
- * Finalizes accepted supplier switches when Gridex actually becomes the active
- * supplier. The database RPC is the final authority and performs the transition
- * atomically under a row lock. This sweep only discovers candidates.
+ * Runs the DB-native supplier activation sweep. Candidate discovery and the
+ * state transition both live in PostgreSQL so the service-role application
+ * never performs an unscoped tenant table scan. Each activation is row-locked,
+ * tenant-bound, Z04-gated and date-gated.
  */
 export async function processReadySupplierSwitchActivations(
   input: { limit?: number; actorUserId?: string | null } = {},
 ): Promise<SupplierSwitchActivationSweepResult> {
-  const limit = boundedLimit(input.limit)
   const actorUserId = resolveAutomationActorId(input.actorUserId)
-  const marketDate = stockholmMarketDate()
-
-  // Pull a wider accepted window because confirmed_start_date is authoritative
-  // when present, while older rows may only have requested_start_date.
-  const candidateLimit = Math.min(Math.max(limit * 10, 100), 500)
-  const { data, error } = await supabaseService
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('status', 'accepted')
-    .order('requested_start_date', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: true })
-    .limit(candidateLimit)
-
-  if (error) throw error
-
-  const candidates = (data ?? []) as SupplierSwitchRequestRow[]
-  const readyCandidates = candidates
-    .filter((request) => getSupplierSwitchActivationReadiness(request).ready)
-    .slice(0, limit)
-
-  const result: SupplierSwitchActivationSweepResult = {
-    marketDate,
-    scanned: candidates.length,
-    ready: readyCandidates.length,
-    activated: 0,
-    alreadyCompleted: 0,
-    waiting: 0,
-    blocked: 0,
-    failed: 0,
-    failures: [],
-  }
+  const limit = boundedLimit(input.limit)
 
   const rpcClient = supabaseService as unknown as {
     rpc: (
@@ -94,83 +79,51 @@ export async function processReadySupplierSwitchActivations(
     ) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
   }
 
-  for (const request of readyCandidates) {
-    const companyId = text(request.company_id)
-    if (!companyId) {
-      result.failed += 1
-      result.failures.push({
-        requestId: request.id,
-        companyId: null,
-        code: 'supplier_switch_company_missing',
-        message: 'Accepted switchärende saknar company_id och får inte aktiveras.',
-      })
-      continue
-    }
+  const { data, error } = await rpcClient.rpc(
+    'gridex_process_ready_supplier_switch_activations',
+    {
+      p_actor_user_id: actorUserId,
+      p_limit: limit,
+    },
+  )
 
+  if (error) {
+    throw new Error(error.message ?? error.code ?? 'supplier_switch_activation_sweep_failed')
+  }
+
+  const payload = record(data)
+  const failures = activationFailures(payload.failures)
+  const activatedCustomerIds = Array.isArray(payload.activatedCustomerIds)
+    ? [...new Set(payload.activatedCustomerIds.map(text).filter((value): value is string => Boolean(value)))]
+    : []
+
+  // Operational tasks are derived state. The market activation itself has
+  // already committed atomically; a refresh failure must therefore be surfaced
+  // without rolling back or misreporting the completed supplier switch.
+  for (const customerId of activatedCustomerIds) {
     try {
-      const { data: rpcData, error: rpcError } = await rpcClient.rpc(
-        'gridex_finalize_supplier_switch_activation',
-        {
-          p_company_id: companyId,
-          p_request_id: request.id,
-          p_actor_user_id: actorUserId,
-        },
-      )
-
-      if (rpcError) throw new Error(rpcError.message ?? rpcError.code ?? 'supplier_switch_activation_rpc_failed')
-
-      const activation = record(rpcData)
-      const status = text(activation.status) ?? 'unknown'
-      const reasonCode = text(activation.reason_code)
-
-      if (status === 'activated') {
-        result.activated += 1
-        // Customer-operation tasks are derived state. Refresh them only after
-        // the atomic market activation has committed.
-        await syncCustomerOperationsForCustomer(supabaseService, request.customer_id)
-        continue
-      }
-
-      if (status === 'already_completed') {
-        result.alreadyCompleted += 1
-        continue
-      }
-
-      if (status === 'waiting') {
-        result.waiting += 1
-        continue
-      }
-
-      if (status === 'blocked') {
-        result.blocked += 1
-        result.failures.push({
-          requestId: request.id,
-          companyId,
-          code: reasonCode ?? 'supplier_switch_activation_blocked',
-          message: `Automatisk leveransstart blockerades: ${reasonCode ?? 'okänd blockerare'}.`,
-        })
-        continue
-      }
-
-      result.failed += 1
-      result.failures.push({
-        requestId: request.id,
-        companyId,
-        code: reasonCode ?? 'supplier_switch_activation_unexpected_result',
-        message: `Oväntat resultat från automatisk leveransstart: ${status}.`,
-      })
-    } catch (activationError) {
-      result.failed += 1
-      result.failures.push({
-        requestId: request.id,
-        companyId,
-        code: 'supplier_switch_activation_failed',
-        message: activationError instanceof Error
-          ? activationError.message
-          : 'Automatisk leveransstart misslyckades.',
+      await syncCustomerOperationsForCustomer(supabaseService, customerId)
+    } catch (syncError) {
+      failures.push({
+        requestId: 'derived-state-refresh',
+        companyId: null,
+        code: 'post_activation_customer_sync_failed',
+        message: syncError instanceof Error
+          ? syncError.message
+          : 'Kundens derived operations-state kunde inte uppdateras efter leveransstart.',
       })
     }
   }
 
-  return result
+  return {
+    marketDate: text(payload.marketDate) ?? stockholmMarketDate(),
+    scanned: integer(payload.scanned),
+    ready: integer(payload.ready),
+    activated: integer(payload.activated),
+    alreadyCompleted: integer(payload.alreadyCompleted),
+    waiting: integer(payload.waiting),
+    blocked: integer(payload.blocked),
+    failed: integer(payload.failed),
+    failures,
+  }
 }
