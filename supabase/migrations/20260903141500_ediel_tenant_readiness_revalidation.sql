@@ -36,7 +36,7 @@ begin
   v_payload := jsonb_build_object(
     'company', jsonb_build_object(
       'id', v_company.id,
-      'actor_role', coalesce(v_company.actor_role, v_company.market_role),
+      'actor_role', coalesce(v_company.actor_role, nullif(to_jsonb(v_company)->>'market_role', '')),
       'test_ediel_id', v_company.test_ediel_id,
       'production_ediel_id', v_company.production_ediel_id,
       'brp_ediel_id', v_company.brp_ediel_id,
@@ -213,7 +213,7 @@ begin
   ) values (
     p_company_id,
     v_next_version,
-    coalesce(v_company.actor_role, v_company.market_role),
+    coalesce(v_company.actor_role, nullif(to_jsonb(v_company)->>'market_role', '')),
     v_company.test_ediel_id,
     v_company.production_ediel_id,
     v_company.brp_ediel_id,
