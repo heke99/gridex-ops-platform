@@ -13,6 +13,6 @@
     "20260902221500_facility_initial_address_and_unknown_supplier_semantics.sql": "0bc8189d18d4c9e582a68ffe2424925db0a016bfc5f5ee412a66eff587e9bd5d",
     "20260902223600_restore_grid_owner_data_request_partner_response_tracking.sql": "c19483ecf5a771800b18b32cfcdd4c1221fbfea42f0616f1d9ec796f08dc7907",
     "20260903070000_harden_inbound_z02_required_payload_gate.sql": "cf8d81ac33d8687a817fba537791e25d89ccaf3f7ee342988ddb1dc0a9141d0b",
-    "20260903090000_atomic_supplier_switch_activation_sweep.sql": "5410d13be7a964cec2aa8ae76ff8b8501469a99fdf51479662a9623c064a61ea"
+    "20260903090000_atomic_supplier_switch_activation_sweep.sql": "a1148c3ef2ca1396d7d1030aeedf724bcf16f35cf1df3eeea20acc3107f9bc24"
   }
 }
