@@ -29,7 +29,7 @@ test('canonical Gridex v14 readiness, dry-run and live activation', async ({ pag
   await expect(page.getByRole('heading', { name: /Gridex El AB .* Go-Live/i })).toBeVisible()
   await expect(page.locator('body')).toContainText('21660')
 
-  const readinessButton = page.getByRole('button', { name: 'Kör kontroll' })
+  const readinessButton = page.getByRole('button', { name: 'Kör kontroll', exact: true })
   await expect(readinessButton).toBeEnabled()
   await Promise.all([
     page.waitForURL((url) => url.pathname === `/admin/platform/go-live/${companyId}` && ['prepared', 'blocked'].includes(url.searchParams.get('status') ?? ''), { timeout: 60_000 }),
@@ -37,7 +37,7 @@ test('canonical Gridex v14 readiness, dry-run and live activation', async ({ pag
   ])
   if (new URL(page.url()).searchParams.get('status') === 'blocked') throw new Error(`Readiness remained blocked: ${page.url()}`)
 
-  const dryRunButton = page.getByRole('button', { name: 'Kör dry run' })
+  const dryRunButton = page.getByRole('button', { name: 'Kör dry run', exact: true })
   await expect(dryRunButton).toBeEnabled()
   await Promise.all([
     page.waitForURL((url) => url.pathname === `/admin/platform/go-live/${companyId}` && ['prepared', 'blocked'].includes(url.searchParams.get('status') ?? ''), { timeout: 60_000 }),
@@ -48,7 +48,7 @@ test('canonical Gridex v14 readiness, dry-run and live activation', async ({ pag
   const confirmation = page.getByPlaceholder('ACTIVATE PRODUCTION')
   await expect(confirmation).toBeVisible()
   await confirmation.fill('ACTIVATE PRODUCTION')
-  const activateButton = page.getByRole('button', { name: 'Aktivera production' })
+  const activateButton = page.getByRole('button', { name: 'Aktivera production', exact: true })
   await expect(activateButton).toBeEnabled()
   await Promise.all([
     page.waitForURL((url) => url.pathname === `/admin/platform/go-live/${companyId}` && ['live', 'blocked', 'error'].includes(url.searchParams.get('status') ?? ''), { timeout: 60_000 }),
