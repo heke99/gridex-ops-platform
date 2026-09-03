@@ -1,0 +1,51 @@
+name: Refresh PR297 Supabase types
+
+on:
+  push:
+    branches:
+      - fix/ediel-send-lock-state-convergence-20260903
+    paths:
+      - .github/workflows/refresh-pr297-supabase-types.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/ediel-send-lock-state-convergence-20260903
+      - name: Download verified clean-replay typegen artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/rem002
+          mkdir -p /tmp/rem002
+          gh run download 33770652031 --repo "$GITHUB_REPOSITORY" --name gridex-rem-002-clean-replay --dir /tmp/rem002
+          test -s /tmp/rem002/rem002-database.types.ts
+          test "$(sha256sum /tmp/rem002/rem002-database.types.ts | awk '{print $1}')" = "375c2b41b58c9849df7981b017fa9b7ed5697d9fedc123b7bd0bb45f6ee13e78"
+      - name: Persist canonical generated types and manifest
+        run: |
+          cp /tmp/rem002/rem002-database.types.ts supabase/database.types.ts
+          node - <<'NODE'
+          const fs = require('fs')
+          const path = 'scripts/supabase-types-manifest.json'
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'))
+          manifest.generated_at = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+          manifest.sha256 = '375c2b41b58c9849df7981b017fa9b7ed5697d9fedc123b7bd0bb45f6ee13e78'
+          fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n')
+          NODE
+          test "$(sha256sum supabase/database.types.ts | awk '{print $1}')" = "$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
+      - name: Commit generated artifacts to PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/database.types.ts scripts/supabase-types-manifest.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Refresh generated Supabase types for Ediel readiness schema"
+          git push origin HEAD:fix/ediel-send-lock-state-convergence-20260903
