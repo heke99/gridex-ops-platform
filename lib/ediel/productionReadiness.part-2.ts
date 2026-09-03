@@ -4,6 +4,7 @@ import { getEdielCertificationEvidenceReadiness } from '@/lib/ediel/certificatio
 
 
 import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting"
+import { evaluateCanonicalActorTestReadiness, type CanonicalGoLiveReadinessSnapshot } from '@/lib/ediel/productionReadinessTestAuthority'
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus"
 import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth"
 
@@ -888,38 +889,41 @@ export async function getCompanyProductionReadiness(
       "Mailboxen har ett aktivt/stale lock som bör kontrolleras.",
     );
 
-  const requiredTests = ACTOR_TEST_CASES.filter(
-    (testCase) => testCase.required,
-  );
-  const testRows = await safeSelect<Record<string, unknown>>(
-    "actor_test_results",
-    (query) =>
-      query.select("test_key,status,passed_at").eq("company_id", companyId),
-  );
-  const approved = new Set(
-    testRows
-      .filter((row) =>
-        ["passed", "manual_verified"].includes(String(row.status)),
-      )
-      .map((row) => String(row.test_key)),
-  );
-  const missingTests = requiredTests.filter(
-    (testCase) => !approved.has(testCase.key),
-  );
-  if (missingTests.length === 0)
-    pass(
-      "tests",
-      "required_tests_approved",
-      "Aktörstester är godkända",
-      "Alla obligatoriska PRODAT/UTILTS-testfall är godkända.",
-    );
-  else
+  const requiredTests = ACTOR_TEST_CASES.filter((testCase) => testCase.required);
+  const expectedProdatTests = requiredTests.filter((testCase) => testCase.messageFamily === "PRODAT").length;
+  const expectedUtiltsTests = requiredTests.filter((testCase) => testCase.messageFamily === "UTILTS").length;
+  const { data: canonicalGoLiveReadinessData, error: canonicalGoLiveReadinessError } =
+    await supabaseService.rpc('gridex_company_go_live_readiness', {
+      p_company_id: companyId,
+    });
+  if (canonicalGoLiveReadinessError) {
     block(
       "tests",
-      "required_tests_missing",
-      "Aktörstester saknas",
-      `Saknar godkända testfall: ${missingTests.map((testCase) => testCase.key).join(", ")}.`,
+      "canonical_required_tests_unavailable",
+      "Canonical testreadiness kan inte verifieras",
+      `Kunde inte läsa canonical go-live readiness: ${canonicalGoLiveReadinessError.message}.`,
     );
+  } else {
+    const canonicalActorTests = evaluateCanonicalActorTestReadiness(
+      canonicalGoLiveReadinessData as CanonicalGoLiveReadinessSnapshot | null,
+      expectedProdatTests,
+      expectedUtiltsTests,
+    );
+    if (canonicalActorTests.ready)
+      pass(
+        "tests",
+        "required_tests_approved",
+        "Aktörstester är godkända",
+        `Canonical runtime verifierar PRODAT ${canonicalActorTests.prodatPassed}/${canonicalActorTests.prodatTotal} och UTILTS ${canonicalActorTests.utiltsPassed}/${canonicalActorTests.utiltsTotal}.`,
+      );
+    else
+      block(
+        "tests",
+        "required_tests_missing",
+        "Aktörstester saknas",
+        canonicalActorTests.reason ?? "Canonical testreadiness är inte komplett.",
+      );
+  }
 
   try {
     const evidence = await getEdielCertificationEvidenceReadiness(companyId)
