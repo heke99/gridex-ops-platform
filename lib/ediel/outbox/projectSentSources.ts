@@ -6,8 +6,8 @@ function clean(value: unknown): string | null {
 }
 
 function upper(value: unknown): string | null {
-  const value = clean(value)
-  return value ? value.toUpperCase() : null
+  const cleaned = clean(value)
+  return cleaned ? cleaned.toUpperCase() : null
 }
 
 type DbError = { message?: string; code?: string } | null
