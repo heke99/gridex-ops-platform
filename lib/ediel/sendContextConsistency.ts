@@ -36,6 +36,23 @@ function normalizeEncryptionMode(value: unknown): 'none' | 'smime' | null {
   return null
 }
 
+export function resolveRouteTransportSecurityMode(params: {
+  transportSecurityMode?: unknown
+  encryptionMode?: unknown
+}): 'required_encrypted' | 'encrypted' | 'unencrypted' | 'needs_verification' {
+  const explicit = String(params.transportSecurityMode ?? '').trim()
+  if (explicit) return normalizeTransportSecurityMode(explicit)
+
+  // `transport_mode` describes the protocol (for example smtp_imap), not the
+  // security policy. Legacy/materialized route profiles already persist the
+  // effective encryption decision in `encryption_mode`, so that is the only
+  // safe fallback when the dedicated transport-security field is absent.
+  const encryption = normalizeEncryptionMode(params.encryptionMode)
+  if (encryption === 'smime') return 'encrypted'
+  if (encryption === 'none') return 'unencrypted'
+  return 'needs_verification'
+}
+
 function expectedMessageEnvironment(run: EdielTestRunRow): 'test' | 'production' | null {
   const environmentType = String((run as unknown as { environment_type?: unknown }).environment_type ?? '').trim().toLowerCase()
   if (environmentType === 'production') return 'production'
@@ -92,7 +109,6 @@ async function getRouteProfileForMessage(message: EdielMessageRow, run: EdielTes
   if (error) throw error
   return (data as EdielRouteProfileRow | null) ?? null
 }
-
 
 function isAckMessageFamily(value: unknown): boolean {
   const family = String(value ?? '').trim().toUpperCase()
@@ -160,10 +176,10 @@ export async function validateEdielSendContext(params: {
   const linkedRuns = await listLinkedTestRuns(params.message.id)
   const linkedTestRun = linkedRuns[0] ?? null
   const routeProfile = await getRouteProfileForMessage(params.message, linkedTestRun)
-  const rawRouteTransportSecurityMode = routeProfile?.transport_security_mode ?? routeProfile?.transport_mode ?? null
-  const routeTransportSecurityMode = rawRouteTransportSecurityMode
-    ? normalizeTransportSecurityMode(rawRouteTransportSecurityMode)
-    : null
+  const routeTransportSecurityMode = resolveRouteTransportSecurityMode({
+    transportSecurityMode: routeProfile?.transport_security_mode,
+    encryptionMode: routeProfile?.encryption_mode,
+  })
   const routeEncryption = normalizeEncryptionMode(routeProfile?.encryption_mode)
   const selectedEncryptionMode = normalizeEncryptionMode(linkedTestRun?.encryption_mode)
   const routeTransportEncryption = transportSecurityModeToEncryptionMode(routeTransportSecurityMode)
