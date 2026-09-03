@@ -1,0 +1,69 @@
+name: Temporary PRODAT runtime version repair
+
+on:
+  push:
+    branches:
+      - fix/prodat-runtime-version-policy-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/prodat-runtime-version-policy-20260903
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Patch PRODAT version versus UNH association semantics
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('lib/ediel/rulebook/validator.ts')
+          text = path.read_text()
+
+          anchor = """function inheritedSourceRulePackSnapshot(input: RulebookValidationInput): RegistryRulePackSnapshot | null {\n"""
+          helper = """function assertProdatRuntimeVersion(input: {\n  providedVersion: string | null | undefined\n  referenceDate: string\n  policy: CanonicalEdielPolicy\n}): void {\n  const provided = normalizeIdentifier(input.providedVersion)\n  if (!provided) return\n\n  const selection = selectRulebookVersion({\n    family: 'PRODAT',\n    code: input.policy.code,\n    referenceDate: input.referenceDate,\n  })\n  const accepted = new Set([\n    normalizeIdentifier(selection.selectedVersion),\n    normalizeIdentifier(input.policy.guide.guideRevision),\n    normalizeIdentifier(input.policy.guide.associationAssignedCode),\n  ].filter(Boolean))\n\n  if (!accepted.has(provided)) {\n    throw new Error(\n      `canonical_ediel_version_not_allowed:PRODAT:${provided}:${[...accepted].join(',')}`,\n    )\n  }\n}\n\n"""
+          if anchor not in text:
+              raise SystemExit('helper anchor not found')
+          text = text.replace(anchor, helper + anchor, 1)
+
+          old = """    // APERAK/CONTRL runtime version aliases (16B / 1.0) are not association\n    // codes. Their version is checked against the same source-controlled guide\n    // immediately below instead of being misinterpreted as UNH association.\n    associationAssignedCode: sourceBoundAck ? null : input.version ?? null,\n"""
+          new = """    // `message_version` is a runtime/catalog version, not universally the\n    // UNH association-assigned code. PRODAT stores 26A while its UNH S009/0057\n    // is E2SE6A. Source-bound ACK families have the same distinction. Only\n    // UTILTS uses the runtime version itself as the guide association selector.\n    associationAssignedCode: sourceBoundAck || familyValue === 'PRODAT' ? null : input.version ?? null,\n"""
+          if old not in text:
+              raise SystemExit('association anchor not found')
+          text = text.replace(old, new, 1)
+
+          old2 = """  if (sourceBoundAck) {\n    assertAckFamilyRuntimeVersion({\n      family: familyValue,\n      providedVersion: input.version,\n      referenceDate,\n      policy,\n      sourceMessageFamily: record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined,\n    })\n  }\n\n  if (familyValue !== 'PRODAT' || input.mode !== 'send') return policy\n"""
+          new2 = """  if (sourceBoundAck) {\n    assertAckFamilyRuntimeVersion({\n      family: familyValue,\n      providedVersion: input.version,\n      referenceDate,\n      policy,\n      sourceMessageFamily: record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined,\n    })\n  }\n  if (familyValue === 'PRODAT') {\n    assertProdatRuntimeVersion({\n      providedVersion: input.version,\n      referenceDate,\n      policy,\n    })\n  }\n\n  if (familyValue !== 'PRODAT' || input.mode !== 'send') return policy\n"""
+          if old2 not in text:
+              raise SystemExit('post-policy anchor not found')
+          path.write_text(text.replace(old2, new2, 1))
+
+          test = Path('__tests__/prodat-runtime-version-policy.test.ts')
+          test.write_text("""import { describe, expect, it } from 'vitest'\nimport { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'\n\nconst rawZ01 = [\n  'UNB+UNOC:3+21660:14+27700:14+260903:0956+Z01REF+++++23-DDQ-PRODAT',\n  'UNH+1+PRODAT:D:97A:UN:E2SE6A',\n  'BGM+Z01+AUTO-Z01-17C57E37+9+AB',\n  'DTM+137:202609030956:203',\n  'DTM+ZZZ:1:805',\n  'NAD+FR+21660:160:SVK+++++++SE',\n  'NAD+DO+27700:160:SVK+++++++SE',\n  'LIN+1++735999147062804224:::9',\n  'DTM+92:202609030000:203',\n  'CCI++Z13',\n  'CAV+Z22',\n  'RFF+LI:AUTO-Z01-17C57E37',\n  'RFF+Z05:MBY',\n  'RFF+ANJ:AUTO-Z01-17C57E37',\n  'NAD+UD+199905242328:SE2:260++Mariam Said El Hessi+Stjärngatan 14+Mjölby++59533+SE',\n  'NAD+IT+735999147062804224::9+++Stjärngatan 14+Mjölby++59533+SE',\n  'UNT+17+1',\n  'UNZ+1+Z01REF',\n].join(\"'\") + \"'\"\n\ndescribe('PRODAT runtime version versus UNH association semantics', () => {\n  it('accepts catalog version 26A while resolving the guide association as E2SE6A', () => {\n    const result = validateRulebookMessage({\n      family: 'PRODAT',\n      code: 'Z01',\n      version: '26A',\n      rawPayload: rawZ01,\n      applicationReference: '23-DDQ-PRODAT',\n      businessDate: '2026-09-03',\n      direction: 'outbound',\n      mode: 'send',\n      environment: 'test',\n    })\n\n    const policyFailures = result.issues.filter((issue) => issue.code === 'CANONICAL_POLICY_VALIDATION_FAILED')\n    expect(policyFailures.map((issue) => issue.description)).not.toContain('ediel_guide_resolution_missing:PRODAT:2026-09-03:26A')\n    expect(policyFailures).toEqual([])\n  })\n\n  it('still fails closed for an unknown PRODAT runtime version', () => {\n    const result = validateRulebookMessage({\n      family: 'PRODAT',\n      code: 'Z01',\n      version: '99Z',\n      rawPayload: rawZ01,\n      applicationReference: '23-DDQ-PRODAT',\n      businessDate: '2026-09-03',\n      direction: 'outbound',\n      mode: 'send',\n      environment: 'test',\n    })\n    expect(result.issues.some((issue) =>\n      issue.code === 'CANONICAL_POLICY_VALIDATION_FAILED' &&\n      issue.description.includes('canonical_ediel_version_not_allowed:PRODAT:99Z')\n    )).toBe(true)\n  })\n})\n""")
+          PY
+
+      - run: npm ci
+      - name: Run targeted PRODAT policy regressions
+        run: npx vitest run __tests__/prodat-runtime-version-policy.test.ts __tests__/prodat-z01-field-presence-regression.test.ts
+      - name: Typecheck validator change
+        run: npm run typecheck
+      - name: Commit verified repair
+        shell: bash
+        run: |
+          rm .github/workflows/temporary-prodat-runtime-version-patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/ediel/rulebook/validator.ts __tests__/prodat-runtime-version-policy.test.ts .github/workflows/temporary-prodat-runtime-version-patch.yml
+          git commit -m 'Fix PRODAT runtime version policy resolution'
+          git push origin HEAD:fix/prodat-runtime-version-policy-20260903
