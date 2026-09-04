@@ -817,3 +817,44 @@ PR #307 is green and scoped to schema truth. A change touching 487 files is a
 separate, independently reviewable PR — the plan asks for exactly that, and
 widening a green PR on my own initiative would be wrong. This is the next work
 item, not part of the current one.
+
+## Stage 18 — Fas 10 gap found (readiness policy versioning, §13). NOT fixed.
+
+Read straight out of the newly committed canonical `supabase/schema.sql`, and
+verified by printing the actual `CREATE TABLE` rather than trusting a grep.
+
+Plan §13 requires readiness to be bound to at least tenant, `policy_version`,
+the relevant schema/application version, `evaluated_at`, result, evidence and
+blockers — and a policy change must invalidate old readiness, with execution
+failing closed when current readiness is missing.
+
+`customer_readiness_snapshots` has:
+
+    company_id, customer_id, *_score, ready_for_contract, ready_for_switch,
+    ready_for_billing, ready_for_export, blockers, source_payload,
+    calculated_by, calculated_at
+
+So tenant, evaluated_at (`calculated_at`), result, evidence (`source_payload`)
+and blockers are all present — but there is **no policy version and no
+schema/application version**. It records when readiness was computed, not what
+it was computed against. Nothing can therefore tell a snapshot taken under the
+old policy from one taken under the new, which is exactly the failure §13 and
+absolute rule §36 ("Ingen gammal readiness efter policyändring") forbid.
+
+Same absence across every readiness relation:
+
+    canonical_readiness_shadow_comparisons  none
+    customer_readiness_snapshots            none
+    ediel_production_readiness_checks       checked_at only
+    platform_actor_readiness_checks         checked_at only
+    platform_actor_readiness_runs           none
+    platform_runtime_readiness              schema_version, migration_version
+
+The precedent already exists in this repo: `platform_runtime_readiness` binds
+its rows to `schema_version` and `migration_version`. The pattern simply was
+never carried to customer and actor readiness.
+
+NOT fixed here. It needs a schema change plus the application logic that stamps
+and revalidates the version, and it does not belong in PR #307, which is green
+and scoped to schema truth. Next work item after P0-E, or before it — this one
+is smaller and has a clear precedent to copy.
