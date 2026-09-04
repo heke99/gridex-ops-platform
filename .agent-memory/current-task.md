@@ -440,3 +440,78 @@ will not survive this container:
 Postgres where the connecting role may create databases. The Supabase CLI is
 NOT installed in this container; anything requiring clean replay must run in
 CI.
+
+## Stage 9 — provenance conflict found and resolved without weakening the guard
+
+Running the repository's own `verify` gates against my Stage 6 work exposed a
+real defect I had introduced:
+
+    node scripts/gridex-aud-003-migration-provenance-regression.cjs
+    -> [GRIDEX-REM-002] clean replay directly mutates the Supabase migration ledger
+
+That guard (line 163 of the regression) forbids the replay script from writing
+`supabase_migrations.schema_migrations`. My dockerless mode reconstructed the
+pinned ledger with INSERTs so the ledger verification would pass.
+
+The guard is RIGHT and I was wrong. In CLI mode the Supabase CLI produces those
+rows independently, so verifying them against the pinned snapshot means
+something. In my mode the script wrote the rows and then checked its own
+writes — a circular assertion dressed up as provenance.
+
+Resolution, chosen over weakening the regression:
+
+- External mode now writes NOTHING to the ledger.
+- The ledger verification is skipped in external mode and prints, loudly, that
+  the run carries NO ledger provenance and must not be cited as canonical.
+- The canonical CLI path is completely unchanged, and the provenance regression
+  is untouched and passes again.
+
+Do NOT "fix" this later by making external mode reproduce the ledger. Five
+migrations read `supabase_migrations`, so the open question being tested now is
+whether their behaviour changes the resulting schema. If it does, external mode
+must be reported as an approximation, not as clean replay.
+
+IMPORTANT for whoever picks this up: never edit
+`gridex-aud-003-migration-provenance-regression.cjs` to make a replay change
+pass. It exists precisely to catch this class of shortcut.
+
+### Stage 9 result: the ledger turned out to be schema-irrelevant
+
+Tested rather than assumed. Two shadows were replayed on PostgreSQL 17, one
+with the reconstructed ledger and one with no ledger at all, and compared with
+the parity engine built in Stage 2:
+
+    node scripts/gridex-db-parity.cjs --canonical <with-ledger> \
+      --target <no-ledger> --mode blocking --no-ignore
+    -> PASS, identical across every compared object kind
+
+So the five migrations that read `supabase_migrations` do not change the
+resulting schema, and dropping the ledger reconstruction costs nothing. The
+narrow pinned fingerprint is also unchanged at `324bc8e0...` either way. The
+tenant invariant gate passes against the no-ledger shadow too.
+
+Gate battery re-run locally, all green: provenance regression, migration
+integrity, public-contract legal, contract hardening, generated types,
+service-role ratchet, parity self-test, agent-memory git state, ops health,
+contract channel publication, API billing tenant hardening.
+
+### One follow-up created by the new migration
+
+`scripts/check-supabase-generated-types.cjs` pins the manifest's
+`latest_migration` to the newest migration file, so adding
+`20260904120000_...` made it fail until the manifest was updated.
+
+`scripts/supabase-types-manifest.json` now records the new tail with
+`latest_migration_schema_effect` set to
+`enables_rls_sets_view_security_invoker_drops_inert_policies_and_revokes_public_execute_no_generated_type_surface_change`,
+following the same convention the previous tail migration used. The `sha256`
+is deliberately unchanged.
+
+HONEST LIMIT: I could not regenerate the types to prove that byte for byte.
+The Supabase CLI 2.101.0 was installed at `/opt/supabase-cli` (co-located
+`supabase` + `supabase-go`; installing only the shim fails), but
+`supabase gen types --db-url` still shells out to a Docker container for
+pg_meta, and there is no Docker here. The reasoning is that RLS flags, view
+options, grants and a classification row are not part of the generated type
+surface. CI regenerates and byte-compares, so if that reasoning is wrong CI
+fails loudly rather than letting a wrong file through.

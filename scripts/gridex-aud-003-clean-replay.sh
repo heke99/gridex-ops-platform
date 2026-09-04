@@ -272,23 +272,13 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   # the checksum-pinned dev-ledger versions verified below.
   supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 else
-  # Same ledger, same checksum-pinned versions, without the CLI: provision the
-  # Supabase-compatible surface, then record exactly the marker versions the
-  # CLI would have recorded. The ledger is verified against the pinned snapshot
-  # below in both modes.
+  # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
+  # official ledger is deliberately left untouched: writing it by hand would
+  # make the verification below assert rows this script had just invented.
+  # External mode therefore carries NO ledger provenance and is a diagnostic
+  # replay of the schema only.
   echo "[GRIDEX-REM-002 replay] provisioning Supabase-compatible surface on the external database"
   psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
-  for marker in "$LEDGER_MARKERS"/*.sql; do
-    marker_name="$(basename "$marker" .sql)"
-    # psql performs variable interpolation for scripts, not for -c, so the
-    # insert is fed on stdin and the values stay parameterised.
-    psql "$DB_URL" -X -q -At -v ON_ERROR_STOP=1 \
-      -v version="${marker_name:0:14}" -v name="${marker_name:15}" -f - >/dev/null <<'LEDGER_SQL'
-insert into supabase_migrations.schema_migrations (version, name)
-values (:'version', :'name')
-on conflict (version) do nothing;
-LEDGER_SQL
-  done
 fi
 
 apply_sql(){
@@ -356,6 +346,9 @@ if [[ "$white_label_hygiene_boundary_reached" != true ]]; then
   exit 1
 fi
 
+if [[ -n "$EXTERNAL_DB" ]]; then
+  echo "[GRIDEX-REM-002 replay] external mode: NO ledger provenance. The CLI-owned official ledger is not reproduced and not verified; this run proves schema reconstruction only and must not be cited as canonical provenance."
+else
 python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys
 ledger=json.load(open(sys.argv[1])); db=sys.argv[2]
@@ -366,6 +359,7 @@ if actual != expected:
     print('official ledger mismatch after Supabase CLI marker replay',file=sys.stderr); print('expected:',expected,file=sys.stderr); print('actual:',actual,file=sys.stderr); raise SystemExit(1)
 print(f'[GRIDEX-REM-002 replay] Supabase CLI ledger verified: {len(actual)} official rows')
 PY
+fi
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select
