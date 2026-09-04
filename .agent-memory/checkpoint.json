@@ -4,8 +4,8 @@
   "branch": "claude/gridex-ops-production-hardening-lrknxa",
   "base_head_sha": "3a93702",
   "active_phase": "REMAINING_MASTER_PLAN_PRODUCTION_RECONCILIATION",
-  "active_task": "Steg 3 - reconcile production with the canonical migration chain",
-  "status": "STEG_3_COMPLETE_PRODUCTION_MATCHES_CANONICAL_CHAIN",
+  "active_task": "Steg 3.4 done - production-only surface classified; Steg 4 blocked",
+  "status": "STEG_3_COMPLETE_STEG_4_BLOCKED_ON_F_PARITY_1",
   "safety": {
     "rbac_changed": false,
     "tenant_scope_changed": false,
@@ -52,9 +52,13 @@
     "prod_anon_executable_security_definer_helpers": "ZERO_OF_SIX",
     "prod_canonical_object_gap": "ZERO_CANONICAL_IS_SUBSET_OF_PRODUCTION",
     "prod_migration_admin_signed_contract_import_canonicalization": "APPLIED_AND_VERIFIED_20260904222450",
-    "prod_canonical_onboard_customer_graph": "GUARDED_VERSION_DEFLEN_1741_WAS_254_PASSTHROUGH"
+    "prod_canonical_onboard_customer_graph": "GUARDED_VERSION_DEFLEN_1741_WAS_254_PASSTHROUGH",
+    "prod_only_relations": "75_CLASSIFIED_37_REFERENCED_BY_APP_CODE",
+    "replay_never_executed_migrations": "84_OF_585_NEITHER_EXECUTED_NOR_CLASSIFIED",
+    "replay_derived_bootstrap_substitutions": "26_REPLACE_WHOLE_SOURCE_MIGRATION",
+    "prod_only_tables_rls": "44_OF_44_RLS_ON_NONE_ANON_REACHABLE"
   },
-  "resume_from": "Steg 3 is complete in the canonical->production direction: every canonical object now exists in production and the ledger tail is admin_signed_contract_import_canonicalization. Remaining drift is production-only surface (74 relations / 546 policies / 57 functions), which is plan 3.4/3.5: classify each, then move into the chain, remove by forward migration, or declare a platform artifact. Only after that re-run full parity and make db:parity production blocking (Steg 4). Then Steg 5+.",
+  "resume_from": "Steg 3 complete both directions: canonical->production gap is zero (proved by set difference), and the 75 production-only relations are classified in quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md. F-PARITY-1 (critical): the clean replay never executes 84 of 585 migration files and replaces 26 more with narrow reconstructions, so the chain cannot rebuild a working system - 37 of the 75 missing relations are referenced by app code. Steg 4 (blocking parity) is BLOCKED until that is fixed. Start with making the replay fail closed on unclassified inputs, then classify the 84, then reconcile the 26 substitutions, then adopt the 19 orphan relations.",
   "commits": 7,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/307 (merged)",
   "merge_commit": "a1dba4146ab50d3804c1875d94533f7ff08171f9"

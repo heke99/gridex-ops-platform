@@ -261,19 +261,60 @@ Production ledger tail:
     20260904221936  z02_snapshot_market_context_guard
     20260904221046  gridex_inbound_operations_foundation
 
+## Steg 3.4 — production-only surface classified
+
+Full register: `quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md`.
+
+Direction A (canonical -> production) is closed and proved by set difference:
+`comm -23 canonical production` returns 0 rows.
+
+Direction B is 75 production-only relations, and the cause is NOT hand-editing
+of production. It is how the clean replay picks its inputs:
+
+* `scripts/gridex-aud-003-clean-replay.sh` collects only files matching
+  `^\d{14}_.+\.sql$` plus the 9 non-timestamped files named in
+  `scripts/gridex-aud-003-legacy-foundation.json`. Of 585 migration files in the
+  repository, **84 are executed by nothing** and are not classified as
+  noncanonical either (that manifest has exactly ONE entry).
+* the foundation plan declares 26 `derivedBootstrap` artifacts, and each one
+  REPLACES its whole source migration (`skip_timestamp_names`). The replacement
+  only recreates what the replay needed, so everything else the original
+  migration created is silently lost. Worked example in the register:
+  `20260531111600_system_readiness_foundation.sql` is substituted by a
+  reconstruction that creates `integration_api_clients` and drops seven other
+  relations on the floor.
+
+Classification of the 75:
+
+    B1  43  created only by one of the 84 never-executed legacy migrations   (23 used by app code)
+    B2  13  created by a replayed file but lost to a bootstrap substitution   ( 8 used by app code)
+    B3  19  no CREATE statement anywhere in the repository                    ( 6 used by app code)
+
+**37 of the 75 are referenced by application code**, so a system rebuilt from
+the canonical chain would not run. That is F-PARITY-1 (critical): the
+`clean-migration-replay` gate is green because the statements that would have to
+succeed are never executed.
+
+Tenant posture measured, not assumed: all 44 production-only tables have RLS on,
+none reachable by `anon`, row counts near zero except `masterdata_audit_log`
+(37,390 rows, no `company_id`, one permission-gated read policy — F-PARITY-3).
+
 ## Exact next action
 
-Steg 3 is complete for the canonical -> production direction. Next:
+Steg 4 is BLOCKED until F-PARITY-1 is remediated. Do not make `db:parity
+production` blocking yet. Work the register's remediation plan in this order:
 
-1. Classify the production-only surface (74 relations / 546 policies / 57
-   functions) per plan section 3.4/3.5. Each needs: object, type, canonical
-   state, production state, impact, risk, remediation; then each is moved into
-   the migration chain, removed by forward migration, or declared a platform
-   artifact.
-2. Re-run the full canonical<->production parity after classification, as the
-   Steg 4 evidence, and only then make `db:parity production` blocking. Do NOT
-   mark it blocking before the drift is classified — it would turn every build
-   red on drift nobody has triaged.
-3. Then Steg 5+ (readiness policy versioning, Z02/Z03/Z04 state machine, typed
-   Supabase clients, inbound grid-owner mail, structural tenant writes,
-   service-role reduction, ...).
+1. Make the replay fail closed on unclassified inputs: any `.sql` under
+   `supabase/migrations/` that is neither executed nor explicitly classified
+   must abort the replay. Land this FIRST so the count can only go down.
+2. Classify each of the 84 never-executed migrations: into the canonical chain,
+   or into `gridex-aud-003-noncanonical-artifacts.json` with evidence.
+3. Reconcile the 26 derived-bootstrap substitutions — for each, what the source
+   created that the reconstruction does not.
+4. Adopt the 19 orphan relations into the chain by forward migration, starting
+   with the 6 the application queries (`sites`, `onboarding_sessions`,
+   `onboarding_steps`, `onboarding_choices`, `customer_external_auth_links`,
+   `platform_grid_owner_readiness_v`).
+5. Re-run full parity, expect zero, then Steg 4 (blocking).
+6. Separately decide `masterdata_audit_log` tenant scoping and whether
+   `gridex_wrong_project_cleanup_backup` (40 rows) can be dropped.
