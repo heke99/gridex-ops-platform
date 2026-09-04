@@ -1,4 +1,6 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
+import { canonicalZ01BusinessResponseDeadlineMinutes } from '@/lib/ediel/rulebook/deadlinePolicy'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 
 function clean(value: unknown): string | null {
@@ -30,21 +32,54 @@ export type CustomerInfoPostSendStatus =
   | 'waiting_for_z02'
 
 export function customerInfoPostSendStatus(
-  message: Pick<EdielMessageRow, 'requires_contrl' | 'contrl_status' | 'requires_aperak' | 'aperak_status'>,
+  _message: Pick<EdielMessageRow, 'requires_contrl' | 'contrl_status' | 'requires_aperak' | 'aperak_status'>,
 ): CustomerInfoPostSendStatus {
-  if (message.requires_contrl === true && message.contrl_status !== 'received') return 'waiting_for_contrl'
-  if (message.requires_aperak === true && message.aperak_status !== 'received') return 'waiting_for_aperak'
+  // Z01 business state waits for the business response directly. CONTRL is a
+  // separate technical SLA on ediel_messages and must never serialize Z02.
   return 'waiting_for_z02'
 }
 
-function nextActionForCustomerInfo(status: CustomerInfoPostSendStatus): string {
-  if (status === 'waiting_for_contrl') {
-    return 'Invänta CONTRL för skickad Z01. Efter positiv teknisk kvittens inväntas Z02.'
-  }
-  if (status === 'waiting_for_aperak') {
-    return 'Invänta APERAK för skickad Z01. Efter positiv funktionell kvittens inväntas Z02.'
-  }
-  return 'Invänta Z02 från nätägaren.'
+function nextActionForCustomerInfo(_status: CustomerInfoPostSendStatus): string {
+  return 'Invänta Z02 eller negativ APERAK från nätägaren. CONTRL bevakas parallellt från faktisk Z01-sändtid.'
+}
+
+function addMinutes(value: string, minutes: number): string {
+  const base = Date.parse(value)
+  if (!Number.isFinite(base)) throw new Error('ediel_post_send_timestamp_invalid')
+  return new Date(base + minutes * 60 * 1000).toISOString()
+}
+
+async function projectSentMessageDeadlines(params: {
+  message: EdielMessageRow
+  companyId: string
+  sentAt: string
+  actorUserId: string
+}): Promise<void> {
+  const db = tenantDb(params.companyId)
+  const technicalDueAt = params.message.requires_contrl === true && params.message.contrl_status !== 'received'
+    ? addMinutes(params.sentAt, EDIEL_ACK_DEADLINE_MINUTES)
+    : null
+  const isZ01 = upper(params.message.message_family) === 'PRODAT' && upper(params.message.message_code) === 'Z01'
+  const businessResponseDueAt = isZ01
+    ? addMinutes(params.sentAt, canonicalZ01BusinessResponseDeadlineMinutes())
+    : null
+
+  const updateQuery = asFilterQuery<{ id: string }>(
+    db.from('ediel_messages').update({
+      message_sent_at: params.sentAt,
+      contrl_due_at: technicalDueAt,
+      business_response_due_at: businessResponseDueAt,
+      ack_due_at: technicalDueAt,
+      updated_by: params.actorUserId,
+      updated_at: new Date().toISOString(),
+    }),
+  )
+  const { data, error } = await updateQuery
+    .eq('id', params.message.id)
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('ediel_post_send_deadline_projection_lost')
 }
 
 async function projectOutboundRequest(params: {
@@ -218,6 +253,13 @@ export async function projectSentEdielSourceState(params: {
   if (!companyId) throw new Error('ediel_post_send_company_scope_required')
   const sentAt = clean(params.sentAt) ?? clean(params.message.message_sent_at)
   if (!sentAt) throw new Error('ediel_post_send_timestamp_required')
+
+  await projectSentMessageDeadlines({
+    message: params.message,
+    companyId,
+    sentAt,
+    actorUserId: params.actorUserId,
+  })
 
   const outboundRequestId = clean(params.message.outbound_request_id)
   if (outboundRequestId) {
