@@ -69,7 +69,7 @@
     "db:types:check": "node scripts/check-supabase-generated-types.cjs",
     "db:types:gen": "supabase gen types typescript --local > supabase/database.types.ts && node scripts/apply-supabase-types-nullability-overrides.cjs supabase/database.types.ts && node scripts/check-supabase-generated-types.cjs",
     "gridex:live-schema-code-sync-regression": "node scripts/gridex-live-schema-code-sync-regression.cjs",
-    "security:audit-production": "npm audit --omit=dev --audit-level=high",
+    "security:audit-production": "node scripts/gridex-production-dependency-audit.cjs",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
     "ops:hardening-behavior-regression": "node scripts/ops-hardening-behavior-regression.cjs",

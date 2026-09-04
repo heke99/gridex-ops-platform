@@ -515,3 +515,72 @@ pg_meta, and there is no Docker here. The reasoning is that RLS flags, view
 options, grants and a classification row are not part of the generated type
 surface. CI regenerates and byte-compares, so if that reasoning is wrong CI
 fails loudly rather than letting a wrong file through.
+
+## Stage 10 — CI evidence settles the fingerprint question (my harness is the one that differs)
+
+Queried GitHub Actions directly rather than continuing to reason about it.
+
+Run 2450, `ops-hardening.yml`, push on `main` at `62272e9` (the current tip):
+
+- job `clean-migration-replay`: **success**
+- job `quality-release-gates`: success
+- job `verify`: **failure**
+
+So the repository's clean replay DOES produce `c70fa2f...` in CI. The earlier
+hypothesis that `EXPECTED_FINGERPRINT` might be stale is DISPROVED — do not
+revisit it, and do not change that constant.
+
+What remains true: the dockerless harness reproduces a public schema whose
+tables, views and columns are identical to the CI-verified generated types, and
+whose narrow fingerprint is stable across PG 16/17, search_path and commits —
+but it is NOT byte-equivalent to the Supabase stack for the thirteen
+fingerprinted tables. The difference must sit in a column data type string,
+a default, a constraint definition or one of the two readiness function bodies,
+none of which the generated types capture. It is unlocated.
+
+Consequence for how the harness may be used:
+
+- GOOD for: reconstructing the schema, running the tenant invariant gate, the
+  parity engine, and structural questions. That is how it found the 21 breaches.
+- NOT VALID for: certifying canonical provenance, or producing the committed
+  `supabase/schema.sql` / `schema.fingerprint.json` baseline. That baseline must
+  still come from a CI `clean-migration-replay` artifact.
+
+## Stage 11 — main is RED, and it is not a code defect
+
+The `verify` job fails at step 29, `npm run security:audit-production`:
+
+    > npm audit --omit=dev --audit-level=high
+    npm warn audit 503 Service Unavailable - POST https://registry.npmjs.org/-/npm/v1/security/audits/quick
+    npm error audit endpoint returned an error
+
+It hung for about seven minutes and then failed. This is the npm registry being
+unavailable, not a vulnerability. The gate is mandatory, so any registry hiccup
+blocks every merge, and the failure text does not distinguish "found a high
+severity advisory" from "could not reach the registry".
+
+This is pre-existing on main and nothing to do with this branch.
+
+### Stage 11 fix: the audit gate now separates "vulnerable" from "could not check"
+
+`scripts/gridex-production-dependency-audit.cjs` replaces the bare
+`npm audit --omit=dev --audit-level=high` behind `npm run security:audit-production`.
+
+It still fails closed — an audit that did not run is not a passing audit — but
+it retries the transient case with backoff, bounds each attempt (default 120s,
+so it cannot hang for seven minutes), and says which of the two happened.
+
+Verified, every path:
+
+- registry reachable: attempt 1 actually timed out in this environment and
+  attempt 2 succeeded, exit 0, `info=0 low=0 moderate=0 high=0 critical=0`.
+- registry unreachable (npm pointed at a dead port): exit 1, message states
+  plainly that this is not a vulnerability finding and the job should re-run,
+  and carries npm's own stderr instead of an empty `{}`.
+- high-severity advisories present (stubbed report through the real decision
+  path): exit 1, lists the offending severities.
+- only low/moderate at level `high`: exit 0.
+- unknown audit level: exit 2.
+
+Tunable through `GRIDEX_AUDIT_LEVEL`, `GRIDEX_AUDIT_ATTEMPTS`,
+`GRIDEX_AUDIT_TIMEOUT_MS`. Default behaviour is unchanged from the old command.
