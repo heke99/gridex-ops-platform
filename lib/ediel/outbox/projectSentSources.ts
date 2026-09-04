@@ -1,6 +1,6 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
-import { canonicalZ01BusinessResponseDeadlineMinutes } from '@/lib/ediel/rulebook/deadlinePolicy'
+import { canonicalZ01BusinessResponseDeadlineMinutesProjection } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 
 function clean(value: unknown): string | null {
@@ -61,7 +61,7 @@ async function projectSentMessageDeadlines(params: {
     : null
   const isZ01 = upper(params.message.message_family) === 'PRODAT' && upper(params.message.message_code) === 'Z01'
   const businessResponseDueAt = isZ01
-    ? addMinutes(params.sentAt, canonicalZ01BusinessResponseDeadlineMinutes())
+    ? addMinutes(params.sentAt, canonicalZ01BusinessResponseDeadlineMinutesProjection())
     : null
 
   const updateQuery = asFilterQuery<{ id: string }>(
