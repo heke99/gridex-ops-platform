@@ -5,7 +5,7 @@
   "base_head_sha": "62272e93",
   "active_phase": "MASTER_PLAN_P0_SCHEMA_TRUTH_AND_TENANT_INVARIANTS",
   "active_task": "Fas 2-4 tooling, tenant invariant convergence, and CI gate reliability",
-  "status": "IMPLEMENTED_AND_LOCALLY_VERIFIED_PENDING_CI",
+  "status": "CI_GREEN_ON_PR_307",
   "safety": {
     "rbac_changed": false,
     "tenant_scope_changed": false,
@@ -36,8 +36,16 @@
     "provenance_regression": "PASS_LOCAL",
     "dependency_audit_gate": "PASS_LOCAL_ALL_PATHS",
     "typecheck": "PASS_LOCAL",
-    "narrow_fingerprint_vs_ci": "MISMATCH_HARNESS_DIFFERS_CI_IS_AUTHORITATIVE"
+    "narrow_fingerprint_vs_ci": "MISMATCH_HARNESS_DIFFERS_CI_IS_AUTHORITATIVE",
+    "ci_verify": "PASS",
+    "ci_quality_release_gates": "PASS",
+    "ci_clean_migration_replay": "PASS",
+    "ci_tenant_invariants_on_canonical_shadow": "PASS",
+    "ci_parity_selftest": "PASS",
+    "canonical_schema_baseline": "COMMITTED_FROM_CI_ARTIFACT_3b0dd50e",
+    "schema_check_gate": "ACTIVATES_ON_NEXT_RUN"
   },
-  "resume_from": "Read .agent-memory/current-task.md and handover.md. ops-hardening.yml only runs on pull_request and push:main, so nothing on this branch has CI evidence yet. A pull request is the only way to run these gates; ask the user before opening one. Then commit the CI-produced rem002-schema-snapshot as the canonical baseline.",
-  "commits": 7
+  "resume_from": "PR #307 was fully green on 3330127. The canonical baseline is now committed, so the next run also exercises db:schema:check. Confirm that step passes, then the Fas 3 and Fas 4 work is complete. Do not merge without explicit user authorization. Production parity remains blocked on the production Supabase project.",
+  "commits": 7,
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/307"
 }
