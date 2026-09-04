@@ -743,3 +743,28 @@ remaining difference and a concrete starting point if anyone wants to close it.
 
 Do not chase it for the narrow fingerprint's sake: CI is authoritative there,
 and `EXPECTED_FINGERPRINT` verified as `c70fa2f...` in this very run.
+
+## Stage 16 — the schema baseline gate is live and passing
+
+Run 33874550022 on `46b77d2`, the first head carrying the committed baseline:
+
+    > gridex-ops-platform@0.1.0 db:schema:check
+    schema snapshot verified (3b0dd50e7f5c6178b8d925c4469f1759b5a83d64e020bde1555ef5ae4c0e08f0)
+
+So the guarded step activated as designed, a fresh CI dump byte-matches the
+committed `supabase/schema.sql`, and the fingerprint matches. The baseline is
+validated by the same mechanism that will police it from now on.
+
+Every gate in `clean-migration-replay` is now green in the real Supabase stack:
+clean replay, the pinned ledger, the narrow fingerprint (`c70fa2f...`), the
+tenant isolation invariants, the parity self-test's fifteen drift classes,
+snapshot generation, and the baseline comparison.
+
+Plan status: **Fas 2 (§5), Fas 3 (§6) and Fas 4 (§7) are implemented and gated
+in CI.** Fas 4's blocking mode against a live database is still not switched on,
+because that needs a production project this session cannot see.
+
+The refresh procedure is written up in `database-and-migrations.md`. It matters:
+the check is byte-for-byte, so the next migration that touches the public schema
+turns it red until someone copies the artifact back in. A gate nobody knows how
+to satisfy gets disabled rather than obeyed.
