@@ -21,6 +21,7 @@ export type CustomerOperationBlockerCode =
   | "environment_not_resolved"
   | "environment_ambiguous"
   | "stale_response_requires_review"
+  | "response_overdue"
   | "missing_automation_user"
   | "technical_error"
   | "temporary_provider_error"
@@ -223,6 +224,14 @@ const BLOCKERS: Record<
     next_required_action:
       "Granska svaret manuellt innan anläggnings- eller mätpunktsdata uppdateras.",
     issue_type: "data",
+    error_class: "business_blocker",
+  },
+  response_overdue: {
+    blocker_reason:
+      "Nätägarens Z02 eller negativa APERAK saknas efter canonical 30-minutersfrist.",
+    next_required_action:
+      "Kontrollera inkommande Ediel-mailbox/transport och kontakta nätägaren. Skicka inte ny Z01 automatiskt.",
+    issue_type: "technical",
     error_class: "business_blocker",
   },
   missing_automation_user: {
