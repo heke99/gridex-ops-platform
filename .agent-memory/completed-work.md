@@ -282,3 +282,44 @@ Two findings changed classification during remediation, both recorded in
 - F-9 was reported as latent and is a confirmed cross-tenant write:
   `setOwnElectricitySupplier` cleared `is_own_supplier` on every row in the
   database and was reachable by any tenant admin holding `switching.write`.
+
+## 2026-09-04 — master plan P0-C: database parity and canonical schema artifacts
+
+Status: `IMPLEMENTED_AND_LOCALLY_VERIFIED_PENDING_CI`
+
+Worked the master remediation plan in its own order (§35). P0-A and P0-B were
+verified to already exist by reading the code, not the memory files: clean
+replay, the pinned Supabase CLI, local typegen and the generated-types
+manifest. P0-C had no implementation, so that is what was built.
+
+Four commits:
+
+1. `a10c097` — parity engine (`npm run db:parity`), plan Fas 4. Both-directions
+   comparison over schemas, relations (incl. view definitions and partition
+   keys), columns, enum labels, constraints, indexes, functions, triggers,
+   policies, grants, RLS state and extensions. Exit codes separate drift (1)
+   from an unusable check (2) so a failed introspection can never read as
+   parity. Ignore entries require a written reason.
+2. `9825580` — `npm run db:parity:selftest`, wired into the
+   `clean-migration-replay` CI job, asserting fifteen injected drift classes
+   are each detected. Added `--no-ignore` so the gate cannot be widened by
+   editing the exception contract.
+3. `e80894c` — `db:types:gen` moved from `--linked` to `--local`, matching CI
+   exactly. Generating the canonical type file from an arbitrary linked
+   project violates plan §6.3 and absolute rule §36.
+4. `328504a` — `npm run db:schema:snapshot` / `db:schema:check`, plan Fas 3.
+   Normalized `schema.sql` plus a schema-wide `schema.fingerprint.json`
+   computed from the same introspection document the parity engine uses.
+
+Verified against a real PostgreSQL 16.13 cluster started for the purpose:
+identical schemas compare clean with no false positives; every injected drift
+class is detected, including a view whose tenant filter was silently removed,
+a changed function overload signature and a revoked grant; the snapshot is
+byte-deterministic across runs and fails closed with no baseline. Repository
+gates re-run green: `db:migrations:check` (integrity 584 files, public
+contract legal, contract hardening, generated types).
+
+Honest pending state: no canonical schema baseline is committed, because the
+Supabase CLI is absent from this container and clean replay cannot run here.
+Production parity remains blocked on the production Supabase project. Nothing
+from Fas 5 onwards was touched.

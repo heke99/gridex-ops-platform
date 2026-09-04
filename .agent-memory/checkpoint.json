@@ -1,36 +1,35 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-08-25T20:58:00Z",
-  "branch": "perf/admin-instant-navigation-20260825",
-  "active_phase": "ADMIN_NAVIGATION_PERFORMANCE",
-  "active_task": "Eliminate authenticated sidebar prefetch stampede and redundant metering auth read",
-  "status": "IMPLEMENTED_PENDING_PR_VERIFICATION",
-  "base_main_sha": "453975bc7f322df96e4a15e45bf3ea24d00b2304",
-  "production_deployment": "dpl_GyfJvxCX21wwsqvFzncueqY8NVkh",
-  "evidence": {
-    "sidebar_prefetch_burst": "CONFIRMED_PRODUCTION_2026-08-25T20:48:49Z_TO_20:48:51Z",
-    "admin_loading_boundary": "ALREADY_PRESENT_ON_MAIN",
-    "metering_redundant_auth_read": "CONFIRMED_AND_REMOVED_ON_BRANCH"
-  },
+  "updated_at": "2026-09-04",
+  "branch": "claude/gridex-ops-production-hardening-lrknxa",
+  "base_head_sha": "62272e93",
+  "active_phase": "MASTER_PLAN_P0C_DATABASE_PARITY",
+  "active_task": "Fas 3 + Fas 4: canonical schema artifacts and the canonical/live parity engine",
+  "status": "IMPLEMENTED_AND_LOCALLY_VERIFIED_PENDING_CI",
   "safety": {
     "rbac_changed": false,
     "tenant_scope_changed": false,
     "business_logic_changed": false,
     "api_contracts_changed": false,
     "database_changed": false,
-    "writes_changed": false
+    "migrations_added": false,
+    "writes_changed": false,
+    "runtime_code_changed": false
   },
+  "scope_note": "Additive tooling only. No migration was added, no runtime or application code was touched, and no database was mutated. The only behavioural change to an existing command is db:types:gen, which now generates from the local shadow instead of a linked project.",
   "verification": {
-    "targeted_regression": "PENDING_CI",
-    "typecheck": "PENDING_CI",
-    "full_vitest": "PENDING_CI",
-    "ops_hardening": "PENDING_CI",
-    "quality_performance": "PENDING_CI",
-    "production_build": "PENDING_CI",
-    "browser_bundle_budget": "PENDING_CI",
-    "full_e2e": "PENDING_CI",
-    "browser_quality_e2e": "PENDING_CI",
-    "vercel_preview": "PENDING"
+    "db_parity_identical_schemas": "PASS_LOCAL",
+    "db_parity_drift_matrix": "PASS_LOCAL_15_CLASSES",
+    "db_parity_modes": "PASS_LOCAL",
+    "db_parity_selftest": "PASS_LOCAL",
+    "schema_snapshot_determinism": "PASS_LOCAL",
+    "schema_snapshot_check": "PASS_LOCAL",
+    "db_types_check": "PASS_LOCAL",
+    "db_migrations_integrity": "PASS_LOCAL_584_FILES",
+    "eslint_changed_files": "NOT_APPLICABLE_SCRIPTS_IGNORED",
+    "clean_replay": "NOT_RUNNABLE_LOCALLY_NO_SUPABASE_CLI",
+    "production_parity": "BLOCKED_NO_PRODUCTION_PROJECT",
+    "ci": "PENDING"
   },
-  "resume_from": "Open PR, run full OPS hardening/E2E/build/bundle gates, verify Vercel preview, and do not merge without explicit user authorization."
+  "resume_from": "Read .agent-memory/current-task.md. Next action is to commit the canonical schema baseline captured by CI (rem002-schema-snapshot) as supabase/schema.sql and supabase/schema.fingerprint.json, which activates the guarded verification step in the clean-migration-replay job."
 }

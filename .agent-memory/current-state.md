@@ -1,22 +1,30 @@
 # Current state
 
-Updated: 2026-08-20
+Updated: 2026-09-04
 
-- Active branch: `codex/gridex-production-masterplan-20260820`, based on main `22d2b4834577ad96b31c4373832a0507397c65e3`.
-- Billing requires configured provider/environment and supports per-underlay readiness.
-- Invoice export requires exact locked pricing in runtime and via a forward-only database trigger.
-- Spot settlement cron imports and locks each requested price-area month.
-- Customer notification writes use opaque tenant-bound public references, never raw notification UUIDs.
-- Public API release `2026-08-20.1` is materialized locally.
-- External website API usage telemetry is deferred with Next.js `after` and cannot hold successful responses open.
-- Current live public-contract fingerprint is O(1); warm development `EXPLAIN` measured 6.693 ms with no disk/temp I/O.
-- Supabase advisor residuals are classified; no exact duplicate indexes or exposed service-only tables were found.
-- An authenticated k6 ETag/304 profile is wired for staging execution.
-- All 19 legacy monoliths are split behind stable facades; the 1,800-line ratchet has zero grandfathered files.
-- Portal claim and continuation reconciliation reads are batched; the public-path N+1 gate reports zero unapproved awaited reads inside loops.
-- Browser bundle budgets pass (largest chunk 222,348 bytes) and k6 smoke/load/spike/soak/ETag SLOs share one checked contract.
-- Supabase development migration `invoice_export_locked_pricing_guard` is applied and verified.
-- Full local verification: 98 test files / 699 tests, typecheck, API docs/release, migration integrity, dependency audit, advisor/tooling regressions, and production build pass.
-- Draft PR #169 is published from the byte-identical tested tree; GitHub Actions is running.
-- A same-repository `staging-e2e-approved` label gate authorizes browser, k6 smoke/load/spike/ETag/soak and ZAP jobs without exposing repository secrets locally.
-- Production database parity and production promotion remain blocked until the OPS production Supabase project is identified and hosted staging evidence is green.
+- Active branch: `claude/gridex-ops-production-hardening-lrknxa`, based on main
+  `62272e9` ("Prevent resolved Z01 SLA history from starving watchdog batches
+  (#306)").
+- The repository now has a canonical/live database parity engine,
+  `npm run db:parity`, comparing two databases in both directions over
+  schemas, relations, columns, enums, constraints, indexes, functions,
+  triggers, policies, grants, RLS state and extensions, with report-only,
+  warning and blocking modes. Report-only is the default.
+- The parity engine is itself guarded by `npm run db:parity:selftest`, which
+  runs in the `clean-migration-replay` CI job and asserts that fifteen classes
+  of injected drift are each detected.
+- `npm run db:schema:snapshot` / `db:schema:check` produce and verify the two
+  canonical Fas 3 artifacts, `schema.sql` and `schema.fingerprint.json`. The
+  fingerprint covers the whole compared schema, not the thirteen hand-picked
+  tables of the older audit fingerprint.
+- No canonical schema baseline is committed yet. CI captures one on every
+  clean-replay run; the verification step is guarded on the baseline existing
+  and activates automatically once it is committed.
+- `db:types:gen` now generates from the local shadow (`--local`), identical to
+  CI. It previously generated from `--linked`, i.e. an arbitrary project.
+- Clean replay, migration integrity (584 files), generated-types pinning and
+  the tenant invariant gate all remain in place and unchanged.
+- Production database parity and production promotion remain blocked: no
+  production Supabase project is visible from this environment.
+- This session added no migration, changed no runtime or application code, and
+  mutated no database.

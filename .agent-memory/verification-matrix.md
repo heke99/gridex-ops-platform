@@ -211,3 +211,36 @@
 | Service-role ratchet | `npm run tenant:service-role-ratchet` | 2401 call sites, at baseline |
 | Cross-tenant metering point / customer number | rolled-back transaction on dev | two tenants can hold both; duplicates within a tenant still rejected |
 | Permission scope | `gridex_get_user_permissions_in_company` on dev | tenant owner: 36 perms own company, 0 foreign |
+
+## 2026-09-04 — P0-C database parity and canonical schema artifacts
+
+Environment: local PostgreSQL 16.13 cluster started for this session at
+`/var/lib/postgresql/gridex-parity`, port 55432, trust auth. Not part of the
+repository and not persisted. Supabase CLI absent, so clean replay was not
+runnable locally.
+
+| Check | Command | Outcome |
+| --- | --- | --- |
+| Parity, identical schemas | `gridex-db-parity.cjs --mode blocking` | PASS, exit 0, no false positives |
+| Parity, injected drift | `gridex-db-parity.cjs --mode blocking` | FAIL as required, exit 1, 15 drift classes each detected |
+| Parity modes | `--mode report-only / warning / blocking` | exit 0 / 0 / 1 |
+| Parity ignore contract | entry without `reason` | exit 2, rejected |
+| Parity ignore contract | valid entry | suppresses only its own finding, printed as ignored |
+| Parity error paths | missing URL, non-postgres URL, unreachable server, SQL in schema name | exit 2 in every case, no comparison run |
+| Parity self-test | `npm run db:parity:selftest -- <url>` | PASS, all 15 classes, both databases dropped afterwards |
+| Snapshot determinism | two writes from one database | byte-identical `schema.sql` and fingerprint |
+| Snapshot check, matching | `db:schema:check` vs own baseline | PASS, exit 0 |
+| Snapshot check, drifted | `db:schema:check` vs drifted database | FAIL, exit 1, drifted sections named individually |
+| Snapshot check, no baseline | `db:schema:check` with empty dir | exit 2, fail-closed |
+| Generated types | `npm run db:types:check` | PASS, 3339422 bytes, tail `20260904103000_z01_sla_watchdog_candidate_convergence.sql` |
+| Migration suite | `npm run db:migrations:check` | PASS, integrity 584 files / 488 version groups, legal, contract hardening, types |
+| Workflow syntax | YAML re-parse of `ops-hardening.yml` | PASS, jobs unchanged |
+| Clean replay | — | NOT RUN, Supabase CLI unavailable in container |
+| Production parity | — | BLOCKED, no production Supabase project visible |
+
+Drift classes proven detected: dropped relation, unexpected live relation,
+column type, nullability, column default, dropped unique constraint, dropped
+foreign key, dropped partial index, disabled RLS, rewritten policy USING
+expression, dropped trigger, changed function body, changed function overload
+signature, revoked grant, added enum label, and a view whose tenant filter was
+silently removed.

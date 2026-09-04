@@ -1,16 +1,37 @@
 # Handover
 
-Updated: 2026-08-15
+Updated: 2026-09-04
 
-Branch `fix/e2e-ediel-approval-20260815`, PR `#149`, closes the remaining production requirement:
+Branch `claude/gridex-ops-production-hardening-lrknxa`, four commits, additive
+tooling only. No migration, no runtime code, no database mutation.
 
-1. Lock the generated Supabase TypeScript contract and migration checksums.
-2. Remove implicit/unscoped Ediel test role fallbacks.
-3. Keep supplier and ESCO runtime identities isolated across tenants.
-4. Preserve Gridex El production approval and website/API contract readiness.
-5. Restore ordinary CI diagnostics and require full hosted clean replay.
-6. Restrict the newly introduced privileged restoration and integrity RPCs to `service_role` after Supabase advisor review.
+Delivered (master remediation plan P0-C, plus the Fas 3 artifacts it needs):
 
-Production evidence observed before deployment: Gridex El is active/live with production Ediel ID `21660`, the tenant website API client is active and launch ready, published website offers are available, and prior external contract intakes have produced customer/contract chains. Ediel ID `92825` is reserved for new system tests and is not substituted for the tenant production actor.
+1. `npm run db:parity` — canonical/live schema parity in both directions.
+2. `npm run db:parity:selftest` — the gate that guards that engine, running in
+   the `clean-migration-replay` CI job.
+3. `npm run db:schema:snapshot` / `db:schema:check` — canonical `schema.sql`
+   and a schema-wide fingerprint.
+4. `db:types:gen` fixed to generate from the local shadow, not a linked
+   project.
 
-Local workflow and focused multi-tenant/contract/Ediel gates pass. Complete the final rerun, push, hosted CI/clean replay, merge, Vercel READY verification, and post-deploy API/runtime smoke checks.
+Pick up here:
+
+- Take `rem002-schema-snapshot/` from a green `clean-migration-replay` run on
+  this branch and commit it as `supabase/schema.sql` and
+  `supabase/schema.fingerprint.json`. The CI verification step is already
+  written and guarded on those files existing, so committing them turns the
+  gate on. This cannot be done off CI: the Supabase CLI is not installed in
+  the agent container, so clean replay cannot produce a canonical baseline
+  locally.
+- Only after that baseline exists, consider retiring the narrow
+  `scripts/gridex-aud-003-schema-fingerprint.sql` and the pinned
+  `EXPECTED_FINGERPRINT` in `scripts/gridex-aud-003-clean-replay.sh`. That
+  expected hash can only be recomputed by a real clean replay — do not guess it.
+- Do not attempt production parity until a production Supabase project is
+  identified. The engine exists and supports `--mode blocking`; the plan's own
+  §7.3 says blocking is switched on only once live drift is remediated.
+
+Read `.agent-memory/current-task.md` first — it carries the code-verified
+findings register, every design decision and the exact verification that was
+executed, rather than a summary of it.

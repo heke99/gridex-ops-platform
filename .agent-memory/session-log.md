@@ -420,3 +420,35 @@ quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
 - Supabase connector still exposes only `gridex-ops-dev` for OPS; no unrelated project was treated as production.
 - Published byte-identical tree `b59d1a8322ee11590ae9663ceb7aadeb05b36751` as draft PR #169 (remote commit `d8d54e78f2499eac85f2ddb7f77b298c4b307704`).
 - Added a maintainer-label trigger restricted to same-repository PRs so the authorized staging browser/k6/ZAP matrix can consume repository secrets without exposing them locally.
+
+## 2026-09-04 — master plan P0-C (database parity, canonical schema artifacts)
+
+Started from the GRIDEX OPS master remediation plan with no narrower brief, so
+routed by the plan's own work order (§35) rather than picking a phase.
+
+Deliberately did not trust `.agent-memory`: it was stale (checkpoint dated
+2026-08-25, `completed-work.md` ending 2026-09-02, while HEAD was `62272e9`
+from the Z01 SLA watchdog work). Established the position from code instead —
+`package.json` scripts, `.github/workflows/`, `scripts/`, `supabase/` — and
+recorded the findings before changing anything.
+
+P0-A and P0-B turned out to be implemented already (clean replay with a pinned
+Supabase CLI, local typegen, a generated-types manifest pinned to the migration
+tail). P0-C was entirely absent, which made it the first real gap in the plan's
+order. Four findings were raised from code evidence: no parity engine, no
+canonical `schema.sql`, a fingerprint covering only thirteen tables, and
+`db:types:gen` generating from `--linked`.
+
+Built and shipped in four commits, each verified before the next started. A
+real PostgreSQL cluster was started locally so the tools were checked against
+actual databases rather than reasoned about. Two defects in my own work were
+caught that way and fixed before commit: the comparator ignored view
+definitions, so a view silently losing its tenant filter compared as identical;
+and `pg_dump` randomizes its `\restrict` guard tokens per run, so the schema
+artifact was not byte-stable.
+
+Left honestly incomplete: no canonical baseline is committed, because the
+Supabase CLI is not in this container and clean replay cannot run here. The CI
+step that would verify the baseline is written and guarded on its existence, so
+it switches on by itself once the artifact is committed from a CI run.
+Production parity stays blocked on the production Supabase project.
