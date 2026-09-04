@@ -38049,12 +38049,14 @@ export type Database = {
           business_date: string | null
           business_match_status: string | null
           business_process: string | null
+          business_response_due_at: string | null
           business_state: string | null
           canonical_rule_pack_id: string | null
           certificate_profile_id: string | null
           cms_expected_receiver_present: boolean | null
           communication_route_id: string | null
           company_id: string | null
+          contrl_due_at: string | null
           contrl_status: string | null
           correlation_reference: string | null
           created_at: string
@@ -38122,6 +38124,7 @@ export type Database = {
           resolved_grid_owner_id: string | null
           resolved_receiver_ediel_id: string | null
           resolved_sender_ediel_id: string | null
+          response_overdue_at: string | null
           route_profile_id: string | null
           route_transport_security_mode: string | null
           route_version: number | null
@@ -38174,12 +38177,14 @@ export type Database = {
           business_date?: string | null
           business_match_status?: string | null
           business_process?: string | null
+          business_response_due_at?: string | null
           business_state?: string | null
           canonical_rule_pack_id?: string | null
           certificate_profile_id?: string | null
           cms_expected_receiver_present?: boolean | null
           communication_route_id?: string | null
           company_id?: string | null
+          contrl_due_at?: string | null
           contrl_status?: string | null
           correlation_reference?: string | null
           created_at?: string
@@ -38247,6 +38252,7 @@ export type Database = {
           resolved_grid_owner_id?: string | null
           resolved_receiver_ediel_id?: string | null
           resolved_sender_ediel_id?: string | null
+          response_overdue_at?: string | null
           route_profile_id?: string | null
           route_transport_security_mode?: string | null
           route_version?: number | null
@@ -38299,12 +38305,14 @@ export type Database = {
           business_date?: string | null
           business_match_status?: string | null
           business_process?: string | null
+          business_response_due_at?: string | null
           business_state?: string | null
           canonical_rule_pack_id?: string | null
           certificate_profile_id?: string | null
           cms_expected_receiver_present?: boolean | null
           communication_route_id?: string | null
           company_id?: string | null
+          contrl_due_at?: string | null
           contrl_status?: string | null
           correlation_reference?: string | null
           created_at?: string
@@ -38372,6 +38380,7 @@ export type Database = {
           resolved_grid_owner_id?: string | null
           resolved_receiver_ediel_id?: string | null
           resolved_sender_ediel_id?: string | null
+          response_overdue_at?: string | null
           route_profile_id?: string | null
           route_transport_security_mode?: string | null
           route_version?: number | null
@@ -88920,6 +88929,10 @@ export type Database = {
           p_contract_offer_id: string
         }
         Returns: string
+      }
+      gridex_escalate_overdue_z01_responses: {
+        Args: { p_limit?: number }
+        Returns: Json
       }
       gridex_fail_website_contract_signature: {
         Args: {
