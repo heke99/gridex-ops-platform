@@ -59,6 +59,7 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
     expect(late).toContain("action_required = false")
     expect(late).toContain("v_has_business_response")
     expect(late).toContain("resolved_by_ediel_message_id")
+    expect(late).not.toContain('response_overdue_at = null')
 
     const contrlResolution = late.indexOf("ack_family = 'CONTRL'")
     const businessLookup = late.indexOf('v_business_response_message_id := null;')
