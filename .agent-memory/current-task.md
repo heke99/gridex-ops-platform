@@ -931,3 +931,21 @@ is its own reason to look properly rather than assume.
 A real Fas 12 audit means tracing message type -> state machine outcome ->
 persisted supply state, for Z02, Z03 and Z04 separately. That is a piece of work,
 not a grep, and it was not done.
+
+## Stage 21 — MERGED
+
+PR #307 was merged to `main` as `a1dba41`, "Make the migration chain the schema
+authority (#307)", squash-merged to match the repository's convention. The user
+authorised the merge explicitly, conditional on everything being green and in
+line with the plan; both were verified immediately before merging:
+
+    head d387a33, base main 62272e9 (main had not moved, so no conflict)
+    mergeable true / mergeable_state clean
+    18 check runs: 8 success, 10 skipped (label-gated staging), 0 failures
+    0 review comments
+
+Post-merge the OPS hardening run on `main` is being watched. The PR check-in
+routine was deleted and the PR subscription is being closed, per the rule that
+follow-up stops once a PR is merged.
+
+Fas 2 (§5), Fas 3 (§6) and Fas 4 (§7) are now on `main` and gated in CI.
