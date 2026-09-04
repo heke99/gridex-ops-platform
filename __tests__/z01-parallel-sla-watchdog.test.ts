@@ -51,6 +51,23 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
     expect(fix).not.toContain("'business_response_sla_breached'")
   })
 
+  it('resolves late response alarms dimension by dimension', () => {
+    const late = read('supabase/migrations/20260904100000_z01_sla_late_response_resolution.sql')
+    expect(late).toContain("ack_family = 'CONTRL'")
+    expect(late).toContain("ack_family = 'PRODAT_Z02_OR_NEGATIVE_APERAK'")
+    expect(late).toContain("status = 'resolved'")
+    expect(late).toContain("action_required = false")
+    expect(late).toContain("v_has_business_response")
+    expect(late).toContain("resolved_by_ediel_message_id")
+
+    const contrlResolution = late.indexOf("ack_family = 'CONTRL'")
+    const businessLookup = late.indexOf('v_business_response_message_id := null;')
+    const businessResolution = late.indexOf("ack_family = 'PRODAT_Z02_OR_NEGATIVE_APERAK'")
+    expect(contrlResolution).toBeGreaterThan(-1)
+    expect(businessLookup).toBeGreaterThan(contrlResolution)
+    expect(businessResolution).toBeGreaterThan(businessLookup)
+  })
+
   it('runs the watchdog on the five-minute customer operations cron', () => {
     const cron = read('app/api/internal/customer-operations/cron/route.ts')
     expect(cron).toContain('runZ01ResponseSlaWatchdog')
