@@ -452,3 +452,30 @@ Supabase CLI is not in this container and clean replay cannot run here. The CI
 step that would verify the baseline is written and guarded on its existence, so
 it switches on by itself once the artifact is committed from a CI run.
 Production parity stays blocked on the production Supabase project.
+
+## 2026-09-04 (continued) — PR #307 driven to green
+
+Opened PR #307 after the user approved it, then drove it to green across six
+heads. Two of the failures were genuine defects this branch introduced, and CI
+caught both where the local harness could not:
+
+1. Revoking EXECUTE from PUBLIC does not remove Supabase's explicit
+   default-privilege grant to anon. The bootstrap now reproduces that default
+   privilege for functions, so the harness detects the class instead of hiding
+   it; verified by re-granting and watching the gate fail again.
+2. pg_dump refuses to dump a newer server, and installing the newer client is
+   not enough because pg_wrapper does not resolve to the newest major. The
+   binary is now named explicitly, with the major read out of config.toml.
+
+The canonical schema baseline was captured from a green replay artifact and
+committed, which activated the byte-for-byte schema gate; the same run that
+activated it also validated it.
+
+Also resolved a conflict of my own making: the dockerless replay wrote the
+Supabase ledger and then verified its own writes. The provenance regression was
+right to reject that, and it was NOT weakened — external mode now writes nothing
+to the ledger, which costs nothing because two shadows with and without it
+compare identical under the parity engine.
+
+Left scoped but unstarted, deliberately: typed Supabase clients (487 files) and
+readiness policy versioning. Neither belongs in a green PR about schema truth.

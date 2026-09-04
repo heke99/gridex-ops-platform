@@ -283,3 +283,23 @@ Full local gate battery re-run after all changes, every one exit 0:
 `db:migrations:check`, `tenant:service-role-ratchet`,
 `security:audit-production`, provenance regression, agent-memory git state,
 ops health, contract channel publication, API billing tenant hardening.
+
+## 2026-09-04 — CI evidence on PR #307
+
+| Head | verify | quality-release-gates | clean-migration-replay |
+| --- | --- | --- | --- |
+| ba0d323 | pass | pass | FAIL: 3 SECURITY DEFINER fns still executable by anon |
+| cdcb64a | pass | pass | FAIL: same |
+| b0098d8 | pass | pass | FAIL: pg_dump server version mismatch |
+| 3330127 | pass | pass | pass |
+| 46b77d2 | pass | pass | pass, `db:schema:check` ACTIVE and verifying `3b0dd50e...` |
+| 298e67b | pass | pass | pass |
+
+Gates proven inside the real Supabase stack: clean replay, pinned ledger (48
+rows), narrow fingerprint `c70fa2f...`, tenant isolation invariants, parity
+self-test (15 drift classes), schema snapshot generation, and the canonical
+baseline comparison.
+
+Two CI failures were real defects this branch introduced and fixed, not flakes:
+a revoke from PUBLIC that did not remove Supabase's default-privilege grant to
+anon, and a pg_dump older than the pinned PostgreSQL 17 server.

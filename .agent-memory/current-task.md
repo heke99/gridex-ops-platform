@@ -858,3 +858,50 @@ NOT fixed here. It needs a schema change plus the application logic that stamps
 and revalidates the version, and it does not belong in PR #307, which is green
 and scoped to schema truth. Next work item after P0-E, or before it — this one
 is smaller and has a clear precedent to copy.
+
+## Stage 19 — two areas checked and found ALREADY CORRECT (record, do not re-audit)
+
+Both read out of the newly committed canonical `supabase/schema.sql`.
+
+### Fas 13 (§16) billing integrity — satisfied at the database level
+
+Every unique index on the billing and invoice relations is tenant-scoped, with
+`company_id` leading:
+
+    invoice_export_items      (company_id, id)
+    invoice_export_items      (company_id, provider, provider_invoice_id)
+    invoice_export_items      (company_id, provider, provider_idempotency_key)
+    invoice_export_items      (company_id, provider, provider_request_id)
+    invoice_export_runs       (company_id, idempotency_key)
+    billing_export_run_items  (company_id, idempotency_key)
+    billing_period_locks      (company_id, billing_year, billing_month)
+    billing_provider_webhook_events (company_id, provider, environment, idempotency_key)
+    billing_underlays         (company_id, customer_id, metering_point_id,
+                               underlay_year, underlay_month,
+                               billing_period_start, billing_period_end,
+                               energy_direction)
+
+So invoice identity, unique provider GUID, export-period uniqueness and
+idempotency are all present AND company-scoped. The plan's goal "Billing kan
+inte attribueras till fel tenant" is structurally enforced rather than left to
+application code remembering a filter, which also satisfies §9.3.
+
+NOT covered by this: spot basis, price area, markup, taxes, VAT, fixed fees,
+underlay completeness and versioned pricing are application logic, not
+constraints, and remain unverified.
+
+### Fas 9.2 (§12.2) SLA timestamps — satisfied
+
+`20260904090000_z01_parallel_sla_watchdog.sql` says it in its own comments and
+implements it:
+
+    -- both clocks start from the actual persisted message_sent_at
+    -- Once a message has actually been sent, message_sent_at is the only valid base.
+    contrl_due_at = message_sent_at + interval '30 minutes'
+
+and the watchdog's partial index carries `message_sent_at is not null`, so an
+unsent message cannot enter SLA tracking at all. Absolute rule §36 "Ingen SLA
+timestamp som föregår actual send" holds.
+
+Recording these matters as much as recording defects: without it the next
+session re-audits ground that is already solid.

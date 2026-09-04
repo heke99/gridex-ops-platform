@@ -5,7 +5,7 @@
   "base_head_sha": "62272e93",
   "active_phase": "MASTER_PLAN_P0_SCHEMA_TRUTH_AND_TENANT_INVARIANTS",
   "active_task": "Fas 2-4 tooling, tenant invariant convergence, and CI gate reliability",
-  "status": "CI_GREEN_ON_PR_307",
+  "status": "CI_GREEN_ON_PR_307_AWAITING_MERGE_AUTHORISATION",
   "safety": {
     "rbac_changed": false,
     "tenant_scope_changed": false,
@@ -43,9 +43,10 @@
     "ci_tenant_invariants_on_canonical_shadow": "PASS",
     "ci_parity_selftest": "PASS",
     "canonical_schema_baseline": "COMMITTED_FROM_CI_ARTIFACT_3b0dd50e",
-    "schema_check_gate": "ACTIVATES_ON_NEXT_RUN"
+    "schema_check_gate": "ACTIVE_AND_PASSING",
+    "ci_full_run_298e67b": "ALL_THREE_JOBS_PASS"
   },
-  "resume_from": "PR #307 was fully green on 3330127. The canonical baseline is now committed, so the next run also exercises db:schema:check. Confirm that step passes, then the Fas 3 and Fas 4 work is complete. Do not merge without explicit user authorization. Production parity remains blocked on the production Supabase project.",
+  "resume_from": "PR #307 is green on its current head and awaits explicit merge authorisation from the user; do not merge. Next work items, smallest first: readiness policy versioning (Fas 10, has a precedent in platform_runtime_readiness), typed Supabase clients (P0-E, 487 files, re-run the typecheck probe first), production parity in blocking mode (blocked on the production Supabase project). Fas 13 billing integrity and Fas 9.2 SLA timestamps were checked and are already correct.",
   "commits": 7,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/307"
 }
