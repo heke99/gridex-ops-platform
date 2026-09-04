@@ -100,6 +100,7 @@ begin
           'ack_sla_breached', 'warning',
           'CONTRL saknas efter canonical SLA. Teknisk kvittens bevakas separat från Z02.',
           jsonb_build_object(
+            'slaFamily', 'CONTRL',
             'dueAt', rec.contrl_due_at,
             'messageSentAt', rec.message_sent_at,
             'automaticResendAllowed', false
@@ -172,6 +173,7 @@ begin
           'ack_sla_breached', 'warning',
           'Z02 eller negativ APERAK saknas efter canonical 30-minutersfrist. Ingen automatisk Z01-omsändning görs.',
           jsonb_build_object(
+            'slaFamily', 'PRODAT_Z02_OR_NEGATIVE_APERAK',
             'dueAt', rec.business_response_due_at,
             'messageSentAt', rec.message_sent_at,
             'automaticResendAllowed', false,
