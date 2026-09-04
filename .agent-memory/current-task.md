@@ -905,3 +905,29 @@ timestamp som föregår actual send" holds.
 
 Recording these matters as much as recording defects: without it the next
 session re-audits ground that is already solid.
+
+## Stage 20 — Fas 12 / §36 Z02 rule: NO EVIDENCE OF VIOLATION, but NOT verified
+
+Classified deliberately as unverified rather than satisfied.
+
+Absolute rule §36 forbids active supply based on a Z02 alone (Z02 validates;
+Z03 requests the switch; Z04 confirms). What was checked:
+
+- No code or migration activates supply from a Z02. Searching `lib` and
+  `supabase/migrations` for a Z02 near activate/active/supply_start/delivery
+  returns nothing.
+- The Z02 migrations are named for validation and gating, not activation:
+  `atomic_correlated_z02_core_apply`, `restrict_site_scoped_z02_definers`,
+  `harden_inbound_z02_required_payload_gate`,
+  `z02_snapshot_market_context_guard`.
+
+Why that is not enough to call it satisfied: absence of a grep hit is weak
+evidence, and the activation path itself was not traced. Supply-start outcomes
+(`assigned_supply_started`, `mandatory_purchase_supply_started`) are produced by
+`lib/ediel/flows/inboundBusinessStateMachineLegacy.ts`, and which inbound message
+types reach those outcomes was NOT established. The file name says Legacy, which
+is its own reason to look properly rather than assume.
+
+A real Fas 12 audit means tracing message type -> state machine outcome ->
+persisted supply state, for Z02, Z03 and Z04 separately. That is a piece of work,
+not a grep, and it was not done.
