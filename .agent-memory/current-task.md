@@ -695,3 +695,51 @@ Fix, verified on both paths locally:
 - CI installs `postgresql-client-<major>` from PGDG, reading the major straight
   out of `supabase/config.toml` so the two cannot drift apart, and exports the
   explicit binary path through `GITHUB_ENV`.
+
+## Stage 15 — PR #307 fully green, canonical baseline captured (blocker #5 closed)
+
+Run 33874124560 on `3330127`: `verify`, `quality-release-gates` and
+`clean-migration-replay` all **success**.
+
+Inside the replay job, every gate reported clean:
+
+    Supabase CLI ledger verified: 48 official rows
+    schema fingerprint verified: c70fa2f017f6ce3af3ff806d948f18b58a3c196e4bf94daa9304629a3926680c
+    Tenant isolation invariants: all checks passed
+    [parity selftest] PASS: every required drift class is detected
+    schema fingerprint 3b0dd50e7f5c6178b8d925c4469f1759b5a83d64e020bde1555ef5ae4c0e08f0
+    no committed canonical schema baseline yet; snapshot uploaded as evidence
+
+The artifact was downloaded and its two files committed as `supabase/schema.sql`
+(5,457,376 bytes) and `supabase/schema.fingerprint.json`. The guarded
+verification step therefore activates on the next run and will compare a fresh
+CI dump against this baseline — which is also how the baseline gets validated.
+
+Overall canonical fingerprint: `3b0dd50e7f5c6178b8d925c4469f1759b5a83d64e020bde1555ef5ae4c0e08f0`.
+
+### The harness gap is now quantified, not just described
+
+Comparing the CI baseline against the dockerless shadow, section by section:
+
+| section | CI (Supabase stack) | dockerless shadow |
+| --- | --- | --- |
+| relations | 587 | 587 |
+| columns | 10690 | 10690 |
+| functions | 573 | 573 |
+| indexes | 2280 | 2280 |
+| triggers | 220 | 220 |
+| constraints | 2260 | 2232 |
+| policies | 2548 | 714 |
+| relation_grants | 13307 | 5546 |
+| function_grants | 1545 | 1545 |
+| extensions | 8 | 5 |
+| schema_grants | 7 | 6 |
+
+Structure the migrations build — relations, columns, functions, indexes,
+triggers — matches exactly. What differs is what the Supabase platform layers
+on: three extensions the bootstrap does not install (and the constraints they
+own), and a much larger policy and grant surface. That is the shape of the
+remaining difference and a concrete starting point if anyone wants to close it.
+
+Do not chase it for the narrow fingerprint's sake: CI is authoritative there,
+and `EXPECTED_FINGERPRINT` verified as `c70fa2f...` in this very run.
