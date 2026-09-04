@@ -1,0 +1,4 @@
+{
+  "$comment": "Documented, temporary exceptions for npm run db:parity. Every entry needs a concrete section, a key regex and a written reason. Empty by design: drift is remediated, not ignored (plan §36).",
+  "ignores": []
+}

@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-clean-replay-schema-equivalent-tail",
   "generated_types": "supabase/database.types.ts",
   "sha256": "b839bc610ff376fe78469cd7266de7a1d205022afa96c9924e2a9b1f0b4da6e8",
-  "latest_migration": "20260904103000_z01_sla_watchdog_candidate_convergence.sql",
-  "latest_migration_schema_effect": "replaces_z01_sla_watchdog_function_candidate_query_no_generated_type_surface_change"
+  "latest_migration": "20260904120000_canonical_tenant_invariant_convergence.sql",
+  "latest_migration_schema_effect": "enables_rls_sets_view_security_invoker_drops_inert_policies_and_revokes_public_execute_no_generated_type_surface_change"
 }

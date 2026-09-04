@@ -30,11 +30,24 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
-DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+# Clean replay normally runs against the local Supabase stack. Where Docker is
+# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
+# that this script provisions with the Supabase-compatible surface instead. The
+# migration ordering, checksum pinning and fingerprint below are identical in
+# both modes; only how the empty database is obtained differs.
+EXTERNAL_DB="${GRIDEX_REPLAY_DB_URL:-}"
+SUPABASE_BOOTSTRAP="$ROOT/scripts/sql/gridex-supabase-compatible-bootstrap.sql"
+if [[ -n "$EXTERNAL_DB" ]]; then
+  DB_URL="$EXTERNAL_DB"
+else
+  DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+fi
 
 cleanup(){
   set +e
-  supabase stop --no-backup >/dev/null 2>&1 || true
+  if [[ -z "${EXTERNAL_DB:-}" ]]; then
+    supabase stop --no-backup >/dev/null 2>&1 || true
+  fi
   rm -f "$MIGRATIONS"/*.sql
   cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
   cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
@@ -42,7 +55,7 @@ cleanup(){
 }
 trap cleanup EXIT
 
-command -v supabase >/dev/null
+if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi
 command -v psql >/dev/null
 command -v python3 >/dev/null
 for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
@@ -252,12 +265,21 @@ for e in entries:
     last=version
     (out/f'{version}_{name}.sql').write_text('-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n')
 PY
-cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
-
-# Supabase CLI owns the official ledger from the beginning so later governance
-# migrations can inspect it. Marker migrations are no-op SQL and carry exactly
-# the checksum-pinned dev-ledger versions verified below.
-supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+if [[ -z "$EXTERNAL_DB" ]]; then
+  cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
+  # Supabase CLI owns the official ledger from the beginning so later governance
+  # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
+  # the checksum-pinned dev-ledger versions verified below.
+  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+else
+  # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
+  # official ledger is deliberately left untouched: writing it by hand would
+  # make the verification below assert rows this script had just invented.
+  # External mode therefore carries NO ledger provenance and is a diagnostic
+  # replay of the schema only.
+  echo "[GRIDEX-REM-002 replay] provisioning Supabase-compatible surface on the external database"
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
+fi
 
 apply_sql(){
   local file="$1"
@@ -324,6 +346,9 @@ if [[ "$white_label_hygiene_boundary_reached" != true ]]; then
   exit 1
 fi
 
+if [[ -n "$EXTERNAL_DB" ]]; then
+  echo "[GRIDEX-REM-002 replay] external mode: NO ledger provenance. The CLI-owned official ledger is not reproduced and not verified; this run proves schema reconstruction only and must not be cited as canonical provenance."
+else
 python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys
 ledger=json.load(open(sys.argv[1])); db=sys.argv[2]
@@ -334,6 +359,7 @@ if actual != expected:
     print('official ledger mismatch after Supabase CLI marker replay',file=sys.stderr); print('expected:',expected,file=sys.stderr); print('actual:',actual,file=sys.stderr); raise SystemExit(1)
 print(f'[GRIDEX-REM-002 replay] Supabase CLI ledger verified: {len(actual)} official rows')
 PY
+fi
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select

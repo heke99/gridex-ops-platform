@@ -84,12 +84,28 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Verify preinstalled PostgreSQL client
+      - name: Install a PostgreSQL client matching the replay server
         shell: bash
         run: |
           set -euo pipefail
-          command -v psql
+          # supabase/config.toml pins major_version 17, and pg_dump refuses to
+          # dump a server newer than itself. The runner ships an older client,
+          # so the schema snapshot aborts on a version mismatch.
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          echo "replay server major version: $server_major"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          # Name the matching binary explicitly. pg_wrapper does not reliably
+          # resolve to the newest installed major, so relying on PATH here can
+          # still pick an older pg_dump and abort on a version mismatch.
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           psql --version
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
       - name: Clean empty-database replay and verify generated types
         shell: bash
         run: |
@@ -114,6 +130,30 @@ jobs:
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
             exit 1
           fi
+
+          # Everything below runs in THIS step on purpose. The replay script is
+          # sourced, so its EXIT trap stops the local Supabase stack when this
+          # step's shell exits; a later step would find no database.
+          SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
+          # The tenant isolation gate must hold for a system rebuilt from the
+          # repository, not only for the live database it was written against.
+          DATABASE_URL="$SHADOW_URL" npm run tenant:invariants
+
+          # A parity engine that stops detecting drift would make a green run
+          # read as proven parity, so it is checked against injected drift.
+          npm run db:parity:selftest -- "$SHADOW_URL"
+
+          npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
+
+          # Activates by itself once a canonical baseline captured from this
+          # replay is committed to supabase/. Until then there is nothing to
+          # compare against.
+          if [[ -f supabase/schema.fingerprint.json ]]; then
+            npm run db:schema:check -- --url "$SHADOW_URL"
+          else
+            echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
+          fi
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -122,4 +162,5 @@ jobs:
           path: |
             rem002-clean-replay.log
             rem002-database.types.ts
+            rem002-schema-snapshot/
           if-no-files-found: error

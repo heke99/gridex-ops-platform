@@ -282,3 +282,81 @@ Two findings changed classification during remediation, both recorded in
 - F-9 was reported as latent and is a confirmed cross-tenant write:
   `setOwnElectricitySupplier` cleared `is_own_supplier` on every row in the
   database and was reachable by any tenant admin holding `switching.write`.
+
+## 2026-09-04 — master plan P0-C: database parity and canonical schema artifacts
+
+Status: `IMPLEMENTED_AND_LOCALLY_VERIFIED_PENDING_CI`
+
+Worked the master remediation plan in its own order (§35). P0-A and P0-B were
+verified to already exist by reading the code, not the memory files: clean
+replay, the pinned Supabase CLI, local typegen and the generated-types
+manifest. P0-C had no implementation, so that is what was built.
+
+Four commits:
+
+1. `a10c097` — parity engine (`npm run db:parity`), plan Fas 4. Both-directions
+   comparison over schemas, relations (incl. view definitions and partition
+   keys), columns, enum labels, constraints, indexes, functions, triggers,
+   policies, grants, RLS state and extensions. Exit codes separate drift (1)
+   from an unusable check (2) so a failed introspection can never read as
+   parity. Ignore entries require a written reason.
+2. `9825580` — `npm run db:parity:selftest`, wired into the
+   `clean-migration-replay` CI job, asserting fifteen injected drift classes
+   are each detected. Added `--no-ignore` so the gate cannot be widened by
+   editing the exception contract.
+3. `e80894c` — `db:types:gen` moved from `--linked` to `--local`, matching CI
+   exactly. Generating the canonical type file from an arbitrary linked
+   project violates plan §6.3 and absolute rule §36.
+4. `328504a` — `npm run db:schema:snapshot` / `db:schema:check`, plan Fas 3.
+   Normalized `schema.sql` plus a schema-wide `schema.fingerprint.json`
+   computed from the same introspection document the parity engine uses.
+
+Verified against a real PostgreSQL 16.13 cluster started for the purpose:
+identical schemas compare clean with no false positives; every injected drift
+class is detected, including a view whose tenant filter was silently removed,
+a changed function overload signature and a revoked grant; the snapshot is
+byte-deterministic across runs and fails closed with no baseline. Repository
+gates re-run green: `db:migrations:check` (integrity 584 files, public
+contract legal, contract hardening, generated types).
+
+Honest pending state: no canonical schema baseline is committed, because the
+Supabase CLI is absent from this container and clean replay cannot run here.
+Production parity remains blocked on the production Supabase project. Nothing
+from Fas 5 onwards was touched.
+
+## 2026-09-04 (continued) — dockerless clean replay, tenant invariant convergence, CI gate reliability
+
+Status: `IMPLEMENTED_AND_LOCALLY_VERIFIED_PENDING_CI`
+
+Three further commits after the P0-C work:
+
+5. `e752133` / `ca73d3b` — clean replay can run without Docker.
+   `scripts/sql/gridex-supabase-compatible-bootstrap.sql` provisions the
+   Supabase platform surface onto a plain PostgreSQL database and the replay
+   script accepts `GRIDEX_REPLAY_DB_URL`. All ordering, checksum pinning and
+   substitution logic is shared; the CLI path is untouched.
+
+   The first version reconstructed the Supabase ledger by INSERT, which the
+   provenance regression correctly rejected: in CLI mode the CLI produces those
+   rows independently, whereas mine wrote them and then verified its own writes.
+   External mode now writes nothing to the ledger and says it carries no ledger
+   provenance. Proving that costs nothing: two shadows, with and without the
+   ledger, compare identical under the parity engine.
+
+6. `2506561` — `20260904120000_canonical_tenant_invariant_convergence.sql`.
+   Run for the first time against a database replayed from this repository, the
+   tenant isolation gate reported 21 breaches while passing against live. The
+   migration closes all of them: three inbound relations classified, RLS on
+   eight service-role-only tables, `security_invoker` on three views, three
+   policies targeting `service_role` alone dropped, and PUBLIC execute revoked
+   on six SECURITY DEFINER helpers. Each checked to be behaviour-neutral first.
+   Also folds the tenant gate, the parity self-test and the schema snapshot into
+   the replay step, where the database is actually alive.
+
+7. `823b6f8` — the production dependency audit gate separates a vulnerability
+   from an unreachable registry, which is what turned main red on `62272e9`.
+
+Established from CI rather than assumed: `clean-migration-replay` is green on
+main, so the pinned fingerprint is correct and the dockerless harness is the
+side that differs. The harness is valid for structural work and invalid for
+canonical provenance; that limit is recorded in current-task.md and handover.md.

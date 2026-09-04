@@ -211,3 +211,95 @@
 | Service-role ratchet | `npm run tenant:service-role-ratchet` | 2401 call sites, at baseline |
 | Cross-tenant metering point / customer number | rolled-back transaction on dev | two tenants can hold both; duplicates within a tenant still rejected |
 | Permission scope | `gridex_get_user_permissions_in_company` on dev | tenant owner: 36 perms own company, 0 foreign |
+
+## 2026-09-04 — P0-C database parity and canonical schema artifacts
+
+Environment: local PostgreSQL 16.13 cluster started for this session at
+`/var/lib/postgresql/gridex-parity`, port 55432, trust auth. Not part of the
+repository and not persisted. Supabase CLI absent, so clean replay was not
+runnable locally.
+
+| Check | Command | Outcome |
+| --- | --- | --- |
+| Parity, identical schemas | `gridex-db-parity.cjs --mode blocking` | PASS, exit 0, no false positives |
+| Parity, injected drift | `gridex-db-parity.cjs --mode blocking` | FAIL as required, exit 1, 15 drift classes each detected |
+| Parity modes | `--mode report-only / warning / blocking` | exit 0 / 0 / 1 |
+| Parity ignore contract | entry without `reason` | exit 2, rejected |
+| Parity ignore contract | valid entry | suppresses only its own finding, printed as ignored |
+| Parity error paths | missing URL, non-postgres URL, unreachable server, SQL in schema name | exit 2 in every case, no comparison run |
+| Parity self-test | `npm run db:parity:selftest -- <url>` | PASS, all 15 classes, both databases dropped afterwards |
+| Snapshot determinism | two writes from one database | byte-identical `schema.sql` and fingerprint |
+| Snapshot check, matching | `db:schema:check` vs own baseline | PASS, exit 0 |
+| Snapshot check, drifted | `db:schema:check` vs drifted database | FAIL, exit 1, drifted sections named individually |
+| Snapshot check, no baseline | `db:schema:check` with empty dir | exit 2, fail-closed |
+| Generated types | `npm run db:types:check` | PASS, 3339422 bytes, tail `20260904103000_z01_sla_watchdog_candidate_convergence.sql` |
+| Migration suite | `npm run db:migrations:check` | PASS, integrity 584 files / 488 version groups, legal, contract hardening, types |
+| Workflow syntax | YAML re-parse of `ops-hardening.yml` | PASS, jobs unchanged |
+| Clean replay | — | NOT RUN, Supabase CLI unavailable in container |
+| Production parity | — | BLOCKED, no production Supabase project visible |
+
+Drift classes proven detected: dropped relation, unexpected live relation,
+column type, nullability, column default, dropped unique constraint, dropped
+foreign key, dropped partial index, disabled RLS, rewritten policy USING
+expression, dropped trigger, changed function body, changed function overload
+signature, revoked grant, added enum label, and a view whose tenant filter was
+silently removed.
+
+## 2026-09-04 (continued) — dockerless replay, tenant invariants, CI gate reliability
+
+Environment: local PostgreSQL 16.13 (port 55432) and 17.11 (port 55433)
+clusters, both started for this session and not persisted. PostGIS installed
+via apt; Supabase CLI 2.101.0 installed at `/opt/supabase-cli`. No Docker, so
+`supabase start` and `supabase gen types` cannot run here.
+
+| Check | Command | Outcome |
+| --- | --- | --- |
+| Clean replay, PG 16 | `GRIDEX_REPLAY_DB_URL=... clean-replay.sh` | 565 inputs applied, no SQL error |
+| Clean replay, PG 17 | same | 565 inputs applied, no SQL error |
+| Shadow vs CI-verified types | 587 objects compared | every object present, every column set identical |
+| Narrow fingerprint vs pinned | replay script | MISMATCH; CI is green on main, so the harness differs, not the constant |
+| Tenant invariants, before fix | `npm run tenant:invariants` on shadow | FAIL, 21 breaches |
+| Tenant invariants, after fix | same | PASS, all checks passed |
+| Ledger irrelevance | `db:parity` with-ledger vs no-ledger shadow | PASS, identical across every object kind |
+| Provenance regression | `gridex-aud-003-migration-provenance-regression.cjs` | PASS after removing ledger writes |
+| Migration integrity | `npm run db:migrations:check` | PASS, 585 files / 489 version groups |
+| Generated types manifest | included above | PASS, tail bumped, hash unchanged |
+| Dependency audit, reachable | `npm run security:audit-production` | PASS, retried once after a timeout |
+| Dependency audit, unreachable | dead registry | exit 1, states it is not a vulnerability finding |
+| Dependency audit, high advisories | stubbed report | exit 1, lists offending severities |
+| Dependency audit, low only at level high | stubbed report | exit 0 |
+| Dependency audit, unknown level | `GRIDEX_AUDIT_LEVEL=bogus` | exit 2 |
+| Typecheck | `npm run typecheck` | PASS |
+| Service-role ratchet | `npm run tenant:service-role-ratchet` | PASS, 2399 call sites |
+| Agent memory git state | `check-agent-memory-git-state.cjs` | PASS |
+| OPS health / contract channel / API billing | respective regressions | PASS |
+| CI on this branch | — | NOT RUN; ops-hardening triggers on pull_request and push:main only |
+| CI on main `62272e9` | run 2450 | clean-migration-replay success, quality-release-gates success, verify FAILURE at security:audit-production (npm registry 503) |
+
+Full local gate battery re-run after all changes, every one exit 0:
+`ops:hardening-regression`, `ops:hardening-behavior-regression`, `lint`,
+`typecheck`, `typecheck:scripts`, `typecheck:tests`,
+`quality/mechanical/verify.sh`, `npm test`, `api:docs`, `security:rbac`,
+`db:migrations:check`, `tenant:service-role-ratchet`,
+`security:audit-production`, provenance regression, agent-memory git state,
+ops health, contract channel publication, API billing tenant hardening.
+
+## 2026-09-04 — CI evidence on PR #307
+
+| Head | verify | quality-release-gates | clean-migration-replay |
+| --- | --- | --- | --- |
+| ba0d323 | pass | pass | FAIL: 3 SECURITY DEFINER fns still executable by anon |
+| cdcb64a | pass | pass | FAIL: same |
+| b0098d8 | pass | pass | FAIL: pg_dump server version mismatch |
+| 3330127 | pass | pass | pass |
+| 46b77d2 | pass | pass | pass, `db:schema:check` ACTIVE and verifying `3b0dd50e...` |
+| 298e67b | pass | pass | pass |
+
+Gates proven inside the real Supabase stack: clean replay, pinned ledger (48
+rows), narrow fingerprint `c70fa2f...`, tenant isolation invariants, parity
+self-test (15 drift classes), schema snapshot generation, and the canonical
+baseline comparison.
+
+Two CI failures were real defects this branch introduced and fixed, not flakes:
+a revoke from PUBLIC that did not remove Supabase's default-privilege grant to
+anon, and a pg_dump older than the pinned PostgreSQL 17 server.

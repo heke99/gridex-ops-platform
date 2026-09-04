@@ -1,22 +1,39 @@
 # Current state
 
-Updated: 2026-08-20
+Updated: 2026-09-04
 
-- Active branch: `codex/gridex-production-masterplan-20260820`, based on main `22d2b4834577ad96b31c4373832a0507397c65e3`.
-- Billing requires configured provider/environment and supports per-underlay readiness.
-- Invoice export requires exact locked pricing in runtime and via a forward-only database trigger.
-- Spot settlement cron imports and locks each requested price-area month.
-- Customer notification writes use opaque tenant-bound public references, never raw notification UUIDs.
-- Public API release `2026-08-20.1` is materialized locally.
-- External website API usage telemetry is deferred with Next.js `after` and cannot hold successful responses open.
-- Current live public-contract fingerprint is O(1); warm development `EXPLAIN` measured 6.693 ms with no disk/temp I/O.
-- Supabase advisor residuals are classified; no exact duplicate indexes or exposed service-only tables were found.
-- An authenticated k6 ETag/304 profile is wired for staging execution.
-- All 19 legacy monoliths are split behind stable facades; the 1,800-line ratchet has zero grandfathered files.
-- Portal claim and continuation reconciliation reads are batched; the public-path N+1 gate reports zero unapproved awaited reads inside loops.
-- Browser bundle budgets pass (largest chunk 222,348 bytes) and k6 smoke/load/spike/soak/ETag SLOs share one checked contract.
-- Supabase development migration `invoice_export_locked_pricing_guard` is applied and verified.
-- Full local verification: 98 test files / 699 tests, typecheck, API docs/release, migration integrity, dependency audit, advisor/tooling regressions, and production build pass.
-- Draft PR #169 is published from the byte-identical tested tree; GitHub Actions is running.
-- A same-repository `staging-e2e-approved` label gate authorizes browser, k6 smoke/load/spike/ETag/soak and ZAP jobs without exposing repository secrets locally.
-- Production database parity and production promotion remain blocked until the OPS production Supabase project is identified and hosted staging evidence is green.
+- Active branch `claude/gridex-ops-production-hardening-lrknxa`, based on main
+  `62272e9`. Seven commits, pushed.
+- `npm run db:parity` compares two databases in both directions over schemas,
+  relations, columns, enums, constraints, indexes, functions, triggers,
+  policies, grants, RLS state and extensions, in report-only, warning or
+  blocking mode. Guarded by `npm run db:parity:selftest`, which asserts fifteen
+  injected drift classes are each detected.
+- `npm run db:schema:snapshot` / `db:schema:check` produce and verify a
+  normalized `schema.sql` and a schema-wide fingerprint. No canonical baseline
+  is committed yet; it must come from a CI clean-replay artifact.
+- Clean replay runs without Docker via `GRIDEX_REPLAY_DB_URL` plus
+  `scripts/sql/gridex-supabase-compatible-bootstrap.sql`. External mode writes
+  nothing to the Supabase ledger and states that it carries no ledger
+  provenance; the CLI path is unchanged.
+- The tenant isolation invariant gate now passes against a database replayed
+  from this repository. It previously reported 21 breaches there while passing
+  against live. Closed by forward migration
+  `20260904120000_canonical_tenant_invariant_convergence.sql`.
+- That gate, the parity self-test and the schema snapshot now run inside the
+  `clean-migration-replay` CI job, in the same step as the replay so the local
+  stack is still alive.
+- `security:audit-production` no longer fails when the npm registry is slow or
+  unavailable; it retries, bounds each attempt and distinguishes a vulnerability
+  from an audit that could not run. It still fails closed.
+- `db:types:gen` generates from the local shadow, matching CI exactly.
+- KNOWN: CI's clean replay is green on main and produces fingerprint
+  `c70fa2f...`, while the dockerless harness produces `324bc8e0...`. The
+  harness reconstructs a public schema identical to the CI-verified generated
+  types, but is not byte-equivalent for the thirteen fingerprinted tables. Use
+  it for structural work, never for canonical provenance.
+- KNOWN: the OPS hardening run on main `62272e9` is red, at
+  `security:audit-production`, from an npm registry 503. That is what the audit
+  gate change above addresses.
+- Production database parity and production promotion remain blocked: no
+  production Supabase project is visible from this environment.
