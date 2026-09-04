@@ -584,3 +584,29 @@ Verified, every path:
 
 Tunable through `GRIDEX_AUDIT_LEVEL`, `GRIDEX_AUDIT_ATTEMPTS`,
 `GRIDEX_AUDIT_TIMEOUT_MS`. Default behaviour is unchanged from the old command.
+
+## Stage 12 — pull request opened, CI running
+
+PR: https://github.com/heke99/gridex-ops-platform/pull/307
+(`claude/gridex-ops-production-hardening-lrknxa` -> `main`, opened after the
+user explicitly approved it.)
+
+No PR template exists in the repository, so the body follows the master plan's
+own §29 impact-analysis shape: Changed, Directly affected, Indirectly affected,
+Tenant impact, Data impact, Integration impact, Rollback, Verification.
+
+This session is subscribed to PR activity and owns driving #307 to green.
+
+Two caveats are stated in the PR body on purpose, so a reviewer is not misled:
+
+1. No canonical schema baseline is committed; the CI verification step is
+   guarded on the artifact existing and activates once a CI-captured baseline
+   is committed.
+2. The dockerless harness is not byte-equivalent to the Supabase stack for the
+   thirteen fingerprinted tables. CI is authoritative; `EXPECTED_FINGERPRINT`
+   is untouched.
+
+Expect the three jobs: `verify`, `quality-release-gates`,
+`clean-migration-replay`. The genuinely new risk is `clean-migration-replay`,
+because the tenant gate, parity self-test and schema snapshot have never run
+inside the real Supabase stack — only against the local PostgreSQL shadow.
