@@ -768,3 +768,52 @@ The refresh procedure is written up in `database-and-migrations.md`. It matters:
 the check is byte-for-byte, so the next migration that touches the public schema
 turns it red until someone copies the artifact back in. A gate nobody knows how
 to satisfy gets disabled rather than obeyed.
+
+## Stage 17 — P0-E scoped (typed Supabase clients, Fas 5 §8). NOT started.
+
+Evidence gathered, no production code changed. The temporary probe described
+below was reverted; the working tree is clean.
+
+### Confirmed finding F-P0E-1 (open)
+
+None of the four client factories in `lib/supabase/` is generically typed:
+
+    client.ts   createBrowserClient(url, anonKey)
+    server.ts   createServerClient(...)
+    service.ts  createClient(url, serviceRoleKey, {...})   x2
+
+Plan §8 requires `createClient<Database>()` for the browser, server, service and
+privileged clients and for jobs. The prerequisite it sets — "only once the
+generated types are verified correct" — is now satisfied: CI verified
+`database.types.ts` against a clean replay in run 33874550022.
+
+### Measured scope
+
+    supabaseService        487 files
+    createSupabaseServer   121 files
+    tenantDb                 4 files
+    .rpc( call sites       197
+    as any                   1   (in lib, app and components combined)
+    @ts-expect-error         0
+
+One `as any` and zero `@ts-expect-error` across the whole application is an
+unusually disciplined baseline. It also means typing the clients will surface
+real errors rather than being absorbed by existing escape hatches.
+
+### Probe attempted and abandoned — do not cite a number from it
+
+`<Database>` was added to `service.ts` alone and `npm run typecheck` started.
+It had not finished after several minutes and was stopped so the tree could be
+left clean. No error count was obtained. The only thing that run suggests is
+that checking 487 files against the 3.3 MB generated `Database` type is slow;
+treat even that as weak.
+
+Whoever picks this up: re-run that probe first, in a dedicated branch, and get
+a real error count before planning the work.
+
+### Why this is NOT in PR #307
+
+PR #307 is green and scoped to schema truth. A change touching 487 files is a
+separate, independently reviewable PR — the plan asks for exactly that, and
+widening a green PR on my own initiative would be wrong. This is the next work
+item, not part of the current one.
