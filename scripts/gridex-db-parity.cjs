@@ -328,7 +328,12 @@ function main() {
     'target',
   )
 
-  const ignores = loadIgnores(args.ignore || process.env.GRIDEX_PARITY_IGNORE || DEFAULT_IGNORE)
+  // --no-ignore compares against the raw schemas, so a CI gate cannot be
+  // quietly widened by editing the exception contract.
+  const ignores =
+    args['no-ignore'] === 'true'
+      ? []
+      : loadIgnores(args.ignore || process.env.GRIDEX_PARITY_IGNORE || DEFAULT_IGNORE)
 
   const canonical = introspect(canonicalUrl, schemas, 'canonical')
   const target = introspect(targetUrl, schemas, 'target')

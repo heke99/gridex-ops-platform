@@ -114,6 +114,15 @@ jobs:
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
             exit 1
           fi
+      - name: Verify database parity engine against the replayed shadow
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee rem002-db-parity-selftest.log) 2>&1
+          # The local Supabase stack started by the replay script is still up;
+          # the self-test builds and drops its own throwaway databases there.
+          npm run db:parity:selftest -- "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -122,4 +131,5 @@ jobs:
           path: |
             rem002-clean-replay.log
             rem002-database.types.ts
+            rem002-db-parity-selftest.log
           if-no-files-found: error

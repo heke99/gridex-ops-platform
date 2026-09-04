@@ -112,17 +112,53 @@ A real PostgreSQL 16.13 cluster was started locally on port 55432
 6. Error paths verified: missing URL, non-postgres URL, unreachable server,
    and a schema name containing SQL all exit 2 without running a comparison.
 
+## Stage 3 — DONE: parity engine is now guarded by CI
+
+- `scripts/gridex-db-parity-selftest.sh` builds two throwaway databases from
+  one schema, asserts they compare clean in `blocking` mode, injects one drift
+  of every required class, and asserts each class is reported by exact
+  substring. It drops both databases on exit (verified: no leftovers).
+- `npm run db:parity:selftest` wraps it; it takes the admin Postgres URL as
+  its first argument and defaults to the local Supabase stack on 54322.
+- Added `--no-ignore` to the engine so a CI gate cannot be quietly widened by
+  editing `gridex-db-parity-ignore.json`. The self-test always uses it.
+- Wired into `.github/workflows/ops-hardening.yml`, job `clean-migration-replay`,
+  as a step after typegen verification and before evidence upload. That job is
+  the right host: the local Supabase stack from the replay script is still
+  running and `psql` is present. Its log is uploaded as
+  `rem002-db-parity-selftest.log`.
+- Verified through the exact CI invocation
+  (`npm run db:parity:selftest -- <url>`), not just by running the script
+  directly. Workflow YAML re-parsed clean; jobs unchanged
+  (verify, quality-release-gates, clean-migration-replay).
+
+Rationale worth keeping: a comparator that stops detecting drift is worse than
+no comparator, because a green run then reads as proven parity.
+
 ## Exact next action
 
-1. Commit the parity engine.
-2. Add `scripts/gridex-db-parity-selftest.sh`: a self-contained regression that
-   creates two throwaway databases, injects the drift matrix above and asserts
-   the engine reports each class. Wire it into the `clean-migration-replay`
-   job in `.github/workflows/ops-hardening.yml`, which already has `psql` and
-   a running local Postgres on 54322. Without this the engine itself is
-   unguarded.
-3. Fix F-P0C-4: `db:types:gen` must not use `--linked`.
-4. Do NOT attempt production parity. Open blocker #1 still holds: no
-   production Supabase project is visible from this session, so the canonical
-   -> live comparison cannot be run and `blocking` mode cannot be turned on
-   for production yet. The engine is the prerequisite, not the whole of §7.
+1. Fix **F-P0C-4**: `db:types:gen` runs `supabase gen types typescript
+   --linked`, generating the canonical type file from whatever project happens
+   to be linked. Plan §6.3 and absolute rule §36 forbid this. CI already does
+   it correctly from `--local` after clean replay
+   (`.github/workflows/ops-hardening.yml`, job `clean-migration-replay`). Make
+   the developer script follow the same canonical source, or make it refuse.
+2. Still OPEN and NOT started: **F-P0C-2** (no canonical `schema.sql`, plan
+   §6.1) and **F-P0C-3** (the fingerprint in
+   `scripts/gridex-aud-003-schema-fingerprint.sql` covers only 13 tables and 2
+   functions, plan §6.2 wants schema-wide coverage incl. indexes, triggers,
+   RLS, policies, grants). The introspection SQL added in Stage 2 already
+   produces exactly the document both of these need — reuse it rather than
+   writing a third introspection.
+3. Production parity remains BLOCKED by open blocker #1 (no production
+   Supabase project visible from this session). The engine exists; pointing it
+   at production and switching to `blocking` is a separate, later step.
+
+## Environment note for the next session
+
+The local PostgreSQL cluster used for verification is NOT part of the repo and
+will not survive this container:
+`/var/lib/postgresql/gridex-parity`, port 55432, trust auth, started with
+`pg_ctl -o '-p 55432 -k /tmp'` as the `postgres` OS user. Recreate it with
+`initdb` if you need to re-verify locally, or just run the self-test against
+any Postgres where the role may create databases.
