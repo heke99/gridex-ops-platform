@@ -94,15 +94,113 @@ version timestamps from the repo filenames (e.g. live `20260904083106` vs repo
 `20260904090000` for `z01_parallel_sla_watchdog`), which is the known
 reconciliation model — names match, versions do not.
 
+## Steg 3 — production reconciliation, EXECUTED 2026-09-04
+
+Authorised by the user: "vi har ingen data idag som ar viktigt sa gor det
+korrekt och produktionmassigt". Every apply below was preflighted first
+(dependency existence, column existence, row counts, current state), applied
+via the Supabase MCP `apply_migration` against project `piidsfebjqjmnepdpnas`,
+then verified by direct introspection. No secrets recorded here.
+
+The canonical -> production gap was established as exactly THREE unapplied
+migrations, evidenced as 1 missing table and 2 missing functions. The other 12
+ledger name/version mismatches are the known reconciliation model (names match,
+versions differ) and are already applied.
+
+### 3.1 `gridex_inbound_operations_foundation` (repo 20260824190000) — APPLIED
+
+Preflight: partially applied. All 14 `manual_inbound_messages` columns present,
+table `inbound_operation_events` absent, 2 rows in the parent table (negligible
+lock), all dependencies present (`companies`,
+`gridex_user_is_platform_admin()`, `gridex_can_read_company(uuid)`).
+
+Applied. Verified: `table_exists=true, rls_enabled=true, policies=2, indexes=5,
+rows=0, columns=20`. Ledger entry `20260904221046
+gridex_inbound_operations_foundation`.
+
+**This closes F-PROD-1.** `lib/inbound-mail/manualInboundIngestion.ts:207` no
+longer throws in production.
+
+### 3.2 `z02_snapshot_market_context_guard` (repo 20260903213000) — APPLIED
+
+Preflight: 8/8 referenced tables present, both EDIFACT helper functions
+present, all 10 `customer_operation_jobs` columns present, all 9
+`customer_sites` columns present, and a 68-column reference check across
+`customer_info_requests`, `facility_data_quality_issues`, `ediel_messages`,
+`metering_points`, `grid_owner_data_requests`, `platform_grid_areas` and
+`customer_sites` returned ZERO missing columns. 8 rows in
+`customer_operation_jobs`; the trigger is BEFORE INSERT/UPDATE so no backfill
+effect. Migration is non-destructive (`create or replace` x3, trigger guarded
+by `drop trigger if exists`).
+
+Applied verbatim from the repo file (not a reconstruction). Verified:
+`gridex_gate_inbound_z02_snapshot_freshness`,
+`gridex_apply_exact_z02_core` and `gridex_gate_exact_z02_atomic_apply` all
+exist; trigger `trg_customer_operation_job_z02_snapshot_freshness` present
+(7 non-internal triggers total on the table). Ledger entry `20260904221936
+z02_snapshot_market_context_guard`.
+
+Observed immediately after apply, exactly as predicted: the newly created
+`gridex_gate_inbound_z02_snapshot_freshness()` was anon- AND
+authenticated-executable, because Supabase default privileges grant EXECUTE on
+newly created functions. This is the F-6 class the next migration closes, and
+it is why the two migrations had to be applied in this order.
+
+### 3.3 `canonical_tenant_invariant_convergence` (repo 20260904120000) — APPLIED
+
+Preflight: zero missing relations (15 checked), zero missing functions (6
+checked), `platform_table_classification` has a primary key on `table_name` so
+the `on conflict` clause resolves, and production was already hardened for
+everything EXCEPT the new function: 8/8 tables already RLS-on, 3/3
+classifications present, 0 inert policies, and 5 of 6 functions already closed
+to anon/authenticated. Only `gridex_gate_inbound_z02_snapshot_freshness()` was
+open — the one 3.2 had just created.
+
+Applied. Verified: `anon_exec_remaining=0`, `authenticated_exec_remaining=0`,
+`service_role_exec=6`, `classified=3`, `inert_policies_left=0`,
+`views_security_invoker=3`, `rls_on=8`. Ledger entry `20260904222045
+canonical_tenant_invariant_convergence`.
+
+**This closes F-PROD-2.**
+
+Note: the migration only revokes from `public` and `anon`, yet `authenticated`
+also came back 0. In production `authenticated` held EXECUTE via PUBLIC rather
+than via an explicit default-privilege grant, so the PUBLIC revoke removed it.
+Verified, not assumed.
+
+### 3.4 Remaining gap after Steg 3
+
+    tbl inbound_operation_events                        present
+    fn  gridex_gate_inbound_z02_snapshot_freshness      present
+    fn  gridex_finalize_admin_imported_signed_agreement_v1   STILL MISSING
+    canonical_onboard_customer_graph definition length  254 (production passthrough)
+
+Exactly one canonical object is still absent from production, and it belongs to
+the one remaining unapplied migration:
+
+`supabase/migrations/20260831095000_admin_signed_contract_import_canonicalization.sql`
+
+**This one is a BEHAVIOURAL change and is deliberately NOT applied yet.** It
+replaces production's 254-char passthrough `canonical_onboard_customer_graph`
+(`select public.gridex_onboard_customer_graph(p_command)`) with the canonical
+1741-char version that adds admin-channel, signed-document and catalog-offer
+guards, in a live contract path. Regression risk was already assessed as low
+(it is the latest definition in the chain; only one file defines
+`gridex_finalize_admin_imported_signed_agreement_v1`; dependencies verified
+present with 0 missing tables/columns/helper functions and 4 rows in
+`customer_authorization_documents`) — but it changes what a live contract
+import accepts, so it is presented to the user separately rather than folded
+into a hardening batch.
+
 ## Exact next action
 
-Steg 3, and it needs authorisation because it writes to a live database:
-
-1. Apply the missing `inbound_operation_events` foundation to production, and
-   `20260904120000` with it, in ledger order. This is a forward migration
-   against real production data — do NOT do it without the user saying so.
-2. Then classify the 74/546/57 production-only objects.
-3. Only after reconciliation, make `db:parity production` blocking (Steg 4).
-
-Do NOT mark parity blocking before the drift is classified: it would turn every
-build red on drift nobody has triaged.
+1. Present `20260831095000_admin_signed_contract_import_canonicalization` to
+   the user as a behavioural change and apply it on their word. Until then the
+   canonical/production function gap stays at exactly 1.
+2. Then classify the production-only surface (74 relations / 546 policies / 57
+   functions) per plan section 3.4/3.5.
+3. Only after that, Steg 4: make `db:parity production` blocking. Do NOT mark
+   it blocking before the drift is classified — it would turn every build red
+   on drift nobody has triaged.
+4. Then Steg 5+ (readiness policy versioning, Z02/Z03/Z04 state machine, typed
+   Supabase clients, inbound grid-owner mail, ...).

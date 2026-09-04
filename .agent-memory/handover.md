@@ -70,3 +70,23 @@ It has NOT been merged — the user has not authorised a merge. Do not merge.
 Read `.agent-memory/current-task.md` first. It carries the findings register,
 every design decision, the experiments that were run, and the ones that were
 disproved.
+
+
+## 2026-09-04 — after Steg 3
+
+Production (`piidsfebjqjmnepdpnas`) has been reconciled with the canonical
+migration chain except for one migration. Do NOT re-apply the three below —
+they are in the production ledger and verified:
+
+    20260904221046  gridex_inbound_operations_foundation
+    20260904221936  z02_snapshot_market_context_guard
+    20260904222045  canonical_tenant_invariant_convergence
+
+The single remaining gap is
+`supabase/migrations/20260831095000_admin_signed_contract_import_canonicalization.sql`,
+which is a BEHAVIOURAL change (guards added to a live contract-import path) and
+is waiting on the user, not on you. Do not apply it silently.
+
+Next after that: classify the production-only surface (74 relations / 546
+policies / 57 functions) per plan 3.4/3.5, then Steg 4 (make `db:parity
+production` blocking — only after classification), then Steg 5+.
