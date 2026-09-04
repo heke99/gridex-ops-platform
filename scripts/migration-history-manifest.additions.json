@@ -149,6 +149,7 @@
     "20260830012500_tenant_integrity_outbound_schema_safe_v2.sql": "ae02fb44a65feb0945d7dc6b0f87c400214edf87d7c45e4b74781195c4559cb4",
     "20260904090000_z01_parallel_sla_watchdog.sql": "9f64b59562ef010de63b55edb2bde7121a5ac07aa7d26891c2f2f64b03fdb0c6",
     "20260904093000_z01_sla_watchdog_event_contract_fix.sql": "89ece5cead072077410a1109f83cec46ab70872852cea2dc0448a3a05f70449b",
-    "20260904100000_z01_sla_late_response_resolution.sql": "9c6b1b95f7fa88f69cd71adbe0a9770de58964775c4d78593db486d9b3ecae30"
+    "20260904100000_z01_sla_late_response_resolution.sql": "9c6b1b95f7fa88f69cd71adbe0a9770de58964775c4d78593db486d9b3ecae30",
+    "20260904103000_z01_sla_watchdog_candidate_convergence.sql": "9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24"
   }
 }
