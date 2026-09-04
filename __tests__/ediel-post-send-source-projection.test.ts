@@ -4,22 +4,22 @@ import { describe, expect, it } from 'vitest'
 import { customerInfoPostSendStatus } from '@/lib/ediel/outbox/projectSentSources'
 
 describe('Ediel post-send customer-info projection', () => {
-  it('waits for CONTRL when technical acknowledgement is required and pending', () => {
+  it('waits for Z02 while technical CONTRL is monitored independently', () => {
     expect(customerInfoPostSendStatus({
       requires_contrl: true,
       contrl_status: 'pending',
       requires_aperak: false,
       aperak_status: 'not_required',
-    })).toBe('waiting_for_contrl')
+    })).toBe('waiting_for_z02')
   })
 
-  it('moves to APERAK after CONTRL has been received when APERAK is still required', () => {
+  it('still waits for Z02 when a separate application acknowledgement is pending', () => {
     expect(customerInfoPostSendStatus({
       requires_contrl: true,
       contrl_status: 'received',
       requires_aperak: true,
       aperak_status: 'pending',
-    })).toBe('waiting_for_aperak')
+    })).toBe('waiting_for_z02')
   })
 
   it('waits for Z02 when all required acknowledgements are already satisfied or not required', () => {
