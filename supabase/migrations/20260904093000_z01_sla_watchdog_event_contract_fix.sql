@@ -90,7 +90,8 @@ begin
       if not exists (
         select 1 from public.ediel_message_events e
         where e.ediel_message_id = rec.ediel_message_id
-          and e.event_type = 'ack_sla_breached'\n          and e.payload ->> 'slaFamily' = 'CONTRL'
+          and e.event_type = 'ack_sla_breached'
+          and e.payload ->> 'slaFamily' = 'CONTRL'
       ) then
         insert into public.ediel_message_events (
           company_id, ediel_message_id, event_type, event_status, message, payload
@@ -163,7 +164,8 @@ begin
       if not exists (
         select 1 from public.ediel_message_events e
         where e.ediel_message_id = rec.ediel_message_id
-          and e.event_type = 'ack_sla_breached'\n          and e.payload ->> 'slaFamily' = 'PRODAT_Z02_OR_NEGATIVE_APERAK'
+          and e.event_type = 'ack_sla_breached'
+          and e.payload ->> 'slaFamily' = 'PRODAT_Z02_OR_NEGATIVE_APERAK'
       ) then
         insert into public.ediel_message_events (
           company_id, ediel_message_id, event_type, event_status, message, payload
