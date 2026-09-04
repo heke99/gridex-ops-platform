@@ -84,12 +84,28 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Verify preinstalled PostgreSQL client
+      - name: Install a PostgreSQL client matching the replay server
         shell: bash
         run: |
           set -euo pipefail
-          command -v psql
+          # supabase/config.toml pins major_version 17, and pg_dump refuses to
+          # dump a server newer than itself. The runner ships an older client,
+          # so the schema snapshot aborts on a version mismatch.
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          echo "replay server major version: $server_major"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          # Name the matching binary explicitly. pg_wrapper does not reliably
+          # resolve to the newest installed major, so relying on PATH here can
+          # still pick an older pg_dump and abort on a version mismatch.
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           psql --version
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
       - name: Clean empty-database replay and verify generated types
         shell: bash
         run: |

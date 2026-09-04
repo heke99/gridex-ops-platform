@@ -114,10 +114,17 @@ function buildFingerprint(introspection, schemas) {
   }
 }
 
+/**
+ * pg_dump refuses to dump a server newer than itself, and Debian's pg_wrapper
+ * does not reliably pick the newest installed major. Allow an explicit binary
+ * so the caller can name the one that matches the server.
+ */
+const PG_DUMP = process.env.GRIDEX_PG_DUMP || 'pg_dump'
+
 function generate(url, schemas) {
   const dump = normalizeDump(
     run(
-      'pg_dump',
+      PG_DUMP,
       [
         url,
         '--schema-only',
@@ -125,7 +132,7 @@ function generate(url, schemas) {
         '--no-tablespaces',
         ...schemas.flatMap((schema) => ['--schema', schema]),
       ],
-      'pg_dump',
+      `${PG_DUMP} (schema dump)`,
     ),
   )
   const introspection = JSON.parse(

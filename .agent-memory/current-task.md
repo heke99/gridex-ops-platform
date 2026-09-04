@@ -661,3 +661,37 @@ would manufacture findings rather than expose them.
 
 This is the harness earning its limits being written down: it was right that
 the migration applies and wrong about grants, and CI is what settled it.
+
+## Stage 14 — CI on the fixed head: the tenant gate and parity self-test both pass
+
+Run on `b0098d8`: `verify` success, `quality-release-gates` success,
+`clean-migration-replay` failure — but for a different, smaller reason.
+
+What the real Supabase stack proved:
+
+- `npm run tenant:invariants` **passes**. The anon revoke was the right fix.
+- `npm run db:parity:selftest` **passes**, detecting all fifteen injected drift
+  classes inside the real stack, not just against local PostgreSQL.
+- The migration applies cleanly and the pinned fingerprint still verifies.
+
+The remaining failure was the schema snapshot:
+
+    pg_dump: error: aborting because of server version mismatch
+
+`supabase/config.toml` pins `major_version = 17` and the runner ships an older
+client. pg_dump refuses to dump a server newer than itself.
+
+### Why "just install the newer client" is not enough
+
+Tested locally with both 16 and 17 installed: `/usr/bin/pg_dump` still reports
+16.13. Debian's pg_wrapper does not reliably resolve to the newest installed
+major, so relying on PATH would have failed the same way a second time.
+
+Fix, verified on both paths locally:
+
+- `gridex-schema-snapshot.cjs` honours `GRIDEX_PG_DUMP`. With
+  `/usr/lib/postgresql/17/bin/pg_dump` it succeeds; with the default 16 binary
+  it exits 2 with a message naming both versions.
+- CI installs `postgresql-client-<major>` from PGDG, reading the major straight
+  out of `supabase/config.toml` so the two cannot drift apart, and exports the
+  explicit binary path through `GITHUB_ENV`.
