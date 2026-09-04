@@ -3,8 +3,8 @@
   "updated_at": "2026-09-04",
   "branch": "claude/gridex-ops-production-hardening-lrknxa",
   "base_head_sha": "62272e93",
-  "active_phase": "MASTER_PLAN_P0C_DATABASE_PARITY",
-  "active_task": "Fas 3 + Fas 4: canonical schema artifacts and the canonical/live parity engine",
+  "active_phase": "MASTER_PLAN_P0_SCHEMA_TRUTH_AND_TENANT_INVARIANTS",
+  "active_task": "Fas 2-4 tooling, tenant invariant convergence, and CI gate reliability",
   "status": "IMPLEMENTED_AND_LOCALLY_VERIFIED_PENDING_CI",
   "safety": {
     "rbac_changed": false,
@@ -12,11 +12,11 @@
     "business_logic_changed": false,
     "api_contracts_changed": false,
     "database_changed": false,
-    "migrations_added": false,
+    "migrations_added": true,
     "writes_changed": false,
     "runtime_code_changed": false
   },
-  "scope_note": "Additive tooling only. No migration was added, no runtime or application code was touched, and no database was mutated. The only behavioural change to an existing command is db:types:gen, which now generates from the local shadow instead of a linked project.",
+  "scope_note": "One forward migration (RLS, view security_invoker, inert policy removal, PUBLIC execute revokes, table classification), all defence in depth with no client-reachable surface affected. No runtime or application code changed. No database mutated outside throwaway local shadows.",
   "verification": {
     "db_parity_identical_schemas": "PASS_LOCAL",
     "db_parity_drift_matrix": "PASS_LOCAL_15_CLASSES",
@@ -29,7 +29,15 @@
     "eslint_changed_files": "NOT_APPLICABLE_SCRIPTS_IGNORED",
     "clean_replay": "NOT_RUNNABLE_LOCALLY_NO_SUPABASE_CLI",
     "production_parity": "BLOCKED_NO_PRODUCTION_PROJECT",
-    "ci": "PENDING"
+    "ci": "NOT_RUN_BRANCH_PUSH_DOES_NOT_TRIGGER_OPS_HARDENING",
+    "clean_replay_dockerless": "PASS_LOCAL_PG16_AND_PG17_565_INPUTS_NO_SQL_ERROR",
+    "tenant_invariants_on_canonical_shadow": "PASS_LOCAL_21_BREACHES_CLOSED",
+    "ledger_irrelevance_proof": "PASS_PARITY_IDENTICAL_WITH_AND_WITHOUT_LEDGER",
+    "provenance_regression": "PASS_LOCAL",
+    "dependency_audit_gate": "PASS_LOCAL_ALL_PATHS",
+    "typecheck": "PASS_LOCAL",
+    "narrow_fingerprint_vs_ci": "MISMATCH_HARNESS_DIFFERS_CI_IS_AUTHORITATIVE"
   },
-  "resume_from": "Read .agent-memory/current-task.md. Next action is to commit the canonical schema baseline captured by CI (rem002-schema-snapshot) as supabase/schema.sql and supabase/schema.fingerprint.json, which activates the guarded verification step in the clean-migration-replay job."
+  "resume_from": "Read .agent-memory/current-task.md and handover.md. ops-hardening.yml only runs on pull_request and push:main, so nothing on this branch has CI evidence yet. A pull request is the only way to run these gates; ask the user before opening one. Then commit the CI-produced rem002-schema-snapshot as the canonical baseline.",
+  "commits": 7
 }

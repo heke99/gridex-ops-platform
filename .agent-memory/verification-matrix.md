@@ -244,3 +244,42 @@ foreign key, dropped partial index, disabled RLS, rewritten policy USING
 expression, dropped trigger, changed function body, changed function overload
 signature, revoked grant, added enum label, and a view whose tenant filter was
 silently removed.
+
+## 2026-09-04 (continued) — dockerless replay, tenant invariants, CI gate reliability
+
+Environment: local PostgreSQL 16.13 (port 55432) and 17.11 (port 55433)
+clusters, both started for this session and not persisted. PostGIS installed
+via apt; Supabase CLI 2.101.0 installed at `/opt/supabase-cli`. No Docker, so
+`supabase start` and `supabase gen types` cannot run here.
+
+| Check | Command | Outcome |
+| --- | --- | --- |
+| Clean replay, PG 16 | `GRIDEX_REPLAY_DB_URL=... clean-replay.sh` | 565 inputs applied, no SQL error |
+| Clean replay, PG 17 | same | 565 inputs applied, no SQL error |
+| Shadow vs CI-verified types | 587 objects compared | every object present, every column set identical |
+| Narrow fingerprint vs pinned | replay script | MISMATCH; CI is green on main, so the harness differs, not the constant |
+| Tenant invariants, before fix | `npm run tenant:invariants` on shadow | FAIL, 21 breaches |
+| Tenant invariants, after fix | same | PASS, all checks passed |
+| Ledger irrelevance | `db:parity` with-ledger vs no-ledger shadow | PASS, identical across every object kind |
+| Provenance regression | `gridex-aud-003-migration-provenance-regression.cjs` | PASS after removing ledger writes |
+| Migration integrity | `npm run db:migrations:check` | PASS, 585 files / 489 version groups |
+| Generated types manifest | included above | PASS, tail bumped, hash unchanged |
+| Dependency audit, reachable | `npm run security:audit-production` | PASS, retried once after a timeout |
+| Dependency audit, unreachable | dead registry | exit 1, states it is not a vulnerability finding |
+| Dependency audit, high advisories | stubbed report | exit 1, lists offending severities |
+| Dependency audit, low only at level high | stubbed report | exit 0 |
+| Dependency audit, unknown level | `GRIDEX_AUDIT_LEVEL=bogus` | exit 2 |
+| Typecheck | `npm run typecheck` | PASS |
+| Service-role ratchet | `npm run tenant:service-role-ratchet` | PASS, 2399 call sites |
+| Agent memory git state | `check-agent-memory-git-state.cjs` | PASS |
+| OPS health / contract channel / API billing | respective regressions | PASS |
+| CI on this branch | — | NOT RUN; ops-hardening triggers on pull_request and push:main only |
+| CI on main `62272e9` | run 2450 | clean-migration-replay success, quality-release-gates success, verify FAILURE at security:audit-production (npm registry 503) |
+
+Full local gate battery re-run after all changes, every one exit 0:
+`ops:hardening-regression`, `ops:hardening-behavior-regression`, `lint`,
+`typecheck`, `typecheck:scripts`, `typecheck:tests`,
+`quality/mechanical/verify.sh`, `npm test`, `api:docs`, `security:rbac`,
+`db:migrations:check`, `tenant:service-role-ratchet`,
+`security:audit-production`, provenance regression, agent-memory git state,
+ops health, contract channel publication, API billing tenant hardening.
