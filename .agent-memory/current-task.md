@@ -355,6 +355,61 @@ pointed part of the finding and deserve checking first.
 NOT YET REMEDIATED. Any fix must be a forward migration that passes clean
 replay (§36). That is now testable locally, which it was not before Stage 6.
 
+## Stage 8 — remediating the invariant breaches (forward migration)
+
+`supabase/migrations/20260904120000_canonical_tenant_invariant_convergence.sql`
+closes the Stage 7 breaches. Registered in
+`scripts/migration-history-manifest.json` via
+`node scripts/register-migration-checksum.cjs` — the replay refuses any
+migration that is not checksum-pinned, which is the provenance contract working.
+
+Full breach list was 21, not the 15 first seen (the earlier output was tail
+truncated): 11 x F-6, 3 x F-13, 1 x F-14, 6 x F-16.
+
+What the migration does, and the evidence that each is safe:
+
+1. Classifies `inbound_ediel_match_attempts`, `inbound_ediel_parse_results`
+   and `inbound_email_attachments` as `system`, with the same rationale their
+   siblings `inbound_email_messages` / `inbound_operation_events` /
+   `inbound_processing_jobs` already carry.
+2. Enables RLS on 8 tables: `price_areas`, `price_area_localities`,
+   `gridex_performance_hardening_events`, `integration_api_permission_groups`,
+   `integration_api_client_profiles`, `legal_bundle_items`, `price_book_lines`,
+   `platform_schema_state`. Checked first: NONE of them grants any privilege to
+   anon or authenticated, so no client can reach them either way and
+   service_role bypasses RLS. Zero behavioural change.
+3. Sets `security_invoker` on three control-tower views.
+4. Drops three policies targeting `service_role` alone. service_role bypasses
+   RLS, so they never applied.
+5. Revokes EXECUTE from PUBLIC on six SECURITY DEFINER functions and grants it
+   to `service_role`. Checked first: all six have a NULL ACL, i.e. they are
+   reachable by `anon` only through PostgreSQL's default PUBLIC grant, no
+   migration ever granted anything explicitly. The only two with application
+   callers (`gridex_company_go_live_readiness`,
+   `canonical_onboard_customer_graph`) are both called through the service-role
+   client, and the gate's own comment notes policies reach SECURITY DEFINER
+   predicates without the caller holding EXECUTE.
+
+Severity note, so this is not overstated later: `canonical_onboard_customer_graph`
+was inspected and contains no write statement — it validates a command and
+returns jsonb. The F-16 items are defence in depth, not an open write path.
+
+### Verified by re-running the real thing
+
+First replay + gate run took the breaches from 21 to 3. The three that survived
+were my own bug: I wrote `set (security_invoker = on)`, and the gate compares
+the stored option to the literal string `'true'`. PostgreSQL keeps `on` as
+`on`, so the views were correct in behaviour but invisible to the gate. Repo
+convention is `true` (139 occurrences against 3, and those 3 were mine).
+Corrected to `true`, the old checksum entry removed and the migration
+re-registered.
+
+Worth knowing: the gate's F-13 check is string equality against `'true'`, so a
+future migration writing `on` will fail it for no real defect. That is
+fail-closed, so it is safe, but it is fragile. Not changed here — out of scope.
+
+Final replay + gate re-run IN PROGRESS at the time of writing.
+
 ## Exact next action
 
 1. Download `rem002-schema-snapshot/` from a green `clean-migration-replay`
