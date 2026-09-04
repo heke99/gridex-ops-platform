@@ -1,3 +1,4 @@
+import { inboundRouteMessageCodeMatches } from '@/lib/ediel/tenant/inboundRouteSemantics'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InboundTenantResolutionStatus = 'resolved' | 'ambiguous' | 'unresolved'
@@ -69,6 +70,18 @@ function configuredMatches(configured: unknown, observed: unknown): boolean {
   const observedValue = upper(observed)
   if (!configuredValue || !observedValue) return true
   return configuredValue === observedValue
+}
+
+function routeMessageCodeMatchKind(input: {
+  family: string | null | undefined
+  configuredCode: string | null | undefined
+  inboundCode: string | null | undefined
+}): 'unscoped' | 'exact' | 'business_response' | 'none' {
+  const configuredCode = upper(input.configuredCode)
+  const inboundCode = upper(input.inboundCode)
+  if (!configuredCode || !inboundCode) return 'unscoped'
+  if (configuredCode === inboundCode) return 'exact'
+  return inboundRouteMessageCodeMatches(input) ? 'business_response' : 'none'
 }
 
 function subaddressMatches(params: {
@@ -236,7 +249,6 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
   const senderSub = upper(input.senderSubaddress)
   const applicationReference = upper(input.applicationReference)
   const messageFamily = upper(input.messageFamily)
-  const messageCode = upper(input.messageCode)
 
   return ((data ?? []) as Array<Record<string, unknown>>).flatMap((row) => {
     const companyId = clean(row.company_id)
@@ -268,7 +280,14 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
 
     if (!configuredMatches(row.application_reference, applicationReference)) return []
     if (!configuredMatches(row.message_family, messageFamily)) return []
-    if (!configuredMatches(row.business_code ?? row.message_code, messageCode)) return []
+
+    const configuredCode = row.business_code ?? row.message_code
+    const codeMatchKind = routeMessageCodeMatchKind({
+      family: clean(row.message_family) ?? input.messageFamily,
+      configuredCode: clean(configuredCode),
+      inboundCode: input.messageCode,
+    })
+    if (codeMatchKind === 'none') return []
 
     let score = matchedMarketActor ? 140 : 100
     if (matchedTransport) score += 20
@@ -276,7 +295,8 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
     if (upper(configuredSenderSub) && senderSub) score += 15
     if (upper(row.application_reference) && applicationReference) score += 35
     if (upper(row.message_family) && messageFamily) score += 15
-    if (upper(row.business_code ?? row.message_code) && messageCode) score += 10
+    if (codeMatchKind === 'exact') score += 10
+    if (codeMatchKind === 'business_response') score += 8
     if (input.mailbox && clean(row.mailbox) === input.mailbox) score += 20
 
     return [{
@@ -295,6 +315,8 @@ async function evidenceFromRouteProfiles(input: ReturnType<typeof normalizeInput
         applicationReference: input.applicationReference,
         messageFamily: input.messageFamily,
         messageCode: input.messageCode,
+        configuredMessageCode: clean(configuredCode),
+        messageCodeMatch: codeMatchKind,
       },
     }]
   })

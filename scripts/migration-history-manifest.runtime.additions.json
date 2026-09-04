@@ -20,6 +20,7 @@
     "20260903161000_ediel_send_lock_release_requeues_outbox.sql": "ed0affa427b7356064a474a4e390dc70cf8297fa39c0b5e7c4e1edc1255c48c1",
     "20260903162000_ediel_tenant_readiness_revalidation.sql": "bd83c15402a34c4f2a599393491d27466edfdda5fcce5de1afd13c4ddc7d795e",
     "20260903163000_ediel_system_readiness_snapshot_access.sql": "20d5ba43ddec5635f2a220ea9b5dfa84d7d89288fc98addc684882f09c0666eb",
-    "20260903164000_ediel_readiness_trigger_convergence.sql": "56e532f4022bb421ccb387e8e541be62fe5664d961ddbf162b939f23e0d79793"
+    "20260903164000_ediel_readiness_trigger_convergence.sql": "56e532f4022bb421ccb387e8e541be62fe5664d961ddbf162b939f23e0d79793",
+    "20260903213000_z02_snapshot_market_context_guard.sql": "9ceaa0506831a7c2a10380eb4569ab38e26fc6919e9faf136d91e469d32f2300"
   }
 }
