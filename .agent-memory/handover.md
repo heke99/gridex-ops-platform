@@ -82,11 +82,15 @@ they are in the production ledger and verified:
     20260904221936  z02_snapshot_market_context_guard
     20260904222045  canonical_tenant_invariant_convergence
 
-The single remaining gap is
-`supabase/migrations/20260831095000_admin_signed_contract_import_canonicalization.sql`,
-which is a BEHAVIOURAL change (guards added to a live contract-import path) and
-is waiting on the user, not on you. Do not apply it silently.
+`20260904222450  admin_signed_contract_import_canonicalization` is applied too.
+That one is behavioural: admin imports can no longer INSERT a contract straight
+into `signed`/`active`, and a `complete_agreement` / `signed_agreement` upload
+now runs full evidence finalization or raises a named error. It was preflighted
+to a blast radius of zero existing rows.
 
-Next after that: classify the production-only surface (74 relations / 546
+Canonical is now a subset of production: every canonical table and function
+exists there. Do not re-apply any of the four.
+
+Next: classify the production-only surface (74 relations / 546
 policies / 57 functions) per plan 3.4/3.5, then Steg 4 (make `db:parity
 production` blocking — only after classification), then Steg 5+.

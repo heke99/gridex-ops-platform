@@ -192,15 +192,88 @@ present with 0 missing tables/columns/helper functions and 4 rows in
 import accepts, so it is presented to the user separately rather than folded
 into a hardening batch.
 
+### 3.5 `admin_signed_contract_import_canonicalization` (repo 20260831095000) — APPLIED
+
+This is the behavioural one. Applied after the three hardening migrations, with
+its own preflight.
+
+Preflight:
+
+* zero missing relations (16 checked: `customer_contracts`, `customers`,
+  `contract_price_snapshots`, the four publication/version tables,
+  `legal_bundle_versions` + `legal_bundle_version_documents`, the four
+  contract-evidence tables, `customer_contract_signature_requests`,
+  `customer_authorization_documents`);
+* zero missing functions (6 checked, including `private.gridex_normalize_fixed_area_snapshot_v1`
+  and `extensions.digest`), and the two variadic helpers
+  `gridex_prepare_manual_contract_binding` and
+  `gridex_record_customer_contract_event_v1` matched the call signatures used;
+* all three `on conflict` targets have a matching unique constraint
+  (`customer_contract_documents(customer_contract_id, document_type, document_sha256)`,
+  `customer_contract_acceptances(customer_contract_id, acceptance_sha256)`,
+  `customer_contract_evidence(customer_contract_id, evidence_type, evidence_sha256)`);
+* **blast radius zero on existing data**: the new trigger is AFTER INSERT/UPDATE,
+  and of the 4 rows in `customer_authorization_documents`, ZERO match its guard
+  (`document_type='complete_agreement' and status='active'`). Nothing already
+  stored is re-processed. 4 rows in `customer_contracts`.
+
+Applied verbatim from the repo file. Verified: function present, trigger
+`zz_customer_authorization_documents_finalize_signed_agreement_v1` present (5
+non-internal triggers on the table), 0 of the 2 touched functions reachable by
+anon or authenticated, and `canonical_onboard_customer_graph` definition length
+went from 254 (the passthrough) to 1741 (the guarded canonical version). Ledger
+entry `20260904222450 admin_signed_contract_import_canonicalization`.
+
+Behaviour that changed, stated plainly:
+
+* an admin import that sends `contract.status = 'signed'/'active'` together
+  with a signed document is now rewritten down to `pending_signature` (catalog
+  offer) or `draft` (one-off) with `signed_at` nulled — a contract can no
+  longer be INSERTed straight into a signed state;
+* a one-off contract without a catalog offer can no longer enter
+  `pending_signature` until its canonical publication chain is materialized;
+* uploading a `complete_agreement` / `signed_agreement` document now runs the
+  full finalization: permission assertion, PDF + SHA-256 evidence check, locked
+  publication-chain verification, a fresh canonical pricing receipt, contract
+  document + acceptance + evidence + legal acceptances, revocation of any
+  pending signature link, and only then `status = 'signed'`. Imports missing
+  any of that now raise a named error instead of silently producing a
+  half-evidenced signed contract.
+
+### 3.6 Canonical -> production object gap: CLOSED
+
+The earlier exhaustive check (every canonical table and every canonical
+function tested for existence in production) returned exactly three missing
+objects. All three applies were additive — no drop of any table, function,
+policy or index — and all three objects are now verified present:
+
+    inbound_operation_events                             present
+    gridex_gate_inbound_z02_snapshot_freshness           present
+    gridex_finalize_admin_imported_signed_agreement_v1   present
+
+So canonical is now a subset of production. The remaining drift is entirely in
+the other direction (production-only surface), which is 3.4/3.5 of the plan.
+
+Production ledger tail:
+
+    20260904222450  admin_signed_contract_import_canonicalization
+    20260904222045  canonical_tenant_invariant_convergence
+    20260904221936  z02_snapshot_market_context_guard
+    20260904221046  gridex_inbound_operations_foundation
+
 ## Exact next action
 
-1. Present `20260831095000_admin_signed_contract_import_canonicalization` to
-   the user as a behavioural change and apply it on their word. Until then the
-   canonical/production function gap stays at exactly 1.
-2. Then classify the production-only surface (74 relations / 546 policies / 57
-   functions) per plan section 3.4/3.5.
-3. Only after that, Steg 4: make `db:parity production` blocking. Do NOT mark
-   it blocking before the drift is classified — it would turn every build red
-   on drift nobody has triaged.
-4. Then Steg 5+ (readiness policy versioning, Z02/Z03/Z04 state machine, typed
-   Supabase clients, inbound grid-owner mail, ...).
+Steg 3 is complete for the canonical -> production direction. Next:
+
+1. Classify the production-only surface (74 relations / 546 policies / 57
+   functions) per plan section 3.4/3.5. Each needs: object, type, canonical
+   state, production state, impact, risk, remediation; then each is moved into
+   the migration chain, removed by forward migration, or declared a platform
+   artifact.
+2. Re-run the full canonical<->production parity after classification, as the
+   Steg 4 evidence, and only then make `db:parity production` blocking. Do NOT
+   mark it blocking before the drift is classified — it would turn every build
+   red on drift nobody has triaged.
+3. Then Steg 5+ (readiness policy versioning, Z02/Z03/Z04 state machine, typed
+   Supabase clients, inbound grid-owner mail, structural tenant writes,
+   service-role reduction, ...).

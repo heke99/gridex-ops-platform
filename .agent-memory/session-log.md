@@ -507,3 +507,14 @@ decision. It is the only remaining canonical/production object gap
 
 No secrets recorded. No direct schema editing — every change went through a
 migration applied from the repo file verbatim.
+
+4. `admin_signed_contract_import_canonicalization` -> ledger `20260904222450`.
+   The behavioural one. Preflight showed zero missing dependencies, all three
+   `on conflict` targets constrained, and zero of the 4 existing
+   `customer_authorization_documents` rows matching the new trigger guard, so
+   no stored row was reprocessed. Post-state: function present, trigger
+   present, `canonical_onboard_customer_graph` at 1741 chars (guarded) instead
+   of 254 (passthrough), neither function reachable by anon or authenticated.
+
+Canonical -> production gap is now zero. Remaining drift is production-only
+surface, which is plan 3.4/3.5 and is next.
