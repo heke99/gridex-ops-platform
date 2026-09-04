@@ -204,6 +204,157 @@ container: the Supabase CLI is not installed here, so clean replay cannot run
 and any locally generated artifact would not be canonical. The guarded step
 means the gate turns itself on the moment a real baseline is committed.
 
+## Stage 6 — IN PROGRESS: clean replay without Docker (plan Fas 2, §5.1)
+
+Context: `ops-hardening.yml` runs on `pull_request` and `push: main` only, so
+pushing this branch triggered NO CI run. CI verification of anything in this
+branch therefore requires a pull request. That is why unblocking local replay
+mattered.
+
+The agent container has no Docker, so `supabase start` cannot run. Plan §5.1
+asks for "a new empty Supabase-compatible DB" — it does not require Docker.
+So the empty database is now provisionable on plain PostgreSQL:
+
+- `scripts/sql/gridex-supabase-compatible-bootstrap.sql` creates ONLY the
+  platform surface the migration chain depends on: the Supabase roles (with
+  `service_role` carrying BYPASSRLS so policies replay with real semantics),
+  the `auth`, `storage`, `extensions`, `vault`, `graphql_public`, `realtime`
+  and `supabase_migrations` schemas, the pgcrypto / uuid-ossp / pg_trgm
+  extensions in `extensions`, GoTrue's `auth.users` (plus sessions and refresh
+  tokens), `auth.uid()` / `auth.role()` / `auth.jwt()` / `auth.email()`,
+  `storage.buckets` / `storage.objects`, and the Vault surface. It creates no
+  Gridex object — everything in `public` still comes from the migrations.
+- `scripts/gridex-aud-003-clean-replay.sh` accepts `GRIDEX_REPLAY_DB_URL`.
+  When set it skips `supabase start`/`stop`, applies the bootstrap, and records
+  the pinned ledger markers directly. ALL ordering, checksum pinning,
+  substitution, interleaving and fingerprint logic is untouched and shared by
+  both modes.
+
+Environment work done to make this possible: `postgresql-16-postgis-3` was
+installed with apt (PostGIS is required by
+`20260611100000_energy_resolver_grid_area_operations.sql` and was the only
+missing extension).
+
+Two defects in my own patch were found by running it, not by reading it:
+
+1. psql does not interpolate `:'var'` for `-c`, only for scripts. The ledger
+   marker insert now goes in on stdin.
+2. Supabase puts `extensions` on the search path; without that the chain dies
+   on the first helper calling `digest()`. The bootstrap now sets
+   `search_path` on the database and on anon/authenticated/service_role.
+
+### Result: the whole chain replays, on plain PostgreSQL, with zero errors
+
+All 565 replay inputs applied. No SQL error anywhere in the run. The pinned
+Supabase CLI ledger verified: 48 official rows. 587 tables/views/matviews were
+built in `public`. This is the first time clean replay has been shown to run
+without Docker.
+
+ONE difference remains, and it is understood:
+
+    expected c70fa2f017f6ce3af3ff806d948f18b58a3c196e4bf94daa9304629a3926680c
+    actual   324bc8e06587e5463244c4be7b6dd059a446fddd02f826cdf66bfcef0d5462bb
+
+### The PostgreSQL-version hypothesis was TESTED AND DISPROVED
+
+PostgreSQL 17.11 was installed from PGDG and a second full replay run on it.
+It produced the SAME actual fingerprint, `324bc8e0...`, byte for byte. The
+fingerprint is therefore version-independent and my replay is reproducible
+across two major versions. The mismatch is real, not an artifact of PG 16.
+
+Narrowing so far:
+
+- The five migrations added after `d60626d` (the commit that last refreshed
+  `EXPECTED_FINGERPRINT`, "Refresh clean replay fingerprint for Ediel readiness
+  schema") touch NONE of the thirteen fingerprinted tables and NEITHER of the
+  two fingerprinted functions. So the expected value ought still to be current.
+- The fingerprint payload was dumped and inspected for coupling to my
+  bootstrap. It references `auth.users` sixteen times and `auth.jwt` once, all
+  inside foreign-key definitions and one function body, whose rendered text does
+  not depend on how `auth.users` is shaped internally. `gen_random_uuid()` is a
+  PostgreSQL built-in from 13 onwards, so unqualified defaults are not affected
+  by the extensions search path either.
+
+Two hypotheses remain, and they have very different consequences:
+
+(a) my bootstrap still differs from the Supabase stack in a way that reaches
+    the thirteen tables, so the harness is at fault; or
+(b) `EXPECTED_FINGERPRINT` is stale, in which case the repository's own
+    clean-replay gate is currently RED and would fail in CI.
+
+### What the experiments actually showed — UNRESOLVED, do not report a verdict
+
+1. Replaying `d60626d` ITSELF — the commit that set `c70fa2f...` — also
+   produces `324bc8e0...`. So the constant is not merely stale relative to
+   later migrations.
+2. PostgreSQL 16.13 and 17.11 produce the identical actual fingerprint.
+3. The fingerprint is NOT sensitive to `search_path`: four different settings
+   all produce `324bc8e0...`.
+4. The replayed shadow's public schema was compared object by object against
+   the committed `supabase/database.types.ts`, which CI byte-compares against
+   typegen from ITS clean replay. All 587 tables/views in the shadow exist in
+   that file and every one has an identical column set. (An initial report of
+   7 differing objects was my parser breaking on multi-line union types, not a
+   real difference.)
+5. On the shadow, every constraint on `ediel_message_intents` is VALIDATED,
+   whereas memory records live carrying NOT VALID keys with 32 orphan rows
+   behind them — a canonical/live divergence, but the migration chain contains
+   no NOT VALID clause for that table, so this does not by itself explain the
+   constant.
+
+So the harness reproduces the canonical column-level schema, yet the pinned
+fingerprint does not match. Either the constant does not correspond to a real
+clean replay, or the difference sits in constraint/default/function detail that
+the generated types do not capture. THIS CANNOT BE DECIDED FROM THIS CONTAINER.
+It needs one CI `clean-migration-replay` run to emit the canonical value.
+
+Do NOT change `EXPECTED_FINGERPRINT`. Do NOT commit a canonical baseline until
+this is resolved. The guard is correctly refusing to certify a run it cannot
+match.
+
+## Stage 7 — CONFIRMED FINDING: the canonical shadow fails the tenant invariant gate
+
+With clean replay runnable locally, the tenant isolation invariant gate was run
+against the replayed canonical shadow for the first time:
+
+    DATABASE_URL=<shadow> npm run tenant:invariants   ->  exit 3, FAILS
+
+`completed-work.md` records that this same gate PASSES against the live schema
+(2026-09-02). So live and canonical disagree, which is precisely the drift the
+master plan exists to remove (§1.3, §5.3: a new Gridex must be creatable from
+the repository without manual database intervention).
+
+Breaches reported against the canonical shadow:
+
+- F-6, RLS disabled on `platform_schema_state`, `price_book_lines`,
+  `legal_bundle_items`, `integration_api_permission_groups`.
+- F-13, three views without `security_invoker`:
+  `gridex_automation_control_center_v`,
+  `gridex_batch_2b_live_control_tower_v`,
+  `gridex_batch_2c_control_tower_summary_v`.
+- F-14, three policies targeting roles with no privileges on their table.
+- F-16, six SECURITY DEFINER functions executable by `anon`, among them
+  `gridex_next_customer_number(uuid)`, `canonical_onboard_customer_graph(jsonb)`
+  and `gridex_company_go_live_readiness(uuid)`.
+
+### Evidence this is real and not an artifact of my environment
+
+For all four RLS tables, the migration chain NEVER enables row level security:
+`grep -rlE "alter table (public\.)?<table> enable row level security"` over
+`supabase/migrations` and `supabase/bootstrap` returns zero files, and zero
+disable statements too. This is verifiable from source alone, with no database.
+
+### Severity nuance — do not overstate this
+
+All four tables are classified `platform_shared`, none has a `company_id`, and
+none grants SELECT to `anon` or `authenticated`. They are closed by grants, so
+this is missing defence in depth and a canonical/live divergence, NOT an open
+cross-tenant read path. The F-16 functions executable by `anon` are the more
+pointed part of the finding and deserve checking first.
+
+NOT YET REMEDIATED. Any fix must be a forward migration that passes clean
+replay (§36). That is now testable locally, which it was not before Stage 6.
+
 ## Exact next action
 
 1. Download `rem002-schema-snapshot/` from a green `clean-migration-replay`

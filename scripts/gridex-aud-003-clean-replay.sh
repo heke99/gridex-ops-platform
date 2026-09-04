@@ -30,11 +30,24 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
-DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+# Clean replay normally runs against the local Supabase stack. Where Docker is
+# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
+# that this script provisions with the Supabase-compatible surface instead. The
+# migration ordering, checksum pinning and fingerprint below are identical in
+# both modes; only how the empty database is obtained differs.
+EXTERNAL_DB="${GRIDEX_REPLAY_DB_URL:-}"
+SUPABASE_BOOTSTRAP="$ROOT/scripts/sql/gridex-supabase-compatible-bootstrap.sql"
+if [[ -n "$EXTERNAL_DB" ]]; then
+  DB_URL="$EXTERNAL_DB"
+else
+  DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+fi
 
 cleanup(){
   set +e
-  supabase stop --no-backup >/dev/null 2>&1 || true
+  if [[ -z "${EXTERNAL_DB:-}" ]]; then
+    supabase stop --no-backup >/dev/null 2>&1 || true
+  fi
   rm -f "$MIGRATIONS"/*.sql
   cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
   cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
@@ -42,7 +55,7 @@ cleanup(){
 }
 trap cleanup EXIT
 
-command -v supabase >/dev/null
+if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi
 command -v psql >/dev/null
 command -v python3 >/dev/null
 for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
@@ -252,12 +265,31 @@ for e in entries:
     last=version
     (out/f'{version}_{name}.sql').write_text('-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n')
 PY
-cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
-
-# Supabase CLI owns the official ledger from the beginning so later governance
-# migrations can inspect it. Marker migrations are no-op SQL and carry exactly
-# the checksum-pinned dev-ledger versions verified below.
-supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+if [[ -z "$EXTERNAL_DB" ]]; then
+  cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
+  # Supabase CLI owns the official ledger from the beginning so later governance
+  # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
+  # the checksum-pinned dev-ledger versions verified below.
+  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+else
+  # Same ledger, same checksum-pinned versions, without the CLI: provision the
+  # Supabase-compatible surface, then record exactly the marker versions the
+  # CLI would have recorded. The ledger is verified against the pinned snapshot
+  # below in both modes.
+  echo "[GRIDEX-REM-002 replay] provisioning Supabase-compatible surface on the external database"
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
+  for marker in "$LEDGER_MARKERS"/*.sql; do
+    marker_name="$(basename "$marker" .sql)"
+    # psql performs variable interpolation for scripts, not for -c, so the
+    # insert is fed on stdin and the values stay parameterised.
+    psql "$DB_URL" -X -q -At -v ON_ERROR_STOP=1 \
+      -v version="${marker_name:0:14}" -v name="${marker_name:15}" -f - >/dev/null <<'LEDGER_SQL'
+insert into supabase_migrations.schema_migrations (version, name)
+values (:'version', :'name')
+on conflict (version) do nothing;
+LEDGER_SQL
+  done
+fi
 
 apply_sql(){
   local file="$1"
