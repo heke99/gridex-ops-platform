@@ -102,3 +102,30 @@ Database publication rows use `is_default`, while prior public schema logic trea
 Status: RELEASE_BLOCKER
 
 The trusted checksum for `20260730220000...` remains `0ab350f0...`, but uploaded bytes hash to `978de5e9...`. No historical checksum or bytes were rewritten by PHASE-36. Resolve from authoritative source/ledger.
+
+## 2026-09-04 — FALSE POSITIVE: "no cron job has a lock" (plan Fas 16, §19)
+
+Do not raise this again without reading the handlers.
+
+Grepping the 21 cron route files in `vercel.json` for lock keywords returns
+zero hits, which looks like every scheduled job runs unguarded. It is wrong.
+The routes are thin: they authenticate and delegate. Concurrency control lives
+in the handler and, below it, in the database.
+
+Checked end to end for `/api/ediel/outbox/process`:
+
+    route -> lib/ediel/outbox/processEdielOutbox.ts
+          -> lib/ediel/outbox/claimOutboxItems.ts
+          -> rpc claim_ediel_outbox_items
+             (supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql)
+
+That function selects `where status in ('prepared','queued') order by priority,
+created_at limit least(p_limit,100) for update skip locked`, flips the claimed
+rows to `sending` in the same CTE, and separately recovers rows stranded in
+`sending` to `delivery_uncertain`. That is claim-based concurrency with a batch
+limit and stale-claim recovery — stronger than a global advisory lock, since it
+lets workers run in parallel without starving each other. The migration that
+introduced the pattern is even named `..._multitenant_integrity_and_claim_locks`.
+
+Lesson: route-level greps say nothing about this codebase's job semantics.
+Any Fas 16 audit must trace route -> handler -> RPC before classifying a job.
