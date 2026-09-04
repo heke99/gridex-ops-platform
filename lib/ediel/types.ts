@@ -258,6 +258,9 @@ export type EdielMessageRow = {
   acknowledged_at: string | null;
   failed_at: string | null;
   ack_due_at: string | null;
+  contrl_due_at?: string | null;
+  business_response_due_at?: string | null;
+  response_overdue_at?: string | null;
 
   created_at: string;
   updated_at: string;
