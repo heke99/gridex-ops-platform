@@ -69,6 +69,15 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
     expect(businessResolution).toBeGreaterThan(businessLookup)
   })
 
+  it('does not let resolved historical Z01 rows starve newer watchdog candidates', () => {
+    const convergence = read('supabase/migrations/20260904103000_z01_sla_watchdog_candidate_convergence.sql')
+    expect(convergence).toContain("technical_sla.status = 'open'")
+    expect(convergence).toContain("business_sla.status = 'open'")
+    expect(convergence).toContain("response.related_message_id = m.id")
+    expect(convergence).toContain("upper(coalesce(response.message_code,'')) = 'Z02'")
+    expect(convergence).toContain("lower(coalesce(response.ack_outcome,'')) = 'negative'")
+  })
+
   it('runs the watchdog on the five-minute customer operations cron', () => {
     const cron = read('app/api/internal/customer-operations/cron/route.ts')
     expect(cron).toContain('runZ01ResponseSlaWatchdog')
