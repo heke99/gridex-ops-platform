@@ -82,6 +82,15 @@ grant usage on schema auth to anon, authenticated, service_role, postgres;
 grant usage on schema storage to anon, authenticated, service_role, postgres;
 grant usage on schema public to anon, authenticated, service_role;
 
+-- Supabase grants EXECUTE on newly created functions to the client roles
+-- through default privileges. Without this the harness sees a NULL ACL where
+-- the real stack has an explicit anon grant, so a migration that revokes only
+-- from PUBLIC looks sufficient here and is not. Functions only: table default
+-- privileges are deliberately NOT replicated, because a table's reachability
+-- is what the tenant invariant gate measures and inventing grants here would
+-- manufacture findings.
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+
 -- GoTrue's auth.users. Only the columns the Gridex migration chain reads or
 -- references are guaranteed here; the shape and nullability follow Supabase.
 create table if not exists auth.users (

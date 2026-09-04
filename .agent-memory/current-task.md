@@ -610,3 +610,54 @@ Expect the three jobs: `verify`, `quality-release-gates`,
 `clean-migration-replay`. The genuinely new risk is `clean-migration-replay`,
 because the tenant gate, parity self-test and schema snapshot have never run
 inside the real Supabase stack — only against the local PostgreSQL shadow.
+
+## Stage 13 — CI ran, and it found what the local harness could not
+
+Run 2451 on PR #307, head `ba0d323`:
+
+- `verify`: **success** — including `security:audit-production`, which now
+  completes in under a second instead of hanging seven minutes. The audit gate
+  fix is proven in CI.
+- `quality-release-gates`: **success**
+- `clean-migration-replay`: **failure**, and instructively so.
+
+Inside that job the good news came first: migration `20260904120000` applied
+cleanly in the real Supabase stack (INSERT 0 3, eight ALTER TABLE, three ALTER
+VIEW, three DROP POLICY, six REVOKE/GRANT pairs), and the pinned fingerprint
+still verified as `c70fa2f...` WITH the migration included. So the migration
+does not disturb canonical provenance.
+
+Then `npm run tenant:invariants` failed with three F-16 breaches:
+
+    gridex_default_customer_number_prefix(uuid)
+    gridex_next_customer_number(uuid)
+    gridex_db4b_archive_customer_registry_row(text,text,boolean,text)
+
+still executable by `anon`, despite the migration revoking them.
+
+### Root cause
+
+`revoke execute ... from public` does not remove an explicit grant to `anon`.
+Supabase's stack grants EXECUTE on newly created functions to the client roles
+through DEFAULT PRIVILEGES, so those functions carry a real `anon` grant. In my
+local harness the ACL was NULL — the plain PUBLIC default — so revoking PUBLIC
+looked sufficient. Three of the six passed in CI only because their own
+migrations already revoke explicitly.
+
+The gate checks `has_function_privilege('anon', p.oid, 'EXECUTE')`, nothing else.
+
+### Two fixes
+
+1. The migration now revokes from `anon` as well as `public`, on all six, and
+   the comment block says why PUBLIC alone is not enough. Checksum re-registered.
+2. `gridex-supabase-compatible-bootstrap.sql` now sets
+   `alter default privileges in schema public grant execute on functions to
+   anon, authenticated, service_role`, so the harness reproduces this class of
+   difference instead of hiding it.
+
+Deliberately NOT replicated: default privileges on TABLES. A table's client
+reachability is exactly what the F-6 checks measure, and inventing grants there
+would manufacture findings rather than expose them.
+
+This is the harness earning its limits being written down: it was right that
+the migration applies and wrong about grants, and CI is what settled it.

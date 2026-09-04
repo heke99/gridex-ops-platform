@@ -15,10 +15,11 @@
 --     service_role bypasses RLS;
 --   * the policies dropped target service_role alone, which bypasses RLS, so
 --     they never had any effect;
---   * the functions leaving the anonymous surface carry no explicit grant at
---     all today. They are executable by anon only through PostgreSQL's default
---     of granting EXECUTE to PUBLIC. Their two application callers both use the
---     service-role client, and policies reach SECURITY DEFINER predicates
+--   * the functions leaving the anonymous surface are revoked from both PUBLIC
+--     and anon. PUBLIC alone is not enough: Supabase's default privileges give
+--     anon an explicit EXECUTE grant when a function is created, which a
+--     revoke from PUBLIC does not touch. Their two application callers both use
+--     the service-role client, and policies reach SECURITY DEFINER predicates
 --     without the caller holding EXECUTE.
 
 -- 1. Classify the inbound parser relations.
@@ -73,19 +74,25 @@ drop policy if exists inbound_email_attachments_service_role_all
 
 -- 5. Take the SECURITY DEFINER helpers off the anonymous RPC surface.
 revoke execute on function public.gridex_default_customer_number_prefix(uuid) from public;
+revoke execute on function public.gridex_default_customer_number_prefix(uuid) from anon;
 grant execute on function public.gridex_default_customer_number_prefix(uuid) to service_role;
 
 revoke execute on function public.gridex_next_customer_number(uuid) from public;
+revoke execute on function public.gridex_next_customer_number(uuid) from anon;
 grant execute on function public.gridex_next_customer_number(uuid) to service_role;
 
 revoke execute on function public.gridex_db4b_archive_customer_registry_row(text, text, boolean, text) from public;
+revoke execute on function public.gridex_db4b_archive_customer_registry_row(text, text, boolean, text) from anon;
 grant execute on function public.gridex_db4b_archive_customer_registry_row(text, text, boolean, text) to service_role;
 
 revoke execute on function public.gridex_company_go_live_readiness(uuid) from public;
+revoke execute on function public.gridex_company_go_live_readiness(uuid) from anon;
 grant execute on function public.gridex_company_go_live_readiness(uuid) to service_role;
 
 revoke execute on function public.canonical_onboard_customer_graph(jsonb) from public;
+revoke execute on function public.canonical_onboard_customer_graph(jsonb) from anon;
 grant execute on function public.canonical_onboard_customer_graph(jsonb) to service_role;
 
 revoke execute on function public.gridex_gate_inbound_z02_snapshot_freshness() from public;
+revoke execute on function public.gridex_gate_inbound_z02_snapshot_freshness() from anon;
 grant execute on function public.gridex_gate_inbound_z02_snapshot_freshness() to service_role;
