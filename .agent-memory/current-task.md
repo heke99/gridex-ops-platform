@@ -154,18 +154,75 @@ tail migration `20260904103000_z01_sla_watchdog_candidate_convergence.sql`).
 That check is the backstop: it pins the generated-types hash to the migration
 tail, so a wrong-source regeneration fails rather than landing silently.
 
+## Stage 5 — DONE (tooling): F-P0C-2 and F-P0C-3 addressed, baseline pending
+
+`scripts/gridex-schema-snapshot.cjs` + `npm run db:schema:snapshot` /
+`npm run db:schema:check` produce the two Fas 3 artifacts:
+
+- `schema.sql` — normalized structure-only `pg_dump` (§6.1).
+- `schema.fingerprint.json` — per-section sha256 plus one overall hash (§6.2).
+
+The fingerprint is computed from the SAME introspection document the parity
+engine compares, so the two tools cannot disagree about what "the schema" is.
+It covers relations, columns, enums, constraints, indexes, functions,
+triggers, policies, grants, RLS state and extensions — replacing the
+hand-picked 13-table scope of `gridex-aud-003-schema-fingerprint.sql`.
+
+Two normalizations were required to make the dump byte-stable, both found by
+running it twice rather than by assuming:
+
+- the `-- Dumped from/by ... version` banner lines are dropped;
+- `pg_dump` randomizes its `\restrict` / `\unrestrict` psql guard tokens on
+  every run. They are rewritten to one fixed literal rather than deleted, so
+  the artifact stays deterministic AND remains a valid psql script.
+
+### Verification actually executed
+
+- Two writes from the same database produce byte-identical `schema.sql` and
+  `schema.fingerprint.json` (canon fingerprint
+  `e6a28665b9e3a59a24324098a72d0539214fc4dd9952549ca6aab379b587cdd4`).
+- `--mode check` against its own baseline passes (exit 0).
+- `--mode check` against the drifted database fails (exit 1) and names the
+  drifted sections individually: columns, constraints, enums, indexes,
+  triggers, relation_grants, functions, policies, relations, function_grants.
+- `--mode check` with no committed baseline fails closed (exit 2) instead of
+  passing by default.
+- Both were run through the exact npm/CI invocation, and `supabase/` stayed
+  clean (no stray artifacts).
+
+### Wired into CI, and WHY the gate is not yet active
+
+`.github/workflows/ops-hardening.yml`, job `clean-migration-replay`:
+
+1. "Capture canonical schema artifacts from the replayed shadow" always runs
+   and writes `rem002-schema-snapshot/`, uploaded with the other evidence.
+2. "Verify committed canonical schema artifacts" is guarded by
+   `if: hashFiles('supabase/schema.fingerprint.json') != ''`.
+
+There is NO committed baseline yet, and one cannot be produced in this
+container: the Supabase CLI is not installed here, so clean replay cannot run
+and any locally generated artifact would not be canonical. The guarded step
+means the gate turns itself on the moment a real baseline is committed.
+
 ## Exact next action
 
-1. Still OPEN and NOT started: **F-P0C-2** (no canonical `schema.sql`, plan
-   §6.1) and **F-P0C-3** (the fingerprint in
-   `scripts/gridex-aud-003-schema-fingerprint.sql` covers only 13 tables and 2
-   functions, plan §6.2 wants schema-wide coverage incl. indexes, triggers,
-   RLS, policies, grants). The introspection SQL added in Stage 2 already
-   produces exactly the document both of these need — reuse it rather than
-   writing a third introspection.
-3. Production parity remains BLOCKED by open blocker #1 (no production
-   Supabase project visible from this session). The engine exists; pointing it
-   at production and switching to `blocking` is a separate, later step.
+1. Download `rem002-schema-snapshot/` from a green `clean-migration-replay`
+   run on this branch, commit its two files as `supabase/schema.sql` and
+   `supabase/schema.fingerprint.json`, and confirm the guarded CI step then
+   runs and passes. That is the last step of Fas 3 and it needs CI, not a
+   local machine.
+2. Once that baseline exists, consider retiring the narrow
+   `scripts/gridex-aud-003-schema-fingerprint.sql` and its pinned
+   `EXPECTED_FINGERPRINT` in `scripts/gridex-aud-003-clean-replay.sh` in favour
+   of the schema-wide fingerprint. Do NOT do this blind: that expected hash can
+   only be recomputed by a real clean replay.
+3. Production parity (§7 pointed at live, `blocking` mode) remains BLOCKED by
+   open blocker #1 — no production Supabase project is visible from this
+   session. The engine and the artifacts are the prerequisites; pointing them
+   at production is a separate step that needs credentials this session does
+   not have.
+4. Nothing in Fas 5 onwards (typed Supabase clients, tenant architecture,
+   inbound mail, Ediel, readiness, billing) was touched this session.
 
 ## Environment note for the next session
 
@@ -173,5 +230,7 @@ The local PostgreSQL cluster used for verification is NOT part of the repo and
 will not survive this container:
 `/var/lib/postgresql/gridex-parity`, port 55432, trust auth, started with
 `pg_ctl -o '-p 55432 -k /tmp'` as the `postgres` OS user. Recreate it with
-`initdb` if you need to re-verify locally, or just run the self-test against
-any Postgres where the role may create databases.
+`initdb` if you need to re-verify locally, or run the self-test against any
+Postgres where the connecting role may create databases. The Supabase CLI is
+NOT installed in this container; anything requiring clean replay must run in
+CI.

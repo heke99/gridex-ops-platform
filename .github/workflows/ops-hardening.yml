@@ -123,6 +123,23 @@ jobs:
           # the self-test builds and drops its own throwaway databases there.
           npm run db:parity:selftest -- "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
+      - name: Capture canonical schema artifacts from the replayed shadow
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run db:schema:snapshot -- \
+            --url "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            --out-dir rem002-schema-snapshot
+
+      - name: Verify committed canonical schema artifacts
+        # Activates automatically once the artifacts captured above are
+        # committed to supabase/. Until then there is no baseline to compare.
+        if: hashFiles('supabase/schema.fingerprint.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run db:schema:check -- --url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,4 +149,5 @@ jobs:
             rem002-clean-replay.log
             rem002-database.types.ts
             rem002-db-parity-selftest.log
+            rem002-schema-snapshot/
           if-no-files-found: error
