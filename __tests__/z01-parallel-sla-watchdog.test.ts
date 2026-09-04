@@ -19,7 +19,7 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
     expect(source).toContain('contrl_due_at: technicalDueAt')
     expect(source).toContain('business_response_due_at: businessResponseDueAt')
     expect(source).toContain('ack_due_at: technicalDueAt')
-    expect(source).toContain('canonicalZ01BusinessResponseDeadlineMinutes()')
+    expect(source).toContain('canonicalZ01BusinessResponseDeadlineMinutesProjection()')
     expect(source).toContain('EDIEL_ACK_DEADLINE_MINUTES')
   })
 
