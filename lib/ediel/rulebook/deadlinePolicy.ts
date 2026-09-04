@@ -167,6 +167,26 @@ export function canonicalDeadlineCatalog(): readonly CanonicalEdielDeadlineRule[
   return CANONICAL_EDIEL_DEADLINE_RULES
 }
 
+export function canonicalZ01BusinessResponseDeadlineMinutes(): number {
+  const variants = ['L', 'LK'] as const
+  const minutes = variants.map((subtype) => {
+    const rule = canonicalDeadlineRuleForMessage({ family: 'PRODAT', code: 'Z02', subtype })
+    const deadline = rule?.constraints.find((entry) =>
+      entry.kind === 'within_after'
+      && entry.unit === 'minutes'
+      && entry.anchor === `received_PRODAT_Z01_${subtype}`
+    )
+    if (!deadline || typeof deadline.offset !== 'number' || deadline.offset <= 0) {
+      throw new Error(`canonical_z01_business_response_deadline_missing:${subtype}`)
+    }
+    return deadline.offset
+  })
+  if (minutes[0] !== minutes[1]) {
+    throw new Error('canonical_z01_business_response_deadline_variant_mismatch')
+  }
+  return minutes[0]
+}
+
 function constraint(rule: CanonicalEdielDeadlineRule, kind: CanonicalEdielDeadlineConstraintKind, anchor: string, condition?: string): CanonicalEdielDeadlineConstraint {
   const matches = rule.constraints.filter((candidate) =>
     candidate.kind === kind && candidate.anchor === anchor && (!condition || candidate.condition === condition),

@@ -4,6 +4,7 @@ import { processCustomerOperationJobs } from '@/lib/customer-operations/automati
 import { validateAutomationUserConfig } from '@/lib/customer-operations/automationConfig'
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
+import { runZ01ResponseSlaWatchdog } from '@/lib/ediel/operations/z01ResponseSlaWatchdog'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
 import { processReadySupplierSwitchActivations } from '@/lib/operations/supplierSwitchActivationSweep'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
@@ -81,6 +82,12 @@ async function run(request: NextRequest) {
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
       limit: requestedLimit,
     })
+    // PRODAT Z01 has two independent 30-minute watches from the actual
+    // message_sent_at: technical CONTRL and business Z02/negative APERAK.
+    // The watchdog only escalates; it never creates or resends a Z01.
+    const z01ResponseSla = await runZ01ResponseSlaWatchdog({
+      limit: Math.min(requestedLimit * 2, 100),
+    })
     const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
       limit: Math.min(requestedLimit, 25),
     })
@@ -121,6 +128,7 @@ async function run(request: NextRequest) {
         legacyFacilityRequestReconciliation,
         customerApplicationReconciliation,
         customerOperations,
+        z01ResponseSla,
         facilityLookupDispatch,
         resumedIntents,
         poaExpiry,

@@ -13,6 +13,7 @@ import {
   canonicalDeadlineCatalog,
   canonicalDeadlineRuleForMessage,
   canonicalSupplierSwitchSendPolicy,
+  canonicalZ01BusinessResponseDeadlineMinutes,
   evaluateCanonicalEdielActionDeadline,
   type CanonicalDeadlineEvaluation,
   type CanonicalEdielDeadlineRule,
@@ -154,6 +155,10 @@ export function canonicalDeadlineForMessage(input: {
 
 export function canonicalDeadlineCatalogProjection(): readonly CanonicalEdielDeadlineRule[] {
   return canonicalDeadlineCatalog()
+}
+
+export function canonicalZ01BusinessResponseDeadlineMinutesProjection(): number {
+  return canonicalZ01BusinessResponseDeadlineMinutes()
 }
 
 export function canonicalSupplierSwitchSendPolicyProjection(input: {
