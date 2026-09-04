@@ -42,6 +42,15 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
     expect(migration).not.toContain('insert into public.outbound_requests')
   })
 
+  it('uses only the production-allowed generic Ediel SLA event type', () => {
+    const fix = read('supabase/migrations/20260904093000_z01_sla_watchdog_event_contract_fix.sql')
+    expect(fix).toContain("'ack_sla_breached'")
+    expect(fix).toContain("'slaFamily', 'CONTRL'")
+    expect(fix).toContain("'slaFamily', 'PRODAT_Z02_OR_NEGATIVE_APERAK'")
+    expect(fix).not.toContain("'contrl_sla_breached'")
+    expect(fix).not.toContain("'business_response_sla_breached'")
+  })
+
   it('runs the watchdog on the five-minute customer operations cron', () => {
     const cron = read('app/api/internal/customer-operations/cron/route.ts')
     expect(cron).toContain('runZ01ResponseSlaWatchdog')
