@@ -135,15 +135,28 @@ A real PostgreSQL 16.13 cluster was started locally on port 55432
 Rationale worth keeping: a comparator that stops detecting drift is worse than
 no comparator, because a green run then reads as proven parity.
 
+## Stage 4 — DONE: F-P0C-4 closed
+
+`db:types:gen` was `supabase gen types typescript --linked --schema public`.
+It is now `supabase gen types typescript --local`, byte-identical to the CI
+command in `.github/workflows/ops-hardening.yml`.
+
+Two divergences from CI were fixed, not one:
+
+- `--linked` generated the canonical type file from whatever Supabase project
+  happened to be linked on the developer's machine, which plan §6.3 and
+  absolute rule §36 forbid outright.
+- `--schema public` was an extra flag CI does not pass, so even a correctly
+  sourced local run could have produced a file CI would then reject.
+
+`npm run db:types:check` still passes on the committed file (3339422 bytes,
+tail migration `20260904103000_z01_sla_watchdog_candidate_convergence.sql`).
+That check is the backstop: it pins the generated-types hash to the migration
+tail, so a wrong-source regeneration fails rather than landing silently.
+
 ## Exact next action
 
-1. Fix **F-P0C-4**: `db:types:gen` runs `supabase gen types typescript
-   --linked`, generating the canonical type file from whatever project happens
-   to be linked. Plan §6.3 and absolute rule §36 forbid this. CI already does
-   it correctly from `--local` after clean replay
-   (`.github/workflows/ops-hardening.yml`, job `clean-migration-replay`). Make
-   the developer script follow the same canonical source, or make it refuse.
-2. Still OPEN and NOT started: **F-P0C-2** (no canonical `schema.sql`, plan
+1. Still OPEN and NOT started: **F-P0C-2** (no canonical `schema.sql`, plan
    §6.1) and **F-P0C-3** (the fingerprint in
    `scripts/gridex-aud-003-schema-fingerprint.sql` covers only 13 tables and 2
    functions, plan §6.2 wants schema-wide coverage incl. indexes, triggers,
