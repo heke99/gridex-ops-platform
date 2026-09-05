@@ -2,6 +2,37 @@
 
 ## Current checkpoint — PR #310
 
+Parity semantics repair: sorted relation options (including view security_invoker)
+and relation/function/schema grantability are now measured and compared. The
+26-check isolated catalog regression passes; old code failed 22 checks. Existing
+schema fingerprints require authoritative recapture, not manual hash edits.
+See `PARITY_SEMANTICS_2026-09-05.md`. This is a verified measurement repair,
+not proof that every PostgreSQL security dimension or production parity is closed.
+
+
+
+## Active checkpoint 2026-09-05 — supersedes earlier status claims
+
+IN_PROGRESS; no masterplan phase is complete. Publication is authorized and
+PR #310 is open as draft. Head 2568c28f has passing verify/quality jobs and a
+failing canonical replay completeness gate (OPS run 33971545934). This is a real
+repository remediation task, not an external permission blocker.
+
+Forward migration 20260905141608 restores seven tenant relationship triggers
+while preserving the newer snapshot function. Isolated PGlite 0.3.14 tests pass
+18 reference cases under authenticated/service_role, twice; live read-only
+catalog assertion also passes. These tests do not establish full RLS isolation
+or canonical replay provenance. Integrity and production-readiness pass for
+586 files; generated-types check correctly fails the new migration tail. Do not
+update the types manifest without actual authoritative generation.
+
+Two exact reviewed read-only diagnostic inputs receive an explicit classification.
+The plan still has 56 unclassified files and 32 unresolved substitutions.
+Next: finish reviewed effect reconstruction and parity semantic checks, then
+obtain authoritative replay/type/schema artifacts and compare both ways with
+production. No production mutation has occurred in the 2026-09-05 campaign.
+
+
 Authenticated GitHub publication succeeded after explicit user authorization.
 PR: https://github.com/heke99/gridex-ops-platform/pull/310, draft.
 Head `55ed2f0402497d981b693412be797ee0932e6e60` has all three OPS jobs green

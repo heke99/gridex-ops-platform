@@ -27,6 +27,14 @@ try {
     const missing = { ...valid }; delete missing[section]
     malformed.push(missing, { ...valid, [section]: null })
   }
+  // Old-format documents must never certify parity or produce a new baseline.
+  for (const [section, row] of Object.entries({
+    relations: { nspname: 'public', relname: 'v', relkind: 'v', relrowsecurity: false,
+      relforcerowsecurity: false, view_definition: 'select 1', partition_key: null },
+    relation_grants: { nspname: 'public', relname: 't', grantee: 'reader', privilege_type: 'SELECT' },
+    function_grants: { nspname: 'public', proname: 'f', identity_arguments: '', grantee: 'reader', privilege_type: 'EXECUTE' },
+    schema_grants: { nspname: 'public', grantee: 'reader', privilege_type: 'USAGE' },
+  })) malformed.push({ ...valid, [section]: [row] })
   for (const tool of ['gridex-db-parity.cjs', 'gridex-schema-snapshot.cjs']) {
     const positive = run(tool, valid)
     assert.equal(positive.status, 0, `${tool}: valid empty schema rejected: ${positive.stderr}`)

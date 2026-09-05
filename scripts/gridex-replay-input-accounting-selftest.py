@@ -65,6 +65,50 @@ class InputAccountingTest(unittest.TestCase):
         self.assertTrue(result.stdout.strip(), result.stderr)
         return result.returncode, json.loads(result.stdout)
 
+    def add_reviewed_diagnostic(self, name):
+        rel = 'migrations/' + name
+        body = (ROOT / 'supabase' / rel).read_text()
+        self.excluded.append({'path': rel, 'sha256': self.add_sql(rel, body),
+            'status': 'historical_read_only_diagnostic',
+            'reason': 'Exact reviewed diagnostic, no persistent schema or data effects',
+            'evidence': ['repo:quality/audits/LEGACY_REPLAY_CLASSIFICATION_2026-09-05.md']})
+        return rel
+
+    def test_reviewed_diagnostics_are_excluded_without_execution_claim(self):
+        for name in ('20260525_debug_batch_2j_verify_no_old_afshin_id.sql',
+                     '20260525_verify_company_user_provisioning_flow.sql'):
+            self.add_reviewed_diagnostic(name)
+        code, report = self.run_checker('--require-full-effects')
+        self.assertEqual(code, 0, report)
+        self.assertEqual(report['counts']['EXPLICITLY_EXCLUDED'], 3)
+        self.assertFalse(report['sqlExecutionVerified'])
+        self.assertFalse(report['ledgerProvenanceVerified'])
+
+    def test_diagnostic_sql_change_rejected_even_with_refreshed_manifest_hashes(self):
+        rel = self.add_reviewed_diagnostic('20260525_verify_company_user_provisioning_flow.sql')
+        original = (self.root / 'supabase' / rel).read_text()
+        for sql in ('CREATE TABLE forbidden(id int);', 'DELETE FROM public.roles;',
+                    'WITH changed AS (DELETE FROM public.roles RETURNING *) SELECT * FROM changed;',
+                    'SELECT public.unreviewed_function();', 'SELECT 1 INTO forbidden;',
+                    'SELECT 1;'):
+            with self.subTest(sql=sql):
+                self.excluded[-1]['sha256'] = self.add_sql(rel, original + '\n' + sql)
+                code, report = self.run_checker()
+                self.assertEqual(code, 2, report)
+                self.assertIn('reviewed diagnostic', ' '.join(report['errors']))
+
+    def test_unreviewed_diagnostic_path_rejected(self):
+        self.excluded[0]['status'] = 'historical_read_only_diagnostic'
+        code, report = self.run_checker()
+        self.assertEqual(code, 2)
+        self.assertIn('reviewed diagnostic', ' '.join(report['errors']))
+
+    def test_unknown_exclusion_status_rejected(self):
+        self.excluded[0]['status'] = 'diagnostic_probably_safe'
+        code, report = self.run_checker()
+        self.assertEqual(code, 2)
+        self.assertIn('classification', ' '.join(report['errors']))
+
     def test_exhaustive_selection_has_no_execution_or_ledger_claim(self):
         code, report = self.run_checker()
         self.assertEqual(code, 0)

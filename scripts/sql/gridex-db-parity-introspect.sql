@@ -12,6 +12,7 @@ with nsp as (
 rels as (
   select n.nspname, c.relname, c.relkind::text as relkind, c.oid,
          c.relrowsecurity, c.relforcerowsecurity,
+         array(select option from unnest(c.reloptions) as option order by option collate "C") as reloptions,
          case when c.relkind in ('v', 'm') then pg_get_viewdef(c.oid, true) end as view_definition,
          case when c.relkind = 'p' then pg_get_partkeydef(c.oid) end as partition_key
   from pg_class c
@@ -91,7 +92,7 @@ pol as (
 relgrants as (
   select r.nspname, r.relname,
          case when acl.grantee = 0 then 'PUBLIC' else pg_get_userbyid(acl.grantee) end as grantee,
-         acl.privilege_type
+         acl.privilege_type, acl.is_grantable
   from rels r
   join pg_class c on c.oid = r.oid,
   lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) as acl
@@ -100,7 +101,7 @@ funcgrants as (
   select n.nspname, p.proname,
          pg_get_function_identity_arguments(p.oid) as identity_arguments,
          case when acl.grantee = 0 then 'PUBLIC' else pg_get_userbyid(acl.grantee) end as grantee,
-         acl.privilege_type
+         acl.privilege_type, acl.is_grantable
   from pg_proc p
   join nsp n on n.oid = p.pronamespace,
   lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) as acl
@@ -108,7 +109,7 @@ funcgrants as (
 schemagrants as (
   select n.nspname,
          case when acl.grantee = 0 then 'PUBLIC' else pg_get_userbyid(acl.grantee) end as grantee,
-         acl.privilege_type
+         acl.privilege_type, acl.is_grantable
   from nsp n
   join pg_namespace pn on pn.oid = n.oid,
   lateral aclexplode(coalesce(pn.nspacl, acldefault('n', pn.nspowner))) as acl

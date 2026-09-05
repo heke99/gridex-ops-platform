@@ -113,6 +113,11 @@ for (const name of timestamped) {
   if (sha256(path.join(migrationsDir, name)) !== expected) fail(`timestamped migration checksum drift: ${name}`);
 }
 
+// Independent finite content pins: updating JSON cannot authorize new diagnostic SQL.
+const reviewedDiagnostics = {
+  "migrations/20260525_debug_batch_2j_verify_no_old_afshin_id.sql": "10874b4600763f89d7e0f1c9e4c3e1e57c9e5ea50928d1af97b9d43185ec0da9",
+  "migrations/20260525_verify_company_user_provisioning_flow.sql": "b0e38917e7e5ec00310b0246f306ec4614808ed16964b6488c845b107ec7403f"
+};
 const noncanonicalArtifacts = noncanonical.artifacts || [];
 if (!noncanonicalArtifacts.length) fail('noncanonical artifact contract is empty');
 const noncanonicalPaths = new Set();
@@ -121,7 +126,8 @@ for (const item of noncanonicalArtifacts) {
   const name = path.basename(rel);
   if (noncanonicalPaths.has(rel)) fail(`duplicate noncanonical artifact: ${rel}`);
   noncanonicalPaths.add(rel);
-  if (!rel.startsWith('migrations/') || item.status !== 'merged_repository_artifact_not_deployed') fail(`invalid noncanonical classification: ${rel}`);
+  if (!/^migrations\/[^/]+\.sql$/.test(rel) || !['merged_repository_artifact_not_deployed', 'historical_read_only_diagnostic'].includes(item.status)) fail(`invalid noncanonical classification: ${rel}`);
+  if (item.status === 'historical_read_only_diagnostic' && reviewedDiagnostics[rel] !== item.sha256) fail(`unreviewed diagnostic path or content hash: ${rel}`);
   if (!item.reason || !(item.evidence || []).length || !/^[0-9a-f]{64}$/.test(item.sha256 || '')) fail(`incomplete noncanonical evidence: ${rel}`);
   const sourcePath = path.join(supabaseDir, rel);
   if (!fs.existsSync(sourcePath)) fail(`noncanonical artifact missing: ${rel}`);

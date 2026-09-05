@@ -363,3 +363,25 @@ canonical provenance; that limit is recorded in current-task.md and handover.md.
 
 
 2026-09-05: local behavior verification only: inventory selftest PASS and replay cleanup 10/10 PASS. No phase or production-parity closure.
+
+
+## Active checkpoint 2026-09-05 — supersedes earlier status claims
+
+IN_PROGRESS; no masterplan phase is complete. Publication is authorized and
+PR #310 is open as draft. Head 2568c28f has passing verify/quality jobs and a
+failing canonical replay completeness gate (OPS run 33971545934). This is a real
+repository remediation task, not an external permission blocker.
+
+Forward migration 20260905141608 restores seven tenant relationship triggers
+while preserving the newer snapshot function. Isolated PGlite 0.3.14 tests pass
+18 reference cases under authenticated/service_role, twice; live read-only
+catalog assertion also passes. These tests do not establish full RLS isolation
+or canonical replay provenance. Integrity and production-readiness pass for
+586 files; generated-types check correctly fails the new migration tail. Do not
+update the types manifest without actual authoritative generation.
+
+Two exact reviewed read-only diagnostic inputs receive an explicit classification.
+The plan still has 56 unclassified files and 32 unresolved substitutions.
+Next: finish reviewed effect reconstruction and parity semantic checks, then
+obtain authoritative replay/type/schema artifacts and compare both ways with
+production. No production mutation has occurred in the 2026-09-05 campaign.

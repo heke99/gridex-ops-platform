@@ -4,7 +4,7 @@
   "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
   "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
-  "active_task": "Repair inventory manifest divergence and replay recovery; verify hosted CI before canonical convergence",
+  "active_task": "Restore canonical tenant guards, classify replay history and close parity introspection gaps",
   "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
@@ -70,19 +70,22 @@
     "ci_pr_308_browser_public": "PASS",
     "ci_pr_308_pr_certificate": "PASS"
   },
-  "resume_from": "Publish through authenticated GitHub connector, open draft PR and inspect exact-head CI. Continue exhaustive replay input accounting and forward schema reconstruction; no phase closed.",
+  "resume_from": "Complete reviewed forward reconstruction and historical effect accounting; obtain authoritative clean-replay schema/types, then verify live two-way parity before any phase closure.",
   "commits": 0,
-  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/308 (merged)",
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/310 (draft)",
   "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
   "current_session_verification": {
-    "inventory_selftest": "PASS_LOCAL",
-    "replay_recovery_selftest": "PASS_LOCAL_10",
-    "production_migration_readiness": "PASS_LOCAL_585_OF_585",
+    "publication": "AUTHORIZED_AND_PUBLISHED_PR310_HEAD_2568c28f",
+    "hosted_ci_2568c28f": "VERIFY_AND_QUALITY_PASS_REPLAY_FAILS_COMPLETENESS",
+    "tenant_guard_fixture": "PASS_PGLITE_0.3.14_TWO_APPLIES_18_REFERENCES_TWO_ROLES",
+    "live_guard_catalog": "PASS_READ_ONLY_7_GUARDS",
+    "migration_integrity": "PASS_586_FILES_490_GROUPS",
+    "production_migration_readiness": "PASS_LOCAL_586_FILES_493_LEDGER_ELIGIBLE",
+    "db_types_check": "FAIL_NEW_MIGRATION_TAIL_REQUIRES_REAL_GENERATION",
     "production_parity": "NOT_CONVERGED",
-    "hosted_ci_current_changes": "PENDING",
-    "typecheck": "PASS_LOCAL_NODE24",
-    "focused_domain_vitest": "PASS_7_FILES_22_TESTS",
-    "publication": "USER_AUTHORIZED_SHELL_GIT_AUTH_MISSING_USE_CONNECTED_GITHUB",
-    "schema_document_selftest": "PASS_LOCAL"
+    "production_deployment": "READY_eb9a25bc_dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c",
+    "parity_semantics": "PASS_26_ISOLATED_CATALOG_CHECKS_RELOPTIONS_AND_GRANT_OPTIONS",
+    "diagnostic_classification": "PASS_21_ACCOUNTING_TESTS_56_UNKNOWN_32_PARTIAL",
+    "replay_recovery_selftest": "PASS_14_PRESTART_NO_STOP_AND_FAILED_START_CLEANUP"
   }
 }

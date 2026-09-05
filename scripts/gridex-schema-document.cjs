@@ -1,7 +1,7 @@
 // Shared input contract for parity and canonical schema fingerprints.
 // Empty object lists are valid; missing lists or missing requested schemas are not.
 const fields = {
-  relations: 'nspname relname relkind relrowsecurity relforcerowsecurity view_definition partition_key',
+  relations: 'nspname relname relkind relrowsecurity relforcerowsecurity reloptions view_definition partition_key',
   columns: 'nspname relname attnum attname data_type udt_name is_nullable column_default identity generated',
   enums: 'nspname typname enumlabel enumsortorder',
   constraints: 'nspname relname conname contype definition convalidated',
@@ -9,9 +9,9 @@ const fields = {
   functions: 'nspname proname identity_arguments arguments return_type security_definer volatility kind body_md5',
   triggers: 'nspname relname tgname definition enabled',
   policies: 'nspname relname polname command permissive using_expression check_expression roles',
-  relation_grants: 'nspname relname grantee privilege_type',
-  function_grants: 'nspname proname identity_arguments grantee privilege_type',
-  schema_grants: 'nspname grantee privilege_type',
+  relation_grants: 'nspname relname grantee privilege_type is_grantable',
+  function_grants: 'nspname proname identity_arguments grantee privilege_type is_grantable',
+  schema_grants: 'nspname grantee privilege_type is_grantable',
   extensions: 'extname extversion nspname',
 }
 

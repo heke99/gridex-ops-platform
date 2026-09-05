@@ -40,7 +40,11 @@ class ReplayCleanupTest(unittest.TestCase):
                      'gridex-aud-003-noncanonical-artifacts.json'):
             shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         self.stub('psql', 'exit 99')  # Database execution must never be reached.
-        self.stub('supabase', 'exit 99')
+        self.calls = self.root / 'supabase-calls'
+        self.stub('supabase', '''
+printf '%s\\n' "$*" >> "$FIXTURE/supabase-calls"
+exit 99
+''')
         self.stub('python3', '''
 if [[ "$1" == */gridex-replay-input-accounting.py ]]; then
   [[ "$*" == *--require-full-effects* ]] || exit 92
@@ -76,6 +80,52 @@ exit 73
                          'failed replay changed original migrations or seed')
         self.assertEqual(list(self.tmp.iterdir()), [], 'successful cleanup leaked temporary files')
         return result
+
+    def supabase_calls(self):
+        return self.calls.read_text().splitlines() if self.calls.exists() else []
+
+    def test_early_accounting_failure_never_stops_supabase(self):
+        self.stub('python3', 'exit 2')
+        self.run_replay(2)
+        self.assertEqual(self.supabase_calls(), [])
+
+    def test_early_failure_preserves_preexisting_stack(self):
+        existing = self.root / 'preexisting-stack'
+        existing.write_text('running before replay')
+        self.stub('supabase', '''
+printf '%s\\n' "$*" >> "$FIXTURE/supabase-calls"
+if [[ "$1" == stop ]]; then rm "$FIXTURE/preexisting-stack"; fi
+exit 0
+''')
+        self.stub('python3', 'exit 2')
+        self.run_replay(2)
+        self.assertTrue(existing.exists(), 'preflight stopped a preexisting local stack')
+        self.assertEqual(self.supabase_calls(), [])
+
+    def test_failed_start_attempt_is_cleaned_and_preserves_failure_status(self):
+        # Only bypass input generation in this disposable fixture to reach the
+        # real shell startup/cleanup path; never invoke a database command.
+        self.stub('python3', '''
+if [[ "$1" == */gridex-replay-input-accounting.py ]]; then exit 0; fi
+if [[ "$2" == */gridex-aud-003-main-ledger.json ]]; then
+  printf 'select 1;\\n' > "$3/20260101000000_marker.sql"
+fi
+exit 0
+''')
+        self.stub('supabase', '''
+printf '%s\\n' "$*" >> "$FIXTURE/supabase-calls"
+if [[ "$1" == start ]]; then
+  printf 'partial start' > "$FIXTURE/attempted-stack"
+  exit 78
+fi
+if [[ "$1" == stop ]]; then rm "$FIXTURE/attempted-stack"; exit 0; fi
+exit 98
+''')
+        self.run_replay(78)
+        self.assertEqual(self.supabase_calls(), [
+            'start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector',
+            'stop --no-backup'])
+        self.assertFalse((self.root / 'attempted-stack').exists())
 
     def test_missing_supabase_preserves_originals(self):
         (self.bin / 'supabase').unlink()

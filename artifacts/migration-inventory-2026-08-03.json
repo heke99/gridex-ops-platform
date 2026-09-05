@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-05T07:38:15.138Z",
+  "generated_at": "2026-09-05T19:38:21.440Z",
   "source": "repository/supabase/migrations",
   "checksum_sources": [
     "scripts/migration-history-manifest.json",
@@ -10,10 +10,10 @@
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 585,
-    "ledger_eligible_count": 492,
+    "sql_file_count": 586,
+    "ledger_eligible_count": 493,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 585,
+    "checksum_registered_count": 586,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -10567,6 +10567,31 @@
         "public.price_area_localities",
         "public.price_areas",
         "public.price_book_lines"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260905141608",
+      "filename": "20260905141608_canonical_tenant_relationship_guards.sql",
+      "checksum": "8e1ec819b7775072ff04370e2ce7327793e094acf248a971968565e643bfe8f5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "gridex_billing_underlays_company_guard_tg",
+        "gridex_contract_price_snapshots_company_guard_tg",
+        "gridex_customer_contracts_company_guard_tg",
+        "gridex_customer_legal_acceptances_company_guard_tg",
+        "gridex_customer_sites_company_guard_tg",
+        "gridex_metering_points_company_guard_tg",
+        "gridex_powers_of_attorney_company_guard_tg",
+        "public.gridex_assert_same_company",
+        "public.gridex_billing_underlays_company_guard",
+        "public.gridex_customer_contracts_company_guard",
+        "public.gridex_customer_legal_acceptances_company_guard",
+        "public.gridex_customer_sites_company_guard",
+        "public.gridex_metering_points_company_guard",
+        "public.gridex_powers_of_attorney_company_guard"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "Explicit checksum-bound repository artifacts that are preserved for historical evidence but excluded from canonical empty-database replay because evidence proves they were not deployed in the canonical lineage.",
+  "purpose": "Explicit checksum-bound historical repository artifacts excluded from canonical empty-database replay. Each status has a distinct evidence contract: undeployed lineage, or one of the finite reviewed read-only diagnostics. Diagnostic status makes no deployment-history claim.",
   "artifacts": [
     {
       "path": "migrations/20260530123000_gridcore_active_ediel_scope_rules_and_aibi_imports.sql",
@@ -14,6 +14,30 @@
         "supabase:gridex-ops-dev:supabase_migrations.schema_migrations:2026-08-08",
         "repo:lib/ediel/types.ts:EdielMessageRuleRow",
         "repo:scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "path": "migrations/20260525_debug_batch_2j_verify_no_old_afshin_id.sql",
+      "sha256": "10874b4600763f89d7e0f1c9e4c3e1e57c9e5ea50928d1af97b9d43185ec0da9",
+      "status": "historical_read_only_diagnostic",
+      "finding": "LEGACY-REPLAY-DIAGNOSTIC-2026-09-05",
+      "reason": "Exact source reviewed: SELECT/UNION inspection with read-only CTEs where present; only lower/coalesce expressions and built-in text/uuid/boolean casts. No DDL, DML, SELECT INTO, locking clause, dynamic SQL, or application function invocation. Historical identity-targeted output is not a schema or reference-data replay effect. No assertion about whether this diagnostic was deployed.",
+      "evidence": [
+        "repo:quality/audits/LEGACY_REPLAY_CLASSIFICATION_2026-09-05.md",
+        "repo:scripts/gridex-aud-003-clean-replay.sh:reviewed_diagnostics",
+        "repo:scripts/gridex-replay-input-accounting-selftest.py"
+      ]
+    },
+    {
+      "path": "migrations/20260525_verify_company_user_provisioning_flow.sql",
+      "sha256": "b0e38917e7e5ec00310b0246f306ec4614808ed16964b6488c845b107ec7403f",
+      "status": "historical_read_only_diagnostic",
+      "finding": "LEGACY-REPLAY-DIAGNOSTIC-2026-09-05",
+      "reason": "Exact source reviewed: SELECT/UNION inspection with read-only CTEs where present; only lower/coalesce expressions and built-in text/uuid/boolean casts. No DDL, DML, SELECT INTO, locking clause, dynamic SQL, or application function invocation. Historical identity-targeted output is not a schema or reference-data replay effect. No assertion about whether this diagnostic was deployed.",
+      "evidence": [
+        "repo:quality/audits/LEGACY_REPLAY_CLASSIFICATION_2026-09-05.md",
+        "repo:scripts/gridex-aud-003-clean-replay.sh:reviewed_diagnostics",
+        "repo:scripts/gridex-replay-input-accounting-selftest.py"
       ]
     }
   ]

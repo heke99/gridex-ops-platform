@@ -496,7 +496,8 @@ values
   ('20260904093000','20260904093000_z01_sla_watchdog_event_contract_fix.sql','89ece5cead072077410a1109f83cec46ab70872852cea2dc0448a3a05f70449b',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260904100000','20260904100000_z01_sla_late_response_resolution.sql','9c6b1b95f7fa88f69cd71adbe0a9770de58964775c4d78593db486d9b3ecae30',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
   ('20260904103000','20260904103000_z01_sla_watchdog_candidate_convergence.sql','9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
-  ('20260904120000','20260904120000_canonical_tenant_invariant_convergence.sql','3e40f894ec109a45e4dd7842edd819509caadac1e8d5e89a45d244224d0c77e1',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
+  ('20260904120000','20260904120000_canonical_tenant_invariant_convergence.sql','3e40f894ec109a45e4dd7842edd819509caadac1e8d5e89a45d244224d0c77e1',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint'),
+  ('20260905141608','20260905141608_canonical_tenant_relationship_guards.sql','8e1ec819b7775072ff04370e2ce7327793e094acf248a971968565e643bfe8f5',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')
 on conflict(version,filename) do update set
   checksum=excluded.checksum,
   applied_environment=excluded.applied_environment,

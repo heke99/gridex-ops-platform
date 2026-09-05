@@ -31,6 +31,7 @@ SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
 WORKTREE_MUTATED=false
+STACK_START_ATTEMPTED=false
 # Clean replay normally runs against the local Supabase stack. Where Docker is
 # unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
 # that this script provisions with the Supabase-compatible surface instead. The
@@ -48,7 +49,7 @@ cleanup(){
   local status=$?
   local restore_failed=false
   set +e
-  if [[ -z "${EXTERNAL_DB:-}" ]]; then
+  if [[ "$STACK_START_ATTEMPTED" == true ]]; then
     supabase stop --no-backup >/dev/null 2>&1 || true
   fi
   # Preflight and incomplete backups must never overwrite untouched originals.
@@ -229,6 +230,11 @@ for item in interleaved:
     if should_skip_timestamp_source(source,meta): skip_timestamp_names.add(source.name)
     interleaved_paths.append((actual,after,before))
 
+# Finite reviewed-content allowlist, NOT a SQL parser. SELECT alone does not
+# establish safety (CTE DML, SELECT INTO and function calls can have effects).
+# New content or paths require fresh statement/body review and a code change;
+# refreshing manifest hashes cannot expand this diagnostic exclusion contract.
+reviewed_diagnostics={'migrations/20260525_debug_batch_2j_verify_no_old_afshin_id.sql': '10874b4600763f89d7e0f1c9e4c3e1e57c9e5ea50928d1af97b9d43185ec0da9', 'migrations/20260525_verify_company_user_provisioning_flow.sql': 'b0e38917e7e5ec00310b0246f306ec4614808ed16964b6488c845b107ec7403f'}
 excluded=set()
 artifacts=noncanonical.get('artifacts') or []
 if not artifacts: raise SystemExit('noncanonical artifact contract is empty')
@@ -238,9 +244,11 @@ for item in artifacts:
     status=item.get('status','')
     reason=item.get('reason','')
     evidence=item.get('evidence') or []
-    if status != 'merged_repository_artifact_not_deployed' or not reason or not evidence:
+    if status not in ('merged_repository_artifact_not_deployed','historical_read_only_diagnostic') or not reason or not evidence:
         raise SystemExit(f'incomplete noncanonical classification: {rel}')
-    if not rel.startswith('migrations/'):
+    if status == 'historical_read_only_diagnostic' and reviewed_diagnostics.get(rel) != expected:
+        raise SystemExit(f'unreviewed diagnostic path or content hash: {rel}')
+    if not re.fullmatch(r'migrations/[^/]+[.]sql',rel):
         raise SystemExit(f'noncanonical artifact must be a migration path: {rel}')
     actual=resolve(rel)
     if not actual.exists(): raise SystemExit(f'noncanonical artifact missing: {rel}')
@@ -297,6 +305,10 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   # Supabase CLI owns the official ledger from the beginning so later governance
   # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
   # the checksum-pinned dev-ledger versions verified below.
+  # Preflight failure must not stop a stack this invocation never started.
+  # Arm before start so partially failed startup still receives cleanup. This
+  # is attempt tracking, not proof of ownership of a pre-existing local stack.
+  STACK_START_ATTEMPTED=true
   supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 else
   # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The

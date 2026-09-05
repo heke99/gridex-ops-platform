@@ -23,6 +23,12 @@ jobs:
           node scripts/gridex-schema-document-selftest.cjs
           python3 scripts/gridex-replay-input-accounting-selftest.py
           npm run db:migrations:production-readiness
+      - name: Verify restored tenant guards in an isolated SQL fixture
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/gridex-guard-test" --no-save --ignore-scripts @electric-sql/pglite@0.3.14
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-tenant-guard-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/gridex-db-parity-semantics-selftest.mjs
       - run: npm run db:migrations:check
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped
@@ -119,6 +125,7 @@ jobs:
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
