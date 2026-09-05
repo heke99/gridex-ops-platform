@@ -70,3 +70,27 @@ It has NOT been merged — the user has not authorised a merge. Do not merge.
 Read `.agent-memory/current-task.md` first. It carries the findings register,
 every design decision, the experiments that were run, and the ones that were
 disproved.
+
+
+## 2026-09-04 — after Steg 3
+
+Production (`piidsfebjqjmnepdpnas`) has been reconciled with the canonical
+migration chain except for one migration. Do NOT re-apply the three below —
+they are in the production ledger and verified:
+
+    20260904221046  gridex_inbound_operations_foundation
+    20260904221936  z02_snapshot_market_context_guard
+    20260904222045  canonical_tenant_invariant_convergence
+
+`20260904222450  admin_signed_contract_import_canonicalization` is applied too.
+That one is behavioural: admin imports can no longer INSERT a contract straight
+into `signed`/`active`, and a `complete_agreement` / `signed_agreement` upload
+now runs full evidence finalization or raises a named error. It was preflighted
+to a blast radius of zero existing rows.
+
+Canonical is now a subset of production: every canonical table and function
+exists there. Do not re-apply any of the four.
+
+Next: classify the production-only surface (74 relations / 546
+policies / 57 functions) per plan 3.4/3.5, then Steg 4 (make `db:parity
+production` blocking — only after classification), then Steg 5+.

@@ -479,3 +479,42 @@ compare identical under the parity engine.
 
 Left scoped but unstarted, deliberately: typed Supabase clients (487 files) and
 readiness policy versioning. Neither belongs in a green PR about schema truth.
+
+## 2026-09-04 — Steg 3: production reconciliation (writes to production)
+
+Authorised: "vi har ingen data idag som ar viktigt sa gor det korrekt och
+produktionmassigt".
+
+Applied to production project `piidsfebjqjmnepdpnas`, in ledger order, each
+preflighted and then verified by introspection:
+
+1. `gridex_inbound_operations_foundation` → ledger `20260904221046`.
+   Creates `inbound_operation_events`. Closes F-PROD-1: manual inbound
+   ingestion (`lib/inbound-mail/manualInboundIngestion.ts:207`) no longer
+   throws in production.
+2. `z02_snapshot_market_context_guard` → ledger `20260904221936`.
+   Creates the Z02 snapshot-freshness gate, the atomic apply core and its
+   trigger gate. Applied before (3) because (3) revokes a function (2) creates.
+3. `canonical_tenant_invariant_convergence` → ledger `20260904222045`.
+   Closes F-PROD-2. Post-state: 0/6 helpers anon-executable, 0/6
+   authenticated-executable, 6/6 service_role, 8/8 RLS on, 3/3 classified,
+   0 inert policies, 3/3 views `security_invoker`.
+
+NOT applied: `20260831095000_admin_signed_contract_import_canonicalization`.
+Behavioural change in a live contract path. Presented to the user for a
+decision. It is the only remaining canonical/production object gap
+(`gridex_finalize_admin_imported_signed_agreement_v1`).
+
+No secrets recorded. No direct schema editing — every change went through a
+migration applied from the repo file verbatim.
+
+4. `admin_signed_contract_import_canonicalization` -> ledger `20260904222450`.
+   The behavioural one. Preflight showed zero missing dependencies, all three
+   `on conflict` targets constrained, and zero of the 4 existing
+   `customer_authorization_documents` rows matching the new trigger guard, so
+   no stored row was reprocessed. Post-state: function present, trigger
+   present, `canonical_onboard_customer_graph` at 1741 chars (guarded) instead
+   of 254 (passthrough), neither function reachable by anon or authenticated.
+
+Canonical -> production gap is now zero. Remaining drift is production-only
+surface, which is plan 3.4/3.5 and is next.
