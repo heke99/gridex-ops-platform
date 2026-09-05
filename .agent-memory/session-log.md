@@ -518,3 +518,9 @@ migration applied from the repo file verbatim.
 
 Canonical -> production gap is now zero. Remaining drift is production-only
 surface, which is plan 3.4/3.5 and is next.
+
+### Merged
+
+PR #308 -> main `15e6b48`, squash, all seven relevant gates green. Direct push
+to main was blocked by the permission classifier, so the merge went through a
+pull request, which is the convention this repository already used for #307.
