@@ -129,3 +129,12 @@ introduced the pattern is even named `..._multitenant_integrity_and_claim_locks`
 
 Lesson: route-level greps say nothing about this codebase's job semantics.
 Any Fas 16 audit must trace route -> handler -> RPC before classifying a job.
+
+## Disproved: "relations, columns, functions, indexes and triggers match canonical exactly"
+
+Recorded earlier in this project from the first production parity attempt. It is
+WRONG for triggers, and the mismatch is the tenant guards. Production carries six
+BEFORE ROW tenant-attribution guard triggers that the canonical chain does not
+build at all. The harness that produced the original claim could not see them.
+Evidence and the full register: `quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md`,
+finding F-PARITY-4.

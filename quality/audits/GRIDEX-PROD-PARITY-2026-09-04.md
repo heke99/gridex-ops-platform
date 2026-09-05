@@ -176,6 +176,138 @@ or a pre-migration era. The chain has no record of them at all.
 | `platform_grid_owner_readiness_v` | view | 1 | — (nothing in the repository creates it) |
 | `sites` | table | 125 | — (nothing in the repository creates it) |
 
+## 2A. The same gap in functions and triggers — and it reaches tenant isolation
+
+Canonical builds 569 distinct function names. Production has 626. The direction
+check matches the relations exactly:
+
+* canonical functions missing from production: **0**
+* production functions the canonical chain does not build: **57**, of which
+  **21 are referenced by application code**
+
+Same three causes:
+
+| bucket | count | app-referenced |
+| --- | --- | --- |
+| created only by one of the 84 never-executed migrations | 24 | 15 |
+| created by a replayed file but lost to a bootstrap substitution | 6 | 3 |
+| no CREATE statement anywhere in the repository | 27 | 3 |
+
+### 2A.1 F-PARITY-4 (critical) — a rebuilt system has no tenant guards on six core tables
+
+`supabase/migrations/20260615_multitenant_integrity_and_claim_locks.sql` is one
+of the 84 files the replay never executes. It creates the tenant-attribution
+guards, and production has all six of them attached as live BEFORE ROW triggers:
+
+| table | trigger | guard function |
+| --- | --- | --- |
+| `customer_contracts` | `gridex_customer_contracts_company_guard_tg` | `gridex_customer_contracts_company_guard` |
+| `customer_sites` | `gridex_customer_sites_company_guard_tg` | `gridex_customer_sites_company_guard` |
+| `metering_points` | `gridex_metering_points_company_guard_tg` | `gridex_metering_points_company_guard` |
+| `powers_of_attorney` | `gridex_powers_of_attorney_company_guard_tg` | `gridex_powers_of_attorney_company_guard` |
+| `billing_underlays` | `gridex_billing_underlays_company_guard_tg` | `gridex_billing_underlays_company_guard` |
+| `customer_legal_acceptances` | `gridex_customer_legal_acceptances_company_guard_tg` | `gridex_customer_legal_acceptances_company_guard` |
+
+The same file creates `gridex_assert_same_company`, which the application also
+references.
+
+**A Gridex OPS rebuilt from the canonical migration chain would enforce none of
+these.** Tenant attribution on contracts, sites, metering points, powers of
+attorney, billing underlays and legal acceptances would be application-level
+only. This is the project's declared non-negotiable invariant, and the chain
+does not carry it.
+
+It also corrects an earlier recorded claim. A previous, structurally limited
+harness reported that "relations, columns, functions, indexes and triggers match
+canonical exactly". They do not: triggers differ, and the difference is the
+tenant guards.
+
+### 2A.2 Other consequential losses
+
+* `canonical_next_customer_number`, `canonical_next_contract_number` and
+  `canonical_next_application_number` come from
+  `20260801143000_canonical_multitenant_platform_hardening.sql`, which IS
+  replayed but is substituted by `bootstrap/20260801_company_capabilities_foundation.sql`.
+  A rebuilt system cannot allocate customer, contract or application numbers.
+* `log_masterdata_change` (4 audit triggers on `customer_sites`, `grid_owners`,
+  `metering_points`, `customer_internal_notes`) and `set_updated_at` (6 triggers)
+  have no CREATE statement anywhere in the repository. A rebuilt system loses
+  masterdata audit logging and `updated_at` maintenance on those tables.
+
+### 2A.3 Register — 57 production-only functions
+
+#### created only by a never-executed migration (24)
+
+| function | app refs | created by |
+| --- | --- | --- |
+| `admin_customer_ids_by_latest_contract` | 1 | `20260519_final_saas_hardening.sql` |
+| `admin_customer_latest_contract_counts` | 1 | `20260525_debug_fix_batch_1b_schema_code_alignment.sql` |
+| `ediel_resolve_inbound_message_rules` | 1 | `20260525_debug_fix_batch_1b_schema_code_alignment.sql` |
+| `ediel_resolve_message_rule` | 1 | `20260525_debug_fix_batch_1b_schema_code_alignment.sql` |
+| `gridex_assert_company_operational_for_write` | 0 | `20260519_batch_6d2_runtime_governance_completion.sql` |
+| `gridex_assert_same_company` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_audit_critical_row_change` | 0 | `20260520_batch_5_final_quality_handbook_alignment.sql` |
+| `gridex_auth_has_any_role` | 0 | `20260519_batch_6d2_runtime_governance_completion.sql` |
+| `gridex_auth_has_role` | 0 | `20260519_final_saas_hardening.sql` |
+| `gridex_billing_underlays_company_guard` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_companies_missing_ediel_profile` | 1 | `20260519_batch_6d2_runtime_governance_completion.sql` |
+| `gridex_companies_missing_route_setup` | 1 | `20260519_batch_6d2_runtime_governance_completion.sql` |
+| `gridex_company_is_writable` | 0 | `20260520_batch_6e_rbac_tenant_stats_whitelabel.sql` |
+| `gridex_company_status_is_writable` | 0 | `20260519_batch_6d2_runtime_governance_completion.sql` |
+| `gridex_customer_contracts_company_guard` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_customer_legal_acceptances_company_guard` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_customer_sites_company_guard` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_debug_column_exists` | 0 | `20260525_debug_step2b_tenant_scope_and_customer_card_performance.sql` |
+| `gridex_get_user_permission_overrides` | 1 | `20260525_debug_fix_batch_1b_schema_code_alignment.sql` |
+| `gridex_get_user_roles` | 5 | `20260525_debug_batch_2_rbac_tenant_alignment.sql` |
+| `gridex_metering_points_company_guard` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_powers_of_attorney_company_guard` | 1 | `20260615_multitenant_integrity_and_claim_locks.sql` |
+| `gridex_table_has_company_id` | 0 | `20260526_debug_batch_2_tenant_rbac_server_actions.sql` |
+| `gridex_user_is_super_admin` | 0 | `20260519_final_saas_hardening.sql` |
+
+#### created by a replayed file, lost to a bootstrap substitution (6)
+
+| function | app refs | created by |
+| --- | --- | --- |
+| `canonical_next_application_number` | 2 | `20260801143000_canonical_multitenant_platform_hardening.sql` |
+| `canonical_next_contract_number` | 2 | `20260801143000_canonical_multitenant_platform_hardening.sql` |
+| `canonical_next_customer_number` | 2 | `20260801143000_canonical_multitenant_platform_hardening.sql` |
+| `gridex_emit_domain_event` | 0 | `20260531111600_system_readiness_foundation.sql` |
+| `gridex_refresh_platform_schema_state_v2` | 0 | `20260802232000_migration_truth_readiness.sql` |
+| `gridex_user_has_white_label_admin_membership` | 0 | `20260829194612_white_label_membership_rls_recursion_fix.sql` |
+
+#### no CREATE statement anywhere in the repository (27)
+
+| function | app refs | created by |
+| --- | --- | --- |
+| `canonical_sync_ediel_production_capability_v1` | 0 | — (nothing in the repository creates it) |
+| `check_email_exists` | 1 | — (nothing in the repository creates it) |
+| `complete_core_onboarding` | 1 | — (nothing in the repository creates it) |
+| `ediel_derive_ack_outcome` | 0 | — (nothing in the repository creates it) |
+| `ediel_messages_set_ack_outcome` | 0 | — (nothing in the repository creates it) |
+| `gridex_add_months_timestamptz` | 0 | — (nothing in the repository creates it) |
+| `gridex_apply_public_contract_backfill_v2` | 0 | — (nothing in the repository creates it) |
+| `gridex_clear_stale_manual_request_blocker_metadata` | 0 | — (nothing in the repository creates it) |
+| `gridex_ediel_runtime_summary` | 0 | — (nothing in the repository creates it) |
+| `gridex_ediel_unresolved_summary` | 0 | — (nothing in the repository creates it) |
+| `gridex_generate_customer_number` | 0 | — (nothing in the repository creates it) |
+| `gridex_has_effective_permission` | 0 | — (nothing in the repository creates it) |
+| `gridex_jsonb_text` | 0 | — (nothing in the repository creates it) |
+| `gridex_normalize_power_of_attorney_legal_reference` | 0 | — (nothing in the repository creates it) |
+| `gridex_outbound_requests_guard` | 0 | — (nothing in the repository creates it) |
+| `gridex_partner_exports_guard` | 0 | — (nothing in the repository creates it) |
+| `gridex_partner_exports_status_guard_2` | 0 | — (nothing in the repository creates it) |
+| `gridex_preview_public_contract_backfill_v2` | 0 | — (nothing in the repository creates it) |
+| `gridex_publication_invoice_fee_evidence_v1` | 0 | — (nothing in the repository creates it) |
+| `gridex_validate_partner_export_payload` | 0 | — (nothing in the repository creates it) |
+| `log_masterdata_change` | 0 | — (nothing in the repository creates it) |
+| `select_onboarding_start_path` | 1 | — (nothing in the repository creates it) |
+| `set_current_timestamp_updated_at` | 0 | — (nothing in the repository creates it) |
+| `set_ediel_inbound_cases_updated_at` | 0 | — (nothing in the repository creates it) |
+| `set_ediel_tgt_test_data_updated_at` | 0 | — (nothing in the repository creates it) |
+| `set_updated_at` | 0 | — (nothing in the repository creates it) |
+| `sync_metering_points_identifiers` | 0 | — (nothing in the repository creates it) |
+
 ## 3. Tenant and safety posture of the production-only tables
 
 Measured, not assumed. All 44 production-only *tables* have `relrowsecurity =
@@ -212,6 +344,12 @@ statement anywhere in the repository, 6 of them referenced by application code
 (`sites`, `onboarding_sessions`, `onboarding_steps`, `onboarding_choices`,
 `customer_external_auth_links`, `platform_grid_owner_readiness_v`). Their schema
 exists only in production.
+
+**F-PARITY-4 (critical, confirmed).** The six tenant-attribution guard triggers
+live in production but are absent from the canonical chain, because the file
+that creates them is one of the 84 the replay never executes. See 2A.1. Also
+lost: customer/contract/application number allocation, masterdata audit logging
+and `updated_at` maintenance.
 
 **F-PARITY-3 (medium, confirmed).** `masterdata_audit_log` holds 37,390 rows
 with no `company_id` and a single read policy gated on a permission rather than
@@ -251,6 +389,9 @@ every build red on drift nobody has triaged.
 | --- | --- | --- |
 | canonical objects missing from production | `comm -23` canonical vs production relation lists | 0 |
 | production-only relations | `comm -13` of the same lists | 75 |
+| canonical functions missing from production | `comm -23` on function names | 0 |
+| production-only functions | `comm -13` on function names | 57 (21 app-referenced) |
+| tenant guard triggers in production | `pg_trigger` join `pg_proc` | 6, none built by the chain |
 | application references | `grep -rlw` over `app lib components scripts hooks types` | 37 of 75 |
 | replay input selection | read of `scripts/gridex-aud-003-clean-replay.sh` | 14-digit regex + 9 foundation entries |
 | never-executed migrations | set difference over `supabase/migrations` | 84 of 585 |

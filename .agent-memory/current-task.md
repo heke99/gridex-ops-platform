@@ -299,22 +299,62 @@ Tenant posture measured, not assumed: all 44 production-only tables have RLS on,
 none reachable by `anon`, row counts near zero except `masterdata_audit_log`
 (37,390 rows, no `company_id`, one permission-gated read policy — F-PARITY-3).
 
+## Steg 3.4 — functions and triggers: the gap reaches tenant isolation
+
+Same method, same three causes, worse consequence.
+
+    canonical function names                 569
+    production function names                626
+    canonical functions missing in prod        0   (direction A closed for functions too)
+    production-only functions                 57   (21 referenced by app code)
+
+**F-PARITY-4 (critical).** `20260615_multitenant_integrity_and_claim_locks.sql`
+is one of the 84 files the replay never executes. It creates the six
+tenant-attribution guards, and production has all six attached as live BEFORE
+ROW triggers:
+
+    customer_contracts           gridex_customer_contracts_company_guard_tg
+    customer_sites               gridex_customer_sites_company_guard_tg
+    metering_points              gridex_metering_points_company_guard_tg
+    powers_of_attorney           gridex_powers_of_attorney_company_guard_tg
+    billing_underlays            gridex_billing_underlays_company_guard_tg
+    customer_legal_acceptances   gridex_customer_legal_acceptances_company_guard_tg
+
+A system rebuilt from the canonical chain enforces NONE of them. That is the
+project's declared non-negotiable invariant, and the chain does not carry it.
+
+This also CORRECTS an earlier recorded claim in this project memory. The older,
+structurally limited harness reported "relations, columns, functions, indexes
+and triggers match canonical exactly". Triggers do NOT match, and the mismatch
+is the tenant guards. Do not rely on that earlier statement.
+
+Also lost to a bootstrap substitution: `canonical_next_customer_number`,
+`canonical_next_contract_number`, `canonical_next_application_number` (from
+`20260801143000`, substituted by `bootstrap/20260801_company_capabilities_foundation.sql`)
+— a rebuilt system cannot allocate customer, contract or application numbers.
+And with no CREATE anywhere in the repository: `log_masterdata_change` (4 audit
+triggers) and `set_updated_at` (6 triggers).
+
 ## Exact next action
 
-Steg 4 is BLOCKED until F-PARITY-1 is remediated. Do not make `db:parity
-production` blocking yet. Work the register's remediation plan in this order:
+WAITING ON THE USER for the vägval, asked 2026-09-04: resurrect the 84 legacy
+migrations into the chain, or classify them out and adopt the live definitions
+of what matters via forward migration. My recommendation is the second — several
+of the 84 are one-off data repairs for named individuals
+(`20260525_debug_batch_2c_activate_afshin_nibela.sql`) and are unlikely to
+replay cleanly in order.
 
-1. Make the replay fail closed on unclassified inputs: any `.sql` under
-   `supabase/migrations/` that is neither executed nor explicitly classified
-   must abort the replay. Land this FIRST so the count can only go down.
-2. Classify each of the 84 never-executed migrations: into the canonical chain,
-   or into `gridex-aud-003-noncanonical-artifacts.json` with evidence.
-3. Reconcile the 26 derived-bootstrap substitutions — for each, what the source
-   created that the reconstruction does not.
-4. Adopt the 19 orphan relations into the chain by forward migration, starting
-   with the 6 the application queries (`sites`, `onboarding_sessions`,
-   `onboarding_steps`, `onboarding_choices`, `customer_external_auth_links`,
-   `platform_grid_owner_readiness_v`).
-5. Re-run full parity, expect zero, then Steg 4 (blocking).
-6. Separately decide `masterdata_audit_log` tenant scoping and whether
-   `gridex_wrong_project_cleanup_backup` (40 rows) can be dropped.
+Under BOTH answers, this work is next and is not blocked:
+
+1. Make the replay fail closed on unclassified inputs — any `.sql` under
+   `supabase/migrations/` that is neither executed nor explicitly classified must
+   abort the replay. Land it in warning mode first so nothing goes red before the
+   classification exists.
+2. F-PARITY-4 first among the content fixes: get the six tenant guards and their
+   triggers into the canonical chain. They are the highest-severity item in the
+   whole register.
+3. Then number allocation, then `log_masterdata_change` / `set_updated_at`.
+4. Then the remaining 75 relations / 57 functions per the register.
+5. Policies (546 production-only) are still UNENUMERATED — same root cause
+   expected, but not yet measured. Do that before declaring 3.4 complete.
+6. Steg 4 (blocking parity) stays BLOCKED until the above is done.

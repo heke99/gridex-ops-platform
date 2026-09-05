@@ -5,7 +5,7 @@
   "base_head_sha": "3a93702",
   "active_phase": "REMAINING_MASTER_PLAN_PRODUCTION_RECONCILIATION",
   "active_task": "Steg 3.4 done - production-only surface classified; Steg 4 blocked",
-  "status": "STEG_3_COMPLETE_STEG_4_BLOCKED_ON_F_PARITY_1",
+  "status": "STEG_3_4_FUNCTIONS_CLASSIFIED_F_PARITY_4_CRITICAL_AWAITING_USER_VAGVAL",
   "safety": {
     "rbac_changed": false,
     "tenant_scope_changed": false,
@@ -56,9 +56,14 @@
     "prod_only_relations": "75_CLASSIFIED_37_REFERENCED_BY_APP_CODE",
     "replay_never_executed_migrations": "84_OF_585_NEITHER_EXECUTED_NOR_CLASSIFIED",
     "replay_derived_bootstrap_substitutions": "26_REPLACE_WHOLE_SOURCE_MIGRATION",
-    "prod_only_tables_rls": "44_OF_44_RLS_ON_NONE_ANON_REACHABLE"
+    "prod_only_tables_rls": "44_OF_44_RLS_ON_NONE_ANON_REACHABLE",
+    "prod_only_functions": "57_CLASSIFIED_21_REFERENCED_BY_APP_CODE",
+    "canonical_functions_missing_in_production": "ZERO",
+    "tenant_guard_triggers": "6_LIVE_IN_PRODUCTION_ZERO_BUILT_BY_CANONICAL_CHAIN",
+    "earlier_claim_triggers_match_canonical": "DISPROVED_OLD_HARNESS_WAS_STRUCTURALLY_LIMITED",
+    "prod_only_policies": "NOT_YET_ENUMERATED"
   },
-  "resume_from": "Steg 3 complete both directions: canonical->production gap is zero (proved by set difference), and the 75 production-only relations are classified in quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md. F-PARITY-1 (critical): the clean replay never executes 84 of 585 migration files and replaces 26 more with narrow reconstructions, so the chain cannot rebuild a working system - 37 of the 75 missing relations are referenced by app code. Steg 4 (blocking parity) is BLOCKED until that is fixed. Start with making the replay fail closed on unclassified inputs, then classify the 84, then reconcile the 26 substitutions, then adopt the 19 orphan relations.",
+  "resume_from": "Steg 3 complete. Steg 3.4 done for relations and functions; policies not yet enumerated. F-PARITY-4 (critical): the six tenant-attribution guard triggers on customer_contracts, customer_sites, metering_points, powers_of_attorney, billing_underlays and customer_legal_acceptances live in production but the canonical chain builds none of them, because 20260615_multitenant_integrity_and_claim_locks.sql is one of 84 files the replay never executes. Also lost: canonical_next_customer/contract/application_number, log_masterdata_change, set_updated_at. An earlier memory claim that triggers match canonical is DISPROVED. Waiting on the user vagval (resurrect the 84 vs classify out and adopt live definitions); the fail-closed replay guard and the tenant-guard fix are correct under both. Steg 4 stays blocked.",
   "commits": 7,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/307 (merged)",
   "merge_commit": "a1dba4146ab50d3804c1875d94533f7ff08171f9"
