@@ -106,6 +106,12 @@ if [[ "$ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" != "$WHITE_LABEL_HYGIENE_
   exit 1
 fi
 
+# Input accounting must finish before originals are moved or a database starts.
+# A selected bootstrap is not evidence that its complete historical effects were
+# preserved. Keep unresolved substitutions blocking, not silently exempted.
+mkdir -p "$ROOT/artifacts"
+python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ROOT/artifacts/replay-input-accounting.json"
+
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
 # Arm restoration only after both copies succeed, before the first mutation.

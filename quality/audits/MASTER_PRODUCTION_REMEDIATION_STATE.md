@@ -1,5 +1,32 @@
 # Gridex OPS production remediation evidence register
 
+## Current checkpoint — PR #310
+
+Authenticated GitHub publication succeeded after explicit user authorization.
+PR: https://github.com/heke99/gridex-ops-platform/pull/310, draft.
+Head `55ed2f0402497d981b693412be797ee0932e6e60` has all three OPS jobs green
+(run 33957586449), plus smoke/coverage/PR certificate and public browser green.
+Staging runtime/load jobs were skipped; no production-parity closure follows.
+Vercel now independently reports production `eb9a25bc989c6de808903f41c2314d5465e9c07b`,
+deployment `dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c` on app.gridex.se.
+
+Exhaustive input accounting now reuses the exact replay selector and verifies
+every migration checksum and classification overlap. Actual 585-file breakdown:
+494 FULL_FILE_SELECTED, 32 SUBSTITUTED with unresolved full effects,
+1 EXPLICITLY_EXCLUDED, 58 UNCLASSIFIED. Selection is not execution evidence.
+Seventeen disposable-fixture tests pass. Replay now runs this check with
+`--require-full-effects` before moving originals or starting the database;
+its JSON evidence is retained by CI even when it fails. The actual repository
+fails as intended: no blanket exclusion or green completeness claim is allowed.
+Recovery regression expanded to 11 passing cases including accounting rejection.
+No historical migration or canonical artifact changed in this accounting fix.
+
+Next: individually classify historical data/diagnostic scripts and reconstruct
+required schema effects in forward migrations. Tenant-guard reconstruction and
+legacy-script classification are active independent bounded workstreams.
+No masterplan phase is closed. The previous publication approval blocker below
+is historical and superseded, not an active external dependency.
+
 Updated: 2026-09-05. Campaign: `IN_PROGRESS`. No phase is closed.
 
 Closure requires convergence of code, migration ledger, canonical replay,

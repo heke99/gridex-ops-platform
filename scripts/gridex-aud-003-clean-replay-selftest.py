@@ -22,7 +22,7 @@ class ReplayCleanupTest(unittest.TestCase):
         self.bin.mkdir()
         self.tmp = self.root / 'tmp'
         self.tmp.mkdir()
-        for command in ('dirname', 'mktemp', 'rm', 'cp', 'sha256sum', 'awk'):
+        for command in ('dirname', 'mktemp', 'mkdir', 'rm', 'cp', 'sha256sum', 'awk'):
             (self.bin / command).symlink_to(shutil.which(command))
         (self.root / 'scripts').mkdir()
         self.script = self.root / 'scripts' / 'gridex-aud-003-clean-replay.sh'
@@ -42,6 +42,10 @@ class ReplayCleanupTest(unittest.TestCase):
         self.stub('psql', 'exit 99')  # Database execution must never be reached.
         self.stub('supabase', 'exit 99')
         self.stub('python3', '''
+if [[ "$1" == */gridex-replay-input-accounting.py ]]; then
+  [[ "$*" == *--require-full-effects* ]] || exit 92
+  exit 0
+fi
 [[ ! -e "$FIXTURE/supabase/migrations/20260101000000_first.sql" ]] || exit 90
 [[ ! -s "$FIXTURE/supabase/seed.sql" ]] || exit 91
 printf 'temporary replay marker\\n' > "$FIXTURE/supabase/migrations/20260101000002_marker.sql"
@@ -76,6 +80,10 @@ exit 73
     def test_missing_supabase_preserves_originals(self):
         (self.bin / 'supabase').unlink()
         self.run_replay(1)
+
+    def test_input_accounting_failure_preserves_originals(self):
+        self.stub('python3', 'exit 2')
+        self.run_replay(2)
 
     def test_missing_psql_preserves_originals(self):
         (self.bin / 'psql').unlink()
