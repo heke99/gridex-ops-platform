@@ -94,3 +94,28 @@ exists there. Do not re-apply any of the four.
 Next: classify the production-only surface (74 relations / 546
 policies / 57 functions) per plan 3.4/3.5, then Steg 4 (make `db:parity
 production` blocking — only after classification), then Steg 5+.
+
+
+## 2026-09-05 — #308 merged
+
+PR #308 is merged to main as `15e6b48`, all seven relevant gates green
+(`verify`, `quality-release-gates`, `clean-migration-replay`, `coverage`,
+`smoke`, `browser-public`, `pr-certificate`). It is FINISHED — do not push
+follow-up work onto it. The branch has been restarted from main; a follow-up
+needs a new pull request.
+
+What is on main now: the parity register
+(`quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md`) and the project memory. No
+source or migration changes; the production work went through migrations that
+were already on main.
+
+What is still open, highest severity first:
+
+1. F-PARITY-4 (critical) — the canonical chain does not build the six
+   tenant-attribution guard triggers. Fix this before anything else in the
+   register.
+2. The fail-closed replay guard, so an unclassified `.sql` under
+   `supabase/migrations/` aborts the replay instead of being ignored.
+3. The 546 production-only policies are UNMEASURED. 3.4 is not finished until
+   they are.
+4. Steg 4 (blocking `db:parity production`) stays blocked until 1-3 are done.
