@@ -16,6 +16,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify migration inventory and replay recovery regressions
+        run: |
+          node scripts/canonical-migration-inventory-selftest.cjs
+          python3 scripts/gridex-aud-003-clean-replay-selftest.py
+          node scripts/gridex-schema-document-selftest.cjs
+          npm run db:migrations:production-readiness
       - run: npm run db:migrations:check
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped

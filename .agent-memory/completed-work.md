@@ -360,3 +360,6 @@ Established from CI rather than assumed: `clean-migration-replay` is green on
 main, so the pinned fingerprint is correct and the dockerless harness is the
 side that differs. The harness is valid for structural work and invalid for
 canonical provenance; that limit is recorded in current-task.md and handover.md.
+
+
+2026-09-05: local behavior verification only: inventory selftest PASS and replay cleanup 10/10 PASS. No phase or production-parity closure.

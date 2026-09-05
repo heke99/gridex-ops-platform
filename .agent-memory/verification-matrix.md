@@ -303,3 +303,17 @@ baseline comparison.
 Two CI failures were real defects this branch introduced and fixed, not flakes:
 a revoke from PUBLIC that did not remove Supabase's default-privilege grant to
 anon, and a pg_dump older than the pinned PostgreSQL 17 server.
+
+
+## 2026-09-05 — active parity remediation
+
+Status: IN_PROGRESS. No phase closed. Branch codex/gridex-parity-remediation-20260905.
+Inventory manifest divergence and unsafe replay cleanup fixed with red/green
+regressions, wired into OPS hardening. Production catalog read only; no live
+mutations. See quality/audits/MASTER_PRODUCTION_REMEDIATION_STATE.md for baseline,
+findings, tests and exact next work. Publish reviewable fixes and verify hosted CI;
+then exhaustive replay accounting and forward canonical reconstruction.
+Prior claims of unavailable production project or completed schema phases are
+superseded by current catalog access and unresolved two-way parity.
+
+2026-09-05 publication update: implementation 49c9b2a4 committed locally; automatic review rejected branch push (payload authorization/destination trust). No workaround attempted. Request approval for the concrete branch push before hosted CI. Typecheck and focused domain 7 files/22 tests PASS locally. Production parity remains open.

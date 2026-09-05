@@ -119,3 +119,17 @@ What is still open, highest severity first:
 3. The 546 production-only policies are UNMEASURED. 3.4 is not finished until
    they are.
 4. Steg 4 (blocking `db:parity production`) stays blocked until 1-3 are done.
+
+
+## 2026-09-05 — active parity remediation
+
+Status: IN_PROGRESS. No phase closed. Branch codex/gridex-parity-remediation-20260905.
+Inventory manifest divergence and unsafe replay cleanup fixed with red/green
+regressions, wired into OPS hardening. Production catalog read only; no live
+mutations. See quality/audits/MASTER_PRODUCTION_REMEDIATION_STATE.md for baseline,
+findings, tests and exact next work. Publish reviewable fixes and verify hosted CI;
+then exhaustive replay accounting and forward canonical reconstruction.
+Prior claims of unavailable production project or completed schema phases are
+superseded by current catalog access and unresolved two-way parity.
+
+2026-09-05 publication update: implementation 49c9b2a4 committed locally; automatic review rejected branch push (payload authorization/destination trust). No workaround attempted. Request approval for the concrete branch push before hosted CI. Typecheck and focused domain 7 files/22 tests PASS locally. Production parity remains open.

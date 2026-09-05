@@ -20,6 +20,7 @@
 const { spawnSync } = require('node:child_process')
 const { existsSync, readFileSync, writeFileSync, mkdirSync } = require('node:fs')
 const { dirname, join, resolve } = require('node:path')
+const { validateSchemaDocument } = require('./gridex-schema-document.cjs')
 
 const ROOT = resolve(__dirname, '..')
 const INTROSPECT_SQL = join(ROOT, 'scripts/sql/gridex-db-parity-introspect.sql')
@@ -172,7 +173,7 @@ function introspect(url, schemas, label) {
     fail(`introspection of the ${label} database failed:\n${(result.stderr || '').trim()}`)
   }
   try {
-    return JSON.parse(result.stdout)
+    return validateSchemaDocument(JSON.parse(result.stdout), schemas)
   } catch (error) {
     fail(`could not parse introspection output for ${label}: ${error.message}`)
   }

@@ -30,6 +30,7 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
+WORKTREE_MUTATED=false
 # Clean replay normally runs against the local Supabase stack. Where Docker is
 # unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
 # that this script provisions with the Supabase-compatible surface instead. The
@@ -44,14 +45,32 @@ else
 fi
 
 cleanup(){
+  local status=$?
+  local restore_failed=false
   set +e
   if [[ -z "${EXTERNAL_DB:-}" ]]; then
     supabase stop --no-backup >/dev/null 2>&1 || true
   fi
-  rm -f "$MIGRATIONS"/*.sql
-  cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
-  cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
-  rm -rf "$HOLD" "$LEDGER_MARKERS" "$SEED_BACKUP" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
+  # Preflight and incomplete backups must never overwrite untouched originals.
+  if [[ "$WORKTREE_MUTATED" == true ]]; then
+    if rm -f "$MIGRATIONS"/*.sql && cp -a "$HOLD"/. "$MIGRATIONS"/; then
+      rm -rf "$HOLD"
+    else
+      echo "replay migration restore failed; recovery copy retained at $HOLD" >&2
+      restore_failed=true
+    fi
+    if cp "$SEED_BACKUP" "$SEED"; then
+      rm -f "$SEED_BACKUP"
+    else
+      echo "replay seed restore failed; recovery copy retained at $SEED_BACKUP" >&2
+      restore_failed=true
+    fi
+  else
+    rm -rf "$HOLD" "$SEED_BACKUP"
+  fi
+  rm -rf "$LEDGER_MARKERS" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
+  if [[ "$status" == 0 && "$restore_failed" == true ]]; then status=1; fi
+  exit "$status"
 }
 trap cleanup EXIT
 
@@ -89,6 +108,8 @@ fi
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
+# Arm restoration only after both copies succeed, before the first mutation.
+WORKTREE_MUTATED=true
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 

@@ -1,11 +1,11 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-04",
-  "branch": "claude/gridex-ops-production-hardening-lrknxa",
+  "updated_at": "2026-09-05",
+  "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
-  "active_phase": "REMAINING_MASTER_PLAN_PRODUCTION_RECONCILIATION",
-  "active_task": "Steg 3.4 done - production-only surface classified; Steg 4 blocked",
-  "status": "MERGED_TO_MAIN_STEG_4_BLOCKED_ON_F_PARITY_4",
+  "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
+  "active_task": "Repair inventory manifest divergence and replay recovery; verify hosted CI before canonical convergence",
+  "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
     "tenant_scope_changed": false,
@@ -70,8 +70,19 @@
     "ci_pr_308_browser_public": "PASS",
     "ci_pr_308_pr_certificate": "PASS"
   },
-  "resume_from": "PR #308 merged to main as 15e6b48 with all seven relevant gates green. It carried documentation and project memory only - the production work went through migrations already on main. Steg 3 is complete: canonical is a subset of production for relations and functions. OPEN AND CRITICAL: F-PARITY-4 - the clean replay never executes 84 of 585 migration files and replaces 26 more with narrow reconstructions, so the chain does not build the six tenant-attribution guard triggers, number allocation, log_masterdata_change or set_updated_at. Steg 4 (blocking parity) stays blocked. The 546 production-only policies are still unmeasured. Awaiting the user vagval: resurrect the 84 legacy migrations into the chain, or classify them out and adopt live definitions by forward migration. Under both answers the next work is the fail-closed replay guard and the tenant guards. Branch restarted from main; open a NEW pull request for follow-up work, #308 is finished.",
+  "resume_from": "Publish through authenticated GitHub connector, open draft PR and inspect exact-head CI. Continue exhaustive replay input accounting and forward schema reconstruction; no phase closed.",
   "commits": 0,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/308 (merged)",
-  "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9"
+  "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
+  "current_session_verification": {
+    "inventory_selftest": "PASS_LOCAL",
+    "replay_recovery_selftest": "PASS_LOCAL_10",
+    "production_migration_readiness": "PASS_LOCAL_585_OF_585",
+    "production_parity": "NOT_CONVERGED",
+    "hosted_ci_current_changes": "PENDING",
+    "typecheck": "PASS_LOCAL_NODE24",
+    "focused_domain_vitest": "PASS_7_FILES_22_TESTS",
+    "publication": "USER_AUTHORIZED_SHELL_GIT_AUTH_MISSING_USE_CONNECTED_GITHUB",
+    "schema_document_selftest": "PASS_LOCAL"
+  }
 }
