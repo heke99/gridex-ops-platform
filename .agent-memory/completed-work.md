@@ -540,3 +540,7 @@ fixtures, then fails generated-types tail. Ediel PG17 passes; replay fails;
 quality job 101546734174 is still running. PR #310 records exact results.
 Next: inspect quality and test full auth-email source on PG17 before restoring
 it ahead of normalization. 29 partial/51 unknown remain; no phase is closed.
+
+Auth-email next step: full-source PostgreSQL17 test implemented, SQL composition
+passes, hosted execution pending. Replay selection remains unchanged. Verify
+the auth-email-source-effects job before restoring source ahead of normalization.

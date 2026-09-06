@@ -25,6 +25,27 @@ jobs:
       - name: Verify complete Ediel source effects on isolated PostgreSQL 17
         run: python3 scripts/canonical-ediel-environment-selftest.py
 
+  auth-email-source-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify complete auth email source effects on isolated PostgreSQL 17
+        run: python3 scripts/canonical-auth-email-selftest.py
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25

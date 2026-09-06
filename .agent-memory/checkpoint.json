@@ -4,7 +4,7 @@
   "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
   "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
-  "active_task": "Verify profile normalization source; review complete auth email source and remaining history",
+  "active_task": "Verify full auth-email source and normalization on PostgreSQL17 before selection change",
   "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
@@ -70,7 +70,7 @@
     "ci_pr_308_browser_public": "PASS",
     "ci_pr_308_pr_certificate": "PASS"
   },
-  "resume_from": "Inspect hosted profile source test, then test full 20260519 auth-callback/email-event source on PG17 before restoring ahead of normalization. 29 partial and 51 unknown remain.",
+  "resume_from": "Inspect auth-email-source-effects CI; fix any SQL failure, then restore complete source before profile normalization and update ordering regressions.",
   "commits": 0,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/310 (draft)",
   "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
@@ -100,6 +100,7 @@
     "billing_completion_source": "PASS_HOSTED_JOB_101545606099_RUN_34055141338_HEAD_a4063e38",
     "request_status_source": "PASS_HOSTED_JOB_101546218730_RUN_34055377589_HEAD_9266c1b6",
     "profile_action_source": "PASS_HOSTED_JOB_101546734266_RUN_34055573705",
-    "hosted_ci_4df526a8": "ALL_ISOLATED_SQL_PASS_EDIEL_PG17_PASS_TYPES_TAIL_FAIL_REPLAY_FAIL_QUALITY_RUNNING"
+    "hosted_ci_4df526a8": "ALL_ISOLATED_SQL_PASS_EDIEL_PG17_PASS_TYPES_TAIL_FAIL_REPLAY_FAIL_QUALITY_RUNNING",
+    "auth_email_source": "IMPLEMENTED_NOT_VERIFIED_POSTGRES17_TEST_PENDING"
   }
 }
