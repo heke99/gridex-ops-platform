@@ -21,6 +21,7 @@ const { createHash } = require('node:crypto')
 const { spawnSync } = require('node:child_process')
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs')
 const { join, resolve } = require('node:path')
+const { validateSchemaDocument } = require('./gridex-schema-document.cjs')
 
 const ROOT = resolve(__dirname, '..')
 const INTROSPECT_SQL = join(ROOT, 'scripts/sql/gridex-db-parity-introspect.sql')
@@ -142,6 +143,7 @@ function generate(url, schemas) {
       'schema introspection',
     ),
   )
+  validateSchemaDocument(introspection, schemas)
   return { dump, fingerprint: buildFingerprint(introspection, schemas) }
 }
 

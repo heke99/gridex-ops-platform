@@ -113,6 +113,30 @@ for (const name of timestamped) {
   if (sha256(path.join(migrationsDir, name)) !== expected) fail(`timestamped migration checksum drift: ${name}`);
 }
 
+// Independent finite content pins: updating JSON cannot authorize new diagnostic SQL.
+const reviewedDiagnostics = {
+  "migrations/20260525_debug_batch_2j_verify_no_old_afshin_id.sql": "10874b4600763f89d7e0f1c9e4c3e1e57c9e5ea50928d1af97b9d43185ec0da9",
+  "migrations/20260525_verify_company_user_provisioning_flow.sql": "b0e38917e7e5ec00310b0246f306ec4614808ed16964b6488c845b107ec7403f"
+};
+const reviewedOperationalRepairs = {
+  "migrations/02_db2b_apply_superadmin_and_membership.sql": {
+    "sha256": "64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4",
+    "dependencies": [
+      {
+        "path": "migrations/20260611150000_launch_readiness_security_routes_stats.sql",
+        "sha256": "3fa71292b07e4534dab13c1f2ef28574a0635fad17db736201f4eed23f6dd053"
+      },
+      {
+        "path": "migrations/20260727040000_contract_security_energy_direction_api_completion.sql",
+        "sha256": "c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e"
+      },
+      {
+        "path": "migrations/20260802170000_canonical_security_convergence.sql",
+        "sha256": "e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a"
+      }
+    ]
+  }
+};
 const noncanonicalArtifacts = noncanonical.artifacts || [];
 if (!noncanonicalArtifacts.length) fail('noncanonical artifact contract is empty');
 const noncanonicalPaths = new Set();
@@ -121,7 +145,17 @@ for (const item of noncanonicalArtifacts) {
   const name = path.basename(rel);
   if (noncanonicalPaths.has(rel)) fail(`duplicate noncanonical artifact: ${rel}`);
   noncanonicalPaths.add(rel);
-  if (!rel.startsWith('migrations/') || item.status !== 'merged_repository_artifact_not_deployed') fail(`invalid noncanonical classification: ${rel}`);
+  if (!/^migrations\/[^/]+\.sql$/.test(rel) || !['merged_repository_artifact_not_deployed', 'historical_read_only_diagnostic', 'historical_operational_data_repair'].includes(item.status)) fail(`invalid noncanonical classification: ${rel}`);
+  if (item.status === 'historical_read_only_diagnostic' && reviewedDiagnostics[rel] !== item.sha256) fail(`unreviewed diagnostic path or content hash: ${rel}`);
+  if (item.status === 'historical_operational_data_repair') {
+    const reviewed = reviewedOperationalRepairs[rel];
+    if (!reviewed || reviewed.sha256 !== item.sha256) fail(`unreviewed operational repair path or content hash: ${rel}`);
+    if (JSON.stringify(item.reviewedDependencies) !== JSON.stringify(reviewed.dependencies)) fail(`unreviewed operational repair dependency pins: ${rel}`);
+    for (const dependency of reviewed.dependencies) {
+      const dependencyPath = path.join(supabaseDir, dependency.path);
+      if (!fs.existsSync(dependencyPath) || sha256(dependencyPath) !== dependency.sha256 || pinned[path.basename(dependency.path)] !== dependency.sha256) fail(`operational repair dependency missing or checksum drift: ${dependency.path}`);
+    }
+  }
   if (!item.reason || !(item.evidence || []).length || !/^[0-9a-f]{64}$/.test(item.sha256 || '')) fail(`incomplete noncanonical evidence: ${rel}`);
   const sourcePath = path.join(supabaseDir, rel);
   if (!fs.existsSync(sourcePath)) fail(`noncanonical artifact missing: ${rel}`);

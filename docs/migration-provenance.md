@@ -11,7 +11,7 @@ A fresh replay is reconstructed from four evidence classes, in this order:
 3. every remaining checksum-pinned timestamped repository migration in deterministic full-filename order, except an artifact explicitly classified in `scripts/gridex-aud-003-noncanonical-artifacts.json`;
 4. the observed compact `gridex-ops-dev` ledger, recreated locally only through Supabase CLI-owned no-op marker migrations.
 
-Derived bootstrap substitutions and noncanonical exclusions are different concepts. A derived bootstrap is executable canonical reconstruction whose source is checksum-pinned. A noncanonical artifact remains preserved in Git as historical evidence but is excluded from canonical replay only when its exact content hash and deployed-lineage evidence prove that it was not part of the canonical deployed schema.
+Derived bootstrap substitutions and noncanonical exclusions are different concepts. A derived bootstrap is executable canonical reconstruction whose source is checksum-pinned; selection alone does not prove that all source effects were preserved. Excluded artifacts remain immutable in Git and require one of the distinct evidence contracts below.
 
 The observed dev ledger begins at `20260531075508` (`fix_customer_internal_notes_customer_fk`). The ledger is compact relative to repository history and therefore cannot by itself reconstruct an empty database.
 
@@ -55,15 +55,42 @@ High. The conclusion is supported independently by repository DDL, Git history, 
 
 ## Noncanonical-artifact safety rules
 
-A timestamped repository file may be excluded from replay only when all of the following are true:
+A repository SQL file may be excluded from replay only when all of the following are true:
 
 - its exact path is listed in `scripts/gridex-aud-003-noncanonical-artifacts.json`;
 - its SHA-256 matches both that classification and the immutable migration-history manifest;
-- the classification status is `merged_repository_artifact_not_deployed`;
+- the classification status satisfies one of the three contracts below;
 - a concrete reason and evidence list are present;
 - it is not simultaneously a foundation input or bootstrap source substitution.
 
 Any content drift, missing evidence, broad date-based exclusion, or undeclared skip fails CI.
+
+`merged_repository_artifact_not_deployed` requires deployed-lineage evidence that
+the exact artifact was not part of the canonical deployed schema.
+
+`historical_read_only_diagnostic` applies only to the two exact path/hash pairs
+reviewed in `quality/audits/LEGACY_REPLAY_CLASSIFICATION_2026-09-05.md` and pinned
+independently in the selector and provenance validator. Their complete statements
+perform read-only inspection with built-in expressions and have no schema or data
+effects to reconstruct. This status makes no claim about historical deployment.
+Changing even one byte or adding another path requires renewed content review
+and a code change; refreshing JSON checksums cannot authorize an exclusion.
+This finite reviewed-content contract is not a general SQL safety parser.
+
+`historical_operational_data_repair` currently covers only the exact reviewed
+DB2B administrator/membership repair. Its complete source and the listed trigger
+body source dependencies are independently checksum-pinned in the selector and
+provenance validator. It contains operational identity/audit data repairs, not
+schema definitions or generic role seeds, and is not executed during canonical
+reconstruction. The status makes no deployment-history claim. Schema-bearing
+dependency migrations remain independently accountable; this exclusion does not
+approve the broader DB2 customer reconciliation or any other data repair.
+
+Before any database start or migration-file relocation, the replay requires
+`scripts/gridex-replay-input-accounting.py --require-full-effects` to accept every
+input. Unclassified files and substitutions with unresolved effects fail this
+gate. An accepted input plan still requires successful execution, generated-type
+verification and full two-way parity; it cannot establish production convergence.
 
 ## Ledger discipline
 

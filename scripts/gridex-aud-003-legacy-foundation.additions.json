@@ -1,6 +1,7 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260519_contract_offer_versions_foundation.sql",
@@ -8,6 +9,8 @@
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
+    "migrations/20260521_final_customer_info_request_status_check.sql",
+    "migrations/20260520_batch_3_4_final_completion.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
@@ -15,6 +18,8 @@
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
+    "migrations/20260528_batch_1_completion_customer_flow.sql",
+    "migrations/20260521_actor_testing_engine_automation.sql",
     "migrations/20260602090000_ediel_operations_platform_core.sql",
     "migrations/20260605160000_ediel_backend_automation_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
@@ -176,12 +181,14 @@
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql": {
       "source": "migrations/20260528_batch_1_completion_customer_flow.sql",
       "artifactSha256": "c3d6fe34ff9223c419bc176fbb1875df8618508d834b77fcd1aa996964caedc1",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the pre-ledger current_supplier_id trace column and partial index observed in the canonical live route_decision_logs schema; no route decisions are seeded."
     },
     "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
       "source": "migrations/20260609150000_batch_6_sync_status_origin_fix.sql",
       "artifactSha256": "41c346f89b6b390cdc0815c24a2398749e848df8397627f24073ecb2a11185d3",
-      "purpose": "Restore only integration API client origin/runtime columns and the historical origin index required by later runtime capability checks; no clients are seeded."
+      "preserveSourceReplay": true,
+      "purpose": "Provide early API-client prerequisites, then retain the entire reviewed source at its original timestamp to preserve portal defaults and generic origin/identity normalization. See quality/audits/PORTAL_ORIGIN_REPLAY_EFFECTS_2026-09-06.md; selection alone is not execution or production parity evidence."
     },
     "bootstrap/20260609_communication_log_trace_foundation.sql": {
       "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
@@ -337,6 +344,7 @@
     "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql": {
       "source": "migrations/20260602143000_ediel_environment_business_action_locks.sql",
       "artifactSha256": "e99d45f17b4bce864f75fb03c1b19ae3bb118079bea424348c9e58358df9826d",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the source-defined ediel_test_runs environment_type column omitted by the earlier enum-only substitution, immediately before canonical role-scoped configuration binding consumes it; no test runs or tenant data are seeded or rewritten."
     },
     "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql": {

@@ -1,13 +1,19 @@
 {
-  "generated_at": "2026-08-04T11:00:50.330Z",
+  "generated_at": "2026-09-06T08:25:21.343Z",
   "source": "repository/supabase/migrations",
+  "checksum_sources": [
+    "scripts/migration-history-manifest.json",
+    "scripts/migration-history-manifest.additions.json",
+    "scripts/migration-history-manifest.runtime.additions.json",
+    "scripts/migration-history-verified-tail.json"
+  ],
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 362,
-    "ledger_eligible_count": 269,
+    "sql_file_count": 587,
+    "ledger_eligible_count": 494,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 362,
+    "checksum_registered_count": 587,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -6815,7 +6821,7 @@
     {
       "version": "20260728170000",
       "filename": "20260728170000_live_schema_code_canonical_sync.sql",
-      "checksum": "881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482",
+      "checksum": "4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400",
       "checksum_registered": true,
       "ledger_eligible": true,
       "expected_objects": [
@@ -7473,7 +7479,7 @@
     {
       "version": "20260803145108",
       "filename": "20260803145108_portfolio_lock_transition_immutability_fix.sql",
-      "checksum": "664cf48cc9611c5e80263baf403f94d916fbc0f873ae5c18e719e76a2645e975",
+      "checksum": "b712f437c7c7b13c2244df9d561ec76f3d2797ba352fa1bfb062cc9e3d3c5e96",
       "checksum_registered": true,
       "ledger_eligible": true,
       "expected_objects": [],
@@ -7593,6 +7599,3011 @@
         "supplier_switch_requests_application_contract_idx",
         "supplier_switch_requests_application_meter_idx",
         "supplier_switch_requests_application_site_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804151500",
+      "filename": "20260804151500_website_application_pre_auth_contract_alignment.sql",
+      "checksum": "95025d7c195b5333f77c5616bf5f5328974b431964df2ac53e4f13c9aa99c8d6",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_validate_website_application_portal_identity",
+        "public.website_customer_applications"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804173000",
+      "filename": "20260804173000_price_area_assurance_and_pricing_readiness.sql",
+      "checksum": "e57e118a7ea601854d33e91302e8383fa836f40bd602f9094569cb56c1ca2d5a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_site_resolution_price_assurance_idx",
+        "public.customer_site_resolution"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804190000",
+      "filename": "20260804190000_svk_geodata_and_billing_price_area_canonicalization.sql",
+      "checksum": "cfee635bdbc74b82c60017db34d4cf30f7f8a318e2c5e99001822c8cf8e6afc2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "billing_underlays_price_area_snapshot_guard",
+        "public.gridex_enforce_billing_underlay_price_area",
+        "public.gridex_import_grid_area_geojson_feature",
+        "public.gridex_promote_energy_geodata_version"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804193000",
+      "filename": "20260804193000_contract_price_snapshot_company_guard_fix.sql",
+      "checksum": "fb01ad3dcd01d37f5feb630d06735a4309eca42b276b23237d6c1cae700b739e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_contract_price_snapshots_company_guard"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804200732",
+      "filename": "20260804200732_usage_event_identity_and_integration_write_idempotency.sql",
+      "checksum": "84051d3fcbebf2f568f6e95af8eb47ae0553165d911d072c4baf9cf44cb85bbe",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "integration_api_write_idempotency_lookup_idx",
+        "integration_api_write_idempotency_processing_idx",
+        "platform_usage_event_failures_company_created_idx",
+        "platform_usage_event_failures_open_created_idx",
+        "platform_usage_events_company_entity_reference_idx",
+        "public.integration_api_write_idempotency",
+        "public.platform_usage_event_failures",
+        "public.platform_usage_events"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804202318",
+      "filename": "20260804202318_ediel_system_actor_uuid_and_draft_intent_repair.sql",
+      "checksum": "997b855ee7777dc538de75e3de948374b9add0e685401ed47880524c904f5ec3",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260804202601",
+      "filename": "20260804202601_integration_api_request_log_idempotency_index_fix.sql",
+      "checksum": "4667f8bea91f8b7b81aaf73a82e2c126276165c5bba646d2864f9dbeb4454101",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "integration_api_requests_idempotency_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260805085617",
+      "filename": "20260805085617_api_contract_billing_tenant_hardening.sql",
+      "checksum": "b17abd19803511156eb21902e9d57b4ca8219fef303c9238e33a03a69ff140b7",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.billing_underlay_items",
+        "public.billing_underlays",
+        "public.contract_charge_ledger",
+        "public.contract_price_snapshots",
+        "public.customer_contracts",
+        "public.customer_invoice_lines",
+        "public.customer_invoices",
+        "public.integration_api_write_idempotency",
+        "public.website_contract_quotes"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260806122255",
+      "filename": "20260806122255_gridex_ops_bl_002_global_read_isolation.sql",
+      "checksum": "ccbc18dbb7232841758830235be3e808d55b0512c72a409c6125981a5103d2d6",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.actor_registry_conflicts",
+        "public.actor_registry_import_items",
+        "public.actor_registry_import_runs",
+        "public.ediel_certificate_refresh_jobs"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260806151106",
+      "filename": "20260806151106_gridex_aud_001_customer_document_storage_isolation.sql",
+      "checksum": "0d51528c3d7dcb8e2bd2c92cb8d83eea9212438232d25bb5422158be43d46d16",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_customer_document_path_allows"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260806152004",
+      "filename": "20260806152004_gridex_aud_001_storage_helper_private_schema.sql",
+      "checksum": "ae8274a9a37a1ecf672ae1257ee225619fbc48369aaf929af5f07f63e8241d5f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "gridex_private.customer_document_path_allows"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260808214500",
+      "filename": "20260808214500_grid_owner_direct_actor_join_performance.sql",
+      "checksum": "c5b1eb1c23f6423845ac3b93053d997c9244112dd7d2376183b0e550ed9bfd43",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_verified_grid_owners_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809110000",
+      "filename": "20260809110000_ops_health_status_qualification.sql",
+      "checksum": "a84abad61c7c931e93d2aa1298d54d7cd43c886ab12692ffe9b37d69b37adcc3",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809114500",
+      "filename": "20260809114500_ediel_certificate_status_consistency.sql",
+      "checksum": "71ed2e9c51221ae11ab54bbf1b6fe60f6566a0f877d1c4a8cd5b02088fa0ae94",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809123000",
+      "filename": "20260809123000_gridex_ops_bl_006_contacts_and_lookup_cache_read_isolation.sql",
+      "checksum": "c335305c9076030d85684e9c70b0f20e277defd2439923aa61cb46310b9ddb77",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.platform_actor_contacts",
+        "public.platform_address_lookup_cache",
+        "public.platform_energy_lookup_cache"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809131500",
+      "filename": "20260809131500_gridex_ops_o008_actor_readiness_conflict_count_visibility.sql",
+      "checksum": "90b4b79784598d1772e82baac23419354618f20342c0bbfdad8d087f3e28d366",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "gridex_internal.actor_open_blocking_conflict_counts",
+        "public.actor_readiness_status"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809143000",
+      "filename": "20260809143000_gridex_ops_bl_001_write_permission_hardening.sql",
+      "checksum": "fb44170d175071caebd377d90daf3ab80a383bd9a9bce3a96196121c5616c93b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809180628",
+      "filename": "20260809180628_gridex_ops_external_api_performance_foundation.sql",
+      "checksum": "a9de604f3b34c183299198c741c28710a668f0074b9970eb46b82c947163f51b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_authorization_documents_portal_keyset_idx",
+        "customer_contracts_portal_keyset_idx",
+        "customer_documents_portal_keyset_idx",
+        "customer_events_portal_keyset_idx",
+        "customer_invoices_portal_keyset_idx",
+        "customer_legal_acceptances_portal_keyset_idx",
+        "customer_notifications_portal_keyset_idx",
+        "customer_sites_portal_keyset_idx",
+        "normalized_metering_values_portal_keyset_idx",
+        "powers_of_attorney_portal_keyset_idx",
+        "public.customer_portal_write_idempotency",
+        "public.portal_customer_documents_page_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809181141",
+      "filename": "20260809181141_backfill_legacy_ediel_test_run_tenant.sql",
+      "checksum": "478542e4506b7387353b5429ddc0b729cd3203205fe2cbe417fa8c5e8c9538d2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809181153",
+      "filename": "20260809181153_validate_pending_public_constraints.sql",
+      "checksum": "46461e2cf41907ae66e1ccaf6e526c4e2e6f87c998d5efd50a80a8a7edcf8291",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809181803",
+      "filename": "20260809181803_portal_event_keyset_read_model.sql",
+      "checksum": "a920117d89f82f4164938d498b9adba3aad6eaec370d3e5cd98e8209c2c8847a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "domain_events_portal_customer_keyset_idx",
+        "public.portal_customer_events_page_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809182215",
+      "filename": "20260809182215_authenticate_integration_request_v1.sql",
+      "checksum": "dba6e6ea5cb23f86825a8e272d162e2d8cf3021bc4dab93e323a02859bb5c2f5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.authenticate_integration_request_v1",
+        "public.integration_api_scope_present_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809182318",
+      "filename": "20260809182318_authenticate_integration_request_route_cost.sql",
+      "checksum": "ce4f04e2a9a066e4b4a5de1900d6474c70b872a3e29d6e63b661733001895911",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.authenticate_integration_request_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809182554",
+      "filename": "20260809182554_resolve_portal_customer_identity_v1.sql",
+      "checksum": "eacdf7b97b65a04fea900f51f25b7633a0e8cbb434bc34e5669524b5a02b0692",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.resolve_portal_customer_identity_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809183210",
+      "filename": "20260809183210_public_contract_feed_fingerprint_v1.sql",
+      "checksum": "a5174fc5d5260d75e701a1512f7f61cbfb751cb23b45196917e8d48ce7ca5474",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.public_contract_feed_fingerprint_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809191057",
+      "filename": "20260809191057_authenticate_integration_request_route_cost.sql",
+      "checksum": "a7c66b69169055de43d963e25e3e8011023e597cc712463800d055ec37114615",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.authenticate_integration_request_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260809191135",
+      "filename": "20260809191135_portal_event_keyset_read_model.sql",
+      "checksum": "96a2cb3ae99af0b23feda113f28cf69d2c3142ea4d8534fd6f62f5bb35bb054a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "domain_events_portal_customer_keyset_idx",
+        "public.portal_customer_events_page_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810110126",
+      "filename": "20260810110126_tenant_website_granular_scopes.sql",
+      "checksum": "d795f499ba3762078e81d9a4344c1ea9405c641b009ab5c14a05def51c9b5585",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810110149",
+      "filename": "20260810110149_customer_invoice_public_reference.sql",
+      "checksum": "b108d3c0d4b7badea52eb6cd9ae81f52aff826cdd80df81e8fd0d94c32fa757a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_invoices_public_reference_trg",
+        "public.customer_invoices",
+        "public.ensure_customer_invoice_reference_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810110229",
+      "filename": "20260810110229_database_hygiene_and_geodata_retention.sql",
+      "checksum": "f9094c45e2857a39815a7fb68f63f026d6528e39ccd4da44cdc54d03fbf27046",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.cleanup_energy_geodata_staging_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810110829",
+      "filename": "20260810110829_retention_category_classification.sql",
+      "checksum": "db0366af177c8df2ef6d779d03835a82db873c367c810e1798b12f2f5e0aecff",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810185155",
+      "filename": "20260810185155_gridex_canonical_architecture_p0.sql",
+      "checksum": "89781a052bda69e7f56cbf34f5704547b071a0e7f8ab0befb326453c0b804879",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "canonical_event_outbox_deprecation_bridge",
+        "companies_lifecycle_status_projection",
+        "public.authenticate_integration_request_v1",
+        "public.authenticate_provisioning_smoke_request_v1",
+        "public.canonical_actor_is_authorized",
+        "public.canonical_data_repair_audit",
+        "public.companies",
+        "public.company_memberships",
+        "public.gridex_bridge_deprecated_canonical_event_bus",
+        "public.gridex_sync_company_lifecycle_status",
+        "public.platform_reconciliation_findings",
+        "public.user_roles"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810190410",
+      "filename": "20260810190410_gridex_canonical_architecture_p0.sql",
+      "checksum": "68b259983310c0930601b8b0e2456a00137688840bbbaa44dd46347018e93685",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "canonical_event_outbox_deprecation_bridge",
+        "companies_lifecycle_status_projection",
+        "public.authenticate_integration_request_v1",
+        "public.authenticate_provisioning_smoke_request_v1",
+        "public.canonical_actor_is_authorized",
+        "public.canonical_data_repair_audit",
+        "public.companies",
+        "public.company_memberships",
+        "public.gridex_bridge_deprecated_canonical_event_bus",
+        "public.gridex_sync_company_lifecycle_status",
+        "public.platform_reconciliation_findings",
+        "public.user_roles"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810190809",
+      "filename": "20260810190809_gridex_canonical_architecture_p0_security_hotfix.sql",
+      "checksum": "4c71d3914e9ca28c36ec5d6647bd8bd0e753655ea8f7a214203d889c1c179927",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810191822",
+      "filename": "20260810191822_canonical_lifecycle_offboarding_v1.sql",
+      "checksum": "b1105902f1a55ef4ea0a806746cf02a6d55c1ce2b580a2c7d736249208d6d2bf",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_transition_tenant_lifecycle",
+        "public.company_provisioning_jobs",
+        "public.customer_operation_jobs",
+        "public.tenant_contract_channels",
+        "public.webhook_subscriptions"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810193450",
+      "filename": "20260810193450_canonical_access_provisioning_runtime_v1.sql",
+      "checksum": "390b0223a8fbafb633795f1ad0116d6cf8ebbddea056226be84711e7d878a4b8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "companies_canonical_provisioning_lifecycle",
+        "company_provisioning_jobs_claim_idx",
+        "company_provisioning_jobs_stale_lease_idx",
+        "public.canonical_authenticated_tenant_context",
+        "public.canonical_claim_company_provisioning_jobs",
+        "public.canonical_complete_company_provisioning_job",
+        "public.canonical_create_tenant_invitation",
+        "public.canonical_provision_company",
+        "public.canonical_sync_provisioning_jobs_for_lifecycle",
+        "public.canonical_tenant_operation_decision",
+        "public.company_invitations",
+        "public.company_provisioning_jobs"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810213851",
+      "filename": "20260810213851_canonical_architecture_completion_v2.sql",
+      "checksum": "8fe7cd836957996b0416adcb5a8c16bb530ba3a47f0f75805a2332a729a4809f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_operation_jobs_manual_review_sla_idx",
+        "public.canonical_queue_customer_application_repair",
+        "public.canonical_run_architecture_reconciliation",
+        "public.canonical_set_architecture_finding",
+        "public.customer_operation_jobs",
+        "public.platform_performance_budgets",
+        "public.platform_release_receipts",
+        "public.website_customer_applications",
+        "website_customer_applications_repair_queue_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810214927",
+      "filename": "20260810214927_canonical_architecture_completion_fk_indexes.sql",
+      "checksum": "5bc8bfc1c937f2bb82be20265f445523c430cb565e4f7f974912551c09908b23",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_operation_jobs_review_owner_user_idx",
+        "platform_release_receipts_recorded_by_idx",
+        "website_customer_applications_repair_owner_user_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810221500",
+      "filename": "20260810221500_canonical_invitation_delivery_hotfix.sql",
+      "checksum": "dee5b7e65a5a4d0eb68c83e8c88dbb7fa25e3ce97521fddf7b08e5860c89138e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260810224500",
+      "filename": "20260810224500_canonical_review_remediation_v1.sql",
+      "checksum": "12fb80b8c13f7e105e4c5b63a6145e863872874fd4a2caaea9f669df5a80010d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "canonical_enqueue_invitation_delivery_job",
+        "public.authenticate_integration_request_v1",
+        "public.authenticate_integration_request_v1_credential_core",
+        "public.authenticate_provisioning_smoke_request_v1",
+        "public.canonical_authenticated_tenant_context",
+        "public.canonical_complete_company_provisioning_job",
+        "public.canonical_enqueue_invitation_delivery_job",
+        "public.canonical_queue_customer_application_repair",
+        "public.canonical_run_architecture_reconciliation",
+        "public.canonical_transition_tenant_lifecycle"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260811080000",
+      "filename": "20260811080000_remaining_masterpoint_convergence.sql",
+      "checksum": "915f097ae92cfc56423b4047e1b31433bb293bb2d56f505b7584c563a89a33a2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "companies_canonical_org_number",
+        "inbound_processing_jobs_manual_review_queue_idx",
+        "platform_release_receipts_environment_recorded_idx",
+        "public.anonymize_user_account",
+        "public.canonical_run_architecture_reconciliation",
+        "public.gridex_canonicalize_company_org_number",
+        "public.inbound_processing_jobs",
+        "public.platform_release_receipts"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260811155412",
+      "filename": "20260811155412_ops_health_live_route_qualification.sql",
+      "checksum": "1dbdfa724240830873f6be1d8994cccb7cd6dc7cefe80455e0fcbaa6120ef9f7",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_ops_health_checks_v4"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260811155851",
+      "filename": "20260811155851_post_108_health_security_residuals.sql",
+      "checksum": "8f77c78368506a1e83aa13a136c5b713e674c6781137e26c023ec901cb0b02c5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_run_architecture_reconciliation"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812113000",
+      "filename": "20260812113000_gridex_ops_masterdata_health_v5.sql",
+      "checksum": "e1520cd3ebdb4e5ac5462d46a5002668eab89f40aed89d9e2f9ec11d71594a16",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_ops_health_checks_v5",
+        "public.gridex_reconcile_grid_owner_mappings_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812114500",
+      "filename": "20260812114500_gridex_ops_health_v5_dynamic_receiver_semantics.sql",
+      "checksum": "cd011bf04dd5e5b4461a32eb9bc4e71146119dc190fe773a106941cfdb646924",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_ops_health_checks_v5"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812121100",
+      "filename": "20260812121100_gridex_ops_health_v5_service_role_only.sql",
+      "checksum": "713064122edde098bbd89ad4df6e898f3f1fc55f28d2c34a5fa654ed828ec234",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812123500",
+      "filename": "20260812123500_gridex_ops_performance_hotpaths_v1.sql",
+      "checksum": "a3783df0daf80241e4774186ef35338bdab01575db4fe2dd2a67dd66198033d2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "platform_actor_certificates_active_prod_encryption_idx",
+        "public.gridex_grid_owner_duplicate_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812125000",
+      "filename": "20260812125000_gridex_runtime_schema_catalog_v3_targeted_catalog.sql",
+      "checksum": "659c37680d5a65465ed7bddde10ed788916ea949524b26c750ff24ecc12e5bad",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_runtime_schema_catalog_v3"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812130500",
+      "filename": "20260812130500_gridex_ops_health_v5_role_aware_counts.sql",
+      "checksum": "428c3df19f22cc1638279699fc12b6056950999e8f172a470f07bdbb8bc4664b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812132000",
+      "filename": "20260812132000_gridex_portfolio_rls_auth_initplan.sql",
+      "checksum": "a0307d19b8ecf240e3c0f3b7e54bf95a7dcb26a5c5815eeba2c45f3f49748c8d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812143000",
+      "filename": "20260812143000_gridex_ops_grid_owner_invariants_v2.sql",
+      "checksum": "c01a94b778c0fb21f3c24150a694efa2ba438e6811156611e60663e299c2c2fa",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_grid_owner_duplicate_v",
+        "public.gridex_reconcile_grid_owner_mappings_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812151500",
+      "filename": "20260812151500_gridex_ops_grid_owner_identifier_normalization_v3.sql",
+      "checksum": "c5d3be7cc2e3dd162d75e511bad84bbfd5670b16d86d92c91d33a4c60087690f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_reconcile_grid_owner_mappings_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812210800",
+      "filename": "20260812210800_gridex_rls_policy_normalization_v1.sql",
+      "checksum": "2d9609109928967f571401864893a47bee1598bce8b115b5f26f3fadc236643a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812211405",
+      "filename": "20260812211405_gridex_missing_fk_indexes_v1.sql",
+      "checksum": "1e5abc5db8164988866383a38bcabf02c4dc34b89914c3f32c8333c7ddcb93bf",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "IF"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260812222645",
+      "filename": "20260812222645_gridex_explicit_service_only_rls_deny_v1.sql",
+      "checksum": "ac5a420d7605bc9f3a56a9396f61cbe46ce83b8eee1de0ef0da76804904cd4cb",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813070046",
+      "filename": "20260813070046_gridex_review_hardening_v2.sql",
+      "checksum": "3e174ee285c0f32dfd223ccdc5c826abc3bd3fe26a362d31c2435ba5f403cfd3",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "IF"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813120500",
+      "filename": "20260813120500_ediel_utilts_25a3_semantics_alignment.sql",
+      "checksum": "b4cf3877e8e2dbdd85e3b9830ba0af38599fe78d99f8221001262e12db08785a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813122500",
+      "filename": "20260813122500_ediel_utilts_profile_semantics.sql",
+      "checksum": "80e18483772644427d5bf8d7dfc838c26f11eb85cd8c6d67712ef08dde866096",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813123500",
+      "filename": "20260813123500_ediel_utilts_readiness_truth.sql",
+      "checksum": "e9c1c8d8393c9f9c7b8f8f17dfaa3fb51819cbddaeb6660b6ced4a4b2c44979a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813124500",
+      "filename": "20260813124500_ediel_utilts_transactional_persistence_v1.sql",
+      "checksum": "806fb18e1f9dadcd98f90f67ddd49a3b5fb725dc2a7c057e0e0daea6ed5aafac",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_ack_transaction_results_source_disposition_idx",
+        "meter_reading_series_current_message_code_idx",
+        "meter_reading_series_current_object_period_idx",
+        "meter_reading_series_immutable_guard",
+        "meter_reading_series_tenant_guard",
+        "meter_reading_values_immutable_guard",
+        "meter_reading_values_tenant_guard",
+        "public.ediel_ack_transaction_results",
+        "public.gridex_guard_immutable_meter_reading_series",
+        "public.gridex_guard_immutable_meter_reading_value",
+        "public.gridex_guard_meter_reading_series_tenant",
+        "public.gridex_guard_meter_reading_value_tenant",
+        "public.gridex_persist_utilts_transactions_v1",
+        "public.meter_reading_series",
+        "public.meter_reading_values"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813125000",
+      "filename": "20260813125000_ediel_utilts_persistence_pgcrypto_path.sql",
+      "checksum": "a11690563e7f37695d05aed3bfc0965c429be55357fa7ba5f29d56eb0eccb261",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813125500",
+      "filename": "20260813125500_ediel_utilts_series_version_default.sql",
+      "checksum": "bd587231f4a6080d92e29a69426071c2d2cd4a789ddef235d28999cda28051e7",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_guard_meter_reading_series_tenant"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813130000",
+      "filename": "20260813130000_ediel_utilts_persistence_fk_indexes.sql",
+      "checksum": "4e0bb73eed70d0034728f2192d0eba97cd70db5a42d0c2cecad7bebf83061667",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_ack_transaction_results_persisted_series_idx",
+        "meter_reading_series_supersedes_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813130500",
+      "filename": "20260813130500_ediel_utilts_canonical_field_matrix.sql",
+      "checksum": "f0b57556ac1b196ba598d6308ed34b7595da3ab7266150e8278110d3fb0ab1e5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813210500",
+      "filename": "20260813210500_ediel_utilts_field_511_products_25_a_3.sql",
+      "checksum": "188b18da215227f35463ebcb432ef5f8b0064681a2d87b764b3653656a82e6b9",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.ediel_timeseries_products",
+        "public.resolve_ediel_timeseries_product_511"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813221500",
+      "filename": "20260813221500_ediel_utilts_field_511_l653q_description_trim.sql",
+      "checksum": "55e2e5e6bd04554fdc693bcdeb8942b2a96c4be0c5acfbcb035325987cf88a94",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260813230000",
+      "filename": "20260813230000_runtime_readiness_dependency_resilience_v1.sql",
+      "checksum": "63b6099df1e28139d0a3e82011f582fa11c9e46d20db1aa3a2d43932050e8a0e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.dependency_circuit_state",
+        "public.gridex_dependency_circuit_before_request_v1",
+        "public.gridex_dependency_circuit_record_v1",
+        "public.gridex_record_legacy_api_key_use_v1",
+        "public.gridex_refresh_platform_runtime_readiness_v1",
+        "public.gridex_stage_energy_geodata_features_v2",
+        "public.integration_api_clients",
+        "public.integration_legacy_api_key_sunset_v",
+        "public.platform_runtime_readiness"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814125600",
+      "filename": "20260814125600_tenant_website_go_live_hardening.sql",
+      "checksum": "f5da6189c3f571da2c62b9cf0126fcb1c0459902d89e40e717ac68845c220432",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.authenticate_integration_request_v1",
+        "public.gridex_provision_tenant_website_client_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814133500",
+      "filename": "20260814133500_tenant_website_activation_guard.sql",
+      "checksum": "daca4ef904c77b1559de08a2ee91fd485d9a46ebd8e42ec062c99f6aad50361a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "integration_api_clients_tenant_website_activation_guard",
+        "public.gridex_guard_tenant_website_activation_v2"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814162500",
+      "filename": "20260814162500_tenant_rls_lifecycle_hardening.sql",
+      "checksum": "e2eee5be4e4c795380782248683bfd32b682a66b2e2882a1fd241c9acc7498b2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.",
+        "public.companies",
+        "public.gridex_can_read_company",
+        "public.gridex_can_write_company",
+        "public.gridex_user_can_manage_company",
+        "public.gridex_user_company_ids"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814170000",
+      "filename": "20260814170000_tenant_website_receipt_ready_binding.sql",
+      "checksum": "da7fb4f73c2ebb1a9492888621b8754c296e2c4bf399582d9a33c7c2158793c5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.authenticate_integration_request_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814180000",
+      "filename": "20260814180000_tenant_website_activation_lifecycle_resume.sql",
+      "checksum": "78226972df8ecb181c840e05c1d35eba62657efb68829c47ad35070b4b3e5ee4",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_guard_tenant_website_activation_v2"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814183500",
+      "filename": "20260814183500_remaining_production_gaps_forward_port.sql",
+      "checksum": "349359875c2dbcdfcf2c819c720c26e275aaa5cfa262fa05d65d0087a02eebbf",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_record_platform_release_receipt",
+        "public.canonical_resolve_inbound_manual_review"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814190000",
+      "filename": "20260814190000_inbound_manual_review_status_and_binding.sql",
+      "checksum": "433339563c48e24e3f9fd102b10705616b69431712c97a9dfa834515f5af66b1",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_resolve_inbound_manual_review"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814193000",
+      "filename": "20260814193000_inbound_manual_review_reopen_after_requeue.sql",
+      "checksum": "f4494f494480532293fdd1c394c68c76f21f2857e26e7f78f2b204b3a3a4d91b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814200000",
+      "filename": "20260814200000_inbound_manual_review_metadata_on_entry.sql",
+      "checksum": "49d2eb86d401bda73319fd3550b8794792229d35bdd8ce1833db0cb0c2ef2355",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814230500",
+      "filename": "20260814230500_fix_canonical_tenant_lifecycle_request_hash.sql",
+      "checksum": "98241372a19bb2c4db672cd2f28990d3a086fe2e959697e83a3bfa1b5b8242c2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_transition_tenant_lifecycle_v3_pre_offboarding"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814232000",
+      "filename": "20260814232000_bind_website_sales_to_live_production.sql",
+      "checksum": "48a7eb20af6f7ba5d76cc24e0f91fa94b110a954d99d05e4d8a00c99dccf4f15",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_tenant_operation_decision"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260814234000",
+      "filename": "20260814234000_certification_evidence_passed_integrity.sql",
+      "checksum": "67e9943bcaff02f1c099becbd7dac9eb9823626ed7b13e9f2d216a13925fc9c9",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.ediel_certification_evidence"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815002945",
+      "filename": "20260815002945_fix_actor_profile_hash_and_authoritative_projection.sql",
+      "checksum": "9961c4f51964690d88082b884fcd67bed70090c0090620940fbb0e23f7c2a991",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_project_actor_test_result_state"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815003554",
+      "filename": "20260815003554_conditional_limited_pilot_evidence_gate.sql",
+      "checksum": "d05eaff0ce10b5084d512187c10e06906fcd86c66f0a7ae33920e90463a6f513",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_ediel_production_evidence_readiness"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815093959",
+      "filename": "20260815093959_ediel_system_test_multitenant_profile_key.sql",
+      "checksum": "be223d7c75803845e72ac8f32f01f33a61c168c3f4e4e15ce74fc982e1446cfa",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_system_test_settings_runtime_lookup_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815095427",
+      "filename": "20260815095427_ediel_role_scoped_test_configuration_binding.sql",
+      "checksum": "57589e4b199a849483a469a23a8bc2219996462099e78ec0ce800cecacd07ce9",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_active_test_configurations_actor_profile_idx",
+        "ediel_active_test_configurations_route_profile_idx",
+        "ediel_active_test_configurations_settings_idx",
+        "ediel_test_runs_bind_active_configuration",
+        "public.canonical_bind_test_run_active_configuration",
+        "public.canonical_capture_ediel_test_configuration_snapshot",
+        "public.ediel_active_test_configurations"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815114530",
+      "filename": "20260815114530_restore_pre_engine_live_ediel_approval.sql",
+      "checksum": "6850a14fc8154dc538192a525031409e04c7f0da740a4414a9add9f1b268ed29",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_restore_pre_engine_live_ediel_approval"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815114814",
+      "filename": "20260815114814_restore_pre_engine_live_ediel_approval_uuid_aggregate_hotfix.sql",
+      "checksum": "4bb48b081c68fa11e5ca0fb8106aa2448ad62b50f266ff2be241fddd7882c650",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815162500",
+      "filename": "20260815162500_tenant_readiness_truth_convergence.sql",
+      "checksum": "33d8791b3e082df78f788a878739987283022351c31cb16770b267543ad199c5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_company_go_live_readiness",
+        "public.gridex_reconcile_company_onboarding_tasks_v1",
+        "public.gridex_tenant_activation_readiness"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815164000",
+      "filename": "20260815164000_ediel_brp_active_state_hotfix.sql",
+      "checksum": "fb41eb40df6970df28b487d6e1ab7cad5e7448fbcf72ad306f16086ea9ecea43",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "idx_ediel_brp_settings_company_environment_active",
+        "public.ediel_brp_settings"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815170500",
+      "filename": "20260815170500_contract_publication_channel_readiness.sql",
+      "checksum": "4c8505c9457262c50784204f6fb07627a356ce5452a3874b5894ed7f59177fd8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.contract_publication_readiness_v",
+        "public.gridex_invoice_fee_snapshot_readiness",
+        "public.gridex_published_website_offer_integrity",
+        "public.gridex_tenant_contract_readiness_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815210353",
+      "filename": "20260815210353_restrict_recent_security_definer_rpcs.sql",
+      "checksum": "5e2a5542b30bb560911645015382cf87029004f3adba03575f270f9377b93d69",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815220000",
+      "filename": "20260815220000_contract_publication_successor_transition_order.sql",
+      "checksum": "2b394258e007392383f2a1ae0293877c2faf16a59f52e3bb59e50928540d4424",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815233059",
+      "filename": "20260815233059_tenant_website_installation_completion_v1.sql",
+      "checksum": "e2e1aaf6bb489d7c7392bb7758e5e6c08d87c9ceb54ed907ffd1a65b3e2ee64f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_complete_tenant_website_installation_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260815233411",
+      "filename": "20260815233411_tenant_website_installation_completion_trigger_v1.sql",
+      "checksum": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "integration_api_clients_tenant_website_receipt_completion",
+        "private.gridex_complete_tenant_website_receipt_on_launch_ready_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260816101505",
+      "filename": "20260816101505_partner_api_v1_multicompany_foundation.sql",
+      "checksum": "5cfb827c20cc04a8ed01df99929a2891de4afc6a702471f029264bc1225a8978",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_contracts_partner_api_events_v1",
+        "idx_customer_contracts_company_public_reference",
+        "idx_customer_invoices_company_public_reference",
+        "idx_customer_sites_company_public_reference",
+        "idx_metering_company_site_period",
+        "public.customers",
+        "public.gridex_bind_customer_contract_to_exact_publication",
+        "public.gridex_create_partner_webhook_subscription_v1",
+        "public.gridex_delete_partner_webhook_subscription_v1",
+        "public.gridex_partner_contract_event_v1",
+        "public.gridex_read_webhook_signing_secret_v1",
+        "public.gridex_resolve_partner_api_offer_v1",
+        "public.powers_of_attorney",
+        "public.webhook_subscriptions"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260816135746",
+      "filename": "20260816135746_partner_api_v1_transactional_contract_create.sql",
+      "checksum": "2965ebf859b9d4119bbd5d2dc615b7a639372f3c54ece154fd985b8af8c7e6da",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_create_partner_contract_v1",
+        "public.gridex_partner_contract_event_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260816165000",
+      "filename": "20260816165000_partner_api_customer_billing_replay_parity.sql",
+      "checksum": "eb5ab821c7f1e84ad61e34d566807fcb624291fd0847ad7067b03e00824e2d1e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customers"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260816170000",
+      "filename": "20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "checksum": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_invoices_partner_api_events_v2",
+        "customer_sites_partner_api_events_v2",
+        "customers_partner_api_events_v2",
+        "powers_of_attorney_partner_api_events_v2",
+        "private.gridex_emit_partner_resource_event_v2",
+        "private.gridex_partner_customer_event_v2",
+        "private.gridex_partner_invoice_event_v2",
+        "private.gridex_partner_poa_event_v2",
+        "private.gridex_partner_site_event_v2",
+        "public.gridex_create_partner_webhook_subscription_v1",
+        "public.gridex_partner_contract_event_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260817083859",
+      "filename": "20260817083859_partner_postal_grid_materialization.sql",
+      "checksum": "55bf5ef2f0d74c59dfbc4835e856a48b3b7292ca543e5b64da59bc000fd3ae09",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "partner_postal_code_geometries_staging_geometry_gist",
+        "partner_postal_code_geometries_staging_postal_idx",
+        "private.gridex_materialize_postal_grid_mappings_v1",
+        "private.partner_postal_code_geometries_staging"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260817094125",
+      "filename": "20260817094125_papilite_verified_postal_learning.sql",
+      "checksum": "4f3307eb05581388655dc961691cdfd38b8d17734eed60cb28dfff7e362f173d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.gridex_learn_verified_postal_mapping_from_site_v1",
+        "trg_gridex_learn_verified_postal_mapping_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260817124500",
+      "filename": "20260817124500_site_resolution_materialization_guard.sql",
+      "checksum": "f709935b848dc6f4bd1cd6383def91e2d5411de05c5f491f9273878f2a568429",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.gridex_guard_site_resolution_materialization_v1",
+        "trg_gridex_guard_site_resolution_materialization_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260817210500",
+      "filename": "20260817210500_fix_canonical_provision_company_request_hash.sql",
+      "checksum": "6f145037c73cc03524beff2ad77919392d6ed80e12d25b7e1fe57b76ede33aeb",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_provision_company_v3_pre_invitation_intent",
+        "public.companies"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818121500",
+      "filename": "20260818121500_master_production_remediation_p0.sql",
+      "checksum": "16e91ef52b4f24cfc4cf45576f48fef8ce488a5f517535eea391739e924feae5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "aa_customer_contracts_assign_identity_v1",
+        "aa_event_outbox_retired_onboarding_destination_v1",
+        "public.gridex_assign_customer_contract_identity_v1",
+        "public.gridex_claim_customer_operation_jobs",
+        "public.gridex_enforce_spot_price_month_server_aggregate_v1",
+        "public.gridex_public_catalog_dependency_revision_trigger_v1",
+        "public.gridex_recompute_spot_price_month_v1",
+        "public.gridex_suppress_retired_onboarding_outbox_v1",
+        "public.public_contract_feed_fingerprint_v1",
+        "spot_price_monthly_server_aggregate_v1",
+        "trg_gridex_catalog_rev_api_client",
+        "trg_gridex_catalog_rev_company"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818124500",
+      "filename": "20260818124500_internal_pricing_and_event_truth.sql",
+      "checksum": "8375766cc04a3a14c21d899f25794a8756cf1da94dbd98fd119f81d97cdf7a17",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "aa_contract_price_snapshots_normalize_fixed_area_v1",
+        "aa_customer_contract_events_signature_request_truth_v1",
+        "ab_customer_contracts_normalize_fixed_area_snapshot_v1",
+        "public.gridex_normalize_contract_price_snapshot_row_v1",
+        "public.gridex_normalize_customer_contract_pricing_snapshot_v1",
+        "public.gridex_normalize_fixed_area_snapshot_v1",
+        "public.gridex_normalize_signature_request_event_truth_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818150000",
+      "filename": "20260818150000_internal_helper_schema_convergence.sql",
+      "checksum": "de106045f214adabd485f5fa00b5fb132809c57f52a00b12522af19028641002",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_enforce_spot_price_month_server_aggregate_v1",
+        "public.gridex_normalize_contract_price_snapshot_row_v1",
+        "public.gridex_normalize_customer_contract_pricing_snapshot_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818155122",
+      "filename": "20260818155122_master_remediation_review_fixes.sql",
+      "checksum": "88c179c78284669e5d12fb8d4f2cbe60149666d3b88168fc58b164701af76638",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.gridex_normalize_fixed_area_snapshot_v1",
+        "private.gridex_recompute_spot_price_month_v1",
+        "public.gridex_claim_customer_operation_jobs",
+        "public.gridex_enforce_spot_price_month_server_aggregate_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818165847",
+      "filename": "20260818165847_canonical_online_signature_v1.sql",
+      "checksum": "5318b670aa11dcea504e0e7e8d6a9e40859637355ac8cbfd214f1e2da5ad0ebb",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_contract_signature_requests_contract_active_idx",
+        "customer_contract_signature_requests_expiry_idx",
+        "public.customer_contract_signature_requests",
+        "public.gridex_create_internal_customer_contract_v1",
+        "public.gridex_finalize_customer_contract_signature_v1",
+        "public.gridex_get_customer_contract_signature_receipt_v1",
+        "public.gridex_mark_customer_contract_signature_request_sent_v1",
+        "public.gridex_prepare_customer_contract_signature_request_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818170119",
+      "filename": "20260818170119_canonical_online_signature_internal_create_hotfix.sql",
+      "checksum": "22c12c95e9bde92b77937dcb6568cde1a8b639512b8cce8a9f2d714c8d94d251",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_create_internal_customer_contract_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818170213",
+      "filename": "20260818170213_contract_signature_date_semantics.sql",
+      "checksum": "8964fe7fab2961137115adddeaa974a86fc760fd3c313d02286eb228587ee32d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_customer_contracts_auto_renew_guard"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818170828",
+      "filename": "20260818170828_signed_contract_document_hash_binding.sql",
+      "checksum": "04950bc18fb528b72a448b51028ec865c25af0e2d40ad12942ba03f6a8201a52",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_lock_signed_customer_contract"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260818173236",
+      "filename": "20260818173236_online_signature_tenant_email_readiness.sql",
+      "checksum": "774261dfc2494a75eb5f939c4706501be750e0470ea09488224913e7577cae89",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_contract_signature_requests_email_readiness_tg",
+        "public.gridex_require_signature_tenant_email_readiness_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260819070622",
+      "filename": "20260819070622_pr164_review_remediation_v2.sql",
+      "checksum": "d9b63125c2275041a7e19ae943a493fac4033e1a63611139ea7d7acb5f645d87",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.gridex_calculate_spot_price_month_v1",
+        "private.gridex_normalize_fixed_area_snapshot_v1",
+        "private.gridex_recompute_spot_price_month_v1",
+        "public.gridex_claim_customer_operation_jobs",
+        "public.gridex_enforce_spot_price_month_server_aggregate_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260819111204",
+      "filename": "20260819111204_email_event_contract_and_certificate_refresh_hardening.sql",
+      "checksum": "b3a53a26f147125877e6debfb9cb86a593f11460502336a1dced2b15099bd38c",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_certificate_refresh_jobs_status_started_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260819111612",
+      "filename": "20260819111612_email_dispatch_readiness_variable_contract.sql",
+      "checksum": "42f2302552bcf2e5b21454f16a1dc1bc5ebbafb28b4030850865639debead22c",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_tenant_email_dispatch_readiness_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260819112000",
+      "filename": "20260819112000_tenant_api_checkout_delivery_performance.sql",
+      "checksum": "15d5fb56f21f384c4208cb8252f419a04ae1e7e18ec1ec730b35709512e81b5a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "tenant_email_outbox_company_communication_log_idx",
+        "tenant_website_installation_receipts_auth_ready_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260820113132",
+      "filename": "20260820113132_invoice_export_locked_pricing_guard.sql",
+      "checksum": "db0235f01516a707ff055dacf42b3709ff7e083f25112a23f01bbbbf74e741c9",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "invoice_export_items_require_locked_pricing_run",
+        "private.gridex_require_locked_pricing_run_for_invoice_export"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260820213000",
+      "filename": "20260820213000_tenant_scoped_post_auth_website_applications.sql",
+      "checksum": "c85a41ddd3a0088b03173d16498f64542112492993f9ba4bd04af9cb04c5e782",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customer_portal_accounts",
+        "public.customer_portal_identities",
+        "public.gridex_validate_website_application_portal_identity",
+        "public.website_customer_applications"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821103000",
+      "filename": "20260821103000_customer_identity_consistency_and_webhook_readiness.sql",
+      "checksum": "a6e6a9af85b3957fe4fee7cd9c041a6f254f3a266e8f61e7dc6ed548882e6085",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821133000",
+      "filename": "20260821133000_site_scoped_customer_process_p0.sql",
+      "checksum": "e7221c4d4b3db893da0db4818205894dfd7c345f6362eadf53b45260c1cc12be",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "grid_owner_information_requests_manual_open_lookup_idx",
+        "public.customer_contracts",
+        "public.customer_info_requests",
+        "public.customer_sites",
+        "public.grid_owner_data_requests",
+        "public.grid_owner_information_requests",
+        "public.gridex_complete_facility_response",
+        "public.metering_points",
+        "public.outbound_requests",
+        "public.powers_of_attorney",
+        "public.supplier_switch_requests"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821134500",
+      "filename": "20260821134500_customer_process_site_summary.sql",
+      "checksum": "af9977099d39b1e3e987d91560cb6db5e76ca3c528c6ef5c0feef4c8a75c8f36",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_sites_process_summary_idx",
+        "public.customer_sites",
+        "public.customers",
+        "public.gridex_refresh_customer_process_summary"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821135500",
+      "filename": "20260821135500_enforce_site_summary_and_request_idempotency.sql",
+      "checksum": "81aa470fc8a5ce054714872db128a6e413bd33fd072fdebde2cbcf5afba3355c",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_reaggregate_customer_after_legacy_state_write",
+        "public.gridex_refresh_customer_summary_from_site_trigger",
+        "public.gridex_set_grid_owner_request_idempotency_key",
+        "trg_customer_sites_refresh_process_summary",
+        "trg_customers_reaggregate_legacy_process_state",
+        "trg_grid_owner_information_requests_idempotency"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821140500",
+      "filename": "20260821140500_canonical_supplier_switch_prodat_variant.sql",
+      "checksum": "acd10217443b6d6bd3c2d7860171c2a20d54b99152915cce90be4c7e0e605135",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "idx_supplier_switch_process_variant_open",
+        "public.gridex_materialize_supplier_switch_process_variant",
+        "public.supplier_switch_requests",
+        "trg_supplier_switch_process_variant"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821142000",
+      "filename": "20260821142000_typed_z02_operation_job_correlation_gate.sql",
+      "checksum": "3684156c911f658bcf4282607ef68442f1b045886492b29655c3336aa28f4a53",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_edifact_rff_value",
+        "public.gridex_gate_inbound_z02_operation_job",
+        "public.gridex_prodat_variant_from_raw",
+        "trg_customer_operation_job_z02_correlation"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821142500",
+      "filename": "20260821142500_typed_z02_rff_extractor_hotfix.sql",
+      "checksum": "24c9fc4e27fcea3b282475ae3e9253a450fca30dc5c56fe8335f70e54259bcff",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_edifact_rff_value"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821144000",
+      "filename": "20260821144000_grid_owner_request_responsibility_and_template_audit.sql",
+      "checksum": "a6f37c4e5a567d99d96442f5d4c3959a6fac266c51d2517167697ef1a73acab0",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_capture_manual_email_template_audit",
+        "public.gridex_normalize_grid_owner_information_request",
+        "trg_capture_manual_email_template_audit",
+        "trg_normalize_grid_owner_information_request"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821145500",
+      "filename": "20260821145500_atomic_correlated_z02_core_apply.sql",
+      "checksum": "93f06e026ecf17a9a5c8b2bbeff066e99a8421f27a1d988adcbc3f2d9f23dd49",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_apply_exact_z02_core",
+        "public.gridex_edifact_first_lin_item_id",
+        "public.gridex_gate_exact_z02_atomic_apply",
+        "trg_customer_operation_job_z02_zz_atomic_apply"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821151000",
+      "filename": "20260821151000_restrict_site_scoped_z02_definers.sql",
+      "checksum": "0f1a5a91f3ac11bafa0f6ad5bf19fabd9f198dd48905d5f4842a386546b81900",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260821165300",
+      "filename": "20260821165300_prodat_identity_and_z02_li_compliance.sql",
+      "checksum": "3fd8ba9493783bcd1ffd5e446a0911fdf9ec306a8054dde99eecbb6701d4d012",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_gate_inbound_z02_operation_job"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822010000",
+      "filename": "20260822010000_prodat_26a_semantic_hardening.sql",
+      "checksum": "c4ea157873b68feed8fb58292d37c3ebb5da3e122918802550b0c6dabc179c5d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_enforce_supplier_switch_z04_confirmation_v1",
+        "trg_supplier_switch_requires_z04_confirmation"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822011000",
+      "filename": "20260822011000_supplier_switch_transport_ack_guard.sql",
+      "checksum": "8f9ba4f2f740f58113b2fa697c14128b9b349a7c123b017d2ace9e990d861c50",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_enforce_supplier_switch_z04_confirmation_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822011100",
+      "filename": "20260822011100_supplier_switch_z04_confirmed_alias_guard.sql",
+      "checksum": "9684ed7490528482b5e471f17166f419048efd3eb531e6bd469820648424afad",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_enforce_supplier_switch_z04_confirmation_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822012000",
+      "filename": "20260822012000_supplier_switch_effective_date_guard.sql",
+      "checksum": "0b544b81b813588a1324b049891e51ee5dc1036fa6a1c762cb78792ec0c82b85",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_enforce_supplier_switch_z04_confirmation_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822103821",
+      "filename": "20260822103821_non_expiring_website_quotes.sql",
+      "checksum": "0e7999289464d362c232ec811dabc5ea146c4be5c5cf902b3126dd01e43f5a1d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822130000",
+      "filename": "20260822130000_utilts_aperak_contrl_central_engine.sql",
+      "checksum": "c6ba1caddd5105a83755da68d31184b858107f70ff4eddd0d1a67223abcd5dd0",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_enforce_supplier_utilts_outbound_v1",
+        "public.resolve_ediel_ack_matrix_rule",
+        "trg_gridex_enforce_supplier_utilts_outbound_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822223013",
+      "filename": "20260822223013_tenant_api_bundle_operation_entitlement.sql",
+      "checksum": "f688adb455470e429fd7ea1258cbcc357dced30b367dd450ad4a991b9967b7f2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_tenant_operation_decision"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260822224708",
+      "filename": "20260822224708_canonical_ediel_production_projection_convergence.sql",
+      "checksum": "a9330b1bacc86aaad5ec6993b3517e5dd7152158f7b3f588dfff9a4bd8645e75",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "companies_enforce_canonical_ediel_projection",
+        "ediel_production_state_sync_company_projection",
+        "public.canonical_enforce_company_ediel_projection_v1",
+        "public.canonical_sync_company_ediel_projection_v1",
+        "public.gridex_automation_control_center_v",
+        "public.gridex_batch_2b_live_control_tower_v",
+        "public.gridex_batch_2c_control_tower_summary_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260823185028",
+      "filename": "20260823185028_fix_customer_process_summary_intake_status.sql",
+      "checksum": "f4ab87439782e875a86d207c5317ee16579603e58feb7e91bb6d05ec79e44d13",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_refresh_customer_process_summary"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260823185352",
+      "filename": "20260823185352_align_customer_contract_quarterly_type.sql",
+      "checksum": "2df8c0d3495b173828a476dd112a3a0be9a22d41996e31f01e9d335b44541bec",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customer_contracts"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260823201059",
+      "filename": "20260823201059_normalize_customer_portal_identity_match_strength.sql",
+      "checksum": "7ebdcad7d33cf0581a54ca806a68e04d1d4c11235b57ef34827cb03b7a4ba349",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_portal_identities_match_strength_normalize_tg",
+        "public.gridex_normalize_customer_portal_identity_match_strength"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260823201716",
+      "filename": "20260823201716_canonical_customer_portal_match_strength_convergence.sql",
+      "checksum": "525a8f3a2587cb4c0375c01caa5868cd84036b635618c5bd048d2dd8f98dd819",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_portal_identities_match_strength_normalize_tg",
+        "public.customer_portal_identities",
+        "public.gridex_normalize_customer_portal_identity_match_strength"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260823204821",
+      "filename": "20260823204821_enforce_contract_price_snapshot_hash_integrity.sql",
+      "checksum": "599124b195bdae9d02a5835423b3580148b14c6c58a184a913a0ff5d1f4a8119",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.contract_price_snapshots",
+        "public.gridex_enforce_contract_price_snapshot_hash_v1",
+        "zzzz_contract_price_snapshots_hash_integrity_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824070634",
+      "filename": "20260824070634_fix_customer_application_workflow_output_ambiguity.sql",
+      "checksum": "1e39d46dcb478f0216c4d9ca2ffb583c000edaea1379a7a0097fe0969abab7c8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_commit_customer_application_provisioning"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824080448",
+      "filename": "20260824080448_unique_postal_city_provisional_grid_owner.sql",
+      "checksum": "6d45152f5fb419d3ca52468312b4986acf96cfe6301dc34f20aaa284c99d6580",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.gridex_select_provisional_grid_owner_from_unique_postal_city_v1",
+        "trg_gridex_select_provisional_grid_owner_from_unique_postal_city_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824132814",
+      "filename": "20260824132814_customer_application_runtime_contract_convergence.sql",
+      "checksum": "01869d0c91dc2d494d69b9184a39356360d3bf2c4eccc4e2c7de9064bec06a59",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "idx_supplier_switch_requests_communication_route_id",
+        "idx_supplier_switch_requests_ediel_route_profile_id",
+        "public.gridex_capture_manual_email_template_audit",
+        "public.gridex_normalize_grid_owner_information_request",
+        "public.gridex_set_grid_owner_request_idempotency_key",
+        "public.supplier_switch_requests"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824134340",
+      "filename": "20260824134340_customer_application_runtime_readiness_contract.sql",
+      "checksum": "500dc8fb17507281f2ecbabdb82c86ea9dd9692dbad80cd272dba307877fe24e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_customer_application_runtime_contract_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824140830",
+      "filename": "20260824140830_website_poa_materialization_and_grid_owner_send_guard.sql",
+      "checksum": "9b968ad24e76a63b00610fe28f3add269e0f5de20ae681ed7ed71861cebc7023",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_authorization_documents_bind_poa_tg",
+        "manual_email_outbox_verified_site_owner_tg",
+        "powers_of_attorney_materialize_website_snapshot_tg",
+        "public.gridex_assert_verified_site_owner_for_manual_outbox",
+        "public.gridex_bind_poa_authorization_document",
+        "public.gridex_materialize_signed_website_poa_snapshot"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824145700",
+      "filename": "20260824145700_customer_application_grid_owner_dependency_wait.sql",
+      "checksum": "795ba39580ec47c7eba4f673c95bd88fed0b163ae9ae3e36acb83281ab3988eb",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_customer_application_dependency_wait_guard",
+        "trg_customer_application_dependency_wait_guard"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824150500",
+      "filename": "20260824150500_customer_application_dependency_wait_state_projection.sql",
+      "checksum": "e0ba4c948a5a7dbff8a12a8a5224b16fdc821cca8a6a717c2fc94dadbfa4c9ab",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_customer_application_dependency_wait_guard"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824151800",
+      "filename": "20260824151800_exact_address_cache_street_number.sql",
+      "checksum": "365fad8426f43454219a6cf25f4cd5e0cbb1a2968044f79bb004af00230308fa",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.platform_address_lookup_cache"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824153500",
+      "filename": "20260824153500_site_verified_grid_owner_manual_outbox_guard.sql",
+      "checksum": "f5377b866b01e079d19dfa95a945bd3fb801a84e1957afe17b901381d6f66761",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_assert_verified_site_owner_for_manual_outbox"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260824190000",
+      "filename": "20260824190000_gridex_inbound_operations_foundation.sql",
+      "checksum": "09310e637bcd884ee153883a03ab30918aff9393d8d6594d18ab073a179eba4f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "inbound_operation_events_company_created_idx",
+        "inbound_operation_events_customer_created_idx",
+        "inbound_operation_events_fingerprint_idx",
+        "manual_inbound_messages_company_customer_idx",
+        "manual_inbound_messages_company_site_idx",
+        "manual_inbound_messages_in_reply_to_idx",
+        "public.inbound_operation_events",
+        "public.manual_inbound_messages"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260825091402",
+      "filename": "20260825091402_allow_postal_centroid_price_area_assurance_source.sql",
+      "checksum": "543d994630b5d596068d2d1716ff6ae0cd341302a2ed8dd9dddbf4d46c8e110d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customer_site_resolution"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260825093400",
+      "filename": "20260825093400_facility_geographic_owner_outbox_guard.sql",
+      "checksum": "fd6e9b289ad728a0f8a5193df5bb11d6ad8158069ee0e1464d1a6ab2744015c4",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_assert_verified_site_owner_for_manual_outbox"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260825112000",
+      "filename": "20260825112000_ops_precision_resolution_authority.sql",
+      "checksum": "3f3549adffd87fcc1bd9d6811189734e57b2c6317442506f0f762bfcb84432d8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.gridex_guard_site_resolution_materialization_v1",
+        "public.gridex_complete_facility_response",
+        "public.gridex_point_to_grid_area"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260825135425",
+      "filename": "20260825135425_canonical_website_legal_blocker_invariant.sql",
+      "checksum": "fc81142bd964041876611ad24beae90405804ab3ef35fc68fc9af9058d6da934",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.normalize_website_application_legal_blockers",
+        "private.reconcile_website_application_terms_acceptance",
+        "trg_normalize_website_application_legal_blockers",
+        "trg_reconcile_website_application_terms_acceptance"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260825140234",
+      "filename": "20260825140234_canonical_website_legal_response_payload_invariant.sql",
+      "checksum": "afad7cb84bca4ec972c7b765ab64aad0b66c9a59e153b9d27ff923b6d7b9a5d5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "private.normalize_website_application_legal_blockers",
+        "private.reconcile_website_application_terms_acceptance",
+        "private.remove_terms_accepted_from_application_response",
+        "trg_normalize_website_application_legal_blockers"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260825235900",
+      "filename": "20260825235900_gridex_customer_status_counts_v1.sql",
+      "checksum": "760aeaadb955fea05049a6663a6a9c596c32cf62dbfc3e2dcfc55057cb938df2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_customer_status_counts_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260826093000",
+      "filename": "20260826093000_platform_dashboard_and_rls_read_performance.sql",
+      "checksum": "f9084068f4eead62330b1b394b6b4cab5f47ff68b411bdb144009314c2b85a2c",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_platform_dashboard_summary_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260826103000",
+      "filename": "20260826103000_electricity_suppliers_masterdata_rls_guard.sql",
+      "checksum": "b0dcf5c1e2c4e7f1849d1d1d25bdf5ee47b57f8f945af46ef3a67c4dcab8525f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260826213000",
+      "filename": "20260826213000_invoice_review_projection_sync.sql",
+      "checksum": "29a55288a96865d5349d7a82de47d5a898f05dd1ab8851a2a7fcd5de6ad88e0d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_invoices_underlay_projection_v1",
+        "public.gridex_sync_underlay_invoice_projection_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827111400",
+      "filename": "20260827111400_add_actor_identifier_ediel_lookup_index.sql",
+      "checksum": "ef18214a0eb6cd25931ee3972727a7671edbd288cf4f9e699430c939b1f7dce8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "platform_actor_identifiers_ediel_lookup_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827124127",
+      "filename": "20260827124127_optimize_grid_owner_actor_matching_regression_safe_v2.sql",
+      "checksum": "cf24fcff658604660cd215bddef72fdbf99e03a3b1577db0656a7101ff9e5cbc",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_verified_grid_owners_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827125003",
+      "filename": "20260827125003_optimize_platform_grid_owner_sync_join.sql",
+      "checksum": "b515aad187f98e04b3875ae3bfaad476a4d5ac26512803021975f3d09afa4873",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827125221",
+      "filename": "20260827125221_optimize_grid_owner_backfill_antijoins_v2.sql",
+      "checksum": "568257fbd1d955886895556730735c6f28a6d1ca2243fb64ded56a628bbc8c66",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827130351",
+      "filename": "20260827130351_skip_noop_grid_owner_link_writes.sql",
+      "checksum": "06aa8a8cc6b9a0c11034f59ed86289ffe36da0bcb58ab961cd43f8b649c77c13",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_backfill_grid_owner_verification"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827134553",
+      "filename": "20260827134553_tenant_integrity_auditor_v1.sql",
+      "checksum": "13beb652ffb9d1dfb5872f3208ee8837942de1666e23e0b8c161a73885373783",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.run_tenant_integrity_audit",
+        "public.tenant_integrity_audit_runs",
+        "public.tenant_integrity_company_summary_v",
+        "public.tenant_integrity_findings",
+        "public.tenant_integrity_latest_findings_v",
+        "public.tenant_integrity_latest_runs_v",
+        "public.tenant_integrity_rule_registry",
+        "tenant_integrity_findings_company_rule_idx",
+        "tenant_integrity_findings_fingerprint_idx",
+        "tenant_integrity_findings_run_severity_idx",
+        "tenant_integrity_runs_company_started_idx",
+        "tenant_integrity_runs_status_started_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827134617",
+      "filename": "20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql",
+      "checksum": "c62f4953a200c1f06988c501fd1197a889f80290125be792f74abda93e42723c",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827134827",
+      "filename": "20260827134827_tenant_integrity_effective_latest_views.sql",
+      "checksum": "30357ffb592992d7e640137046cb34331959dd923b0785fef85d3f0fcf67673f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.tenant_integrity_company_summary_v",
+        "public.tenant_integrity_latest_findings_v"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827135630",
+      "filename": "20260827135630_tenant_integrity_requested_by_fk_index.sql",
+      "checksum": "b13f9b7bd7764b1df0027deef99dcba1b7e2977417a51961d04c424229cdf62f",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "tenant_integrity_runs_requested_by_idx"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827175502",
+      "filename": "20260827175502_canonical_ediel_tenant_identity_valid_from_correction.sql",
+      "checksum": "9777caf2b87ae5433a9909b7159266b393885cd14c13bd9449e59ef218cbc022",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827193000",
+      "filename": "20260827193000_canonical_ediel_tenant_identity_and_legacy_route_cleanup.sql",
+      "checksum": "872d1aac4bdef4655b47c680d12319093db7a0cee6e931ffcf7afbbc5fbbb61b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260827201000",
+      "filename": "20260827201000_canonical_ediel_tenant_identity_valid_from_post_backfill.sql",
+      "checksum": "9777caf2b87ae5433a9909b7159266b393885cd14c13bd9449e59ef218cbc022",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260828225000",
+      "filename": "20260828225000_ediel_canonical_deadline_authority.sql",
+      "checksum": "0b0144be42db1173302b500e4dc10c83d7ad1084dab1b44f1c818cf7e235925c",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260829140500",
+      "filename": "20260829140500_operations_foundation_contract_lifecycle_v1.sql",
+      "checksum": "b34335acaa90ccb24adae106e345d62d3ef1d46f8e987c2bb6fdc8164327d7c3",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_contracts_signed_operation_v1",
+        "public.customer_operation_outcomes_v",
+        "public.gridex_customer_operation_outcome_class",
+        "public.gridex_enqueue_signed_contract_operation_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260829143000",
+      "filename": "20260829143000_operations_outcome_search_path_hardening.sql",
+      "checksum": "ff9ff1537e42600c681b4c45a9f01df9dfe5b3cfb23b8b6e408f548ffe825923",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260829194612",
+      "filename": "20260829194612_white_label_membership_rls_recursion_fix.sql",
+      "checksum": "64ba3173ee8f6dac9f626ab66861a406792e5d82bfa280850acb1fc3d47d6b4b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_user_has_white_label_admin_membership"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260830012000",
+      "filename": "20260830012000_grid_owner_backfill_unique_match_guard_v2.sql",
+      "checksum": "58b3550942c96c9b91daea3e30d063753ad02d4dfec1c2be903ec416ac1b16fe",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_backfill_grid_owner_verification"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260830012500",
+      "filename": "20260830012500_tenant_integrity_outbound_schema_safe_v2.sql",
+      "checksum": "ae02fb44a65feb0945d7dc6b0f87c400214edf87d7c45e4b74781195c4559cb4",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260830091937",
+      "filename": "20260830091937_manual_inbound_canonical_correlation_parity.sql",
+      "checksum": "d14c8058ac90d6137d0b95a1e3fe2824bb7f65b1ac4c3235b5d55523339af49d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "manual_inbound_messages_customer_idx",
+        "manual_inbound_messages_grid_owner_idx",
+        "manual_inbound_messages_metering_point_idx",
+        "manual_inbound_messages_processing_idx",
+        "manual_inbound_messages_site_idx",
+        "public.manual_inbound_messages"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260830102119",
+      "filename": "20260830102119_manual_inbound_tenant_graph_hardening.sql",
+      "checksum": "78bc4d54f37df3e64bc0d0afa74cd0f8810629566da5d7ef2e47a16de218dcff",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.manual_inbound_messages"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260830103610",
+      "filename": "20260830103610_manual_inbound_tenant_graph_trigger_contract.sql",
+      "checksum": "9847181ae630d904393af7faa4429ef1a9e5bd1821da17b9884c65fc87679aaf",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "manual_inbound_tenant_graph_guard",
+        "private.gridex_validate_manual_inbound_tenant_graph",
+        "public.manual_inbound_messages"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260830144914",
+      "filename": "20260830144914_validate_ediel_active_binding_constraint.sql",
+      "checksum": "117145a1ba41859d99f8927ed9eaee370335bec96ba5a05ef7673f1a128ea006",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.ediel_active_test_configurations"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260831093531",
+      "filename": "20260831093531_fix_contract_snapshot_null_schema_guard.sql",
+      "checksum": "22d04463619156df167cb6ecfcc1e670fbf58c95796d52f4750e328b718ec2e1",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_bind_contract_snapshot_to_quote_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260831094500",
+      "filename": "20260831094500_customer_authorization_documents_contract_link_foundation.sql",
+      "checksum": "f196e714bb49310f354f795d2d86f52b8dc8679433e6adcdb268f3b3277a8a84",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_authorization_documents_contract_idx",
+        "public.customer_authorization_documents"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260831095000",
+      "filename": "20260831095000_admin_signed_contract_import_canonicalization.sql",
+      "checksum": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_onboard_customer_graph",
+        "public.gridex_finalize_admin_imported_signed_agreement_v1",
+        "zz_customer_authorization_documents_finalize_signed_agreement_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901084000",
+      "filename": "20260901084000_harden_gridex_point_to_grid_area_search_path.sql",
+      "checksum": "05b0681cd089adf61b4a184b8db40fdba2545f815c1fd7ec47615ecb8cc0c34e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901120500",
+      "filename": "20260901120500_harden_canonical_ediel_runtime_contracts.sql",
+      "checksum": "61376d3faa505329184d795540814f1c68911eb4bdc568e040f30e06c530d2ab",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.communication_routes",
+        "public.ediel_message_events",
+        "public.ediel_messages"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901121800",
+      "filename": "20260901121800_align_ediel_rule_pack_snapshot_fk_with_canonical_message_profiles.sql",
+      "checksum": "dbc9cd6ba64ce54c423fc76c616b49b6cd534bad3519166e50999e52daed623e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.ediel_rule_pack_snapshots",
+        "public.gridex_capture_ediel_rule_pack_snapshot"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901151000",
+      "filename": "20260901151000_canonical_contract_price_area_binding_schema.sql",
+      "checksum": "b75c50136292bbaef4b9f5a8d6fa0f7cf825748c77f88c01dd41c6bff1198442",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "aab_contract_price_snapshots_canonical_binding_v1",
+        "ac_customer_contracts_price_area_binding_v1",
+        "public.gridex_fill_contract_price_snapshot_binding_v1",
+        "public.gridex_fill_customer_contract_price_area_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901151100",
+      "filename": "20260901151100_repair_invoice_test_contract_price_area_snapshot.sql",
+      "checksum": "08d2cf2538f8bc611323abd24fde11b505368d8cd45b742141cfe6b221659843",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.contract_price_snapshots"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901152500",
+      "filename": "20260901152500_canonicalize_billing_underlay_stockholm_period_semantics.sql",
+      "checksum": "1722e8bda642ca12c2ca2f337aaaf929bde83ecf82955979d4c671554c2abcbd",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_billing_underlay_item_gate_guard",
+        "public.gridex_store_billing_underlay"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901163500",
+      "filename": "20260901163500_bind_canonical_rule_pack_evidence_on_inbound_ediel.sql",
+      "checksum": "08f6418092150a92344bddd6447de4477c55bffd48f89e8e7991682a225cd88a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_bind_inbound_ediel_rule_pack_evidence",
+        "trg_gridex_bind_inbound_ediel_rule_pack_evidence"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901165000",
+      "filename": "20260901165000_metering_value_source_provenance_for_idempotent_recovery.sql",
+      "checksum": "f5ba406d10abdc6da189238f4d6840ca1b24bc78061afd1a1a00964d289cb414",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "idx_metering_value_sources_metering_value",
+        "idx_metering_value_sources_source_message",
+        "metering_value_sources_tenant_guard_v1",
+        "public.gridex_guard_metering_value_source_tenant_v1",
+        "public.metering_value_sources"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260901165500",
+      "filename": "20260901165500_link_ediel_sources_during_atomic_metering_ingest_recovery.sql",
+      "checksum": "8c8edf8b15a32587082e39361b4f415fdf96eea0ee3e422a45bde2a6a65255e3",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_ingest_metering_value_atomic"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902090000",
+      "filename": "20260902090000_tenant_scoped_unique_business_keys.sql",
+      "checksum": "bbb755c51bd128352d3b0d7a4e916dec01fa870c4c0083b83ebd82f3e7044035",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customers",
+        "public.electricity_suppliers",
+        "public.legal_bundle_versions",
+        "public.metering_points"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902091000",
+      "filename": "20260902091000_company_scoped_permission_engine.sql",
+      "checksum": "dc72cc26cbb53ab814fcf214dc9324f27bfac9f4bf77940b9e9a0527428f359a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "gridex_user_roles_scope_consistent",
+        "public.canonical_authenticated_tenant_context",
+        "public.gridex_assert_role_scope_is_consistent",
+        "public.gridex_get_user_permissions",
+        "public.gridex_get_user_permissions_in_company",
+        "public.gridex_has_permission_in_company"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902092000",
+      "filename": "20260902092000_view_security_invoker_and_dead_policy_cleanup.sql",
+      "checksum": "911df38c226051d3b60726d8027f322bc566d30d72e51632b71797fb88ef0ed2",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902093000",
+      "filename": "20260902093000_explicit_tenant_scope_and_inbound_quarantine.sql",
+      "checksum": "c1c6bfea03d93bbfd3b36662c23eb074c7542b783fe5cfc1b2cbcbd095c715fc",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "platform_inbound_quarantine_open_idx",
+        "public.canonical_energy_flow_events",
+        "public.platform_inbound_quarantine"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902094000",
+      "filename": "20260902094000_platform_table_classification_and_invariant_gate.sql",
+      "checksum": "29ea84caceca14260c6a909534c89a26a015568d9bf56741cd796a5cd1896470",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.platform_table_classification"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902094500",
+      "filename": "20260902094500_decouple_contract_sales_from_ediel_send_state.sql",
+      "checksum": "88831015a6f70723b647bc9e6b5091a3c56c40f16ce48ee824456577b10c8c9a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_tenant_operation_decision"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902094600",
+      "filename": "20260902094600_fix_canonical_transition_request_hash_rewrite.sql",
+      "checksum": "4b167c6509b8f3a9076adbe98f24ae5e74981de05501828648045b3d6db3c0ca",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_transition_ediel_production"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902095000",
+      "filename": "20260902095000_lock_customer_chain_with_composite_keys.sql",
+      "checksum": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.",
+        "public.customers"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902096000",
+      "filename": "20260902096000_attribute_quarantined_inbound_by_receiver_ediel_id.sql",
+      "checksum": "31f47ae0fb5356b2cce965bb438ce7fffff2c10fc03840b04216d19531fdc6c5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902100000",
+      "filename": "20260902100000_rpc_surface_and_permission_scope_corrections.sql",
+      "checksum": "9753cd0f10a120a32826286a0eeb08d6f7e2b51704014decf60243e5eaa1a919",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_actor_has_company_permission",
+        "public.gridex_get_user_permissions",
+        "public.gridex_has_permission"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902100045",
+      "filename": "20260902100045_fix_website_poa_scope_and_grid_owner_aliases.sql",
+      "checksum": "d069342180f5d86f39a8988ad6905fa4dca0e451ca8c23d96a1cd8b647895e10",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "powers_of_attorney_materialize_scopes_tg",
+        "powers_of_attorney_sync_expires_at_tg",
+        "public.gridex_grid_owner_name_key",
+        "public.gridex_import_grid_area_master_row",
+        "public.gridex_materialize_poa_scopes",
+        "public.gridex_sync_poa_expires_at",
+        "public.powers_of_attorney"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902100500",
+      "filename": "20260902100500_close_remaining_advisor_hygiene.sql",
+      "checksum": "331102c32ad02c352e99fb7adbd89c893c89f3eeb9cf91c9a1c2bce0f49cb381",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902135605",
+      "filename": "20260902135605_restore_website_application_trigger_helper_privileges.sql",
+      "checksum": "040e331ae121c3cf0957515552252b46f64814e7da66e7060c352f0ac730f7c5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902221400",
+      "filename": "20260902221400_restore_customer_site_current_supplier_org_number.sql",
+      "checksum": "b22c75f663b7ad846da05a76c79a36b79f865929a982a2020f5b45a447b81d57",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.customer_sites"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902221500",
+      "filename": "20260902221500_facility_initial_address_and_unknown_supplier_semantics.sql",
+      "checksum": "0bc8189d18d4c9e582a68ffe2424925db0a016bfc5f5ee412a66eff587e9bd5d",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_commit_customer_site_address",
+        "public.gridex_invalidate_site_operations_on_address_change",
+        "public.gridex_normalize_customer_site_current_supplier_unknown_v1",
+        "trg_gridex_customer_site_current_supplier_unknown_v1"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260902223600",
+      "filename": "20260902223600_restore_grid_owner_data_request_partner_response_tracking.sql",
+      "checksum": "c19483ecf5a771800b18b32cfcdd4c1221fbfea42f0616f1d9ec796f08dc7907",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.grid_owner_data_requests"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903070000",
+      "filename": "20260903070000_harden_inbound_z02_required_payload_gate.sql",
+      "checksum": "cf8d81ac33d8687a817fba537791e25d89ccaf3f7ee342988ddb1dc0a9141d0b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_edifact_cci_cav_value",
+        "public.gridex_edifact_nad_element",
+        "public.gridex_gate_inbound_z02_required_payload",
+        "trg_customer_operation_job_z02_payload_validation"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903090000",
+      "filename": "20260903090000_atomic_supplier_switch_activation_sweep.sql",
+      "checksum": "8d6d8f8bb7e19e4ecf7b0a4e0ffce68eca923b66c00449bbad13e36a6949462a",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_finalize_supplier_switch_activation",
+        "public.gridex_process_ready_supplier_switch_activations"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903140000",
+      "filename": "20260903140000_customer_info_blocker_details_contract_guard.sql",
+      "checksum": "9371c2f130adaafba63fded11a203401826891e8897a50636527561e67a2f581",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "customer_info_requests_normalize_blocker_details",
+        "public.gridex_normalize_customer_info_blocker_details"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903150000",
+      "filename": "20260903150000_ediel_global_policy_readiness_propagation.sql",
+      "checksum": "99e0485b21c74d4449fd66185577cbffac9b73e5610478e19323138ff9db89a0",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "canonical_snapshot_ediel_rule_versions",
+        "private.ediel_global_policy_change_snapshot_trigger"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903160000",
+      "filename": "20260903160000_ediel_send_lock_state_convergence.sql",
+      "checksum": "1f368f4a36e9ac93d09289c4538d142f7489746793aff110d9f593eaa0c7bafd",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_send_lock_state_convergence",
+        "ediel_send_locks_company_env_locked_idx",
+        "private.ediel_send_lock_state_convergence_trigger",
+        "public.companies",
+        "public.ediel_mailboxes",
+        "public.ediel_send_locks"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903161000",
+      "filename": "20260903161000_ediel_send_lock_release_requeues_outbox.sql",
+      "checksum": "ed0affa427b7356064a474a4e390dc70cf8297fa39c0b5e7c4e1edc1255c48c1",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_requeue_outbox_after_send_lock_release",
+        "private.ediel_requeue_outbox_after_send_lock_release_trigger"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903162000",
+      "filename": "20260903162000_ediel_tenant_readiness_revalidation.sql",
+      "checksum": "bd83c15402a34c4f2a599393491d27466edfdda5fcce5de1afd13c4ddc7d795e",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "canonical_snapshot_ediel_message_profiles_global",
+        "canonical_snapshot_ediel_rule_packs_global",
+        "canonical_snapshot_ediel_rule_profile_versions",
+        "canonical_snapshot_ediel_rule_versions_global",
+        "public.canonical_capture_ediel_configuration_snapshot_v1_unchecked",
+        "public.ediel_configuration_change_snapshot_trigger"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903163000",
+      "filename": "20260903163000_ediel_system_readiness_snapshot_access.sql",
+      "checksum": "20d5ba43ddec5635f2a220ea9b5dfa84d7d89288fc98addc684882f09c0666eb",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.canonical_capture_ediel_configuration_snapshot"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903164000",
+      "filename": "20260903164000_ediel_readiness_trigger_convergence.sql",
+      "checksum": "56e532f4022bb421ccb387e8e541be62fe5664d961ddbf162b939f23e0d79793",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260903213000",
+      "filename": "20260903213000_z02_snapshot_market_context_guard.sql",
+      "checksum": "9ceaa0506831a7c2a10380eb4569ab38e26fc6919e9faf136d91e469d32f2300",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_apply_exact_z02_core",
+        "public.gridex_gate_exact_z02_atomic_apply",
+        "public.gridex_gate_inbound_z02_snapshot_freshness",
+        "trg_customer_operation_job_z02_snapshot_freshness"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260904090000",
+      "filename": "20260904090000_z01_parallel_sla_watchdog.sql",
+      "checksum": "9f64b59562ef010de63b55edb2bde7121a5ac07aa7d26891c2f2f64b03fdb0c6",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "ediel_messages_z01_business_response_due_idx",
+        "public.ediel_messages",
+        "public.gridex_escalate_overdue_z01_responses"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260904093000",
+      "filename": "20260904093000_z01_sla_watchdog_event_contract_fix.sql",
+      "checksum": "89ece5cead072077410a1109f83cec46ab70872852cea2dc0448a3a05f70449b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_escalate_overdue_z01_responses"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260904100000",
+      "filename": "20260904100000_z01_sla_late_response_resolution.sql",
+      "checksum": "9c6b1b95f7fa88f69cd71adbe0a9770de58964775c4d78593db486d9b3ecae30",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_escalate_overdue_z01_responses"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260904103000",
+      "filename": "20260904103000_z01_sla_watchdog_candidate_convergence.sql",
+      "checksum": "9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_escalate_overdue_z01_responses"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260904120000",
+      "filename": "20260904120000_canonical_tenant_invariant_convergence.sql",
+      "checksum": "3e40f894ec109a45e4dd7842edd819509caadac1e8d5e89a45d244224d0c77e1",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.gridex_performance_hardening_events",
+        "public.integration_api_client_profiles",
+        "public.integration_api_permission_groups",
+        "public.legal_bundle_items",
+        "public.platform_schema_state",
+        "public.price_area_localities",
+        "public.price_areas",
+        "public.price_book_lines"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260905141608",
+      "filename": "20260905141608_canonical_tenant_relationship_guards.sql",
+      "checksum": "8e1ec819b7775072ff04370e2ce7327793e094acf248a971968565e643bfe8f5",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "gridex_billing_underlays_company_guard_tg",
+        "gridex_contract_price_snapshots_company_guard_tg",
+        "gridex_customer_contracts_company_guard_tg",
+        "gridex_customer_legal_acceptances_company_guard_tg",
+        "gridex_customer_sites_company_guard_tg",
+        "gridex_metering_points_company_guard_tg",
+        "gridex_powers_of_attorney_company_guard_tg",
+        "public.gridex_assert_same_company",
+        "public.gridex_billing_underlays_company_guard",
+        "public.gridex_customer_contracts_company_guard",
+        "public.gridex_customer_legal_acceptances_company_guard",
+        "public.gridex_customer_sites_company_guard",
+        "public.gridex_metering_points_company_guard",
+        "public.gridex_powers_of_attorney_company_guard"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260906081839",
+      "filename": "20260906081839_canonical_company_invitation_runtime_reconstruction.sql",
+      "checksum": "d30a89a4fa793cddf3cf4560e1bb40bb2831505e911bd630c1409117e7f877f8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.company_invitations"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"

@@ -6,44 +6,32 @@ const path = require('node:path')
 const root = process.cwd()
 const migrationsDirectory = path.join(root, 'supabase', 'migrations')
 const outputDirectory = path.join(root, 'artifacts')
-const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
-const additionsManifestPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
-const verifiedTailPath = path.join(root, 'scripts', 'migration-history-verified-tail.json')
-const historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))
-const additionsManifest = fs.existsSync(additionsManifestPath)
-  ? JSON.parse(fs.readFileSync(additionsManifestPath, 'utf8'))
-  : { files: {} }
-const verifiedTail = fs.existsSync(verifiedTailPath)
-  ? JSON.parse(fs.readFileSync(verifiedTailPath, 'utf8'))
-  : { files: {} }
-
-const baselineChecksums = historyManifest.files ?? {}
-const additionsChecksums = additionsManifest.files ?? {}
-const tailChecksums = verifiedTail.files ?? {}
-
-for (const [filename, checksum] of Object.entries(additionsChecksums)) {
-  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {
-    throw new Error(
-      `Migration additions conflict with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} additions=${checksum}`,
-    )
+// Use every checksum source accepted by migration integrity and retain the
+// verified tail. Reject conflicts between any sources before merging them.
+const checksumManifestNames = [
+  'migration-history-manifest.json',
+  'migration-history-manifest.additions.json',
+  'migration-history-manifest.ediel.additions.json',
+  'migration-history-manifest.runtime.additions.json',
+  'migration-history-verified-tail.json',
+]
+const registeredChecksums = {}
+const checksumSources = []
+const checksumOwners = {}
+for (const [index, name] of checksumManifestNames.entries()) {
+  const manifestPath = path.join(root, 'scripts', name)
+  if (index > 0 && !fs.existsSync(manifestPath)) continue
+  const files = JSON.parse(fs.readFileSync(manifestPath, 'utf8')).files ?? {}
+  if (index === 0 || Object.keys(files).length > 0) {
+    checksumSources.push(path.relative(root, manifestPath))
   }
-}
-for (const [filename, checksum] of Object.entries(tailChecksums)) {
-  if (baselineChecksums[filename] && baselineChecksums[filename] !== checksum) {
-    throw new Error(
-      `Verified migration tail conflicts with historical baseline for ${filename}: baseline=${baselineChecksums[filename]} tail=${checksum}`,
-    )
+  for (const [filename, checksum] of Object.entries(files)) {
+    if (Object.hasOwn(registeredChecksums, filename) && registeredChecksums[filename] !== checksum) {
+      throw new Error(`Migration checksum sources conflict for ${filename}: ${checksumOwners[filename]} vs ${name}`)
+    }
+    registeredChecksums[filename] = checksum
+    checksumOwners[filename] = name
   }
-  if (additionsChecksums[filename] && additionsChecksums[filename] !== checksum) {
-    throw new Error(
-      `Verified migration tail conflicts with additions manifest for ${filename}: additions=${additionsChecksums[filename]} tail=${checksum}`,
-    )
-  }
-}
-const registeredChecksums = {
-  ...baselineChecksums,
-  ...additionsChecksums,
-  ...tailChecksums,
 }
 
 function sha256(buffer) {
@@ -95,13 +83,7 @@ const duplicateVersions = [...versionCounts]
 const result = {
   generated_at: new Date().toISOString(),
   source: 'repository/supabase/migrations',
-  checksum_sources: [
-    path.relative(root, historyManifestPath),
-    ...(Object.keys(additionsChecksums).length > 0
-      ? [path.relative(root, additionsManifestPath)]
-      : []),
-    ...(Object.keys(tailChecksums).length > 0 ? [path.relative(root, verifiedTailPath)] : []),
-  ],
+  checksum_sources: checksumSources,
   verification_state: 'LOCAL_INVENTORY_ONLY',
   warning:
     'Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.',
@@ -140,7 +122,7 @@ if (unregistered.length > 0) {
     const expected = registeredChecksums[item.filename]
     console.error(`- ${item.filename}: expected=${expected ?? '<missing>'} current=${item.checksum}`)
   }
-  console.error('Register only verified forward migrations in migration-history-verified-tail.json. Never rewrite a historical baseline checksum to silence this gate.')
+  console.error('Register only verified forward migrations in an approved additive checksum manifest. Never rewrite a historical baseline checksum to silence this gate.')
   process.exit(1)
 }
 console.log(

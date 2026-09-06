@@ -4,6 +4,48 @@ on:
   push:
     branches: [main]
 jobs:
+  ediel-source-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_ediel_test
+        ports:
+          - 55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_ediel_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify complete Ediel source effects on isolated PostgreSQL 17
+        run: python3 scripts/canonical-ediel-environment-selftest.py
+
+  auth-email-source-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify complete auth email source effects on isolated PostgreSQL 17
+        run: python3 scripts/canonical-auth-email-selftest.py
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -16,6 +58,26 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify migration inventory and replay recovery regressions
+        run: |
+          node scripts/canonical-migration-inventory-selftest.cjs
+          python3 scripts/gridex-aud-003-clean-replay-selftest.py
+          node scripts/gridex-schema-document-selftest.cjs
+          python3 scripts/gridex-replay-input-accounting-selftest.py
+          npm run db:migrations:production-readiness
+      - name: Verify reconstruction and parity in isolated SQL fixtures
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/gridex-guard-test" --no-save --ignore-scripts @electric-sql/pglite@0.3.14
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-tenant-guard-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/gridex-db-parity-semantics-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-portal-origin-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-customer-flow-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-actor-testing-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-billing-completion-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-request-status-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-profile-action-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node quality/audits/invitation-replay-effects-selftest.mjs
       - run: npm run db:migrations:check
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped
@@ -112,6 +174,7 @@ jobs:
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
@@ -161,6 +224,7 @@ jobs:
           name: gridex-rem-002-clean-replay
           path: |
             rem002-clean-replay.log
+            artifacts/replay-input-accounting.json
             rem002-database.types.ts
             rem002-schema-snapshot/
           if-no-files-found: error
