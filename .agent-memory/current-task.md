@@ -463,3 +463,16 @@ full-effects gate correctly remains exit 1. Original SQL/checksums are unchanged
 Next: inspect CI for the restoration revision, then review the remaining source
 substitutions and unclassified SQL. Authoritative canonical replay, schema/types
 regeneration and bidirectional ledger/live parity remain open. No phase closed.
+
+## Customer-flow source batch — 2026-09-06
+
+Ediel restoration revision 69d51ee2c80a9a6221e871cc47027af66a02d125 has passing
+PostgreSQL17 source-effects job 101503578599 (OPS run 34039506238). Its global
+verify/types and replay/completeness gates remain red; quality is still running.
+The next customer-flow source batch restores full pre-ledger selection after
+its actual table prerequisites. Complete SQL runs twice in PGlite, preserving
+existing values; source selection was red before and green after. Static
+provenance, integrity and 29 accounting tests pass. Hosted SQL verification is
+pending publication. Accounting: 499 full selected, 29 partial, 55 unknown,
+4 exclusions. No phase closed or production mutation. Continue remaining source
+reviews, then authoritative canonical regeneration and live/ledger parity.

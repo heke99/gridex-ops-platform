@@ -4,7 +4,7 @@
   "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
   "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
-  "active_task": "Verify published Ediel source restoration; continue remaining historical effect accounting",
+  "active_task": "Verify restored customer-flow pre-ledger source; continue remaining historical effect accounting",
   "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
@@ -70,7 +70,7 @@
     "ci_pr_308_browser_public": "PASS",
     "ci_pr_308_pr_certificate": "PASS"
   },
-  "resume_from": "Inspect restoration-head Ediel CI; continue 30 substitutions and 55 unclassified inputs before authoritative canonical regeneration and production parity.",
+  "resume_from": "Inspect hosted customer-flow SQL test on published batch, then review remaining 29 substitutions and 55 unknowns; no parity phase is complete.",
   "commits": 0,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/310 (draft)",
   "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
@@ -85,13 +85,15 @@
     "production_parity": "NOT_CONVERGED",
     "production_deployment": "READY_eb9a25bc_dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c",
     "parity_semantics": "PASS_26_ISOLATED_CATALOG_CHECKS_RELOPTIONS_AND_GRANT_OPTIONS",
-    "diagnostic_classification": "PASS_29_ACCOUNTING_TESTS_55_UNKNOWN_30_PARTIAL",
+    "diagnostic_classification": "PASS_29_ACCOUNTING_TESTS_55_UNKNOWN_29_PARTIAL",
     "replay_recovery_selftest": "PASS_14_PRESTART_NO_STOP_AND_FAILED_START_CLEANUP",
     "published_head_0a0f4068": "QUALITY_PASS_ISOLATED_SQL_PASS_TYPES_TAIL_FAIL_REPLAY_COMPLETENESS_FAIL",
     "invitation_reconstruction": "PASS_ISOLATED_18_ASSERTIONS_2_DIRTY_UPGRADE_ROLLBACKS",
     "portal_origin_source_replay": "PASS_RED_GREEN_SELECTION_AND_TWO_SQL_EXECUTIONS",
     "hosted_ci_8344cbb8": "QUALITY_PASS_ALL_ISOLATED_SQL_PASS_TYPES_TAIL_FAIL_REPLAY_COMPLETENESS_FAIL_RUN_34035865807",
     "ediel_source_effects": "PASS_POSTGRES17_JOB_101502920151_RUN_34039266103_HEAD_d6967d21",
-    "ediel_selection": "PASS_RED_GREEN_AND_EACH_DECLARATION_MUTATION"
+    "ediel_selection": "PASS_RED_GREEN_AND_EACH_DECLARATION_MUTATION",
+    "customer_flow_source": "PASS_LOCAL_PGLITE_TWO_APPLIES_SELECTION_RED_GREEN_HOSTED_PENDING",
+    "ediel_restoration_ci": "PASS_POSTGRES17_JOB_101503578599_RUN_34039506238_HEAD_69d51ee2"
   }
 }

@@ -36,6 +36,7 @@
     "migrations/Batch 1+2.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
+    "migrations/20260528_batch_1_completion_customer_flow.sql",
     "bootstrap/20260528_inbound_email_messages_foundation.sql",
     "migrations/batch 3.sql",
     "migrations/batch 4+5+6.sql",

@@ -15,6 +15,7 @@
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
+    "migrations/20260528_batch_1_completion_customer_flow.sql",
     "migrations/20260602090000_ediel_operations_platform_core.sql",
     "migrations/20260605160000_ediel_backend_automation_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
@@ -176,6 +177,7 @@
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql": {
       "source": "migrations/20260528_batch_1_completion_customer_flow.sql",
       "artifactSha256": "c3d6fe34ff9223c419bc176fbb1875df8618508d834b77fcd1aa996964caedc1",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the pre-ledger current_supplier_id trace column and partial index observed in the canonical live route_decision_logs schema; no route decisions are seeded."
     },
     "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
