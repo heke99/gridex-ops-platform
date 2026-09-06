@@ -239,3 +239,18 @@ provenance, integrity and 29 accounting tests pass. Hosted SQL verification is
 pending publication. Accounting: 499 full selected, 29 partial, 55 unknown,
 4 exclusions. No phase closed or production mutation. Continue remaining source
 reviews, then authoritative canonical regeneration and live/ledger parity.
+
+## Actor-testing source batch — 2026-09-06
+
+Customer-flow revision a201d3f2c60f9b9ad845f47f7137e4d8b0e7f9b1 has passing
+hosted complete-source SQL/selection in verify job 101504319679 (OPS 34039783462).
+Ediel PG17 job 101504319838 also passes. Verify subsequently fails generated
+types tail; replay fails completeness. Neither is an external permission blocker.
+
+The previously unclassified actor-testing source is now selected after its four
+table prerequisites. Actual complete SQL runs twice in PGlite, validates five
+index definitions and preserves evidence/messages. Selection red UNCLASSIFIED
+before, green after; 29 accounting tests, static provenance and integrity pass.
+Hosted actor-source test pending publication. Counts now 500 full, 29 partial,
+54 unknown, 4 exclusions. Continue remaining historical source reviews; complete
+canonical generation and ledger/live parity before closing any phase.

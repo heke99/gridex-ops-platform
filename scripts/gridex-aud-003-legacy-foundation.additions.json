@@ -16,6 +16,7 @@
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
     "migrations/20260528_batch_1_completion_customer_flow.sql",
+    "migrations/20260521_actor_testing_engine_automation.sql",
     "migrations/20260602090000_ediel_operations_platform_core.sql",
     "migrations/20260605160000_ediel_backend_automation_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",

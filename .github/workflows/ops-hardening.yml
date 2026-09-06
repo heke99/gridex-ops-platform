@@ -52,6 +52,7 @@ jobs:
           GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/gridex-db-parity-semantics-selftest.mjs
           GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-portal-origin-replay-selftest.mjs
           GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-customer-flow-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-actor-testing-replay-selftest.mjs
           GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node quality/audits/invitation-replay-effects-selftest.mjs
       - run: npm run db:migrations:check
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
