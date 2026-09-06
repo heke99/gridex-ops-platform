@@ -75,7 +75,7 @@
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/310 (draft)",
   "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
   "current_session_verification": {
-    "publication": "PUBLISHED_PR310_CODE_HEAD_29dc94974825b329b9b822c2219b077d8679bb33",
+    "publication": "PUBLISHED_PR310_CODE_HEAD_4df526a8f73228ecb1f41c672db98cebbc7bf108",
     "hosted_ci_2568c28f": "VERIFY_AND_QUALITY_PASS_REPLAY_FAILS_COMPLETENESS",
     "tenant_guard_fixture": "PASS_PGLITE_0.3.14_TWO_APPLIES_18_REFERENCES_TWO_ROLES",
     "live_guard_catalog": "PASS_READ_ONLY_7_GUARDS",
@@ -99,6 +99,7 @@
     "hosted_ci_29dc9497": "QUALITY_PASS_EDIEL_PG17_PASS_ISOLATED_SQL_PASS_TYPES_TAIL_FAIL_REPLAY_FAIL",
     "billing_completion_source": "PASS_HOSTED_JOB_101545606099_RUN_34055141338_HEAD_a4063e38",
     "request_status_source": "PASS_HOSTED_JOB_101546218730_RUN_34055377589_HEAD_9266c1b6",
-    "profile_action_source": "PASS_LOCAL_TWO_SCENARIOS_TWO_APPLIES_NORMALIZATION_METADATA_ONLY_HOSTED_PENDING"
+    "profile_action_source": "PASS_HOSTED_JOB_101546734266_RUN_34055573705",
+    "hosted_ci_4df526a8": "ALL_ISOLATED_SQL_PASS_EDIEL_PG17_PASS_TYPES_TAIL_FAIL_REPLAY_FAIL_QUALITY_RUNNING"
   }
 }

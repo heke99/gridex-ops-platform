@@ -311,3 +311,12 @@ Counts: 503 full, 29 partial, 51 unknown, four exclusions. Next: verify hosted
 profile SQL, then test the complete auth-callback/email-event source on PG17
 before restoring it ahead of normalization. Full parity remains unverified;
 no production writes, phase closure, merge or deployment in this batch.
+
+## Published verification — 2026-09-06
+
+Verified code head 4df526a8f73228ecb1f41c672db98cebbc7bf108: OPS 34055573705,
+verify job 101546734266 passes all isolated SQL, including all three new source
+fixtures, then fails generated-types tail. Ediel PG17 passes; replay fails;
+quality job 101546734174 is still running. PR #310 records exact results.
+Next: inspect quality and test full auth-email source on PG17 before restoring
+it ahead of normalization. 29 partial/51 unknown remain; no phase is closed.
