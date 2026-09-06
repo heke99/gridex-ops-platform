@@ -4,7 +4,7 @@
   "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
   "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
-  "active_task": "Verify actor-testing original source in hosted CI; continue historical accounting",
+  "active_task": "Continue remaining historical effect accounting after three verified original-source restorations",
   "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
@@ -70,12 +70,12 @@
     "ci_pr_308_browser_public": "PASS",
     "ci_pr_308_pr_certificate": "PASS"
   },
-  "resume_from": "Inspect actor-testing SQL on the next published head, then continue 29 partial and 54 unknown sources. Full authoritative canonical replay/types/ledger/live parity remain required.",
+  "resume_from": "Read quality job 101504839408 for verified code head 29dc9497, then review 20260520_batch_3_4_final_completion.sql and remaining 29 partial/54 unknown sources. Do not close any phase before authoritative canonical replay/types/ledger/live parity.",
   "commits": 0,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/310 (draft)",
   "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
   "current_session_verification": {
-    "publication": "LAST_VERIFIED_CUSTOMER_FLOW_HEAD_a201d3f2_ACTOR_TESTING_BATCH_PENDING",
+    "publication": "PUBLISHED_PR310_CODE_HEAD_29dc94974825b329b9b822c2219b077d8679bb33",
     "hosted_ci_2568c28f": "VERIFY_AND_QUALITY_PASS_REPLAY_FAILS_COMPLETENESS",
     "tenant_guard_fixture": "PASS_PGLITE_0.3.14_TWO_APPLIES_18_REFERENCES_TWO_ROLES",
     "live_guard_catalog": "PASS_READ_ONLY_7_GUARDS",
@@ -95,6 +95,7 @@
     "ediel_selection": "PASS_RED_GREEN_AND_EACH_DECLARATION_MUTATION",
     "customer_flow_source": "PASS_HOSTED_JOB_101504319679_RUN_34039783462",
     "ediel_restoration_ci": "PASS_POSTGRES17_JOB_101503578599_RUN_34039506238_HEAD_69d51ee2",
-    "actor_testing_source": "PASS_LOCAL_PGLITE_TWO_APPLIES_FIVE_INDEX_DEFINITIONS_SELECTION_RED_GREEN_HOSTED_PENDING"
+    "actor_testing_source": "PASS_HOSTED_JOB_101504839441_RUN_34039976860",
+    "hosted_ci_29dc9497": "EDIEL_PG17_PASS_ALL_ISOLATED_SQL_PASS_TYPES_TAIL_FAIL_REPLAY_FAIL_QUALITY_IN_PROGRESS"
   }
 }

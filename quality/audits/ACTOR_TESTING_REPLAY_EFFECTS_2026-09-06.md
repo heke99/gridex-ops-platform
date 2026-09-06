@@ -24,3 +24,16 @@ provenance and 587-file integrity pass. Hosted execution is pending publication.
 Accounting is 500 full selected, 29 unresolved substitutions, 54 unclassified,
 4 exclusions, 587 total. Full-effects remains failing. No production writes,
 manual types hashes or phase closure; canonical/ledger/live parity remains open.
+
+## Verified code-head checkpoint — 2026-09-06
+
+Published code head 29dc94974825b329b9b822c2219b077d8679bb33, draft PR #310.
+OPS run 34039976860: Ediel PostgreSQL 17 job 101504839380 PASS. Verify job
+101504839441 passes all isolated SQL fixtures, including complete customer-flow
+and actor-testing sources, then FAILS generated-types tail 20260906081839.
+Clean replay job 101504839286 FAILS; complete input accounting remains unresolved.
+Quality job 101504839408 is still running and is not certified. PR body records
+these exact code-head results. No phase closed, production writes or manual
+canonical/type hash changes. Next: inspect quality result and continue remaining
+29 partial/54 unclassified sources; full authoritative replay/ledger/live parity
+is still required. These are internal remediation items, not permission blockers.
