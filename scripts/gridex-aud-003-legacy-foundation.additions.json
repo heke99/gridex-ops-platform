@@ -181,7 +181,8 @@
     "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
       "source": "migrations/20260609150000_batch_6_sync_status_origin_fix.sql",
       "artifactSha256": "41c346f89b6b390cdc0815c24a2398749e848df8397627f24073ecb2a11185d3",
-      "purpose": "Restore only integration API client origin/runtime columns and the historical origin index required by later runtime capability checks; no clients are seeded."
+      "preserveSourceReplay": true,
+      "purpose": "Provide early API-client prerequisites, then retain the entire reviewed source at its original timestamp to preserve portal defaults and generic origin/identity normalization. See quality/audits/PORTAL_ORIGIN_REPLAY_EFFECTS_2026-09-06.md; selection alone is not execution or production parity evidence."
     },
     "bootstrap/20260609_communication_log_trace_foundation.sql": {
       "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",

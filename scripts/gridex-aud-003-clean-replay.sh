@@ -235,6 +235,14 @@ for item in interleaved:
 # New content or paths require fresh statement/body review and a code change;
 # refreshing manifest hashes cannot expand this diagnostic exclusion contract.
 reviewed_diagnostics={'migrations/20260525_debug_batch_2j_verify_no_old_afshin_id.sql': '10874b4600763f89d7e0f1c9e4c3e1e57c9e5ea50928d1af97b9d43185ec0da9', 'migrations/20260525_verify_company_user_provisioning_flow.sql': 'b0e38917e7e5ec00310b0246f306ec4614808ed16964b6488c845b107ec7403f'}
+# Finite source/body review only; no deployment or execution assertion.
+reviewed_operational_repairs={'migrations/02_db2b_apply_superadmin_and_membership.sql': {'sha256': '64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4',
+                                                            'dependencies': [{'path': 'migrations/20260611150000_launch_readiness_security_routes_stats.sql',
+                                                                              'sha256': '3fa71292b07e4534dab13c1f2ef28574a0635fad17db736201f4eed23f6dd053'},
+                                                                             {'path': 'migrations/20260727040000_contract_security_energy_direction_api_completion.sql',
+                                                                              'sha256': 'c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e'},
+                                                                             {'path': 'migrations/20260802170000_canonical_security_convergence.sql',
+                                                                              'sha256': 'e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a'}]}}
 excluded=set()
 artifacts=noncanonical.get('artifacts') or []
 if not artifacts: raise SystemExit('noncanonical artifact contract is empty')
@@ -244,10 +252,20 @@ for item in artifacts:
     status=item.get('status','')
     reason=item.get('reason','')
     evidence=item.get('evidence') or []
-    if status not in ('merged_repository_artifact_not_deployed','historical_read_only_diagnostic') or not reason or not evidence:
+    if status not in ('merged_repository_artifact_not_deployed','historical_read_only_diagnostic','historical_operational_data_repair') or not reason or not evidence:
         raise SystemExit(f'incomplete noncanonical classification: {rel}')
     if status == 'historical_read_only_diagnostic' and reviewed_diagnostics.get(rel) != expected:
         raise SystemExit(f'unreviewed diagnostic path or content hash: {rel}')
+    if status == 'historical_operational_data_repair':
+        reviewed=reviewed_operational_repairs.get(rel)
+        if reviewed is None or reviewed['sha256'] != expected:
+            raise SystemExit(f'unreviewed operational repair path or content hash: {rel}')
+        if item.get('reviewedDependencies') != reviewed['dependencies']:
+            raise SystemExit(f'unreviewed operational repair dependency pins: {rel}')
+        for dependency in reviewed['dependencies']:
+            dependency_path=resolve(dependency['path'])
+            if not dependency_path.is_file() or digest(dependency_path) != dependency['sha256'] or checksums.get(dependency_path.name) != dependency['sha256']:
+                raise SystemExit(f'operational repair dependency missing or checksum drift: {dependency["path"]}')
     if not re.fullmatch(r'migrations/[^/]+[.]sql',rel):
         raise SystemExit(f'noncanonical artifact must be a migration path: {rel}')
     actual=resolve(rel)

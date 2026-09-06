@@ -2,6 +2,32 @@
 
 ## Current checkpoint — PR #310
 
+
+## Active checkpoint 2026-09-06 — supersedes previous progress
+
+IN_PROGRESS. No phase closed. PR #310 published head 0a0f4068 has passing quality
+gates and isolated reconstruction/parity SQL tests; verify fails generated-types
+tail, and clean replay fails completeness (OPS 33988318141). These are required
+internal remediation gates, not external permission blockers.
+
+Next reviewed batch restores eleven invitation columns and corresponding role/FK/
+unique-index effects through forward migration 20260906081839. Isolated tests
+pass 18 assertions and two invalid-data rollback scenarios; the historical
+regression table is frozen separately so canonical artifact refresh cannot erase
+the failing baseline. Full RLS/RPC/provider E2E is not established.
+
+Portal/API-origin source 20260609150000 is now preserved after its early bootstrap
+at its original timestamp. Whole-source selection failed before the fix; actual
+SQL now runs twice in an isolated fixture, preserving existing explicit origins
+and valid identities, restoring match_strength=manual (read-only live default),
+and verifying indexes. Other historical substitutions remain blocking.
+
+Integrity/readiness pass for 587 files. Types still fail the new migration tail;
+no manual hash or schema baseline edits. Complete historical effect review, then
+run authoritative full replay, generate types/schema and verify ledger/live parity.
+No production mutation performed in this batch.
+
+
 Parity semantics repair: sorted relation options (including view security_invoker)
 and relation/function/schema grantability are now measured and compared. The
 26-check isolated catalog regression passes; old code failed 22 checks. Existing

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "Explicit checksum-bound historical repository artifacts excluded from canonical empty-database replay. Each status has a distinct evidence contract: undeployed lineage, or one of the finite reviewed read-only diagnostics. Diagnostic status makes no deployment-history claim.",
+  "purpose": "Explicit checksum-bound historical repository artifacts excluded from canonical empty-database replay. Each status has a distinct evidence contract: undeployed lineage, or one of the finite reviewed read-only diagnostics. Diagnostic status makes no deployment-history claim. Historical operational data repair has a separate finite source/body review and dependency hash contract, without a deployment-history claim.",
   "artifacts": [
     {
       "path": "migrations/20260530123000_gridcore_active_ediel_scope_rules_and_aibi_imports.sql",
@@ -38,6 +38,30 @@
         "repo:quality/audits/LEGACY_REPLAY_CLASSIFICATION_2026-09-05.md",
         "repo:scripts/gridex-aud-003-clean-replay.sh:reviewed_diagnostics",
         "repo:scripts/gridex-replay-input-accounting-selftest.py"
+      ]
+    },
+    {
+      "path": "migrations/02_db2b_apply_superadmin_and_membership.sql",
+      "sha256": "64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4",
+      "status": "historical_operational_data_repair",
+      "finding": "OPERATIONAL-REPAIR-2026-09-06",
+      "reason": "Reviewed fixed-target administrator and company membership repair with operational backfill/audit records only. No generic role seeds or schema definitions. Exclusion makes no deployment-history claim and does not authorize execution. Trigger source dependencies bind the reviewed audit normalization, administrator audit, and last-admin guard bodies; those schema-bearing sources remain independently accounted.",
+      "evidence": [
+        "repo:quality/audits/OPERATIONAL_REPAIR_CLASSIFICATION_2026-09-06.md"
+      ],
+      "reviewedDependencies": [
+        {
+          "path": "migrations/20260611150000_launch_readiness_security_routes_stats.sql",
+          "sha256": "3fa71292b07e4534dab13c1f2ef28574a0635fad17db736201f4eed23f6dd053"
+        },
+        {
+          "path": "migrations/20260727040000_contract_security_energy_direction_api_completion.sql",
+          "sha256": "c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e"
+        },
+        {
+          "path": "migrations/20260802170000_canonical_security_convergence.sql",
+          "sha256": "e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a"
+        }
       ]
     }
   ]

@@ -13,6 +13,24 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECKER = ROOT / 'scripts/gridex-replay-input-accounting.py'
 
 
+OPERATIONAL_REPAIR_FIXTURE = {'path': 'migrations/02_db2b_apply_superadmin_and_membership.sql',
+ 'sha256': '64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4',
+ 'status': 'historical_operational_data_repair',
+ 'finding': 'OPERATIONAL-REPAIR-2026-09-06',
+ 'reason': 'Reviewed fixed-target administrator and company membership repair with operational '
+           'backfill/audit records only. No generic role seeds or schema definitions. Exclusion '
+           'makes no deployment-history claim and does not authorize execution. Trigger source '
+           'dependencies bind the reviewed audit normalization, administrator audit, and '
+           'last-admin guard bodies; those schema-bearing sources remain independently accounted.',
+ 'evidence': ['repo:quality/audits/OPERATIONAL_REPAIR_CLASSIFICATION_2026-09-06.md'],
+ 'reviewedDependencies': [{'path': 'migrations/20260611150000_launch_readiness_security_routes_stats.sql',
+                           'sha256': '3fa71292b07e4534dab13c1f2ef28574a0635fad17db736201f4eed23f6dd053'},
+                          {'path': 'migrations/20260727040000_contract_security_energy_direction_api_completion.sql',
+                           'sha256': 'c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e'},
+                          {'path': 'migrations/20260802170000_canonical_security_convergence.sql',
+                           'sha256': 'e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a'}]}
+
+
 class InputAccountingTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -102,6 +120,71 @@ class InputAccountingTest(unittest.TestCase):
         code, report = self.run_checker()
         self.assertEqual(code, 2)
         self.assertIn('reviewed diagnostic', ' '.join(report['errors']))
+
+    def add_reviewed_operational_repair(self):
+        entry = OPERATIONAL_REPAIR_FIXTURE.copy()
+        entry['reviewedDependencies'] = [dict(item) for item in entry['reviewedDependencies']]
+        for item in [entry, *entry['reviewedDependencies']]:
+            self.add_sql(item['path'], (ROOT / 'supabase' / item['path']).read_text())
+        self.excluded.append(entry)
+        return entry
+
+    def test_reviewed_operational_repair_excluded_dependencies_independently_selected(self):
+        self.add_reviewed_operational_repair()
+        code, report = self.run_checker('--require-full-effects')
+        self.assertEqual(code, 0, report)
+        self.assertEqual(report['counts']['EXPLICITLY_EXCLUDED'], 2)
+        self.assertFalse(report['sqlExecutionVerified'])
+        self.assertFalse(report['ledgerProvenanceVerified'])
+
+    def test_operational_disposition_does_not_close_other_legacy_inputs(self):
+        self.add_reviewed_operational_repair()
+        self.add_sql('migrations/01_unresolved_schema.sql', 'CREATE TABLE synthetic_fixture(id int);')
+        code, report = self.run_checker('--require-full-effects')
+        self.assertEqual(code, 1, report)
+        self.assertEqual(report['counts']['UNCLASSIFIED'], 1)
+        self.assertEqual(report['counts']['EXPLICITLY_EXCLUDED'], 2)
+
+    def test_operational_repair_changed_sql_rejected_with_refreshed_json(self):
+        entry = self.add_reviewed_operational_repair()
+        for sql in ('CREATE TABLE synthetic_fixture(id int);', 'INSERT INTO public.roles DEFAULT VALUES;',
+                    'SELECT public.synthetic_helper();', 'SELECT 1;'):
+            with self.subTest(sql=sql):
+                entry['sha256'] = self.add_sql(entry['path'], sql)
+                code, report = self.run_checker()
+                self.assertEqual(code, 2, report)
+                self.assertIn('reviewed operational', ' '.join(report['errors']))
+
+    def test_operational_unknown_path_rejected(self):
+        self.excluded[0]['status'] = 'historical_operational_data_repair'
+        self.excluded[0]['reviewedDependencies'] = []
+        code, report = self.run_checker()
+        self.assertEqual(code, 2, report)
+        self.assertIn('reviewed operational', ' '.join(report['errors']))
+
+    def test_operational_missing_or_unknown_dependency_pin_rejected(self):
+        entry = self.add_reviewed_operational_repair()
+        deps = entry['reviewedDependencies']
+        for replacement in (None, [], deps[:-1], deps + [{'path': 'migrations/unknown.sql', 'sha256': 'a'*64}]):
+            with self.subTest(dependencies=replacement):
+                entry['reviewedDependencies'] = replacement
+                code, report = self.run_checker()
+                self.assertEqual(code, 2, report)
+                self.assertIn('operational', ' '.join(report['errors']))
+
+    def test_operational_dependency_content_change_rejected_with_refreshed_json(self):
+        entry = self.add_reviewed_operational_repair()
+        dependency = entry['reviewedDependencies'][0]
+        dependency['sha256'] = self.add_sql(dependency['path'], 'SELECT 1;')
+        code, report = self.run_checker()
+        self.assertEqual(code, 2, report)
+        self.assertIn('operational', ' '.join(report['errors']))
+
+    def test_operational_dependency_missing_file_rejected(self):
+        entry = self.add_reviewed_operational_repair()
+        (self.root / 'supabase' / entry['reviewedDependencies'][0]['path']).unlink()
+        code, report = self.run_checker()
+        self.assertEqual(code, 2, report)
 
     def test_unknown_exclusion_status_rejected(self):
         self.excluded[0]['status'] = 'diagnostic_probably_safe'

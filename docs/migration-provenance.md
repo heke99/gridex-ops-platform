@@ -59,7 +59,7 @@ A repository SQL file may be excluded from replay only when all of the following
 
 - its exact path is listed in `scripts/gridex-aud-003-noncanonical-artifacts.json`;
 - its SHA-256 matches both that classification and the immutable migration-history manifest;
-- the classification status satisfies one of the two contracts below;
+- the classification status satisfies one of the three contracts below;
 - a concrete reason and evidence list are present;
 - it is not simultaneously a foundation input or bootstrap source substitution.
 
@@ -76,6 +76,15 @@ effects to reconstruct. This status makes no claim about historical deployment.
 Changing even one byte or adding another path requires renewed content review
 and a code change; refreshing JSON checksums cannot authorize an exclusion.
 This finite reviewed-content contract is not a general SQL safety parser.
+
+`historical_operational_data_repair` currently covers only the exact reviewed
+DB2B administrator/membership repair. Its complete source and the listed trigger
+body source dependencies are independently checksum-pinned in the selector and
+provenance validator. It contains operational identity/audit data repairs, not
+schema definitions or generic role seeds, and is not executed during canonical
+reconstruction. The status makes no deployment-history claim. Schema-bearing
+dependency migrations remain independently accountable; this exclusion does not
+approve the broader DB2 customer reconciliation or any other data repair.
 
 Before any database start or migration-file relocation, the replay requires
 `scripts/gridex-replay-input-accounting.py --require-full-effects` to accept every

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-05T19:38:21.440Z",
+  "generated_at": "2026-09-06T08:25:21.343Z",
   "source": "repository/supabase/migrations",
   "checksum_sources": [
     "scripts/migration-history-manifest.json",
@@ -10,10 +10,10 @@
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 586,
-    "ledger_eligible_count": 493,
+    "sql_file_count": 587,
+    "ledger_eligible_count": 494,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 586,
+    "checksum_registered_count": 587,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -10592,6 +10592,18 @@
         "public.gridex_customer_sites_company_guard",
         "public.gridex_metering_points_company_guard",
         "public.gridex_powers_of_attorney_company_guard"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260906081839",
+      "filename": "20260906081839_canonical_company_invitation_runtime_reconstruction.sql",
+      "checksum": "d30a89a4fa793cddf3cf4560e1bb40bb2831505e911bd630c1409117e7f877f8",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.company_invitations"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"
