@@ -4,7 +4,7 @@
   "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
   "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
-  "active_task": "Verify request-status source restoration and continue remaining historical accounting",
+  "active_task": "Verify profile normalization source; review complete auth email source and remaining history",
   "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
@@ -70,7 +70,7 @@
     "ci_pr_308_browser_public": "PASS",
     "ci_pr_308_pr_certificate": "PASS"
   },
-  "resume_from": "Inspect hosted request-status SQL, then review profile normalization trigger/dependencies; 29 partial and 52 unknown remain before authoritative parity.",
+  "resume_from": "Inspect hosted profile source test, then test full 20260519 auth-callback/email-event source on PG17 before restoring ahead of normalization. 29 partial and 51 unknown remain.",
   "commits": 0,
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/310 (draft)",
   "merge_commit": "15e6b487423a05c655635d8b632721bcc6debfd9",
@@ -85,7 +85,7 @@
     "production_parity": "NOT_CONVERGED",
     "production_deployment": "READY_eb9a25bc_dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c",
     "parity_semantics": "PASS_26_ISOLATED_CATALOG_CHECKS_RELOPTIONS_AND_GRANT_OPTIONS",
-    "diagnostic_classification": "PASS_29_ACCOUNTING_TESTS_52_UNKNOWN_29_PARTIAL",
+    "diagnostic_classification": "PASS_29_ACCOUNTING_TESTS_51_UNKNOWN_29_PARTIAL",
     "replay_recovery_selftest": "PASS_14_PRESTART_NO_STOP_AND_FAILED_START_CLEANUP",
     "published_head_0a0f4068": "QUALITY_PASS_ISOLATED_SQL_PASS_TYPES_TAIL_FAIL_REPLAY_COMPLETENESS_FAIL",
     "invitation_reconstruction": "PASS_ISOLATED_18_ASSERTIONS_2_DIRTY_UPGRADE_ROLLBACKS",
@@ -98,6 +98,7 @@
     "actor_testing_source": "PASS_HOSTED_JOB_101504839441_RUN_34039976860",
     "hosted_ci_29dc9497": "QUALITY_PASS_EDIEL_PG17_PASS_ISOLATED_SQL_PASS_TYPES_TAIL_FAIL_REPLAY_FAIL",
     "billing_completion_source": "PASS_HOSTED_JOB_101545606099_RUN_34055141338_HEAD_a4063e38",
-    "request_status_source": "PASS_LOCAL_TWO_APPLIES_19_STATES_PK_FK_PRESERVATION_DIRTY_ROLLBACK_HOSTED_PENDING"
+    "request_status_source": "PASS_HOSTED_JOB_101546218730_RUN_34055377589_HEAD_9266c1b6",
+    "profile_action_source": "PASS_LOCAL_TWO_SCENARIOS_TWO_APPLIES_NORMALIZATION_METADATA_ONLY_HOSTED_PENDING"
   }
 }

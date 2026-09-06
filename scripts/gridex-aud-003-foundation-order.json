@@ -6,6 +6,7 @@
     "migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
     "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260519_contract_offer_versions_foundation.sql",

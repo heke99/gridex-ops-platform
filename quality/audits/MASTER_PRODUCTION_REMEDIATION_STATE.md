@@ -1,5 +1,20 @@
 # Gridex OPS production remediation evidence register
 
+## Profile metadata continuation — 2026-09-06
+
+Status source on published code head 9266c1b65130302b47a78c6d26182391d3e56be9
+passes hosted complete SQL, 19-state validation and selection in job 101546218730,
+OPS 34055377589. Verify subsequently fails types tail; replay remains red.
+
+Profile normalization full source is now selected at its reviewed trigger-free
+foundation boundary. Two passes with valid and legacy synthetic values verify
+only tracking metadata changes; identity/status/timestamps/auth FKs are preserved.
+29 accounting tests, static provenance and integrity pass; hosted test pending.
+Counts: 503 full, 29 partial, 51 unknown, four exclusions. Next: verify hosted
+profile SQL, then test the complete auth-callback/email-event source on PG17
+before restoring it ahead of normalization. Full parity remains unverified;
+no production writes, phase closure, merge or deployment in this batch.
+
 ## Request-status continuation — 2026-09-06
 
 Published billing code head a4063e3896ccefc487a2c39825c74462c444c9a2 passes full
