@@ -165,3 +165,19 @@ Counts: 501 full selected, 29 partial, 53 unknown, 4 exclusions. No phase closed
 Next: verify published CI, then review status-check broad constraint removal and
 profile-normalization trigger effects; do not blindly restore these sources.
 Authoritative replay/schema/types/ledger/live parity remain required.
+
+## Request-status continuation — 2026-09-06
+
+Published billing code head a4063e3896ccefc487a2c39825c74462c444c9a2 passes full
+billing SQL/selection in job 101545606099, OPS run 34055141338; verify subsequently
+fails generated-types tail. Ediel PG17 passes; complete replay remains red.
+
+Request status source 20260521_final_customer_info_request_status_check.sql is
+now selected immediately after its first table definition. That reviewed boundary
+has only the intended status CHECK; no earlier selected foundation references
+the table. Full source passes twice with 19 exact states, unchanged rows/PK/FKs,
+and atomic rejection of invalid existing data. Selection red before, green after.
+29 accounting tests and static provenance pass; hosted status test pending.
+Counts: 502 full selected, 29 partial, 52 unknown, 4 exclusions. Continue profile
+normalization trigger/dependency review and remaining history, then authoritative
+canonical replay/schema/types and ledger/live parity. No phase or merge approval.
