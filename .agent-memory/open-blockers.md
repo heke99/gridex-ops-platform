@@ -92,3 +92,22 @@ authoritative schema/types generation and ledger/live comparison remain required
 Ediel next step: isolated PostgreSQL 17 CI fixture implemented; SQL composition
 and diff checks pass, execution pending. Both source suppressions remain unchanged.
 Inspect ediel-source-effects job before changing selection. No phase closed.
+
+## Ediel source restoration — 2026-09-06
+
+PostgreSQL 17 job 101502920151 in OPS run 34039266103 passed on published
+revision d6967d21c4f7985c0f2a452ddaf8ae0cef8b3c60. Complete original source and
+successor ran twice, including pgcrypto; synthetic backfill/history, uniqueness,
+FK/column/RLS and non-owner policy assertions passed. This is isolated source
+evidence, not canonical provenance or production parity.
+
+Both bootstrap declarations now preserve source 20260602143000 at its original
+timestamp. Selection regression failed SUBSTITUTED before the fix, passed after,
+and rejects either declaration reverting independently. Accounting selftest now
+passes 29 tests. Inventory integrity/readiness pass (587 files). Accounting now
+498 FULL_FILE_SELECTED, 30 unresolved SUBSTITUTED, 4 exclusions, 55 UNCLASSIFIED;
+full-effects gate correctly remains exit 1. Original SQL/checksums are unchanged.
+
+Next: inspect CI for the restoration revision, then review the remaining source
+substitutions and unclassified SQL. Authoritative canonical replay, schema/types
+regeneration and bidirectional ledger/live parity remain open. No phase closed.

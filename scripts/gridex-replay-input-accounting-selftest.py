@@ -309,6 +309,27 @@ class InputAccountingTest(unittest.TestCase):
         self.assertEqual(row['derivedArtifacts'][0]['ordinal'], 2)
         self.assertEqual(row['derivedArtifacts'][0]['stage'], 'timestamp')
 
+    def test_two_bootstraps_must_both_preserve_source(self):
+        source = 'migrations/20260101000000_first.sql'
+        self.substitute(source, preserve=True)
+        rel = 'bootstrap/later-derived.sql'
+        digest = self.add_sql(rel)
+        self.plan['foundation'].append(rel)
+        self.additions['derivedBootstrap'][rel] = {
+            'source': source, 'artifactSha256': digest, 'preserveSourceReplay': True}
+        declarations = [self.plan['derivedBootstrap']['bootstrap/derived.sql'],
+                        self.additions['derivedBootstrap'][rel]]
+        for first, second, expected in [(True, True, 'FULL_FILE_SELECTED'),
+                                         (False, True, 'SUBSTITUTED'),
+                                         (True, False, 'SUBSTITUTED')]:
+            with self.subTest(first=first, second=second):
+                declarations[0]['preserveSourceReplay'] = first
+                declarations[1]['preserveSourceReplay'] = second
+                code, report = self.run_checker('--require-full-effects')
+                row = next(row for row in report['migrations'] if row['path'] == source)
+                self.assertEqual(row['classification'], expected)
+                self.assertEqual(code, 0 if first and second else 1)
+
     def test_read_only_inventory_does_not_mutate_repository_inputs(self):
         self.run_checker()  # Materialize fixture manifests before the comparison.
         before = {p.relative_to(self.root): p.read_bytes()

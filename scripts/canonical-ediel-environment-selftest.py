@@ -2,6 +2,7 @@
 """Isolated source-effects test, never a canonical replay or production parity proof."""
 from pathlib import Path
 import argparse
+import json
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,7 +65,18 @@ insert into ediel_route_profiles(company_id,environment,environment_type,route_n
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--emit', action='store_true', help='Print composed SQL without executing')
+    parser.add_argument('--selection-only', action='store_true')
     args = parser.parse_args()
+    if not args.emit:
+        result = subprocess.run(['python3', str(ROOT / 'scripts/gridex-replay-input-accounting.py')], capture_output=True, text=True, check=False)
+        report = json.loads(result.stdout)
+        assert not report['errors'], report['errors']
+        row = next(row for row in report['migrations'] if row['path'] == 'migrations/20260602143000_ediel_environment_business_action_locks.sql')
+        assert row['classification'] == 'FULL_FILE_SELECTED', row['classification']
+        assert row['execution'][0]['stage'] == 'timestamp', row['execution']
+        print('PASS: complete Ediel source selected at original timestamp')
+    if args.selection_only:
+        raise SystemExit(0)
     sql = script()
     if args.emit:
         print(sql)

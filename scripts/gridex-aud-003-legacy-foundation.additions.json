@@ -338,6 +338,7 @@
     "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql": {
       "source": "migrations/20260602143000_ediel_environment_business_action_locks.sql",
       "artifactSha256": "e99d45f17b4bce864f75fb03c1b19ae3bb118079bea424348c9e58358df9826d",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the source-defined ediel_test_runs environment_type column omitted by the earlier enum-only substitution, immediately before canonical role-scoped configuration binding consumes it; no test runs or tenant data are seeded or rewritten."
     },
     "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql": {
