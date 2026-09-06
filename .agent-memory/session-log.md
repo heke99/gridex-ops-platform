@@ -672,3 +672,16 @@ these exact code-head results. No phase closed, production writes or manual
 canonical/type hash changes. Next: inspect quality result and continue remaining
 29 partial/54 unclassified sources; full authoritative replay/ledger/live parity
 is still required. These are internal remediation items, not permission blockers.
+
+## Billing completion source — 2026-09-06
+
+Previous code-head 29dc9497 quality-release-gates is now PASS (OPS 34039976860).
+Full source 20260520_batch_3_4_final_completion.sql now selected after the real
+billing_export_run_id prerequisite. Isolated complete SQL passes twice with four
+exact index definitions and unchanged rows in five tables. Wrong prerequisite
+order is demonstrably rejected. Selection was UNCLASSIFIED before, full after.
+29 accounting tests, static provenance, integrity pass. Hosted test pending.
+Counts: 501 full selected, 29 partial, 53 unknown, 4 exclusions. No phase closed.
+Next: verify published CI, then review status-check broad constraint removal and
+profile-normalization trigger effects; do not blindly restore these sources.
+Authoritative replay/schema/types/ledger/live parity remain required.

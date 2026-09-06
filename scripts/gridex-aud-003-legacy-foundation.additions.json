@@ -8,6 +8,7 @@
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
+    "migrations/20260520_batch_3_4_final_completion.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
