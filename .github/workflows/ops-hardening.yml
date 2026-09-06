@@ -4,6 +4,27 @@ on:
   push:
     branches: [main]
 jobs:
+  ediel-source-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_ediel_test
+        ports:
+          - 55439:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify complete Ediel source effects on isolated PostgreSQL 17
+        run: python3 scripts/canonical-ediel-environment-selftest.py
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25

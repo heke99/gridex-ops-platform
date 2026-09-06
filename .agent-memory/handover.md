@@ -183,9 +183,27 @@ no manual hash or schema baseline edits. Complete historical effect review, then
 run authoritative full replay, generate types/schema and verify ledger/live parity.
 No production mutation performed in this batch.
 
+## Published verification checkpoint — 2026-09-06
+
+Code revision 8344cbb84eb6691bf7507bcc9c6580565bc6a114 is published on draft
+PR #310. OPS run 34035865807 finished: quality-release-gates PASS; all isolated
+reconstruction/parity SQL fixtures PASS; verify FAIL at the new generated-types
+migration tail; clean replay FAIL at completeness. Later verify steps skipped
+after the type gate are not certified. No phase closed and no production writes.
+
+Next: complete the bounded Ediel environment source review, then test its complete
+SQL with actual prerequisite ordering and successor hardening on PostgreSQL 17
+before changing either source-suppression declaration. Full historical accounting,
+authoritative schema/types generation and ledger/live comparison remain required.
+
 Publication review completed: 28 accounting tests, 14 recovery tests, portal SQL
 and invitation SQL (18 assertions plus two rollback scenarios) pass on the current
 worktree. Operational DB2B classification has its missing evidence report restored
 after direct source/body review. Actual accounting: 587 inputs, 497 full selected,
-31 partial, 4 exclusions, 55 unknown. Full-effects exit remains 1. Publish this
-reviewed batch to draft PR #310, then inspect exact-head CI; no phase closure.
+31 partial, 4 exclusions, 55 unknown. Full-effects exit remains 1. The planned
+batch publication is now superseded by the verified code-head checkpoint
+above; continue the Ediel source review. No phase is closed.
+
+Ediel next step: isolated PostgreSQL 17 CI fixture implemented; SQL composition
+and diff checks pass, execution pending. Both source suppressions remain unchanged.
+Inspect ediel-source-effects job before changing selection. No phase closed.

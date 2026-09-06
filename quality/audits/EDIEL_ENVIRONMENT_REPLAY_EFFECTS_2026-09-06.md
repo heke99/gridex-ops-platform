@@ -1,0 +1,27 @@
+# Ediel environment source effects — in progress
+
+Routing continues the active systematic-debugging, test-driven-development,
+Supabase and verification-before-completion workflow. No UI, performance,
+skill creation or production deployment changes are involved.
+
+The original 20260602143000 source is suppressed by two bootstrap declarations.
+Both must preserve the source before it can be selected at its original time.
+No selector change is made in this test-first batch.
+
+Direct source review confirms three omitted tables: ediel_test_run_locks,
+ediel_agt_readiness and ediel_unlinked_test_messages. The complete 20260602152000
+successor conditionally adds columns, company FKs and service-role RLS policies
+when those tables exist. Its four deadline seeds are generic reference data.
+The earlier route-history trigger also runs during environment backfill.
+
+The new isolated PostgreSQL 17 CI job executes the two complete original files
+twice, including pgcrypto, using scoped predecessor DDL statements and synthetic
+rows. It tests environment mapping, preserved explicit environments, history
+side effects, uniqueness, successor columns/FKs/RLS and non-owner policy reads.
+Predecessor files are not replayed in full: this is a dependency fixture, not
+canonical provenance or full tenant/JWT/provider verification. Other historical
+triggers and the complete replay order still require authoritative replay.
+
+Local verification: SQL composition and git diff --check pass. Real PostgreSQL
+execution is pending the new CI job. PGlite without pgcrypto is insufficient.
+No production writes, canonical artifacts, types hashes or gates were changed.
