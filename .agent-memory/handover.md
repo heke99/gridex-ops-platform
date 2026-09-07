@@ -337,3 +337,16 @@ and integrity pass. Counts: 504 full, 28 partial, 51 unknown, four exclusions.
 Hosted restoration-head validation pending. No production writes, schema/type
 hash edits or phase closure. Continue historical effect accounting before full
 canonical replay, generated artifacts and ledger/live parity.
+
+
+## POA source verification in progress — 2026-09-07
+
+Auth restoration e5c1005032613fd0d56d065c235f227a8b2658a7 passed auth PG17
+job 101640004817 and quality-release-gates in OPS 34089519574. Full replay
+and migration verification remain red. POA/request whole-source PG17 fixture
+is now wired after auth fixture; SQL composition and diff checks pass, hosted
+execution pending. Includes exact index definitions, 24 states, data/key/policy
+preservation and two applies. Selection remains unchanged (504 full, 28 partial,
+51 unknown, four excluded). Next: run hosted fixture, fix failures, then restore
+source after blocker prerequisites with selection-order regression. No phase
+closed; no production mutation or generated-artifact edits.
