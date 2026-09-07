@@ -656,3 +656,14 @@ Next: verify this order-dependent effect loss on PG17, then implement narrowly
 scoped forward FK reconstruction or a fully verified prerequisite restoration.
 Counts remain 506 full/28 partial/49 unknown/4 excluded. No production writes,
 phase closure, generated-artifact edits or external blocker.
+## Actor-FK repair awaiting PG17 — 2026-09-07
+
+Five-source characterization passed job 101739209647, OPS 34121147911.
+Forward migration 20260907121951 now restores two membership actor FKs without
+historical DML. Four fixed-local PG17 cases cover existing/missing columns,
+invalid actor references and incompatible same-name constraints. SQL composition,
+29 accounting tests and integrity PASS (588 files/492 groups); hosted repair
+execution pending. Counts: 507 full/28 partial/49 unknown/4 excluded. See
+quality/audits/MEMBERSHIP_ACTOR_FK_RECONSTRUCTION_2026-09-07.md. Next: verify
+hosted repair, then remaining historical effects and authoritative parity.
+No production writes, types/schema hash edits or phase closure.
