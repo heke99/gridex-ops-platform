@@ -2,6 +2,7 @@
 """Run after auth-email fixture in the same isolated PG17 CI service."""
 from pathlib import Path
 import argparse
+import json
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,7 +82,23 @@ rollback;
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--emit', action='store_true')
+    parser.add_argument('--selection-only', action='store_true')
     args = parser.parse_args()
+    if args.selection_only:
+        result = subprocess.run(['python3', str(ROOT / 'scripts/gridex-replay-input-accounting.py')], capture_output=True, text=True, check=False)
+        report = json.loads(result.stdout)
+        assert not report['errors'], report['errors']
+        source = 'migrations/20260526_batch_3c_3d_fullmakt_data_requests.sql'
+        row = next(row for row in report['migrations'] if row['path'] == source)
+        assert row['classification'] == 'FULL_FILE_SELECTED', row['classification']
+        assert row['execution'][0]['stage'] == 'foundation'
+        order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
+        predecessor = 'bootstrap/20260526_customer_blockers_foundation.sql'
+        assert order.index(source) == order.index(predecessor) + 1
+        for prerequisite in ['migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql', 'bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql', 'migrations/20260521_final_customer_info_request_status_check.sql']:
+            assert order.index(prerequisite) < order.index(source)
+        print('PASS: complete POA/request source selected after all four table prerequisites and status predecessor')
+        raise SystemExit(0)
     if args.emit:
         print(sql())
     else:

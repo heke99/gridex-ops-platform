@@ -33,6 +33,7 @@
     "bootstrap/20260521_batch_2c_control_tower_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
+    "migrations/20260526_batch_3c_3d_fullmakt_data_requests.sql",
     "bootstrap/20260528_ediel_test_run_steps_foundation.sql",
     "migrations/20260528_batch_2_ediel_rulebook_system_tests.sql",
     "migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql",

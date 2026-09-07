@@ -16,6 +16,7 @@
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
+    "migrations/20260526_batch_3c_3d_fullmakt_data_requests.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",

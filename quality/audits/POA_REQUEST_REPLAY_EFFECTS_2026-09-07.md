@@ -22,3 +22,17 @@ Checks cover 24 valid states and invalid-state rejection, existing rows, PK/FK/
 unique constraints and policies, blocker RLS, nullable date columns, exact index
 keys/order/predicates. SQL composition passes locally; hosted execution pending.
 Selection has not changed.
+
+
+## POA source restored — 2026-09-07
+
+Complete source twice passed PostgreSQL17 job 101641683544, OPS 34090109671,
+revision 9b67081ab7685e1dcc033982d9c7762c812356f4. All 24 status values, exact
+index definitions and preserved data/keys/policies passed. The full source is
+now selected immediately after customer_blockers foundation. Selection failed
+UNCLASSIFIED before restoration, passes after, and rejects reversed prerequisite
+order. 29 accounting tests and static provenance pass. Counts: 505 full selected,
+28 unresolved substitutions, 50 unclassified, four exclusions. Whole-effects
+gate remains red; no phase closed. Next: verify restoration-head PG17 CI, then
+continue source accounting; authoritative replay/types/schema and live/ledger
+parity remain required. No production writes or artifact hash edits.
