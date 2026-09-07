@@ -772,3 +772,16 @@ it ahead of normalization. 29 partial/51 unknown remain; no phase is closed.
 Auth-email next step: full-source PostgreSQL17 test implemented, SQL composition
 passes, hosted execution pending. Replay selection remains unchanged. Verify
 the auth-email-source-effects job before restoring source ahead of normalization.
+
+## Auth-email source restored — 2026-09-06
+
+Complete auth-email source and profile normalization passed PostgreSQL17 job
+101547966634, OPS 34056026728, code head b98c0d079b6846ad5f2098da598bf1d72bae31dc.
+Original source is now selected after the profile bootstrap and before profile
+normalization. Selection failed SUBSTITUTED before the fix; now passes, while
+reversing auth/normalization order is rejected. Profile regression updated for
+the verified combined order and passes. 29 accounting tests, static provenance
+and integrity pass. Counts: 504 full, 28 partial, 51 unknown, four exclusions.
+Hosted restoration-head validation pending. No production writes, schema/type
+hash edits or phase closure. Continue historical effect accounting before full
+canonical replay, generated artifacts and ledger/live parity.

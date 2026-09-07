@@ -1,6 +1,7 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "migrations/20260519_auth_callback_email_reset_sync.sql",
     "migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
@@ -136,6 +137,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql": {
       "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
       "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
     },
     "bootstrap/20260520_pricing_component_rules_foundation.sql": {

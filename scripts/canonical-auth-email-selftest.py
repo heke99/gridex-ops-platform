@@ -2,6 +2,7 @@
 """Whole auth source and normalization on a fixed disposable PostgreSQL 17 target."""
 from pathlib import Path
 import argparse
+import json
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,7 +69,24 @@ select test_assert((select email='preserved@example.invalid' and user_status='su
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--emit', action='store_true')
+    parser.add_argument('--selection-only', action='store_true')
     args = parser.parse_args()
+    if not args.emit:
+        result = subprocess.run(['python3', str(ROOT / 'scripts/gridex-replay-input-accounting.py')], capture_output=True, text=True, check=False)
+        report = json.loads(result.stdout)
+        assert not report['errors'], report['errors']
+        source = 'migrations/20260519_auth_callback_email_reset_sync.sql'
+        row = next(row for row in report['migrations'] if row['path'] == source)
+        assert row['classification'] == 'FULL_FILE_SELECTED', row['classification']
+        assert row['execution'][0]['stage'] == 'foundation'
+        order = json.loads((ROOT / 'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
+        predecessor = 'bootstrap/20260519_user_profiles_foundation.sql'
+        successor = 'migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql'
+        assert order.index(source) == order.index(predecessor) + 1
+        assert order.index(successor) == order.index(source) + 1
+        print('PASS: complete auth source selected before profile normalization')
+    if args.selection_only:
+        raise SystemExit(0)
     statement = sql()
     if args.emit:
         print(statement)

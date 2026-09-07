@@ -39,7 +39,11 @@ for(const legacy of [false,true]) {
 }
 const result=spawnSync('python3',[new URL('scripts/gridex-replay-input-accounting.py',root).pathname],{encoding:'utf8'});const report=JSON.parse(result.stdout);assert.deepEqual(report.errors,[]);
 const row=report.migrations.find(row=>row.path===source);assert.equal(row?.classification,'FULL_FILE_SELECTED');assert.equal(row.execution[0].stage,'foundation');
-const order=JSON.parse(read('scripts/gridex-aud-003-foundation-order.json')).foundation;assert.equal(order.indexOf(source),order.indexOf(prerequisite)+1);
+const order=JSON.parse(read('scripts/gridex-aud-003-foundation-order.json')).foundation;
+const authSource='migrations/20260519_auth_callback_email_reset_sync.sql';
+assert.equal(order.indexOf(authSource),order.indexOf(prerequisite)+1);
+assert.equal(order.indexOf(source),order.indexOf(authSource)+1);
+assert(!/create\s+(?:or\s+replace\s+)?(?:function|trigger)/i.test(read('supabase/'+authSource)),'auth source trigger/function change requires review');
 for(const name of order.slice(0,order.indexOf(prerequisite))) assert(!read('supabase/'+name).includes('user_profiles'),'earlier profile reference requires fresh trigger review');
 assert(!/create\s+(?:or\s+replace\s+)?(?:function|trigger)/i.test(read('supabase/'+prerequisite)),'profile bootstrap trigger/function change requires review');
 console.log('PASS: full profile source selected at reviewed trigger-free foundation boundary');
