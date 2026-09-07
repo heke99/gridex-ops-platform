@@ -27,6 +27,7 @@ def statements(wrong_order=False):
     platform = read('scripts/sql/gridex-supabase-compatible-bootstrap.sql')
     template = source('20260519_auth_email_templates_invite_reset_sync')
     invite = source('20260519_company_invite_temp_password_sync')
+    provision = source('20260520_direct_account_temporary_password_flow')
     direct = source('20260520_direct_temporary_password_auth_sync_fix')
     cleanup = source('20260520_company_delete_backfill_and_admin_layout')
     normalize = source('20260520_user_profiles_auth_action_constraint_hardfix')
@@ -61,6 +62,10 @@ values ('20000000-0000-0000-0000-000000000001','synthetic@example.invalid','memb
 select test_assert((select user_status='disabled' from user_profiles where id='10000000-0000-0000-0000-000000000001'),'historical suspended profile maps to disabled');
 select test_assert((select count(*)=2 from pg_indexes where indexname in ('company_memberships_company_user_uidx','company_invitations_accept_token_hash_uidx')),'unique source indexes');
 update company_invitations set invited_user_id='10000000-0000-0000-0000-000000000001', temporary_password_issued_at='2026-01-01Z', temporary_password_expires_at='2026-01-02Z';
+'''
+    sql += provision + provision
+    sql += '''select test_assert((select count(*)=1 from pg_constraint where conrelid='user_profiles'::regclass and conname='user_profiles_active_company_id_fkey' and confrelid='companies'::regclass and confdeltype='n'),'provision source restores active company FK');
+select test_assert((select count(*)=0 from pg_constraint where conrelid='company_memberships'::regclass and conname in ('company_memberships_disabled_by_fkey','company_memberships_removed_by_fkey')),'known order-dependent missing actor FKs: pre-existing columns skip REFERENCES; reconstruction required');
 '''
     sql += direct
     sql += '''select test_assert((select status='accepted' and accepted_at is not null and metadata->>'login_ready'='true' from company_invitations),'historical direct source accepts issued invitation, including expired metadata: REVIEW REQUIRED');
@@ -113,4 +118,4 @@ if __name__ == '__main__':
         assert wrong.returncode != 0 and 'auth_email_events_status_check' in wrong.stderr and 'violated by some row' in wrong.stderr, wrong.stderr
         print('PASS: cleanup before event normalization rejected; transaction rolled back')
         subprocess.run(command, input=statements(), text=True, check=True)
-        print('PASS: complete four-source characterization; not authorization or replay approval')
+        print('PASS: complete five-source characterization; actor-FK reconstruction remains open; not authorization or replay approval')

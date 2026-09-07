@@ -626,3 +626,16 @@ SELECT is combined with a RESTRICTIVE tenant/session guard; isolated legacy
 predicate is not proof of live cross-tenant exposure. No production mutations,
 phase closure or generated-artifact edits. Next: verify restoration head, then
 review reconstruction/order for the invitation and temporary-password successors.
+## Actor-FK continuation — 2026-09-07
+
+Template restoration published at e1ffdd8749e3edb6f42b17050ee6264267366c9c;
+OPS 34120804760 auth PG17 job 101738143562 PASS. No full parity claim.
+Next review found a fifth related source, direct_account_temporary_password_flow.
+Its conditional REFERENCES clauses are skipped when the invitation predecessor
+already created disabled_by/removed_by columns. Both actor FKs exist in the live
+catalog (read-only verification); the five-source fixture now characterizes their
+absence and the restored profile active-company FK. Hosted execution pending.
+Next: verify this order-dependent effect loss on PG17, then implement narrowly
+scoped forward FK reconstruction or a fully verified prerequisite restoration.
+Counts remain 506 full/28 partial/49 unknown/4 excluded. No production writes,
+phase closure, generated-artifact edits or external blocker.

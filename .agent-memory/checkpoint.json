@@ -4,7 +4,7 @@
   "branch": "codex/gridex-parity-remediation-20260905",
   "base_head_sha": "15e6b48",
   "active_phase": "P0_CANONICAL_VERIFICATION_CHAIN",
-  "active_task": "Verify restored auth template and review effectful invitation successors",
+  "active_task": "Verify order-dependent actor FK loss and reconstruct canonical constraints",
   "status": "IN_PROGRESS",
   "safety": {
     "rbac_changed": false,
@@ -104,7 +104,7 @@
     "auth_email_source": "PASS_PG17_JOB_101547966634_RUN_34056026728",
     "auth_email_selection": "PASS_RED_GREEN_AND_REVERSED_ORDER_MUTATION"
   },
-  "next_action": "Verify template restoration CI; review canonical ordering and reconstruction for three effectful invitation successors before full parity",
+  "next_action": "Run five-source PG17 characterization; reconstruct missing membership actor FKs matching read-only live evidence, then continue full replay accounting",
   "poa_source_verification": {
     "head": "aed588c0c9c40b221eeff5ccf81812736507ab67",
     "run": 34090366696,
