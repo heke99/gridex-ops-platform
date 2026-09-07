@@ -38,7 +38,7 @@ def statements(wrong_order=False):
     sql += "alter table companies add column status text default 'active', add column updated_at timestamptz default now();\n"
     sql += read('supabase/bootstrap/20260519_companies_governance_foundation.sql')
     sql += '''create temporary table profiles_identity_before as
-select id,email,full_name,phone,created_at,updated_at from user_profiles;
+select id,email,full_name,created_at,updated_at from user_profiles;
 create temporary table event_identity_before as
 select id,user_id,actor_user_id,email,action,message,metadata,created_at from auth_email_events;
 select test_assert((select count(*)=2 from auth_email_events where status='completed'),'completed auth predecessor fixture');
@@ -67,7 +67,8 @@ select test_assert((select count(*)=2 from user_profiles where last_auth_email_a
 create temporary table accepted_before as select * from company_invitations;
 '''
     sql += direct + cleanup + cleanup + normalize + normalize
-    sql += '''select test_assert(not exists((select * from profiles_identity_before except select id,email,full_name,phone,created_at,updated_at from user_profiles) union all (select id,email,full_name,phone,created_at,updated_at from user_profiles except select * from profiles_identity_before)),'profile identity and timestamps preserved');
+    sql += '''select test_assert(not exists((select * from profiles_identity_before except select id,email,full_name,created_at,updated_at from user_profiles) union all (select id,email,full_name,created_at,updated_at from user_profiles except select * from profiles_identity_before)),'existing profile identity and timestamps preserved');
+select test_assert((select bool_and(phone is null) from user_profiles),'source adds nullable phone without inventing identity data');
 select test_assert(not exists((select * from event_identity_before except select id,user_id,actor_user_id,email,action,message,metadata,created_at from auth_email_events) union all (select id,user_id,actor_user_id,email,action,message,metadata,created_at from auth_email_events except select * from event_identity_before)),'event identity and payload preserved apart from characterized status/type changes');
 select test_assert(not exists((select * from accepted_before except select * from company_invitations) union all (select * from company_invitations except select * from accepted_before)),'direct reapply and cleanup preserve accepted invitation');
 select test_assert((select status='suspended' and membership_role='member' from company_memberships),'suspended membership is not reactivated');
