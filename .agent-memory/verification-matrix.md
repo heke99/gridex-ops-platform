@@ -548,3 +548,20 @@ order. 29 accounting tests and static provenance pass. Counts: 505 full selected
 gate remains red; no phase closed. Next: verify restoration-head PG17 CI, then
 continue source accounting; authoritative replay/types/schema and live/ledger
 parity remain required. No production writes or artifact hash edits.
+
+
+## Published POA verification — 2026-09-07
+
+Revision aed588c0c9c40b221eeff5ccf81812736507ab67: job 101642417324,
+OPS 34090366696 PASS for selection order and whole POA/auth SQL. Verify fails
+generated-types tail; clean replay remains red. Quality job 101642417302 was
+still running. PR #310 records exact evidence. No phase closed.
+
+Next active review: auth_email_templates_invite_reset_sync and the unclassified
+company_invite_temp_password_sync, direct_temporary_password_auth_sync_fix,
+company_delete_backfill_and_admin_layout successors. The template introduces
+membership constraints and an event-read policy; later SQL changes event-status
+grammar and deletes orphan membership/invitation metadata. Review the combined
+prerequisites, final access policy and data semantics before isolated PG17 tests
+and source restoration. All four remain UNCLASSIFIED; no external blocker is
+established. Full canonical/types/schema/ledger/live parity remains open.
