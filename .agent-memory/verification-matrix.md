@@ -565,3 +565,13 @@ grammar and deletes orphan membership/invitation metadata. Review the combined
 prerequisites, final access policy and data semantics before isolated PG17 tests
 and source restoration. All four remain UNCLASSIFIED; no external blocker is
 established. Full canonical/types/schema/ledger/live parity remains open.
+## Active auth-chain checkpoint — 2026-09-07
+
+Complete four-source characterization fixture added; local SQL composition and
+patch validation PASS, hosted PG17 execution pending. Selection unchanged:
+505 full selected, 28 partial, 50 unclassified, four exclusions. See
+quality/audits/AUTH_INVITATION_CHAIN_REVIEW_2026-09-07.md for exact data/policy
+risks and fixture limits. Next: run PG17, resolve fixture failures, then evaluate
+final policy and data-effect reconstruction before selection changes. No phase
+closed or production writes. Previous POA restoration quality job 101642417302
+now PASS; full replay/types remain red.

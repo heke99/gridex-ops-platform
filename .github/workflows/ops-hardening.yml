@@ -49,6 +49,8 @@ jobs:
         run: |
           python3 scripts/canonical-poa-request-selftest.py --selection-only
           python3 scripts/canonical-poa-request-selftest.py
+      - name: Characterize complete auth invitation chain on PostgreSQL 17
+        run: python3 scripts/canonical-auth-invitation-chain-selftest.py
 
   verify:
     runs-on: ubuntu-latest
