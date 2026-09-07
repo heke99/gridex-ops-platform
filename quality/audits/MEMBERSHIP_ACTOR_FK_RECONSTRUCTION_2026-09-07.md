@@ -28,3 +28,17 @@ deliberately stale until authoritative complete replay can generate them.
 Next: verify hosted reconstruction and register exact evidence, then continue
 49 unclassified sources/28 partial substitutions. Do not classify whole source
 effects as complete merely because these two constraints are reconstructed.
+## Verified actor-FK reconstruction — 2026-09-07
+
+Published code 6d9e579c8af1c7f4509cb7bbb13750711e3be4fc; OPS 34121661358,
+job 101740868281 PASS. Existing/missing-column repair runs twice, preserves
+identities/status/policies/RLS and clears actor references on deletion. Dirty
+actor and conflicting-constraint scenarios roll back without partial repair.
+Complete five-source characterization and template/POA selections also PASS.
+Integrity/readiness PASS: 588 files, 492 groups, 495 ledger-eligible versions.
+Types correctly fail new tail 20260907121951. Full-effects gate remains red:
+507 full selected, 28 unresolved substitutions, 49 unknown, four exclusions.
+No phase closed or production writes. Next: continue unclassified invitation,
+direct-account and governance effect reconstruction, then authoritative complete
+replay/schema/types and ledger/live parity. Actor FK repair is scoped evidence,
+not complete classification of either historical source. PR #310 updated.

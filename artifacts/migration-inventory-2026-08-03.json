@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06T08:25:21.343Z",
+  "generated_at": "2026-09-07T12:25:18.933Z",
   "source": "repository/supabase/migrations",
   "checksum_sources": [
     "scripts/migration-history-manifest.json",
@@ -10,10 +10,10 @@
   "verification_state": "LOCAL_INVENTORY_ONLY",
   "warning": "Do not populate the live canonical_migration_manifest from this file until a clean reconstruction and live schema-effect comparison have verified each version.",
   "summary": {
-    "sql_file_count": 587,
-    "ledger_eligible_count": 494,
+    "sql_file_count": 588,
+    "ledger_eligible_count": 495,
     "unversioned_or_legacy_count": 93,
-    "checksum_registered_count": 587,
+    "checksum_registered_count": 588,
     "duplicate_version_groups": 3
   },
   "duplicate_versions": [
@@ -10604,6 +10604,18 @@
       "ledger_eligible": true,
       "expected_objects": [
         "public.company_invitations"
+      ],
+      "live_ledger_state": "UNVERIFIED",
+      "live_schema_effect_state": "UNVERIFIED"
+    },
+    {
+      "version": "20260907121951",
+      "filename": "20260907121951_canonical_membership_actor_fk_reconstruction.sql",
+      "checksum": "530dec49b180ba741340572e8117f7c47ac8ef60c6112a2b88a8bb195e90d27b",
+      "checksum_registered": true,
+      "ledger_eligible": true,
+      "expected_objects": [
+        "public.company_memberships"
       ],
       "live_ledger_state": "UNVERIFIED",
       "live_schema_effect_state": "UNVERIFIED"
