@@ -276,3 +276,18 @@ risks and fixture limits. Next: run PG17, resolve fixture failures, then evaluat
 final policy and data-effect reconstruction before selection changes. No phase
 closed or production writes. Previous POA restoration quality job 101642417302
 now PASS; full replay/types remain red.
+## Auth template restoration — 2026-09-07
+
+Complete four-source PG17 characterization PASS: revision
+6b47f339bae2d5af13f7e253f75d82c7830e1995, OPS 34092843096, job 101649830022.
+Wrong cleanup order is rejected; complete sources run twice. Only the DDL-only
+auth template source is now restored after auth/profile prerequisites. Selection
+failed UNCLASSIFIED before, passes after, and reversed order fails. Accounting
+29 tests, provenance and 587-file integrity PASS. Counts: 506 full, 28 partial,
+49 unknown, four exclusions. Restoration-head CI pending. Three effectful
+successors remain unclassified, with lossy status/metadata and orphan-delete
+semantics requiring review. Production catalog read only: legacy permissive
+SELECT is combined with a RESTRICTIVE tenant/session guard; isolated legacy
+predicate is not proof of live cross-tenant exposure. No production mutations,
+phase closure or generated-artifact edits. Next: verify restoration head, then
+review reconstruction/order for the invitation and temporary-password successors.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Characterize historical auth sources after auth/POA fixtures; not replay approval."""
 import argparse
+import json
 from pathlib import Path
 import subprocess
 
@@ -85,7 +86,25 @@ rollback;
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--emit', action='store_true')
+    parser.add_argument('--selection-only', action='store_true')
     args = parser.parse_args()
+    if args.selection_only:
+        result = subprocess.run(['python3', str(ROOT / 'scripts/gridex-replay-input-accounting.py')], capture_output=True, text=True, check=False)
+        report = json.loads(result.stdout)
+        assert not report['errors'], report['errors']
+        path = 'migrations/20260519_auth_email_templates_invite_reset_sync.sql'
+        row = next(row for row in report['migrations'] if row['path'] == path)
+        assert row['classification'] == 'FULL_FILE_SELECTED', row['classification']
+        assert row['execution'][0]['stage'] == 'foundation'
+        order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
+        predecessor = 'migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql'
+        assert order.index(path) == order.index(predecessor) + 1
+        for suffix in ['20260612143000_performance_policy_consolidation_and_index_cleanup.sql', '20260814162500_tenant_rls_lifecycle_hardening.sql', '20260826093000_platform_dashboard_and_rls_read_performance.sql']:
+            successor = next(row for row in report['migrations'] if row['path'] == 'migrations/' + suffix)
+            assert successor['classification'] == 'FULL_FILE_SELECTED', successor
+            assert successor['execution'][0]['stage'] == 'timestamp'
+        print('PASS: template selected after auth prerequisites; later policy hardening remains selected')
+        raise SystemExit(0)
     if args.emit:
         print(statements())
     else:
