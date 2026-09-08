@@ -1,5 +1,10 @@
 # Gridex OPS production remediation evidence register
 
+Historical evidence register. Progress headings and counts below describe their
+recorded revisions, not current status. The sole current status is
+[current-state.md](../../.agent-memory/current-state.md). Resume from its next
+action; do not interpret an older "latest" heading here as a newer verification.
+
 ## Auth-email source restored — 2026-09-06
 
 Complete auth-email source and profile normalization passed PostgreSQL17 job

@@ -43,18 +43,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - name: Verify complete auth email source effects on isolated PostgreSQL 17
-        run: python3 scripts/canonical-auth-email-selftest.py
-      - name: Verify complete POA and request source effects on PostgreSQL 17
-        run: |
-          python3 scripts/canonical-poa-request-selftest.py --selection-only
-          python3 scripts/canonical-poa-request-selftest.py
-      - name: Characterize complete auth invitation chain on PostgreSQL 17
-        run: |
-          python3 scripts/canonical-auth-invitation-chain-selftest.py --selection-only
-          python3 scripts/canonical-auth-invitation-chain-selftest.py
-      - name: Verify membership actor FK reconstruction and rollback on PostgreSQL 17
-        run: python3 scripts/canonical-membership-actor-fk-selftest.py
+      - name: Verify fixed auth and membership group on isolated PostgreSQL 17
+        run: python3 scripts/canonical-auth-membership-group.py
 
   verify:
     runs-on: ubuntu-latest
@@ -74,6 +64,8 @@ jobs:
           python3 scripts/gridex-aud-003-clean-replay-selftest.py
           node scripts/gridex-schema-document-selftest.cjs
           python3 scripts/gridex-replay-input-accounting-selftest.py
+          python3 scripts/gridex-replay-review-groups-selftest.py
+          python3 scripts/canonical-auth-membership-group-selftest.py
           npm run db:migrations:production-readiness
       - name: Verify reconstruction and parity in isolated SQL fixtures
         shell: bash
