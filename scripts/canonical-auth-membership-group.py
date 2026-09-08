@@ -13,6 +13,7 @@ COMMANDS = (
     ('python3', 'scripts/canonical-auth-invitation-chain-selftest.py', '--selection-only'),
     ('python3', 'scripts/canonical-auth-invitation-chain-selftest.py'),
     ('python3', 'scripts/canonical-membership-actor-fk-selftest.py'),
+    ('python3', 'scripts/canonical-rbac-tenant-selftest.py'),
 )
 
 def main():

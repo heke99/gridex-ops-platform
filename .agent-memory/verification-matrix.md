@@ -628,3 +628,15 @@ No phase closed or production writes. Next: continue unclassified invitation,
 direct-account and governance effect reconstruction, then authoritative complete
 replay/schema/types and ledger/live parity. Actor FK repair is scoped evidence,
 not complete classification of either historical source. PR #310 updated.
+
+## 2026-09-08 — Grouped remediation tooling, scoped evidence
+
+Published revision 1824d69d8b31be97096dd0eecaf7fd719db40970 exactly matches
+reviewed tree 1adff2d73489a416eebe8aec92fa084fb90e8162. OPS run 34198005843:
+auth group job 101969998315 PASS (all six PostgreSQL 17 commands), Ediel job
+101969997965 PASS, quality job 101969998228 PASS. Verify job 101969998320 passed
+new mapper/status checks (15 mapper and 29 accounting tests), then failed types
+tail 20260907121951; replay job 101969998208 FAIL, with full-effects accounting
+still unresolved. Six historical status files preserved byte-for-byte; one
+authoritative current status established. No production writes, migration
+selection changes or phase closure. Scoped tooling/fixture evidence only.

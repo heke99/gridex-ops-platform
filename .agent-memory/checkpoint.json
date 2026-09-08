@@ -1,12 +1,12 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-07",
+  "updated_at": "2026-09-08",
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "2ed764295fe1cf94bb64c5ce730e11714d97fdf0",
-    "latest_verified_code": "6d9e579c8af1c7f4509cb7bbb13750711e3be4fc"
+    "published_baseline": "1824d69d8b31be97096dd0eecaf7fd719db40970",
+    "last_isolated_pg17_code": "1824d69d8b31be97096dd0eecaf7fd719db40970"
   }
 }

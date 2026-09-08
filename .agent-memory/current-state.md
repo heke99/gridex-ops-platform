@@ -1,57 +1,59 @@
 # Current state
 
-Updated: 2026-09-07
+Updated: 2026-09-08
 Status: IN_PROGRESS
 
-The active branch is `codex/gridex-parity-remediation-20260905`; draft PR #310
-and its current checks show the live publication state. This tooling batch's
-published baseline is `2ed764295fe1cf94bb64c5ce730e11714d97fdf0`. The active
-review group is `auth_membership_tenant`. The latest verified implementation
-head is `6d9e579c8af1c7f4509cb7bbb13750711e3be4fc`: isolated PostgreSQL 17 auth
-job `101740868281` (OPS run `34121661358`), Ediel, and
-`quality-release-gates` passed. `verify` failed at generated-types tail
-`20260907121951`; clean replay failed because unresolved accounting remains.
+Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
+Active group: `auth_membership_tenant`. The reviewed tooling batch is published
+at `1824d69d8b31be97096dd0eecaf7fd719db40970`; its tree exactly matches the
+reviewed local tree. No masterplan phase is closed.
 
 Current accounting is 588 inputs: 507 `FULL_FILE_SELECTED`, 28 `SUBSTITUTED`,
 49 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`. The focused group contains 334
-inputs: 265 selected, 25 substituted, 40 unclassified, and 4 excluded. These
-counts come directly from the accounting and group mapper; selection and lexical
-review hints do not prove successful execution or surviving effects.
+inputs: 265 selected, 25 substituted, 40 unclassified, and 4 excluded.
+Selection and lexical hints do not prove execution or surviving effects.
 
 Verification boundaries:
 
-- Implementation: the fixed group runner, status consolidation, archive checks,
-  15 mapper tests, 29 accounting tests, migration integrity, static provenance,
-  and production readiness pass locally. Integrity covers 588 files and 492
-  version groups; readiness reports 495 ledger-eligible versions.
-- Isolated: the six auth/POA/invitation/actor-FK commands have prior PG17 evidence
-  at the verified head above. The combined runner requires hosted PG17 execution
-  after the single combined publication; no local PG17 service is available.
-- Canonical: generated types fail at the stated migration tail and clean replay
-  remains incomplete. Canonical schema, effects, and ledger parity are unproved.
-- Production: For this workflow-tooling batch, no production mutation is
-  authorized or performed. A read-only snapshot reports ledger count 279 and
-  latest version `20260904222450`.
-  Vercel production deployment `dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c` is READY at
-  `app.gridex.se`, main commit `eb9a25bc989c6de808903f41c2314d5465e9c07b`;
-  its runtime database binding is not proven, so this is not parity evidence.
+- Implementation: mapper, fixed runner, status consolidation and auth candidate
+  inventory passed separate and integrated review. Local mapper tests: 15;
+  accounting tests: 29; group runner/status regression, integrity, provenance
+  and readiness passed. Six historical status files are archived byte-for-byte.
+- Isolated: on published code `1824d69d`, [OPS 34198005843](https://github.com/heke99/gridex-ops-platform/actions/runs/34198005843)
+  auth job `101969998315` passed all six commands on PostgreSQL 17, including
+  complete auth/POA/invitation characterization and all four actor-FK scenarios.
+  Ediel job `101969997965` also passed. Quality job `101969998228` also passed.
+- Canonical: verify job `101969998320` passed the new mapper/status checks, then
+  failed generated types at migration tail `20260907121951`. Clean replay job
+  `101969998208` failed; the full-effects accounting gate still blocks the 77
+  unresolved inputs. Full replay, schema/types, ledger and live parity are open.
+- Production: this batch performed no production writes. Read-only snapshot on
+  2026-09-07: ledger 279 entries, latest `20260904222450`; Vercel production
+  deployment `dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c` READY at `app.gridex.se`,
+  main commit `eb9a25bc989c6de808903f41c2314d5465e9c07b`. Runtime-to-database
+  binding is not independently proven. These observations are not parity proof.
+  A 2026-09-08 catalog-only read also confirms both RBAC billing/audit views
+  exist with `security_invoker=true`; later hardening must remain in scope.
 
-Open internal work is the 25 substituted and 40 unclassified inputs in the active
-group, followed by authoritative replay, generated types/schema, ledger comparison,
-and bidirectional production parity. No external blocker has been established.
-Next: finish the reviewed tooling/map batch, publish it once, and inspect the
-hosted group runner and required gates. Then expand the RBAC predecessor/fix/
-hard-platform-role fixture recorded by the group map. Do not publish per file or
-subtask, infer replay approval from mapper hints, close a
-phase from isolated tests, or edit migrations/selection/generated types in this
-tooling task. Existing Ediel and global gates remain mandatory.
+Next active work: independently review and verify the complete RBAC
+predecessor/backfill/platform-role fixture under [the next fixture plan](../quality/audits/RBAC_GROUP_FIXTURE_PLAN_2026-09-08.md).
+The local draft composes all three originals twice and the seven-command runner
+regression passes. Implementation is committed locally; separate review and hosted PG17 execution
+remain pending; these are not executed database results.
+The [auth source map](../quality/audits/AUTH_GROUP_REVIEW_MAP_2026-09-07.md)
+records required view/table prerequisites, 29 dynamic policy targets, operational
+DML decisions and missing coverage. The [334-candidate inventory](../quality/audits/AUTH_GROUP_INPUT_INVENTORY_2026-09-07.json)
+is a pinned review snapshot, not complete statement-by-statement approval.
 
-Historical status is archived at `archive/pre-batch-20260907/` and is not active
-evidence.
+Internal work remains: 65 unresolved active-group candidates plus cross-group
+work, then authoritative replay, generated artifacts and bidirectional ledger/live
+parity. No external blocker is established. Publish once per reviewed batch.
+Do not publish per file or subtask. No automatic replay decisions, gate weakening or phase
+closure from isolated tests. The current characterization batch changes no
+production database, migration selection or generated schema/types.
 
-The reviewed next work boundary and fixture omissions are recorded in
-[the auth group map](../quality/audits/AUTH_GROUP_REVIEW_MAP_2026-09-07.md).
-[Its complete candidate inventory](../quality/audits/AUTH_GROUP_INPUT_INVENTORY_2026-09-07.json)
-matches the current mapper hash, all 334 candidates and global accounting. This
-is review evidence; it does not classify the 65 unresolved group candidates as
-complete or prove their SQL effects.
+The published tooling contract remains scoped to that batch: "For this
+workflow-tooling batch, no production mutation is authorized or performed."
+
+Historical status: `archive/pre-batch-20260907/`. Other active memory files are
+pointers here; archive text is not current verification evidence.

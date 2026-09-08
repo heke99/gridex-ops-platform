@@ -12,6 +12,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / 'scripts/canonical-auth-membership-group.py'
+RBAC_FIXTURE = ROOT / 'scripts/canonical-rbac-tenant-selftest.py'
 COMMANDS = [
     ['python3', 'scripts/canonical-auth-email-selftest.py'],
     ['python3', 'scripts/canonical-poa-request-selftest.py', '--selection-only'],
@@ -19,6 +20,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-auth-invitation-chain-selftest.py', '--selection-only'],
     ['python3', 'scripts/canonical-auth-invitation-chain-selftest.py'],
     ['python3', 'scripts/canonical-membership-actor-fk-selftest.py'],
+    ['python3', 'scripts/canonical-rbac-tenant-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -35,6 +37,23 @@ def run(*args, cwd=ROOT, env=None):
 
 
 def main():
+    emitted = run('python3', str(RBAC_FIXTURE), '--emit')
+    assert emitted.returncode == 0, emitted.stderr
+    for source in [
+        '20260520_batch_6e_rbac_tenant_stats_whitelabel.sql',
+        '20260520_batch_6e_fix_rbac_backfill_security.sql',
+        '20260520_batch_6e_hard_platform_roles_only.sql',
+    ]:
+        body = (ROOT / 'supabase/migrations' / source).read_text()
+        assert emitted.stdout.count(body) == 2, source
+    assert "select test_assert(current_setting('server_version_num')::int / 10000=17" in emitted.stdout
+    assert 'FIXTURE_POLICY_TARGETS_PRESENT=8' in emitted.stdout
+    assert 'FIXTURE_POLICY_TARGETS_ABSENT=21' in emitted.stdout
+    user_status = "alter table public.user_profiles add column if not exists user_status text not null default 'active';"
+    profile_seed = 'insert into user_profiles(id,email,full_name,user_status,active_company_id) values'
+    assert emitted.stdout.count(user_status) == 1
+    assert emitted.stdout.index(user_status) < emitted.stdout.index(profile_seed)
+
     dry = run('python3', str(RUNNER), '--dry-run')
     assert dry.returncode == 0, dry.stderr
     assert dry.stdout.splitlines() == [' '.join(command) for command in COMMANDS], dry.stdout
@@ -60,7 +79,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 6, observed
+        assert len(observed) == len(COMMANDS) == 7, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 
