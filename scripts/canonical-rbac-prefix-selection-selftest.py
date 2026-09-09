@@ -26,6 +26,7 @@ AUTH_SOURCE = 'migrations/20260519_auth_callback_email_reset_sync.sql'
 AUTH_NORMALIZE = 'migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql'
 AUTH_TEMPLATE = 'migrations/20260519_auth_email_templates_invite_reset_sync.sql'
 PROFILE_FOUNDATION = 'bootstrap/20260519_user_profiles_foundation.sql'
+OPERATIONS_SOURCE = 'migrations/20260519_operations_core_saas_sync.sql'
 
 
 def function(text, name='gridex_user_has_role_key'):
@@ -44,12 +45,14 @@ def main():
     assert order.index(AUTH_NORMALIZE) == order.index(AUTH_SOURCE) + 1
     assert order.index(AUTH_TEMPLATE) == order.index(AUTH_NORMALIZE) + 1
     assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_TEMPLATE) + 1
-    assert order[boundary - 1] == 'migrations/20260519_batch_6d_superadmin_tenant_governance.sql'
-    assert order[boundary - 2] == PROFILE_SOURCE
-    assert order[boundary - 3] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
-    assert order[boundary - 4] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
-    assert order[boundary - 5] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
-    assert order[boundary - 6] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
+    assert order[boundary - 1] == OPERATIONS_SOURCE
+    assert order[boundary - 2] == 'migrations/20260519_batch_6d_superadmin_tenant_governance.sql'
+    assert order[boundary - 3] == PROFILE_SOURCE
+    assert order[boundary - 4] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
+    assert order[boundary - 5] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
+    assert order[boundary - 6] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
+    assert order[boundary - 7] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
+    assert order.count(OPERATIONS_SOURCE) == additions['foundation'].count(OPERATIONS_SOURCE) == 1
     assert order.count(PROFILE_SOURCE) == additions['foundation'].count(PROFILE_SOURCE) == 1
     profile_meta = additions['derivedBootstrap'][PROFILE_PREREQUISITE]
     assert profile_meta['source'] == PROFILE_SOURCE
@@ -118,6 +121,7 @@ def main():
     account = json.loads(accounting.stdout)
     assert account['status'] != 'INVALID_INPUT_CONTRACT' and not account['errors'], account
     by_path = {item['path']: item for item in account['migrations']}
+    assert by_path[OPERATIONS_SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     for source in SOURCES:
         assert by_path[source]['classification'] == 'FULL_FILE_SELECTED', by_path[source]
     assert by_path[f'migrations/{FINAL.name}']['classification'] == 'FULL_FILE_SELECTED'

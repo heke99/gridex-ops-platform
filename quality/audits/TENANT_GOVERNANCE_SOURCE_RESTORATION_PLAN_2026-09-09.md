@@ -155,3 +155,188 @@ SDD report; root owns audit status/plan/memory/publication. Commit only owned
 files. Return status, exact commit, test summary and concerns. Separate task
 review and integrated batch review precede one publication. Hosted failures
 remain internal fixes, and all masterplan parity/lifecycle gates stay open.
+
+### Task 3: Establish complete sync/import prerequisites before 6D2
+
+Read the four complete immutable originals, not just earlier cited excerpts:
+20260519_operations_core_saas_sync.sql (140 lines, UNCLASSIFIED),
+20260519_customer_intake_contracts_tenant_hardening.sql (272 lines, SUBSTITUTED),
+20260519_final_saas_hardening.sql (634 lines, SUBSTITUTED), and
+20260526_debug_step1_2f_customer_import_foundation.sql (275 lines, UNCLASSIFIED).
+Total1321 lines at publishedb9afbf68. Independently verify citations/definitions;
+an earlier audit's excerpt range is not authority over actual source bytes.
+The first full6D now passed actual PG17; full6D2 remains unselected because the
+current76-file foundation lacks customer_sync_events, customer_import_batches,
+and customer_import_rows. Do not undo the verified6D restoration or repeat its
+completed source/fixture work. Accounting592/516 selected/26 substituted/
+46 unclassified/4 excluded, focused338/274/23/37/4 must remain unchanged here.
+
+Write quality/audits/GOVERNANCE_SYNC_IMPORT_PREREQUISITE_EFFECTS_2026-09-09.md.
+Provide statement/effect matrices for all four originals, exact actual-prefix
+prerequisites and competing final shapes. Include every guarded and unguarded
+DDL/DML/helper/view/policy/index/comment effect and its actual transaction unit.
+Trace direct selected successors and immediate consumers only for named shape,
+ownership, identity, status/validation, import execution or retention risks.
+Do not select a complete source based solely on its useful table definition.
+
+Establish required PKs and compatible references, company/customer/site/metering/
+source/actor ownership, import batch-parent/row identities, row numbering,
+required/default/null fields, status/check vocabularies, JSON payload/issues
+semantics and exact indexes. Contrast intake/final/debug shapes; CREATE/ADD IF
+NOT EXISTS can preserve older nullable columns or omit inline FKs. Preserve
+existing IDs, row values, FK actions and audit history unless a later separately
+approved forward contract explicitly changes them. A historical CASCADE or
+nullable FK is evidence, not sufficient intended retention policy. Do not guess
+missing IDs, backfill attribution, normalize dirty customer data, widen checks
+or treat table-name presence as full schema agreement.
+
+Inspect the current derived bootstraps and provenance for primary_contact_email,
+contract_offer_versions and contract_offers_lifecycle: determine which exact
+early prerequisites must remain and how complete-source replay can coexist.
+Map all dependencies of proposed full-source restoration, not just the three
+missing6D2 tables. Preserve final role-helper/identity/index repairs and the
+known6D journal authorization boundary. Record any unhandled journal/import
+RLS, policy composition, caller privilege or audit-delivery requirement without
+claiming exploitability or executing adversarial workflows.
+
+Propose the exact smallest safe next implementation and source order, including
+any necessary evidence-backed forward shape reconstruction before immutable
+sources. Prefer a coherent independently testable whole source when its effects
+and prerequisites are complete. If one source can precede the rest, name that
+bounded step; do not block all progress on a separate unresolved parent-retention
+policy. If a policy choice is genuinely required, state the precise alternatives
+and their evidence/impact instead of inventing a business rule. Design synthetic
+actual-prefix/repeat/dirty/autocommit/two-tenant-reference tests with explicit
+complete versus reduced lanes. No live rows, mutation, migrations/selector/
+manifest/generated artifact/test changes, publication or phase closure.
+
+Commit only this new audit. Root owns plan/status/receipts and any correction
+of older audit citations. Detailed report goes to this plan's ignored SDD
+Task3 report. Separate evidence review must approve the boundary before coding.
+All full replay/types/schema/ledger/actual production, customer lifecycle and
+final journal access gates remain open under the system integrity contract.
+
+### Task 4: Restore the complete operations-sync prerequisite
+
+Prerequisite: dispatch only after Task3's evidence and proposed boundary receive
+separate approval. Use its approved full operations-source matrix, including any
+review corrections. This task does not restore import sources or6D2.
+
+Select complete migrations/20260519_operations_core_saas_sync.sql immediately
+after existing full6D and before membership-role-key foundation. Preserve all
+existing first31 files and their order, including full6D at31; operations becomes
+32 and role-key33. Foundation77, actual RBAC prefix33. This explicitly refines
+the earlier governance boundary: approved prerequisites may lie between6D and
+future6D2, while6D2 must remain before6E. No source is appended after hardening.
+Pin source SHA256e5863b15ec8c25794912b50c36eda6a370f3fb288800339a0bcfb16f2a3bb619
+against the existing immutable manifest. No historical SQL/checksum/manifest,
+bootstrap bytes, generated artifact or production schema change is authorized
+by this bounded task. No additional forward reconstruction unless separately
+specified after evidence review.
+
+Expected global accounting592/517 selected/26 substituted/45 unclassified/
+4 excluded, unresolved71. The operations source is not itself a direct member
+of auth_membership_tenant: expected focused338/274 selected/23 substituted/
+37 unclassified/4 excluded, still60 unresolved. Verify exact path membership and
+actual tool output rather than broad substring searches through dependency hints.
+Notify root on selection changes so exact current-state markers update before
+its covering test. Keep prior status/archive contracts intact.
+
+Add a focused scripts/canonical-operations-sync-selftest.py using the existing
+fixed localhost55440 disposable PG17/managed bootstrap and scrubbed PG environment.
+Add it as command12 after existing11; adapt only named selection/adjacency and
+prefix-size assertions for the approved new sequence. Existing governance main
+lane still has30 predecessors and full6D at31; do not change its historical
+coverage. Existing actual RBAC prefix must include new operations source and
+continue through all reviewed6E/helper/identity assertions. Keep exact source
+selection/provenance checks instead of weakening them to unordered membership.
+
+Main SQL lane: execute actual first31 selected files then all140 original lines.
+Verify all19 ownership-loop tables/guards, their actual company column shapes,
+all six search-index branches, and the new19-column sync journal with exact
+PK/backing index/defaults/nullability/check/comment and all three journal indexes.
+Compare every source index definition with the approved matrix; retained same-name
+mismatches must be reported, not silently accepted as correct. Preserve existing
+company-column types/nullability/defaults, PK/FK actions/OIDs, prior indexes and
+seeded row IDs/references/unrelated fields. Source ADD IF NOT EXISTS does not
+reconcile them. Source creates no journal FK or RLS/policy; explicitly retain
+that boundary pending real later constraints/governance, not fake grants/guards.
+
+Use two synthetic companies with representative referenced customer/site/metering
+and journal records, source repeat checks and baseline snapshots over every
+actual target. Verify required journal fields, UUID PK uniqueness and all five
+match statuses with exact appropriate SQLSTATE failures. Repeat must preserve
+journal IDs/payload/actor references and source/index identities where promised.
+These are schema/source-effect tests, not final tenant authorization or measured
+performance claims.
+
+Characterize relevant reduced absent-table/missing-column/existing-wrong-shape
+and same-name-index cases separately. Test a precise late journal-index failure
+under the actual unwrapped ON_ERROR_STOP file semantics, with earlier committed
+units and the failed unit explicitly checked; no invented all-file rollback.
+Include finite real lock contention only at the actual source transaction unit,
+with deterministic release and preserved reference/catalog assertions. No
+simulation by raising a fake timeout. Follow established fixture safety and
+fresh disposable state after expected failure. Do not widen source constraints,
+fill guessed identities, rewrite dirty rows or copy6D2 policies.
+
+Run targeted static selection/emit, accounting, provenance/integrity and fixed
+runner/status checks locally; all new SQL remains NOT EXECUTED until reviewed
+and run in the existing hosted PG17 workflow. Separate task review plus integrated
+coherent-batch review precede one root publication. Any hosted defect is an
+internal fix; full replay/types/ledger/live parity and every masterplan phase
+remain open. Actor/tenant/FK completeness, final journal access, import retention,
+customer deletion and measured index coverage are not completed by this test.
+
+Author owns only necessary fixture/runner/selector scripts and task4 ignored
+report; root owns all audit/plan/status/catalog files and publication. Preserve
+root dirty changes and commit only owned code. Return exact commit, targeted
+checks and concerns. No new package, infrastructure, production row access,
+external SQL, deployment or merge.
+
+### Task 5: Resolve import prerequisite contracts before further selection
+
+Dispatch only after Task4's reviewed implementation passes its bounded hosted
+verification. Use Task3's approved complete-source matrix as the starting point;
+do not repeat its1321-line audit or rerun Task4's unchanged SQL. This is a
+targeted design/evidence task, not authorization to select I/F/D/6D2 yet.
+
+Resolve the outstanding StepB choices in
+GOVERNANCE_SYNC_IMPORT_PREREQUISITE_EFFECTS_2026-09-09.md against the masterplan,
+current import/invitation consumers and the system data integrity contract.
+Produce an explicit proposed table/column/key/ownership/index/retention matrix
+for customer_import_batches, customer_import_rows and their immediate references,
+including retained early contract_offer_versions shape. Distinguish the empty
+canonical reconstruction from existing-row compatibility and final runtime
+acceptance. Preserve stable IDs, legitimate keys, existing FK actions and tenant
+attribution; catalog observations alone do not select intended retention.
+
+The observed company action is a terminal tombstone, not physical deletion
+(app/admin/companies/actions.ts:407–545; lib/tenant/lifecycle.ts). It does not
+settle the competing historical import FK delete actions. Trace only immediate
+consumers needed to establish the proposed contract; do not broaden this into
+the full customer lifecycle implementation. Explicitly identify any retention
+decision that cannot be established from existing requirements, and its exact
+impact, while progressing all independent prerequisites.
+
+Specify the narrow invitation-token prerequisite before F, including existing
+column/type/value/default/unique-index admission rules and later runtime-source
+interaction. Never derive token values from invitation_token or accept_token_hash,
+mint missing historical credentials, or assert mandatory-token convergence from
+a nullable compatibility column. State precisely whether each proposed shape is
+only replay compatibility or satisfies the final consumer contract.
+
+Define preflights for I/F ownership updates, competing import table shapes,
+mandatory parent/row references, version ownership and F role/permission seeds.
+Use Task3's exact source transaction boundaries to specify rollback versus prior
+committed effects. Required tests must preserve IDs/rows/FK actions, cover two
+synthetic tenants and exact dirty-state failures, and distinguish reduced cases
+from the complete selected prefix. No guessed parent/row values, silent cleanup,
+blanket CASCADE, invented uniqueness or weakened constraints.
+
+Deliver one focused prerequisite design audit with the proposed exact source
+order, narrowly justified forward prerequisites, complete acceptance conditions
+and a bounded next implementation brief. Separate independent review must assess
+the proposal before any SQL/selector change. Record unresolved internal work
+honestly; no phase/parity/access/deletion closure. Root owns plan/status/receipts;
+the future author owns only the assigned new audit and ignored task report.

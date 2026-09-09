@@ -26,6 +26,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-rbac-prefix-selftest.py'],
     ['python3', 'scripts/canonical-saas-tenant-selftest.py'],
     ['python3', 'scripts/canonical-governance-selftest.py'],
+    ['python3', 'scripts/canonical-operations-sync-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -62,7 +63,7 @@ def main():
     prefix = run('python3', str(RBAC_PREFIX_FIXTURE), '--emit')
     assert prefix.returncode == 0, prefix.stderr
     assert prefix.stdout.count('-- RBAC_MANAGED_BOOTSTRAP_BEGIN') == 1
-    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 32
+    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 33
     assert prefix.stdout.count('-- RBAC_SOURCE_FILE_BEGIN ') == 6
     assert prefix.stdout.count('-- RBAC_FINAL_HELPER_BEGIN ') == 1
     assert prefix.stdout.rindex('-- RBAC_FINAL_HELPER_BEGIN ') > prefix.stdout.rindex('-- RBAC_SOURCE_FILE_BEGIN ')
@@ -79,6 +80,14 @@ def main():
     full6d = (ROOT / 'supabase/migrations/20260519_batch_6d_superadmin_tenant_governance.sql').read_text()
     assert full6d in governance.stdout and 'NOT EXECUTED' in governance.stdout
     assert 'final ACL/permissive+restrictive policy/runtime contract OPEN' in governance.stdout
+    operations = run('python3', str(ROOT / 'scripts/canonical-operations-sync-selftest.py'), '--emit')
+    assert operations.returncode == 0, operations.stderr
+    operations_paths = [line.removeprefix('-- OPERATIONS_PREFIX_FILE_BEGIN ') for line in operations.stdout.splitlines() if line.startswith('-- OPERATIONS_PREFIX_FILE_BEGIN ')]
+    assert operations_paths == order[:31] and len(operations_paths) == 31
+    operations_source = (ROOT / 'supabase/migrations/20260519_operations_core_saas_sync.sql').read_text()
+    assert operations.stdout.count(operations_source) >= 2
+    assert 'NOT EXECUTED' in operations.stdout
+    assert 'journal has no source-created FK/RLS/policy' in operations.stdout
     assert 'all17 governance trigger identities/events/bindings retained through full6E' in prefix.stdout
     assert "'D','suspended'" not in prefix.stdout and "'D','locked_security'" in prefix.stdout
 
@@ -107,7 +116,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 11, observed
+        assert len(observed) == len(COMMANDS) == 12, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 

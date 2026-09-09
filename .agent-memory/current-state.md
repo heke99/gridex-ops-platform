@@ -5,45 +5,51 @@ Status: IN_PROGRESS
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Published baseline:
-`5fb7fc7486285eb6527d0b55a1fd95f5409937af`, exact reviewed tree
-`7f4bde69a4a70c52250abb4ac2d7a9e2cbe07f61`. No masterplan phase is closed.
+`b9afbf68d4b5490f857fe5b2bd1424d3ab22217b`, exact reviewed tree
+`4bb7a1778ee72b87c42d4c6d76e9dfd565811815`. No masterplan phase is closed.
 
-Working-tree accounting is 592 inputs: 516 `FULL_FILE_SELECTED`, 26 `SUBSTITUTED`, 46 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+Working-tree accounting is 592 inputs: 517 `FULL_FILE_SELECTED`, 26 `SUBSTITUTED`, 45 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 338 inputs: 274 selected, 23 substituted, 37 unclassified, and 4 excluded.
-Seventy-two total
+Seventy-one total
 inputs and60 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
 
-Current hosted verification — OPS34354458938 on5fb7fc74 (before pending6D changes):
+Current hosted verification — OPS34359949888 onb9afbf68:
 
-- Auth102475481933 PASS: all ten commands, actual selected RBAC/SaaS prefix,
-  stable source repeats and all61 reduced identity cases. The corrected
-  owner-copy enforcement, mandatory IDs, strict FK/uniqueness failures,
-  preservation/repeats, forced rollback and real lock timeout all passed.
-- Ediel102475482183 and quality102475482179 PASS.
-- Verify102475482295 FAILED generated types at tail20260909120200.
-  Clean102475482328 FAILED before full replay; no generated baseline produced.
+- Auth102494069650 PASS: all eleven commands, actual selected RBAC/SaaS prefix
+  and all61 reduced identity cases. Full6D after the actual30-file prefix passed
+  all17 guards/catalog/aggregate/repeat checks, six exact dirty-state failures,
+  late view failure, real finite lock timeout and six reduced characterizations.
+  Source statement boundaries and preserved row/reference IDs were verified.
+- Ediel102494069894 and quality102494069708 PASS, including the app build.
+- Verify102494069367 FAILED generated types at tail20260909120200.
+  Clean102494069531 FAILED before full replay; no generated baseline produced.
   Full-effects accounting independently remains unresolved; do not refresh
   artifacts from incomplete replay or label this an external blocker.
-- Static accounting29, selection/emit, runner/status, provenance75/49/20/4/499
-  and integrity592/496 passed. Historical migration bytes/checksums are intact.
-- Earlier4d851ee8 auth failed after50 cases due to a multirow enforcement fixture
-  collision (23505 before23503). Reviewed single-grant correction3f861459 is
-  included in5fb7fc74 and the hosted failure is resolved. Do not redo that fix.
-- Prior helper preservation20260908120000, role-pair uniqueness and invitation
-  index repairs remain selected and tested. Earlier receipts are historical in
-  verification-matrix/session-log and Git, not current-task instructions.
+- Static accounting29, selection/emit, eleven-command runner/status,
+  provenance76/49/20/4/499 and integrity592/496 passed. Historical migration
+  bytes/checksums are intact. Separate and integrated reviews approved the exact
+  published tree; fetched tree/clean tracked state verified before alignment.
+- Earlier identity fixture correction is resolved and remains tested. Preserve
+  final helper20260908120000, role-pair uniqueness, required references and
+  invitation index; do not redo completed bounded repairs.
 
-Next active action: integrated review and one hosted PG17 publication of
-separately approved implementation670c8a4c under Task2 of
+Next active action: integrated batch review of Task4's independently approved
+operations-sync implementation at66659b22, then isolated hosted verification under
 [the governance restoration plan](../quality/audits/TENANT_GOVERNANCE_SOURCE_RESTORATION_PLAN_2026-09-09.md).
-The pending implementation selects full6D and adds the eleventh fixed command.
-Static selection/emit, runner/status, accounting29, provenance76/49/20/4/499
-and integrity592/496 passed. All new SQL remains NOT EXECUTED; separate task review approved the bounded
-implementation, and integrated batch review is pending. Evidence audit38b8a81b and independent review confirm all17 required targets and
-view columns at the after-SaaS boundary. Full6D2 remains unselected pending three
-complete sync/import table prerequisites. The final journal ACL/RLS/policy
-contract remains open; source restoration is not production runtime approval.
+Operations selection is committed locally: foundation77, actual RBAC prefix33,
+fixed runner12. Selection/emit, runner/status, replay14/accounting29 selftests,
+integrity592/496 and provenance77/49/20/4/499 passed. Its new SQL is not yet
+executed. Separate review approved spec compliance and quality with no findings;
+integrated review remains pending. Hosted results above belong to the
+publishedb9afbf68 before this change. Task3 evidence a8721a2d and independent
+review account for all1321 source lines.
+Whole operations sync can follow current6D without a new shape prerequisite.
+Its exact path is outside the focused auth group; future selection changes
+only global classification counts. Import sources/6D2 remain unselected pending
+explicit shape/retention/token prerequisites. Final journal ACL/RLS/access,
+later hardening, session revocation and durable delivery remain open; no
+masterplan phase is closed.
 The mandatory-reference task's isolated execution is verified, not full lifecycle
 or parity. Same-parent assignments, key-only references, permission overrides,
 FK actions and customer deletion remain separate internal work. No FK action or

@@ -148,3 +148,39 @@ not prove useful query coverage, absence of redundancy, selectivity or measured
 performance. No index creation/rebuild/drop or production query-plan execution
 was performed. The40 customer-FK index screening candidates remain review
 candidates rather than established missing indexes.
+
+## Sync/import lifecycle catalog example
+
+Fresh bounded catalog definitions are preserved in
+[GOVERNANCE_SYNC_IMPORT_CATALOG_2026-09-09.json](GOVERNANCE_SYNC_IMPORT_CATALOG_2026-09-09.json).
+customer_import_rows has a single customer_id FK ON DELETE SET NULL alongside
+a composite(customer_id,company_id) FK ON DELETE CASCADE. Both are validated;
+company_id/import_batch_id/row_number are required. This concrete coexistence
+requires intended retain/detach/delete semantics and synthetic final-trigger
+behavior checks; neither validation flag nor either individual action proves
+correct final retention. No actual deletion/trigger ordering was executed.
+
+customer_sync_events has nullable customer/company references and a composite
+customer FK ON DELETE SET NULL. Its declared action targets both columns;
+retained journal attribution must therefore be included in the lifecycle
+contract, not only mandatory-column failures. Actual final behavior including
+other triggers remains unverified. These observations are connected-catalog
+metadata, not production-runtime binding or authorization to change FK actions.
+
+## Company lifecycle is not customer hard deletion
+
+Bounded static read of app/admin/companies/actions.ts:407–545 confirms that
+requestCompanyDeletionAction requests pending_deletion and deleteTestCompanyAction
+checks history blockers before status transitions to deleted_test_only. Its audit
+metadata explicitly states hardDeletePerformed:false; this path does not delete
+the company row. lib/tenant/lifecycle.ts separately describes closed as retaining
+history and deleted_test_only as a terminal tombstone. These are current source
+contracts, not executed proof of atomic transitions or complete blockers.
+
+Consequently, normal company lifecycle does not exercise import-history company
+FK delete actions. It cannot establish whether physical company deletion should
+CASCADE or SET NULL, nor justify substituting either historical action for the
+other. Keep this separate from the customer test-data hard-delete path above.
+Future import prerequisite design must preserve existing identities/actions and
+explicitly account for retained tenant attribution; source restoration alone
+does not approve a physical company purge or a retention policy.

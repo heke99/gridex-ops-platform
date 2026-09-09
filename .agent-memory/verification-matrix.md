@@ -681,3 +681,13 @@ Follow-up: intended Supabase project access restored. Catalog-only role helper b
 2026-09-09 Catalog-only index flags:2932 public indexes,502 primary/489 other unique,0 not-valid/not-ready/not-live. Availability flags only; workload coverage/redundancy/performance unverified. No index mutation.
 
 2026-09-09 Governance implementation670c8a4c static PASS: selection/emit,11-command runner/status/isolation, actual RBAC prefix32, accounting29, provenance76/49/20/4/499, integrity592/496. Accounting516/26/46/4; focused274/23/37/4. All new SQL NOT EXECUTED; task/integrated review and hosted PG17 pending. HistoricalSQL/checksums intact.
+
+2026-09-09 Hostedb9afbf68 OPS34359949888: auth102494069650 PASS11 commands incl15 governance lanes/61 identity; Ediel102494069894 PASS. Verify102494069367 FAIL types tail20260909120200; clean102494069531 FAIL beforefullreplay. Quality102494069708 app build still running. No incomplete artifact regeneration/phase closure.
+
+2026-09-09 Final quality receipt atb9afbf68: OPS34359949888 quality102494069708 PASS incl app build/release-quality checks. Auth and Ediel already PASS; verify/types and clean full-replay still FAIL. Root status/runner covering test PASS after final SQL receipt update.
+
+2026-09-09 Bounded sync/import catalog persisted:3 connected tables,19 columns each,RLS enabled; exact column/PK/FK/check/index metadata only. Import-row single SETNULL/composite CASCADE coexistence and sync composite SETNULL attribution retained as lifecycle review evidence; no row reads/deletion or outcome claim.
+
+2026-09-09 Operations implementation66659b22 static PASS: exact source selection/emit, actual RBAC prefix33, fixed runner12/status, clean-replay14/accounting29 selftests, integrity592/496, provenance77/49/20/4/499. Global517/26/45/4; focused274/23/37/4. SQL NOT EXECUTED; separate review pending, then integrated review and hosted PG17. No runtime/phase closure.
+
+2026-09-09 Task4 separate review approved66659b22, no findings; SQL NOT EXECUTED. Root status/runner covering test PASS after current-state update. Integrated review and hosted verification pending.

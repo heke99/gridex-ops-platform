@@ -18,6 +18,7 @@ COMMANDS = (
     ('python3', 'scripts/canonical-rbac-prefix-selftest.py'),
     ('python3', 'scripts/canonical-saas-tenant-selftest.py'),
     ('python3', 'scripts/canonical-governance-selftest.py'),
+    ('python3', 'scripts/canonical-operations-sync-selftest.py'),
 )
 
 def main():
