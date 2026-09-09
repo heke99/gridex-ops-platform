@@ -6,9 +6,16 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { supabaseService } from '@/lib/supabase/service'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
-import { materializeInvoiceTestEdifactMasterdata } from '@/lib/ediel/testing/invoiceTestEdifactMaterialization'
+import {
+  finalizeInvoiceTestEdifactBillingBinding,
+  materializeInvoiceTestEdifactObjectMasterdata,
+  type InvoiceTestEdifactObjectMaterialization,
+} from '@/lib/ediel/testing/invoiceTestEdifactMaterialization'
 
 const MAX_TEST_EDIFACT_BYTES = 2 * 1024 * 1024
+const DEFERRED_PRE_MATERIALIZATION_ISSUE_CODES = new Set([
+  'UTILTS_E66_UNKNOWN_METERING_POINT',
+])
 
 type Row = Record<string, unknown>
 
@@ -62,6 +69,39 @@ function billingMonthBounds(value: string) {
   }
 }
 
+function isDeferredPreMaterializationIssue(code: string | null | undefined): boolean {
+  return DEFERRED_PRE_MATERIALIZATION_ISSUE_CODES.has(String(code ?? '').trim())
+}
+
+function buildPreflightMessage(input: {
+  rawEdifact: string
+  companyId?: string | null
+  customerId?: string | null
+  siteId?: string | null
+  meteringPointId?: string | null
+  objectResolved?: boolean
+}): EdielMessageRow {
+  const now = new Date().toISOString()
+  return {
+    id: input.objectResolved ? 'invoice-test-object-preflight' : 'invoice-test-preflight',
+    company_id: input.companyId ?? null,
+    customer_id: input.customerId ?? null,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    message_family: 'UTILTS',
+    message_code: 'E66',
+    direction: 'inbound',
+    environment: 'test',
+    raw_payload: input.rawEdifact,
+    validation_report: null,
+    syntax_check_status: 'not_checked',
+    functional_check_status: 'not_checked',
+    business_match_status: input.objectResolved ? 'matched' : null,
+    message_received_at: now,
+    created_at: now,
+  } as unknown as EdielMessageRow
+}
+
 export function assertRawTestEdifactPreflight(raw: string, billingMonth?: string): ParsedEdifactEnvelope {
   const bytes = Buffer.byteLength(raw, 'utf8')
   if (bytes === 0) throw new Error('EDIFACT-innehåll saknas.')
@@ -79,26 +119,20 @@ export function assertRawTestEdifactPreflight(raw: string, billingMonth?: string
     throw new Error('UTILTS E66 saknar canonical LOC+172/Z07/MG/TN/LI-referens för mätpunktsmatchning.')
   }
 
-  // Run the same canonical runtime before any customer/site/contract write. The
-  // synthetic row is parse/validation-only; no persistence or acknowledgement is
-  // performed here. This prevents a malformed E66 from binding and signing the
-  // Fakturatest contract before the normal inbound chain gets a chance to reject it.
-  const validationMessage = {
-    id: 'invoice-test-preflight',
-    message_family: 'UTILTS',
-    message_code: 'E66',
-    direction: 'inbound',
-    environment: 'test',
-    raw_payload: raw,
-    validation_report: null,
-    syntax_check_status: 'not_checked',
-    functional_check_status: 'not_checked',
-    message_received_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-  } as unknown as EdielMessageRow
-  const preflightRuntime = runUtiltsRuntimeForMessage(validationMessage)
-  const blockingIssues = preflightRuntime.validation.issues.filter((issue) => issue.severity === 'error')
-  if (blockingIssues.length > 0 || preflightRuntime.validation.classification !== 'accepted') {
+  // Stage 1 runs the real canonical runtime before any customer/site/contract
+  // mutation. Fakturatest is the one controlled case where an E66 test object is
+  // intentionally created from the payload itself, so only E10/unknown-metering-
+  // point is deferred here. Syntax, guide, quantity, reconciliation, period and
+  // every other functional error remain blocking. The deferred object check is
+  // rerun and must pass after the exact test-owned metering point is materialized.
+  const preflightRuntime = runUtiltsRuntimeForMessage(buildPreflightMessage({ rawEdifact: raw }))
+  const errorIssues = preflightRuntime.validation.issues.filter((issue) => issue.severity === 'error')
+  const blockingIssues = errorIssues.filter((issue) => !isDeferredPreMaterializationIssue(issue.code))
+  const deferredIssues = errorIssues.filter((issue) => isDeferredPreMaterializationIssue(issue.code))
+  if (
+    blockingIssues.length > 0 ||
+    (preflightRuntime.validation.classification !== 'accepted' && deferredIssues.length === 0)
+  ) {
     const summary = blockingIssues.slice(0, 5).map((issue) => `${issue.code}: ${issue.description}`).join(' · ')
     throw new Error(`UTILTS E66 stoppades i canonical preflight före masterdataändring: ${summary || preflightRuntime.validation.classification}`)
   }
@@ -127,6 +161,30 @@ export function assertRawTestEdifactPreflight(raw: string, billingMonth?: string
   }
 
   return parsed
+}
+
+function assertObjectAwareCanonicalPreflight(input: {
+  rawEdifact: string
+  companyId: string
+  customerId: string
+  materialized: InvoiceTestEdifactObjectMaterialization
+}) {
+  const runtime = runUtiltsRuntimeForMessage(buildPreflightMessage({
+    rawEdifact: input.rawEdifact,
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.materialized.siteId,
+    meteringPointId: input.materialized.meteringPointId,
+    objectResolved: true,
+  }))
+  const blockingIssues = runtime.validation.issues.filter((issue) => issue.severity === 'error')
+  if (blockingIssues.length > 0 || runtime.validation.classification !== 'accepted') {
+    const summary = blockingIssues.slice(0, 5).map((issue) => `${issue.code}: ${issue.description}`).join(' · ')
+    throw new Error(`UTILTS E66 stoppades efter testmätpunktsmaterialisering före avtalssignering: ${summary || runtime.validation.classification}`)
+  }
+  if (runtime.validation.issues.some((issue) => isDeferredPreMaterializationIssue(issue.code))) {
+    throw new Error('UTILTS E66 objektkontroll kvarstod efter materialisering; avtalssignering blockerad fail-closed.')
+  }
 }
 
 async function assertSelectedCustomerMeteringPoint(input: {
@@ -275,16 +333,16 @@ export async function importRawEdifactAndRunTestCenterChain(
   const parsed = assertRawTestEdifactPreflight(rawEdifact, billingMonth)
   const sourceSha256 = createHash('sha256').update(rawEdifact).digest('hex')
 
-  // Routing is verified before the first customer/site/contract write. The later
-  // testCenterTenantBinding may preserve an already verified tenant, but it must
-  // never be the mechanism that turns an otherwise unresolved receiver into a
-  // successful Fakturatest tenant match.
+  // Routing is verified before the first customer/site/contract write. Tenant
+  // identity may resolve from the unique active receiver Ediel actor even when
+  // that actor's stored default Application Reference belongs to another family;
+  // the actual E66 Application Reference remains canonical-policy validated.
   await assertInboundTenantMatchesSelection({ companyId, parsed })
 
-  // Fakturatest masterdata is deliberately derived from the same canonical parser
-  // result that is about to enter the normal inbound chain. No facility/metering
-  // identifiers are supplied by the test-customer form or invented by the harness.
-  const materialized = await materializeInvoiceTestEdifactMasterdata({
+  // Stage 2 materializes only the exact test-owned object identity derived from
+  // the same parser result. Contract/signature/supply state is deliberately not
+  // touched until the canonical object-aware rerun proves the deferred E10 gone.
+  const materialized = await materializeInvoiceTestEdifactObjectMasterdata({
     companyId,
     customerId,
     actorUserId,
@@ -292,6 +350,20 @@ export async function importRawEdifactAndRunTestCenterChain(
     sourceSha256,
   })
   await assertSelectedCustomerMeteringPoint({ companyId, customerId, parsed })
+  assertObjectAwareCanonicalPreflight({
+    rawEdifact,
+    companyId,
+    customerId,
+    materialized,
+  })
+
+  await finalizeInvoiceTestEdifactBillingBinding({
+    companyId,
+    customerId,
+    actorUserId,
+    siteId: materialized.siteId,
+    meteringPointId: materialized.meteringPointId,
+  })
 
   const envelope = await getOrCreateTestInboundEnvelope({
     companyId,

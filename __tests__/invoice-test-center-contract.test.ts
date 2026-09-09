@@ -33,7 +33,7 @@ describe('Fakturatest workspace contract', () => {
     expect(actions).toContain('customer.__createdMeteringPointId')
   })
 
-  it('materializes test-only facility/metering masterdata from the canonical parsed EDIFACT envelope', () => {
+  it('materializes test-only facility/metering masterdata from the canonical parsed EDIFACT envelope before contract activation', () => {
     const materialization = read('lib/ediel/testing/invoiceTestEdifactMaterialization.ts')
     const rawImport = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     expect(materialization).toContain("parsed.locations['172']")
@@ -43,12 +43,19 @@ describe('Fakturatest workspace contract', () => {
     expect(materialization).toContain('is_test_data: true')
     expect(materialization).toContain('primary_metering_reference')
     expect(materialization).toContain('assertIdentityNotOwnedElsewhere')
-    const preflightIndex = materialization.indexOf('await assertIdentityNotOwnedElsewhere')
+    const identityPreflightIndex = materialization.indexOf('await assertIdentityNotOwnedElsewhere')
     const firstWriteIndex = materialization.indexOf("const siteUpdate = await supabaseService")
-    expect(preflightIndex).toBeGreaterThan(-1)
-    expect(firstWriteIndex).toBeGreaterThan(preflightIndex)
-    expect(rawImport).toContain('materializeInvoiceTestEdifactMasterdata')
-    expect(rawImport.indexOf('materializeInvoiceTestEdifactMasterdata')).toBeLessThan(rawImport.indexOf('await processInboundEmailMessage'))
+    expect(identityPreflightIndex).toBeGreaterThan(-1)
+    expect(firstWriteIndex).toBeGreaterThan(identityPreflightIndex)
+
+    const objectMaterializeIndex = rawImport.indexOf('materializeInvoiceTestEdifactObjectMasterdata')
+    const objectValidateIndex = rawImport.lastIndexOf('assertObjectAwareCanonicalPreflight({')
+    const billingFinalizeIndex = rawImport.indexOf('finalizeInvoiceTestEdifactBillingBinding')
+    const inboundIndex = rawImport.indexOf('await processInboundEmailMessage')
+    expect(objectMaterializeIndex).toBeGreaterThan(-1)
+    expect(objectValidateIndex).toBeGreaterThan(objectMaterializeIndex)
+    expect(billingFinalizeIndex).toBeGreaterThan(objectValidateIndex)
+    expect(inboundIndex).toBeGreaterThan(billingFinalizeIndex)
   })
 
   it('shows parsed EDIFACT masterdata back in the Fakturatest workspace', () => {

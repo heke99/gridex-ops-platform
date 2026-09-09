@@ -1,0 +1,65 @@
+name: Fakturatest staging E2E temporary gate
+
+on:
+  push:
+    branches:
+      - fix/invoice-test-preflight-object-order
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fakturatest-staging-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invoice-test-staging:
+    if: github.actor == 'heke99'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_E2E_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      GRIDEX_E2E_ACTOR_USER_ID: ${{ secrets.GRIDEX_E2E_ACTOR_USER_ID }}
+      GRIDEX_E2E_TARGET: staging
+      GRIDEX_E2E_CONFIRM_STAGING: 'YES'
+      GRIDEX_E2E_ALLOW_MUTATION: 'YES'
+      GRIDEX_E2E_ALLOW_OUTBOUND: 'NO'
+      GRIDEX_INVOICE_TEST_STAGING_E2E: 'YES'
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      SUPABASE_URL: ${{ secrets.GRIDEX_E2E_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: staging-e2e-service-client-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Require isolated staging configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GRIDEX_E2E_TARGET" == staging ]]
+          [[ "$GRIDEX_E2E_CONFIRM_STAGING" == YES ]]
+          [[ "$GRIDEX_E2E_ALLOW_MUTATION" == YES ]]
+          [[ "$GRIDEX_E2E_ALLOW_OUTBOUND" == NO ]]
+          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID; do
+            [[ -n "${!name:-}" ]] || { echo "Missing required staging secret: $name" >&2; exit 1; }
+          done
+      - name: Run canonical Fakturatest E66 to invoice E2E
+        run: npx vitest run __tests__/invoice-test-staging.e2e.test.ts --reporter=verbose
+      - name: Write success evidence
+        if: success()
+        shell: bash
+        run: |
+          mkdir -p e2e-artifacts
+          printf '{"schema_version":1,"flow":"fakturatest_e66_to_invoice","target":"staging","outbound":false,"sha":"%s","verdict":"GREEN"}\n' "$GITHUB_SHA" > e2e-artifacts/fakturatest-staging-e2e.json
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: fakturatest-staging-e2e-${{ github.run_id }}
+          path: e2e-artifacts/fakturatest-staging-e2e.json
+          if-no-files-found: error
+          retention-days: 30
