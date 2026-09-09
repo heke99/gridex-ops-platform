@@ -5,6 +5,28 @@ recorded revisions, not current status. The sole current status is
 [current-state.md](../../.agent-memory/current-state.md). Resume from its next
 action; do not interpret an older "latest" heading here as a newer verification.
 
+## Verified continuation — 2026-09-09 / PR310
+
+Fresh current evidence, not phase closure. Published1b37fe86, exact previously
+reviewed tree81a9eb4e. OPS34408542348: quality102657264491 PASS (195 test files,
+1162 tests,45 quality tests, app build, release and bundle gates); Ediel102657264526
+PASS. Auth102657264584 passes previous13 commands, then command14 fails generated
+SQL predicate typing. Verify102657264574 fails generated-types tail20260909123000.
+Clean102657264267 fails completeness before SQL execution: downloaded artifact
+10126300748 matches fresh local accounting,593 files with518 selected,26
+substituted,45 unclassified,4 excluded.71 full-effect inputs remain unresolved.
+Empty replay log is accompanied by explicit UNCLASSIFIED_INPUTS JSON evidence;
+there is no generated schema/type artifact and no production parity claim.
+
+| Finding | Status | Evidence / remediation |
+| --- | --- | --- |
+| F-IMPORT-ADMISSION-001 / High / verification | IN_PROGRESS | First actual-prefix import observation throws boolean<>regclass; unparenthesized IS NOT NULL predicates composed with <>. Fix SQL composition and test same class before hosted rerun. No production mutations. |
+| Publication access | SUPERSEDED blocker | Authenticated create_tree/create_commit/non-force update_ref succeeded. Exact fetched tree verified; prior local history preserved. |
+| Production binding | VERIFIED_OPEN | Vercel production app.gridex.se remains dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c / maineb9a25bc. Login200. Connected Supabase piidsfebjqjmnepdpnas: ledger279/tail20260904222450,502 tables,160 views,632 functions,332 user triggers. Separate connector identities do not prove server runtime DB binding. |
+
+The historical register below retains original evidence. Active continuation is
+in .agent-memory/current-state.md, with Task8 after Task7 PostgreSQL acceptance.
+
 ## Auth-email source restored — 2026-09-06
 
 Complete auth-email source and profile normalization passed PostgreSQL17 job

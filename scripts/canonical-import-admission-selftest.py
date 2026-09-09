@@ -185,7 +185,7 @@ def shape_sql():
     # Exact known column metadata; arbitrary extra columns are inventoried, never dropped.
     # Legacy batch_id is rejected below pending a separate mapping contract.
     return f"""
-if {exists(BATCH)} <> {exists(ROW)} then
+if ({exists(BATCH)}) <> ({exists(ROW)}) then
  {receipt('incomplete_import_shape')}
 elsif not {exists(BATCH)} then
  {receipt('empty_reconstruction',level='compatibility')}
