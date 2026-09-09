@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 sys.dont_write_bytecode = True
+import role_permission_identity_selftest as identity
 ROOT = Path(__file__).resolve().parents[1]
 ADMIN = 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test'
 SOURCE = 'migrations/20260519_saas_ui_tenant_admin.sql'
@@ -87,7 +88,7 @@ select test_assert(not exists(select 1 from information_schema.columns where tab
 select test_assert(exists(select 1 from information_schema.columns where table_schema='public' and table_name='company_invitations' and column_name='invitation_token' and data_type='text'),'authentic text invitation token preserved');
 select test_assert(exists(select 1 from pg_constraint where conrelid='company_memberships'::regclass and contype='f' and confrelid='companies'::regclass and confdeltype='r'),'membership company FK remains RESTRICT');
 select test_assert(not exists(select 1 from pg_constraint where conrelid='company_memberships'::regclass and contype='f' and confrelid='auth.users'::regclass),'skipped CREATE adds no membership auth FK');
-select test_assert((select count(*)=2 and bool_and(not attnotnull) from pg_attribute where attrelid='role_permissions'::regclass and attname in ('role_id','permission_id')),'nullable grant IDs preserved; live NOT NULL parity remains open');
+select test_assert((select count(*)=2 and bool_and(attnotnull) from pg_attribute where attrelid='role_permissions'::regclass and attname in ('role_id','permission_id')),'mandatory grant UUID references reconstructed');
 select test_assert((select count(*)=2 and bool_and(confdeltype='r') from pg_constraint where conrelid='role_permissions'::regclass and contype='f'),'RESTRICT grant FKs preserved; live CASCADE parity remains open');
 select test_assert(not exists(select 1 from information_schema.columns where table_schema='public' and table_name='roles' and column_name='is_system'),'actual prefix uses is_system_role, not is_system');
 select test_assert((select not is_system_role and scope='company' from roles where key='company_admin'),'authentic company role defaults preserved');
@@ -98,9 +99,13 @@ select test_assert((select not is_system_role and scope='company' from roles whe
 def canonical_sql():
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     stop = order.index(SOURCE)
-    assert order[stop - 2:stop] == [REPAIR, INDEX_REPAIR]
+    assert order[stop - 3:stop] == [REPAIR, INDEX_REPAIR, identity.MIGRATION]
     chunks = [bootstrap()]
-    chunks += [f'-- SAAS_PREFIX_FILE_BEGIN {path}\n' + read('supabase/' + path) for path in order[:stop]]
+    for path in order[:stop]:
+        if path == identity.MIGRATION:
+            chunks.append("create temporary table identity_prefix_fks as select oid,pg_get_constraintdef(oid) definition from pg_constraint where conrelid='role_permissions'::regclass and contype='f';")
+        chunks.append(f'-- SAAS_PREFIX_FILE_BEGIN {path}\n' + read('supabase/' + path))
+    chunks += [identity.required(), equal('select * from identity_prefix_fks', "select oid,pg_get_constraintdef(oid) from pg_constraint where conrelid='role_permissions'::regclass and contype='f'", 'canonical identity repair preserves original FK actions and OIDs')]
     chunks.append("""-- CANONICAL ACTUAL SELECTED PREFIX: no synthetic prerequisite schema.
 create temporary table constraints_before as select oid,conrelid,conname,pg_get_constraintdef(oid) definition from pg_constraint where connamespace='public'::regnamespace;
 create temporary table columns_before as select attrelid,attnum,attname,atttypid,attnotnull,attgenerated from pg_attribute where attrelid in ('companies'::regclass,'company_memberships'::regclass,'company_invitations'::regclass,'user_roles'::regclass,'user_permissions'::regclass,'audit_logs'::regclass) and attnum>0 and not attisdropped;
@@ -301,6 +306,7 @@ def execute():
             psql(database, read('supabase/' + INDEX_REPAIR))
             psql(database, index_check() + equal('select * from index_after',current,'repeated index reconstruction preserves identities') + equal('select * from saved_invitation_rows','select * from company_invitations','repeat index repair preserves rows'))
         print('PASS: isolated invitation index reconstruction ' + case, flush=True)
+    identity.execute(sys.modules[__name__])
 
 
 
@@ -320,5 +326,6 @@ if __name__ == '__main__':
             print('-- REDUCED INDEX RECONSTRUCTION CASE: ' + case)
             print(index_setup(case))
             print(read('supabase/' + INDEX_REPAIR))
+        print(identity.emit(sys.modules[__name__]))
     else:
         execute()

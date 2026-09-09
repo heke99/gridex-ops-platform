@@ -1,9 +1,11 @@
 # SaaS tenant source restoration
 
-Status: IN_PROGRESS. Baseline01e31ed89255ba829e24a7bd8ce324d36c475add.
-The nine-command RBAC prefix passed hosted PG17 (OPS34344515597, auth102442823593).
-No masterplan phase is closed. This advances one unresolved source, not all62
-remaining auth-group candidates.
+Status: IN_PROGRESS. Plan origin baseline01e31ed89255ba829e24a7bd8ce324d36c475add.
+SaaS source and uniqueness/index repairs were published at fac58fae with all ten
+isolated PG17 commands passing (OPS34348338877, auth102455180423). Tasks3–4
+address the next verified identity gap with parent-lifecycle dependencies explicit.
+No masterplan phase is closed. Active status remains .agent-memory/current-state.md;
+this plan does not approve the remaining auth-group/full-history candidates.
 
 ## Global Constraints
 
@@ -168,3 +170,103 @@ exercise these cases through the existing newSaaSharness without a newcommand.
 This supersedes any test/audit expectation accepting the known2-column canonical
 endpoint. It does not close all indexing, PK/FK/nullability, deletion or parity
 work. Additional discovered differences remain tracked under fullmasterplan.
+
+### Task 3: Verify role-permission identity and ownership contract
+
+Baselinefac58fae has actualten-command PG17PASS with uniqueness/index fixes.
+Before changing the remaining role_permissions NOT NULL/FK semantics, verify
+intended system behavior from current code, source definitions and catalog
+evidence. This is a bounded evidence/design task; do not modify runtime SQL,
+fixtures, selector or application code. Root owns plan/memory.
+
+Fresh live catalog on piidsfebjqjmnepdpnas2026-09-09: role_id and permission_id
+are UUID NOT NULL; both named FKs target parent id and ON DELETE CASCADE,
+validated, not deferrable, not initially deferred, ON UPDATE NO ACTION, MATCH
+SIMPLE. Names role_permissions_role_id_fkey and
+role_permissions_permission_id_fkey. Core01:445-453 and current generated
+schema.sql instead use nullable IDs and RESTRICT FKs. Existing unique pair
+constraint is already reconstructed. Runtime-to-database binding remains open.
+
+Read actual role/permission grant writers/readers and parent lifecycle paths;
+app/admin/roles/page.tsx:26-29 expects string IDs, SQL source grant inserts
+provide role_id/permission_id, while some canonical readers retain role_key/
+permission_key fallback. Determine whether fallback means legacy migration
+compatibility or intentionally valid key-only persistent mappings. Determine
+precise owned-join deletion behavior, preservation of unrelated roles,
+permissions, user assignments and audits. Live shape alone is not proof that
+every production choice is correct; resolve against the application contract.
+
+Write quality/audits/ROLE_PERMISSION_IDENTITY_OWNERSHIP_EVIDENCE_2026-09-09.md
+with confirmed requirements, source:line evidence, conflicts/unverified
+assumptions, exact safe next migration scope and synthetic tests. No broad
+repository audit, production mutation, customer deletion or generated artifact
+refresh. A proposed migration must reject dirty null/orphan/conflicting states
+without guessing IDs or deleting rows, preserve correct definitions, and replace
+only specifically verified legacy constraints atomically. No blanket CASCADE
+changes. Include explicit final delete/repeat/rollback behavior tests if the
+owned-join contract is confirmed. Commit only this audit; report at SDD
+task-3-report.md. Separate review precedes any implementation.
+
+## Task 3 review correction and dependency order
+
+Separate review of c220acd5 identified same-parent user-role assignment deletion
+and unresolved legacy-key conflict predicates. Fresh read-only catalog shows
+live user_roles.role_id CASCADE while selected core lacks that FK. Neither
+shape establishes safe historical assignment retention. Correct the evidence
+and explicitly distinguish proved join identity from unresolved general parent
+lifecycle. The safe next implementation may establish mandatory references
+without changing delete semantics; ownership repair remains an internal required
+follow-up, not a closed finding or external blocker. This dependency order follows
+masterplan section120 and the user's intended-system-correctness instruction.
+
+### Task 4: Reconstruct mandatory role-permission references
+
+Begin only after separate Task 3 review approves the corrected evidence and exact
+predicate in ROLE_PERMISSION_IDENTITY_OWNERSHIP_EVIDENCE_2026-09-09.md. Preserve
+Global Constraints. This bounded forward repair establishes mandatory references;
+it does not change FK deletion actions or claim complete parent/customer lifecycle.
+
+Add complete forward migration
+20260909120200_canonical_role_permission_identity_reconstruction.sql immediately
+after the existing uniqueness and invitation-index reconstructions and before
+complete SaaS source in canonical foundation selection. Register the new file's
+checksum only and update precise provenance/selection assertions. Old migrations
+remain immutable; do not regenerate artifacts from incomplete replay.
+
+Implement audited UUID reference identity checks under bounded consistent
+parent/join locks. Reject NULL references, orphan references, duplicate UUID
+pairs and conflicting/ambiguous present keys before changes, using the exact
+reviewed reader-derived comparison predicate. Optional absent keys are valid.
+No UPDATE, DELETE, ID guessing, backfill or invented alias normalization. Verify
+UUID parent identity and the exact current RESTRICT or observed CASCADE named
+FK definitions, supporting mixed state, but preserve every FK action and OID.
+Missing/conflicting named FKs or unrecognized competing relation constraints
+must fail closed. Set both reference columns NOT NULL only where absent; retain
+all rows, unique constraint, indexes, grants, RLS, assignments and audits.
+Matching state is an OID-preserving semantic no-op. No cascade reconstruction.
+
+Add a focused identity selftest module integrated with the existing SaaS harness
+command, retaining the ten-command runner and sharing setup/assertion helpers.
+Actual canonical selected prefix must execute this migration before SaaS and
+assert both required UUID references plus unchanged legacy FK actions. Explicitly
+reduced fixtures cover matching/mixed nullability and RESTRICT/CASCADE definitions,
+NULL/orphan/duplicate/conflicting/ambiguous key states, unknown FK definitions,
+missing prerequisites and forced mid-repair rollback. Verify inserts/updates reject
+NULL or invalid IDs after repair, valid ID-only rows work, uniqueness survives,
+and row/catalog snapshots survive failure and repeats. Test inherited nullable
+owner-copy compatibility using the authentic source operation as described in
+the reviewed audit; prove repair fails instead of guessing IDs. Bounded lock
+failure must leave no partial state. Do not remove any existing integrity tests.
+
+Do not assert parent deletes are now safe: role assignments/key-only references
+and permission overrides remain explicit prerequisite work. No deletion/DDL on
+production. Fixed localhost PG17 synthetic data only. Add useful database-free
+emit/selection checks; local PG17 unavailable means actual SQL remains pending
+hosted review/publication. Run only covering accounting, provenance, migration
+integrity, selection/emit, runner/status checks. Inspect existing assertions that
+assume the old nullable endpoint. No broad suite reruns.
+
+Commit only implementation/tests/selector/new migration/manifest files. Root owns
+plan, memory, status and publication. Write task-4-report.md with exact checks,
+commits and evidence limits. Separate task review and final integrated review
+precede one publication for hosted PG17 execution. No masterplan phase closure.

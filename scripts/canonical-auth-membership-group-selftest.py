@@ -61,7 +61,7 @@ def main():
     prefix = run('python3', str(RBAC_PREFIX_FIXTURE), '--emit')
     assert prefix.returncode == 0, prefix.stderr
     assert prefix.stdout.count('-- RBAC_MANAGED_BOOTSTRAP_BEGIN') == 1
-    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 30
+    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 31
     assert prefix.stdout.count('-- RBAC_SOURCE_FILE_BEGIN ') == 6
     assert prefix.stdout.count('-- RBAC_FINAL_HELPER_BEGIN ') == 1
     assert prefix.stdout.rindex('-- RBAC_FINAL_HELPER_BEGIN ') > prefix.stdout.rindex('-- RBAC_SOURCE_FILE_BEGIN ')

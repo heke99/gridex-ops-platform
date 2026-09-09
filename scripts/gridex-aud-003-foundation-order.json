@@ -30,6 +30,7 @@
     "bootstrap/20260523_rbac_permission_helpers_foundation.sql",
     "migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql",
     "migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql",
+    "migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql",
     "migrations/20260519_saas_ui_tenant_admin.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",

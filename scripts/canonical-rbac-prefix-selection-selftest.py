@@ -45,9 +45,10 @@ def main():
     assert order.index(AUTH_TEMPLATE) == order.index(AUTH_NORMALIZE) + 1
     assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_TEMPLATE) + 1
     assert order[boundary - 1] == PROFILE_SOURCE
-    assert order[boundary - 2] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
-    assert order[boundary - 3] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
-    assert order[boundary - 4] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
+    assert order[boundary - 2] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
+    assert order[boundary - 3] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
+    assert order[boundary - 4] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
+    assert order[boundary - 5] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
     assert order.count(PROFILE_SOURCE) == additions['foundation'].count(PROFILE_SOURCE) == 1
     profile_meta = additions['derivedBootstrap'][PROFILE_PREREQUISITE]
     assert profile_meta['source'] == PROFILE_SOURCE
@@ -133,6 +134,10 @@ def main():
     assert order.count(repair) == additions['foundation'].count(repair) == 1
     assert by_path[repair]['classification'] == 'FULL_FILE_SELECTED'
     assert manifest['files'][Path(repair).name] == hashlib.sha256((ROOT / 'supabase' / repair).read_bytes()).hexdigest()
+    identity_repair = 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
+    assert order.count(identity_repair) == additions['foundation'].count(identity_repair) == 1
+    assert by_path[identity_repair]['classification'] == 'FULL_FILE_SELECTED'
+    assert manifest['files'][Path(identity_repair).name] == hashlib.sha256((ROOT / 'supabase' / identity_repair).read_bytes()).hexdigest()
     contact = additions['derivedBootstrap']['bootstrap/20260519_companies_primary_contact_email_foundation.sql']
     assert contact['source'] == 'migrations/20260519_final_saas_hardening.sql'
     assert contact['artifactSha256'] == '9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23'
@@ -153,6 +158,17 @@ def main():
 
     for case in ('missing','matching','legacy','conflicting','replacement_failure'):
         assert '-- REDUCED INDEX RECONSTRUCTION CASE: ' + case in saas.stdout
+
+    import role_permission_identity_selftest as identity
+    assert saas.stdout.index('-- SAAS_PREFIX_FILE_BEGIN ' + identity.MIGRATION) < saas.stdout.index('-- SAAS_SOURCE_BEGIN')
+    assert 'mandatory grant UUID references reconstructed' in canonical
+    assert 'canonical identity repair preserves original FK actions and OIDs' in canonical
+    for case in identity.PATCHES:
+        assert '-- REDUCED IDENTITY CASE: ' + case + ';' in saas.stdout
+    assert 'AUTHENTIC OWNER COPY OPERATION BEGIN' in saas.stdout
+    assert 'forced failure after first NOT NULL' in saas.stdout
+    assert 'assignment_conflict_without_grants' in saas.stdout
+    assert 'identity.execute(sys.modules[__name__])' in (ROOT / 'scripts/canonical-saas-tenant-selftest.py').read_text()
 
     group = (ROOT / 'scripts/canonical-auth-membership-group.py').read_text()
     assert "('python3', 'scripts/canonical-rbac-prefix-selection-selftest.py')" in group
