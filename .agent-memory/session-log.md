@@ -908,3 +908,11 @@ writes or phase closure. Next: actual canonical-prefix restoration/effect review
 2026-09-09 Hostedaad37fc1 OPS34369156972: auth102525577327 PASS12 commands/61 identity cases and complete operations actual31-prefix,19 targets/28 indexes/journal/row preservation/repeat, late42703, real55P03, five reduced lanes; Ediel102525578011 PASS. Verify102525577998 FAIL types tail20260909120200; clean102525577832 FAIL beforefullreplay; quality102525577677 build pending. No phase closure.
 
 2026-09-09 Final quality102525577677 PASS at aad37fc1:195 test files/1162 tests, app build, release-quality and bundle gates. No measured production-performance claim; verify/types and full-replay gates remain open.
+
+2026-09-09 Hosted17da3243 OPS34373283798: auth102539602494 PASS13 commands incl token empty/8 populated/20 dirty/rollback/real locks/both writer orders;6 later-runtime compatibility lanes retain final mandatory FAIL as required. Ediel102539600728 PASS; verify102539599786 types tail20260909123000 FAIL; clean102539599407 beforefullreplay FAIL; quality102539600224 build pending. No phase closure.
+
+2026-09-09 Final quality102539600224 PASS at17da3243: app build,195 test files/1162 tests, release-quality/bundle checks. No measured production-performance claim. Task6 bounded verification complete; replay/types/ledger/runtime parity and phase gates remain open.
+
+2026-09-09 Task7 fixfad36a42: both Important seed-admission findings and Minor legacy-column comment resolved; independent scoped review approved, no new breakage. Four isolated cases added (54 total). Selection/emit/emit-checker and runner14/status PASS; SQL NOT EXECUTED. Integrated and hosted gates pending; no phase closure.
+
+2026-09-09 Task7 integrated fix6511c457: roles/permissions standalone unique indexes and unreviewed metadata FKs now block. Four checker-only fixtures added (58 total). Independent integrated scoped review approved, no new Critical/Important findings. Selection/emit/emit-checker, runner14/status and diff PASS; all new SQL NOT EXECUTED. Pending exact-tree confirmation and hosted run; no phase closure.

@@ -701,3 +701,15 @@ Follow-up: intended Supabase project access restored. Catalog-only role helper b
 2026-09-09 Task6 implementation20a54995 static PASS: token/operations/governance/RBAC selection+emit, runner13/status, integrity593/497, provenance78/49/20/4/500, replay14/accounting29/group15 selftests.593 inputs518/26/45/4, focused339:275/23/37/4. SQL NOT EXECUTED; independent review pending.
 
 2026-09-09 Task6 fix760f472e: full relation-shape admission repeated under lock; independent scoped re-review confirms finding addressed, no new breakage. Selection RED/GREEN, emit, integrity593/497 and diff checks PASS. All SQL NOT EXECUTED; integrated and hosted gates pending.
+
+2026-09-09 Hosted17da3243 OPS34373283798: auth102539602494 PASS13 commands incl token empty/8 populated/20 dirty/rollback/real locks/both writer orders;6 later-runtime compatibility lanes retain final mandatory FAIL as required. Ediel102539600728 PASS; verify102539599786 types tail20260909123000 FAIL; clean102539599407 beforefullreplay FAIL; quality102539600224 build pending. No phase closure.
+
+2026-09-09 Final quality102539600224 PASS at17da3243: app build,195 test files/1162 tests, release-quality/bundle checks. No measured production-performance claim. Task6 bounded verification complete; replay/types/ledger/runtime parity and phase gates remain open.
+
+2026-09-09 Other17da3243 CI logs inspected: tenant-integrity102539601083 PASS, browser-public102539601127 PASS4 tests; smoke10253960000314/15 checks, sole generated-types tail20260909123000 failure; certificate102540129920 fails smoke dependency. Staging/full/production certificates skipped, not verified.
+
+2026-09-09 Task7e0c4dffb (45096a65/502531e9/e0c4dffb) static PASS selection/emit/emit-checker, runner14/status, integrity593/497, provenance78/49/20/4/500 and diff.50 dirty cases authored; SQL NOT EXECUTED. relation_changed/inspection_error lack dedicated injected fixtures. Independent review pending; accounting unchanged.
+
+2026-09-09 Task7 fixfad36a42: both Important seed-admission findings and Minor legacy-column comment resolved; independent scoped review approved, no new breakage. Four isolated cases added (54 total). Selection/emit/emit-checker and runner14/status PASS; SQL NOT EXECUTED. Integrated and hosted gates pending; no phase closure.
+
+2026-09-09 Task7 integrated fix6511c457: roles/permissions standalone unique indexes and unreviewed metadata FKs now block. Four checker-only fixtures added (58 total). Independent integrated scoped review approved, no new Critical/Important findings. Selection/emit/emit-checker, runner14/status and diff PASS; all new SQL NOT EXECUTED. Pending exact-tree confirmation and hosted run; no phase closure.

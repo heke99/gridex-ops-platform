@@ -28,6 +28,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-governance-selftest.py'],
     ['python3', 'scripts/canonical-operations-sync-selftest.py'],
     ['python3', 'scripts/invitation_token_prerequisite_selftest.py'],
+    ['python3', 'scripts/canonical-import-admission-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -95,6 +96,16 @@ def main():
     assert token_paths == order[:32] and len(token_paths) == 32
     assert 'SQL NOT EXECUTED' in token.stdout
     assert 'SEPARATE COMPLETE LATER RUNTIME COMPATIBILITY; NOT INTERVENING FULL REPLAY' in token.stdout
+    admission = run('python3', str(ROOT / 'scripts/canonical-import-admission-selftest.py'), '--emit')
+    assert admission.returncode == 0, admission.stderr
+    admission_paths = [line.removeprefix('-- IMPORT_ADMISSION_PREFIX_FILE_BEGIN ') for line in admission.stdout.splitlines() if line.startswith('-- IMPORT_ADMISSION_PREFIX_FILE_BEGIN ')]
+    assert admission_paths == order[:33] and len(admission_paths) == 33
+    assert 'SQL NOT EXECUTED' in admission.stdout
+    assert 'NOT FULL I/F/D REPLAY' in admission.stdout
+    checker = run('python3', str(ROOT / 'scripts/canonical-import-admission-selftest.py'), '--emit-checker')
+    assert checker.returncode == 0, checker.stderr
+    assert 'begin isolation level repeatable read read only;' in checker.stdout
+    assert 'IMPORT_ADMISSION_PREFIX_FILE_BEGIN' not in checker.stdout
     assert 'all17 governance trigger identities/events/bindings retained through full6E' in prefix.stdout
     assert "'D','suspended'" not in prefix.stdout and "'D','locked_security'" in prefix.stdout
 
@@ -123,7 +134,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 13, observed
+        assert len(observed) == len(COMMANDS) == 14, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 

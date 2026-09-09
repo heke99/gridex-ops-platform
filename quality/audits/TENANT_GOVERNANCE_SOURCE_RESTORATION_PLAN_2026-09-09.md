@@ -413,10 +413,82 @@ open wherever only nullable compatibility has been established.
 
 ### Task 7: Establish import ownership and seed admission before source selection
 
-Pending after Task6's bounded verified implementation. Carry forward the complete
-Task5 admission matrix for competing imports, parent/row identity, versions,
-would-change I/F ownership rows, D checks and F seed effects. Specify and review
-the concrete implementation scope before dispatch. Preserve-values admission
-and reduced historical DML characterization are different lanes. I/F/D/6D2
-remain unselected until these gates and exact complete-source order/tests receive
-review. No unresolved retention decision is silently chosen by this task order.
+Prerequisite: Task6 bounded hosted verification passes. Use Task5's independently
+reviewed admission matrix, exact index inventory and source-unit evidence. Add
+scripts/canonical-import-admission-selftest.py and, if needed to avoid duplicating
+SQL, scripts/sql/canonical-import-admission.sql. This is a read-only admission
+checker and isolated synthetic verification, not a new migration or source
+selection. Add fixed runner command14 after13; retain foundation78 and actual
+RBAC prefix34. Source accounting remains593/518/26/45/4 and focused339/275/23/37/4.
+Existing historical SQL/checksums, generated artifacts and selectors stay intact.
+
+Cover all Task5 admission categories: relation/PK/reference/default/index/check
+shape, competing I/F/D/union import shapes, parent/row IDs and same-company
+agreement, retained early versions, would-change I/F ownership rows, required
+join/DDL columns, D status/confidence checks, and F role/permission seed arbiters.
+Use its exact source-defined column/index/check identities, not inferred names.
+Compare current sources only where needed to resolve a concrete predicate; reuse
+Task3's complete effects audit. Unknown or incompatible shapes must not silently
+receive eligibility. Missing both imports is the explicit empty-reconstruction
+case; incomplete mixed shapes require an explicit supported classification or
+rejection, never guessed columns/parents. Source effects are still unselected.
+
+The checker must produce safe named blocking categories and separate compatibility
+or unresolved-final-gate results. Do not print customer payloads, tokens or other
+row values. Take a consistent read-only transaction snapshot; any locking is for
+that bounded observation. This check does not freeze subsequent writers or make
+historical source execution atomic. No production application or ongoing lock
+claim follows from an admission result. The later source-application contract
+must separately establish its transactional/maintenance and revalidation boundary.
+Do not introduce persistent helper objects, mutate schema/rows or invoke any
+historical ownership UPDATE/role seed in the admission checker.
+
+Require stable UUID keys/reference types and appropriate existing validated
+parents while preserving every existing FK action/OID. Detect null mandatory
+parents/numbers, orphans and mismatched row/batch/customer/candidate ownership;
+never infer missing parents or row numbers. Duplicate row numbers or nonpositive/
+duplicate version numbers are not invented new uniqueness/check failures where
+the source permits them: report the stronger-contract gate separately. Preserve
+nullable version ownership/history and report final ownership incompleteness.
+Inventory actual extra constraints, policies and triggers rather than discarding
+them because names differ. An absent possible-customer FK on an admitted I-first
+shape remains an explicit final enforcement gap, not proof of ownership safety.
+
+Enumerate every would-change I/F ownership join using their precise NULL-parent/
+nonnull-child and orphan semantics. Preserve-values eligibility requires zero
+would-change rows; existing nonnull ownership conflicts are also rejected. Include
+I-only powers_of_attorney and F-only billing_underlays. Identify existing6D guards
+and relevant source statement units. For F seeds, require correct role/permission
+keys, defaults and immediate unique arbiters, mandatory unique role pairs and
+unambiguous existing keys; record the exact proposed metadata/three-permission/
+six-pair effects without applying them. Missing super_admin is a labelled reduced
+branch, not complete seed coverage or an automatic new-role insertion.
+
+Use existing fixed localhost55440 disposable managed PG17. The main lane executes
+the actual first33 selected files through token prerequisite, then checker only.
+Use two synthetic tenants, customers, offers and auth/role identities; capture
+before/after row and public-catalog snapshots to prove the checker does not mutate
+anything. Reduced I/F/D/union and dirty fixtures may use source-derived table
+shapes solely as labelled synthetic setup, not whole-source replay evidence.
+Cover every named blocking category with exact expected diagnostics and preserved
+rows/catalog; verify successful empty and supported compatible shapes, repeat,
+read-only enforcement and coherent snapshot behavior. Reuse existing setup code
+where appropriate; avoid a large verbatim fixture copy. No vulnerability
+reproduction, destructive production test or unmeasured index tuning.
+
+Run targeted local selection/emit, fixed runner/status and integrity/provenance
+checks; static emission is not SQL execution. New SQL requires separate task and
+integrated review followed by one hosted publication. Do not rerun unchanged
+broad suites without a concrete gate need. Author owns only admission/checker/
+runner files and ignored report; root owns plan/status/receipts. No production
+SQL, migration registration, generated artifact, I/F/D/6D2 selection, release,
+retention decision or phase closure. Return exact owned commit and evidence.
+
+### Task 8: Prospective complete import/governance source verification
+
+Pending after Task7. Define and separately review exact prerequisite/whole-source
+order and source-application boundary before implementation. Carry all Task3/5
+complete effects, intentional skips, ownership/seed effects, repeated sources,
+actual unwrapped failure units and later helper/policy composition forward.
+An admission snapshot alone cannot authorize concurrent production application.
+No source selection or final retention decision is implied by this placeholder.
