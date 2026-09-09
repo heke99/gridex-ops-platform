@@ -640,3 +640,20 @@ tail 20260907121951; replay job 101969998208 FAIL, with full-effects accounting
 still unresolved. Six historical status files preserved byte-for-byte; one
 authoritative current status established. No production writes, migration
 selection changes or phase closure. Scoped tooling/fixture evidence only.
+
+## 2026-09-08 — RBAC characterization, code d32a3457
+
+OPS34227210022: auth102064145147 PASS on PG17.11, seven fixed commands;
+three complete RBAC originals twice, expected missing-view scenario and invalid
+CHECK transaction rollback PASS. Ediel102064144786 and quality102064145173 PASS.
+Verify102064144999 FAIL at generated-types tail20260907121951;
+clean replay102064145219 FAIL, global unresolved77 unchanged. Review corrected
+missing user_status prerequisite before publication; final review clean. Exact
+published/reviewed tree b3e4de5bccd3b1472ad9c23888f844307c60e135. No production
+writes or phase closure. Next: actual canonical-prefix restoration/effect review.
+
+2026-09-08 read-only Vercel check: Gridex project and production deployment dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c remain READY at app.gridex.se, SHA eb9a25bc989c6de808903f41c2314d5465e9c07b. No runtime-to-database binding or fresh database parity established. Supabase project access is scoped separately and currently excludes the intended Gridex project.
+
+Follow-up: intended Supabase project access restored. Catalog-only role helper body MD5 d76c8c4ae10c4f36b772b86255f728ba matches core01; SECURITY INVOKER, search_path public/auth/extensions, authenticated/service_role EXECUTE and anon denied match selected launch-linter hardening. Fresh ledger read remains279/latest20260904222450. No production writes; no full parity or runtime/database binding proof.
+
+2026-09-09 — RBAC prefix fix 399271d4: all four source-confirmed review findings corrected locally; prefix selection, group/status regression, provenance, 29 accounting tests and integrity589/493 pass. Scoped re-review and hostedPG17 pending; no production write or phase closure.

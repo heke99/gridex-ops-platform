@@ -14,6 +14,8 @@ COMMANDS = (
     ('python3', 'scripts/canonical-auth-invitation-chain-selftest.py'),
     ('python3', 'scripts/canonical-membership-actor-fk-selftest.py'),
     ('python3', 'scripts/canonical-rbac-tenant-selftest.py'),
+    ('python3', 'scripts/canonical-rbac-prefix-selection-selftest.py'),
+    ('python3', 'scripts/canonical-rbac-prefix-selftest.py'),
 )
 
 def main():

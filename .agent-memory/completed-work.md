@@ -664,3 +664,7 @@ No phase closed or production writes. Next: continue unclassified invitation,
 direct-account and governance effect reconstruction, then authoritative complete
 replay/schema/types and ledger/live parity. Actor FK repair is scoped evidence,
 not complete classification of either historical source. PR #310 updated.
+
+## 2026-09-08 — isolated RBAC characterization verified
+
+Published d32a3457983f36b159f5180e8c5ac4fc9516842e, OPS34227210022 auth job102064145147 on PostgreSQL17.11: all seven commands PASS, including three complete RBAC originals twice, missing-view prerequisites and invalid-environment rollback. Separate review fixed missing profile status before publication; integrated review approved. This receipt closes no masterplan phase and proves neither full replay nor production parity.

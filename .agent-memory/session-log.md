@@ -861,3 +861,16 @@ tail 20260907121951; replay job 101969998208 FAIL, with full-effects accounting
 still unresolved. Six historical status files preserved byte-for-byte; one
 authoritative current status established. No production writes, migration
 selection changes or phase closure. Scoped tooling/fixture evidence only.
+
+## 2026-09-08 — RBAC characterization, code d32a3457
+
+OPS34227210022: auth102064145147 PASS on PG17.11, seven fixed commands;
+three complete RBAC originals twice, expected missing-view scenario and invalid
+CHECK transaction rollback PASS. Ediel102064144786 and quality102064145173 PASS.
+Verify102064144999 FAIL at generated-types tail20260907121951;
+clean replay102064145219 FAIL, global unresolved77 unchanged. Review corrected
+missing user_status prerequisite before publication; final review clean. Exact
+published/reviewed tree b3e4de5bccd3b1472ad9c23888f844307c60e135. No production
+writes or phase closure. Next: actual canonical-prefix restoration/effect review.
+
+2026-09-09 — RBAC prefix fix 399271d4: all four source-confirmed review findings corrected locally; prefix selection, group/status regression, provenance, 29 accounting tests and integrity589/493 pass. Scoped re-review and hostedPG17 pending; no production write or phase closure.

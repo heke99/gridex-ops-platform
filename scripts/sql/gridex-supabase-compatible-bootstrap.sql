@@ -114,6 +114,8 @@ create table if not exists auth.users (
   updated_at timestamptz,
   phone text default null unique,
   phone_confirmed_at timestamptz,
+  confirmed_at timestamptz generated always as
+    (least(email_confirmed_at, phone_confirmed_at)) stored,
   banned_until timestamptz,
   deleted_at timestamptz,
   is_anonymous boolean not null default false

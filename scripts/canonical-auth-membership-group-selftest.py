@@ -13,6 +13,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / 'scripts/canonical-auth-membership-group.py'
 RBAC_FIXTURE = ROOT / 'scripts/canonical-rbac-tenant-selftest.py'
+RBAC_PREFIX_FIXTURE = ROOT / 'scripts/canonical-rbac-prefix-selftest.py'
 COMMANDS = [
     ['python3', 'scripts/canonical-auth-email-selftest.py'],
     ['python3', 'scripts/canonical-poa-request-selftest.py', '--selection-only'],
@@ -21,6 +22,8 @@ COMMANDS = [
     ['python3', 'scripts/canonical-auth-invitation-chain-selftest.py'],
     ['python3', 'scripts/canonical-membership-actor-fk-selftest.py'],
     ['python3', 'scripts/canonical-rbac-tenant-selftest.py'],
+    ['python3', 'scripts/canonical-rbac-prefix-selection-selftest.py'],
+    ['python3', 'scripts/canonical-rbac-prefix-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -54,6 +57,16 @@ def main():
     assert emitted.stdout.count(user_status) == 1
     assert emitted.stdout.index(user_status) < emitted.stdout.index(profile_seed)
 
+    prefix = run('python3', str(RBAC_PREFIX_FIXTURE), '--emit')
+    assert prefix.returncode == 0, prefix.stderr
+    assert prefix.stdout.count('-- RBAC_MANAGED_BOOTSTRAP_BEGIN') == 1
+    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 27
+    assert prefix.stdout.count('-- RBAC_SOURCE_FILE_BEGIN ') == 6
+    assert prefix.stdout.count('-- RBAC_FINAL_HELPER_BEGIN ') == 1
+    assert prefix.stdout.rindex('-- RBAC_FINAL_HELPER_BEGIN ') > prefix.stdout.rindex('-- RBAC_SOURCE_FILE_BEGIN ')
+    assert 'RBAC_POLICY_TARGETS_PRESENT=25' in prefix.stdout
+    assert 'security invoker' in prefix.stdout
+
     dry = run('python3', str(RUNNER), '--dry-run')
     assert dry.returncode == 0, dry.stderr
     assert dry.stdout.splitlines() == [' '.join(command) for command in COMMANDS], dry.stdout
@@ -79,7 +92,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 7, observed
+        assert len(observed) == len(COMMANDS) == 9, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 
@@ -110,7 +123,7 @@ def main():
     state_flat = ' '.join(state.split())
     counts = account['counts']
     group_counts = Counter(item['classification'] for item in group['inputs'])
-    accounting_summary = (f"Current accounting is {account['totalMigrations']} inputs: "
+    accounting_summary = (f"Working-tree accounting is {account['totalMigrations']} inputs: "
         f"{counts['FULL_FILE_SELECTED']} `FULL_FILE_SELECTED`, {counts['SUBSTITUTED']} `SUBSTITUTED`, "
         f"{counts['UNCLASSIFIED']} `UNCLASSIFIED`, and {counts['EXPLICITLY_EXCLUDED']} `EXPLICITLY_EXCLUDED`.")
     group_summary = (f"The focused group contains {len(group['inputs'])} inputs: "
