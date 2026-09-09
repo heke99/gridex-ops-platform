@@ -47,16 +47,16 @@ table to a handwritten delete list. Preserve protected historical information
 under the existing approved retention contract and report any unresolved policy
 choice explicitly. This audit entry does not assert a completed remediation.
 
-## Current prerequisite example
+## Prerequisite example — scope decisions
 
-Published fac58fae reconstructs the role/permission unique pair and intended
-company-invitation status index before SaaS source execution. Its isolated PG17
-checks passed. Corrected identity evidence supports the implemented mandatory
-role/permission-reference repair cb49b468, which has passed separate static
-review and awaits hosted SQL execution. This batch preserves both existing FK
+The role/permission unique pair and intended company-invitation status index
+must be established before SaaS source execution. Corrected identity evidence
+requires mandatory role/permission references while preserving both existing FK
 actions and OIDs. The intended parent lifecycle and any FK-action reconciliation
-remain explicitly open; no CASCADE reconstruction is included. This does not
-establish role_permissions or systemwide parity.
+remain separate required work; no CASCADE reconstruction belongs to the narrowed
+reference repair. This scoped repair cannot establish role_permissions or
+systemwide parity. Current implementation and run outcomes belong only in
+.agent-memory/current-state.md and the durable verification receipts.
 
 The masterplan sections 69, 83 and 120 remain binding: customer lifecycle must
 be traced end to end, critical invariants belong in the database, and schema/

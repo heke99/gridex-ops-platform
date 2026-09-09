@@ -181,14 +181,18 @@ raise exception 'FAIL: {label}'; end $$;\n"""
 
 
 def enforcement():
-    sql = ''
+    # The authentic owner copy adds a second role with the same permission.
+    # Probe one known unique pair, so a multirow UPDATE cannot mask an FK
+    # rejection with a duplicate-pair error. Assert the target is not vacuous.
+    target = f"role_id='{R1}' and permission_id='{P1}'"
+    sql = f"select test_assert((select count(*)=1 from role_permissions where {target}),'one existing grant for identity enforcement probes');\n"
     for column in ('role_id','permission_id'):
         for value, code in [('null','23502'), (f"'{UNKNOWN}'",'23503')]:
-            role = value if column == 'role_id' else f"'{R2}'"
-            permission = value if column == 'permission_id' else f"'{P2}'"
+            role = value if column == 'role_id' else f"'{R1}'"
+            permission = value if column == 'permission_id' else f"'{P1}'"
             sql += expect_error(f'insert into role_permissions(role_id,permission_id) values ({role},{permission});',code,'mandatory valid ID insert')
-            sql += expect_error(f'update role_permissions set {column}={value};',code,'mandatory valid ID update')
-    sql += expect_error('insert into role_permissions(role_id,permission_id) select role_id,permission_id from role_permissions limit 1;','23505','unique pair survives')
+            sql += expect_error(f'update role_permissions set {column}={value} where {target};',code,'mandatory valid ID update')
+    sql += expect_error(f'insert into role_permissions(role_id,permission_id) select role_id,permission_id from role_permissions where {target};','23505','unique pair survives')
     # Roll back a valid ID-only insert; preserve initial fixture rows for repeat checks.
     sql += f"begin; insert into role_permissions(role_id,permission_id) values ('{R2}','{P2}'); select test_assert(exists(select 1 from role_permissions where role_id='{R2}' and permission_id='{P2}' and role_key is null and permission_key is null),'valid ID-only grant accepted'); rollback;\n"
     return sql

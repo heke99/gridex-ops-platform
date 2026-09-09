@@ -6,8 +6,8 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "fac58faee7db406a556c3bde44978e972545964b",
+    "published_baseline": "4d851ee86b500dd0aba294246cda7204ec2612c0",
     "last_isolated_pg17_code": "fac58faee7db406a556c3bde44978e972545964b",
-    "unpublished_implementation": "cb49b468"
+    "unpublished_implementation": "3f861459"
   }
 }
