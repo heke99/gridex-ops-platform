@@ -1,6 +1,10 @@
 # RBAC canonical restoration
 
-Status: IN_PROGRESS. Published baseline d32a3457983f36b159f5180e8c5ac4fc9516842e.
+Status: Bounded prefix task VERIFIED on published01e31ed89255ba829e24a7bd8ce324d36c475add.
+Hosted OPS34344515597 auth102442823593 passed all nine commands after two fix
+rounds and separate/integrated reviews. Full replay, later surviving effects,
+generated artifacts, ledger/live parity and masterplan phases remain open.
+Historical starting baseline: d32a3457983f36b159f5180e8c5ac4fc9516842e.
 The isolated reduced RBAC characterization passed PG17.11 in OPS 34227210022,
 auth102064145147. This plan advances actual canonical selection and prefix proof.
 

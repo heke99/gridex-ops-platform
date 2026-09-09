@@ -50,7 +50,7 @@ def reduced_seed():
     valid_company = "('20000000-0000-0000-0000-000000000002','Synthetic Two','2222222222','onboarding');"
     marker = 'create temporary table memberships_before as select * from company_memberships;'
     extra = """insert into user_roles(id,user_id,company_id,role_id,status,is_active) values
- ('70000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','active',false);
+ ('70000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'active',false);
 """
     assert marker in sql and invalid_company in sql
     return sql.replace(invalid_company, valid_company).replace(marker, extra + marker)
@@ -79,7 +79,10 @@ select test_assert((select count(*)=2 and bool_and(atttypid='timestamptz'::regty
 
 
 def prefix_baseline():
-    return """create temporary table rbac_prefix_baseline as
+    return """create temporary table prefix_roles_before as select * from roles;
+create temporary table prefix_permissions_before as select * from permissions;
+create temporary table prefix_grants_before as select * from role_permissions;
+create temporary table rbac_prefix_baseline as
 select
   (select count(*) from companies) as company_count,
   (select count(*) from companies where status in ('paused','suspended','archived','pending_deletion')) as company_blocked_count,
@@ -120,7 +123,11 @@ select test_assert(not exists(select * from user_roles_before except select * fr
 select test_assert(not exists((select * from roles_before except select * from roles) union all (select * from roles except select * from roles_before)),'role reference data preserved exactly');
 select test_assert(not exists((select * from permissions_before except select * from permissions) union all (select * from permissions except select * from permissions_before)),'permission reference data preserved exactly');
 select test_assert((select count(*)=6 from user_roles),'only two missing company-admin roles added');
-select test_assert((select count(*)=4 from role_permissions),'hard boundary removes only two platform-wide grants');
+select test_assert(not exists(select * from prefix_roles_before except all select * from roles),'authentic prefix roles preserved');
+select test_assert(not exists(select * from prefix_permissions_before except all select * from permissions),'authentic prefix permissions preserved');
+select test_assert(not exists(select * from prefix_grants_before except all select * from role_permissions),'authentic prefix grant multiset preserved');
+select test_assert((select count(*) from role_permissions)=(select count(*)+6-2 from prefix_grants_before),'baseline plus six fixture grants minus exactly two cleanup rows');
+select test_assert(not exists((select * from role_permissions_before where id not in ('60000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000003') except all select * from role_permissions) union all (select * from role_permissions except all select * from role_permissions_before where id not in ('60000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000003'))),'exact post-seed grant multiset minus exact cleanup IDs');
 select test_assert((select count(*)=1 from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key='company_admin' and p.key='customers.read'),'unrelated company permission preserved');
 select test_assert((select string_agg(column_name || ':' || data_type,',' order by ordinal_position)='area:text,total_rows:bigint,blocked_rows:bigint' from information_schema.columns where table_schema='public' and table_name='gridex_rbac_tenant_audit_summary'),'RBAC audit view full shape');
 select test_assert((select total_rows=b.company_count + 2 and blocked_rows=b.company_blocked_count from gridex_rbac_tenant_audit_summary cross join rbac_prefix_baseline b where area='companies'),'RBAC company audit effects derive from the real prefix baseline');
@@ -136,7 +143,9 @@ create temporary table role_permissions_after_first as select * from role_permis
 def final_checks():
     return """select test_assert(not exists((select * from memberships_after_first except select * from company_memberships) union all (select * from company_memberships except select * from memberships_after_first)),'second replay preserves membership effects');
 select test_assert(not exists((select * from user_roles_after_first except select * from user_roles) union all (select * from user_roles except select * from user_roles_after_first)),'second replay preserves user-role effects');
-select test_assert(not exists((select * from role_permissions_after_first except select * from role_permissions) union all (select * from role_permissions except select * from role_permissions_after_first)),'second replay preserves permission effects');
+select test_assert(not exists((select * from role_permissions_after_first except all select * from role_permissions) union all (select * from role_permissions except all select * from role_permissions_after_first)),'second replay preserves permission effects');
+select test_assert(not exists((select * from roles_before except all select * from roles) union all (select * from roles except all select * from roles_before)),'both RBAC cycles preserve exact role reference records');
+select test_assert(not exists((select * from permissions_before except all select * from permissions) union all (select * from permissions except all select * from permissions_before)),'both RBAC cycles preserve exact permission reference records');
 select test_assert((select not prosecdef and provolatile='s' and proconfig @> array['search_path=public, auth, extensions'] from pg_proc where oid='gridex_user_has_role_key(text)'::regprocedure),'final helper preserves selected invoker and search-path hardening');
 select test_assert(not has_function_privilege('anon','public.gridex_user_has_role_key(text)','execute') and has_function_privilege('authenticated','public.gridex_user_has_role_key(text)','execute') and has_function_privilege('service_role','public.gridex_user_has_role_key(text)','execute'),'final helper preserves selected execution grants');
 set request.jwt.claim.sub='10000000-0000-0000-0000-000000000005';
@@ -157,7 +166,11 @@ def main_sql():
               + '\n-- Apply the bootstrap database default to this already-open test session.\n'
                 'set search_path = "$user", public, extensions;']
     chunks.extend(f'-- RBAC_PREFIX_FILE_BEGIN {relative}\n{read("supabase/" + relative)}' for relative in prefix)
-    chunks.extend((catalog_prerequisites(), prefix_baseline(), reduced_seed()))
+    chunks.extend((catalog_prerequisites(), prefix_baseline(), reduced_seed(), '''create temporary table role_permissions_before as select * from role_permissions;
+select test_assert(not exists(select * from prefix_roles_before except all select * from roles),'seeding preserves authentic roles');
+select test_assert(not exists(select * from prefix_permissions_before except all select * from permissions),'seeding preserves authentic permissions');
+select test_assert(not exists(select * from prefix_grants_before except all select * from role_permissions),'seeding preserves authentic grants');
+select test_assert((select count(*) from role_permissions)=(select count(*)+6 from prefix_grants_before),'seeding adds exactly six grants');'''))
     for cycle in range(2):
         for relative in SOURCES:
             chunks.append(f'-- RBAC_SOURCE_FILE_BEGIN {relative}\n{read("supabase/" + relative)}')

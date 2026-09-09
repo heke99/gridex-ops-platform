@@ -668,3 +668,5 @@ not complete classification of either historical source. PR #310 updated.
 ## 2026-09-08 — isolated RBAC characterization verified
 
 Published d32a3457983f36b159f5180e8c5ac4fc9516842e, OPS34227210022 auth job102064145147 on PostgreSQL17.11: all seven commands PASS, including three complete RBAC originals twice, missing-view prerequisites and invalid-environment rollback. Separate review fixed missing profile status before publication; integrated review approved. This receipt closes no masterplan phase and proves neither full replay nor production parity.
+
+2026-09-09 — Bounded RBAC prefix VERIFIED on published01e31ed8: OPS34344515597 auth102442823593 all9commands PASS, including actual selected prefix, repeated complete sources and preserved final helper. Ediel102442823708 PASS. Full replay/types/ledger/live parity and phase closure remain open. Next source20260519_saas_ui_tenant_admin stays SUBSTITUTED while statement/effect review starts.

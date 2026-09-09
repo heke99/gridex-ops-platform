@@ -44,9 +44,16 @@ def main():
     assert order.index(AUTH_NORMALIZE) == order.index(AUTH_SOURCE) + 1
     assert order.index(AUTH_TEMPLATE) == order.index(AUTH_NORMALIZE) + 1
     assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_TEMPLATE) + 1
+    assert order[boundary - 1] == PROFILE_SOURCE
+    assert order[boundary - 2] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
+    assert order[boundary - 3] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
+    assert order[boundary - 4] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
+    assert order.count(PROFILE_SOURCE) == additions['foundation'].count(PROFILE_SOURCE) == 1
     profile_meta = additions['derivedBootstrap'][PROFILE_PREREQUISITE]
     assert profile_meta['source'] == PROFILE_SOURCE
-    assert profile_meta.get('preserveSourceReplay', False) is False
+    assert profile_meta['artifactSha256'] == 'ac6341a482ef9b9a912522a8874f6bcbd8df73ea6e4a4896d4d1d6d589830e23'
+    assert profile_meta['artifactSha256'] == hashlib.sha256((ROOT / 'supabase' / PROFILE_PREREQUISITE).read_bytes()).hexdigest()
+    assert profile_meta.get('preserveSourceReplay') is True
     derived = additions['derivedBootstrap'][DERIVED]
     assert derived['source'] == SOURCES[0]
     assert derived.get('preserveSourceReplay') is True
@@ -112,10 +119,40 @@ def main():
     for source in SOURCES:
         assert by_path[source]['classification'] == 'FULL_FILE_SELECTED', by_path[source]
     assert by_path[f'migrations/{FINAL.name}']['classification'] == 'FULL_FILE_SELECTED'
-    assert by_path[PROFILE_SOURCE]['classification'] == 'SUBSTITUTED'
+    assert by_path[PROFILE_SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     timestamped = sorted(path.name for path in (ROOT / 'supabase/migrations').iterdir()
                          if path.name[:14].isdigit() and path.suffix == '.sql')
-    assert timestamped[-1] == FINAL.name, timestamped[-3:]
+    assert FINAL.name in timestamped
+    assert 'gridex_user_has_role_key' not in (ROOT / 'supabase/migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql').read_text()
+
+    repair = 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
+    index_repair = 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
+    assert order.count(index_repair) == additions['foundation'].count(index_repair) == 1
+    assert by_path[index_repair]['classification'] == 'FULL_FILE_SELECTED'
+    assert manifest['files'][Path(index_repair).name] == hashlib.sha256((ROOT / 'supabase' / index_repair).read_bytes()).hexdigest()
+    assert order.count(repair) == additions['foundation'].count(repair) == 1
+    assert by_path[repair]['classification'] == 'FULL_FILE_SELECTED'
+    assert manifest['files'][Path(repair).name] == hashlib.sha256((ROOT / 'supabase' / repair).read_bytes()).hexdigest()
+    contact = additions['derivedBootstrap']['bootstrap/20260519_companies_primary_contact_email_foundation.sql']
+    assert contact['source'] == 'migrations/20260519_final_saas_hardening.sql'
+    assert contact['artifactSha256'] == '9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23'
+    saas = subprocess.run(['python3', 'scripts/canonical-saas-tenant-selftest.py', '--emit'], cwd=ROOT, text=True, capture_output=True, check=False)
+    assert saas.returncode == 0, saas.stderr
+    observed_saas = [line.removeprefix('-- SAAS_PREFIX_FILE_BEGIN ') for line in saas.stdout.splitlines() if line.startswith('-- SAAS_PREFIX_FILE_BEGIN ')]
+    assert observed_saas == order[:order.index(PROFILE_SOURCE)]
+    assert saas.stdout.index('-- SAAS_PREFIX_FILE_BEGIN ' + repair) < saas.stdout.index('-- SAAS_SOURCE_BEGIN')
+    canonical = saas.stdout.split('-- REDUCED BRANCH ONLY:', 1)[0]
+    assert canonical.count((ROOT / 'supabase' / PROFILE_SOURCE).read_text()) == 4
+    assert 'canonical second SaaS exact grant multiset stable' in canonical
+    assert 'real cleanup removes only forbidden legacy admin grant' in canonical
+    assert canonical.index('-- SAAS_REAL_HARD_PLATFORM_CLEANUP') > canonical.rindex('-- SAAS_SOURCE_BEGIN')
+    for case in ('is_system_present','is_system_absent','missing_guarded','roles_only','permissions_only','missing_role_permissions','legacy_missing_unique','legacy_index_collision'):
+        assert '-- REDUCED BRANCH ONLY: ' + case + ';' in saas.stdout
+    for case in ('missing','matching','dirty','conflicting','conflicting_index'):
+        assert '-- REDUCED RECONSTRUCTION CASE: ' + case in saas.stdout
+
+    for case in ('missing','matching','legacy','conflicting','replacement_failure'):
+        assert '-- REDUCED INDEX RECONSTRUCTION CASE: ' + case in saas.stdout
 
     group = (ROOT / 'scripts/canonical-auth-membership-group.py').read_text()
     assert "('python3', 'scripts/canonical-rbac-prefix-selection-selftest.py')" in group

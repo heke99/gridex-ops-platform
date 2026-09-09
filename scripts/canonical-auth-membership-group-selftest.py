@@ -24,6 +24,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-rbac-tenant-selftest.py'],
     ['python3', 'scripts/canonical-rbac-prefix-selection-selftest.py'],
     ['python3', 'scripts/canonical-rbac-prefix-selftest.py'],
+    ['python3', 'scripts/canonical-saas-tenant-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -60,7 +61,7 @@ def main():
     prefix = run('python3', str(RBAC_PREFIX_FIXTURE), '--emit')
     assert prefix.returncode == 0, prefix.stderr
     assert prefix.stdout.count('-- RBAC_MANAGED_BOOTSTRAP_BEGIN') == 1
-    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 27
+    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 30
     assert prefix.stdout.count('-- RBAC_SOURCE_FILE_BEGIN ') == 6
     assert prefix.stdout.count('-- RBAC_FINAL_HELPER_BEGIN ') == 1
     assert prefix.stdout.rindex('-- RBAC_FINAL_HELPER_BEGIN ') > prefix.stdout.rindex('-- RBAC_SOURCE_FILE_BEGIN ')
@@ -92,7 +93,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 9, observed
+        assert len(observed) == len(COMMANDS) == 10, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 

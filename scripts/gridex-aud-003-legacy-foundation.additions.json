@@ -19,6 +19,9 @@
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
     "migrations/20260526_batch_3c_3d_fullmakt_data_requests.sql",
+    "migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql",
+    "migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql",
+    "migrations/20260519_saas_ui_tenant_admin.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
     "migrations/20260520_batch_6e_fix_rbac_backfill_security.sql",
@@ -405,7 +408,8 @@
     "bootstrap/20260519_user_profiles_active_company_foundation.sql": {
       "source": "migrations/20260519_saas_ui_tenant_admin.sql",
       "artifactSha256": "ac6341a482ef9b9a912522a8874f6bcbd8df73ea6e4a4896d4d1d6d589830e23",
-      "purpose": "Restore only the source-defined user_profiles active_company_id foreign key and index required for complete Batch 6E profile/membership attribution; no profile, membership, company or role rows are seeded or rewritten."
+      "purpose": "Restore only the source-defined user_profiles active_company_id foreign key and index required for complete Batch 6E profile/membership attribution; no profile, membership, company or role rows are seeded or rewritten.",
+      "preserveSourceReplay": true
     }
   }
 }

@@ -5,25 +5,28 @@ Status: IN_PROGRESS
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. The reviewed RBAC restoration batch is published
-at `8750a5b94b8dade5da2748d71268f4178a077653`; its tree exactly matches the
-reviewed local tree. Hosted verification found an additional invitation-order defect. No masterplan phase is closed.
+at `01e31ed89255ba829e24a7bd8ce324d36c475add`; its tree exactly matches the
+reviewed local tree. Hosted verification passed all nine auth/RBAC commands after the invitation-order correction. No masterplan phase is closed. System integrity and customer deletion gates are
+[explicitly recorded](../quality/audits/SYSTEM_DATA_INTEGRITY_ACCEPTANCE_2026-09-09.md).
 
-Working-tree accounting is 589 inputs: 511 `FULL_FILE_SELECTED`, 28 `SUBSTITUTED`,
-46 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`. The focused group contains 335
-inputs: 269 selected, 25 substituted, 37 unclassified, and 4 excluded.
-The initial four review findings were corrected in local399271d4 and passed
-scoped/integrated review before publication8750a5b9. Local prefix/selection,
-nine-command runner regression, 29 accounting tests and migration integrity
-(589 inputs/493 version groups) pass. Hosted OPS34343823950 auth102440584698
-passed auth and POA SQL, then failed invitation --selection-only at line106: the
-active-company prerequisite separates the template source from its hardfix
-predecessor. Fix round2 is in progress. The actual new RBAC prefix has not run.
+Working-tree accounting is 591 inputs: 514 `FULL_FILE_SELECTED`, 27 `SUBSTITUTED`, 46 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`. The focused group contains 337 inputs: 272 selected, 24 substituted, 37 unclassified, and 4 excluded.
+The four initial findings and hosted invitation-adjacency defect are corrected,
+separately reviewed and published. OPS34344515597 auth102442823593 PASS includes
+all nine commands, actual selected prefix, repeated complete RBAC sources and
+preserved final helper. That published baseline passed accounting29 and
+integrity589/493; these are not test receipts for the pending591-input batch.
+This verifies the bounded RBAC prefix, not later surviving effects or full parity.
 Published d32a3457 had 588 inputs and 77 unresolved.
 Selection and lexical hints do not prove execution or surviving effects.
 
 Verification boundaries:
 
-- Latest hosted restoration batch8750a5b9: OPS34343823950 Ediel102440584673
+- Current01e31ed8: OPS34344515597 auth102442823593 and Ediel102442823708 PASS;
+  quality102442823418 PASS. Clean102442823777 FAILED before replay;
+  verify102442823751 FAILED generated-types tail20260908120000. The failed8750 receipt
+  below is historical and its invitation adjacency defect is fixed.
+
+- Historical hosted restoration batch8750a5b9: OPS34343823950 Ediel102440584673
   and quality102440584712 PASS. Auth102440584698 FAILED at invitation selection
   adjacency before new RBAC prefix execution. Verify102440584657 FAILED generated
   types at migration tail20260908120000. Clean102440584460 FAILED before replay.
@@ -55,12 +58,24 @@ Verification boundaries:
   A 2026-09-08 catalog-only read also confirms both RBAC billing/audit views
   exist with `security_invoker=true`; later hardening must remain in scope.
 
-Next active work: correct the hosted invitation adjacency failure without
-weakening existing gates, add its database-free selection check, scoped review
-and publish the coherent CI fix. Then rerun the nine-command hosted PG17 group.
+Next active work: implement the separately reviewed complete
+20260519_saas_ui_tenant_admin.sql restoration, data-driven reference seeds and
+first/repeat-effect characterization. Audit07075c8b confirmed the old prefix lacks semantic pair uniqueness. Fresh
+live catalog proves the intended unique constraint exists; the user-corrected
+Task2 now reconstructs it before SaaS and requires stable canonical repeat
+effects. It also reconstructs the source-intended/live3-column invitation
+status index, replacing only the confirmed older2-column definition. The old duplicate-endpoint expectation is superseded. Additional live
+NOT NULL and FK delete-action differences remain explicit parity work. Follow
+[the SaaS restoration plan](../quality/audits/SAAS_TENANT_SOURCE_RESTORATION_PLAN_2026-09-09.md).
+Published01e31ed8 still classifies this source SUBSTITUTED. Local unpublished
+work selects it and the uniqueness/invitation-index reconstructions; ten-command integration
+and its new SQL harness are committed locally as a1d807e3. Selection/emit,
+ten-command runner/status, accounting29, integrity591/495, provenance and
+immutable-history checks pass. Separate/integrated review and hosted execution
+are pending; these edits are not published.
 Full replay, generated artifacts and production parity remain unverified.
-The prefix uses 27 selected files through its membership boundary and the
-three restored originals; the narrow final helper migration retains later hardening. Follow
+The verified published prefix uses 27 files through its membership boundary;
+the unpublished SaaS/integrity prefix has30, followed by the same three originals; the narrow final helper migration retains later hardening. Follow
 [the restoration plan](../quality/audits/RBAC_CANONICAL_RESTORATION_PLAN_2026-09-08.md). The reduced characterization used
 8 of 29 dynamic policy targets; actual foundation candidates include 25.
 A new restoration batch must prove its real prerequisites, not reuse the reduced
@@ -84,14 +99,14 @@ retain those later properties and grants after restoring the function body.
 This scoped observation is not full live parity or runtime-to-database binding.
 
 
-Internal work remains: 62 unresolved active-group candidates plus cross-group
+Internal work remains: 61 unresolved active-group candidates plus cross-group
 work, then authoritative replay, generated artifacts and bidirectional ledger/live
 parity. The previous connection dependency is resolved; no current external blocker is
 established. Full replay and live parity remain internal verification work. Publish once per reviewed batch.
 Do not publish per file or subtask. No automatic replay decisions, gate weakening or phase
 closure from isolated tests. The completed characterization batch changed no production database, migration
-selection or generated schema/types. The next restoration batch may change
-reviewed replay selection; this alone cannot establish surviving effects or parity.
+selection or generated schema/types. The current unpublished SaaS batch changes
+replay selection; this alone cannot establish surviving effects or parity.
 
 The published tooling contract remains scoped to that batch: "For this
 workflow-tooling batch, no production mutation is authorized or performed."

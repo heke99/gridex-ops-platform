@@ -435,7 +435,9 @@
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20260906081839_canonical_company_invitation_runtime_reconstruction.sql": "d30a89a4fa793cddf3cf4560e1bb40bb2831505e911bd630c1409117e7f877f8",
     "20260907121951_canonical_membership_actor_fk_reconstruction.sql": "530dec49b180ba741340572e8117f7c47ac8ef60c6112a2b88a8bb195e90d27b",
-    "20260908120000_preserve_gridex_user_has_role_key.sql": "94d48c4128f672be6bd91da090b03e0b4f05e8523af75406945d063e970a48e7"
+    "20260908120000_preserve_gridex_user_has_role_key.sql": "94d48c4128f672be6bd91da090b03e0b4f05e8523af75406945d063e970a48e7",
+    "20260909120000_canonical_role_permission_uniqueness_reconstruction.sql": "b86f056fb868a3642eb6663068bc1cb4b86d03d430e6a1f339687868ec2773a6",
+    "20260909120100_canonical_invitation_status_index_reconstruction.sql": "1ab9a6bf09953d87a898235e4425b85739286e2c3bcb15987a0d75770c6c3705"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
