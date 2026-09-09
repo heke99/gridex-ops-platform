@@ -25,6 +25,7 @@
     "migrations/20260519_saas_ui_tenant_admin.sql",
     "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
     "migrations/20260519_operations_core_saas_sync.sql",
+    "migrations/20260909123000_canonical_invitation_token_prerequisite.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
     "migrations/20260520_batch_6e_fix_rbac_backfill_security.sql",

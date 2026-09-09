@@ -691,3 +691,13 @@ Follow-up: intended Supabase project access restored. Catalog-only role helper b
 2026-09-09 Operations implementation66659b22 static PASS: exact source selection/emit, actual RBAC prefix33, fixed runner12/status, clean-replay14/accounting29 selftests, integrity592/496, provenance77/49/20/4/499. Global517/26/45/4; focused274/23/37/4. SQL NOT EXECUTED; separate review pending, then integrated review and hosted PG17. No runtime/phase closure.
 
 2026-09-09 Task4 separate review approved66659b22, no findings; SQL NOT EXECUTED. Root status/runner covering test PASS after current-state update. Integrated review and hosted verification pending.
+
+2026-09-09 Hostedaad37fc1 OPS34369156972: auth102525577327 PASS12 commands/61 identity cases and complete operations actual31-prefix,19 targets/28 indexes/journal/row preservation/repeat, late42703, real55P03, five reduced lanes; Ediel102525578011 PASS. Verify102525577998 FAIL types tail20260909120200; clean102525577832 FAIL beforefullreplay; quality102525577677 build pending. No phase closure.
+
+2026-09-09 Final quality102525577677 PASS at aad37fc1:195 test files/1162 tests, app build, release-quality and bundle gates. No measured production-performance claim; verify/types and full-replay gates remain open.
+
+2026-09-09 Other aad37fc1 CI: tenant-integrity34369156960 PASS; browser-public102525578646 PASS4 tests. FullE2E34369156957 smoke10252560080114/15 checks, sole failure generated-types tail20260909120200; PR certificate102526196220 fails on smoke dependency. Full/staging/production certification skipped, not passed. Job logs inspected; no additional runtime claim.
+
+2026-09-09 Task6 implementation20a54995 static PASS: token/operations/governance/RBAC selection+emit, runner13/status, integrity593/497, provenance78/49/20/4/500, replay14/accounting29/group15 selftests.593 inputs518/26/45/4, focused339:275/23/37/4. SQL NOT EXECUTED; independent review pending.
+
+2026-09-09 Task6 fix760f472e: full relation-shape admission repeated under lock; independent scoped re-review confirms finding addressed, no new breakage. Selection RED/GREEN, emit, integrity593/497 and diff checks PASS. All SQL NOT EXECUTED; integrated and hosted gates pending.

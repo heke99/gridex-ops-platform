@@ -70,8 +70,8 @@ def governance():
 def selection():
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
-    assert order[30:33] == [FULL6D, SOURCE, BOUNDARY], order[29:34]
-    assert len(order) == 77 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert order[30:34] == [FULL6D, SOURCE, 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql', BOUNDARY], order[29:34]
+    assert len(order) == 78 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
     assert order[:30][-1] == 'migrations/20260519_saas_ui_tenant_admin.sql'
     assert not any('6d2_' in path for path in order + additions['foundation'])
     manifest = json.loads(read('scripts/migration-history-manifest.json'))
@@ -80,15 +80,15 @@ def selection():
     account_run = subprocess.run(['python3', 'scripts/gridex-replay-input-accounting.py'], cwd=ROOT, text=True, capture_output=True)
     account = json.loads(account_run.stdout)
     assert account_run.returncode == 1 and not account['errors']
-    assert account['totalMigrations'] == 592
-    assert account['counts'] == {'FULL_FILE_SELECTED': 517, 'SUBSTITUTED': 26, 'UNCLASSIFIED': 45, 'EXPLICITLY_EXCLUDED': 4}
+    assert account['totalMigrations'] == 593
+    assert account['counts'] == {'FULL_FILE_SELECTED': 518, 'SUBSTITUTED': 26, 'UNCLASSIFIED': 45, 'EXPLICITLY_EXCLUDED': 4}
     by_path = {item['path']: item for item in account['migrations']}
     assert by_path[SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     group_run = subprocess.run(['python3', 'scripts/gridex-replay-review-groups.py', '--group', 'auth_membership_tenant'], cwd=ROOT, text=True, capture_output=True)
     group = json.loads(group_run.stdout)
-    assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 338
+    assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 339
     counts = {key: sum(item['classification'] == key for item in group['inputs']) for key in account['counts']}
-    assert counts == {'FULL_FILE_SELECTED': 274, 'SUBSTITUTED': 23, 'UNCLASSIFIED': 37, 'EXPLICITLY_EXCLUDED': 4}
+    assert counts == {'FULL_FILE_SELECTED': 275, 'SUBSTITUTED': 23, 'UNCLASSIFIED': 37, 'EXPLICITLY_EXCLUDED': 4}
     assert SOURCE not in {item['path'] for item in group['inputs']}
     return order[:31]
 
@@ -382,7 +382,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.selection_only:
         selection()
-        print('PASS: checksum-pinned operations source selected exactly at entry32; focused group unchanged; SQL NOT EXECUTED')
+        print('PASS: checksum-pinned operations source selected exactly at entry32; token prerequisite follows; SQL NOT EXECUTED')
     elif args.emit:
         emit()
     else:

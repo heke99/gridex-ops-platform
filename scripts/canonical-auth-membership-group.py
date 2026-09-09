@@ -19,6 +19,7 @@ COMMANDS = (
     ('python3', 'scripts/canonical-saas-tenant-selftest.py'),
     ('python3', 'scripts/canonical-governance-selftest.py'),
     ('python3', 'scripts/canonical-operations-sync-selftest.py'),
+    ('python3', 'scripts/invitation_token_prerequisite_selftest.py'),
 )
 
 def main():

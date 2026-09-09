@@ -340,3 +340,83 @@ and a bounded next implementation brief. Separate independent review must assess
 the proposal before any SQL/selector change. Record unresolved internal work
 honestly; no phase/parity/access/deletion closure. Root owns plan/status/receipts;
 the future author owns only the assigned new audit and ignored task report.
+
+### Task 6: Implement the independent invitation-token prerequisite
+
+Prerequisite: Task5 design receives separate approval. Its independent next
+batch is split into this token prerequisite and Task7 import/ownership/seed
+admission; neither task selects I/F/D/6D2. This split does not drop any gate.
+Use GOVERNANCE_IMPORT_PREREQUISITE_CONTRACT_2026-09-09.md:151–188 as the binding
+token contract, including the empty/compatibility/final distinction.
+
+Add a new transactional forward migration
+migrations/20260909123000_canonical_invitation_token_prerequisite.sql and focused
+scripts/invitation_token_prerequisite_selftest.py. Register the new source using
+the existing canonical provenance/manifest mechanism; append its new checksum
+without changing existing historical entries or bytes. Place it after operations
+entry32 and before role-key foundation: new prerequisite33, role-key34,
+foundation78, actual RBAC prefix34. Preserve the first32 existing files. Keep
+the new source selected once, before any future F; do not append it after final
+hardening or select token fragments from F. Add fixed runner command13 after12.
+
+Before mutation, require the correct ordinary public invitation relation and
+its stable UUID identity. Under a relation lock in the same transaction, validate
+token-column/default/index/duplicate admission. Use bounded5s lock_timeout and
+30s statement_timeout, with no secret/token values in errors. An absent token on
+an empty relation gets source-defined UUID NOT NULL DEFAULT gen_random_uuid().
+An absent token on a nonempty relation gets only a nullable UUID column without
+default/backfill in the explicitly characterized compatibility path. Existing
+UUID values, NULLs, nullability and admitted defaults are preserved; no casts,
+copies from invitation_token/accept_token_hash, generated historical tokens or
+new acceptance/delivery intent. Reject wrong types, duplicate nonnull tokens and
+incompatible defaults before committing any change. Existing NULLs/nullable shape
+are compatibility only and must remain an explicit failed final-readiness gate.
+
+Validate any existing company_invitations_token_key as the correct public
+relation's unique B-tree, exact single token key, ordinary NULL-distinct/immediate
+semantics, default key ordering/operator class, no predicate/expression/INCLUDE
+keys, valid/ready/live. Reject schema-name collisions and incompatible objects;
+do not drop/replace them. Missing index is admitted for the real later source
+to create. Preserve all existing row IDs/values, table/constraint/index OIDs,
+FK actions, policies/grants/triggers and unrelated fields. Do not mutate existing
+nullability/defaults merely to normalize catalog rendering.
+
+Test on the existing disposable localhost55440 managed PG17 surface, with the
+actual first32 selected files before the complete new prerequisite. Use two
+synthetic companies and representative invitation/actor references. Empty and
+existing-row lanes must verify exact admission, preservation, repeat and final
+readiness distinction. Include the complete existing later invitation runtime
+source in a separately labelled compatibility lane to prove that ADD IF NOT
+EXISTS does not repair nullable tokens; this is not the intervening full replay.
+F's future index/default effects, if characterized, must be explicitly reduced
+source-derived statements, never labelled complete F execution or selected as
+source substitutes. All earlier source/helper/identity checks must survive.
+
+Require exact dirty-state failure diagnostics and transaction rollback for wrong
+relation/type/default/index, duplicate tokens and name collisions. Include
+nullable/all-nonnull and nullable/NULL values, correct existing index/absent index,
+no leaked credential values, source repeat, forced rollback and real finite lock
+contention with deterministic release. Assert the emptiness/admission check cannot
+race a concurrent writer; use actual locks, not fake timeout exceptions. No
+destructive production or adversarial access test. Preserve source FK actions;
+do not expand this task into invitation business-flow or customer-deletion repair.
+
+Run only targeted local selection/emit, accounting/provenance/integrity and fixed
+runner/status checks. Notify root of actual global/focused counts before the
+status gate; do not infer group membership from dependency substrings. New SQL
+remains NOT EXECUTED until separate and integrated review then one hosted batch.
+No generated artifacts, production SQL, deployment or merge. Author owns only
+necessary new migration/fixture and registration/runner/selection files plus
+ignored task report; root owns audit/plan/status/receipts. Return exact commit,
+targeted evidence and concerns. All final token/runtime/replay/parity gates remain
+open wherever only nullable compatibility has been established.
+
+### Task 7: Establish import ownership and seed admission before source selection
+
+Pending after Task6's bounded verified implementation. Carry forward the complete
+Task5 admission matrix for competing imports, parent/row identity, versions,
+would-change I/F ownership rows, D checks and F seed effects. Specify and review
+the concrete implementation scope before dispatch. Preserve-values admission
+and reduced historical DML characterization are different lanes. I/F/D/6D2
+remain unselected until these gates and exact complete-source order/tests receive
+review. No unresolved retention decision is silently chosen by this task order.
