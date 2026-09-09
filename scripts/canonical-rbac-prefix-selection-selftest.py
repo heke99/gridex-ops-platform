@@ -8,6 +8,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / 'scripts/canonical-rbac-prefix-selftest.py'
 AUTH_SELECTION = ROOT / 'scripts/canonical-auth-email-selftest.py'
+INVITATION_SELECTION = ROOT / 'scripts/canonical-auth-invitation-chain-selftest.py'
 ORDER = ROOT / 'scripts/gridex-aud-003-foundation-order.json'
 ADDITIONS = ROOT / 'scripts/gridex-aud-003-legacy-foundation.additions.json'
 CORE = ROOT / 'supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql'
@@ -23,6 +24,7 @@ PROFILE_PREREQUISITE = 'bootstrap/20260519_user_profiles_active_company_foundati
 PROFILE_SOURCE = 'migrations/20260519_saas_ui_tenant_admin.sql'
 AUTH_SOURCE = 'migrations/20260519_auth_callback_email_reset_sync.sql'
 AUTH_NORMALIZE = 'migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql'
+AUTH_TEMPLATE = 'migrations/20260519_auth_email_templates_invite_reset_sync.sql'
 PROFILE_FOUNDATION = 'bootstrap/20260519_user_profiles_foundation.sql'
 
 
@@ -40,7 +42,8 @@ def main():
     assert all(additions['foundation'].count(source) == 1 for source in SOURCES)
     assert order.index(AUTH_SOURCE) == order.index(PROFILE_FOUNDATION) + 1
     assert order.index(AUTH_NORMALIZE) == order.index(AUTH_SOURCE) + 1
-    assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_NORMALIZE) + 1
+    assert order.index(AUTH_TEMPLATE) == order.index(AUTH_NORMALIZE) + 1
+    assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_TEMPLATE) + 1
     profile_meta = additions['derivedBootstrap'][PROFILE_PREREQUISITE]
     assert profile_meta['source'] == PROFILE_SOURCE
     assert profile_meta.get('preserveSourceReplay', False) is False
@@ -92,6 +95,13 @@ def main():
     assert auth_selection.returncode == 0, auth_selection.stderr
     assert auth_selection.stdout.strip() == (
         'PASS: complete auth source selected before profile normalization')
+
+    invitation_selection = subprocess.run(
+        ['python3', str(INVITATION_SELECTION), '--selection-only'], cwd=ROOT,
+        text=True, capture_output=True, check=False)
+    assert invitation_selection.returncode == 0, invitation_selection.stderr
+    assert invitation_selection.stdout.strip() == (
+        'PASS: template selected after auth prerequisites; later policy hardening remains selected')
 
     accounting = subprocess.run(
         ['python3', 'scripts/gridex-replay-input-accounting.py'], cwd=ROOT,

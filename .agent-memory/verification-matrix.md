@@ -657,3 +657,5 @@ writes or phase closure. Next: actual canonical-prefix restoration/effect review
 Follow-up: intended Supabase project access restored. Catalog-only role helper body MD5 d76c8c4ae10c4f36b772b86255f728ba matches core01; SECURITY INVOKER, search_path public/auth/extensions, authenticated/service_role EXECUTE and anon denied match selected launch-linter hardening. Fresh ledger read remains279/latest20260904222450. No production writes; no full parity or runtime/database binding proof.
 
 2026-09-09 — RBAC prefix fix 399271d4: all four source-confirmed review findings corrected locally; prefix selection, group/status regression, provenance, 29 accounting tests and integrity589/493 pass. Scoped re-review and hostedPG17 pending; no production write or phase closure.
+
+2026-09-09 — Published8750a5b9 exact reviewed tree5a1fd7e0. OPS34343823950: Ediel102440584673 and quality102440584712 PASS; auth102440584698 fails invitation adjacency before prefix; verify102440584657 generated-types tail20260908120000; clean102440584460 fails before replay. Fix round2 corrects placement and adds actual invitation selection coverage. No production write or phase closure.

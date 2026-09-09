@@ -4,20 +4,30 @@ Updated: 2026-09-09
 Status: IN_PROGRESS
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Active group: `auth_membership_tenant`. The reviewed RBAC characterization batch is published
-at `d32a3457983f36b159f5180e8c5ac4fc9516842e`; its tree exactly matches the
-reviewed local tree. No masterplan phase is closed.
+Active group: `auth_membership_tenant`. The reviewed RBAC restoration batch is published
+at `8750a5b94b8dade5da2748d71268f4178a077653`; its tree exactly matches the
+reviewed local tree. Hosted verification found an additional invitation-order defect. No masterplan phase is closed.
 
 Working-tree accounting is 589 inputs: 511 `FULL_FILE_SELECTED`, 28 `SUBSTITUTED`,
 46 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`. The focused group contains 335
 inputs: 269 selected, 25 substituted, 37 unclassified, and 4 excluded.
-The implementation is committed locally; prefix composition/selection/provenance,
+The initial four review findings were corrected in local399271d4 and passed
+scoped/integrated review before publication8750a5b9. Local prefix/selection,
 nine-command runner regression, 29 accounting tests and migration integrity
-(589 inputs/493 version groups) pass. Separate review found four confirmed prefix/test blockers, corrected locally in
-399271d4; scoped re-review, integrated review and hosted PG17 remain pending; these edits and the forward migration are not yet published. Published d32a3457 had 588 inputs and 77 unresolved.
+(589 inputs/493 version groups) pass. Hosted OPS34343823950 auth102440584698
+passed auth and POA SQL, then failed invitation --selection-only at line106: the
+active-company prerequisite separates the template source from its hardfix
+predecessor. Fix round2 is in progress. The actual new RBAC prefix has not run.
+Published d32a3457 had 588 inputs and 77 unresolved.
 Selection and lexical hints do not prove execution or surviving effects.
 
 Verification boundaries:
+
+- Latest hosted restoration batch8750a5b9: OPS34343823950 Ediel102440584673
+  and quality102440584712 PASS. Auth102440584698 FAILED at invitation selection
+  adjacency before new RBAC prefix execution. Verify102440584657 FAILED generated
+  types at migration tail20260908120000. Clean102440584460 FAILED before replay.
+  Earlier d32 receipts below remain valid only for that earlier seven-command code.
 
 - Implementation: mapper, fixed runner, status consolidation and auth candidate
   inventory passed separate and integrated review. Local mapper tests: 15;
@@ -45,11 +55,10 @@ Verification boundaries:
   A 2026-09-08 catalog-only read also confirms both RBAC billing/audit views
   exist with `security_invoker=true`; later hardening must remain in scope.
 
-Next active work: scoped re-review of fix 399271d4, then integrated review and
-hosted PG17 verification of the nine-command group. The local fix preserves
-auth-source adjacency, supplies the managed generated confirmed_at prerequisite,
-uses constraint-valid company test data and derives audit expectations from the
-real prefix baseline. Local covering checks pass; no new batch is published.
+Next active work: correct the hosted invitation adjacency failure without
+weakening existing gates, add its database-free selection check, scoped review
+and publish the coherent CI fix. Then rerun the nine-command hosted PG17 group.
+Full replay, generated artifacts and production parity remain unverified.
 The prefix uses 27 selected files through its membership boundary and the
 three restored originals; the narrow final helper migration retains later hardening. Follow
 [the restoration plan](../quality/audits/RBAC_CANONICAL_RESTORATION_PLAN_2026-09-08.md). The reduced characterization used
