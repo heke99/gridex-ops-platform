@@ -25,6 +25,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-rbac-prefix-selection-selftest.py'],
     ['python3', 'scripts/canonical-rbac-prefix-selftest.py'],
     ['python3', 'scripts/canonical-saas-tenant-selftest.py'],
+    ['python3', 'scripts/canonical-governance-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -61,12 +62,25 @@ def main():
     prefix = run('python3', str(RBAC_PREFIX_FIXTURE), '--emit')
     assert prefix.returncode == 0, prefix.stderr
     assert prefix.stdout.count('-- RBAC_MANAGED_BOOTSTRAP_BEGIN') == 1
-    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 31
+    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 32
     assert prefix.stdout.count('-- RBAC_SOURCE_FILE_BEGIN ') == 6
     assert prefix.stdout.count('-- RBAC_FINAL_HELPER_BEGIN ') == 1
     assert prefix.stdout.rindex('-- RBAC_FINAL_HELPER_BEGIN ') > prefix.stdout.rindex('-- RBAC_SOURCE_FILE_BEGIN ')
     assert 'RBAC_POLICY_TARGETS_PRESENT=25' in prefix.stdout
     assert 'security invoker' in prefix.stdout
+
+    governance = run('python3', str(ROOT / 'scripts/canonical-governance-selftest.py'), '--emit')
+    assert governance.returncode == 0, governance.stderr
+    order = json.loads((ROOT / 'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
+    paths = [line.removeprefix('-- GOVERNANCE_PREFIX_FILE_BEGIN ') for line in governance.stdout.splitlines() if line.startswith('-- GOVERNANCE_PREFIX_FILE_BEGIN ')]
+    assert paths == order[:30] and len(paths) == 30
+    for path in paths:
+        assert (ROOT / 'supabase' / path).read_text() in governance.stdout, path
+    full6d = (ROOT / 'supabase/migrations/20260519_batch_6d_superadmin_tenant_governance.sql').read_text()
+    assert full6d in governance.stdout and 'NOT EXECUTED' in governance.stdout
+    assert 'final ACL/permissive+restrictive policy/runtime contract OPEN' in governance.stdout
+    assert 'all17 governance trigger identities/events/bindings retained through full6E' in prefix.stdout
+    assert "'D','suspended'" not in prefix.stdout and "'D','locked_security'" in prefix.stdout
 
     dry = run('python3', str(RUNNER), '--dry-run')
     assert dry.returncode == 0, dry.stderr
@@ -93,7 +107,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 10, observed
+        assert len(observed) == len(COMMANDS) == 11, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 

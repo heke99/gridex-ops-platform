@@ -5,53 +5,58 @@ Status: IN_PROGRESS
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Published baseline:
-`4d851ee86b500dd0aba294246cda7204ec2612c0`, exact reviewed tree
-`1bb27229076b8158c1a8b92210ddee8efdfb427b`. No masterplan phase is closed.
+`5fb7fc7486285eb6527d0b55a1fd95f5409937af`, exact reviewed tree
+`7f4bde69a4a70c52250abb4ac2d7a9e2cbe07f61`. No masterplan phase is closed.
 
-Working-tree accounting is 592 inputs: 515 `FULL_FILE_SELECTED`, 27 `SUBSTITUTED`, 46 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 338 inputs: 273 selected, 24 substituted, 37 unclassified, and 4 excluded.
-Seventy-three total
-inputs and61 focused candidates remain unresolved. Selection is not proof of
+Working-tree accounting is 592 inputs: 516 `FULL_FILE_SELECTED`, 26 `SUBSTITUTED`, 46 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 338 inputs: 274 selected, 23 substituted, 37 unclassified, and 4 excluded.
+Seventy-two total
+inputs and60 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
 
-Current verification — OPS34353344277 on4d851ee8:
+Current hosted verification — OPS34354458938 on5fb7fc74 (before pending6D changes):
 
-- Auth102471757824 FAILED. The actual selected SaaS prefix and50 reduced identity
-  scenarios passed, including forced rollback and real lock timeout. The
-  owner_copy_clean enforcement fixture then updated multiple grants to one
-  nonexistent role UUID and hit23505 before its intended23503 FK check.
-  This is a confirmed fixture defect; all61 cases/ten commands did not pass.
-- Scoped correction3f861459 targets exactly one asserted R1/P1 grant and preserves
-  strict NOT NULL/FK/uniqueness error expectations. Separate scoped review
-  approved it; corrected SQL awaits hosted execution.
-- Ediel102471758172 and quality102471758274 PASS.
-- Verify102471758262 FAILED generated types at tail20260909120200.
-  Clean102471758154 FAILED before full replay; no generated baseline was produced.
-  Its artifact download was materialized by GitHub but local retrieval returned
-  HTTP403; do not infer new artifact contents. The unresolved accounting gate
-  remains independently established by the local full-effects check.
+- Auth102475481933 PASS: all ten commands, actual selected RBAC/SaaS prefix,
+  stable source repeats and all61 reduced identity cases. The corrected
+  owner-copy enforcement, mandatory IDs, strict FK/uniqueness failures,
+  preservation/repeats, forced rollback and real lock timeout all passed.
+- Ediel102475482183 and quality102475482179 PASS.
+- Verify102475482295 FAILED generated types at tail20260909120200.
+  Clean102475482328 FAILED before full replay; no generated baseline produced.
+  Full-effects accounting independently remains unresolved; do not refresh
+  artifacts from incomplete replay or label this an external blocker.
 - Static accounting29, selection/emit, runner/status, provenance75/49/20/4/499
   and integrity592/496 passed. Historical migration bytes/checksums are intact.
-- Prior fac58fae passed all ten auth/RBAC/SaaS commands plus Ediel/quality.
-  Its unique-pair and invitation-index reconstructions remain preserved.
-  Prior helper preservation20260908120000 is implemented and tested; do not
-  restart it. Historical receipts are in verification-matrix/session-log and Git.
+- Earlier4d851ee8 auth failed after50 cases due to a multirow enforcement fixture
+  collision (23505 before23503). Reviewed single-grant correction3f861459 is
+  included in5fb7fc74 and the hosted failure is resolved. Do not redo that fix.
+- Prior helper preservation20260908120000, role-pair uniqueness and invitation
+  index repairs remain selected and tested. Earlier receipts are historical in
+  verification-matrix/session-log and Git, not current-task instructions.
 
-Next active action: publish the scoped fixture correction after integrated
-approval, then inspect the new exact-head hosted PG17 result and fix any concrete
-failure. Keep schema SQL and migration checksums unchanged for this fixture fix.
-The mandatory-reference migration is implemented and reviewed; do not recreate it.
-Task4 is not complete. Parent lifecycle, same-parent active/disabled assignments,
-key-only references, permission overrides and FK-action reconciliation remain
-separate internal follow-up work. This batch changes no FK action or retention
-policy. No production database write, merge or production deployment occurred.
+Next active action: integrated review and one hosted PG17 publication of
+separately approved implementation670c8a4c under Task2 of
+[the governance restoration plan](../quality/audits/TENANT_GOVERNANCE_SOURCE_RESTORATION_PLAN_2026-09-09.md).
+The pending implementation selects full6D and adds the eleventh fixed command.
+Static selection/emit, runner/status, accounting29, provenance76/49/20/4/499
+and integrity592/496 passed. All new SQL remains NOT EXECUTED; separate task review approved the bounded
+implementation, and integrated batch review is pending. Evidence audit38b8a81b and independent review confirm all17 required targets and
+view columns at the after-SaaS boundary. Full6D2 remains unselected pending three
+complete sync/import table prerequisites. The final journal ACL/RLS/policy
+contract remains open; source restoration is not production runtime approval.
+The mandatory-reference task's isolated execution is verified, not full lifecycle
+or parity. Same-parent assignments, key-only references, permission overrides,
+FK actions and customer deletion remain separate internal work. No FK action or
+retention policy changed. No production write, merge or deployment occurred.
 
 [The SaaS restoration plan](../quality/audits/SAAS_TENANT_SOURCE_RESTORATION_PLAN_2026-09-09.md)
 contains the corrected Task3 contract and bounded Task4 scope. The
 [system data integrity contract](../quality/audits/SYSTEM_DATA_INTEGRITY_ACCEPTANCE_2026-09-09.md)
 retains systemwide PK/FK/index/ownership/consistency and customer-deletion gates.
 Catalog-only customer evidence:175 direct FKs across100 child tables; all100
-have PKs. Fourteen composite SET NULL relations target mandatory columns.
+have PKs. A fresh all-public-table catalog check also finds502/502 ordinary or
+partitioned tables with PKs; key suitability and consumer compatibility remain
+unverified. Fourteen composite SET NULL relations target mandatory columns.
 Forty incomplete-leading-key index candidates are not proven missing indexes.
 Full transitive/logical/storage graphs, tenant ownership, delete recovery and
 workload performance remain unverified; no customer rows were read or deleted.
@@ -62,7 +67,7 @@ Fresh Vercel project/deployment reads confirm production deployment
  dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c READY at app.gridex.se, main
  eb9a25bc989c6de808903f41c2314d5465e9c07b. Runtime-to-database binding is still
 unproven; project name or connected catalog is not sufficient evidence.
-No current external dependency blocks the active fixture correction.
+No current external dependency blocks the active source-evidence task.
 
 Continue internal replay/effects, generated artifacts and bidirectional ledger/live
 parity after the bounded verification converges. Never regenerate types/schema

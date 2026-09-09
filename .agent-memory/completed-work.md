@@ -674,3 +674,7 @@ Published d32a3457983f36b159f5180e8c5ac4fc9516842e, OPS34227210022 auth job10206
 2026-09-09 — Publishedfac58fae bounded SaaS/integrity VERIFIED: OPS34348338877 auth102455180423 alltencommands PASS, actualSaaSprefix/stable repeats/platformcleanup, eight reducedbranches, five uniqueness and fiveindex repair cases including rollback. Ediel102455180529 PASS. Full replay/types/ledger/live parity, remaining NOTNULL/FK gaps and systemwide deletion/index/identity gates remain open.
 
 2026-09-09 bounded identity evidence: c220acd5 corrected by c0b661a9 after separate review. Deterministic legacy-key preflight and mandatory-reference-only scope approved; all FK actions/OIDs must remain intact. Same-parent assignment/key-only/override lifecycle explicitly unresolved. This is reviewed evidence, not schema/SQL or phase completion.
+
+2026-09-09 Bounded mandatory-reference execution verified at5fb7fc74: all ten auth commands and61 reduced identity cases PASS on actual PG17; fixture recovery included. No lifecycle/full parity or phase closure.
+
+2026-09-09 Bounded governance evidence38b8a81b independently approved: all808 source lines,17/17 first-source targets/view prerequisites, statement boundaries and later-hardening/journal qualification reviewed. Evidence only;6D2 missing three complete prerequisites and all runtime/parity gates remain open.

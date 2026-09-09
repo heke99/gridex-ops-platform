@@ -53,6 +53,8 @@ def reduced_seed():
  ('70000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'active',false);
 """
     assert marker in sql and invalid_company in sql
+    # Full 6D rejects suspended profiles; keep the reduced historical fixture intact.
+    sql = sql.replace("'D','suspended'", "'D','locked_security'").replace("'F','suspended'", "'F','locked_security'")
     return sql.replace(invalid_company, valid_company).replace(marker, extra + marker)
 
 
@@ -79,7 +81,10 @@ select test_assert((select count(*)=2 and bool_and(atttypid='timestamptz'::regty
 
 
 def prefix_baseline():
-    return """create temporary table prefix_roles_before as select * from roles;
+    return """create temporary table rbac_governance_triggers as select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger where tgname like '%_tenant_operational_guard_trg';
+create temporary table rbac_governance_checks as select oid,conrelid,conname,pg_get_constraintdef(oid) definition from pg_constraint where conname in ('companies_status_check','company_memberships_role_check','company_memberships_status_check','company_invitations_membership_role_check','company_invitations_status_check','user_profiles_user_status_check') or conrelid='tenant_governance_events'::regclass;
+create temporary table rbac_governance_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('tenant_governance_events'::regclass,'platform_tenant_governance_overview'::regclass,'tenant_governance_events_company_created_idx'::regclass,'tenant_governance_events_target_user_created_idx'::regclass);
+create temporary table prefix_roles_before as select * from roles;
 create temporary table prefix_permissions_before as select * from permissions;
 create temporary table prefix_grants_before as select * from role_permissions;
 create temporary table rbac_prefix_baseline as
@@ -180,6 +185,15 @@ select test_assert((select count(*) from role_permissions)=(select count(*)+6 fr
             chunks.append(first_checks())
     chunks.append(f'-- RBAC_FINAL_HELPER_BEGIN {FINAL}\n{read("supabase/" + FINAL)}')
     chunks.append(final_checks())
+    chunks.append("""select test_assert((select count(*)=17 from rbac_governance_triggers) and not exists(select * from rbac_governance_triggers except select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger),'all17 governance trigger identities/events/bindings retained through full6E and helper repair');
+select test_assert(not exists(select * from rbac_governance_checks except select oid,conrelid,conname,pg_get_constraintdef(oid) from pg_constraint),'governance checks and journal PK/FKs retained through full6E');
+select test_assert(not exists(select * from rbac_governance_objects except select oid,relname,relacl,reloptions from pg_class),'journal/overview/index identities and bounded ACL/options retained through full6E');
+select test_assert((select membership_role='admin' and status='active' from company_memberships where company_id='20000000-0000-0000-0000-000000000002' and user_id='10000000-0000-0000-0000-000000000004'),'security-locked profile still receives historical6E active-admin backfill; final authorization remains OPEN');
+""")
+    chunks.append("""select test_assert(exists(select 1 from pg_constraint where conrelid='user_profiles'::regclass and conname='user_profiles_user_status_check' and convalidated and pg_get_constraintdef(oid) like '%locked_security%' and pg_get_constraintdef(oid) not like '%suspended%'),'full 6D profile constraint survives both 6E cycles');
+select test_assert((select count(*)=2 from user_profiles where user_status='locked_security'),'actual-prefix security-locked sentinels retained');
+select test_assert((select not relrowsecurity from pg_class where oid='tenant_governance_events'::regclass) and not exists(select 1 from pg_policy where polrelid='tenant_governance_events'::regclass),'bounded 6D then 6E journal policy boundary; final runtime ACL/RLS remains OPEN');
+""")
     return '\n'.join(chunks)
 
 

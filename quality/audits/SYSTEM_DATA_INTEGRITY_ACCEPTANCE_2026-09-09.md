@@ -121,3 +121,30 @@ tables have no company_id and36 have a nullable company_id; these need explicit
 ownership classification, not automatic column addition or NOT NULL conversion.
 This does not verify logical-only dependents, key compatibility across every
 consumer, tenant isolation, row integrity or production runtime binding.
+
+## Bounded all-public-table primary-key presence check
+
+Fresh read-only catalog check on connected project piidsfebjqjmnepdpnas,
+2026-09-09: all502 public ordinary/partitioned tables have a primary-key
+constraint; zero were returned without one. Query used pg_class/pg_namespace
+with relkind in ('r','p') and pg_constraint.contype='p', without reading rows.
+This extends the earlier100 direct customer-child presence check; it does not
+prove key suitability, cross-consumer identity compatibility, all FK ownership,
+index workload performance, replay/types parity or runtime database binding.
+There is no evidence here for adding generic replacement id columns. Preserve
+legitimate composite keys and resolve the concrete relation/lifecycle gaps.
+
+A further same-day pg_constraint/pg_namespace catalog check reports1237 public
+foreign keys and781 check constraints, with zero convalidated=false in either
+class. This verifies the catalog validation flags of existing constraints,
+not the completeness of required relations or correctness of their ownership,
+retention/delete actions or predicate semantics. It does not resolve the14
+SET NULL/mandatory-column tensions. No row query or validation mutation ran.
+
+The same-day pg_index inventory reports2932 indexes on public relations:502
+primary-key indexes and489 other unique indexes. None is marked not valid,
+not ready or not live. This checks catalog availability flags only; it does
+not prove useful query coverage, absence of redundancy, selectivity or measured
+performance. No index creation/rebuild/drop or production query-plan execution
+was performed. The40 customer-FK index screening candidates remain review
+candidates rather than established missing indexes.

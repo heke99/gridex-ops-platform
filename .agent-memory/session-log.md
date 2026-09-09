@@ -892,3 +892,9 @@ writes or phase closure. Next: actual canonical-prefix restoration/effect review
 2026-09-09 publication:4d851ee86b500dd0aba294246cda7204ec2612c0 parentfac58fae tree1bb27229076b8158c1a8b92210ddee8efdfb427b exactly matches corrected/reviewed c19c3ef5. Fetch/tree/cleantracked verified before alignment. OPS34353344277/auth102471757824 running. All new SQL pending. No merge/deploy/production mutation/phase closure.
 
 2026-09-09 hosted failure corrected locally3f861459: deterministic single-grant enforcement target, strict SQLSTATE checks retained. Scoped review approved; root failure/evidence status consolidated before integrated follow-up publication review. SQL unchanged and all migration checksums preserved. Corrected SQL not yet executed.
+
+2026-09-09 Hosted identity recovery5fb7fc74 passed ten-command auth group incl61 identity cases, Ediel and quality. Previous4d fixture collision resolved; static+separate+integrated review complete. Continue governance source-effects evidence per new plan; no phase closure or production mutation.
+
+2026-09-09 Full6D selected at after-SaaS boundary in670c8a4c after separate evidence approval38b8a81b. Eleven-command runner and real-prefix governance/dirty/lock/reduced characterization authored; static checks passed, SQL unexecuted. Task review in progress; no publication, production writes or phase closure for this batch.
+
+2026-09-09 Task2 separate review approved670c8a4c with no findings. Root status/runner contract rerun PASS after receipt updates. Integrated review and hosted SQL remain pending; no phase closure.

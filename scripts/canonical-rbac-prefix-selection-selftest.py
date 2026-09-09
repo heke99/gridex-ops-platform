@@ -44,11 +44,12 @@ def main():
     assert order.index(AUTH_NORMALIZE) == order.index(AUTH_SOURCE) + 1
     assert order.index(AUTH_TEMPLATE) == order.index(AUTH_NORMALIZE) + 1
     assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_TEMPLATE) + 1
-    assert order[boundary - 1] == PROFILE_SOURCE
-    assert order[boundary - 2] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
-    assert order[boundary - 3] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
-    assert order[boundary - 4] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
-    assert order[boundary - 5] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
+    assert order[boundary - 1] == 'migrations/20260519_batch_6d_superadmin_tenant_governance.sql'
+    assert order[boundary - 2] == PROFILE_SOURCE
+    assert order[boundary - 3] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
+    assert order[boundary - 4] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
+    assert order[boundary - 5] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
+    assert order[boundary - 6] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
     assert order.count(PROFILE_SOURCE) == additions['foundation'].count(PROFILE_SOURCE) == 1
     profile_meta = additions['derivedBootstrap'][PROFILE_PREREQUISITE]
     assert profile_meta['source'] == PROFILE_SOURCE

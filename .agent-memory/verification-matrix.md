@@ -671,3 +671,13 @@ Follow-up: intended Supabase project access restored. Catalog-only role helper b
 2026-09-09 implementation cb49b468: mandatory-reference repair and61 reduced identity cases authored. Accounting29, selection/emit, runner/status, provenance75/49/20/4/499 and integrity592/496 PASS; immutable historical checksums preserved. SQL NOT EXECUTED locally (psql absent); task/integrated review and hosted PG17 pending. No FK action or parent-retention policy change.
 
 2026-09-09 hosted4d851ee8 OPS34353344277: auth102471757824 FAIL after actual selected SaaS prefix+50 reduced identity PASS incl rollback/timeout. owner_copy_clean enforcement multirow UPDATE produced23505 before expected23503. Scoped fixture correction3f861459 separately approved; SQL rerun pending. Ediel102471758172/quality102471758274 PASS; verify102471758262 types tail20260909120200 FAIL; clean102471758154 FAIL before full replay. No phase closure.
+
+2026-09-09 Hosted5fb7fc74 OPS34354458938: auth102475481933 PASS all ten commands/61 identity cases; Ediel102475482183 and quality102475482179 PASS. Verify102475482295 types tail20260909120200 FAIL; clean102475482328 beforefullreplay FAIL. Full-effects accounting73 unresolved; generated/live/ledger parity open.
+
+2026-09-09 Catalog-only all-public-table PK presence: connected piidsfebjqjmnepdpnas has502 ordinary/partitioned public tables,502 with PK,0 without. No rows read. Key suitability, consumer consistency and runtime binding remain unverified; no phase closure.
+
+2026-09-09 Catalog-only public constraint flags:1237 FKs/781 checks,0 unvalidated in either class on connected project. Existing validation flags only; relation completeness and lifecycle correctness remain open. No row reads or SQL mutation.
+
+2026-09-09 Catalog-only index flags:2932 public indexes,502 primary/489 other unique,0 not-valid/not-ready/not-live. Availability flags only; workload coverage/redundancy/performance unverified. No index mutation.
+
+2026-09-09 Governance implementation670c8a4c static PASS: selection/emit,11-command runner/status/isolation, actual RBAC prefix32, accounting29, provenance76/49/20/4/499, integrity592/496. Accounting516/26/46/4; focused274/23/37/4. All new SQL NOT EXECUTED; task/integrated review and hosted PG17 pending. HistoricalSQL/checksums intact.
