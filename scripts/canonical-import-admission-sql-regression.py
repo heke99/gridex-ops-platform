@@ -39,4 +39,37 @@ for batch_present, row_present, expected in (
     actual = (match.group(1) == 'True') != (match.group(2) == 'True')
     assert actual is expected, (batch_present, row_present, actual)
 
-print('PASS: emitted import-table presence comparison is grouped; all four missing/present truth cases match XOR')
+
+def fixture_columns(sql):
+    """Return columns supplied for reduced fixture tables by CREATE/ALTER."""
+    result = {}
+    for table, definitions in re.findall(r'create table (\w+)\((.*?)\);', sql, re.S):
+        result.setdefault(table, set()).update(
+            part.strip().split()[0]
+            for part in definitions.split(',')
+            if part.strip() and not part.strip().startswith('constraint ')
+        )
+    for table, column in re.findall(
+        r'alter table (\w+) add column if not exists (\w+)', sql
+    ):
+        result.setdefault(table, set()).add(column)
+    return result
+
+
+# Each synthetic ownership case may create a parent that is itself the child in
+# another checked join. It must supply those prerequisite FKs so the case emits
+# only its hand-specified would-change category.
+required_join_columns = {}
+for joins in checker.JOINS.values():
+    for child, foreign_key, _parent in joins:
+        required_join_columns.setdefault(child, set()).add(foreign_key)
+
+for name, (setup, _expected) in checker.dirty_cases().items():
+    if not name.startswith('would_change_'):
+        continue
+    supplied = fixture_columns(setup)
+    for table in supplied.keys() & required_join_columns.keys():
+        missing = required_join_columns[table] - supplied[table]
+        assert not missing, f'{name} lacks checker prerequisite {table}.{sorted(missing)}'
+
+print('PASS: grouped presence comparison truth cases and all reduced ownership fixture join prerequisites')

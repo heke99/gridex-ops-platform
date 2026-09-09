@@ -20,7 +20,8 @@ there is no generated schema/type artifact and no production parity claim.
 
 | Finding | Status | Evidence / remediation |
 | --- | --- | --- |
-| F-IMPORT-ADMISSION-001 / High / verification | IN_PROGRESS | First actual-prefix import observation throws boolean<>regclass; unparenthesized IS NOT NULL predicates composed with <>. Fix SQL composition and test same class before hosted rerun. No production mutations. |
+| F-IMPORT-ADMISSION-001 / High / verification | VERIFIED_CLOSED | Correction5ecefd1f publishedc990dfb2, independent review approved; actual PG17 job102659793781 passes the formerly failing first33/empty observation, all6 reduced shape lanes and incomplete-table diagnostic. Focused regression RED/GREEN; no production mutation. |
+| F-IMPORT-FIXTURE-002 / Medium / verification | IN_PROGRESS | Same PG17 job passes56 dirty cases then would_change_supplier_switch_events fails exact expectation because its synthetic supplier_switch_requests parent lacks customer_id. Retain checker and exact category equality; complete fixture and rerun all cases. |
 | Publication access | SUPERSEDED blocker | Authenticated create_tree/create_commit/non-force update_ref succeeded. Exact fetched tree verified; prior local history preserved. |
 | Production binding | VERIFIED_OPEN | Vercel production app.gridex.se remains dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c / maineb9a25bc. Login200. Connected Supabase piidsfebjqjmnepdpnas: ledger279/tail20260904222450,502 tables,160 views,632 functions,332 user triggers. Separate connector identities do not prove server runtime DB binding. |
 

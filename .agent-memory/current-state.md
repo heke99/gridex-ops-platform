@@ -5,14 +5,33 @@ Status: IN_PROGRESS
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Published baseline:
-`1b37fe863b6710fc4fde622c17b28023f328b352`, exact reviewed tree
-`81a9eb4e9e73ebf30812b0b0ec3de2b3d6597393`. No masterplan phase is closed.
+`c990dfb20b297b1beb3d6fa81bcbbab0b2e1132d`, exact reviewed tree
+`662cf3efa6161636e87bdbdac4515efeab13e7dc`. No masterplan phase is closed.
 
 Working-tree accounting is 593 inputs: 518 `FULL_FILE_SELECTED`, 26 `SUBSTITUTED`, 45 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 339 inputs: 275 selected, 23 substituted, 37 unclassified, and 4 excluded.
 Seventy-one total
 inputs and60 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
+
+Current corrective run: OPS34409325084 on c990dfb2.
+SQL correction5ecefd1f independently approved, published with status evidence as
+c990dfb20b297b1beb3d6fa81bcbbab0b2e1132d; exact tree662cf3efa6161636e87bdbdac4515efeab13e7dc
+verified after fetch. Local source history retained at
+archive/gridex-import-sql-fix-bfd4fca4. No local tracked edits were discarded.
+Auth102659793781 now passes actual first33/empty observation and six reduced
+compatibility shapes; fails dirty would_change_supplier_switch_events because
+its synthetic parent supplier_switch_requests lacks customer_id. Checker emits
+exact intended ownership blockers plus two valid join_columns blockers.
+Fixture correctiona0465abb adds only the missing synthetic customer_id; a
+regression sweeps all ten ownership joins. Separate scoped review APPROVED;
+corrected hosted rerun pending;
+do not weaken expected-category equality or claim
+all58 cases complete. Previous boolean/regclass error is resolved in actual PG17.
+Ediel102659793808, tenant102659793567 and browser-public102659794217 PASS.
+Quality102659793836 PASS including app build.56 of58 dirty cases passed before
+the fixture failure; final gate/read-only/concurrent-observation cases not reached.
+Full replay/types gates remain open; staging/load skipped, not verified.
 
 Current hosted verification — OPS34408542348 on1b37fe86:
 
@@ -36,8 +55,8 @@ Current hosted verification — OPS34408542348 on1b37fe86:
 - Fresh local Task7 selection and fixed runner/status regressions PASS. These
   are static evidence, not PostgreSQL acceptance.
 
-Next active action: correct Task7 SQL predicate composition, run focused
-regression, separate review, publish one corrected batch and inspect hosted PG17.
+Next active action: inspect corrected Task7 hosted PG17 run34409325084,
+fix any actual remaining failure and review before publishing the next batch.
 Task8 remains after Task7 hosted acceptance. Full-effects restoration remains
 internal remediation work; GitHub access is no longer an external blocker.
 

@@ -606,7 +606,7 @@ def dirty_cases():
             setup+=f'create table {parent}(id uuid primary key,company_id uuid); insert into {parent} values (\'{CU1}\',\'{C1}\');\n'
         setup+=f'create table {child}(id uuid primary key,company_id uuid,{fk} uuid); insert into {child} values (\'91000000-0000-0000-0000-000000000001\',null,\'{CU1}\');\n'
         # Additional DDL columns required by the named guarded tables.
-        extras={'customer_sites':{'facility_id':'text','customer_id':'uuid'},'metering_points':{'meter_point_id':'text','site_id':'uuid'},'customer_contracts':{'customer_id':'uuid','contract_offer_id':'uuid','created_at':'timestamptz','status':'text'}}
+        extras={'customer_sites':{'facility_id':'text','customer_id':'uuid'},'metering_points':{'meter_point_id':'text','site_id':'uuid'},'customer_contracts':{'customer_id':'uuid','contract_offer_id':'uuid','created_at':'timestamptz','status':'text'},'supplier_switch_requests':{'customer_id':'uuid'}}
         for table in (parent,child):
             if table in extras:
                 for col,typ in extras[table].items():
