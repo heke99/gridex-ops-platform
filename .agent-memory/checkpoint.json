@@ -6,7 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "c990dfb20b297b1beb3d6fa81bcbbab0b2e1132d",
-    "last_isolated_pg17_code": "17da324350891d8dd9a3a4b35684bf4423d335ed"
-  }
+    "published_baseline": "236637eb2368a7035e61a844d2a4f5963bd2390d",
+    "last_isolated_pg17_code": "236637eb2368a7035e61a844d2a4f5963bd2390d"
+  },
+  "execution_environment": "environment_offline; GitHub checkpoint persisted; local reconciliation required",
+  "next_action": "Review recovered Task8 contract, then isolated whole-source I/F/D/6D2 execution; keep full replay/types/parity gates open."
 }

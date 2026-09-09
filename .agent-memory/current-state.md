@@ -5,8 +5,8 @@ Status: IN_PROGRESS
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Published baseline:
-`c990dfb20b297b1beb3d6fa81bcbbab0b2e1132d`, exact reviewed tree
-`662cf3efa6161636e87bdbdac4515efeab13e7dc`. No masterplan phase is closed.
+`236637eb2368a7035e61a844d2a4f5963bd2390d`, exact reviewed tree
+`bea7af5d326c0fe11bf8477080159094f2cd71d1`. No masterplan phase is closed.
 
 Working-tree accounting is 593 inputs: 518 `FULL_FILE_SELECTED`, 26 `SUBSTITUTED`, 45 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 339 inputs: 275 selected, 23 substituted, 37 unclassified, and 4 excluded.
@@ -14,51 +14,32 @@ Seventy-one total
 inputs and60 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
 
-Current corrective run: OPS34409325084 on c990dfb2.
-SQL correction5ecefd1f independently approved, published with status evidence as
-c990dfb20b297b1beb3d6fa81bcbbab0b2e1132d; exact tree662cf3efa6161636e87bdbdac4515efeab13e7dc
-verified after fetch. Local source history retained at
-archive/gridex-import-sql-fix-bfd4fca4. No local tracked edits were discarded.
-Auth102659793781 now passes actual first33/empty observation and six reduced
-compatibility shapes; fails dirty would_change_supplier_switch_events because
-its synthetic parent supplier_switch_requests lacks customer_id. Checker emits
-exact intended ownership blockers plus two valid join_columns blockers.
-Fixture correctiona0465abb adds only the missing synthetic customer_id; a
-regression sweeps all ten ownership joins. Separate scoped review APPROVED;
-corrected hosted rerun pending;
-do not weaken expected-category equality or claim
-all58 cases complete. Previous boolean/regclass error is resolved in actual PG17.
-Ediel102659793808, tenant102659793567 and browser-public102659794217 PASS.
-Quality102659793836 PASS including app build.56 of58 dirty cases passed before
-the fixture failure; final gate/read-only/concurrent-observation cases not reached.
-Full replay/types gates remain open; staging/load skipped, not verified.
+## 2026-09-09 — Task7 verified; execution environment disconnected
 
-Current hosted verification — OPS34408542348 on1b37fe86:
+Code 236637eb2368a7035e61a844d2a4f5963bd2390d, exact reviewed tree bea7af5d326c0fe11bf8477080159094f2cd71d1. OPS34410026916:
+auth102662038207 PASS all14 commands, actual first33 migrations, six reduced
+compatible shapes,58/58 exact dirty categories/counts with preservation/repeats,
+four unresolved-final-gate variants, read-only enforcement and coherent concurrent
+snapshot. Quality102662038159 PASS (195 test files/1162 tests,45 quality tests,
+build/release/bundle checks); Ediel102662038204 PASS; tenant workflow34410026921
+and browser-public102662038546 PASS. Verify102662037849 FAIL generated-types
+tail20260909123000; clean102662038187 FAIL source completeness before full replay.
+Staging/load/full production certification remains skipped or unverified.
 
-- GitHub connector publication access RESTORED. Published the exact previously
-  reviewed local6e3c3046 tree81a9eb4e9e73ebf30812b0b0ec3de2b3d6597393 as
-  1b37fe863b6710fc4fde622c17b28023f328b352 parent17da3243. Non-force ref update
-  succeeded; fetched tree equality verified. Local reviewed history retained at
-  archive/gridex-import-reviewed-6e3c3046; working-tree memory edits preserved.
-- Auth102657264584 FAILED in new command14, after all previous13 commands PASS.
-  Exact PostgreSQL failure: operator does not exist: boolean <> regclass.
-  Generated condition combines unparenthesized IS NOT NULL predicates with <>.
-  Failure occurs in first actual-prefix observation, so no new Task7 acceptance
-  or58-case execution claim is supported. Correction5ecefd1f groups both predicates;
-  focused regression demonstrates RED then GREEN. Separate scoped review APPROVED;
-  corrected hosted run pending.
-- Ediel102657264526 PASS. Verify102657264574 passes isolated fixtures and fails
-  generated-types migration tail20260909123000. Clean102657264267 fails before
-  full replay; accounting artifact10126300748 retained. No baseline refreshed.
-- Quality102657264491 PASS, including app build and release-quality gates.
-  Other CI tracked separately.
-- Fresh local Task7 selection and fixed runner/status regressions PASS. These
-  are static evidence, not PostgreSQL acceptance.
+F-IMPORT-ADMISSION-001 and F-IMPORT-FIXTURE-002 VERIFIED_CLOSED within Task7.
+Both scoped code fixes independently reviewed; exact blocker equality retained.
+593 inputs remain518 full/26 substituted/45 unclassified/4 excluded,71 unresolved.
+Task7 bounded acceptance complete; no masterplan phase closed.
 
-Next active action: inspect corrected Task7 hosted PG17 run34409325084,
-fix any actual remaining failure and review before publishing the next batch.
-Task8 remains after Task7 hosted acceptance. Full-effects restoration remains
-internal remediation work; GitHub access is no longer an external blocker.
+Next active item: Task8 whole-source execution contract, proposed only and awaiting
+independent review. Local contract save failed when execution environment returned
+409 environment_offline; no Task8 code or source-selection change exists.
+Recovery summary: quality/audits/GOVERNANCE_FULL_SOURCE_EXECUTION_RECOVERY_2026-09-09.md.
+Current checkpoint and this evidence persisted via working GitHub connector.
+Local checkout cannot be fetched/reconciled while offline; on resume fetch this
+branch, preserve any local tracked edits and ignored draft/reports, then reconcile
+status by content before editing. Do not discard the separate Ediel worktree.
+No production mutation, merge or deployment. Required red gates remain blocking.
 
 Task6 bounded implementation and isolated verification passed. Task5 contract
 and exact index-name correction are reviewed; reuse the existing1321-line source
