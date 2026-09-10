@@ -15,7 +15,7 @@ BEGIN
   IF result IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='P0003',MESSAGE='PRESERVATION_FAILED'; END IF;
  END LOOP;
  FOR r IN SELECT * FROM pg_temp.repair_sequences LOOP
-  EXECUTE format('SELECT to_jsonb(x)=%L::jsonb FROM %s x',r.row_value,r.relation_name) INTO result;
+  EXECUTE format('SELECT jsonb_build_object(''last_value'',last_value,''log_cnt'',log_cnt,''is_called'',is_called)=%L::jsonb FROM %s',r.row_value,r.relation_name) INTO result;
   IF result IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='P0003',MESSAGE='PRESERVATION_FAILED'; END IF;
  END LOOP;
  IF EXISTS ((SELECT to_jsonb(a) FROM public.roles a JOIN pg_temp.repair_role_rows b ON a.id=b.id

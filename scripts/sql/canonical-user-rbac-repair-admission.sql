@@ -95,7 +95,7 @@ BEGIN
  WHERE n.nspname IN ('public','auth','storage') AND c.relkind IN ('r','p','S')
  AND NOT (n.nspname='public' AND c.relname='roles') ORDER BY n.nspname,c.relname LOOP
   IF r.relkind='S' THEN
-   EXECUTE format('INSERT INTO repair_sequences SELECT %L,to_jsonb(x) FROM %I.%I x',format('%I.%I',r.nspname,r.relname),r.nspname,r.relname);
+   EXECUTE format('INSERT INTO repair_sequences SELECT %L,jsonb_build_object(''last_value'',last_value,''log_cnt'',log_cnt,''is_called'',is_called) FROM %I.%I',format('%I.%I',r.nspname,r.relname),r.nspname,r.relname);
   ELSE
    EXECUTE format('INSERT INTO repair_rows SELECT %L,to_jsonb(x) FROM %I.%I x',format('%I.%I',r.nspname,r.relname),r.nspname,r.relname);
   END IF;

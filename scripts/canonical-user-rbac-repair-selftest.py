@@ -38,6 +38,7 @@ def constructor_checks():
 
 import contextlib
 import io
+import inspect
 import json
 import os
 import re
@@ -78,11 +79,37 @@ def assertion_constructor_controls():
             'assertion must reject false and SQL unknown'
 
 
+def sequence_snapshot_constructor_controls():
+    # Sequences have no composite row type, so whole-row to_jsonb(x) cannot be
+    # used for them. Preserve all three physical state fields explicitly.
+    state_json="jsonb_build_object(''last_value'',last_value,''log_cnt'',log_cnt,''is_called'',is_called)"
+    admission=(ROOT/'scripts/sql/canonical-user-rbac-repair-admission.sql').read_text()
+    assertions=(ROOT/'scripts/sql/canonical-user-rbac-repair-assertions.sql').read_text()
+    snapshot_source=inspect.getsource(snapshot)
+    assert state_json in admission, 'admission must capture explicit sequence state'
+    assert state_json in assertions, 'assertions must compare explicit sequence state'
+    assert "IF r.relkind='S' THEN" in snapshot_source and state_json in snapshot_source, \
+        'outer snapshot must capture explicit sequence state'
+
+
 def assertion_semantics(b,h):
     database='gridex_auth_legacy_native'
     h.reset(database)
     for label,condition,state in assertion_cases():
         h.sql(database,check(condition),'assertion_'+label,expect=state)
+    # Exercise the exact PostgreSQL 17 object class that failed before any
+    # source lane. Both the uncalled and called states must remain observable.
+    h.sql(database,"CREATE SEQUENCE public.repair_snapshot_state START WITH 17; SELECT setval('public.repair_snapshot_state',41,false);",'sequence_fixture')
+    uncalled=[value for name,value in snapshot(b,h,database)[1]
+              if name=='public.repair_snapshot_state']
+    assert len(uncalled)==1 and set(uncalled[0])=={'last_value','log_cnt','is_called'}
+    assert uncalled[0]['last_value']==41 and uncalled[0]['is_called'] is False
+    h.sql(database,"SELECT nextval('public.repair_snapshot_state');",'sequence_call')
+    called=[value for name,value in snapshot(b,h,database)[1]
+            if name=='public.repair_snapshot_state']
+    assert len(called)==1 and called[0]['last_value']==41 and called[0]['is_called'] is True
+    assert called[0]!=uncalled[0]
+    h.sql(database,'DROP SEQUENCE public.repair_snapshot_state;','sequence_cleanup')
 
 
 def clone(h,database):
@@ -94,9 +121,13 @@ def clone(h,database):
 def snapshot(b,h,database):
     sql='''CREATE TEMP TABLE repair_test_rows(name text,row_value jsonb) ON COMMIT DROP;
 DO $$ DECLARE r record; BEGIN
-FOR r IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+FOR r IN SELECT n.nspname,c.relname,c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
 WHERE n.nspname IN ('public','auth','storage') AND c.relkind IN ('r','p','S') LOOP
-EXECUTE format('INSERT INTO repair_test_rows SELECT %L,to_jsonb(x) FROM %I.%I x',r.nspname||'.'||r.relname,r.nspname,r.relname); END LOOP; END $$;
+IF r.relkind='S' THEN
+ EXECUTE format('INSERT INTO repair_test_rows SELECT %L,jsonb_build_object(''last_value'',last_value,''log_cnt'',log_cnt,''is_called'',is_called) FROM %I.%I',r.nspname||'.'||r.relname,r.nspname,r.relname);
+ELSE
+ EXECUTE format('INSERT INTO repair_test_rows SELECT %L,to_jsonb(x) FROM %I.%I x',r.nspname||'.'||r.relname,r.nspname,r.relname);
+END IF; END LOOP; END $$;
 SELECT coalesce(jsonb_agg(jsonb_build_array(name,row_value) ORDER BY name,row_value),'[]') FROM repair_test_rows;'''
     return b.catalog(h,database),json.loads(h.sql(database,sql,'snapshot'))
 
@@ -577,6 +608,7 @@ def private_logs_and_cleanup(b,h):
 
 def extended_constructors(b):
     assertion_constructor_controls()
+    sequence_snapshot_constructor_controls()
     sources=b.validate_sources(b.reviewed_paths())
     assert len(b.legacy.verified_prefix())==43
     assert len(b.legacy.validate_sources(b.legacy.reviewed_paths()))==9

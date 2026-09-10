@@ -11,16 +11,19 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `735a37329a297132bbd1fc23422213adfff430d8`, exact reviewed
-tree `28406fa63c81492e987d1f8ae764683ddac2df43`; fetched equality/tracked-clean
-alignment PASS, local1f658328 archived. OPS34531911578 original16/auth103054398373,
-legacy17/actual-loop103054398721, quality/build103054398558 and Ediel103054398483 PASS.
-New user-rbac-repair-proof103054398569 FAIL before its first SQL lane receipt:
-constructors PASS, then UNEXPECTED_RESULT type=BoundaryError; exact owned cleanup PASS.
-Task11 remains unverified; correction07f58c3a casts the internal-char dependency key
-to text and makes native checks reject NULL. Focused constructor RED/GREEN,
-selection-only, compile/diff and preservation checks PASS; scoped review pending.
-Native clean replay103054398544 and verify103054398576 remain red; no full-plan closure.
+Latest publication: `a38fbd6df45b4ac3dab26c3b24bb5abee01ba438`, exact reviewed
+tree `3bc390421f912a1f137eba2cc9110a16a31ac0df`; fetched equality/tracked-clean
+alignment PASS, localedbf60d3 archived. Correction07f58c3a independently APPROVED:
+new catalog explicitly casts pg_depend.deptype to text (confirmed42725 class),
+T11-R1 native assertions reject NULL/empty scalar; no new findings.
+OPS34535318803 new repair103065452098 FAIL: prior catalog42725 now passes,
+then snapshot NATIVE_ERROR42809 after successful reference/catalog construction;
+owned cleanup PASS. Original author unavailable; bounded snapshot fix author active.
+Original16/auth103065451923, legacy17/actual-loop103065452065 (155127ms), Ediel103065452178 and quality103065452214 all PASS at a38fbd6d.
+Previous735a3732 OPS34531911578 original16/auth103054398373, legacy17/actual-loop
+103054398721 (148267ms), quality103054398558 and Ediel103054398483 PASS.
+New repair103054398569 failed catalog42725 before first lane receipt; cleanup PASS.
+Full replay/types and all remaining masterplan/production gates remain OPEN.
 
 
 Working-tree accounting is 596 inputs: 534 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -28,7 +31,7 @@ The focused group contains 342 inputs: 291 selected, 20 substituted, 27 unclassi
 Task11 W-only registration observed: actual CLI-created20260910174947 boundary
 adds one timestamp input and explicit focused-family classification. New W SQL
 is independently reviewed; hosted standalone execution failed before any lane PASS. R2/E2/S2 remain UNCLASSIFIED,
-foundation93/all17 unchanged;58 total/47 focused unresolved. Published735a3732 has these596/342 counts and reconfirms the accepted all17 baseline.
+foundation93/all17 unchanged;58 total/47 focused unresolved. Publisheda38fbd6d preserves these596/342 counts; latest accepted all17 baselinea38fbd6d.
 
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
@@ -45,9 +48,9 @@ Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 Task11 IMPLEMENTED_NOT_VERIFIED: commit383070ca implements unselected complete
 R2/E2/S2/W and authored independent owned/private PG17 proof (15 owned files).
-Independent spec+quality review APPROVED with one Minor T11-R1: native test
-check() accepts NULL postconditions; retain for next implicated test update/final
-review, no runtime guard bypass identified. T9-R1 is independently CLOSED. W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1.
+Independent spec+quality review initially approved with Minor T11-R1; correction07f58c3a
+now closes its NULL native assertion gap at review level. Actual negative controls
+remain behind the new snapshot42809 failure; no runtime guard bypass identified. T9-R1 is independently CLOSED. W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1.
 New/legacy constructors, fixed-group preservation, accounting29/groups15, cleanup17,
 diagnostics/RBAC provenance, integrity596/500 and syntax/diff checks PASS. No new
 SQL execution, source selection or production action. T9-R1 corrected in docs,
@@ -191,3 +194,5 @@ The historical workflow-tooling boundary remains scoped to that earlier batch:
 It does not revoke the user's explicit authorization for later verified delivery.
 
 Task11 failure refined from strict safe JSON receipts: first43/catalog/whole_batch/catalog/whole_batch all OK00000, then catalog NATIVE_ERROR exit3 SQLSTATE42725. Ambiguous-function catalog error is the observed failure; Author traced the exact expression to pg_depend.deptype (internal char) concatenated with text in the new catalog; explicit text cast correction and NULL assertion regression committed07f58c3a; static checks PASS; scoped review APPROVED, hosted SQL pending. No raw diagnostics disclosed.
+
+Snapshot42809 author diagnosis: sequence relations have no composite row type; whole-row to_jsonb fails. Same class exists in outer snapshot, admission and assertions. Explicit last_value/log_cnt/is_called comparisons retain complete sequence state and unchanged full r/p rows; uncalled/called sequence regression authored. Correction96cea061 committed in3 files; constructor red/green, syntax/diff/preservation PASS. Independent scoped review APPROVED with no new findings; hosted validation pending.

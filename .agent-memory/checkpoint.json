@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "735a37329a297132bbd1fc23422213adfff430d8",
-    "last_isolated_pg17_code": "735a37329a297132bbd1fc23422213adfff430d8"
+    "published_baseline": "a38fbd6df45b4ac3dab26c3b24bb5abee01ba438",
+    "last_isolated_pg17_code": "a38fbd6df45b4ac3dab26c3b24bb5abee01ba438"
   },
-  "execution_environment": "connected; aligned published735a3732; named stash preserved",
-  "next_action": "Publish independently APPROVED Task11 correction07f58c3a (catalog42725 cast and T11-R1 closure), then exact-head original17/complete new PG17 proof. No selection/production;58 unresolved."
+  "execution_environment": "connected; aligned publisheda38fbd6d; named stash preserved",
+  "next_action": "Publish independently APPROVED Task11 correction96cea061, then same-head all17/complete new PG17 proof. Snapshot/admission/assertions preserve exact sequence state. No selection/prod;58 unresolved."
 }
