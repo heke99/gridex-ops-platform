@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "236637eb2368a7035e61a844d2a4f5963bd2390d",
-    "last_isolated_pg17_code": "0b755004f2263682a84b377796bc64a9891a61fe"
+    "published_baseline": "9e1223659491bb77ec2f13855189e9dd729238e1",
+    "last_isolated_pg17_code": "9e1223659491bb77ec2f13855189e9dd729238e1"
   },
   "execution_environment": "connected; branch reconciled to25cb2c2b; prior local edits preserved in named stash",
-  "next_action": "Execute Task10 reviewed four-source canonical selection after verified Task9; re-run hosted group, then remaining source restoration and full replay/types/parity/production delivery."
+  "next_action": "Task1 contract approved6cd7d256. Review/publish Task2 hosted CLI skeleton preparation, retrieve artifact, then implement G/R repair and standalone PG17 proof before selection. Continue full replay/types/parity/production delivery."
 }

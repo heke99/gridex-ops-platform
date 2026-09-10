@@ -516,7 +516,10 @@ Separate and integrated implementation review precede hosted verification.
 Implemented3241a76f, independent spec/quality APPROVED2026-09-10; targeted
 selection/order/provenance/accounting/group/integrity checks PASS. Current counts
 593=522/24/43/4, focused339=279/21/35/4;67total/56focused unresolved.
-Publication and hosted selected-order verification remain pending.
+Bounded selected-order acceptance VERIFIED2026-09-10 at9e122365,
+OPS34470585925/auth102849298884 PASS complete fixed15 group after five reviewed
+fixture integration corrections; quality/build and Ediel PASS.67total/56focused
+inputs and full replay/artifacts/runtime/parity/production gates remain open.
 
 Requires Task9 complete bounded hosted acceptance. Insert all four originals
 immediately after current33 with exact provenance/order/accounting transition

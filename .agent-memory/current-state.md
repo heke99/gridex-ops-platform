@@ -10,9 +10,9 @@ needed. Current isolated tasks make no production writes; that scoped boundary
 does not restrict later verified production convergence.
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Active group: `auth_membership_tenant`. Published baseline:
-`236637eb2368a7035e61a844d2a4f5963bd2390d`, exact reviewed tree
-`bea7af5d326c0fe11bf8477080159094f2cd71d1`. No masterplan phase is closed.
+Active group: `auth_membership_tenant`. Latest verified publication:
+`9e1223659491bb77ec2f13855189e9dd729238e1`, exact reviewed tree
+`76bd532190382312ab4698b532d448e4709d1533`. No masterplan phase is closed.
 
 Working-tree accounting is 593 inputs: 522 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 43 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 339 inputs: 279 selected, 21 substituted, 35 unclassified, and 4 excluded.
@@ -20,7 +20,7 @@ Sixty-seven total
 inputs and56 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
 
-## Verified isolated source execution; canonical selection next
+## Historical Task7 execution receipt
 
 Code 236637eb2368a7035e61a844d2a4f5963bd2390d, exact reviewed tree bea7af5d326c0fe11bf8477080159094f2cd71d1. OPS34410026916:
 auth102662038207 PASS all14 commands, actual first33 migrations, six reduced
@@ -37,74 +37,34 @@ Both scoped code fixes independently reviewed; exact blocker equality retained.
 At the Task7 checkpoint,593 inputs were518 full/26 substituted/45 unclassified/4 excluded,71 unresolved; superseded by current accounting above.
 Task7 bounded acceptance complete; no masterplan phase closed.
 
-Next active item: Task10 reviewed canonical selection. Task8 contract independently
-approved; Task9 complete bounded hosted acceptance VERIFIED.
+Next active item: remaining auth/invitation/provisioning source effects and safe
+restoration contract. Task8 contract, Task9 whole-source execution and Task10
+canonical selection are bounded VERIFIED; no masterplan phase is closed.
 
-OPS34463803726/auth102827547241 at0b755004f2263682a84b377796bc64a9891a61fe (tree7fdaeedd1de31fbec2b0abbd4d8df7e1fcbd4540) PASS all15 fixed commands and complete Task9 bounded acceptance: empty and explicit6-pair/two-tenant whole-source/repeat/downstream lanes;22 dirty6D2;30 reduced relationships; reduced shapes/history/rename/nullable-token/RPC branches; seven native early/late SQLSTATE failure boundaries; real55P03 contention and stale-observation rejection. Quality/build102827547226 and Ediel102827547025 PASS. Verify102827547242 remains generated-types-tail red; clean102827547179 source completeness red. No source selection or production change had occurred at that Task9 receipt.
+OPS34470585925/auth102849298884 at9e1223659491bb77ec2f13855189e9dd729238e1 (tree76bd532190382312ab4698b532d448e4709d1533) PASS all15 fixed commands, actual selected38 RBAC prefix/repeated6E/finalhelper, SaaS and preserved30/31/32/33 fixtures, both whole-source lanes,22 dirty6D2,30 reduced relationships, reduced shapes/nullable-token, seven native failures, real55P03 contention and stale-observation rejection. Quality/build102849298861 and Ediel102849298882 PASS. Verify102849298841 remains generated-types-tail20260909123000 red; clean102849298634 source-completeness red. No production change or masterplan phase closure.
 
-All six observed Task9 harness defects are corrected, independently reviewed and
-verified through their former failure points. Prior detailed runtime progression
-is recorded in completed-work/session/verification and master evidence registers.
-Task10 inserts I/F/D/6D2 after actual33 with exact provenance/accounting transition,
-retains early bootstraps and historical fixture prefixes, then independently reviews
-and reruns hosted group. Selection3241a76f is implemented; current accounting above was checked against
-the exact selector. Targeted selection/order/provenance/group checks,29 accounting
-regressions, migration integrity593 files/497 groups and syntax PASS. Expected
-unresolved accounting exits remain1. Independent spec/quality review APPROVED
-with no findings. Published2539b57287d33384913644bc4d1d09d1234ff4cb, exact
-reviewed treebac23e6183cbe6b7f26b79385acc015a3070b2de; fetched equality/clean
-tracked tree confirmed and local68e4cd17 archived before alignment.
-OPS34466298139/auth102835575441 FAILS command6 canonical-rbac-prefix-selftest:
-duplicate role_permissions(role_id,permission_id) fixture seed conflicts with the
-extended prefix. Preceding selection selftest passes. Correctiond15ef34a uses
-a disjoint synthetic pair while preserving all six IDs; exact hard6E expected
-grant multiset includes its one authenticF cleanup row. Focused RED/GREEN,
-group/RBACselection/emit/compile/diff PASS. Scoped spec/quality APPROVED, no new
-material breakage. Published d9c561e4b98d3bf5b20f601de30cf12f2a848416, exact
-reviewed treeac76b74dfb97eb58ff8ba718a780d68f60b8b818; fetched tree equality
-and tracked-clean state verified, locale016081d archived before alignment.
-OPS34467334952/auth102838869738 passes prior grant insertion then FAILS
-command6 synthetic user_roles row...0002: status inactive violates selected6D2
-user_roles_status_check. Correctionb44ae36c adapts only prefix-local row...0002
-inactive→disabled, retaining identity/is_active=true/status-denial intent and
-separate active/is_active=false row...0004. All four seed statuses checked against
-exact6D2 vocabulary; original reduced fixture unchanged. Focused RED/GREEN,
-group/RBACselection/status-audit/compile/diff PASS; independent scoped
-spec/quality APPROVED with no new breakage. Published6a01942ab572f2a28ee33bc88b3615cf1f71aa28,
-exact reviewed treeaceabcc3e6cd7d4146b56c48f625ca9e1f92c3e1; fetched equality/
-tracked-clean checks PASS, local7a60993e archived before alignment.
-OPS34468037577/auth102841131286 passes both prior seed failures and then
-FAILS post6E old all17 governance trigger identity/event/binding assertion.
-Expanded prefix includes complete6D2. Correctionc023070f uses exact28 Task9
-targets/names/type23/enabled/functionOID/company_id tgattr, rejects extras and
-compares full trigger catalog in both directions; no unexpected role/profile
-UPDATE triggers. Focused RED/GREEN, group/RBACselection/emit audit/compile/diff
-PASS; independent scoped spec/quality APPROVED, no new breakage.
-Published5a630beea4b5b6b825aea531f61f6057bea074ed, exact reviewed tree
-3d04d0076ca7a9fb30fe65080918d558be8ce761; fetched equality/tracked-clean checks
-PASS, local223f3dc3 archived before alignment. OPS34468837732/auth102843714292
-FAILS new expected-trigger table SQL: typed/PK CREATE TABLE AS VALUES grammar
-is invalid near AS. Fresh stronger author correctionb7b91362 splits typed/PK
-CREATE from INSERT of the same exact28 distinct target rows; full preservation
-oracle remains byte-unchanged. Focused RED/GREEN/group/RBACselection/compile
-and bounded22-temp-statement emit audit PASS. Independent scoped spec/quality
-APPROVED with no new breakage. Published db5b3465fbc53162b38860a20ecb9f2532fca067,
-exact tree2ca17a430b7058b789d6e3877f16ddbed5a1bd31; fetched equality/tracked-clean
-checks PASS, local5e25cd77 archived before alignment. OPS34469529209/auth102845913965
-passes syntax/exact28 trigger checks then FAILS old operations journal no-FK/
-no-RLS/no-policy assertion. Complete6D2 legitimately changes its security boundary.
-Fresh stronger author runtime round5 traced coupled customer_sync_events and
-tenant_governance_events:6D2 enables RLS and installs4 dynamic/2 bespoke policies;
-6E/helper preserve them. Correctiona291cd0a requires exact RLS/notforced/owner/
-NULL ACL/options for both, source-literal deparsed4+2 policy sets and bidirectional
-policy OID/catalog preservation, retaining journal constraints/noFK/identities.
-Focused group RED/GREEN, RBACselection/compile/emitted-policy audit/diff PASS;
-independent scoped spec/quality APPROVED, no material findings or new breakage.
-Historical fixtures retained; corrected hosted selected-order acceptance pending.
-Corrected selected-order hosted acceptance open.
-Selected-order hosted acceptance remains open. Quality/build102835575212 and Ediel102835575406
-PASS at2539b572; latest d9c561e4 quality/build102838870050 and
-Ediel102838870083 also PASS; verify102838870004/clean102838869953 remain red. No artifact regeneration from incomplete replay.
+Task10 selection3241a76f plus five reviewed runtime corrections are accepted by
+that complete hosted run. All previous seed/status/trigger/SQL/journal failures
+are verified past their exact former boundaries. Current selection is522/24/43/4;
+67 total and56 focused inputs remain unresolved. Detailed correction history is
+preserved in evidence/session/verification registers, not competing active status.
+
+Active plan: quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md,
+Task1 nine-source1695-line/110-unit effects and G/R contract authored in
+commits cfc05d9d..6cd7d256. Independent architecture review APPROVED with no blockers;
+Task2 hosted CLI preparation c7c52cfd is independently APPROVED; publication
+and hosted skeleton acceptance are next. No new selection or SQL
+implementation yet. Proposed G42/R43 preserves first41.
+Next: review and publish CLI preparation, retrieve the generated skeleton,
+implement the repair and standalone PG17 proof, then separately
+review selection and append-only command16 integration.
+Continue with the remaining invitation/direct-account source group, reusing the
+five-source characterization and existing invitation/actor-FK reconstruction.
+Do not treat historical lossy status normalization, expired temporary-password
+acceptance, orphan cleanup or global permissive policies as safe production
+behavior. Trace complete sources and later winners, derive source-backed narrow
+restoration/forward-repair boundaries, then review and execute synthetic proof.
+No source selection or schema/types refresh from lexical hints/incomplete replay.
 
 Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local
 status edits retained in stash continuation-20260910-pre-checkpoint-reconcile;
