@@ -497,6 +497,11 @@ No source selection or final retention decision is implied by contract approval.
 
 ### Task 9: Isolated whole-source execution proof before selection
 
+Bounded acceptance VERIFIED2026-09-10: reviewed published0b755004,
+OPS34463803726/auth102827547241 PASS all15 fixed commands, both whole-source
+lanes and reduced/dirty/native/contention/stale-observation cases. Final full-chain
+security/artifacts/runtime/parity gates remain open. See current-state and evidence.
+
 Requires Task8 contract approval. Implement the complete synthetic PG17 contract in
 GOVERNANCE_FULL_SOURCE_EXECUTION_CONTRACT_2026-09-09.md through one fixed15th
 runner command. Preserve existing14 commands and all prior admission cases.
@@ -507,6 +512,11 @@ historical SQL, generated-artifact or production changes in this execution stage
 Separate and integrated implementation review precede hosted verification.
 
 ### Task 10: Reviewed canonical selection and preserved fixture boundaries
+
+Implemented3241a76f, independent spec/quality APPROVED2026-09-10; targeted
+selection/order/provenance/accounting/group/integrity checks PASS. Current counts
+593=522/24/43/4, focused339=279/21/35/4;67total/56focused unresolved.
+Publication and hosted selected-order verification remain pending.
 
 Requires Task9 complete bounded hosted acceptance. Insert all four originals
 immediately after current33 with exact provenance/order/accounting transition

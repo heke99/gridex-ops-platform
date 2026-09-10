@@ -45,14 +45,18 @@ def main():
     assert order.index(AUTH_NORMALIZE) == order.index(AUTH_SOURCE) + 1
     assert order.index(AUTH_TEMPLATE) == order.index(AUTH_NORMALIZE) + 1
     assert order.index(PROFILE_PREREQUISITE) == order.index(AUTH_TEMPLATE) + 1
-    assert order[boundary - 1] == 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql'
-    assert order[boundary - 2] == OPERATIONS_SOURCE
-    assert order[boundary - 3] == 'migrations/20260519_batch_6d_superadmin_tenant_governance.sql'
-    assert order[boundary - 4] == PROFILE_SOURCE
-    assert order[boundary - 5] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
-    assert order[boundary - 6] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
-    assert order[boundary - 7] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
-    assert order[boundary - 8] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
+    assert order[boundary - 1] == 'migrations/20260519_batch_6d2_runtime_governance_completion.sql'
+    assert order[boundary - 2] == 'migrations/20260526_debug_step1_2f_customer_import_foundation.sql'
+    assert order[boundary - 3] == 'migrations/20260519_final_saas_hardening.sql'
+    assert order[boundary - 4] == 'migrations/20260519_customer_intake_contracts_tenant_hardening.sql'
+    assert order[boundary - 5] == 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql'
+    assert order[boundary - 6] == OPERATIONS_SOURCE
+    assert order[boundary - 7] == 'migrations/20260519_batch_6d_superadmin_tenant_governance.sql'
+    assert order[boundary - 8] == PROFILE_SOURCE
+    assert order[boundary - 9] == 'migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql'
+    assert order[boundary - 10] == 'migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql'
+    assert order[boundary - 11] == 'migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql'
+    assert order[boundary - 12] == 'bootstrap/20260523_rbac_permission_helpers_foundation.sql'
     assert order.count(OPERATIONS_SOURCE) == additions['foundation'].count(OPERATIONS_SOURCE) == 1
     assert order.count(PROFILE_SOURCE) == additions['foundation'].count(PROFILE_SOURCE) == 1
     profile_meta = additions['derivedBootstrap'][PROFILE_PREREQUISITE]
@@ -147,6 +151,13 @@ def main():
     contact = additions['derivedBootstrap']['bootstrap/20260519_companies_primary_contact_email_foundation.sql']
     assert contact['source'] == 'migrations/20260519_final_saas_hardening.sql'
     assert contact['artifactSha256'] == '9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23'
+    assert contact.get('preserveSourceReplay') is True
+    versions = additions['derivedBootstrap']['bootstrap/20260519_contract_offer_versions_foundation.sql']
+    lifecycle = additions['derivedBootstrap']['bootstrap/20260519_contract_offers_lifecycle_foundation.sql']
+    assert versions['source'] == 'migrations/20260519_final_saas_hardening.sql'
+    assert versions.get('preserveSourceReplay') is True
+    assert lifecycle['source'] == 'migrations/20260519_customer_intake_contracts_tenant_hardening.sql'
+    assert lifecycle.get('preserveSourceReplay') is True
     saas = subprocess.run(['python3', 'scripts/canonical-saas-tenant-selftest.py', '--emit'], cwd=ROOT, text=True, capture_output=True, check=False)
     assert saas.returncode == 0, saas.stderr
     observed_saas = [line.removeprefix('-- SAAS_PREFIX_FILE_BEGIN ') for line in saas.stdout.splitlines() if line.startswith('-- SAAS_PREFIX_FILE_BEGIN ')]

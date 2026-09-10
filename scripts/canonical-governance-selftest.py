@@ -15,6 +15,12 @@ OPERATIONS = 'migrations/20260519_operations_core_saas_sync.sql'
 SHA = 'b54cc17584c7274862fe85711e324fff030ffca770d360c0fb721979f549cb47'
 EARLY = 'bootstrap/20260519_companies_governance_foundation.sql'
 EARLY_SHA = '7e245a6f95321c4fcf3fd0194b2c50a8ea99f9af4cfa05c917741e496ed6a41d'
+WHOLE = [
+    'migrations/20260519_customer_intake_contracts_tenant_hardening.sql',
+    'migrations/20260519_final_saas_hardening.sql',
+    'migrations/20260526_debug_step1_2f_customer_import_foundation.sql',
+    'migrations/20260519_batch_6d2_runtime_governance_completion.sql',
+]
 DATABASE = 'gridex_governance_fixture'
 ADMIN = 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test'
 TARGET = f'postgresql://postgres:postgres@127.0.0.1:55440/{DATABASE}'
@@ -31,11 +37,11 @@ def read(path):
 def selection():
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
-    assert order[30:34] == [SOURCE, OPERATIONS, 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql', 'bootstrap/20260527_company_memberships_role_key_foundation.sql'], 'complete 6D must stay at31 and operations must be32'
+    assert order[30:38] == [SOURCE, OPERATIONS, 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql', *WHOLE, 'bootstrap/20260527_company_memberships_role_key_foundation.sql'], 'complete sources must follow the retained first33 prefix'
     assert order[29] == 'migrations/20260519_saas_ui_tenant_admin.sql'
-    assert len(order) == 78 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert len(order) == 82 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
     assert order.count(OPERATIONS) == additions['foundation'].count(OPERATIONS) == 1
-    assert not any('6d2_' in p for p in order + additions['foundation'])
+    assert all(order.count(path) == additions['foundation'].count(path) == 1 for path in WHOLE)
     assert order[9] == EARLY and order.count(EARLY) == 1
     meta = additions['derivedBootstrap'][EARLY]
     assert meta['source'] == SOURCE and meta.get('preserveSourceReplay') is True
@@ -45,12 +51,12 @@ def selection():
     account = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     data = json.loads(account.stdout)
     assert account.returncode == 1 and not data['errors']
-    assert data['totalMigrations'] == 593 and data['counts'] == {'FULL_FILE_SELECTED':518,'SUBSTITUTED':26,'UNCLASSIFIED':45,'EXPLICITLY_EXCLUDED':4}, data['counts']
+    assert data['totalMigrations'] == 593 and data['counts'] == {'FULL_FILE_SELECTED':522,'SUBSTITUTED':24,'UNCLASSIFIED':43,'EXPLICITLY_EXCLUDED':4}, data['counts']
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode == 1 and not group['errors'] and len(group['inputs']) == 339
     counts = {key:sum(item['classification'] == key for item in group['inputs']) for key in data['counts']}
-    assert counts == {'FULL_FILE_SELECTED':275,'SUBSTITUTED':23,'UNCLASSIFIED':37,'EXPLICITLY_EXCLUDED':4}, counts
+    assert counts == {'FULL_FILE_SELECTED':279,'SUBSTITUTED':21,'UNCLASSIFIED':35,'EXPLICITLY_EXCLUDED':4}, counts
     return order[:30]
 
 

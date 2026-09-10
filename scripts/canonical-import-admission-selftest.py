@@ -21,6 +21,10 @@ SOURCES = {
  'F': ('20260519_final_saas_hardening.sql', '2037dbc535d18d7575820d7f40d2a8ef4848b67060161e6851a01eb15990105e'),
  'D': ('20260526_debug_step1_2f_customer_import_foundation.sql', 'b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a'),
 }
+RUNTIME_SOURCE = (
+ '20260519_batch_6d2_runtime_governance_completion.sql',
+ 'b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab',
+)
 BATCH = 'customer_import_batches'
 ROW = 'customer_import_rows'
 VERSION = 'contract_offer_versions'
@@ -69,10 +73,12 @@ def selection():
     module('canonical-operations-sync-selftest').selection()
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     assert order[32] == 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql'
-    for name, digest in SOURCES.values():
+    selected = [*SOURCES.values(), RUNTIME_SOURCE]
+    assert order[33:37] == ['migrations/' + name for name, _ in selected]
+    assert order[37] == 'bootstrap/20260527_company_memberships_role_key_foundation.sql'
+    for name, digest in selected:
         assert hashlib.sha256((ROOT / 'supabase/migrations' / name).read_bytes()).hexdigest() == digest
-        assert 'migrations/' + name not in order
-    assert not any('6d2_' in path for path in order)
+        assert order.count('migrations/' + name) == 1
     return order[:33]
 
 
@@ -704,7 +710,7 @@ if __name__=='__main__':
     modes.add_argument('--emit-checker',action='store_true')
     args=parser.parse_args()
     if args.selection_only:
-        selection(); print('PASS: import sources unselected; first33/foundation78/RBAC34/accounting unchanged; SQL NOT EXECUTED')
+        selection(); print('PASS: complete sources selected after retained first33; Task7 still applies first33 only; SQL NOT EXECUTED')
     elif args.emit:
         emit()
     elif args.emit_checker:

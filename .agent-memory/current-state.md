@@ -14,13 +14,13 @@ Active group: `auth_membership_tenant`. Published baseline:
 `236637eb2368a7035e61a844d2a4f5963bd2390d`, exact reviewed tree
 `bea7af5d326c0fe11bf8477080159094f2cd71d1`. No masterplan phase is closed.
 
-Working-tree accounting is 593 inputs: 518 `FULL_FILE_SELECTED`, 26 `SUBSTITUTED`, 45 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 339 inputs: 275 selected, 23 substituted, 37 unclassified, and 4 excluded.
-Seventy-one total
-inputs and60 focused candidates remain unresolved. Selection is not proof of
+Working-tree accounting is 593 inputs: 522 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 43 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 339 inputs: 279 selected, 21 substituted, 35 unclassified, and 4 excluded.
+Sixty-seven total
+inputs and56 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
 
-## 2026-09-09 — Task7 verified; execution environment disconnected
+## Verified isolated source execution; canonical selection next
 
 Code 236637eb2368a7035e61a844d2a4f5963bd2390d, exact reviewed tree bea7af5d326c0fe11bf8477080159094f2cd71d1. OPS34410026916:
 auth102662038207 PASS all14 commands, actual first33 migrations, six reduced
@@ -34,79 +34,25 @@ Staging/load/full production certification remains skipped or unverified.
 
 F-IMPORT-ADMISSION-001 and F-IMPORT-FIXTURE-002 VERIFIED_CLOSED within Task7.
 Both scoped code fixes independently reviewed; exact blocker equality retained.
-593 inputs remain518 full/26 substituted/45 unclassified/4 excluded,71 unresolved.
+At the Task7 checkpoint,593 inputs were518 full/26 substituted/45 unclassified/4 excluded,71 unresolved; superseded by current accounting above.
 Task7 bounded acceptance complete; no masterplan phase closed.
 
-Next active item: Task9 whole-source isolated execution proof. Task8 contract
-3986a755+87b45d8d independently approved after F-EXEC-SEED-001 (empty3-pair vs
-synthetic6-pair seed coverage) and F-EXEC-NATIVE-002 (native duplicate-token23505
-vs same-name-index skip) were corrected and re-reviewed. Contract approval is
-not executed SQL or canonical source-selection approval.
-Partial implementation cfcc5a60 adds the fixed15th runner lane; static checks
-PASS, all new SQL NOT EXECUTED. Independent review /root/whole_source_implementation_review
-returned Needs fixes. Correction round3 commit3bb0d79f implements the eight
-consolidated groups; scoped review approved them. Integrated review identified
-four harness defects, corrected in34df3d0a: exact inherited/retained function ACLs,
-first-F offer column preservation, first-I tableoid alias, and distinguishing
-native6D2 rollback row/catalog evidence. Independent integrated scoped re-review
-approved all four with no new material breakage. Code is approved for hosted
-verification publication; Task9 execution acceptance remains OPEN.
-Static regression RED-before/GREEN-after, compile, selection/emit, fixed runner,
-migration integrity, provenance and accounting PASS. SQL remains NOT EXECUTED.
-No source-selection or production change occurred. Published e87c13fc, exact reviewed treef48bebc5fcbc12c60e75e5889b454d51f1f86b5b.
-Fetched tree equality and tracked-clean state verified; local review history
-preserved under archive/task9-reviewed-0c34dbda before exact-tree alignment.
-Initial OPS34456979810/auth102805548475 passed old14 then failed the pre-source
-timeout display comparison. Reviewed correction7c2b9123 published6e2e00e3,
-exact tree9bb3e906be6b4ce6c1addd7997e59e172acc52e7; fetched equality confirmed,
-local0752078e archived before alignment. OPS34457908213/auth102808527514 now
-passes old14, corrected timeout setup, actual first33 and whole I. It then FAILS
-before F: f_seed_snapshot_sql assumes roles.is_system, absent from actual prefix.
-Seed-metadata correctionf07f3946 independently APPROVED for hosted publication:
-actual role columns/full JSON preservation; only source name/description delta.
-Focused regression RED/GREEN, compile/group/selection/emit/diff PASS; SQL pending.
-Correctionf07f3946 published as e2bdffc4, exact tree440fdb38be8442fb33e01b68ab700010bce63f11;
-fetched equality/clean tracked state confirmed, local7b7d68ae archived. Its first
-auth102811838115 attempt failed in unchanged command11 reset57014. Single retry
-auth102813334149 passed old14 and actual first33 plus whole I/F/D/6D2 and zero
-Task7 admission blockers, confirming progress past timeout/seed setup. It FAILS
-in complete_postflight's D debug-view exact-name/status assertion. Root cause reproduced with libc en_US.utf8: customers/customer_sites ordering
-differs from Python sorted. Correctionbe74eb74 pins only the name aggregate to C
-collation; exact15 names/count/status/RLS checks retained. Independent scoped review
-APPROVED, focused regression RED/GREEN and compile/group/selection/emit/diff PASS.
-Correction published5c943a77, exact reviewed treeaee3721f4e06c8c312ce73575571095e74319974;
-fetched equality confirmed and local9d309d1f archived. OPS34460269891/auth102816183689
-passes complete I/F/D/6D2 postflight, then role-key and all three6E source files.
-It fails the downstream import UPDATE policy oracle: 6E excludes import tables,
-so their retained6D2 policy uses read/write, not the assumed write/write. Correctione174d4e1 independently APPROVED: exact eight retained6D2 import policies,
-actual6E customers UPDATE replacement and full import-policy/OID preservation.
-Focused RED/GREEN, compile/group/selection/emit/diff PASS. Published86383c92, exact
-reviewed treecfd5321a7bf7238e0a1b2468364170e2382b7b7e; fetched equality confirmed,
-local8e8cec8a archived before alignment. OPS34461460735/auth102820032935 passes
-both full-empty and seeded two-tenant lanes, consumer checks, source preservation/
-repeat and downstream composition. It fails entering dirty_admission_lanes in
-catalog_fingerprint: ambiguous text concatenation with internal PG char fields.
-Correction55e07ad6 independently APPROVED: explicit text casts for six internal
-char fields and tgattr; seven catalog branches and24 full-row checks preserved.
-Focused RED/GREEN, compile/group/selection/diff PASS. Publishedc5578849, exact
-reviewed tree090aaa164f5610460d1325c69c40d39bc5631a89; fetched equality confirmed,
-local1942f768 archived before alignment. OPS34462362242/auth102822909870 passes
-both main lanes,22 dirty6D2 cases,30 reduced relationship cases, six reduced
-shape cases, first-I history, F legacy rename and both-name rejection. It fails
-in nullable-token compatibility setup: actual PRE6D2 token is NOT NULL (23502).
-Fingerprint finding is bounded VERIFIED_CLOSED. Correction85496fe0 explicitly builds the reduced nullable-token clone, preserves
-all existing rows/catalog through F and checks legacy NULL plus future defaults.
-Focused regression RED/GREEN; compile/group/selection/emit/diff PASS. Independent
-scoped review APPROVED with no new material breakage; corrected hosted execution
-and native/concurrency lanes pending.
-No historical source or selector changes; corrected whole-source acceptance pending.
-No full Task9 acceptance or source-selection change. Next: resolve/review/publish
-the observed nullable-token fixture mismatch and rerun hosted group, then dependent Task10.
-Quality102822910141 including build and Ediel102822910428 PASS;
-verify102822910122 fails unchanged generated-types tail20260909123000;
-clean102822910191 remains FAIL before complete replay.
-See Task9 ignored report; Task9 stays open. No selectors change before complete
-whole-source hosted evidence. Task10 selection follows.
+Next active item: Task10 reviewed canonical selection. Task8 contract independently
+approved; Task9 complete bounded hosted acceptance VERIFIED.
+
+OPS34463803726/auth102827547241 at0b755004f2263682a84b377796bc64a9891a61fe (tree7fdaeedd1de31fbec2b0abbd4d8df7e1fcbd4540) PASS all15 fixed commands and complete Task9 bounded acceptance: empty and explicit6-pair/two-tenant whole-source/repeat/downstream lanes;22 dirty6D2;30 reduced relationships; reduced shapes/history/rename/nullable-token/RPC branches; seven native early/late SQLSTATE failure boundaries; real55P03 contention and stale-observation rejection. Quality/build102827547226 and Ediel102827547025 PASS. Verify102827547242 remains generated-types-tail red; clean102827547179 source completeness red. No source selection or production change had occurred at that Task9 receipt.
+
+All six observed Task9 harness defects are corrected, independently reviewed and
+verified through their former failure points. Prior detailed runtime progression
+is recorded in completed-work/session/verification and master evidence registers.
+Task10 inserts I/F/D/6D2 after actual33 with exact provenance/accounting transition,
+retains early bootstraps and historical fixture prefixes, then independently reviews
+and reruns hosted group. Selection3241a76f is implemented; current accounting above was checked against
+the exact selector. Targeted selection/order/provenance/group checks,29 accounting
+regressions, migration integrity593 files/497 groups and syntax PASS. Expected
+unresolved accounting exits remain1. Independent spec/quality review APPROVED
+with no findings; publication and hosted verification of selected order pending. No artifact regeneration from incomplete replay.
+
 Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local
 status edits retained in stash continuation-20260910-pre-checkpoint-reconcile;
 unrelated Ediel worktree and ignored reports preserved.
@@ -120,7 +66,7 @@ and exact index-name correction are reviewed; reuse the existing1321-line source
 matrix. Token compatibility remains partial where shape/credentials are missing.
 Task7 takes a consistent observation only; it does not freeze later writes or
 make historical source invocation atomic. Task8 retains that application boundary.
-Task7 precedes any I/F/D/6D2 selection and does not decide physical-retention or
+Task7 prerequisite acceptance preceded I/F/D/6D2 selection and does not decide physical-retention or
 stronger version contracts. Final journal ACL/RLS/access, later hardening,
 session revocation and durable delivery remain open. No masterplan phase is closed.
 The mandatory-reference task's isolated execution is verified, not full lifecycle

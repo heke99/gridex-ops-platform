@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = ROOT / "supabase" / "migrations"
 ORDER_FILE = ROOT / "scripts" / "gridex-aud-003-foundation-order.json"
+ADDITIONS_FILE = ROOT / "scripts" / "gridex-aud-003-legacy-foundation.additions.json"
 
 PREFIX_COUNT = 33
 PREFIX_PATH_DIGEST = "ca5bba8be8cadae60b5e753addca0a6f4d7d835cf4f96bd3f3d91fb9734a8370"
@@ -35,6 +36,29 @@ WHOLE_SOURCES = {
         "20260519_batch_6d2_runtime_governance_completion.sql",
         572,
         "b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab",
+    ),
+}
+
+EARLY_BOOTSTRAPS = {
+    "bootstrap/20260519_companies_primary_contact_email_foundation.sql": (
+        "migrations/20260519_final_saas_hardening.sql",
+        "9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23",
+        "complete immutable final SaaS source replay",
+    ),
+    "bootstrap/20260519_companies_governance_foundation.sql": (
+        "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
+        "7e245a6f95321c4fcf3fd0194b2c50a8ea99f9af4cfa05c917741e496ed6a41d",
+        "complete immutable 6D source",
+    ),
+    "bootstrap/20260519_contract_offer_versions_foundation.sql": (
+        "migrations/20260519_final_saas_hardening.sql",
+        "dfc498aa35f02dcc1b4ab30481f8f52981a8987ccde911c06e4b52541d0c63e6",
+        "complete immutable final SaaS source replay",
+    ),
+    "bootstrap/20260519_contract_offers_lifecycle_foundation.sql": (
+        "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
+        "d4d1a4393ca71d8d70896fa9a21e1e4f897053e4a3c55724c833a4e4b378614d",
+        "complete immutable customer-intake source replay",
     ),
 }
 
@@ -177,12 +201,15 @@ def sha256(path: Path) -> str:
 
 def validate() -> dict[str, object]:
     order = foundation()
+    additions = json.loads(ADDITIONS_FILE.read_text())
     selected = prefix()
     assert len(selected) == PREFIX_COUNT
     assert selected[-1] == "migrations/20260909123000_canonical_invitation_token_prerequisite.sql"
     order_digest = hashlib.sha256(("\n".join(selected) + "\n").encode()).hexdigest()
     assert order_digest == PREFIX_PATH_DIGEST, order_digest
 
+    source_paths = [f"migrations/{name}" for name, _, _ in WHOLE_SOURCES.values()]
+    assert order[PREFIX_COUNT:PREFIX_COUNT + len(source_paths)] == source_paths
     receipts: list[dict[str, object]] = []
     for alias, (name, lines, digest) in WHOLE_SOURCES.items():
         path = MIGRATIONS / name
@@ -190,12 +217,21 @@ def validate() -> dict[str, object]:
         actual_digest = sha256(path)
         assert actual_lines == lines, (name, actual_lines)
         assert actual_digest == digest, (name, actual_digest)
-        assert f"migrations/{name}" not in order
+        source_path = f"migrations/{name}"
+        assert order.count(source_path) == additions["foundation"].count(source_path) == 1
         receipts.append({"alias": alias, "path": f"migrations/{name}", "lines": lines, "sha256": digest})
 
+    for position, (path, (source, digest, purpose)) in enumerate(EARLY_BOOTSTRAPS.items(), 8):
+        assert order[position] == path
+        meta = additions["derivedBootstrap"][path]
+        assert meta["source"] == source
+        assert meta["artifactSha256"] == digest == sha256(ROOT / "supabase" / path)
+        assert meta.get("preserveSourceReplay") is True
+        assert purpose in meta["purpose"]
+
     downstream_indexes = [order.index(path) for path in DOWNSTREAM]
-    assert downstream_indexes == list(range(33, 37)), downstream_indexes
-    assert len(order) == 78
+    assert downstream_indexes == list(range(37, 41)), downstream_indexes
+    assert len(order) == 82
     return {
         "sql": "NOT EXECUTED",
         "prefixCount": PREFIX_COUNT,
@@ -203,6 +239,6 @@ def validate() -> dict[str, object]:
         "wholeSources": receipts,
         "downstream": list(DOWNSTREAM),
         "foundationCount": len(order),
-        "canonicalSelectionUnchanged": True,
+        "canonicalSelectionReviewed": True,
         "finalGates": "OPEN",
     }

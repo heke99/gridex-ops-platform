@@ -267,7 +267,7 @@ def main():
     prefix = run('python3', str(RBAC_PREFIX_FIXTURE), '--emit')
     assert prefix.returncode == 0, prefix.stderr
     assert prefix.stdout.count('-- RBAC_MANAGED_BOOTSTRAP_BEGIN') == 1
-    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 34
+    assert prefix.stdout.count('-- RBAC_PREFIX_FILE_BEGIN ') == 38
     assert prefix.stdout.count('-- RBAC_SOURCE_FILE_BEGIN ') == 6
     assert prefix.stdout.count('-- RBAC_FINAL_HELPER_BEGIN ') == 1
     assert prefix.stdout.rindex('-- RBAC_FINAL_HELPER_BEGIN ') > prefix.stdout.rindex('-- RBAC_SOURCE_FILE_BEGIN ')
@@ -315,10 +315,10 @@ def main():
     assert whole_selection.returncode == 0, whole_selection.stderr
     whole_manifest = json.loads(whole_selection.stdout)
     assert whole_manifest['sql'] == 'NOT EXECUTED'
-    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 78
+    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 82
     assert whole_manifest['prefixPathSha256'] == 'ca5bba8be8cadae60b5e753addca0a6f4d7d835cf4f96bd3f3d91fb9734a8370'
     assert [item['alias'] for item in whole_manifest['wholeSources']] == ['I', 'F', 'D', '6D2']
-    assert whole_manifest['canonicalSelectionUnchanged'] is True and whole_manifest['finalGates'] == 'OPEN'
+    assert whole_manifest['canonicalSelectionReviewed'] is True and whole_manifest['finalGates'] == 'OPEN'
     whole_emit = run('python3', str(ROOT / 'scripts/canonical-full-governance-source-selftest.py'), '--emit')
     assert whole_emit.returncode == 0, whole_emit.stderr
     assert whole_emit.stdout.startswith('-- SQL NOT EXECUTED.')

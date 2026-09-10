@@ -7,8 +7,8 @@
   "active_group": "auth_membership_tenant",
   "source_state": {
     "published_baseline": "236637eb2368a7035e61a844d2a4f5963bd2390d",
-    "last_isolated_pg17_code": "236637eb2368a7035e61a844d2a4f5963bd2390d"
+    "last_isolated_pg17_code": "0b755004f2263682a84b377796bc64a9891a61fe"
   },
   "execution_environment": "connected; branch reconciled to25cb2c2b; prior local edits preserved in named stash",
-  "next_action": "Continue Task9 hosted whole-source verification and reviewed runtime fixes; Task10 canonical selection only after full bounded acceptance. Full replay/types/parity and production delivery remain open."
+  "next_action": "Execute Task10 reviewed four-source canonical selection after verified Task9; re-run hosted group, then remaining source restoration and full replay/types/parity/production delivery."
 }

@@ -17,6 +17,12 @@ SOURCE = 'migrations/20260519_operations_core_saas_sync.sql'
 SHA = 'e5863b15ec8c25794912b50c36eda6a370f3fb288800339a0bcfb16f2a3bb619'
 FULL6D = 'migrations/20260519_batch_6d_superadmin_tenant_governance.sql'
 BOUNDARY = 'bootstrap/20260527_company_memberships_role_key_foundation.sql'
+WHOLE = [
+    'migrations/20260519_customer_intake_contracts_tenant_hardening.sql',
+    'migrations/20260519_final_saas_hardening.sql',
+    'migrations/20260526_debug_step1_2f_customer_import_foundation.sql',
+    'migrations/20260519_batch_6d2_runtime_governance_completion.sql',
+]
 DATABASE = 'gridex_operations_sync_fixture'
 CLEAN_DATABASE = 'gridex_operations_sync_clean'
 ADMIN = 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test'
@@ -70,10 +76,10 @@ def governance():
 def selection():
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
-    assert order[30:34] == [FULL6D, SOURCE, 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql', BOUNDARY], order[29:34]
-    assert len(order) == 78 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert order[30:38] == [FULL6D, SOURCE, 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql', *WHOLE, BOUNDARY], order[29:38]
+    assert len(order) == 82 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
     assert order[:30][-1] == 'migrations/20260519_saas_ui_tenant_admin.sql'
-    assert not any('6d2_' in path for path in order + additions['foundation'])
+    assert all(order.count(path) == additions['foundation'].count(path) == 1 for path in WHOLE)
     manifest = json.loads(read('scripts/migration-history-manifest.json'))
     assert manifest['files'][Path(SOURCE).name] == SHA
     assert hashlib.sha256((ROOT / 'supabase' / SOURCE).read_bytes()).hexdigest() == SHA
@@ -81,14 +87,14 @@ def selection():
     account = json.loads(account_run.stdout)
     assert account_run.returncode == 1 and not account['errors']
     assert account['totalMigrations'] == 593
-    assert account['counts'] == {'FULL_FILE_SELECTED': 518, 'SUBSTITUTED': 26, 'UNCLASSIFIED': 45, 'EXPLICITLY_EXCLUDED': 4}
+    assert account['counts'] == {'FULL_FILE_SELECTED': 522, 'SUBSTITUTED': 24, 'UNCLASSIFIED': 43, 'EXPLICITLY_EXCLUDED': 4}
     by_path = {item['path']: item for item in account['migrations']}
     assert by_path[SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     group_run = subprocess.run(['python3', 'scripts/gridex-replay-review-groups.py', '--group', 'auth_membership_tenant'], cwd=ROOT, text=True, capture_output=True)
     group = json.loads(group_run.stdout)
     assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 339
     counts = {key: sum(item['classification'] == key for item in group['inputs']) for key in account['counts']}
-    assert counts == {'FULL_FILE_SELECTED': 275, 'SUBSTITUTED': 23, 'UNCLASSIFIED': 37, 'EXPLICITLY_EXCLUDED': 4}
+    assert counts == {'FULL_FILE_SELECTED': 279, 'SUBSTITUTED': 21, 'UNCLASSIFIED': 35, 'EXPLICITLY_EXCLUDED': 4}
     assert SOURCE not in {item['path'] for item in group['inputs']}
     return order[:31]
 

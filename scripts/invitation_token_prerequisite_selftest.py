@@ -16,6 +16,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql'
 RUNTIME = 'migrations/20260906081839_canonical_company_invitation_runtime_reconstruction.sql'
 BOUNDARY = 'bootstrap/20260527_company_memberships_role_key_foundation.sql'
+WHOLE = [
+    'migrations/20260519_customer_intake_contracts_tenant_hardening.sql',
+    'migrations/20260519_final_saas_hardening.sql',
+    'migrations/20260526_debug_step1_2f_customer_import_foundation.sql',
+    'migrations/20260519_batch_6d2_runtime_governance_completion.sql',
+]
 DATABASE = 'gridex_invitation_token_fixture'
 CLEAN = 'gridex_invitation_token_clean'
 ADMIN = 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test'
@@ -33,8 +39,9 @@ def read(path):
 def selection():
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
-    assert order[31:34] == ['migrations/20260519_operations_core_saas_sync.sql', SOURCE, BOUNDARY], 'missing token prerequisite before role foundation'
-    assert len(order) == 78 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert order[31:38] == ['migrations/20260519_operations_core_saas_sync.sql', SOURCE, *WHOLE, BOUNDARY], 'missing token and complete-source sequence before role foundation'
+    assert len(order) == 82 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert all(order.count(path) == additions['foundation'].count(path) == 1 for path in WHOLE)
     manifest = json.loads(read('scripts/migration-history-manifest.json'))
     assert manifest['files'][Path(SOURCE).name] == hashlib.sha256((ROOT / 'supabase' / SOURCE).read_bytes()).hexdigest()
     sql = read('supabase/' + SOURCE)

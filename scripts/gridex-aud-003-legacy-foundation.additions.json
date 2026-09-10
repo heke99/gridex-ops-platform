@@ -26,6 +26,10 @@
     "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
     "migrations/20260519_operations_core_saas_sync.sql",
     "migrations/20260909123000_canonical_invitation_token_prerequisite.sql",
+    "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
+    "migrations/20260519_final_saas_hardening.sql",
+    "migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+    "migrations/20260519_batch_6d2_runtime_governance_completion.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
     "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
     "migrations/20260520_batch_6e_fix_rbac_backfill_security.sql",
@@ -296,7 +300,8 @@
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql": {
       "source": "migrations/20260519_final_saas_hardening.sql",
       "artifactSha256": "9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23",
-      "purpose": "Restore only source-defined companies primary-contact fields required by later canonical tenant-mail and legal-profile flows: primary_contact_email, primary_contact_name, phone and website; no company rows are seeded or rewritten."
+      "purpose": "Retain the early source-defined companies primary-contact fields required by later canonical tenant-mail and legal-profile flows: primary_contact_email, primary_contact_name, phone and website; preserve the complete immutable final SaaS source replay. No company rows are seeded or rewritten by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260520_companies_support_email_foundation.sql": {
       "source": "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
@@ -397,12 +402,14 @@
     "bootstrap/20260519_contract_offer_versions_foundation.sql": {
       "source": "migrations/20260519_final_saas_hardening.sql",
       "artifactSha256": "dfc498aa35f02dcc1b4ab30481f8f52981a8987ccde911c06e4b52541d0c63e6",
-      "purpose": "Restore only source-defined contract_offer_versions and its company/offer history index required by later canonical contract/invoice completion; no offer versions or tenant/product rows are seeded."
+      "purpose": "Retain the early source-defined contract_offer_versions relation and created_at history index required by later canonical contract/invoice completion; preserve the complete immutable final SaaS source replay. No offer versions or tenant/product rows are seeded by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260519_contract_offers_lifecycle_foundation.sql": {
       "source": "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
       "artifactSha256": "d4d1a4393ca71d8d70896fa9a21e1e4f897053e4a3c55724c833a4e4b378614d",
-      "purpose": "Restore only the source-defined contract_offers lifecycle metadata required by later canonical contract/invoice completion: version_number, published_at, archived_at, last_price_change_at and the company/status index; no offer rows are seeded or rewritten."
+      "purpose": "Retain the early source-defined contract_offers lifecycle metadata and company/status index required by later canonical contract/invoice completion; preserve the complete immutable customer-intake source replay. No offer rows are seeded or rewritten by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "migrations/20260519_ediel_operations_engine_batch.sql": {
       "source": "migrations/20260519_ediel_operations_engine_batch.sql",
