@@ -80,7 +80,15 @@ targets/names/type23/enabled/functionOID/company_id tgattr, rejects extras and
 compares full trigger catalog in both directions; no unexpected role/profile
 UPDATE triggers. Focused RED/GREEN, group/RBACselection/emit audit/compile/diff
 PASS; independent scoped spec/quality APPROVED, no new breakage.
-Corrected hosted selected-order acceptance pending.
+Published5a630beea4b5b6b825aea531f61f6057bea074ed, exact reviewed tree
+3d04d0076ca7a9fb30fe65080918d558be8ce761; fetched equality/tracked-clean checks
+PASS, local223f3dc3 archived before alignment. OPS34468837732/auth102843714292
+FAILS new expected-trigger table SQL: typed/PK CREATE TABLE AS VALUES grammar
+is invalid near AS. Fresh stronger author correctionb7b91362 splits typed/PK
+CREATE from INSERT of the same exact28 distinct target rows; full preservation
+oracle remains byte-unchanged. Focused RED/GREEN/group/RBACselection/compile
+and bounded22-temp-statement emit audit PASS. Independent scoped spec/quality
+APPROVED with no new breakage; corrected selected-order hosted acceptance open.
 Selected-order hosted acceptance remains open. Quality/build102835575212 and Ediel102835575406
 PASS at2539b572; latest d9c561e4 quality/build102838870050 and
 Ediel102838870083 also PASS; verify102838870004/clean102838869953 remain red. No artifact regeneration from incomplete replay.

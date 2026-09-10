@@ -92,7 +92,8 @@ select test_assert((select count(*)=2 and bool_and(atttypid='timestamptz'::regty
 
 def prefix_baseline():
     trigger_targets = ','.join("('%s')" % target for target in governance_contract.TRIGGER_TARGETS)
-    return f"""create temporary table rbac_expected_governance_trigger_targets(table_name text primary key) as values {trigger_targets};
+    return f"""create temporary table rbac_expected_governance_trigger_targets(table_name text primary key);
+insert into rbac_expected_governance_trigger_targets(table_name) values {trigger_targets};
 create temporary table rbac_governance_triggers as select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger where tgname like '%_tenant_operational_guard_trg' and not tgisinternal;
 create temporary table rbac_governance_checks as select oid,conrelid,conname,pg_get_constraintdef(oid) definition from pg_constraint where conname in ('companies_status_check','company_memberships_role_check','company_memberships_status_check','company_invitations_membership_role_check','company_invitations_status_check','user_profiles_user_status_check') or conrelid='tenant_governance_events'::regclass;
 create temporary table rbac_governance_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('tenant_governance_events'::regclass,'platform_tenant_governance_overview'::regclass,'tenant_governance_events_company_created_idx'::regclass,'tenant_governance_events_target_user_created_idx'::regclass);

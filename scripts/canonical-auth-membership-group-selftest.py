@@ -311,9 +311,15 @@ def rbac_prefix_governance_trigger_contract():
     contract_spec.loader.exec_module(contract)
     sql = module.main_sql()
     assert len(contract.TRIGGER_TARGETS) == 28
-    assert 'create temporary table rbac_expected_governance_trigger_targets' in sql
-    for target in contract.TRIGGER_TARGETS:
-        assert f"('{target}')" in sql
+    target_table = 'rbac_expected_governance_trigger_targets'
+    create = f'create temporary table {target_table}(table_name text primary key);'
+    assert sql.count(create) == 1, 'typed primary-key target table requires standalone CREATE TABLE'
+    inserts = re.findall(rf'insert into {target_table}\(table_name\) values ([^;]+);', sql)
+    assert len(inserts) == 1, 'target table requires one explicit INSERT after creation'
+    targets = re.findall(r"\('([^']+)'\)", inserts[0])
+    assert tuple(targets) == tuple(contract.TRIGGER_TARGETS) and len(set(targets)) == 28, targets
+    assert inserts[0] == ','.join(f"('{target}')" for target in targets)
+    assert sql.index(create) < sql.index(f'insert into {target_table}(table_name)')
     assert '(select count(*)=28 from rbac_governance_triggers)' in sql
     assert "t.tgtype<>23 or t.tgenabled<>'O'" in sql
     assert "t.tgfoid<>'public.gridex_assert_company_operational_for_write()'::regprocedure" in sql
