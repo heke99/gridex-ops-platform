@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "e37bc25b8de9eec93036ac8138b5b6efb778234a",
-    "last_isolated_pg17_code": "e37bc25b8de9eec93036ac8138b5b6efb778234a"
+    "published_baseline": "e2774bc4ac50874b2168c9d1c7c82f62c4dd695f",
+    "last_isolated_pg17_code": "e2774bc4ac50874b2168c9d1c7c82f62c4dd695f"
   },
-  "execution_environment": "connected; Task7 reviewed27de938e/7df113e5 based on publishede37bc25b; named stash preserved",
-  "next_action": "Task7 implementation and scoped fixes independently approved; publish reviewed tree, require complete standalone SQL/logging/concurrency proof plus original16 before selecting remaining8 sources; continue masterplan."
+  "execution_environment": "connected; branch aligned to publishede2774bc4; named pre-checkpoint stash preserved",
+  "next_action": "Catalog42725 fixba3ef41c independently APPROVED, no findings. Publish exact reviewed batch, require real PG17 catalog resolution and complete remaining legacy lanes plus original16 before selection; continue masterplan."
 }

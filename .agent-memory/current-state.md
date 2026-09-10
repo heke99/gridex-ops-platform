@@ -11,10 +11,12 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `e37bc25b8de9eec93036ac8138b5b6efb778234a`, exact reviewed
-tree `09a371e01a42972a5c80d9ecfa3d7d79c2e119b6`; fetched equality/tracked-clean
-alignment passed, local585e367e archived. OPS34486254854/auth102901181907 complete fixed16 PASS.
-The preparation publication changes no source selection or original16 commands.
+Latest publication: `e2774bc4ac50874b2168c9d1c7c82f62c4dd695f`, exact reviewed
+tree `11b1ef2f4c166d64c2f13a0d51f01712c4b75af8`; fetched equality/tracked-clean
+alignment passed, localaddecd98 archived. OPS34491908718 original16 and new
+standalone legacy proof FAILED at catalog SQLSTATE42725; original16 PASS
+job102920508896. First43 executed OK, cleanup PASS; no later legacy lanes reached.
+
 
 Working-tree accounting is 595 inputs: 525 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 42 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 341 inputs: 282 selected, 21 substituted, 34 unclassified, and 4 excluded.
@@ -30,11 +32,14 @@ retain the exact original15 order and execute diagnostics once at the end.
 ## Sole active work item
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
-Task7: implementation27de938e/fix7df113e5 independently APPROVED for hosted
-execution. Four Important fixture findings corrected and scoped rereview closed:
-NULL/check setup, full-A premature23505 plusA/H trusted stage receipts, cleanup
-canary label. No open findings. Required static checks PASS, new SQL pending.
-Root publishes reviewed source/status batch; original16 must pass again. Task5 contract
+Task7: hosted failure1 diagnosis/fix at e2774bc4. New proof job102923361488
+passes constructor and actual first43, then catalog projection fails42725
+(ambiguous function). Owned cleanup PASS; no admitted batch or later lane accepted.
+Scoped fix ba3ef41c casts only default-ACL object type to text, resolving the
+source-backed text/internal-char operator ambiguity; independent review APPROVED.
+Full comparator and safe diagnostics retained; actual SQL resolution pending. Prior implementation/review27de938e/7df113e5 has no open
+static findings, but actual SQL acceptance failed and is required.
+Task5 contract
 66c56c70/9a6eb324 independently APPROVED, no open findings. Task6 c9a60e5e plus
 report-tracking cleanup585e367e independently APPROVED and published e37bc25b.
 
@@ -44,8 +49,8 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish reviewed A/B/C/D/E/F/H/I+Q envelope
-and obtain standalone isolated PG17 acceptance. No source selection yet.
+Next: publish approved catalog42725 fix ba3ef41c, then obtain
+complete standalone PG17 acceptance plus original16 before source selection. No source selection yet.
 Preserve first43; prospective44–52 batch/foundation93 requires later acceptance.
 Five business targets must be empty; existing role identities/metadata require
 exact preimage restoration before commit. Populated historical effects remain
@@ -61,8 +66,8 @@ source/credential/provider content in that logging path without weakening tests.
 
 ## Current executed acceptance
 
-OPS34486254854/auth102901181907 at e37bc25b PASS complete fixed16 (reconfirms
-prior194fd0cf OPS34482627601/auth102888925544): all prior
+OPS34491908718/auth102920508896 at e2774bc4 PASS complete fixed16 (reconfirms
+prior e37bc25b/194fd0cf executed receipts): all prior
 source/RBAC/governance/SaaS/admission lanes plus selected diagnostics G/R,
 eleven reduced projections/history/repeats,23 dirty catalog cases, five role/
 inherited-privilege cases, native failure/composite rollback, real55P03 and
@@ -80,13 +85,14 @@ G-after-R alone actually resets invoker=false/reloptionsNULL and is explicitly
 not runtime-ready. Each subsequent wholeR secure boundary passed. The complete
 later selected chain must still prove final ACL/policy/invoker survival.
 
-At e37bc25b, quality/build102901181607, Ediel102901182109,
-tenant102901181029, browser-public102901182157 and coverage102901182449 PASS.
-Verify102901181922 FAILS the same generated-types tail20260910121054;
-clean102901181813 FAILS before complete replay. Smoke102901182061 is14/15,
-sole same types failure; pr-certificate102901687875 FAILS. Full/runtime/customer/
-load/staging/ZAP/certification skips remain unverified, not passes. Never
-regenerate schema/types from incomplete replay or weaken gates for green output.
+At e2774bc4, quality/build102920509041, Ediel102920508971,
+tenant102920508308, browser-public102920508825 and coverage102920509644 PASS.
+Verify102920508613 FAILS generated-types tail20260910140053;
+clean102920508966 FAILS before complete replay. Smoke102920509405 is14/15,
+sole same types failure; pr-certificate102921109751 FAILS. New legacy proof
+failure42725 is the active blocker above. Full/runtime/customer/load/staging/ZAP/
+certification skips remain unverified. Never regenerate artifacts from incomplete
+replay or weaken gates for green output.
 
 ## Remaining masterplan and environment boundaries
 

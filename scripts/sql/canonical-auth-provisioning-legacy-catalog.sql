@@ -48,7 +48,7 @@ WITH relations AS (
  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
  WHERE n.nspname IN ('public','auth','storage') AND p.prokind<>'a'
  UNION ALL
- SELECT 'default_acl/'||pg_get_userbyid(d.defaclrole)||'/'||coalesce(n.nspname,'')||'/'||d.defaclobjtype,
+ SELECT 'default_acl/'||pg_get_userbyid(d.defaclrole)||'/'||coalesce(n.nspname,'')||'/'||d.defaclobjtype::text,
  to_jsonb(d.defaclacl)
  FROM pg_default_acl d LEFT JOIN pg_namespace n ON n.oid=d.defaclnamespace
  UNION ALL
