@@ -484,7 +484,8 @@ def debug_view_sql() -> str:
         "billing_export_runs", "billing_export_run_items", "ediel_messages", "ediel_inbound_cases",
         "customer_portal_accounts", "customer_portal_claims",
     )
-    return check(f"""(select array_agg(table_name order by table_name)={_array(tuple(sorted(names)))} from gridex_debug_step1_2_schema_alignment_v)
+    # Python's literal ordering differs from en_US.utf8 for customers/customer_sites.
+    return check(f"""(select array_agg(table_name order by table_name collate "C")={_array(tuple(sorted(names)))} from gridex_debug_step1_2_schema_alignment_v)
       and not exists(select 1 from gridex_debug_step1_2_schema_alignment_v v where v.exists_in_db<>(to_regclass('public.'||v.table_name) is not null)
         or v.rls_enabled<>coalesce((select relrowsecurity from pg_class where oid=to_regclass('public.'||v.table_name)),false)
         or v.check_status<>case when not v.exists_in_db then 'missing_table' when not v.rls_enabled and v.table_name<>'billing_export_runs' then 'review_rls' else 'ok' end)""",

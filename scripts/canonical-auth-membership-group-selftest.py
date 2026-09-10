@@ -54,6 +54,18 @@ def whole_correction_constructors():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     oracle = module.oracle
+    # en_US.utf8 orders customers before customer_sites, unlike Python/C.
+    # The oracle must use the same explicit order as its literal expected array.
+    debug = oracle.debug_view_sql()
+    assert 'array_agg(table_name order by table_name collate "C")' in debug, 'debug names must use Python-compatible C collation'
+    expected_debug_names = ("billing_export_run_items", "billing_export_runs", "companies", "company_memberships",
+                            "customer_contracts", "customer_import_batches", "customer_import_rows",
+                            "customer_portal_accounts", "customer_portal_claims", "customer_sites", "customers",
+                            "ediel_inbound_cases", "ediel_messages", "metering_points", "user_roles")
+    assert "=array[" + ",".join("'" + name + "'" for name in expected_debug_names) + "]::text[]" in debug
+    assert "v.exists_in_db<>(to_regclass('public.'||v.table_name) is not null)" in debug
+    assert "v.rls_enabled<>coalesce((select relrowsecurity from pg_class" in debug
+    assert "v.check_status<>case when not v.exists_in_db then 'missing_table' when not v.rls_enabled and v.table_name<>'billing_export_runs' then 'review_rls' else 'ok' end" in debug
     # Actual first33 roles uses is_system_role; F deliberately takes its
     # no-is_system branch and updates only name/description.
     seed = oracle.six_pair_seed_sql()

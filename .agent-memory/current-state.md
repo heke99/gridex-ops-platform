@@ -65,8 +65,19 @@ before F: f_seed_snapshot_sql assumes roles.is_system, absent from actual prefix
 Seed-metadata correctionf07f3946 independently APPROVED for hosted publication:
 actual role columns/full JSON preservation; only source name/description delta.
 Focused regression RED/GREEN, compile/group/selection/emit/diff PASS; SQL pending.
-No full Task9 acceptance or source-selection change. Next: correct/review/publish
-actual seed metadata expectations and rerun hosted group, then dependent Task10.
+Correctionf07f3946 published as e2bdffc4, exact tree440fdb38be8442fb33e01b68ab700010bce63f11;
+fetched equality/clean tracked state confirmed, local7b7d68ae archived. Its first
+auth102811838115 attempt failed in unchanged command11 reset57014. Single retry
+auth102813334149 passed old14 and actual first33 plus whole I/F/D/6D2 and zero
+Task7 admission blockers, confirming progress past timeout/seed setup. It FAILS
+in complete_postflight's D debug-view exact-name/status assertion. Root cause reproduced with libc en_US.utf8: customers/customer_sites ordering
+differs from Python sorted. Correctionbe74eb74 pins only the name aggregate to C
+collation; exact15 names/count/status/RLS checks retained. Independent scoped review
+APPROVED, focused regression RED/GREEN and compile/group/selection/emit/diff PASS.
+Corrected PG17 execution pending.
+No historical source or selector changes; corrected whole-source acceptance pending.
+No full Task9 acceptance or source-selection change. Next: resolve/review/publish
+the observed debug-view oracle mismatch and rerun hosted group, then dependent Task10.
 Quality102808527446 including build and Ediel102808527533 PASS;
 verify102808527272/clean102808527613 remain FAIL.
 See Task9 ignored report; Task9 stays open. No selectors change before complete

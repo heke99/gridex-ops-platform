@@ -781,3 +781,7 @@ lanes skipped, not verified. No production mutation/merge/deployment.
 2026-09-10 At6e2e00e3, OPS34457908213/auth102808527514 passes old14 plus corrected timeout setup, actual first33 and whole I; timeout defect is executed past. New42703 before F: f_seed_snapshot_sql assumes absent roles.is_system. Scoped seed-boundary correction active; complete Task9 remains OPEN. No source selection or production change.
 
 2026-09-10 Seed correctionf07f3946 independently approved: actual roles schema uses is_system_role, while F intentionally supports no is_system. Four fixture assumptions corrected; full synthetic-role JSON preserved, company_admin permits only F name/description delta. Focused regression RED/GREEN; compile/group/selection/emit/diff PASS. Corrected SQL pending. Latest6e2e00e3 quality102808527446 including build PASS. No source selection/production change.
+
+2026-09-10 e2bdffc4 targeted retry auth102813334149 passes old14, actual first33 and whole I/F/D/6D2 with zero Task7 blockers. Prior reset57014 did not recur. New failure in complete_postflight D debug view exact15 names/status oracle; source execution itself committed. Scoped diagnosis/fix active; no full Task9 acceptance.
+
+2026-09-10 Debug-name correctionbe74eb74 independently approved: locally reproduced libc en_US.utf8 versus Python name ordering mismatch; SQL aggregate now explicitly COLLATE C with exact15 names/count/status/RLS checks unchanged. Focused regression RED/GREEN; compile/group/selection/emit/diff PASS. Corrected PG17 pending; no source/selector/production change.

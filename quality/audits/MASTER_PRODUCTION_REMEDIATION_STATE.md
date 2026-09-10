@@ -364,3 +364,22 @@ Reviewed correctionf07f3946 uses actual columns and full row preservation while
 allowing only source-declared company_admin name/description changes. Focused
 static regression RED/GREEN; corrected hosted SQL pending. Quality/build102808527446
 and Ediel102808527533 PASS. No full source acceptance/selection/production change.
+
+## 2026-09-10 — Whole sources executed; postflight correction
+
+At e2bdffc4, targeted retry auth102813334149 passed old14, actual first33 and
+whole I/F/D/6D2 with zero Task7 admission blockers. Prior unchanged command11
+reset57014 did not recur. Whole-lane acceptance fails at the debug-view name
+oracle: Python and en_US.utf8 order customers/customer_sites differently.
+Correctionbe74eb74 pins only the aggregate to C collation, retaining exact names,
+count, existence/RLS/status checks. Local libc reproduction and static RED/GREEN;
+independent scoped approval. Corrected PG17/full Task9 remains pending.
+
+| Finding | Bounded status | Evidence |
+| --- | --- | --- |
+| F-T9-RUNTIME-TIMEOUT-001 | VERIFIED_CLOSED in Task9 setup | Reviewed7c2b9123; subsequent hosted runs execute past positive-duration checks and actual first33. |
+| F-T9-RUNTIME-SEED-002 | VERIFIED_CLOSED in empty lane | Reviewedf07f3946; auth102813334149 executes seed snapshot, whole F/D/6D2. |
+| F-T9-RUNTIME-COLLATION-003 | IMPLEMENTED_NOT_VERIFIED | Reviewedbe74eb74; libc mismatch reproduced, static regression passes; corrected hosted query pending. |
+
+No full source acceptance, canonical selection, production mutation, merge or
+masterplan phase closure is implied by these scoped receipts.
