@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "017d47e7803aa3812c654b72fde81855e99e3e6b",
-    "last_isolated_pg17_code": "a38fbd6df45b4ac3dab26c3b24bb5abee01ba438"
+    "published_baseline": "517fdb1acf27d479f5b631de17edaedc35cc8907",
+    "last_isolated_pg17_code": "517fdb1acf27d479f5b631de17edaedc35cc8907"
   },
-  "execution_environment": "connected; aligned published017d47e7; named stash preserved",
-  "next_action": "Publish independently APPROVED correction3 4fc34ae9 (admission42702), then same-head all17 and complete new SQL. Prior catalog/sequence/T11-R1 now executed PASS.58 unresolved/no selection/prod."
+  "execution_environment": "connected; aligned published517fdb1a; named stash preserved",
+  "next_action": "Publish independently APPROVED correction4 704e6105; explicit valid profiles/fail-closed canaries. Then same-head all17/complete new PG17 proof. Last517fdb1a all17 and actual new batch/repeat PASS.58 unresolved/no selection/prod."
 }

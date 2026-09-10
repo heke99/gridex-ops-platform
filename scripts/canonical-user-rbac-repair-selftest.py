@@ -105,6 +105,30 @@ def plpgsql_alias_constructor_controls():
         'role-row snapshot must use an explicit non-colliding alias'
 
 
+def seeded_profile_constructor_controls(b):
+    # Check the implicated profile DML against declarations in the exact
+    # accepted prefix, never against a later migration or a guessed fixture.
+    columns=set()
+    sources=[(b.SUPPORT/'gridex-supabase-compatible-bootstrap.sql').read_text(),
+             *(sql for _,sql in b.legacy.verified_prefix()),
+             *(path.read_text() for path in b.legacy.reviewed_paths())]
+    for sql in sources:
+        for match in re.finditer(r'CREATE TABLE IF NOT EXISTS public\.user_profiles\s*\((.*?)\);',sql,re.I|re.S):
+            columns.update(re.findall(r'^\s*(\w+)\s+(?:uuid|text|timestamptz)\b',match[1],re.I|re.M))
+        for match in re.finditer(r'ALTER TABLE (?:IF EXISTS )?public\.user_profiles\b[^;]*;',sql,re.I):
+            columns.update(re.findall(r'ADD COLUMN IF NOT EXISTS (\w+)',match[0],re.I))
+    assert {'id','email','user_status','active_company_id'}<=columns and 'is_active' not in columns
+    fixture=inspect.getsource(actual_seeded_repeat)
+    for match in re.finditer(r'UPDATE user_profiles SET (.*?) WHERE',fixture,re.I|re.S):
+        assigned=set(re.findall(r'(?:^|,)\s*(\w+)\s*=',match[1]))
+        assert assigned<=columns, 'seeded profile update uses absent first52 column'
+    inserts=re.findall(r'INSERT INTO user_profiles\(([^)]+)\)',fixture,re.I)
+    assert inserts, 'seeded profiles must be inserted explicitly; Auth inserts create no profiles'
+    for inserted in inserts:
+        assert set(inserted.split(','))<=columns, 'seeded profile insert uses absent first52 column'
+    assert 'seeded_profiles_present' in fixture, 'profile presence/status must be checked before preservation'
+
+
 def assertion_semantics(b,h):
     database='gridex_auth_legacy_native'
     h.reset(database)
@@ -182,7 +206,9 @@ def actual_seeded_repeat(b,h):
     print('PASS actual-first52 target_presence_mask='+''.join('1' if x else '0' for x in observed))
     db='gridex_auth_legacy_seeded';clone(h,db)
     h.sql(db,parents()+f'''
-UPDATE user_profiles SET is_active=false,user_status='disabled' WHERE id='{U}';
+INSERT INTO user_profiles(id,email,user_status,active_company_id)
+VALUES ('{U}','repair-one@example.invalid','disabled','{C}'),
+('{U2}','repair-two@example.invalid','active','{C2}');
 INSERT INTO company_memberships(company_id,user_id,membership_role,role,status,invited_email)
 VALUES ('{C}','{U}','member','member','active','repair-one@example.invalid'),
 ('{C2}','{U}','member','member','active','repair-one@example.invalid'),
@@ -206,6 +232,10 @@ VALUES ('{C}','{U}','{U2}','retained_fixture');
 INSERT INTO customer_sync_events(company_id,source_type,event_type,title)
 VALUES ('{C2}','synthetic','retained_fixture','Retained synthetic work');
 ''','seeded_fixture')
+    h.sql(db,check(f"""(SELECT count(*)=2 AND bool_and((
+      (id='{U}' AND user_status='disabled' AND active_company_id='{C}') OR
+      (id='{U2}' AND user_status='active' AND active_company_id='{C2}')) IS TRUE)
+      FROM user_profiles WHERE id IN ('{U}','{U2}'))"""),'seeded_profiles_present')
     h.sql(db,business_canaries(b,h),'business_canaries')
     before=snapshot(b,h,db)
     b.execute(h,db,b.reviewed_paths())
@@ -623,6 +653,7 @@ def extended_constructors(b):
     assertion_constructor_controls()
     sequence_snapshot_constructor_controls()
     plpgsql_alias_constructor_controls()
+    seeded_profile_constructor_controls(b)
     sources=b.validate_sources(b.reviewed_paths())
     assert len(b.legacy.verified_prefix())==43
     assert len(b.legacy.validate_sources(b.legacy.reviewed_paths()))==9

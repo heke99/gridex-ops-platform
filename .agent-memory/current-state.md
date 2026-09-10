@@ -11,21 +11,20 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `017d47e7803aa3812c654b72fde81855e99e3e6b`, exact reviewed
-tree `9122efedfd38417ecf7413b0fa37cd63f23e4c08`; fetched equality/tracked-clean
-alignment PASS, localff82215f archived. Sequence snapshot correction96cea061
-independently APPROVED with no findings: explicit last_value/log_cnt/is_called
-in all3 new paths, full table rows unchanged, called/uncalled regression authored.
-OPS34536282414 newjob103068535778 FAIL at first actual whole_batch42702 after
-reference/catalog/snapshot and target_presence00000. Assertion true00000 and
-false/NULL/empty-scalar/NULL-scalar expected P0003 all PASS; called/uncalled
-sequence regression PASS, assertion_semantics1144ms. Cleanup PASS. Correction3
-ambiguous-column diagnosis active; previous two defects and T11-R1 now verified.
-Prior a38fbd6d OPS34535318803 original16/auth103065451923, legacy17/actual-loop
-103065452065 (155127ms), quality103065452214 and Ediel103065452178 all PASS.
-New proof103065452098 passed prior catalog42725 correction then failed snapshot42809;
-exact owned cleanup PASS. T11-R1 now verified by actual hosted negative controls at017d47e7.
-Full replay/types and remaining masterplan/production gates stay OPEN.
+Latest publication: `517fdb1acf27d479f5b631de17edaedc35cc8907`, exact reviewed
+tree `9ced98d2af7847ab0ba41f7a16a59e578e35ebdc`; fetched equality/tracked-clean
+alignment PASS, locala85245af archived. Correction3 4fc34ae9 independently APPROVED:
+qualified distinct role_row alias removes admission record-variable42702 collision.
+Targeted regression/syntax/preservation PASS; no migration/W/history changes.
+OPS34536907210 newjob103070546491: assertion_semantics PASS1080ms, then
+actual complete R2/E2/S2/W and full repeat00000 with exact catalog/snapshot checks;
+actual-first52 presence01111111110011111 PASS. Next seeded_fixture fails42703
+(CATALOG_MISMATCH); cleanupPASS. Correction4 seeded fixture/schema diagnosis
+assigned to fresh higher-tier author per SDD; complete standalone proof still OPEN.
+Previous017d47e7 newproof103068535778 verified catalog/snapshot fixes, T11-R1
+NULL/empty-scalar controls and called/uncalled sequence regression (1144ms), then
+first whole_batch42702; owned cleanup PASS. Complete new acceptance still OPEN.
+All17 at517fdb1a PASS: original16/auth103070546492 and legacy17/actual-loop103070546303; quality103070546351 and Ediel103070546129 PASS. No selection/production changes.
 
 
 Working-tree accounting is 596 inputs: 534 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -33,7 +32,7 @@ The focused group contains 342 inputs: 291 selected, 20 substituted, 27 unclassi
 Task11 W-only registration observed: actual CLI-created20260910174947 boundary
 adds one timestamp input and explicit focused-family classification. New W SQL
 is independently reviewed; hosted standalone execution failed before any lane PASS. R2/E2/S2 remain UNCLASSIFIED,
-foundation93/all17 unchanged;58 total/47 focused unresolved. Published017d47e7 preserves these596/342 counts; latest accepted all17 baselinea38fbd6d.
+foundation93/all17 unchanged;58 total/47 focused unresolved. Published517fdb1a preserves these596/342 counts; latest accepted all17 baseline517fdb1a.
 
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
@@ -48,18 +47,19 @@ Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
 
-Task11 IMPLEMENTED_NOT_VERIFIED: commit383070ca implements unselected complete
-R2/E2/S2/W and authored independent owned/private PG17 proof (15 owned files).
-Independent spec+quality review initially approved with Minor T11-R1; correction07f58c3a
-now closes its NULL native assertion gap at review level. Actual negative controls
-remain behind the new snapshot42809 failure; no runtime guard bypass identified. T9-R1 is independently CLOSED. W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1.
-New/legacy constructors, fixed-group preservation, accounting29/groups15, cleanup17,
-diagnostics/RBAC provenance, integrity596/500 and syntax/diff checks PASS. No new
-SQL execution, source selection or production action. T9-R1 corrected in docs,
-independent closure confirmed. Legacy owned target/reference and original17 preserved.
-Task9 design4deefce5 approved; T9-R1 selected39 dependency citation carried into
-implementation. Task10 workflow39769c19 and constructor correction7845090d both
-independently approved; fresh all17 hosted receipt VERIFIED at52f0dc73.
+Task11 PARTIAL: initial implementation383070ca and three independently approved
+hosted corrections07f58c3a/96cea061/4fc34ae9 are published. Complete actual
+R2/E2/S2/W + repeat with exact rows/catalog now PASS at517fdb1a; full standalone
+proof remains blocked by seeded_fixture42703. Correction4 704e6105 is committed: explicit synthetic profile canaries use actual
+first52 columns and enforce presence/status/company before preservation snapshot.
+Independent review APPROVED; complete same-head hosted acceptance remains.
+T9-R1 CLOSED. T11-R1 CLOSED and actual NULL/empty-scalar negative controls PASS.
+W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1
+unchanged. No R2/E2/S2 selection or production action. Legacy reference, first52,
+foundation93 and original17 are preserved; last accepted all17 baseline517fdb1a.
+Static constructors/accounting29/groups15/cleanup17/provenance/integrity596/500
+and scoped syntax/preservation checks PASS; they do not replace SQL acceptance.
+Task9 design and Task10 actual W skeleton are complete; reuse their receipts.
 CLI2.101.0 job102983387043 at935eb5a0 created actual W:
 20260910174947_canonical_user_rbac_repair_boundary.sql. Artifact10165602317,
 ZIP224/SHA2563af4016441baf2e0eb4c1dcaa3085bdfdbfba95ab38e4e973aeeef675a0f7d30,
@@ -113,8 +113,8 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: complete scoped independent review of Task11 correction07f58c3a,
-then publish and obtain original17 plus complete new SQL proof on the corrected head
+Next: publish independently APPROVED correction4 704e6105, then obtain original17
+plus complete new SQL proof on the same head
 before Task12 source selection/actual staged integration. Preserve verified first52/foundation93 and
 all17 command union. Remaining58 inputs, native full replay/types and production
 gates stay open. Task8 selection is accepted only within its isolated proof.
@@ -195,8 +195,11 @@ The historical workflow-tooling boundary remains scoped to that earlier batch:
 "For this workflow-tooling batch, no production mutation is authorized or performed."
 It does not revoke the user's explicit authorization for later verified delivery.
 
-Task11 failure refined from strict safe JSON receipts: first43/catalog/whole_batch/catalog/whole_batch all OK00000, then catalog NATIVE_ERROR exit3 SQLSTATE42725. Ambiguous-function catalog error is the observed failure; Author traced the exact expression to pg_depend.deptype (internal char) concatenated with text in the new catalog; explicit text cast correction and NULL assertion regression committed07f58c3a; static checks PASS; scoped review APPROVED, hosted SQL pending. No raw diagnostics disclosed.
+Resolved Task11 hosted defects (historical receipts, not active blockers):
+- Catalog42725 internal-char concatenation:07f58c3a reviewed; actual catalogs pass.
+- Snapshot42809 sequence whole-row conversion:96cea061 reviewed; all3 paths now
+  capture exact sequence state; actual called/uncalled regression passes.
+- Admission42702 record/whole-row alias collision:4fc34ae9 reviewed; actual complete
+  batch and repeat pass at517fdb1a. No raw diagnostics disclosed.
 
-Snapshot42809 author diagnosis: sequence relations have no composite row type; whole-row to_jsonb fails. Same class exists in outer snapshot, admission and assertions. Explicit last_value/log_cnt/is_called comparisons retain complete sequence state and unchanged full r/p rows; uncalled/called sequence regression authored. Correction96cea061 committed in3 files; constructor red/green, syntax/diff/preservation PASS. Independent scoped review APPROVED with no new findings; hosted validation pending.
-
-Correction3 exact diagnosis: admission record variable r collides with roles whole-row alias r, causing42702 before R2. Scoped qualified distinct alias correction4fc34ae9 committed2 files, targeted constructor red/green and syntax/preservation PASS; W/history/source hashes unchanged. Independent scoped review APPROVED with no new findings; hosted acceptance pending.
+Correction4 first exact defect confirmed: seeded profile UPDATE assumes is_active, absent in immutable bootstrap+first52; existing user_status supports the disabled fixture. Also no Auth INSERT trigger creates profiles in exact first52, so previous UPDATE would affect zero rows. Explicitly seed two profiles with existing columns and assert presence/status, preserving disabled status and independent membership/admin conditions. Same-class audit checked41 authored INSERT column sets and seeded required/default/constraint shapes with no further confirmed mismatch. Targeted constructor red/green, syntax/diff/preservation PASS.704e6105 scoped review APPROVED with no new findings; no foundation/source/W changes.

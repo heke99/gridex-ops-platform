@@ -138,3 +138,24 @@ BEFORE ROW tenant-attribution guard triggers that the canonical chain does not
 build at all. The harness that produced the original claim could not see them.
 Evidence and the full register: `quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md`,
 finding F-PARITY-4.
+
+## PG17 replay proof pitfalls — verified 2026-09-10
+
+- Internal catalog char concatenation: text concatenated with pg_depend.deptype
+  produced ambiguous-function42725 in the new repair catalog. Explicit text cast
+  correction07f58c3a verified through actual catalog00000 at a38fbd6d and later heads.
+  Apply the same check to new internal-char catalog operands; do not drop dependencies.
+- Sequence rows have no composite row type (pg_class.reltype0). Whole-row to_jsonb
+  on a sequence produced wrong_object_type42809. Correction96cea061 captures and
+  compares last_value/log_cnt/is_called explicitly in snapshot/admission/assertions;
+  r/p full-row comparisons remain. Actual called/uncalled controls and complete
+  batch/repeat passed at017d47e7/517fdb1a respectively. Never remove sequence checks.
+- PL/pgSQL record-variable and SQL whole-row alias collision produced42702 in
+  admission. Correction4fc34ae9 uses a distinct qualified role_row alias; actual
+  complete batch and repeat passed at517fdb1a. Check ambiguous aliases before hosted
+  execution; do not change variable-conflict resolution to hide ambiguity.
+- Test assertions using IF NOT(condition) accept NULL. T11-R1 uses IS DISTINCT
+  FROM true; actual true/false/NULL/empty-scalar/NULL-scalar controls passed at017d47e7.
+
+These are bounded proof-tool corrections, not full replay or production acceptance.
+Current status and remaining gates are exclusively in current-state.md.

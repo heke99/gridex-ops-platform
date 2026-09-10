@@ -931,3 +931,7 @@ Task11 failure2 at a38fbd6d OPS34535318803/job103065452098: catalog42725 correct
 Exact-head a38fbd6d all17 reconfirmed: OPS34535318803/auth103065451923 and legacy103065452065 PASS155127ms; quality103065452214 and Ediel103065452178 PASS. New proof snapshot42809 remains separate open correction96cea061/review gate.
 
 Task11 hosted failure3 at017d47e7 OPS34536282414/job103068535778: earlier catalog and snapshot defects resolved; T11-R1 true00000/false,NULL,empty,NULLscalarP0003 and called/uncalled sequence state all PASS (assertion_semantics1144ms). First actual target catalog/presence00000 then whole_batch42702; cleanupPASS. Source-backed ambiguous-column diagnosis assigned to user_rbac_snapshot_fix, preserve all originals and no selection.
+
+Task11 hosted failure4 at517fdb1a OPS34536907210/job103070546491: prior admission42702 resolved; assertion_semantics1080ms, actual whole R2/E2/S2/W+repeat both00000 with exact catalog/snapshot, actual-first52presence01111111110011111 PASS. Next seeded_fixture42703/CATALOG_MISMATCH; owned cleanupPASS. Correction4 escalated fresh astra high author user_rbac_seeded_fix per SDD, exact seeded schema diagnosis, no fixture-schema weakening/source selection. Complete standalone proof remains OPEN.
+
+517fdb1a exact-head all17 PASS: OPS34536907210 original16/auth103070546492, legacy17/actual-loop103070546303, quality103070546351, Ediel103070546129. New proof actual batch/repeat PASS but seeded_fixture42703 remains correction4. Full plan/prod not complete.
