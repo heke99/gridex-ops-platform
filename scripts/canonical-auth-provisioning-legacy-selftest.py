@@ -165,7 +165,13 @@ def constructor_checks():
     assert 'timeout-minutes: 20' in job and '\n    needs:' not in job
     assert 'if: always()' in job and '--cleanup-owned' in job
     assert 'upload-artifact' not in job and 'services:' not in job and 'docker logs' not in job
-    assert hashlib.sha256((ROOT/'scripts/canonical-auth-membership-group.py').read_bytes()).hexdigest()=='4665b791b5e228628fe4ca508c762a4377a9692850fd1090566385c645c8e1ac'
+    import ast
+    runner=ast.parse((ROOT/'scripts/canonical-auth-membership-group.py').read_text())
+    commands=next(ast.literal_eval(n.value) for n in runner.body if isinstance(n,ast.Assign) and any(getattr(t,'id','')=='COMMANDS' for t in n.targets))
+    assert len(commands)==17 and commands[16]==('python3','scripts/canonical-auth-provisioning-legacy-selftest.py')
+    assert hashlib.sha256(json.dumps(commands[:16],separators=(',',':')).encode()).hexdigest()=='cb21bcc0056da45b1d91c1312f107e322330744f645fdb4123fa278825f6b1bb'
+    replay=load_replay()
+    replay_constructor_checks(b,replay)
     print('PASS legacy constructor bytes/order/context/target/logging negative controls; SQL acceptance not executed')
 
 
@@ -751,6 +757,123 @@ def cleanup_test(b):
     print('PASS failure cleanup exact-owned-resource removal retains unrelated canary')
 
 
+def load_replay():
+    spec=importlib.util.spec_from_file_location('legacy_actual_replay',ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module
+
+
+def actual_replay_loop(b,h):
+    replay=load_replay()
+    h.reset(replay.DATABASE)
+    result=replay.serve_child(b,h,['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--foundation-prefix-proof'],True)
+    assert result==0, 'actual staged clean-shell foundation proof failed'
+    assert h.catalog(replay.DATABASE)==h.reference[1], 'actual replay DB differs from independent whole reference'
+    # Q must remain unusable through an ordinary per-file invocation, even in
+    # this actual replay DB after a successfully committed whole boundary.
+    before=snapshot(h,replay.DATABASE)
+    h.run_files(replay.DATABASE,[h.private('replay-outside-Q.sql',b.reviewed_paths()[-1].read_bytes())],'actual_replay_outside_Q',expect='P0002')
+    unchanged(h,replay.DATABASE,before)
+    # Re-enter the identical shell staging/loop in a fresh actual replay DB.
+    # Only this test injects a private failure after Q, before final assertions;
+    # the production transport has no injection parameter or alternate executor.
+    h.reset(replay.DATABASE)
+    original_execute=b.execute
+    preimages=[];rollbacks=[]
+    def injected(target,database,paths,staging=None):
+        assert target is h and database==replay.DATABASE and type(staging) is b.StagedSources
+        preimages.append(snapshot(h,database))
+        files=b.envelope_files(h,paths,staging)
+        files.insert(-1,h.private('actual-replay-injected.sql',"SELECT 'ACTUAL_REPLAY_Q_REACHED' FROM pg_temp.legacy_context WHERE txid=txid_current() AND stage='Q'; DO $$ BEGIN RAISE EXCEPTION USING ERRCODE='XX000',MESSAGE='"+SENTINEL+"'; END $$;"))
+        output=run_rollback_error(h,database,files,'actual_replay_rollback_after_Q','XX000')
+        assert output.splitlines().count('ACTUAL_REPLAY_Q_REACHED')==1
+        assert __import__('re').findall(r'^LEGACY_STAGE_([A-Z]+)$',output,__import__('re').M)==list('ABCDEFHI')
+        rollbacks.append('after_Q_XX000')
+        raise b.BoundaryError('SYNTHETIC_REPLAY_FAILURE')
+    try:
+        b.execute=injected
+        result=replay.serve_child(b,h,['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--foundation-prefix-proof'],True)
+        assert result!=0 and len(preimages)==1 and rollbacks==['after_Q_XX000']
+        unchanged(h,replay.DATABASE,preimages[0])
+        assert h.catalog(replay.DATABASE)==h.reference[0]
+    finally:
+        b.execute=original_execute
+    h.docker(['logs',h.name])
+    assert SENTINEL.encode() not in (Path(h.directory.name)/'docker-private-last.out').read_bytes()
+    print('PASS actual clean-shell HOLD staging first43 -> A44..I51/Q52 once, outside-Q rejection and injected post-Q native rollback in actual owned replay DB; NO ledger provenance; NOT full replay')
+
+
+def replay_constructor_checks(b,replay):
+    import tempfile,shutil,os,json,subprocess
+    result=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
+    accounting=json.loads(result.stdout)
+    assert result.returncode==1 and accounting['totalMigrations']==595 and not accounting['errors']
+    assert accounting['counts']=={'FULL_FILE_SELECTED':533,'SUBSTITUTED':23,'UNCLASSIFIED':35,'EXPLICITLY_EXCLUDED':4}
+    by_path={item['path']:item for item in accounting['migrations']}
+    for ordinal,logical in enumerate(replay.selected_group(b),44):
+        assert by_path[logical]['classification']=='FULL_FILE_SELECTED'
+        assert by_path[logical]['execution']==[{'ordinal':ordinal,'stage':'foundation'}], 'whole source duplicated in timestamps'
+
+    with tempfile.TemporaryDirectory(prefix='legacy-stage-') as directory:
+        hold=Path(directory)/'hold';hold.mkdir(mode=0o700)
+        for path in (ROOT/'supabase/migrations').iterdir():
+            if path.is_file(): shutil.copyfile(path,hold/path.name)
+        h=b.OwnedPostgres();h.active=True;h.reference=({},None)
+        h.directory=type('PrivateDirectory',(),{'name':directory})()
+        h.verify_logging=lambda:None
+        loop=replay.FoundationLoop(b,h,True)
+        paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in loop.order]
+        # Retained bytes must work even when no original migration is readable.
+        from unittest.mock import patch
+        original_open=Path.open
+        def retained_only(path,*args,**kwargs):
+            if path.parent==ROOT/'supabase/migrations':
+                raise AssertionError('staged executor tried to open original ROOT migration')
+            return original_open(path,*args,**kwargs)
+        with patch.object(Path,'open',retained_only):
+            stage,data=loop.validate(hold,paths)
+            b.envelope_files(h,b.reviewed_paths(),stage)
+        assert data[43:52]==[s.data for s in b.validate_sources(b.reviewed_paths())]
+        files=b.envelope_files(h,b.reviewed_paths(),stage)
+        assert [p.read_bytes() for p in files if p.name.startswith('whole-')]==data[43:52]
+        for bad in (paths[:-1],paths[::-1],paths+paths[-1:],paths[:43]+paths[44:52]+paths[43:44]+paths[52:]):
+            try: loop.validate(hold,bad)
+            except b.BoundaryError: pass
+            else: raise AssertionError('wrong staged foundation accepted')
+        a=hold/b.SOURCE_SPECS[0][1];original=a.read_bytes()
+        for mutation in ('missing','changed','symlink'):
+            a.unlink()
+            if mutation=='changed': a.write_bytes(original+b'\n-- drift\n')
+            if mutation=='symlink': a.symlink_to(b.reviewed_paths()[0])
+            try: loop.validate(hold,paths)
+            except b.BoundaryError: pass
+            else: raise AssertionError('untrusted staged bytes accepted')
+            a.unlink(missing_ok=True);a.write_bytes(original)
+        # Real-loop dispatch and source-count contract without SQL claims.
+        observed=[]
+        h.run_files=lambda database,files,stage,transaction=True: observed.append((database,stage,transaction))
+        original_execute=b.execute
+        try:
+            def execute(target,database,logical,staging=None):
+                assert target is h and database==replay.DATABASE and type(staging) is b.StagedSources
+                observed.append((database,'whole_batch',True));return {'sources':9}
+            b.execute=execute
+            import contextlib,io
+            with contextlib.redirect_stdout(io.StringIO()): loop.run(hold,paths)
+            assert len(observed)==44 and all(d==replay.DATABASE for d,_,_ in observed)
+            assert [x[1] for x in observed[:-1]]==['replay_foundation_'+str(i) for i in range(1,44)]
+            assert observed[-1][1:]==('whole_batch',True)
+            try: loop.run(hold,paths)
+            except b.BoundaryError: pass
+            else: raise AssertionError('duplicate foundation accepted')
+        finally: b.execute=original_execute
+    for url in ('postgresql://localhost/postgres','production','postgres'):
+        try: replay.psql_payload([url,'-X'])
+        except RuntimeError: pass
+        else: raise AssertionError('URL accepted as ownership')
+    print('PASS actual replay constructor staged identities/order/hash/missing/context/execution-count controls; SQL pending')
+
+
 def sql_main():
     import signal,time
     b=load_batch()
@@ -763,11 +886,11 @@ def sql_main():
         b.prepare_reference(h)
         for lane in (actual_and_seeded,dirty_rows,dirty_catalog,native_cases,reduced_characterization,
                      unexpected_success_rollback,atomic_cases,concurrency,downstream_helper,optional_session_compatibility,
-                     privilege_variants,logging_cases):
+                     privilege_variants,logging_cases,actual_replay_loop):
             begin=time.monotonic();lane(b,h)
             print('PASS lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
     cleanup_test(b)
-    print('PASS complete unselected legacy SQL proof milliseconds='+str(round((time.monotonic()-started)*1000)))
+    print('PASS complete command17 legacy and actual staged replay SQL proof milliseconds='+str(round((time.monotonic()-started)*1000)))
 
 
 if __name__ == '__main__':

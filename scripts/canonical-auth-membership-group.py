@@ -23,14 +23,17 @@ COMMANDS = (
     ('python3', 'scripts/canonical-import-admission-selftest.py'),
     ('python3', 'scripts/canonical-full-governance-source-selftest.py'),
     ('python3', 'scripts/canonical-auth-provisioning-diagnostics-selftest.py'),
+    ('python3', 'scripts/canonical-auth-provisioning-legacy-selftest.py'),
 )
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--partition', choices=('all17','original16','legacy17'), default='all17')
     args = parser.parse_args()
     environment = {key: value for key, value in os.environ.items() if not key.startswith('PG')}
-    for command in COMMANDS:
+    commands = COMMANDS if args.partition=='all17' else (COMMANDS[:16] if args.partition=='original16' else COMMANDS[16:])
+    for command in commands:
         print(' '.join(command), flush=True)
         if not args.dry_run:
             result = subprocess.run(command, cwd=ROOT, env=environment, check=False)

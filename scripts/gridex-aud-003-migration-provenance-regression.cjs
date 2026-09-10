@@ -190,10 +190,15 @@ for (const requiredRef of [
 if (!replay.includes("files.sort(key=lambda p:p.name)")) fail('clean replay lost deterministic timestamped ordering');
 if (!replay.includes('excluded') || !replay.includes('noncanonical')) fail('clean replay lost explicit noncanonical exclusion handling');
 if (!replay.includes('interleaved_paths')) fail('clean replay lost interleaved bootstrap handling');
-if (!replay.includes('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') ||
-    replay.indexOf('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') > replay.indexOf('supabase start')) {
-  fail('clean replay no longer initializes its CLI-owned official ledger before governance checks');
+// Native CLI ownership/genesis is intentionally unsupported until independently
+// reviewed. The supported owned compatible mode cannot establish official-ledger
+// provenance; keep this static result separate from the blocked full replay gate.
+if (!replay.includes('unsupported replay target') || !replay.includes('NO ledger provenance') ||
+    !replay.includes('--context') || !replay.includes('--require-full-effects') ||
+    !replay.includes('--foundation "$FOUNDATION_EXEC" --hold "$HOLD"')) {
+  fail('clean replay lost owned context, whole batch, completeness or NO-ledger boundary');
 }
+if (replay.includes('supabase start')) fail('unsupported native CLI target may start a stack');
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) fail('clean replay directly mutates the Supabase migration ledger');
 if (!fs.existsSync(fingerprintPath)) fail('schema fingerprint query is missing');
 if (!/EXPECTED_FINGERPRINT="[0-9a-f]{64}"/.test(replay) || !replay.includes('ACTUAL_FINGERPRINT')) fail('clean replay lost exact schema fingerprint gate');
@@ -227,7 +232,8 @@ for (const token of [
 console.log(JSON.stringify({
   finding: 'GRIDEX-REM-002',
   status: 'STATIC_PROVENANCE_PASS',
-  replay_model: 'verified_foundation_plus_hash_bound_noncanonical_reconciliation_plus_remaining_history_plus_cli_owned_dev_ledger',
+  replay_model: 'owned_compatible_diagnostic_whole_batch_no_ledger_provenance',
+  native_cli_ledger_replay: 'BLOCKED_UNSUPPORTED',
   foundation_input_count: orderedFoundation.length,
   derived_bootstrap_count: derivedCount,
   interleaved_bootstrap_count: interleaved.length,

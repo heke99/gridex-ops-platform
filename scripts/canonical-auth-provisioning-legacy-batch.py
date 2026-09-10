@@ -21,6 +21,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 Q = '20260910140053_canonical_auth_provisioning_legacy_boundary.sql'
+Q_SHA256 = 'fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983'
 SOURCE_SPECS = (
  ('A','20260519_company_invite_temp_password_sync.sql','09ed878125a71c77c792e004fd1a38c4fa56a0b23e0bc3eafeb62be271c85dc9',415),
  ('B','20260520_direct_account_temporary_password_flow.sql','0fff8d88e6c89c4d4cf16ad1f760bf079b29b7d684b9e8d398efd2bbcead93ba',98),
@@ -31,7 +32,7 @@ SOURCE_SPECS = (
  ('H','20260528_final_user_access_schema_safe_repair.sql','4968391d74a8ff813ce1f56a8b8d9ade682692d183988917e736d0f3c5857bd2',296),
  ('I','20260528_fix_user_roles_without_role_column_and_compact_users.sql','394a8eba24370f0158d52ddc84ea0baf938f3ef94a9d561ae1e679475974f3ca',190),
 )
-DATABASES = frozenset('gridex_auth_legacy_' + x for x in ('reference','template','prefix','seeded','dirty','native','atomic','lock','helper'))
+DATABASES = frozenset('gridex_auth_legacy_' + x for x in ('reference','template','prefix','seeded','dirty','native','atomic','lock','helper','replay'))
 SUPPORT = ROOT / 'scripts/sql'
 BUSINESS = ('auth_email_events','company_invitations','company_memberships','user_profiles','user_roles')
 SEEDS = ('company_admin','admin','operations_manager','operations_agent','customer_service_manager','customer_service_agent','sales_manager','pricing_manager','pricing_approver','finance_readonly','executive_readonly','compliance_manager','partner_manager','partner_api_user')
@@ -92,14 +93,38 @@ def verify_bytes(data,expected,line_count=None):
         raise BoundaryError('SOURCE_LENGTH_MISMATCH')
 
 
-def validate_sources(paths):
+class StagedSources:
+    """Pinned logical migration identities resolved only to retained HOLD bytes."""
+    def __init__(self, hold):
+        self.hold=Path(hold)
+        if (not self.hold.is_absolute() or self.hold.is_symlink() or
+            not self.hold.is_dir() or self.hold.stat().st_uid!=os.getuid() or
+            self.hold.stat().st_mode & 0o077):
+            raise BoundaryError('PRIVATE_STAGE_REQUIRED')
+
+    def read(self, logical):
+        logical=Path(logical)
+        if logical.parent!=ROOT/'supabase/migrations':
+            raise BoundaryError('LOGICAL_SOURCE_REQUIRED')
+        path=self.hold/logical.name
+        if path.is_symlink() or not path.is_file():
+            raise BoundaryError('STAGED_SOURCE_REQUIRED')
+        data=path.read_bytes()
+        expected=json.loads((ROOT/'scripts/migration-history-manifest.json').read_text())['files'].get(path.name)
+        verify_bytes(data,expected)
+        return data
+
+
+def validate_sources(paths, staging=None):
+    if staging is not None and type(staging) is not StagedSources:
+        raise BoundaryError('PRIVATE_STAGE_REQUIRED')
     if tuple(paths) != reviewed_paths() or any(not p.is_absolute() or p.is_symlink() for p in paths):
         raise BoundaryError('SOURCE_ORDER_MISMATCH')
     manifest = json.loads((ROOT/'scripts/migration-history-manifest.json').read_text())['files']
     result=[]
     for i,path in enumerate(paths):
-        data=path.read_bytes()
-        expected=SOURCE_SPECS[i][2] if i<8 else manifest.get(Q)
+        data=staging.read(path) if staging else path.read_bytes()
+        expected=SOURCE_SPECS[i][2] if i<8 else Q_SHA256
         if manifest.get(path.name)!=expected:
             raise BoundaryError('SOURCE_HASH_MISMATCH')
         verify_bytes(data,expected,SOURCE_SPECS[i][3] if i<8 else None)
@@ -288,7 +313,7 @@ class OwnedPostgres:
         self.close()
 
 
-def ddl_oracles(sources):
+def ddl_oracles(sources, staging=None):
     """Independent temporary DDL oracles, never substituted migration execution.
 
     All originals still execute once, unchanged. These test-only temporary
@@ -317,9 +342,10 @@ def ddl_oracles(sources):
     ):
         path=ROOT/'supabase/migrations'/filename
         manifest=json.loads((ROOT/'scripts/migration-history-manifest.json').read_text())['files']
-        if digest(path.read_bytes())!=manifest[filename]: raise BoundaryError('ORACLE_HASH_MISMATCH')
+        data=staging.read(path) if staging else path.read_bytes()
+        if digest(data)!=manifest[filename]: raise BoundaryError('ORACLE_HASH_MISMATCH')
         for name in names:
-            match=re.search(r'add\s+constraint\s+'+name+r'\s+check\s*(\(.*?\))\s*(?:not\s+valid)?;',path.read_text(),re.S|re.I)
+            match=re.search(r'add\s+constraint\s+'+name+r'\s+check\s*(\(.*?\))\s*(?:not\s+valid)?;',data.decode(),re.S|re.I)
             if not match: raise BoundaryError('ORACLE_CHECK_NOT_FOUND')
             table='user_profiles' if name.startswith('user_profiles_') else ('company_memberships' if name.startswith('company_memberships_') else 'company_invitations')
             checks[name]=(table,match.group(1))
@@ -376,11 +402,11 @@ UPDATE pg_temp.legacy_context SET stage={literal(current)} WHERE txid=txid_curre
 SELECT 'LEGACY_STAGE_{current}';"""
 
 
-def envelope_files(target,paths):
+def envelope_files(target,paths, staging=None):
     """One reviewable executor; fixture and subsequent clean replay call this."""
     if type(target) is not OwnedPostgres or not target.active or target.reference is None:
         raise BoundaryError('OWNED_REFERENCE_REQUIRED')
-    sources=validate_sources(paths)
+    sources=validate_sources(paths, staging)
     target.verify_logging()
     base,final=target.reference
     context='SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\nCREATE TEMP TABLE legacy_reference(base jsonb NOT NULL,final jsonb) ON COMMIT DROP;\n'
@@ -388,7 +414,7 @@ def envelope_files(target,paths):
     admission=(SUPPORT/'canonical-auth-provisioning-legacy-admission.sql').read_text()
     validate_admission(admission)
     admission=admission.replace('-- LEGACY_CATALOG_CAPTURE',catalog_capture('legacy_catalog_before'))
-    oracle_sql=ddl_oracles(sources)
+    oracle_sql=ddl_oracles(sources, staging)
     check_support(oracle_sql)
     files=[target.private('envelope-context.sql',context),target.private('envelope-admission.sql',admission)]
     previous='admitted'
@@ -405,9 +431,9 @@ def envelope_files(target,paths):
     return files
 
 
-def execute(target,database,paths):
+def execute(target,database,paths, staging=None):
     """Public strict API: reviewed paths plus a live owned isolated handle only."""
-    files=envelope_files(target,paths)
+    files=envelope_files(target,paths, staging)
     output=target.run_files(database,files,'whole_batch')
     stages=re.findall(r'^LEGACY_STAGE_([A-Z]+)$',output,re.M)
     if stages!=list('ABCDEFHI')+['COMPLETED']:

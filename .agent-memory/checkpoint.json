@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "dfacf5bc33405fad75be618b46a69c83b8f1d85c",
-    "last_isolated_pg17_code": "dfacf5bc33405fad75be618b46a69c83b8f1d85c"
+    "published_baseline": "4130cdd9b4ebe2dc018ec596d5c4e839cc6e5bb5",
+    "last_isolated_pg17_code": "4130cdd9b4ebe2dc018ec596d5c4e839cc6e5bb5"
   },
-  "execution_environment": "connected; branch aligned to publisheddfacf5bc; named pre-checkpoint stash preserved",
-  "next_action": "Publish approved optional-session fix6de80c08; full exact-head legacy plus original16 required. Last original16 atdfacf5bc PASS, full concurrency/helper PASS; optional/later lanes await rerun."
+  "execution_environment": "connected; branch aligned to published4130cdd9; named pre-checkpoint stash preserved",
+  "next_action": "Publish reviewed Task8 integration337caaa4, approved with two ledgered Minors/no blocking findings. Require all17 union plus actual-shell SQL/transport proof. Working595=533/23/35/4/foundation93; native CLI/full replay/types gates remain open."
 }

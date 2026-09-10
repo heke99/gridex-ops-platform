@@ -39,7 +39,7 @@ def selection():
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
     assert order[30:38] == [SOURCE, OPERATIONS, 'migrations/20260909123000_canonical_invitation_token_prerequisite.sql', *WHOLE, 'bootstrap/20260527_company_memberships_role_key_foundation.sql'], 'complete sources must follow the retained first33 prefix'
     assert order[29] == 'migrations/20260519_saas_ui_tenant_admin.sql'
-    assert len(order) == 84 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert len(order) == 93 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
     assert order.count(OPERATIONS) == additions['foundation'].count(OPERATIONS) == 1
     assert all(order.count(path) == additions['foundation'].count(path) == 1 for path in WHOLE)
     assert order[9] == EARLY and order.count(EARLY) == 1
@@ -51,12 +51,12 @@ def selection():
     account = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     data = json.loads(account.stdout)
     assert account.returncode == 1 and not data['errors']
-    assert data['totalMigrations'] == 595 and data['counts'] == {'FULL_FILE_SELECTED':525,'SUBSTITUTED':24,'UNCLASSIFIED':42,'EXPLICITLY_EXCLUDED':4}, data['counts']
+    assert data['totalMigrations'] == 595 and data['counts'] == {'FULL_FILE_SELECTED':533,'SUBSTITUTED':23,'UNCLASSIFIED':35,'EXPLICITLY_EXCLUDED':4}, data['counts']
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode == 1 and not group['errors'] and len(group['inputs']) == 341
     counts = {key:sum(item['classification'] == key for item in group['inputs']) for key in data['counts']}
-    assert counts == {'FULL_FILE_SELECTED':282,'SUBSTITUTED':21,'UNCLASSIFIED':34,'EXPLICITLY_EXCLUDED':4}, counts
+    assert counts == {'FULL_FILE_SELECTED':290,'SUBSTITUTED':20,'UNCLASSIFIED':27,'EXPLICITLY_EXCLUDED':4}, counts
     return order[:30]
 
 

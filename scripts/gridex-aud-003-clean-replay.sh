@@ -31,27 +31,20 @@ SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
 WORKTREE_MUTATED=false
-STACK_START_ATTEMPTED=false
-# Clean replay normally runs against the local Supabase stack. Where Docker is
-# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
-# that this script provisions with the Supabase-compatible surface instead. The
-# migration ordering, checksum pinning and fingerprint below are identical in
-# both modes; only how the empty database is obtained differs.
+PREFIX_PROOF=false
+if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then PREFIX_PROOF=true;
+elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
+# Only the parent-owned compatible transport supports the selected sensitive
+# batch. CLI/native genesis and generic external URLs have no accepted ownership,
+# independent catalog reference or private-server logging contract.
 EXTERNAL_DB="${GRIDEX_REPLAY_DB_URL:-}"
+DB_URL="$EXTERNAL_DB"
 SUPABASE_BOOTSTRAP="$ROOT/scripts/sql/gridex-supabase-compatible-bootstrap.sql"
-if [[ -n "$EXTERNAL_DB" ]]; then
-  DB_URL="$EXTERNAL_DB"
-else
-  DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-fi
 
 cleanup(){
   local status=$?
   local restore_failed=false
   set +e
-  if [[ "$STACK_START_ATTEMPTED" == true ]]; then
-    supabase stop --no-backup >/dev/null 2>&1 || true
-  fi
   # Preflight and incomplete backups must never overwrite untouched originals.
   if [[ "$WORKTREE_MUTATED" == true ]]; then
     if rm -f "$MIGRATIONS"/*.sql && cp -a "$HOLD"/. "$MIGRATIONS"/; then
@@ -75,7 +68,11 @@ cleanup(){
 }
 trap cleanup EXIT
 
-if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi
+if [[ "$EXTERNAL_DB" != owned-compatible || -z "${GRIDEX_REPLAY_OWNED_SOCKET:-}" ]]; then
+  echo "unsupported replay target: use canonical-auth-provisioning-replay.py --owned-compatible; CLI/native and generic external modes require reviewed ownership/reference/private logging; NO ledger provenance" >&2
+  exit 1
+fi
+test -f "$SUPABASE_BOOTSTRAP"
 command -v psql >/dev/null
 command -v python3 >/dev/null
 for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
@@ -110,8 +107,15 @@ fi
 # Input accounting must finish before originals are moved or a database starts.
 # A selected bootstrap is not evidence that its complete historical effects were
 # preserved. Keep unresolved substitutions blocking, not silently exempted.
-mkdir -p "$ROOT/artifacts"
-python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ROOT/artifacts/replay-input-accounting.json"
+if [[ "$PREFIX_PROOF" == true ]]; then
+  # Explicitly bounded integration proof. Never writes replay artifacts/types or
+  # claims completeness. Context binds this scope to the owned parent process.
+  python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context --foundation-prefix-proof
+else
+  mkdir -p "$ROOT/artifacts"
+  python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ROOT/artifacts/replay-input-accounting.json"
+  python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context
+fi
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
@@ -305,38 +309,10 @@ timestamp_out.write_text(''.join(str(p)+'\n' for p in execution))
 print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(files)} canonical timestamped files')
 PY
 
-python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'
-import json,pathlib,sys
-ledger=json.loads(pathlib.Path(sys.argv[1]).read_text()); out=pathlib.Path(sys.argv[2])
-entries=ledger.get('entries',[])
-if not entries: raise SystemExit('official dev ledger snapshot is empty')
-last=None
-for e in entries:
-    version=str(e['version']); name=e['name']
-    if not name or len(version)!=14 or not version.isdigit(): raise SystemExit(f'invalid official ledger entry: {e}')
-    if last is not None and version <= last: raise SystemExit(f'official ledger is not strictly ordered: {version} after {last}')
-    last=version
-    (out/f'{version}_{name}.sql').write_text('-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n')
-PY
-if [[ -z "$EXTERNAL_DB" ]]; then
-  cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
-  # Supabase CLI owns the official ledger from the beginning so later governance
-  # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
-  # the checksum-pinned dev-ledger versions verified below.
-  # Preflight failure must not stop a stack this invocation never started.
-  # Arm before start so partially failed startup still receives cleanup. This
-  # is attempt tracking, not proof of ownership of a pre-existing local stack.
-  STACK_START_ATTEMPTED=true
-  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
-else
-  # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
-  # official ledger is deliberately left untouched: writing it by hand would
-  # make the verification below assert rows this script had just invented.
-  # External mode therefore carries NO ledger provenance and is a diagnostic
-  # replay of the schema only.
-  echo "[GRIDEX-REM-002 replay] provisioning Supabase-compatible surface on the external database"
-  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
-fi
+# Compatible mode carries NO ledger provenance. No CLI marker or provider
+# bootstrap is asserted equivalent to this explicitly synthetic surface.
+echo "[GRIDEX-REM-002 replay] owned compatible mode: NO ledger provenance"
+psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
 
 apply_sql(){
   local file="$1"
@@ -344,7 +320,13 @@ apply_sql(){
   echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
-while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
+# The same production foundation loop handles retained first43 and exactly
+# A44/B45/C46/D47/E48/F49/H50/I51/Q52 in its one-connection envelope.
+python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --foundation "$FOUNDATION_EXEC" --hold "$HOLD"
+if [[ "$PREFIX_PROOF" == true ]]; then
+  echo "[GRIDEX-REM-002 replay] PASS bounded first52 integration only; NO ledger provenance; full replay/artifacts/types remain blocked"
+  exit 0
+fi
 poa_live_prerequisite_applied=false
 inbound_dedupe_replay_prerequisite_applied=false
 inbound_ediel_pipeline_replay_prerequisite_applied=false
@@ -447,4 +429,4 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[GRIDEX-REM-002 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
-echo '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger'
+echo '[GRIDEX-REM-002 replay] PASS: owned compatible schema diagnostic; NO ledger provenance'

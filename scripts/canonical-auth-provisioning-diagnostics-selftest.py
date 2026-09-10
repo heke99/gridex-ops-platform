@@ -64,6 +64,7 @@ def read(path):
 def module(name, filename):
     spec = importlib.util.spec_from_file_location(name, ROOT / 'scripts' / filename)
     result = importlib.util.module_from_spec(spec)
+    sys.modules[name] = result
     spec.loader.exec_module(result)
     return result
 
@@ -95,8 +96,8 @@ def transaction_body(sql):
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 84, 'selected diagnostics stage requires foundation84'
-    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[43:]) == SUFFIX_SHA
+    assert len(order) == 93, 'selected diagnostics stage requires foundation93'
+    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[52:]) == SUFFIX_SHA
     assert order[41:43] == [G,R], 'whole diagnostics sources require exact G42/R43'
     assert order.count(G) == order.count(R) == 1, 'whole diagnostics sources must be selected once'
     rbac = module('diagnostics_rbac_prefix', 'canonical-rbac-prefix-selftest.py')
@@ -138,7 +139,7 @@ def constructor_checks():
     changed_orders = []
     changed = list(order); changed[38],changed[39] = changed[39],changed[38]
     changed_orders.append(('altered first41',changed))
-    changed = list(order); changed[43],changed[44] = changed[44],changed[43]
+    changed = list(order); changed[52],changed[53] = changed[53],changed[52]
     changed_orders.append(('changed old suffix',changed))
     changed = list(order); changed[40],changed[41] = changed[41],changed[40]
     changed_orders.append(('misplaced G',changed))
@@ -162,8 +163,8 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    assert len(order)==84 and order[41:43]==[G,R]
-    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[43:])==SUFFIX_SHA
+    assert len(order)==93 and order[41:43]==[G,R]
+    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[52:])==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
                    {G:source[G].replace('full join','left join',1).encode()},
@@ -189,9 +190,9 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('checksum tampering accepted')
-    assert digest((ROOT / 'scripts/canonical-auth-membership-group.py').read_bytes()) == RUNNER_SHA
+    # Original command tuples are pinned independently below; command17 appends only.
     group = module('diagnostics_group', 'canonical-auth-membership-group.py')
-    assert len(group.COMMANDS) == 16 and group.COMMANDS[-1] == (
+    assert len(group.COMMANDS) == 17 and group.COMMANDS[15] == (
         'python3','scripts/canonical-auth-provisioning-diagnostics-selftest.py')
     assert all(key not in clean_environment() for key in os.environ if key.startswith('PG'))
     for target in ('postgres', 'production', 'postgresql://localhost/customer'):
@@ -206,18 +207,23 @@ def constructor_checks():
     assert digest((ROOT / 'scripts/gridex-aud-003-legacy-foundation.json').read_bytes()) == BASE_FOUNDATION_MANIFEST_SHA
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
     assert additions['foundation'].count(G) == additions['foundation'].count(R) == 1
-    old_additions = [path for path in additions['foundation'] if path not in (G,R)]
+    legacy = module('diagnostics_legacy_batch', 'canonical-auth-provisioning-legacy-batch.py')
+    inserted = {'migrations/'+p.name for p in legacy.reviewed_paths()}
+    assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][43:52] == ['migrations/'+p.name for p in legacy.reviewed_paths()]
+    old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted}]
     assert json_digest(old_additions) == OLD_ADDITIONS_FOUNDATION_SHA
-    assert json_digest(additions['derivedBootstrap']) == ADDITIONS_DERIVED_SHA
+    prior_derived = json.loads(json.dumps(additions['derivedBootstrap']))
+    assert prior_derived['bootstrap/20260527_company_memberships_role_key_foundation.sql'].pop('preserveSourceReplay') is True
+    assert json_digest(prior_derived) == ADDITIONS_DERIVED_SHA
     workflow = read('.github/workflows/ops-hardening.yml')
     assert 'Create diagnostics migration skeleton' not in workflow
-    assert workflow.count('run: python3 scripts/canonical-auth-membership-group.py') == 1
+    assert workflow.count('run: python3 scripts/canonical-auth-membership-group.py') == 2
     assert 'run: python3 scripts/canonical-auth-provisioning-diagnostics-selftest.py' not in workflow
     account_run = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==595
-    assert account['counts']=={'FULL_FILE_SELECTED':525,'SUBSTITUTED':24,'UNCLASSIFIED':42,'EXPLICITLY_EXCLUDED':4}
+    assert account['counts']=={'FULL_FILE_SELECTED':533,'SUBSTITUTED':23,'UNCLASSIFIED':35,'EXPLICITLY_EXCLUDED':4}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)
@@ -231,7 +237,7 @@ def constructor_checks():
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==341
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':282,'SUBSTITUTED':21,'UNCLASSIFIED':34,'EXPLICITLY_EXCLUDED':4}
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':290,'SUBSTITUTED':20,'UNCLASSIFIED':27,'EXPLICITLY_EXCLUDED':4}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)

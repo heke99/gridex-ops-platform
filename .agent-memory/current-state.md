@@ -11,45 +11,64 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `dfacf5bc33405fad75be618b46a69c83b8f1d85c`, exact reviewed
-tree `0880caca86ea94be7f60bee9db95629ea919c67b`; fetched equality/tracked-clean
-alignment passed, locale8a6f4eb archived. OPS34500200677 runs full legacy proof
-and original16 independently; original16/auth102948763477 PASS at this head.
-Failure4 deadlock resolved in SQL; failure5 optional fixture42P07 blocks full proof.
+Latest publication: `4130cdd9b4ebe2dc018ec596d5c4e839cc6e5bb5`, exact reviewed
+tree `615de55cba5b80454dc16090f9a935b2393fdd86`; fetched equality/tracked-clean
+alignment passed, locala63e8374 archived. OPS34501598746 runs full legacy proof
+and original16 independently; original16/auth102953458828 and complete legacy
+proof102953458693 PASS at4130cdd9 (132502ms). Task7 verified; Task8 integration next.
 
 
-Working-tree accounting is 595 inputs: 525 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 42 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 341 inputs: 282 selected, 21 substituted, 34 unclassified, and 4 excluded.
-Q is registered as timestamp input (ordinal509), not foundation selection or
-SQL acceptance. Current reviewed59-line Q hash is
+Working-tree accounting is 595 inputs: 533 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 341 inputs: 290 selected, 20 substituted, 27 unclassified, and 4 excluded.
+Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
+A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is not yet
+reviewed/published or SQL-verified; standalone Task7 remains the last accepted code.
+Its complete standalone SQL execution is now verified with Task7; registration
+alone was not that proof. Current reviewed59-line Q hash is
 fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983. A–I unchanged.
-There are66 total and55 focused unresolved inputs. Selection means complete
+There are58 total and47 focused unresolved inputs in the working tree. Selection means complete
 source execution, not surviving-effect equivalence or production readiness.
-Foundation84 preserves historical fixture prefixes30/31/32/33 and RBAC38;
-first41 unchanged, complete G42/R43, old suffix shifted by2. Fixed16 commands
-retain the exact original15 order and execute diagnostics once at the end.
+Foundation93 preserves historical fixture prefixes30/31/32/33 and RBAC38;
+first43 unchanged including G42/R43, former44–84 suffix preserved after new44–52.
+Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
-Task7: hosted failure5 atdfacf5bc/job102948763359. All prior catalog/event/tie,
-actual-success rollback and deadlock corrections are SQL-VERIFIED. Both original
-serialize contenders00000 with full stages, observed mutex/no-target-lock oracle,
-repeat snapshot equality and trigger-DDL holder/contender00000 PASS. Complete
-concurrency lane PASS; downstream final-RBAC/helper checks PASS (separate from43).
-Then optional_reference_shape42P07/exit3, BoundaryError; cleanupPASS. Author
-confirms compatible bootstrap125–131 already creates auth.sessions; first43
-migrations add neither sessions nor journal. Only company_user_audit_journal is
-synthetic optional. Fix6de80c08 validates exact original catalog/session shape,
-adds only explicitly absent journal and seeds sessions via named actual columns;
-independent retained rows/catalog assertions span first batch and repeat.
-Constructor/AST/diff PASS; independent scoped spec+quality review APPROVED,
-no findings. Full hosted optional/later lanes still required.
-No blanket IFNOTEXISTS or hidden shape mismatch. Earlier claims that combined
-bootstrap+first43 lacked sessions were incorrect; source-list absence is narrower.
-Later optional session/privilege/listener/logging/cleanup-canary lanes remain
-unverified. Same-head original16/auth102948763477 PASS. Scoped review and full exact-head SQL
-proof required before Task8. Owned disposable only; no production mutation.
+Task7: COMPLETE standalone hosted PostgreSQL proof PASS at4130cdd9,
+OPS34501598746/job102953458693 (132502ms). All five hosted defects resolved.
+Actual first43/seeded/repeat,14 dirty data/11 catalog/native/reduced D/E/F/H/I,
+real unexpected-success wholeI rollback, atomic A/C/F/Q/context/backend death,
+observed mutex/no-target-lock and both00000 contenders, trigger-DDL contention,
+downstream helper, existing bootstrap sessions+optional journal exact rows/catalog,
+client/service/inherited denials, private DETAIL/CONTEXT/statement/parameter/server
+collector logging and notification commit-only, exact owned cleanup/canary PASS.
+Safe complete-PASS receipt and successful cleanup confirmed from hosted log.
+Original16/auth102953458828 also PASS at this exact head; Task7 verified.
+Task8 implementation337caaa4 committed (18 owned files), independent spec+quality
+review APPROVED with two deferred Minors, no Important/Critical. New canonical-auth-provisioning-replay.py retains
+parent-owned PostgreSQL and private socket/psql shim for actual shell staging,
+planner and first43→single batch in the same gridex_auth_legacy_replay database.
+Independent compatible reference built before originals move; explicit prefix
+proof stops after52 with NO artifacts/ledger, full mode retains completeness gate.
+Command17 appended; hosted jobs partition original16 and legacy17 without duplicate
+legacy proof. Staged constructors, group partitions,15 cleanup tests, accounting29,
+selection/integrity/provenance/AST/shell/diff PASS. Local AF_UNIX creation EPERM
+prevented transport execution; no retry/probe or local SQL claim. Hosted actual
+shell positive/Q-alone/marker-guarded postQ rollback cases authored. Independent
+review approved; two deferred Minors: invalid
+scope rejects before temp cleanup trap, and obsolete native CLI invocation docs.
+Both retained for final review/closure. Same-head all17+real-loop SQL proof pending.
+Supported-mode decision: add explicit owned-compatible diagnostic replay with
+NO ledger provenance; current native CLI/generic external modes lack trusted
+genesis/ownership/private logging and must reject before startup/staging/SQL.
+Native CLI owned genesis/reference/private logging and official-ledger proof
+remain concrete later gates; do not claim full replay from bounded owned mode.
+Original bootstrap sessions exist; only journal synthetic.
+No full replay/schema/types or production readiness inferred from this bounded
+whole-source proof. Working-tree selection changed only by the eight reviewed originals; expected
+595=533/23/35/4 and focused341=290/20/27/4 observed with no inventory errors.
+These are selection facts, not Task8 SQL acceptance.
 Task5 contract
 66c56c70/9a6eb324 independently APPROVED, no open findings. Task6 c9a60e5e plus
 report-tracking cleanup585e367e independently APPROVED and published e37bc25b.
@@ -60,10 +79,10 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish approved optional-session fixture fix6de80c08 as one batch, then
-require complete PG17 proof and original16
-on the same head. No source selection yet.
-Preserve first43; prospective44–52 batch/foundation93 requires later acceptance.
+Next: publish reviewed Task8 integration337caaa4 as one coherent batch and
+require all17+actual real-loop proof
+on the same head. Working-tree source selection is under implementation, not accepted yet.
+Preserve first43; actual44–52 batch/foundation93 requires reviewed hosted proof.
 Five business targets must be empty; existing role identities/metadata require
 exact preimage restoration before commit. Populated historical effects remain
 rollback characterization, never authorized live replay. Q must require the
@@ -71,14 +90,14 @@ same-connection envelope and final assertions before commit. No real-user/provid
 reads or credential generation required. Do not mass-replay or mass-mark
 historical sources live; reconcile eventual forward delivery with ledger/runtime.
 
-The next sensitive legacy fixture contract must cover PostgreSQL service cleanup
-logs as well as sanitized Python receipts: hosted cleanup prints SQL STATEMENT
-lines for expected errors. No actual secret disclosure is claimed. Prevent raw
-source/credential/provider content in that logging path without weakening tests.
+Task7 verified private server logging and exact owned cleanup. Task8 must retain
+that boundary in its actual replay transport. Original16 service cleanup can print
+SQL STATEMENT lines; do not route sensitive legacy bytes through that unprotected
+path or expose raw source/logs. No actual secret disclosure is claimed.
 
 ## Current executed acceptance
 
-OPS34500200677/auth102948763477 atdfacf5bc PASS complete fixed16 (reconfirms
+OPS34501598746/auth102953458828 at4130cdd9 PASS complete fixed16 (reconfirms
 prior e37bc25b/194fd0cf executed receipts): all prior
 source/RBAC/governance/SaaS/admission lanes plus selected diagnostics G/R,
 eleven reduced projections/history/repeats,23 dirty catalog cases, five role/
@@ -97,12 +116,12 @@ G-after-R alone actually resets invoker=false/reloptionsNULL and is explicitly
 not runtime-ready. Each subsequent wholeR secure boundary passed. The complete
 later selected chain must still prove final ACL/policy/invoker survival.
 
-Atdfacf5bc quality/build102948763250, Ediel102948763375,
-tenant102948763440, browser-public102948765070 and coverage102948763684 PASS.
-Verify102948763490 FAILS generated-types tail20260910140053 (log confirmed);
-clean102948763353 FAILS before complete replay. Smoke102948763805 is14/15,
-sole same log-confirmed types failure; pr-certificate102949327138 FAILS. Legacy
-failure5 is active above. Full/runtime/customer/load/staging/ZAP/certification
+At4130cdd9 quality/build102953458698, Ediel102953458823,
+tenant102953458862, browser-public102953459131 and coverage102953459546 PASS.
+Complete legacy102953458693 and original16/auth102953458828 PASS. Verify102953458683 FAILS
+generated-types tail20260910140053 (log confirmed); clean102953458503 FAILS before
+complete replay. Smoke102953460114 is14/15, sole same log-confirmed types failure;
+pr-certificate102953977988 FAILS. Full/runtime/customer/load/staging/ZAP/certification
 skips remain unverified. Never regenerate artifacts from incomplete replay or
 weaken gates.
 
