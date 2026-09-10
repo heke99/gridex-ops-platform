@@ -99,6 +99,7 @@ create temporary table rbac_governance_checks as select oid,conrelid,conname,pg_
 create temporary table rbac_governance_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('tenant_governance_events'::regclass,'platform_tenant_governance_overview'::regclass,'tenant_governance_events_company_created_idx'::regclass,'tenant_governance_events_target_user_created_idx'::regclass);
 create temporary table rbac_operations_constraints as select oid,conname,contype,conkey,pg_get_constraintdef(oid) definition from pg_constraint where conrelid='customer_sync_events'::regclass;
 create temporary table rbac_operations_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('customer_sync_events'::regclass,'customer_sync_events_pkey'::regclass,'customer_sync_events_company_status_idx'::regclass,'customer_sync_events_customer_idx'::regclass,'customer_sync_events_source_idx'::regclass);
+create temporary table rbac_journal_policies_before as {journal_policy_catalog()};
 create temporary table prefix_roles_before as select * from roles;
 create temporary table prefix_permissions_before as select * from permissions;
 create temporary table prefix_grants_before as select * from role_permissions;
@@ -150,6 +151,53 @@ def governance_trigger_checks():
 select test_assert(not exists(select 1 from pg_trigger where not tgisinternal
   and tgrelid in ('public.user_roles'::regclass,'public.user_profiles'::regclass)
   and (tgtype&16)=16),'no unexpected mutating user-role/profile UPDATE trigger through full6E and helper repair');
+"""
+
+
+def journal_policy_catalog():
+    return """select oid,polrelid,polname,polcmd,polroles,polpermissive,
+  pg_get_expr(polqual,polrelid) using_expression,pg_get_expr(polwithcheck,polrelid) check_expression
+  from pg_policy where polrelid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)"""
+
+
+def journal_checks():
+    # Complete 6D2 hardens both journals; none of the three 6E files targets them.
+    # As in Task9, PostgreSQL deparses independent source-literal expected policies.
+    return f"""select test_assert((select count(*)=2 and bool_and(relrowsecurity and not relforcerowsecurity
+  and relowner=(select oid from pg_roles where rolname=current_user)
+  and relacl is null and reloptions is null) from pg_class
+  where oid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)),
+  '6D2 journal RLS/owner/default ACL/options retained; final runtime access remains OPEN');
+select test_assert(not exists(select 1 from pg_constraint where conrelid='customer_sync_events'::regclass and contype='f'),
+  'operations journal still has no source-created FK after 6D2/6E/helper');
+select test_assert(not exists(
+  (select * from rbac_journal_policies_before except ({journal_policy_catalog()}))
+  union all (({journal_policy_catalog()}) except select * from rbac_journal_policies_before)),
+  'both journal policy OIDs/commands/roles/permissiveness/expressions and complete sets retained through full6E/helper');
+begin;
+create table public.rbac_expected_sync(company_id uuid);
+create table public.rbac_expected_governance(company_id uuid);
+create policy customer_sync_events_tenant_select on public.rbac_expected_sync for select using (public.gridex_can_read_company(company_id));
+create policy customer_sync_events_tenant_insert on public.rbac_expected_sync for insert with check (public.gridex_can_write_company(company_id));
+create policy customer_sync_events_tenant_update on public.rbac_expected_sync for update using (public.gridex_can_read_company(company_id)) with check (public.gridex_can_write_company(company_id));
+create policy customer_sync_events_tenant_delete on public.rbac_expected_sync for delete using (public.gridex_user_is_platform_admin());
+create policy tenant_governance_events_select on public.rbac_expected_governance for select using (public.gridex_user_is_platform_admin() or company_id in (select * from public.gridex_user_company_ids()));
+create policy tenant_governance_events_write on public.rbac_expected_governance for all using (public.gridex_user_is_platform_admin()) with check (public.gridex_user_is_platform_admin());
+with actual as (
+  select polrelid,polname,polcmd,polroles,polpermissive,using_expression,check_expression
+  from ({journal_policy_catalog()}) p
+), expected as (
+  select e.actual::regclass::oid polrelid,p.polname,p.polcmd,p.polroles,p.polpermissive,
+    pg_get_expr(p.polqual,p.polrelid) using_expression,pg_get_expr(p.polwithcheck,p.polrelid) check_expression
+  from (values ('public.customer_sync_events','public.rbac_expected_sync'),
+    ('public.tenant_governance_events','public.rbac_expected_governance')) e(actual,expected)
+  join pg_policy p on p.polrelid=e.expected::regclass
+)
+select test_assert((select count(*)=6 from expected) and not exists(
+  (select * from actual except select * from expected)
+  union all (select * from expected except select * from actual)),
+  'exact four operations and two governance 6D2 policies: names/commands/PUBLIC/permissive/USING/WITH CHECK; no extras');
+rollback;
 """
 
 
@@ -250,13 +298,12 @@ select test_assert((select count(*) from role_permissions)=(select count(*)+6 fr
 select test_assert(not exists(select * from rbac_governance_objects except select oid,relname,relacl,reloptions from pg_class),'journal/overview/index identities and bounded ACL/options retained through full6E');
 select test_assert(not exists(select * from rbac_operations_constraints except select oid,conname,contype,conkey,pg_get_constraintdef(oid) from pg_constraint),'operations journal PK/check identities retained through full6E');
 select test_assert(not exists(select * from rbac_operations_objects except select oid,relname,relacl,reloptions from pg_class),'operations journal/index identities and bounded ACL/options retained through full6E');
-select test_assert((select not relrowsecurity and not relforcerowsecurity from pg_class where oid='customer_sync_events'::regclass) and not exists(select 1 from pg_policy where polrelid='customer_sync_events'::regclass) and not exists(select 1 from pg_constraint where conrelid='customer_sync_events'::regclass and contype='f'),'operations source journal retains its no-FK/no-RLS/no-policy boundary through reviewed6E/helper assertions');
 select test_assert((select membership_role='admin' and status='active' from company_memberships where company_id='20000000-0000-0000-0000-000000000002' and user_id='10000000-0000-0000-0000-000000000004'),'security-locked profile still receives historical6E active-admin backfill; final authorization remains OPEN');
 """)
     chunks.append("""select test_assert(exists(select 1 from pg_constraint where conrelid='user_profiles'::regclass and conname='user_profiles_user_status_check' and convalidated and pg_get_constraintdef(oid) like '%locked_security%' and pg_get_constraintdef(oid) not like '%suspended%'),'full 6D profile constraint survives both 6E cycles');
 select test_assert((select count(*)=2 from user_profiles where user_status='locked_security'),'actual-prefix security-locked sentinels retained');
-select test_assert((select not relrowsecurity from pg_class where oid='tenant_governance_events'::regclass) and not exists(select 1 from pg_policy where polrelid='tenant_governance_events'::regclass),'bounded 6D then 6E journal policy boundary; final runtime ACL/RLS remains OPEN');
 """)
+    chunks.append(journal_checks())
     return '\n'.join(chunks)
 
 

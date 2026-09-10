@@ -331,11 +331,65 @@ def rbac_prefix_governance_trigger_contract():
     assert 'all17 governance trigger identities/events/bindings retained' not in sql
 
 
+def rbac_prefix_journal_contract():
+    """6D2's two journal policy sets survive the later 6E/helper boundary exactly."""
+    spec = importlib.util.spec_from_file_location('rbac_prefix_journals', RBAC_PREFIX_FIXTURE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    sql = module.main_sql()
+    assert 'operations source journal retains its no-FK/no-RLS/no-policy boundary' not in sql
+    assert 'bounded 6D then 6E journal policy boundary' not in sql
+    source = (ROOT / 'supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql').read_text()
+    targets = re.search(r'target_tables text\[\] := array\[(.*?)\];', source, re.S).group(1)
+    assert "'customer_sync_events'" in targets
+    generic = {
+        'select': 'for select using (public.gridex_can_read_company(company_id))',
+        'insert': 'for insert with check (public.gridex_can_write_company(company_id))',
+        'update': 'for update using (public.gridex_can_read_company(company_id)) with check (public.gridex_can_write_company(company_id))',
+        'delete': 'for delete using (public.gridex_user_is_platform_admin())',
+    }
+    for action, clause in generic.items():
+        assert f"'create policy %I on public.%I {clause}'" in source
+        assert f'create policy customer_sync_events_tenant_{action} on public.rbac_expected_sync {clause};' in sql
+    for action, clause in {
+        'select': 'for select using (public.gridex_user_is_platform_admin() or company_id in (select * from public.gridex_user_company_ids()))',
+        'write': 'for all using (public.gridex_user_is_platform_admin()) with check (public.gridex_user_is_platform_admin())',
+    }.items():
+        assert f'create policy tenant_governance_events_{action} on public.tenant_governance_events {clause}' in source
+        assert f'create policy tenant_governance_events_{action} on public.rbac_expected_governance {clause};' in sql
+    for path in (*module.SOURCES, module.FINAL):
+        downstream = (ROOT / 'supabase' / path).read_text()
+        assert 'customer_sync_events' not in downstream and 'tenant_governance_events' not in downstream
+    for marker in [
+        'create temporary table rbac_journal_policies_before as',
+        'select oid,polrelid,polname,polcmd,polroles,polpermissive,',
+        'pg_get_expr(polqual,polrelid) using_expression',
+        'pg_get_expr(polwithcheck,polrelid) check_expression',
+        'select * from rbac_journal_policies_before except',
+        'except select * from rbac_journal_policies_before',
+        'count(*)=2 and bool_and(relrowsecurity and not relforcerowsecurity',
+        'relowner=(select oid from pg_roles where rolname=current_user)',
+        'relacl is null and reloptions is null',
+        "conrelid='customer_sync_events'::regclass and contype='f'",
+        '(select count(*)=6 from expected)',
+        '(select * from actual except select * from expected)',
+        '(select * from expected except select * from actual)',
+        '6D2 journal RLS/owner/default ACL/options retained; final runtime access remains OPEN',
+    ]:
+        assert marker in sql, marker
+    baseline = sql.index('create temporary table rbac_journal_policies_before as')
+    assert baseline < sql.index('-- RBAC_SOURCE_FILE_BEGIN ')
+    assert sql.index('create table public.rbac_expected_sync') > sql.index('-- RBAC_FINAL_HELPER_BEGIN ')
+    assert 'operations journal PK/check identities retained through full6E' in sql
+    assert 'operations journal/index identities and bounded ACL/options retained through full6E' in sql
+
+
 def main():
     whole_correction_constructors()
     rbac_prefix_seed_uniqueness()
     rbac_prefix_user_role_statuses()
     rbac_prefix_governance_trigger_contract()
+    rbac_prefix_journal_contract()
     emitted = run('python3', str(RBAC_FIXTURE), '--emit')
     assert emitted.returncode == 0, emitted.stderr
     for source in [

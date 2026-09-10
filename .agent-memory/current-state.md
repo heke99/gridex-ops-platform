@@ -88,7 +88,20 @@ is invalid near AS. Fresh stronger author correctionb7b91362 splits typed/PK
 CREATE from INSERT of the same exact28 distinct target rows; full preservation
 oracle remains byte-unchanged. Focused RED/GREEN/group/RBACselection/compile
 and bounded22-temp-statement emit audit PASS. Independent scoped spec/quality
-APPROVED with no new breakage; corrected selected-order hosted acceptance open.
+APPROVED with no new breakage. Published db5b3465fbc53162b38860a20ecb9f2532fca067,
+exact tree2ca17a430b7058b789d6e3877f16ddbed5a1bd31; fetched equality/tracked-clean
+checks PASS, local5e25cd77 archived before alignment. OPS34469529209/auth102845913965
+passes syntax/exact28 trigger checks then FAILS old operations journal no-FK/
+no-RLS/no-policy assertion. Complete6D2 legitimately changes its security boundary.
+Fresh stronger author runtime round5 traced coupled customer_sync_events and
+tenant_governance_events:6D2 enables RLS and installs4 dynamic/2 bespoke policies;
+6E/helper preserve them. Correctiona291cd0a requires exact RLS/notforced/owner/
+NULL ACL/options for both, source-literal deparsed4+2 policy sets and bidirectional
+policy OID/catalog preservation, retaining journal constraints/noFK/identities.
+Focused group RED/GREEN, RBACselection/compile/emitted-policy audit/diff PASS;
+independent scoped spec/quality APPROVED, no material findings or new breakage.
+Historical fixtures retained; corrected hosted selected-order acceptance pending.
+Corrected selected-order hosted acceptance open.
 Selected-order hosted acceptance remains open. Quality/build102835575212 and Ediel102835575406
 PASS at2539b572; latest d9c561e4 quality/build102838870050 and
 Ediel102838870083 also PASS; verify102838870004/clean102838869953 remain red. No artifact regeneration from incomplete replay.

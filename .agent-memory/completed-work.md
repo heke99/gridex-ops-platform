@@ -750,3 +750,5 @@ authorizes necessary production merge/migrations/deployment after verification.
 2026-09-10 Task10 trigger oracle correctionc023070f independently APPROVED; covering RED/GREEN/group/selection/emit/compile/diff PASS. Corrected hosted acceptance pending.
 
 2026-09-10 Task10 typed/PK SQL fixture correctionb7b91362 independently APPROVED; focused regression RED/GREEN and scoped checks PASS. Corrected SQL remains hosted-pending.
+
+2026-09-10 Task10 coupled journal correctiona291cd0a independently APPROVED; covering RED/GREEN/scoped checks PASS,0 material findings at round5. Corrected hosted selected-order acceptance pending.
