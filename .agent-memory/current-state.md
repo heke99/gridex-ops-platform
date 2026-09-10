@@ -51,7 +51,18 @@ and reruns hosted group. Selection3241a76f is implemented; current accounting ab
 the exact selector. Targeted selection/order/provenance/group checks,29 accounting
 regressions, migration integrity593 files/497 groups and syntax PASS. Expected
 unresolved accounting exits remain1. Independent spec/quality review APPROVED
-with no findings; publication and hosted verification of selected order pending. No artifact regeneration from incomplete replay.
+with no findings. Published2539b57287d33384913644bc4d1d09d1234ff4cb, exact
+reviewed treebac23e6183cbe6b7f26b79385acc015a3070b2de; fetched equality/clean
+tracked tree confirmed and local68e4cd17 archived before alignment.
+OPS34466298139/auth102835575441 FAILS command6 canonical-rbac-prefix-selftest:
+duplicate role_permissions(role_id,permission_id) fixture seed conflicts with the
+extended prefix. Preceding selection selftest passes. Correctiond15ef34a uses
+a disjoint synthetic pair while preserving all six IDs; exact hard6E expected
+grant multiset includes its one authenticF cleanup row. Focused RED/GREEN,
+group/RBACselection/emit/compile/diff PASS. Scoped spec/quality APPROVED, no new
+material breakage; selected-order
+hosted acceptance remains open. Quality/build102835575212 and Ediel102835575406
+PASS at2539b572; verify102835575431/clean102835575512 remain red. No artifact regeneration from incomplete replay.
 
 Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local
 status edits retained in stash continuation-20260910-pre-checkpoint-reconcile;

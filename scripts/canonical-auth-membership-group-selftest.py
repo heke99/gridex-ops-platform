@@ -245,8 +245,32 @@ def whole_correction_constructors():
     assert after.count('except') >= 4, 'rollback requires two-way row AND catalog equality'
 
 
+def rbac_prefix_seed_uniqueness():
+    """The synthetic grant seed must not duplicate pairs now supplied by full F."""
+    spec = importlib.util.spec_from_file_location('rbac_prefix', RBAC_PREFIX_FIXTURE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    seed = module.reduced_seed()
+    pairs = re.findall(
+        r"\(select id from roles where key='([^']+)'\),"
+        r"\(select id from permissions where key='([^']+)'\)", seed)
+    assert len(pairs) == 6 and len(set(pairs)) == 6, pairs
+    final_source = (ROOT / 'supabase/migrations/20260519_final_saas_hardening.sql').read_text()
+    keys = re.search(r"permission_keys text\[\] := array\[(.*?)\];", final_source).group(1)
+    final_pairs = {(role, permission) for role in ('company_admin', 'super_admin')
+                   for permission in re.findall(r"'([^']+)'", keys)}
+    assert final_pairs.isdisjoint(pairs), sorted(final_pairs.intersection(pairs))
+    assert ('company_admin', 'permissions.manage') in pairs
+    sql = module.main_sql()
+    assert 'create temporary table prefix_hard_cleanup_grants as' in sql
+    assert 'create temporary table role_permissions_expected_after_cleanup as' in sql
+    assert "full F contributes the one authentic prefix grant removed by hard6E" in sql
+    assert 'baseline plus six fixture grants minus two synthetic and one authentic cleanup row' in sql
+
+
 def main():
     whole_correction_constructors()
+    rbac_prefix_seed_uniqueness()
     emitted = run('python3', str(RBAC_FIXTURE), '--emit')
     assert emitted.returncode == 0, emitted.stderr
     for source in [

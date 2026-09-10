@@ -48,14 +48,17 @@ def reduced_seed():
     sql = module.seed()
     invalid_company = "('20000000-0000-0000-0000-000000000002','Synthetic Two','2222222222','');"
     valid_company = "('20000000-0000-0000-0000-000000000002','Synthetic Two','2222222222','onboarding');"
+    conflicting_grant = "('60000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),(select id from permissions where key='tenants.write'))"
+    unique_grant = "('60000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),(select id from permissions where key='permissions.manage'))"
     marker = 'create temporary table memberships_before as select * from company_memberships;'
     extra = """insert into user_roles(id,user_id,company_id,role_id,status,is_active) values
  ('70000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'active',false);
 """
-    assert marker in sql and invalid_company in sql
+    assert marker in sql and invalid_company in sql and conflicting_grant in sql
     # Full 6D rejects suspended profiles; keep the reduced historical fixture intact.
     sql = sql.replace("'D','suspended'", "'D','locked_security'").replace("'F','suspended'", "'F','locked_security'")
-    return sql.replace(invalid_company, valid_company).replace(marker, extra + marker)
+    return sql.replace(invalid_company, valid_company).replace(
+        conflicting_grant, unique_grant).replace(marker, extra + marker)
 
 
 def catalog_prerequisites():
@@ -89,6 +92,12 @@ create temporary table rbac_operations_objects as select oid,relname,relacl,relo
 create temporary table prefix_roles_before as select * from roles;
 create temporary table prefix_permissions_before as select * from permissions;
 create temporary table prefix_grants_before as select * from role_permissions;
+create temporary table prefix_hard_cleanup_grants as
+select rp.* from role_permissions rp
+join roles r on r.id=rp.role_id
+join permissions p on p.id=rp.permission_id
+where r.key not in ('super_admin','superadmin','platform_admin')
+  and p.key in ('tenants.write','permissions.manage','roles.manage');
 create temporary table rbac_prefix_baseline as
 select
   (select count(*) from companies) as company_count,
@@ -132,9 +141,11 @@ select test_assert(not exists((select * from permissions_before except select * 
 select test_assert((select count(*)=6 from user_roles),'only two missing company-admin roles added');
 select test_assert(not exists(select * from prefix_roles_before except all select * from roles),'authentic prefix roles preserved');
 select test_assert(not exists(select * from prefix_permissions_before except all select * from permissions),'authentic prefix permissions preserved');
-select test_assert(not exists(select * from prefix_grants_before except all select * from role_permissions),'authentic prefix grant multiset preserved');
-select test_assert((select count(*) from role_permissions)=(select count(*)+6-2 from prefix_grants_before),'baseline plus six fixture grants minus exactly two cleanup rows');
-select test_assert(not exists((select * from role_permissions_before where id not in ('60000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000003') except all select * from role_permissions) union all (select * from role_permissions except all select * from role_permissions_before where id not in ('60000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000003'))),'exact post-seed grant multiset minus exact cleanup IDs');
+select test_assert(not exists(select 1 from prefix_grants_before p where p.id not in (select id from prefix_hard_cleanup_grants) and not exists(select 1 from role_permissions rp where to_jsonb(rp)=to_jsonb(p))),'authentic prefix grants outside the source-defined hard cleanup survive exactly');
+select test_assert(not exists(select 1 from prefix_hard_cleanup_grants d join role_permissions rp using (id)),'exact source-defined authentic prefix cleanup rows removed');
+select test_assert((select count(*)=1 from prefix_hard_cleanup_grants d join roles r on r.id=d.role_id join permissions p on p.id=d.permission_id where r.key='company_admin' and p.key='tenants.write'),'full F contributes the one authentic prefix grant removed by hard6E');
+select test_assert((select count(*) from role_permissions)=(select count(*)+6-3 from prefix_grants_before),'baseline plus six fixture grants minus two synthetic and one authentic cleanup row');
+select test_assert(not exists((select * from role_permissions_expected_after_cleanup except all select * from role_permissions) union all (select * from role_permissions except all select * from role_permissions_expected_after_cleanup)),'exact source-defined post-seed grant multiset');
 select test_assert((select count(*)=1 from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key='company_admin' and p.key='customers.read'),'unrelated company permission preserved');
 select test_assert((select string_agg(column_name || ':' || data_type,',' order by ordinal_position)='area:text,total_rows:bigint,blocked_rows:bigint' from information_schema.columns where table_schema='public' and table_name='gridex_rbac_tenant_audit_summary'),'RBAC audit view full shape');
 select test_assert((select total_rows=b.company_count + 2 and blocked_rows=b.company_blocked_count from gridex_rbac_tenant_audit_summary cross join rbac_prefix_baseline b where area='companies'),'RBAC company audit effects derive from the real prefix baseline');
@@ -174,6 +185,12 @@ def main_sql():
                 'set search_path = "$user", public, extensions;']
     chunks.extend(f'-- RBAC_PREFIX_FILE_BEGIN {relative}\n{read("supabase/" + relative)}' for relative in prefix)
     chunks.extend((catalog_prerequisites(), prefix_baseline(), reduced_seed(), '''create temporary table role_permissions_before as select * from role_permissions;
+create temporary table role_permissions_expected_after_cleanup as
+select rp.* from role_permissions rp
+join roles r on r.id=rp.role_id
+join permissions p on p.id=rp.permission_id
+where not (r.key not in ('super_admin','superadmin','platform_admin')
+  and p.key in ('tenants.write','permissions.manage','roles.manage'));
 select test_assert(not exists(select * from prefix_roles_before except all select * from roles),'seeding preserves authentic roles');
 select test_assert(not exists(select * from prefix_permissions_before except all select * from permissions),'seeding preserves authentic permissions');
 select test_assert(not exists(select * from prefix_grants_before except all select * from role_permissions),'seeding preserves authentic grants');
