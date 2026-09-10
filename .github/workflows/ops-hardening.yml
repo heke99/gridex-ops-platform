@@ -46,6 +46,25 @@ jobs:
       - name: Verify fixed auth and membership group on isolated PostgreSQL 17
         run: python3 scripts/canonical-auth-membership-group.py
 
+  auth-provisioning-legacy-skeleton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create legacy provisioning migration skeleton
+        run: |
+          supabase --version
+          supabase migration new --help
+          supabase migration new canonical_auth_provisioning_legacy_boundary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: auth-provisioning-legacy-migration-skeleton
+          path: supabase/migrations/*_canonical_auth_provisioning_legacy_boundary.sql
+          if-no-files-found: error
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25

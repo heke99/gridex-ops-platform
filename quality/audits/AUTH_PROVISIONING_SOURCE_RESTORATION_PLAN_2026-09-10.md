@@ -10,9 +10,9 @@
 
 ## Global Constraints
 
-- Current verified publication is17984611d9a4158ebf2b33631668fdac4d3730a9, exact tree77e1ac320a74889911fb0ae6fcc3d34c089dc62e; OPS34478576195/auth102875334400 PASS original15 plus complete standalone diagnostics. Quality/build102875334025 and Ediel102875334362 PASS.
--594 inputs:523 FULL_FILE_SELECTED,24 SUBSTITUTED,43 UNCLASSIFIED,4 EXPLICITLY_EXCLUDED;67 unresolved. Focused340:280/21/35/4;56 unresolved. These are input-selection counts, not final surviving-effect or production proof.
-- Preserve immutable historical SQL/checksums, historical fixture prefixes30/31/32/33, selected RBAC38 and the exact original15 runner commands. Foundation82 changes only to the exact84 of separately reviewed Task4; its command16 is append-only.
+- Current verified publication is194fd0cf2250f0bb64f199e72f45f32a3c3750e4, exact tree80b28b18d51da671b9a9754c3698181db04e2d9f; OPS34482627601/auth102888925544 PASS complete fixed16. Quality/build102888925130 and Ediel102888925422 PASS.
+-594 inputs:524 FULL_FILE_SELECTED,24 SUBSTITUTED,42 UNCLASSIFIED,4 EXPLICITLY_EXCLUDED;66 unresolved. Focused340:281/21/34/4;55 unresolved. These are input-selection counts, not final surviving-effect or production proof.
+- Preserve immutable historical SQL/checksums, historical fixture prefixes30/31/32/33, selected RBAC38, verified foundation84/first43 and the exact fixed16 runner commands. Any future source addition requires its own exact reviewed insertion and hosted acceptance.
 - No production writes, credential generation, auth-provider mutation, email sending, real-user reads or real-data cleanup in this evidence task. User authorizes later necessary verified production delivery; no renewed permission request is implied.
 - Never expose credentials, tokens or secret literals from a source. Report sensitive statements by path/line and effect, with synthetic identities only in proposed fixtures.
 - No blanket exclusion, table/column excerpt substituted for unreviewed whole-source effects, weakening of guards or artifact refresh from incomplete replay.
@@ -212,7 +212,7 @@ Task2 hosted acceptance:95a41dea, OPS34474633273/auth102862356592 PASS all15 plu
 - Accounting594=524/24/42/4, unresolved66; focused340=281/21/34/4, unresolved55. Only G changes UNCLASSIFIED→FULL_FILE_SELECTED. R remains selected exactly once; no added substitution/exclusion or checksum edits.
 - Task3 low-severity failure-localization finding must be addressed here with safe static diagnostics and a narrow synthetic regression; no raw stderr/SQL/provider data in receipts.
 
-- [ ] **Step 1: Assert the unchanged boundaries before editing the selection.** Use the executing fixture's exact prefix/suffix digests and immutable source checks. Add negative controls for misplaced/missing/duplicate G/R, altered first41, changed old suffix and attempted duplicate timestamp replay. The target transformation is exactly:
+- [x] **Step 1: Assert the unchanged boundaries before editing the selection.** Use the executing fixture's exact prefix/suffix digests and immutable source checks. Add negative controls for misplaced/missing/duplicate G/R, altered first41, changed old suffix and attempted duplicate timestamp replay. The target transformation is exactly:
 
 ```python
 old_order = list(order['foundation'])
@@ -227,7 +227,7 @@ assert new_order[43:] == old_order[41:]
 
 G is `migrations/20260528_auth_provisioning_runtime_guard.sql`; R is `migrations/20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql`. Add these two complete inputs to additions.foundation without changing its other entries or derivedBootstrap. Save the global foundation order with only this insertion. Retain immutable base foundation manifest and every source checksum.
 
-- [ ] **Step 2: Integrate the proven SQL command once.** Append this exact tuple to the existing COMMANDS tuple:
+- [x] **Step 2: Integrate the proven SQL command once.** Append this exact tuple to the existing COMMANDS tuple:
 
 ```python
 ('python3', 'scripts/canonical-auth-provisioning-diagnostics-selftest.py'),
@@ -235,11 +235,11 @@ G is `migrations/20260528_auth_provisioning_runtime_guard.sql`; R is `migrations
 
 The original15 entries remain byte-identical/in order. Update the group's explicit command-list regression to16, and the diagnostics constructor's runner checksum to the actual new runner bytes. Remove the temporary standalone workflow step in the same commit. Assert the workflow now executes the diagnostics through the fixed group only. Keep all prior fixture constructors/boundaries30/31/32/33 and RBAC38 unchanged.
 
-- [ ] **Step 3: Advance only selected-stage global guards.** The diagnostics loader still constructs actual first41 and wholeG/R, now validating order84, exactG42/R43 and unchanged suffix43 onward. Change foundation82→84 only in the named global guards from the approved contract; preserve prefix33 digest and DOWNSTREAM indexes37–40, existing source-path/hash and RBAC adjacency assertions. Advance selected523→524/unclassified43→42 and focused selected280→281/unclassified35→34. Total594/focused340/substituted/excluded remain unchanged. Notify root before dynamic memory equality tests. Keep all errors and negative controls; never weaken a count equality to an inequality.
+- [x] **Step 3: Advance only selected-stage global guards.** The diagnostics loader still constructs actual first41 and wholeG/R, now validating order84, exactG42/R43 and unchanged suffix43 onward. Change foundation82→84 only in the named global guards from the approved contract; preserve prefix33 digest and DOWNSTREAM indexes37–40, existing source-path/hash and RBAC adjacency assertions. Advance selected523→524/unclassified43→42 and focused selected280→281/unclassified35→34. Total594/focused340/substituted/excluded remain unchanged. Notify root before dynamic memory equality tests. Keep all errors and negative controls; never weaken a count equality to an inequality.
 
-- [ ] **Step 4: Preserve safe failure-localization evidence.** Implement the Task3 reviewed low-severity improvement in the diagnostics harness: on unexpected SQL failure retain a known static assertion/rejection label or verified source/fixture stage plus numeric location. Validate labels against known generated fixture/source labels; do not expose arbitrary PostgreSQL error text, SQL statements, provider-shaped data or private file contents. Add a database-free regression with two synthetic failures sharing SQLSTATEP0001 and distinct permitted labels/locations; assert distinct actionable receipts and exclusion of a synthetic forbidden payload. Successful SQL and expected-native-failure behavior must stay unchanged. This is a narrow observability correction, not relaxed acceptance.
+- [x] **Step 4: Preserve safe failure-localization evidence.** Implement the Task3 reviewed low-severity improvement in the diagnostics harness: on unexpected SQL failure retain a known static assertion/rejection label or verified source/fixture stage plus numeric location. Validate labels against known generated fixture/source labels; do not expose arbitrary PostgreSQL error text, SQL statements, provider-shaped data or private file contents. Add a database-free regression with two synthetic failures sharing SQLSTATEP0001 and distinct permitted labels/locations; assert distinct actionable receipts and exclusion of a synthetic forbidden payload. Successful SQL and expected-native-failure behavior must stay unchanged. This is a narrow observability correction, not relaxed acceptance.
 
-- [ ] **Step 5: Verify, commit only owned paths and obtain independent/hosted acceptance.**
+- [x] **Step 5: Verify, commit only owned paths and obtain independent/hosted acceptance.**
 
 ```sh
 python3 scripts/canonical-auth-provisioning-diagnostics-selection-selftest.py
@@ -256,7 +256,7 @@ Require exact new accounting/order/provenance and16-command dry-run; scope any f
 
 ### Task 5: Design lossless restoration of the eight remaining provisioning originals
 
-**Prerequisite:** Task4 independently approved and hosted all16 PASS on its published head. Root inserts the exact acceptance receipt before dispatch; no restart of completed Task1 effects or Task3 SQL proof.
+**Prerequisite VERIFIED:** Task4 fdc8cab9 independently APPROVED; published194fd0cf exact tree80b28b18d51da671b9a9754c3698181db04e2d9f, OPS34482627601/auth102888925544 PASS complete fixed16. No restart of completed Task1 effects or Task3/4 SQL proof.
 
 **Files:**
 - Create: `quality/audits/AUTH_PROVISIONING_LEGACY_ADMISSION_CONTRACT_2026-09-10.md`.
@@ -270,12 +270,71 @@ Require exact new accounting/order/provenance and16-command dry-run; scope any f
 - Produces one concrete independently reviewable admission/transaction/forward-repair contract for the coherent next unit(s), covering the dependencies of all eight. Prefer a complete coherent batch where safety can be proved; split only where actual effect/transaction dependencies require separate acceptance. Do not choose one file merely to avoid resolving the already mapped coupled effects.
 - Current594=524/24/42/4 (66 unresolved), focused340=281/21/34/4 (55 unresolved), foundation84/first43 including G/R, original16 commands. This evidence task changes none of them.
 
-- [ ] **Step 1: Reuse the exact source evidence and expose the actual remaining blockers.** Verify the eight current source hashes against the existing matrix/manifest without logging their contents. Reuse executed losses (event/status normalization, cleared profile action, expired-password invitation acceptance, skipped conditional REFERENCES) as unsafe historical characterization. For each remaining effect, state whether the next execution is an empty canonical replay, seeded compatibility proof, dirty-state admission, or eventual live forward convergence. These are distinct acceptance boundaries. ADR-006 forbids blindly replaying or mass-marking the noncanonical history live; do not reinterpret offline source execution as production authorization or rewrite that decision in this task.
+- [x] **Step 1: Reuse the exact source evidence and expose the actual remaining blockers.** Verify the eight current source hashes against the existing matrix/manifest without logging their contents. Reuse executed losses (event/status normalization, cleared profile action, expired-password invitation acceptance, skipped conditional REFERENCES) as unsafe historical characterization. For each remaining effect, state whether the next execution is an empty canonical replay, seeded compatibility proof, dirty-state admission, or eventual live forward convergence. These are distinct acceptance boundaries. ADR-006 forbids blindly replaying or mass-marking the noncanonical history live; do not reinterpret offline source execution as production authorization or rewrite that decision in this task.
 
-- [ ] **Step 2: Resolve a lossless, safe application boundary from the actual source and canonical behavior.** For all affected profile/membership/invitation/event/role/user-role/Auth and triggered durable-work fields, specify exact identities and before/after allowed multisets, inactive/NULL/orphan/conflicting-tenant/multi-role cases and catalog constraints. Evaluate coherent transaction/admission with complete immutable source bytes and exact forward reconstruction, or precise zero-eligible-row/source-backed preconditions where that is the only safe route. Never approve expired-metadata acceptance, default company_admin grants, all-role reactivation, nondeterministic ownership, audit loss or guessed token aliases. No provider operation, credential generation, real-user read, outgoing message or production mutation is needed for this design.
+- [x] **Step 2: Resolve a lossless, safe application boundary from the actual source and canonical behavior.** For all affected profile/membership/invitation/event/role/user-role/Auth and triggered durable-work fields, specify exact identities and before/after allowed multisets, inactive/NULL/orphan/conflicting-tenant/multi-role cases and catalog constraints. Evaluate coherent transaction/admission with complete immutable source bytes and exact forward reconstruction, or precise zero-eligible-row/source-backed preconditions where that is the only safe route. Never approve expired-metadata acceptance, default company_admin grants, all-role reactivation, nondeterministic ownership, audit loss or guessed token aliases. No provider operation, credential generation, real-user read, outgoing message or production mutation is needed for this design. Account for PostgreSQL service/cleanup logs as well as Python receipts: current hosted cleanup prints SQL STATEMENT lines on expected database errors. Do not claim a secret leak without evidence, but the next sensitive legacy-source fixture must define how to prevent raw source/credential/provider content escaping via server logs while preserving SQLSTATE and safe failure diagnostics.
 
-- [ ] **Step 3: Specify complete source order and forward repairs.** Preserve verified first43, existing G/R secure final boundary and canonical invitation/actor/token invariants unless a concrete reviewed prerequisite requires a separately described insertion; no silent historical fixture renumbering. Identify every old definition/constraint/trigger/ACL that a complete source would replace, the exact canonical later winner and any necessary immediate forward repair. Distinguish transactional DML restoration from later DDL replacement, which cannot undo committed lost history. Include inherited privilege/session/durable-intent consequences, and do not disable tenant guards or triggers merely to make a fixture pass. No source fragments, blanket exclusions or checksum rewrites.
+- [x] **Step 3: Specify complete source order and forward repairs.** Preserve verified first43, existing G/R secure final boundary and canonical invitation/actor/token invariants unless a concrete reviewed prerequisite requires a separately described insertion; no silent historical fixture renumbering. Identify every old definition/constraint/trigger/ACL that a complete source would replace, the exact canonical later winner and any necessary immediate forward repair. Distinguish transactional DML restoration from later DDL replacement, which cannot undo committed lost history. Include inherited privilege/session/durable-intent consequences, and do not disable tenant guards or triggers merely to make a fixture pass. No source fragments, blanket exclusions or checksum rewrites.
 
-- [ ] **Step 4: Write exact implementation/verification tasks for the proved next unit.** Name existing/new files and interfaces, source/hash/order boundaries, CLI-created future migration naming operation if needed, exact count deltas, complete actual-prefix versus explicitly reduced fixture lanes, dirty/native/concurrency/repeat/rollback cases and hosted command integration. Specify independent review before source selection and exact-head SQL acceptance before any downstream readiness claim. State any truly unresolved source-backed decision with its consequence; do not manufacture a blocker or ask execution-method permission. If all eight cannot safely share a batch, identify the precise dependency that separates them and the ordered remaining units, not a generic future-work list.
+- [x] **Step 4: Write exact implementation/verification tasks for the proved next unit.** Name existing/new files and interfaces, source/hash/order boundaries, CLI-created future migration naming operation if needed, exact count deltas, complete actual-prefix versus explicitly reduced fixture lanes, dirty/native/concurrency/repeat/rollback cases and hosted command integration. Specify independent review before source selection and exact-head SQL acceptance before any downstream readiness claim. State any truly unresolved source-backed decision with its consequence; do not manufacture a blocker or ask execution-method permission. If all eight cannot safely share a batch, identify the precise dependency that separates them and the ordered remaining units, not a generic future-work list.
 
-- [ ] **Step 5: Self-check, commit only the contract and report.** Check that every one of the103 existing units is either covered by the next contract or has a specific retained dependency/admission condition, with no dropped unsafe effect. Verify referenced files/hashes/callers and current counts remain unchanged; `git diff --check` passes. Commit the one document and write task-5-report.md with design decisions, provenance/reference checks, concrete next actions and limitations. No local SQL or production claim follows from a documentation commit. Root independently reviews, then derives and executes the next concrete implementation tasks continuously.
+- [x] **Step 5: Self-check, commit only the contract and report.** Check that every one of the103 existing units is either covered by the next contract or has a specific retained dependency/admission condition, with no dropped unsafe effect. Verify referenced files/hashes/callers and current counts remain unchanged; `git diff --check` passes. Commit the one document and write task-5-report.md with design decisions, provenance/reference checks, concrete next actions and limitations. No local SQL or production claim follows from a documentation commit. Root independently reviews, then derives and executes the next concrete implementation tasks continuously.
+
+
+### Task 6: Obtain the actual CLI skeleton for the reviewed legacy batch
+
+**Prerequisite:** Task5 independent design approval; do not dispatch until review closes.
+
+**Files:**
+- Modify only `.github/workflows/ops-hardening.yml`.
+- Consume `quality/audits/AUTH_PROVISIONING_LEGACY_ADMISSION_CONTRACT_2026-09-10.md`.
+- Report `.superpowers/sdd/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10/task-6-report.md`.
+
+**Interfaces:** No database/service/production connection. Preserve all existing jobs and fixed16 commands exactly. This temporary job produces only an actual CLI-created empty file; no selector, immutable SQL or manifest changes. Subsequent implementation removes the preparation job before publishing Q. Root retrieves and verifies the exact artifact before assigning Q's filename.
+
+- [x] **Step 1: Add this independent preparation job before verify.** No needs dependency, so naming does not wait for the eight-minute existing SQL group. Use the already verified pinned CLI/artifact protocol:
+
+```yaml
+  auth-provisioning-legacy-skeleton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create legacy provisioning migration skeleton
+        run: |
+          supabase --version
+          supabase migration new --help
+          supabase migration new canonical_auth_provisioning_legacy_boundary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: auth-provisioning-legacy-migration-skeleton
+          path: supabase/migrations/*_canonical_auth_provisioning_legacy_boundary.sql
+          if-no-files-found: error
+```
+
+- [x] **Step 2: Verify only the new workflow boundary.** Check exact inserted block, original jobs unchanged, fixed16 group selftest and git diff --check. Do not run unrelated suites, install the absent CLI locally, or invent a timestamp. Commit only the workflow and write the report. Independent review follows.
+- [ ] **Step 3: Root publishes the reviewed design/preparation/status batch and retrieves proof.** Record exact head/tree/run/job/artifact, ZIP SHA256 and sole empty member's actual filename/hash. Verify original16 and other relevant hosted receipts separately; skeleton success is not SQL acceptance. Give the resulting exact basename/bytes to the next implementation task and continue.
+
+
+### Task 7: Implement the unselected whole-source envelope and hosted proof
+
+**Prerequisite:** Task6 actual CLI artifact retrieved and verified. The exact generated basename and zero-byte artifact are supplied in the task brief before dispatch. Task5 contract66c56c70/9a6eb324 is independently APPROVED with no open findings.
+
+**Files and ownership:**
+- Fill the actual CLI-created `supabase/migrations/*_canonical_auth_provisioning_legacy_boundary.sql` (Q); no invented timestamp.
+- Create `scripts/canonical-auth-provisioning-legacy-batch.py`, `scripts/canonical-auth-provisioning-legacy-selftest.py`, and narrowly named source-controlled admission/assertion support in `scripts/sql/` where justified by the contract.
+- Modify the current history manifest to register Q and only the existing dynamic accounting checks directly coupled to the added source.
+- Modify `.github/workflows/ops-hardening.yml`: remove Task6's temporary job, add the reviewed isolated legacy proof job with private owned-container logging and20min budget. Keep fixed16 commands and their job unchanged.
+- Contract corrections only if implementation exposes a concrete source-backed mismatch; report it before broadening source scope. Root owns plan/status/memory and dynamic memory markers.
+- Report `.superpowers/sdd/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10/task-7-report.md`.
+
+**Interfaces:** Implement the approved legacy admission contract's complete transaction, rows/catalogs, forward winners,103-unit discharge and required SQL/infrastructure cases. Preserve first43 and foundation84, all existing source selectors, P38 metadata, original16 and immutable historical bytes. Do not select A–I in this task. Q registration is an input-accounting transition only; source-selection/executor integration follows reviewed hosted proof. Notify root of exact new count behavior when Q is registered so memory markers remain consistent; do not infer counts from SQL success.
+
+- [ ] **Step 1: Implement the exact envelope and Q.** One same-connection psql --single-transaction envelope runs admission, all eight complete sources in exact order, transaction-free context-bound Q and final assertions. Require isolated owned targets, lock before fresh admission, five empty business relations, exact arbitrary role preimages and only source-defined missing seeds. Implement the contract's precise CHECK/FK/index winners, preserved G/R security and no access/history/session/trigger side effects. No nested R transaction, standalone Q fallback, source fragments, trigger disabling or weakened guards.
+- [ ] **Step 2: Implement meaningful isolated cases.** All actual-first43, separate downstream helper, admitted/rejected/native/reduced-characterization, rollback/repeat/connection-death/contention and logging cases in the approved contract are required. Reuse prior executed characterization where explicitly allowed; do not repeat the entire effects audit. Emit only allowlisted SQLSTATE/stage/static categories and safe numeric/hash receipts. The owned PostgreSQL container must isolate server logs, use0700 directory/0600 files, suppress raw teardown output and reliably remove only its own resources.
+- [ ] **Step 3: Integrate an unselected standalone hosted lane.** Remove the temporary CLI job. Preserve existing16 and run the new proof in a dedicated owned-container job with bounded timeout; no production credentials or service operations. Constructor/selection-only mode validates byte/order/context and negative controls locally; it does not claim SQL acceptance. No absent local DB/CLI installation retry.
+- [ ] **Step 4: Run bounded static checks, selfreview and commit.** Run relevant constructor/negative controls, existing fixed-group selftest, accounting/integrity/provenance checks and syntax/diff checks for changed files. Report exact files/counts/hashes, justified limitations and hosted pending boundary. Commit owned files only; root independently reviews before publication.
+- [ ] **Step 5: Root publishes exact reviewed batch and obtains SQL receipts.** Require unchanged16 plus complete standalone legacy proof PASS at exact head/tree. Any failure gets scoped diagnosis/author fix/independent rereview. Only successful execution allows subsequent full-source selection and real clean-replay grouping. Generated types/full replay and production remain gated.
