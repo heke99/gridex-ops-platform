@@ -466,10 +466,26 @@ def reduced_compatibility_lanes() -> None:
     assert catalog_fingerprint() == before
     print("PASS REDUCED SHAPE both batch names rejected unchanged")
 
+    # Explicit reduced fixture delta on a disposable clone only: the actual
+    # first33 token is mandatory, whereas F also accepts a legacy nullable column.
     reset_database(template=PRE6D2_TEMPLATE)
-    psql_sql("update company_invitations set token=null where id=(select id from company_invitations order by id limit 1); create table legacy_null_invitation as select id from company_invitations where token is null order by id limit 1;")
+    psql_sql("""select test_assert(exists(select 1 from pg_attribute a
+      where a.attrelid='company_invitations'::regclass and a.attname='token'
+        and a.atttypid='uuid'::regtype and a.attnotnull and not a.attisdropped),
+      'REDUCED nullable-token fixture starts from actual mandatory UUID token');
+create table legacy_null_invitation as select id from company_invitations order by id limit 1;
+select test_assert((select count(*)=1 from legacy_null_invitation),'REDUCED nullable-token fixture selects exactly one legacy row');
+alter table company_invitations alter column token drop not null;
+update company_invitations set token=null where id=(select id from legacy_null_invitation);
+""" + oracle.stage_snapshot_sql("f_nullable_token", True))
     source("F")
-    psql_sql("insert into company_invitations(company_id,email,role,created_by) select company_id,'future-token@example.invalid','member',created_by from company_invitations limit 1;" + oracle.check("(select count(*)=1 from legacy_null_invitation l join company_invitations i using(id) where i.token is null)", "F preserves nullable legacy NULL invitation token") + oracle.check("(select token is not null from company_invitations where email='future-token@example.invalid')", "F/prerequisite future invitation receives token default"))
+    psql_sql(oracle.stage_preserved_sql("f_nullable_token") + oracle.check("""exists(select 1 from pg_attribute a
+      join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum
+      where a.attrelid='company_invitations'::regclass and a.attname='token' and not a.attisdropped
+        and a.atttypid='uuid'::regtype and not a.attnotnull and pg_get_expr(d.adbin,d.adrelid)='gen_random_uuid()')""",
+      "F retains reduced nullable UUID token and exact future default"))
+    psql_sql("insert into company_invitations(company_id,email,role,created_by) select company_id,'future-token@example.invalid','member',created_by from company_invitations i join legacy_null_invitation l using(id);" + oracle.check("(select count(*)=1 from legacy_null_invitation l join company_invitations i using(id) where i.token is null)", "F preserves nullable legacy NULL invitation token") + oracle.check("(select token is not null from company_invitations where email='future-token@example.invalid')", "F/prerequisite future invitation receives token default"))
+    print("PASS REDUCED nullable legacy token preserved; future default and existing row/catalog identities retained")
 
     # RPC reduced guards: one route relation, no route relations, and caught missing column.
     reset_database(template=POST6D2_TEMPLATE)

@@ -88,12 +88,23 @@ repeat and downstream composition. It fails entering dirty_admission_lanes in
 catalog_fingerprint: ambiguous text concatenation with internal PG char fields.
 Correction55e07ad6 independently APPROVED: explicit text casts for six internal
 char fields and tgattr; seven catalog branches and24 full-row checks preserved.
-Focused RED/GREEN, compile/group/selection/diff PASS; corrected hosted SQL pending.
+Focused RED/GREEN, compile/group/selection/diff PASS. Publishedc5578849, exact
+reviewed tree090aaa164f5610460d1325c69c40d39bc5631a89; fetched equality confirmed,
+local1942f768 archived before alignment. OPS34462362242/auth102822909870 passes
+both main lanes,22 dirty6D2 cases,30 reduced relationship cases, six reduced
+shape cases, first-I history, F legacy rename and both-name rejection. It fails
+in nullable-token compatibility setup: actual PRE6D2 token is NOT NULL (23502).
+Fingerprint finding is bounded VERIFIED_CLOSED. Correction85496fe0 explicitly builds the reduced nullable-token clone, preserves
+all existing rows/catalog through F and checks legacy NULL plus future defaults.
+Focused regression RED/GREEN; compile/group/selection/emit/diff PASS. Independent
+scoped review APPROVED with no new material breakage; corrected hosted execution
+and native/concurrency lanes pending.
 No historical source or selector changes; corrected whole-source acceptance pending.
 No full Task9 acceptance or source-selection change. Next: resolve/review/publish
-the observed catalog-fingerprint type mismatch and rerun hosted group, then dependent Task10.
-Quality102808527446 including build and Ediel102808527533 PASS;
-verify102808527272/clean102808527613 remain FAIL.
+the observed nullable-token fixture mismatch and rerun hosted group, then dependent Task10.
+Quality102822910141 including build and Ediel102822910428 PASS;
+verify102822910122 fails unchanged generated-types tail20260909123000;
+clean102822910191 remains FAIL before complete replay.
 See Task9 ignored report; Task9 stays open. No selectors change before complete
 whole-source hosted evidence. Task10 selection follows.
 Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local

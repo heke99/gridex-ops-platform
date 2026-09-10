@@ -48,12 +48,51 @@ def run(*args, cwd=ROOT, env=None):
     return subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True, check=False)
 
 
+def nullable_token_fixture_regression(module):
+    """Capture reduced-lane construction; these calls do not execute SQL."""
+    task7 = module.load_script('canonical-import-admission-selftest.py')
+    cases = task7.dirty_cases()
+    observations = iter([cases[name][1] for name in ('wrong_default', 'version_type', 'wrong_check',
+                        'wrong_index', 'foreign_collision', 'legacy_batch')] +
+                        [{('legacy_batch_id_requires_mapping', '', 1)}])
+    names = ('reset_database', 'psql_sql', 'source', 'catalog_fingerprint', 'task7_observation')
+    original = {name: getattr(module, name) for name in names}
+    calls = []
+    try:
+        module.reset_database = lambda **kwargs: calls.append(('reset', kwargs))
+        module.psql_sql = lambda sql, **kwargs: calls.append(('sql', sql))
+        module.source = lambda alias, **kwargs: calls.append(('source', alias))
+        module.catalog_fingerprint = lambda: 'unchanged-static-sentinel'
+        module.task7_observation = lambda _: next(observations)
+        with redirect_stdout(io.StringIO()):
+            module.reduced_compatibility_lanes()
+    finally:
+        for name, value in original.items():
+            setattr(module, name, value)
+    setup_index = next(i for i, call in enumerate(calls) if call[0] == 'sql' and 'legacy_null_invitation' in call[1])
+    setup = calls[setup_index][1]
+    assert 'alter table company_invitations alter column token drop not null;' in setup, 'nullable-token reduced fixture must explicitly relax its cloned column'
+    assert setup.index('a.attnotnull') < setup.index('drop not null') < setup.index('set token=null')
+    assert calls[setup_index - 1] == ('reset', {'template': module.PRE6D2_TEMPLATE})
+    assert 'stage_f_nullable_token_rows' in setup
+    assert calls[setup_index + 1] == ('source', 'F')
+    preserved = calls[setup_index + 2][1]
+    assert 'f_nullable_token: company_invitations exact IDs/rows/count retained' in preserved
+    assert 'all prior table/view/index OIDs, owners, ACLs/options retained' in preserved
+    assert "a.atttypid='uuid'::regtype and not a.attnotnull" in preserved
+    assert "pg_get_expr(d.adbin,d.adrelid)='gen_random_uuid()'" in preserved
+    future = calls[setup_index + 3][1]
+    assert 'future-token@example.invalid' in future and 'i.token is null' in future
+    assert 'token is not null' in future
+
+
 def whole_correction_constructors():
     """Database-free regression of the four integrated SQL construction contracts."""
     spec = importlib.util.spec_from_file_location('task9', ROOT / 'scripts/canonical-full-governance-source-selftest.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     oracle = module.oracle
+    nullable_token_fixture_regression(module)
     # Construct the actual fingerprint without a database; all catalog branches
     # and present-relation row queries must survive explicit text normalization.
     fingerprint_calls = []
