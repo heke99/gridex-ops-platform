@@ -11,20 +11,17 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `03e8ea2ba01b5e90862c1568ac0b741e7993333f`, exact reviewed
-tree `2a411093d3b8060f25dad9ca39ce4ffb2c6f21ac`; fetched equality/tracked-clean
-alignment passed, local25458756 archived. OPS34505278416 runs original16 and
-legacy17 with actual staged-loop proof as disjoint all17 union. Both current-head
-successes required. Legacy17 actual transport fails after bootstrap00000 with
-REQUEST_REJECTED/BoundaryError; last fully verified baseline remains4130cdd9 Task7.
+Latest publication: `5389f2b51dac46fd00e858a9cddb27b676f678ca`, exact reviewed
+tree `b8387fa0fef66019c6d27957f281138e45920390`. Task8 VERIFIED:
+OPS34506822456 original16/auth102970940188 and legacy17/actual-loop102970940105
+both PASS on this head (complete command17 153600ms). Quality/build102970939833
+and Ediel102970940048 PASS. Both reviewed Minor corrections are closed.
 
 
 Working-tree accounting is 595 inputs: 533 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 341 inputs: 290 selected, 20 substituted, 27 unclassified, and 4 excluded.
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
-A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is not yet
-SQL-verified; integration is reviewed/published at03e8ea2b, standalone Task7
-remains the last accepted SQL baseline.
+A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
 Its complete standalone SQL execution is now verified with Task7; registration
 alone was not that proof. Current reviewed59-line Q hash is
 fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983. A–I unchanged.
@@ -35,6 +32,17 @@ first43 unchanged including G42/R43, former44–84 suffix preserved after new44�
 Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
+
+Task10 IN_PROGRESS: actual CLI-created W skeleton preparation. Workflow-only
+commit39769c19 preserves prior jobs byte-for-byte; exact insertion/dry-run/diff
+checks PASS. Independent spec+quality review APPROVED. T10-R1 is a Minor
+report label error: default dry-run lists all17, not original16; actual commands
+are preserved. Await exact-tree publication and actual CLI artifact verification.
+Task9 documents4deefce5 independently spec+quality APPROVED with no blockers;
+Minor T9-R1 selected39 company-helper traceability is retained for the implicated
+implementation and final review. Eight sources/1677 lines/31 top-level units
+mapped. Next coherent group R2/E2/S2/W and five source-specific lifecycle cases
+are approved as design only; no new SQL proof or selection delta.
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
 Task7: COMPLETE standalone hosted PostgreSQL proof PASS at4130cdd9,
@@ -59,30 +67,18 @@ selection/integrity/provenance/AST/shell/diff PASS. Local AF_UNIX creation EPERM
 prevented transport execution; no retry/probe or local SQL claim. Hosted actual
 shell positive/Q-alone/marker-guarded postQ rollback cases authored. Independent
 review approved; initial two Minor findings (temp leak and obsolete native docs)
-are CLOSED by independently approved correction6d2809a5. Same-head all17+real-loop SQL proof pending.
-Task8 hosted failure1 at03e8ea2b/job102965821960: all prior legacy lanes through
-logging PASS; replay_sql00000/exit0 then replay_transport REQUEST_REJECTED
-BoundaryError, owned replay RuntimeError and final AssertionError; cleanupPASS.
-Hosted Unix socket/bootstrap work, but first actual loop request is rejected.
-Author reproduced root cause: cp -a of migrations/. overwrites private HOLD
-directory mode0700 with source0755; PRIVATE_STAGE_REQUIRED correctly rejects.
-Fix copies entries (including hidden entries) without altering destination-directory
-attributes and preserves original migration-directory attributes on restore.
-Fix6d2809a5 commits entry-only copy and mode/mtime-preserving restore; actual
-shell-staging regression detects the old cp behavior (negative mutation exit93).
-Cleanup17/legacyconstructor/provenance/shell/diff PASS. Both Minor fixes included;
-scoped rereview APPROVED, both Minor closures accepted, no new findings.
-No guard weakening.
-Supported-mode decision: add explicit owned-compatible diagnostic replay with
-NO ledger provenance; current native CLI/generic external modes lack trusted
-genesis/ownership/private logging and must reject before startup/staging/SQL.
-Native CLI owned genesis/reference/private logging and official-ledger proof
-remain concrete later gates; do not claim full replay from bounded owned mode.
-Original bootstrap sessions exist; only journal synthetic.
-No full replay/schema/types or production readiness inferred from this bounded
-whole-source proof. Working-tree selection changed only by the eight reviewed originals; expected
-595=533/23/35/4 and focused341=290/20/27/4 observed with no inventory errors.
-These are selection facts, not Task8 SQL acceptance.
+are CLOSED by independently approved correction6d2809a5. Same-head all17+real-loop SQL proof PASS at5389f2b5.
+Task8 correction VERIFIED in PostgreSQL at5389f2b5/job102970940105:
+complete command17 legacy+actual staged replay PASS153600ms. Actual clean-shell
+HOLD staging, planner, first43 and whole44–52 once in same owned replay database,
+independent final catalog equality, standaloneQ P0002 rejection, trusted-marker
+postQ XX000 with complete row/catalog rollback, original file restoration and
+private logs/owned cleanup/canary PASS. The intentional rollback emits a handled
+FAIL owned replay receipt; final actual-loop and command17 PASS confirm expected
+negative test, not a new failure. NO ledger provenance; explicitly NOT full replay.
+Original16 PASS on samehead, so Task8 final union gate is satisfied. Both
+initial Minor findings independently closed. Native CLI/full replay/types still
+blocked and58 unresolved inputs remain; do not overclaim this bounded proof.
 Task5 contract
 66c56c70/9a6eb324 independently APPROVED, no open findings. Task6 c9a60e5e plus
 report-tracking cleanup585e367e independently APPROVED and published e37bc25b.
@@ -93,10 +89,10 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish approved correction6d2809a5 as one coherent batch;
-require all17 union plus actual real-loop proof
-on the same head. Working-tree source selection is under implementation, not accepted yet.
-Preserve first43; actual44–52 batch/foundation93 requires reviewed hosted proof.
+Next: review Task10 workflow, publish exact reviewed design/preparation/status
+tree, retrieve verified actual W skeleton, then complete R2/E2/S2/W implementation/proof. Preserve verified first52/foundation93 and
+all17 command union. Remaining58 inputs, native full replay/types and production
+gates stay open. Task8 selection is accepted only within its isolated proof.
 Five business targets must be empty; existing role identities/metadata require
 exact preimage restoration before commit. Populated historical effects remain
 rollback characterization, never authorized live replay. Q must require the
@@ -111,7 +107,7 @@ path or expose raw source/logs. No actual secret disclosure is claimed.
 
 ## Current executed acceptance
 
-OPS34505278416/auth102965821944 at03e8ea2b PASS complete original16 partition (reconfirms
+OPS34506822456/auth102970940188 at5389f2b5 PASS complete original16 partition (reconfirms
 prior e37bc25b/194fd0cf executed receipts): all prior
 source/RBAC/governance/SaaS/admission lanes plus selected diagnostics G/R,
 eleven reduced projections/history/repeats,23 dirty catalog cases, five role/
@@ -130,12 +126,12 @@ G-after-R alone actually resets invoker=false/reloptionsNULL and is explicitly
 not runtime-ready. Each subsequent wholeR secure boundary passed. The complete
 later selected chain must still prove final ACL/policy/invoker survival.
 
-At03e8ea2b quality/build102965821688, Ediel102965821901,
-tenant102965821494, browser-public102965821924 and coverage102965822170 PASS.
-Legacy17/job102965821960 repeats old lanes through logging but fails new transport
-stage-permission guard; original16/auth102965821944 PASS. Verify102965821953 FAILS generated-types
-tail20260910140053 (log confirmed); clean102965822208 FAILS unsupported native mode.
-Smoke102965822634 is14/15, sole same types failure; pr-certificate102966220275 FAILS.
+At5389f2b5 quality/build102970939833, Ediel102970940048,
+tenant102970938663, browser-public102970940669 and coverage102970941046 PASS.
+Original16/auth102970940188 and complete legacy17/actual-loop102970940105 PASS.
+Verify102970940080 FAILS generated-types tail20260910140053 (log confirmed);
+clean102970940010 FAILS unsupported native mode before replay (log confirmed).
+Smoke102970940775 and pr-certificate102971364862 FAIL; their gates remain open.
 Full/runtime/customer/load/staging/ZAP/certification skips remain unverified.
 Never regenerate artifacts from incomplete replay or weaken gates.
 

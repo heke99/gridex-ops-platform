@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "03e8ea2ba01b5e90862c1568ac0b741e7993333f",
-    "last_isolated_pg17_code": "03e8ea2ba01b5e90862c1568ac0b741e7993333f"
+    "published_baseline": "5389f2b51dac46fd00e858a9cddb27b676f678ca",
+    "last_isolated_pg17_code": "5389f2b51dac46fd00e858a9cddb27b676f678ca"
   },
-  "execution_environment": "connected; branch aligned to published03e8ea2b; named pre-checkpoint stash preserved",
-  "next_action": "Publish approved correction6d2809a5; stage-permission defect fixed and both Minors closed. Require exact-head all17 and actual-loop proof. Original16 at03e8ea2b PASS; full native replay/types/58 remaining inputs open."
+  "execution_environment": "connected; branch aligned to published5389f2b5; named pre-checkpoint stash preserved",
+  "next_action": "Task9 design4deefce5 and Task10 workflow39769c19 independently APPROVED. Publish exact reviewed batch, retrieve actual CLI W skeleton; then implement/prove complete R2/E2/S2/W. Minor T9-R1 dependency citation and T10-R1 report label retained. No new SQL/source selection or production yet."
 }

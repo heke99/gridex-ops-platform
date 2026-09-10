@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Task7 VERIFIED at4130cdd9b4ebe2dc018ec596d5c4e839cc6e5bb5, tree615de55cba5b80454dc16090f9a935b2393fdd86; OPS34501598746 original16/auth102953458828 PASS and COMPLETE standalone legacy102953458693 PASS (132502ms). Quality/build102953458698, Ediel102953458823, tenant102953458862, browser102953459131 and coverage102953459546 PASS. All five hosted defects corrected with independent reviews; current counts/selection unchanged. Task8 may now integrate the proven complete-source group; full replay/types/production remain open.
-- Task8 working-tree selection:595 inputs/533 FULL_FILE_SELECTED/23 SUBSTITUTED/35 UNCLASSIFIED/4 EXPLICITLY_EXCLUDED;58 unresolved. Focused341:290/20/27/4;47 unresolved. Foundation93, unchanged first43, ABCDEFHIQ44–52 and old suffix53–93. Prior published Task7 is595/525/24/42/4 and foundation84; integration337caaa4 independently APPROVED; first hosted actual-loop attempt rejected stage permissions, correction6d2809a5 independently APPROVED and both Minor findings closed. Hosted all17/actual-loop proof pending. Earlier task-stage counts below remain historical interfaces.
+- Task8 VERIFIED selection:595 inputs/533 FULL_FILE_SELECTED/23 SUBSTITUTED/35 UNCLASSIFIED/4 EXPLICITLY_EXCLUDED;58 unresolved. Focused341:290/20/27/4;47 unresolved. Foundation93, unchanged first43, ABCDEFHIQ44–52 and old suffix53–93. Prior published Task7 is595/525/24/42/4 and foundation84; integration337caaa4 independently APPROVED; first hosted actual-loop attempt rejected stage permissions, correction6d2809a5 independently APPROVED and both Minor findings closed. Hosted all17/actual-loop proof PASS at5389f2b5: OPS34506822456 original16/job102970940188 and legacy17/job102970940105, quality/build102970939833 and Ediel102970940048 PASS. Earlier task-stage counts below remain historical interfaces.
 - Preserve immutable historical SQL/checksums, historical fixture prefixes30/31/32/33, selected RBAC38, verified first43, former foundation84 suffix and the exact original16 runner command prefix. Any future source addition requires its own exact reviewed insertion and hosted acceptance.
 - No production writes, credential generation, auth-provider mutation, email sending, real-user reads or real-data cleanup in this evidence task. User authorizes later necessary verified production delivery; no renewed permission request is implied.
 - Never expose credentials, tokens or secret literals from a source. Report sensitive statements by path/line and effect, with synthetic identities only in proposed fixtures.
@@ -358,4 +358,64 @@ Require exact new accounting/order/provenance and16-command dry-run; scope any f
 - [x] **Step 2: Make the real clean-replay executor use the proven batch.** Delegate exactly44–52 to Task7’s same-connection admission/originals/Q/assertions executor, complete files once, no per-file autocommit fallback or duplicate timestamp execution. Preserve all other source ordering, isolated-target safeguards, provenance and native rollback behavior. Test actual loop integration, missing/reordered/mismatched files, Q outside envelope and stage/context rejection.
 - [x] **Step 3: Integrate command17 while preserving prior16.** Append the new legacy selftest without modifying original16 tuples/order. Preserve owned-container log protection and cleanup. Use the contract’s bounded runtime budgets and explicit hosted union or combined-group receipt; never label16 as17. Remove any duplicate standalone invocation only when the fixed integration actually executes its entire proof once.
 - [x] **Step 4: Scoped static verification, independent review and publication.** Constructor and exact-group negative controls, accounting/integrity/provenance and executor wiring checks, syntax/diff checks. Commit only implementation-owned files and keep SDD reports ignored. Root obtains independent review before exact-tree publication.
-- [ ] **Step 5: Exact-head hosted acceptance.** Require all17 with every prior lane and actual first43→whole batch→Q assertion, source execution counts and logging/rollback/contention PASS, plus relevant quality/build/Ediel gates. Generated schema/types are still blocked on complete replay/source restoration; continue the remaining masterplan without claiming final readiness.
+- [x] **Step 5: Exact-head hosted acceptance.** Require all17 with every prior lane and actual first43→whole batch→Q assertion, source execution counts and logging/rollback/contention PASS, plus relevant quality/build/Ediel gates. Generated schema/types are still blocked on complete replay/source restoration; continue the remaining masterplan without claiming final readiness.
+
+
+### Task 9: Map the remaining historical user and RBAC repair family
+
+**Prerequisite VERIFIED:** Task8 all17 and actual staged loop at5389f2b5, treeb8387fa0fef66019c6d27957f281138e45920390. No repeat of Tasks1–8 source matrices or PostgreSQL proofs.
+
+**Files owned:** Create `quality/audits/USER_RBAC_REPAIR_SOURCE_EFFECTS_2026-09-10.md` and `quality/audits/USER_RBAC_REPAIR_ADMISSION_CONTRACT_2026-09-10.md`. Report `.superpowers/sdd/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10/task-9-report.md`. No implementation, selector, SQL, manifest, workflow or root-memory edits.
+
+**Exact complete-source scope under supabase/migrations:**
+- `20260519_bootstrap_div3rsa_superadmin.sql`
+- `20260525_debug_batch_2_rbac_tenant_alignment.sql`
+- `20260525_debug_batch_2c_activate_afshin_nibela.sql`
+- `20260525_debug_batch_2d_activate_afshin_nibela_v2.sql`
+- `20260525_debug_batch_2e_verify_dashboard_user_provisioning.sql`
+- `20260525_debug_batch_2f_normalize_afshin_nibela.sql`
+- `20260525_debug_batch_2h_dedupe_user_roles_and_unique_guard.sql`
+- `20260526_debug_batch_2_tenant_rbac_server_actions.sql`
+
+**Interfaces:** Consume actual source bytes, history manifest/accounting, foundation93 and relevant existing RBAC/governance/provisioning contracts and canonical callers. Produce exhaustive line-ranged statement-unit effects and one executable safe next restoration contract for this family, with exact dependencies and justified coherent batches. Names are scope identifiers, never authorization to inspect matching real users. Current595=533/23/35/4 and focused341=290/20/27/4 remain unchanged.
+
+- [x] **Step 1: Pin and classify every source effect.** Privately read full files, record SHA256/line count/complete statement units and actual manifest state. Map every DDL, DML, dynamic SQL, trigger, privilege and read/diagnostic effect, including conditional branches. Never reproduce identity, credential or secret literals; use path/line and abstract effects. Reuse existing matrices only where exact complete units already covered. Resolve actual prerequisites and later winners by implicated object, without restarting repository inventory.
+- [x] **Step 2: Derive safe complete-file execution conditions.** Specify exact isolated empty/seeded admission, row identities and pre/post multisets, catalog winners, role/tenant/actor ownership, session and durable-work effects. Identify hardcoded-target behavior, duplicate/NULL/orphan/multi-company/multi-role and historical privilege elevation. Unsafe effects are rollback-only characterization. Decide whether zero eligible targets suffices, or same-transaction exact preimage/forward repair is required; source-backed dependencies must justify splitting batches. Preserve immutable bytes and never turn exclusions or fragments into completion.
+- [x] **Step 3: Define exact next implementation and proof contract.** Name required files/interfaces, actual insertion relative to verified first52 and later suffix, any forward migration requiring an actual CLI skeleton, exact accounting deltas, independent reference construction, safe private SQL/log execution and negative controls. Specify whole-file successful/admitted/rejected/repeat/rollback/native failure/concurrency cases only where the mapped effects warrant them. Keep native CLI/genesis/official-ledger full replay and production convergence distinct from compatible fixture proof. ADR-006 prohibits mass replay/mass marking historical migrations live. Any unresolved dependency must name its exact effect and the concrete step that resolves it.
+- [x] **Step 4: Self-review and commit the two documents.** Verify complete unit coverage, hashes, cited caller/winner paths and absence of leaked literals. Run git diff --check; no synthetic documentation-mirroring tests or SQL acceptance claims. Commit only owned documents and write full report with files, checks, decisions, unresolved dependencies and implementable next tasks. Root obtains independent spec and quality review and continues implementation.
+
+
+### Task 10: Obtain the actual CLI-created user/RBAC boundary skeleton
+
+**Prerequisite VERIFIED:** Task9 commit4deefce5 independently spec+quality APPROVED, no blocking findings. Minor T9-R1 (selected39 read/write-company helper traceability) is retained for the implicated implementation and final review. This is naming preparation only, not SQL acceptance.
+
+**Files:** Modify only `.github/workflows/ops-hardening.yml`. Report `.superpowers/sdd/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10/task-10-report.md`. Read the approved `quality/audits/USER_RBAC_REPAIR_ADMISSION_CONTRACT_2026-09-10.md` for W's identity; do not implement W or change source/accounting in this task.
+
+**Interfaces:** Current fixed runner has original16 and legacy17 partitions, disjoint union all17. Preserve all current jobs and commands verbatim. Add one independent temporary job before verify, with no database, credentials, container/service operation or needs dependency. Root retrieves actual filename/empty bytes after reviewed publication; subsequent implementation removes this job and fills only that actual member.
+
+- [x] **Step 1: Insert this complete job before verify.**
+
+```yaml
+  user-rbac-repair-skeleton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create user RBAC repair migration skeleton
+        run: |
+          supabase --version
+          supabase migration new --help
+          supabase migration new canonical_user_rbac_repair_boundary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: user-rbac-repair-migration-skeleton
+          path: supabase/migrations/*_canonical_user_rbac_repair_boundary.sql
+          if-no-files-found: error
+
+```
+
+- [x] **Step 2: Verify the inserted block and preserve existing workflow.** Compare changed workflow against git HEAD with exactly the above block removed: all original bytes must match. Run `python3 scripts/canonical-auth-membership-group.py --dry-run` and `git diff --check`; verify only this workflow is staged. Do not rerun SQL suites or install the absent CLI locally. Commit only the workflow; report exact commit, checks and limitations.
+- [ ] **Step 3: Root independently reviews, publishes and retrieves proof.** Publish the exact reviewed design/preparation/status tree. Retrieve successful job's actual artifact ZIP and sole empty member; verify filename, ZIP/member SHA256, exact emptiness and pinned CLI version. Preserve full17 and other current-head receipts separately; no schema/type/ledger or production claim follows from skeleton creation. Pass the actual member identity to the subsequent complete R2/E2/S2/W implementation and continue.

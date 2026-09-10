@@ -61,6 +61,25 @@ jobs:
         if: always()
         run: python3 scripts/canonical-auth-provisioning-legacy-selftest.py --cleanup-owned
 
+  user-rbac-repair-skeleton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create user RBAC repair migration skeleton
+        run: |
+          supabase --version
+          supabase migration new --help
+          supabase migration new canonical_user_rbac_repair_boundary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: user-rbac-repair-migration-skeleton
+          path: supabase/migrations/*_canonical_user_rbac_repair_boundary.sql
+          if-no-files-found: error
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
