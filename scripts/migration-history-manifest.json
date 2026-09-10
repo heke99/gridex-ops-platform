@@ -440,7 +440,8 @@
     "20260908120000_preserve_gridex_user_has_role_key.sql": "94d48c4128f672be6bd91da090b03e0b4f05e8523af75406945d063e970a48e7",
     "20260909120000_canonical_role_permission_uniqueness_reconstruction.sql": "b86f056fb868a3642eb6663068bc1cb4b86d03d430e6a1f339687868ec2773a6",
     "20260909120100_canonical_invitation_status_index_reconstruction.sql": "1ab9a6bf09953d87a898235e4425b85739286e2c3bcb15987a0d75770c6c3705",
-    "20260909120200_canonical_role_permission_identity_reconstruction.sql": "03bec0a08fb0852bf7cdad8c96f01fe509bd6a7c970793a6db2fd4230c49dca1"
+    "20260909120200_canonical_role_permission_identity_reconstruction.sql": "03bec0a08fb0852bf7cdad8c96f01fe509bd6a7c970793a6db2fd4230c49dca1",
+    "20260910140053_canonical_auth_provisioning_legacy_boundary.sql": "fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

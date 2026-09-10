@@ -11,12 +11,16 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest verified publication: `194fd0cf2250f0bb64f199e72f45f32a3c3750e4`, exact
-reviewed tree `80b28b18d51da671b9a9754c3698181db04e2d9f`. Fetched tree equality
-and tracked-clean alignment passed; reviewed local8a185718 is archived.
+Latest publication: `e37bc25b8de9eec93036ac8138b5b6efb778234a`, exact reviewed
+tree `09a371e01a42972a5c80d9ecfa3d7d79c2e119b6`; fetched equality/tracked-clean
+alignment passed, local585e367e archived. OPS34486254854/auth102901181907 complete fixed16 PASS.
+The preparation publication changes no source selection or original16 commands.
 
-Working-tree accounting is 594 inputs: 524 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 42 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 340 inputs: 281 selected, 21 substituted, 34 unclassified, and 4 excluded.
+Working-tree accounting is 595 inputs: 525 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 42 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 341 inputs: 282 selected, 21 substituted, 34 unclassified, and 4 excluded.
+Q is registered as timestamp input (ordinal509), not foundation selection or
+SQL acceptance. Current reviewed59-line Q hash is
+fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983. A–I unchanged.
 There are66 total and55 focused unresolved inputs. Selection means complete
 source execution, not surviving-effect equivalence or production readiness.
 Foundation84 preserves historical fixture prefixes30/31/32/33 and RBAC38;
@@ -26,23 +30,28 @@ retain the exact original15 order and execute diagnostics once at the end.
 ## Sole active work item
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
-Task6: actual CLI skeleton preparation for the independently approved eight-source
-legacy admission contract. Task5 authored66c56c70/fix9a6eb324,103/103 units,
-1644 immutable lines; independent architecture review APPROVED with no open
-findings. One logging-directory permission minor corrected and rereviewed.
-Task6 c9a60e5e exact temporary no-database workflow job independently APPROVED;
-original fixed16 and all other jobs unchanged. Hosted artifact pending publication.
-Root owns memory/status/plan/publication.
+Task7: implementation27de938e/fix7df113e5 independently APPROVED for hosted
+execution. Four Important fixture findings corrected and scoped rereview closed:
+NULL/check setup, full-A premature23505 plusA/H trusted stage receipts, cleanup
+canary label. No open findings. Required static checks PASS, new SQL pending.
+Root publishes reviewed source/status batch; original16 must pass again. Task5 contract
+66c56c70/9a6eb324 independently APPROVED, no open findings. Task6 c9a60e5e plus
+report-tracking cleanup585e367e independently APPROVED and published e37bc25b.
 
-Next: review and publish the CLI preparation with the approved contract, retrieve
-the exact generated skeleton, then implement the complete A/B/C/D/E/F/H/I+Q
-transaction envelope and isolated hosted proof. No source selection yet.
+Task6 CLI2.101.0 preparation VERIFIED: OPS34486254854/job102901182147 PASS;
+artifact10155731061, ZIP240 bytes/SHA25698f7eb64e7cb29a1c420f9380ac5ddc6819336e96214eac7ff2695822f6aa9a5,
+sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retrieved
+and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
+Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
+
+Next: publish reviewed A/B/C/D/E/F/H/I+Q envelope
+and obtain standalone isolated PG17 acceptance. No source selection yet.
 Preserve first43; prospective44–52 batch/foundation93 requires later acceptance.
 Five business targets must be empty; existing role identities/metadata require
 exact preimage restoration before commit. Populated historical effects remain
 rollback characterization, never authorized live replay. Q must require the
 same-connection envelope and final assertions before commit. No real-user/provider
-reads or credential generation are required. Do not mass-replay or mass-mark
+reads or credential generation required. Do not mass-replay or mass-mark
 historical sources live; reconcile eventual forward delivery with ledger/runtime.
 
 The next sensitive legacy fixture contract must cover PostgreSQL service cleanup
@@ -52,7 +61,8 @@ source/credential/provider content in that logging path without weakening tests.
 
 ## Current executed acceptance
 
-OPS34482627601/auth102888925544 at194fd0cf PASS complete fixed16: all prior
+OPS34486254854/auth102901181907 at e37bc25b PASS complete fixed16 (reconfirms
+prior194fd0cf OPS34482627601/auth102888925544): all prior
 source/RBAC/governance/SaaS/admission lanes plus selected diagnostics G/R,
 eleven reduced projections/history/repeats,23 dirty catalog cases, five role/
 inherited-privilege cases, native failure/composite rollback, real55P03 and
@@ -70,13 +80,13 @@ G-after-R alone actually resets invoker=false/reloptionsNULL and is explicitly
 not runtime-ready. Each subsequent wholeR secure boundary passed. The complete
 later selected chain must still prove final ACL/policy/invoker survival.
 
-At the same head, quality/build102888925130, Ediel102888925422,
-tenant102888924879, browser-public102888926716 and coverage102888926863 PASS.
-Verify102888925651 FAILS generated-types tail20260910121054; clean102888925462
-FAILS before complete replay. Smoke102888927165 is14/15 with the sole same types
-failure; pr-certificate102889455382 FAILS. Full/runtime/customer/load/staging/ZAP/
-certification skips are unverified, not passes. Never regenerate schema/types
-from incomplete replay or weaken gates to make them green.
+At e37bc25b, quality/build102901181607, Ediel102901182109,
+tenant102901181029, browser-public102901182157 and coverage102901182449 PASS.
+Verify102901181922 FAILS the same generated-types tail20260910121054;
+clean102901181813 FAILS before complete replay. Smoke102901182061 is14/15,
+sole same types failure; pr-certificate102901687875 FAILS. Full/runtime/customer/
+load/staging/ZAP/certification skips remain unverified, not passes. Never
+regenerate schema/types from incomplete replay or weaken gates for green output.
 
 ## Remaining masterplan and environment boundaries
 

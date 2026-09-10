@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "194fd0cf2250f0bb64f199e72f45f32a3c3750e4",
-    "last_isolated_pg17_code": "194fd0cf2250f0bb64f199e72f45f32a3c3750e4"
+    "published_baseline": "e37bc25b8de9eec93036ac8138b5b6efb778234a",
+    "last_isolated_pg17_code": "e37bc25b8de9eec93036ac8138b5b6efb778234a"
   },
-  "execution_environment": "connected; branch aligned to published194fd0cf; earlier local edits preserved in named pre-checkpoint stash",
-  "next_action": "Task5 contract66c56c70/9a6eb324 independently approved; execute Task6 CLI skeleton preparation, review/publish/retrieve exact artifact, then implement eight-source offline envelope and hosted proof; continue masterplan."
+  "execution_environment": "connected; Task7 reviewed27de938e/7df113e5 based on publishede37bc25b; named stash preserved",
+  "next_action": "Task7 implementation and scoped fixes independently approved; publish reviewed tree, require complete standalone SQL/logging/concurrency proof plus original16 before selecting remaining8 sources; continue masterplan."
 }
