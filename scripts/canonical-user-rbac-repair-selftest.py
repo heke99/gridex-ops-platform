@@ -92,6 +92,19 @@ def sequence_snapshot_constructor_controls():
         'outer snapshot must capture explicit sequence state'
 
 
+def plpgsql_alias_constructor_controls():
+    # A PL/pgSQL record variable and a SQL whole-row alias cannot share `r`:
+    # PostgreSQL must otherwise choose between two valid column references.
+    admission=(ROOT/'scripts/sql/canonical-user-rbac-repair-admission.sql').read_text()
+    assertions=(ROOT/'scripts/sql/canonical-user-rbac-repair-assertions.sql').read_text()
+    boundary=(ROOT/'supabase/migrations'/load_batch().W).read_text()
+    collision=re.compile(r'\bto_jsonb\(r\)\s+FROM\s+public\.roles\s+(?:AS\s+)?r\b',re.I)
+    assert not any(collision.search(sql) for sql in (admission,assertions,boundary)), \
+        'PL/pgSQL record variable collides with whole-row SQL alias'
+    assert 'SELECT role_row.id,to_jsonb(role_row) FROM public.roles AS role_row' in admission, \
+        'role-row snapshot must use an explicit non-colliding alias'
+
+
 def assertion_semantics(b,h):
     database='gridex_auth_legacy_native'
     h.reset(database)
@@ -609,6 +622,7 @@ def private_logs_and_cleanup(b,h):
 def extended_constructors(b):
     assertion_constructor_controls()
     sequence_snapshot_constructor_controls()
+    plpgsql_alias_constructor_controls()
     sources=b.validate_sources(b.reviewed_paths())
     assert len(b.legacy.verified_prefix())==43
     assert len(b.legacy.validate_sources(b.legacy.reviewed_paths()))==9

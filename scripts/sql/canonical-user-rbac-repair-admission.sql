@@ -89,7 +89,7 @@ BEGIN
  INSERT INTO repair_context SELECT current_database(),pg_backend_pid(),txid_current(),hashes,'admitted',
  ARRAY(SELECT attname FROM pg_attribute WHERE attrelid='public.roles'::regclass AND attnum>0 AND NOT attisdropped ORDER BY attnum)
  FROM repair_reference;
- INSERT INTO repair_role_rows SELECT id,to_jsonb(r) FROM public.roles r;
+ INSERT INTO repair_role_rows SELECT role_row.id,to_jsonb(role_row) FROM public.roles AS role_row;
  INSERT INTO repair_helper SELECT pg_get_functiondef('public.gridex_user_is_platform_admin()'::regprocedure);
  FOR r IN SELECT n.nspname,c.relname,c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
  WHERE n.nspname IN ('public','auth','storage') AND c.relkind IN ('r','p','S')

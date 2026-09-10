@@ -11,19 +11,21 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `a38fbd6df45b4ac3dab26c3b24bb5abee01ba438`, exact reviewed
-tree `3bc390421f912a1f137eba2cc9110a16a31ac0df`; fetched equality/tracked-clean
-alignment PASS, localedbf60d3 archived. Correction07f58c3a independently APPROVED:
-new catalog explicitly casts pg_depend.deptype to text (confirmed42725 class),
-T11-R1 native assertions reject NULL/empty scalar; no new findings.
-OPS34535318803 new repair103065452098 FAIL: prior catalog42725 now passes,
-then snapshot NATIVE_ERROR42809 after successful reference/catalog construction;
-owned cleanup PASS. Original author unavailable; bounded snapshot fix author active.
-Original16/auth103065451923, legacy17/actual-loop103065452065 (155127ms), Ediel103065452178 and quality103065452214 all PASS at a38fbd6d.
-Previous735a3732 OPS34531911578 original16/auth103054398373, legacy17/actual-loop
-103054398721 (148267ms), quality103054398558 and Ediel103054398483 PASS.
-New repair103054398569 failed catalog42725 before first lane receipt; cleanup PASS.
-Full replay/types and all remaining masterplan/production gates remain OPEN.
+Latest publication: `017d47e7803aa3812c654b72fde81855e99e3e6b`, exact reviewed
+tree `9122efedfd38417ecf7413b0fa37cd63f23e4c08`; fetched equality/tracked-clean
+alignment PASS, localff82215f archived. Sequence snapshot correction96cea061
+independently APPROVED with no findings: explicit last_value/log_cnt/is_called
+in all3 new paths, full table rows unchanged, called/uncalled regression authored.
+OPS34536282414 newjob103068535778 FAIL at first actual whole_batch42702 after
+reference/catalog/snapshot and target_presence00000. Assertion true00000 and
+false/NULL/empty-scalar/NULL-scalar expected P0003 all PASS; called/uncalled
+sequence regression PASS, assertion_semantics1144ms. Cleanup PASS. Correction3
+ambiguous-column diagnosis active; previous two defects and T11-R1 now verified.
+Prior a38fbd6d OPS34535318803 original16/auth103065451923, legacy17/actual-loop
+103065452065 (155127ms), quality103065452214 and Ediel103065452178 all PASS.
+New proof103065452098 passed prior catalog42725 correction then failed snapshot42809;
+exact owned cleanup PASS. T11-R1 now verified by actual hosted negative controls at017d47e7.
+Full replay/types and remaining masterplan/production gates stay OPEN.
 
 
 Working-tree accounting is 596 inputs: 534 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -31,7 +33,7 @@ The focused group contains 342 inputs: 291 selected, 20 substituted, 27 unclassi
 Task11 W-only registration observed: actual CLI-created20260910174947 boundary
 adds one timestamp input and explicit focused-family classification. New W SQL
 is independently reviewed; hosted standalone execution failed before any lane PASS. R2/E2/S2 remain UNCLASSIFIED,
-foundation93/all17 unchanged;58 total/47 focused unresolved. Publisheda38fbd6d preserves these596/342 counts; latest accepted all17 baselinea38fbd6d.
+foundation93/all17 unchanged;58 total/47 focused unresolved. Published017d47e7 preserves these596/342 counts; latest accepted all17 baselinea38fbd6d.
 
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
@@ -196,3 +198,5 @@ It does not revoke the user's explicit authorization for later verified delivery
 Task11 failure refined from strict safe JSON receipts: first43/catalog/whole_batch/catalog/whole_batch all OK00000, then catalog NATIVE_ERROR exit3 SQLSTATE42725. Ambiguous-function catalog error is the observed failure; Author traced the exact expression to pg_depend.deptype (internal char) concatenated with text in the new catalog; explicit text cast correction and NULL assertion regression committed07f58c3a; static checks PASS; scoped review APPROVED, hosted SQL pending. No raw diagnostics disclosed.
 
 Snapshot42809 author diagnosis: sequence relations have no composite row type; whole-row to_jsonb fails. Same class exists in outer snapshot, admission and assertions. Explicit last_value/log_cnt/is_called comparisons retain complete sequence state and unchanged full r/p rows; uncalled/called sequence regression authored. Correction96cea061 committed in3 files; constructor red/green, syntax/diff/preservation PASS. Independent scoped review APPROVED with no new findings; hosted validation pending.
+
+Correction3 exact diagnosis: admission record variable r collides with roles whole-row alias r, causing42702 before R2. Scoped qualified distinct alias correction4fc34ae9 committed2 files, targeted constructor red/green and syntax/preservation PASS; W/history/source hashes unchanged. Independent scoped review APPROVED with no new findings; hosted acceptance pending.
