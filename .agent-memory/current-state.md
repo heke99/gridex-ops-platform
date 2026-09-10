@@ -11,21 +11,24 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `52f0dc731a76430abb16ecb4c21d81b3ab758c1b`, exact reviewed
-tree `d74829438f8936eee11d7309c4f1be121bbbce12`; fetched equality/tracked-clean
-alignment PASS, localec74423c archived. OPS34528124406 original16/auth103041949731 and legacy17/actual-loop103041949724
-both PASS; quality/build103041949607 and Ediel103041949852 PASS. Constructor correction7845090d independently APPROVED with no new findings.
-Current complete all17 actual-loop baseline is52f0dc73; constructor correction
-verified in the complete hosted path153419ms. No SQL/source-selection delta. Task10 actual CLI W verified at935eb5a0.
+Latest publication: `735a37329a297132bbd1fc23422213adfff430d8`, exact reviewed
+tree `28406fa63c81492e987d1f8ae764683ddac2df43`; fetched equality/tracked-clean
+alignment PASS, local1f658328 archived. OPS34531911578 original16/auth103054398373,
+legacy17/actual-loop103054398721, quality/build103054398558 and Ediel103054398483 PASS.
+New user-rbac-repair-proof103054398569 FAIL before its first SQL lane receipt:
+constructors PASS, then UNEXPECTED_RESULT type=BoundaryError; exact owned cleanup PASS.
+Task11 remains unverified; correction07f58c3a casts the internal-char dependency key
+to text and makes native checks reject NULL. Focused constructor RED/GREEN,
+selection-only, compile/diff and preservation checks PASS; scoped review pending.
+Native clean replay103054398544 and verify103054398576 remain red; no full-plan closure.
 
 
 Working-tree accounting is 596 inputs: 534 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 342 inputs: 291 selected, 20 substituted, 27 unclassified, and 4 excluded.
 Task11 W-only registration observed: actual CLI-created20260910174947 boundary
 adds one timestamp input and explicit focused-family classification. New W SQL
-is under implementation, not reviewed or executed. R2/E2/S2 remain UNCLASSIFIED,
-foundation93/all17 unchanged;58 total/47 focused unresolved. Published52f0dc73
-still has595/533/23/35/4 and341/290/20/27/4, with its accepted all17 baseline.
+is independently reviewed; hosted standalone execution failed before any lane PASS. R2/E2/S2 remain UNCLASSIFIED,
+foundation93/all17 unchanged;58 total/47 focused unresolved. Published735a3732 has these596/342 counts and reconfirms the accepted all17 baseline.
 
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
@@ -105,8 +108,9 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish Task11 exact reviewed batch and obtain original17 plus complete new SQL proof
-on same head before Task12 source selection/actual staged integration. Preserve verified first52/foundation93 and
+Next: complete scoped independent review of Task11 correction07f58c3a,
+then publish and obtain original17 plus complete new SQL proof on the corrected head
+before Task12 source selection/actual staged integration. Preserve verified first52/foundation93 and
 all17 command union. Remaining58 inputs, native full replay/types and production
 gates stay open. Task8 selection is accepted only within its isolated proof.
 Five business targets must be empty; existing role identities/metadata require
@@ -185,3 +189,5 @@ is in completed-work/session-log/verification-matrix and master audit registers.
 The historical workflow-tooling boundary remains scoped to that earlier batch:
 "For this workflow-tooling batch, no production mutation is authorized or performed."
 It does not revoke the user's explicit authorization for later verified delivery.
+
+Task11 failure refined from strict safe JSON receipts: first43/catalog/whole_batch/catalog/whole_batch all OK00000, then catalog NATIVE_ERROR exit3 SQLSTATE42725. Ambiguous-function catalog error is the observed failure; Author traced the exact expression to pg_depend.deptype (internal char) concatenated with text in the new catalog; explicit text cast correction and NULL assertion regression committed07f58c3a; static checks PASS; scoped review APPROVED, hosted SQL pending. No raw diagnostics disclosed.

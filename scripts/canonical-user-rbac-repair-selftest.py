@@ -55,7 +55,34 @@ SENTINEL='REPAIR_PRIVATE_SYNTHETIC_SENTINEL'
 
 
 def check(condition):
-    return "DO $$ BEGIN IF NOT ("+condition+") THEN RAISE EXCEPTION USING ERRCODE='P0003',MESSAGE='PRESERVATION_FAILED'; END IF; END $$;"
+    return "DO $$ BEGIN IF ("+condition+") IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='P0003',MESSAGE='PRESERVATION_FAILED'; END IF; END $$;"
+
+
+def assertion_cases():
+    # Expectations are explicit SQL three-valued-logic cases, independent of
+    # check() rendering. Empty scalar results must fail just like SQL NULL.
+    return (
+      ('true','true','00000'),
+      ('false','false','P0003'),
+      ('null','NULL::boolean','P0003'),
+      ('empty_scalar','(SELECT true WHERE false)','P0003'),
+      ('null_scalar','(SELECT value FROM (VALUES (NULL::boolean)) AS v(value))','P0003'),
+    )
+
+
+def assertion_constructor_controls():
+    for label,condition,state in assertion_cases():
+        assert state==('00000' if label=='true' else 'P0003')
+        sql=check(condition)
+        assert sql.startswith('DO $$ BEGIN IF ('+condition+') IS DISTINCT FROM true THEN '), \
+            'assertion must reject false and SQL unknown'
+
+
+def assertion_semantics(b,h):
+    database='gridex_auth_legacy_native'
+    h.reset(database)
+    for label,condition,state in assertion_cases():
+        h.sql(database,check(condition),'assertion_'+label,expect=state)
 
 
 def clone(h,database):
@@ -549,6 +576,7 @@ def private_logs_and_cleanup(b,h):
 
 
 def extended_constructors(b):
+    assertion_constructor_controls()
     sources=b.validate_sources(b.reviewed_paths())
     assert len(b.legacy.verified_prefix())==43
     assert len(b.legacy.validate_sources(b.legacy.reviewed_paths()))==9
@@ -670,7 +698,7 @@ def sql_main(b):
         b.prepare_reference(target)
         clone(target,'gridex_auth_legacy_replay')
         canary=snapshot(b,target,'gridex_auth_legacy_replay')
-        for lane in (actual_seeded_repeat,policy_preimages,dirty_data,dirty_catalog,native_characterization,atomicity,concurrency,security,private_logs_and_cleanup):
+        for lane in (assertion_semantics,actual_seeded_repeat,policy_preimages,dirty_data,dirty_catalog,native_characterization,atomicity,concurrency,security,private_logs_and_cleanup):
             begin=time.monotonic();lane(b,target)
             print('PASS repair lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
         unchanged(b,target,'gridex_auth_legacy_replay',canary)

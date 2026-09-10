@@ -72,7 +72,7 @@ WITH relations AS (
  WHERE n.nspname IN ('public','auth','storage') AND t.typtype IN ('d','e')
  UNION ALL
  SELECT 'dependency/'||pg_describe_object(d.classid,d.objid,d.objsubid)||'/'||
- pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)||'/'||d.deptype,
+ pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)||'/'||d.deptype::text,
  to_jsonb(d.deptype::text)
  FROM pg_depend d
  WHERE (d.classid='pg_proc'::regclass AND EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace

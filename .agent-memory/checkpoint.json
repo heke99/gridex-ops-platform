@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "52f0dc731a76430abb16ecb4c21d81b3ab758c1b",
-    "last_isolated_pg17_code": "52f0dc731a76430abb16ecb4c21d81b3ab758c1b"
+    "published_baseline": "735a37329a297132bbd1fc23422213adfff430d8",
+    "last_isolated_pg17_code": "735a37329a297132bbd1fc23422213adfff430d8"
   },
-  "execution_environment": "connected; aligned published52f0dc73; named stash preserved",
-  "next_action": "Task11 code383070ca independently APPROVED; T9-R1 closed, Minor T11-R1 NULL native assertion retained. Publish exact batch then original17 + complete new PG17 proof before Task12 selection/staging/all18. W51849cf9, working596/534/23/35/4 and58 unresolved."
+  "execution_environment": "connected; aligned published735a3732; named stash preserved",
+  "next_action": "Publish independently APPROVED Task11 correction07f58c3a (catalog42725 cast and T11-R1 closure), then exact-head original17/complete new PG17 proof. No selection/production;58 unresolved."
 }
