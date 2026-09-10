@@ -345,3 +345,13 @@ No phase closed or production writes. Next: continue unclassified invitation,
 direct-account and governance effect reconstruction, then authoritative complete
 replay/schema/types and ledger/live parity. Actor FK repair is scoped evidence,
 not complete classification of either historical source. PR #310 updated.
+
+## 2026-09-10 — First Task9 hosted run and timeout correction
+
+Published e87c13fc has quality/build, Ediel, tenant and browser-quality PASS.
+Auth102805548475 passes old14 then Task9 fails before its first source: raw
+current_setting timeout text normalizes120s to2min. Correction7c2b9123 compares
+positive typed durations without changing finite limits; focused regression
+RED/GREEN and independent scoped review approved. Corrected PG17 run pending.
+Verify/types and clean replay remain red; full-E2E smoke is14/15 with the same
+types failure. No full source acceptance, selection, merge or production change.

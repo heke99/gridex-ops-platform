@@ -726,3 +726,5 @@ active, selectors unchanged; Task10 selection requires hosted proof. User explic
 authorizes necessary production merge/migrations/deployment after verification.
 
 2026-09-10 Task9 code34df3d0a: four integrated findings corrected and independently scoped approved, no new material breakage. Exact ACL/retained-identity, first-F allowed offer delta, CTAS alias and native6D2 rollback oracles have focused RED-before/GREEN-after static regressions. Compile/selection/emit/group/integrity/provenance/accounting PASS. Code approved for hosted publication; SQL NOT EXECUTED, Task9 acceptance OPEN. No selector or production change.
+
+2026-09-10 Runtime correction7c2b9123 independently approved: typed positive duration comparison preserves10s/120s and1s/10s limits. Constructor regression RED/GREEN; compile/group/selection/emit/diff PASS. Nine explicit equivalent/wrong/zero SQL cases await hosted execution. No source selection or production changes.

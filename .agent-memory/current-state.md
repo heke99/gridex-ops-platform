@@ -53,8 +53,19 @@ approved all four with no new material breakage. Code is approved for hosted
 verification publication; Task9 execution acceptance remains OPEN.
 Static regression RED-before/GREEN-after, compile, selection/emit, fixed runner,
 migration integrity, provenance and accounting PASS. SQL remains NOT EXECUTED.
-No source-selection or production change occurred. Next: publish this reviewed
-batch to existing PR310 and execute all15 commands on hosted PostgreSQL17.
+No source-selection or production change occurred. Published e87c13fc, exact reviewed treef48bebc5fcbc12c60e75e5889b454d51f1f86b5b.
+Fetched tree equality and tracked-clean state verified; local review history
+preserved under archive/task9-reviewed-0c34dbda before exact-tree alignment.
+OPS34456979810/auth102805548475 passes old14 then Task9 FAILS before its first
+source: the timeout assertion compares formatted current_setting text (120s
+normalizes to2min). Runtime correction7c2b9123 compares positive typed durations,
+retaining10s/120s normal and1s/10s contention limits. Static regression RED/GREEN,
+compile/selection/emit/group/diff PASS; independent scoped review APPROVED for
+hosted publication, no new breakage. Corrected SQL/nine duration cases still await PG17. New whole-source
+acceptance remains OPEN. Ediel102805548522/tenant34456979824 PASS; clean102805548399
+and verify102805548439 FAIL, latter at generated-types tail20260909123000.
+Next: correct/review/publish the observed timeout representation defect and rerun
+hosted group; Task10 remains dependent on full bounded acceptance.
 See Task9 ignored report; Task9 stays open. No selectors change before complete
 whole-source hosted evidence. Task10 selection follows.
 Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local

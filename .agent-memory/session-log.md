@@ -968,3 +968,15 @@ authorizes necessary production merge/migrations/deployment after verification.
 2026-09-10 Task9 correction3bb0d79f: author static compile/selection/emit/group-selftest/diff PASS; independent scoped review reports eight consolidated groups addressed. Pre-existing first-I CTAS system-column-name collision remains a concrete execution blocker for integrated review/fix. All Task9 SQL remains NOT EXECUTED. No source selection or production action.
 
 2026-09-10 Task9 code34df3d0a: four integrated findings corrected and independently scoped approved, no new material breakage. Exact ACL/retained-identity, first-F allowed offer delta, CTAS alias and native6D2 rollback oracles have focused RED-before/GREEN-after static regressions. Compile/selection/emit/group/integrity/provenance/accounting PASS. Code approved for hosted publication; SQL NOT EXECUTED, Task9 acceptance OPEN. No selector or production change.
+
+2026-09-10 Published e87c13fc/tree f48bebc5fcbc12c60e75e5889b454d51f1f86b5b,
+exact fetched tree confirmed; local reviewed history archived before alignment.
+OPS34456979810 quality102805548057 PASS including build; Ediel102805548522 PASS;
+tenant34456979824 and browser-quality34456979886 PASS. Auth102805548475 passes
+old14 then Task9 fails at pre-source timeout display equality; runtime correction
+active, no whole-source acceptance. Verify102805548439 fails types tail20260909123000;
+clean102805548399 fails replay gate. Full E2E34456979818 smoke102805549539 is14/15,
+sole failure generated-types migration check; real-customer/runtime/full/nightly
+lanes skipped, not verified. No production mutation/merge/deployment.
+
+2026-09-10 Runtime correction7c2b9123 independently approved: typed positive duration comparison preserves10s/120s and1s/10s limits. Constructor regression RED/GREEN; compile/group/selection/emit/diff PASS. Nine explicit equivalent/wrong/zero SQL cases await hosted execution. No source selection or production changes.

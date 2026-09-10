@@ -23,6 +23,31 @@ def check(condition: str, label: str) -> str:
     return f"select test_assert(({condition}), {q(label)});\n"
 
 
+def timeout_matches_sql(actual: str, expected: str) -> str:
+    """Compare trusted SQL duration expressions, independently of display units."""
+    return f"({actual}::interval={expected}::interval and {expected}::interval>interval '0 seconds')"
+
+
+def source_timeout_assertion_sql(lock_timeout: str, statement_timeout: str) -> str:
+    return check(" and ".join(
+        timeout_matches_sql(f"current_setting('{name}')", q(value))
+        for name, value in (("lock_timeout", lock_timeout), ("statement_timeout", statement_timeout))
+    ), "finite source timeouts active")
+
+
+def timeout_unit_regression_sql() -> str:
+    # Executed by hosted bootstrap using the same predicate as each source call.
+    # Positive equality must accept equivalent units and reject wrong/zero limits.
+    return check(f"""not exists(select 1 from (values
+      ('2min','120s',true),('120000ms','120s',true),
+      ('1000ms','1s',true),('10000ms','10s',true),
+      ('1min','120s',false),('1ms','1s',false),
+      ('0','120s',false),('120s','0',false),('0','0',false)
+    ) t(actual,expected,accepted)
+    where {timeout_matches_sql('actual', 'expected')} is distinct from accepted)""",
+    "timeout units: equivalent durations accepted; wrong and disabled limits rejected")
+
+
 def values(rows: tuple[tuple[str, str], ...]) -> str:
     return ",".join(f"({q(name)},{q(kind)}::regtype)" for name, kind in rows)
 

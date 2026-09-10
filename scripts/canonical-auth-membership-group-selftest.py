@@ -54,6 +54,36 @@ def whole_correction_constructors():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     oracle = module.oracle
+    # Capture the actual source invocation: PostgreSQL may display 120s as 2min.
+    source_calls = []
+    original_run = module.subprocess.run
+    try:
+        module.subprocess.run = lambda command, **kwargs: (source_calls.append(command) or subprocess.CompletedProcess(command, 0, '', ''))
+        with redirect_stdout(io.StringIO()):
+            for lock, statement in (('10s', '120s'), ('1s', '10s')):
+                module.psql_file(module.contract.prefix()[0], lock_timeout=lock, statement_timeout=statement)
+        assert len(source_calls) == 2
+        for command, (lock, statement) in zip(source_calls, (('10s', '120s'), ('1s', '10s'))):
+            checks = command[command.index('-c') + 3]
+            assert command[command.index('-c') + 1] == f"set lock_timeout='{lock}'; set statement_timeout='{statement}';"
+            assert "current_setting('lock_timeout')::interval" in checks, 'timeout equality must compare durations, not display text'
+            assert f"current_setting('lock_timeout')::interval='{lock}'::interval" in checks
+            assert f"current_setting('statement_timeout')::interval='{statement}'::interval" in checks
+            assert checks.count("::interval>interval '0 seconds'") == 2
+            assert command[-2:] == ['-f', str(ROOT / 'supabase' / module.contract.prefix()[0])]
+    finally:
+        module.subprocess.run = original_run
+    # The same predicate constructs a hosted SQL truth table, never a Python
+    # imitation of PostgreSQL interval parsing. This table is NOT EXECUTED locally.
+    unit_regression = oracle.timeout_unit_regression_sql()
+    for row in ("('2min','120s',true)", "('120000ms','120s',true)",
+                "('1000ms','1s',true)", "('10000ms','10s',true)",
+                "('1min','120s',false)", "('1ms','1s',false)",
+                "('0','120s',false)", "('120s','0',false)", "('0','0',false)"):
+        assert row in unit_regression, row
+    assert 'actual::interval=expected::interval' in unit_regression
+    assert "expected::interval>interval '0 seconds'" in unit_regression
+    assert 'is distinct from accepted' in unit_regression
     # Restoring proacl IS NULL or dropping explicit client/owner/PUBLIC tuples must fail.
     acl_sql = oracle.f_function_postflight_sql() + oracle.governance_function_postflight_sql() + module.downstream_checks_sql(True)
     assert 'proacl is null' not in acl_sql.lower(), 'managed functions have explicit inherited ACLs'

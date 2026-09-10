@@ -79,7 +79,7 @@ def psql_file(
         "psql", "-X", "-q", "--set=ON_ERROR_STOP=1", "--set=VERBOSITY=verbose",
         TARGET,
         "-c", f"set lock_timeout={oracle.q(lock_timeout)}; set statement_timeout={oracle.q(statement_timeout)};",
-        "-c", f"select test_assert(current_setting('lock_timeout')={oracle.q(lock_timeout)} and current_setting('statement_timeout')={oracle.q(statement_timeout)},'finite source timeouts active');",
+        "-c", oracle.source_timeout_assertion_sql(lock_timeout, statement_timeout),
         "-f", str(path),
     ]
     result = subprocess.run(command, text=True, capture_output=True, env=environment(), cwd=ROOT, timeout=240)
@@ -103,7 +103,7 @@ def clone_database(source: str, target: str) -> None:
 
 def bootstrap_and_prefix() -> None:
     governance = load_script("canonical-governance-selftest.py")
-    psql_sql(governance.bootstrap())
+    psql_sql(governance.bootstrap() + oracle.timeout_unit_regression_sql())
     for relative in contract.prefix():
         psql_file(relative)
     print(f"PASS PREFIX exact-first33 path-sha256={contract.PREFIX_PATH_DIGEST}")
@@ -591,6 +591,7 @@ def emit() -> None:
     print("-- WHOLE_DIRTY_CASES " + json.dumps({name: sorted(expected) for name, (_sql, expected) in DIRTY_CASES.items()}, sort_keys=True))
     print("-- WHOLE_NATIVE_FAILURES I:42703,F-unique:23505,F-late-filter:42P13,D-check:23514,D-late-view:42P16,6D2-first:23514,6D2-late:42703,contention:55P03; SQL NOT EXECUTED")
     print("-- WHOLE_POSTFLIGHT_BEGIN; SQL NOT EXECUTED")
+    print(oracle.timeout_unit_regression_sql())
     print(oracle.function_acl_snapshot_sql())
     print(oracle.stage_preserved_sql("f_first", ("roles", "permissions", "role_permissions")))
     print(oracle.stage_preserved_sql("f_seed_repeat"))
