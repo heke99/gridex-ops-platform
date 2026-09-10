@@ -355,3 +355,12 @@ positive typed durations without changing finite limits; focused regression
 RED/GREEN and independent scoped review approved. Corrected PG17 run pending.
 Verify/types and clean replay remain red; full-E2E smoke is14/15 with the same
 types failure. No full source acceptance, selection, merge or production change.
+
+## 2026-09-10 — Timeout passed; actual seed metadata correction
+
+At6e2e00e3, auth102808527514 executes past the timeout guard, actual first33 and
+whole I. It fails before F because seed snapshot assumes absent roles.is_system.
+Reviewed correctionf07f3946 uses actual columns and full row preservation while
+allowing only source-declared company_admin name/description changes. Focused
+static regression RED/GREEN; corrected hosted SQL pending. Quality/build102808527446
+and Ediel102808527533 PASS. No full source acceptance/selection/production change.

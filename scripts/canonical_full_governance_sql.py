@@ -58,16 +58,19 @@ def _array(items: tuple[str, ...]) -> str:
 
 def six_pair_seed_sql() -> str:
     return f"""-- EXPLICIT_SYNTHETIC_SUPER_ADMIN_SEED; not a canonical prerequisite.
-insert into public.roles(id,key,name,description,is_system)
-values ('{SUPER_ROLE}','super_admin','Synthetic super admin','Preserve synthetic metadata',true);
+insert into public.roles(id,key,name,description)
+values ('{SUPER_ROLE}','super_admin','Synthetic super admin','Preserve synthetic metadata');
 {f_seed_snapshot_sql()}
 """
 
 
 def f_seed_snapshot_sql() -> str:
     return f"""
+select test_assert(not exists(select 1 from pg_attribute where attrelid='public.roles'::regclass and attname='is_system' and not attisdropped)
+  and exists(select 1 from pg_attribute where attrelid='public.roles'::regclass and attname='is_system_role' and atttypid='boolean'::regtype and attnotnull and not attisdropped),
+  'actual first33 roles has is_system_role; F takes its no-is_system metadata branch');
 create table six_pair_super_before as
-select id,key,name,description,is_system from public.roles where id='{SUPER_ROLE}';
+select id,to_jsonb(r) value from public.roles r where id='{SUPER_ROLE}';
 create table six_pair_unrelated_grants_before as
 select * from public.role_permissions;
 create table f_roles_before as select * from public.roles;
@@ -79,7 +82,7 @@ def f_seed_boundary_sql(expect_super_admin: bool, snapshot: bool = False) -> str
     expected = 6 if expect_super_admin else 3
     missing = "false" if expect_super_admin else "true"
     suffix = """
-select test_assert(not exists((select * from six_pair_super_before except select id,key,name,description,is_system from roles where id='90000000-0000-0000-0000-000000000001') union all (select id,key,name,description,is_system from roles where id='90000000-0000-0000-0000-000000000001' except select * from six_pair_super_before)),'synthetic super_admin ID and metadata preserved');
+select test_assert(not exists((select * from six_pair_super_before except select id,to_jsonb(r) from roles r where id='90000000-0000-0000-0000-000000000001') union all (select id,to_jsonb(r) from roles r where id='90000000-0000-0000-0000-000000000001' except select * from six_pair_super_before)),'synthetic super_admin ID and complete row metadata preserved');
 select test_assert(not exists(select * from six_pair_unrelated_grants_before except all select * from role_permissions),'unrelated grants preserved by F seed');
 """ if expect_super_admin else ""
     snapshot_sql = "create table f_seed_pairs_after as select role_id,permission_id from role_permissions;\n" if snapshot else ""
@@ -87,7 +90,10 @@ select test_assert(not exists(select * from six_pair_unrelated_grants_before exc
 select test_assert((select count(*)={expected} from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key in ('company_admin','super_admin') and p.key in ('tenants.read','tenants.write','tenants.invite')),'F boundary exact {expected} resolved tenant permission pairs');
 select test_assert((select count(*)=3 from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key='company_admin' and p.key in ('tenants.read','tenants.write','tenants.invite')),'F boundary exact company_admin three-pair seed');
 select test_assert((not exists(select 1 from roles where key='super_admin'))={missing},'F boundary empty lane lacks super_admin; synthetic lane declares it explicitly');
-select test_assert((select name='Bolagsansvarig' and description='Administrerar användare och dagliga flöden inom sitt eget elhandelsbolag.' and is_system from roles where key='company_admin'),'F source-defined company_admin metadata');
+select test_assert((select name='Bolagsansvarig' and description='Administrerar användare och dagliga flöden inom sitt eget elhandelsbolag.' from roles where key='company_admin'),'F source-defined company_admin metadata');
+select test_assert(not exists(select 1 from f_roles_before b left join roles r on r.id=b.id where b.key='company_admin'
+  and (r.id is null or (to_jsonb(r)-array['name','description']::text[]) is distinct from (to_jsonb(b)-array['name','description']::text[]))),
+  'F company_admin preserves all prior identity and metadata except source-defined name/description');
 select test_assert((select count(*)=3 from permissions where key in ('tenants.read','tenants.write','tenants.invite')),'F exact permission keys retain stable identities');
 select test_assert(not exists(select b.id,b.key from f_roles_before b where b.key in ('company_admin','super_admin') except select id,key from roles),'F company_admin/super_admin IDs remain stable');
 select test_assert(not exists(select b.id,b.key from f_permissions_before b where b.key in ('tenants.read','tenants.write','tenants.invite') except select id,key from permissions),'F three permission IDs remain stable');

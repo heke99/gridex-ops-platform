@@ -54,6 +54,20 @@ def whole_correction_constructors():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     oracle = module.oracle
+    # Actual first33 roles uses is_system_role; F deliberately takes its
+    # no-is_system branch and updates only name/description.
+    seed = oracle.six_pair_seed_sql()
+    snapshot = oracle.f_seed_snapshot_sql()
+    boundaries = oracle.f_seed_boundary_sql(False) + oracle.f_seed_boundary_sql(True) + oracle.f_seed_repeat_sql()
+    assert 'insert into public.roles(id,key,name,description)\n' in seed, 'synthetic role must use actual prefix columns'
+    assert 'select id,to_jsonb(r) value from public.roles r' in snapshot
+    assert 'select id,to_jsonb(r) from roles r' in boundaries
+    assert "to_jsonb(r)-array['name','description']::text[]" in boundaries
+    assert "to_jsonb(b)-array['name','description']::text[]" in boundaries
+    assert "attname='is_system'" in snapshot and "attname='is_system_role'" in snapshot
+    assert 'name,description,is_system' not in seed + snapshot + boundaries
+    assert 'and is_system from roles' not in boundaries
+    assert "name='Bolagsansvarig' and description='Administrerar användare och dagliga flöden inom sitt eget elhandelsbolag.'" in boundaries
     # Capture the actual source invocation: PostgreSQL may display 120s as 2min.
     source_calls = []
     original_run = module.subprocess.run
