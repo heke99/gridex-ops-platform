@@ -650,29 +650,53 @@ CREATE TEMP TABLE permissions_before AS SELECT * FROM permissions;
 
 
 def optional_session_compatibility(b,h):
-    # Explicit synthetic optional projection. Neither relation is fabricated
-    # into the actual-first43 receipt or treated as a production Auth schema.
-    schema="""CREATE TABLE auth.sessions(id uuid PRIMARY KEY,user_id uuid NOT NULL REFERENCES auth.users(id),created_at timestamptz NOT NULL,metadata jsonb);
+    # The compatible bootstrap already owns auth.sessions, including its
+    # nullable timestamps and ON DELETE CASCADE FK. Only this journal is an
+    # optional synthetic addition; neither is a claim about provider state.
+    schema=check("to_regclass('public.company_user_audit_journal') IS NULL")+"""
 CREATE TABLE public.company_user_audit_journal(id uuid PRIMARY KEY,company_id uuid REFERENCES companies(id),user_id uuid REFERENCES auth.users(id),event text NOT NULL,metadata jsonb);"""
     original=h.reference
+    assert original[0]['relation/auth.sessions']['kind']=='r'
+    session_columns={k.rsplit('/',1)[1]:(v['type'],v['notnull']) for k,v in original[0].items() if k.startswith('column/auth.sessions/')}
+    assert session_columns=={'id':('uuid',True),'user_id':('uuid',True),
+        'created_at':('timestamp with time zone',False),'updated_at':('timestamp with time zone',False),
+        'not_after':('timestamp with time zone',False)}
+    assert 'relation/public.company_user_audit_journal' not in original[0]
+    retained=('auth.sessions','public.company_user_audit_journal','public.platform_session_revocations',
+              'public.tenant_governance_events','public.customer_sync_events')
+    def retained_state(state):
+        catalog,rows=state
+        # Include relation, columns, constraints, policies, triggers/rules and
+        # the source-named indexes. Snapshot values remain private in memory.
+        catalog={k:v for k,v in catalog.items() if any(k.split('/')[1].startswith(name) for name in retained)}
+        return catalog,[row for row in rows if row[0] in retained]
     try:
-        reference='gridex_auth_legacy_helper'; clone(h,reference);h.sql(reference,schema,'optional_reference_shape')
+        reference='gridex_auth_legacy_helper'; clone(h,reference)
+        # Full equality includes existing session FK/nullability/defaults/ACLs
+        # and precedes any optional augmentation in both disposable clones.
+        assert h.catalog(reference)==original[0], 'optional reference differs from trusted bootstrap+first43'
+        h.sql(reference,schema,'optional_reference_shape')
         h.reference=(h.catalog(reference),None)
         b.execute(h,reference,b.reviewed_paths())
         h.reference=(h.reference[0],h.catalog(reference))
         database='gridex_auth_legacy_seeded';clone(h,database)
+        assert h.catalog(database)==original[0], 'optional target differs from trusted bootstrap+first43'
         h.sql(database,schema+seed_parents()+f"""
-INSERT INTO auth.sessions VALUES ('73000000-0000-0000-0000-000000000001','{U}','2026-01-01','{{"fixture":"retained_session"}}');
-INSERT INTO company_user_audit_journal VALUES ('74000000-0000-0000-0000-000000000001','{C}','{U}','retained_fixture','{{}}');
+INSERT INTO auth.sessions(id,user_id,created_at,updated_at,not_after) VALUES ('73000000-0000-0000-0000-000000000001','{U}','2026-01-01',NULL,'2026-02-01');
+INSERT INTO company_user_audit_journal(id,company_id,user_id,event,metadata) VALUES ('74000000-0000-0000-0000-000000000001','{C}','{U}','retained_fixture','{{}}');
 INSERT INTO platform_session_revocations(user_id,revoked_by,reason) VALUES ('{U}','{U2}','retained synthetic revocation');
 INSERT INTO tenant_governance_events(company_id,target_user_id,actor_user_id,action) VALUES ('{C}','{U}','{U2}','retained_fixture');
 INSERT INTO customer_sync_events(company_id,source_type,event_type,title) VALUES ('{C2}','synthetic','retained_fixture','Retained synthetic work');
 """,'optional_session_seed')
+        before=retained_state(snapshot(h,database))
         b.execute(h,database,b.reviewed_paths());after=snapshot(h,database)
+        assert retained_state(after)==before, 'initial batch changed retained session or history rows/catalog'
+        # Complete post-batch snapshot equality also preserves the retained
+        # preimage on repeat, without a second redundant snapshot query.
         b.execute(h,database,b.reviewed_paths());unchanged(h,database,after)
     finally:
         h.reference=original
-    print('PASS optional synthetic Auth-session journal compatibility exact session and durable-history rows')
+    print('PASS bootstrap Auth-session and optional journal exact retained rows/catalog across batch and repeat')
 
 
 def privilege_variants(b,h):
