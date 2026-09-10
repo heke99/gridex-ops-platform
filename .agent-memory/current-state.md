@@ -74,10 +74,16 @@ in complete_postflight's D debug-view exact-name/status assertion. Root cause re
 differs from Python sorted. Correctionbe74eb74 pins only the name aggregate to C
 collation; exact15 names/count/status/RLS checks retained. Independent scoped review
 APPROVED, focused regression RED/GREEN and compile/group/selection/emit/diff PASS.
-Corrected PG17 execution pending.
+Correction published5c943a77, exact reviewed treeaee3721f4e06c8c312ce73575571095e74319974;
+fetched equality confirmed and local9d309d1f archived. OPS34460269891/auth102816183689
+passes complete I/F/D/6D2 postflight, then role-key and all three6E source files.
+It fails the downstream import UPDATE policy oracle: 6E excludes import tables,
+so their retained6D2 policy uses read/write, not the assumed write/write. Correctione174d4e1 independently APPROVED: exact eight retained6D2 import policies,
+actual6E customers UPDATE replacement and full import-policy/OID preservation.
+Focused RED/GREEN, compile/group/selection/emit/diff PASS; corrected SQL pending.
 No historical source or selector changes; corrected whole-source acceptance pending.
 No full Task9 acceptance or source-selection change. Next: resolve/review/publish
-the observed debug-view oracle mismatch and rerun hosted group, then dependent Task10.
+the observed downstream policy-winner mismatch and rerun hosted group, then dependent Task10.
 Quality102808527446 including build and Ediel102808527533 PASS;
 verify102808527272/clean102808527613 remain FAIL.
 See Task9 ignored report; Task9 stays open. No selectors change before complete

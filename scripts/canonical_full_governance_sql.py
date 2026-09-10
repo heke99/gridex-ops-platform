@@ -346,6 +346,37 @@ def policy_trigger_sql() -> str:
       "all28 trigger identities/events/function bindings/UPDATE OF company_id")
 
 
+def downstream_import_policy_catalog_sql() -> str:
+    return """select oid,polrelid,polname,polcmd,polroles,polpermissive,
+      pg_get_expr(polqual,polrelid) using_expression,pg_get_expr(polwithcheck,polrelid) check_expression
+      from pg_policy where polrelid in ('public.customer_import_batches'::regclass,'public.customer_import_rows'::regclass)"""
+
+
+def downstream_policy_sql() -> str:
+    # First6E's literal target list excludes both imports; neither later6E file
+    # changes policies. Their eight6D2 policies survive, while customers changes.
+    commands = (
+        ("select", "r", "gridex_can_read_company(company_id)", None),
+        ("insert", "a", None, "gridex_can_write_company(company_id)"),
+        ("update", "w", "gridex_can_read_company(company_id)", "gridex_can_write_company(company_id)"),
+        ("delete", "d", "gridex_user_is_platform_admin()", None),
+    )
+    expected = [
+        (table, *command)
+        for table in ("customer_import_batches", "customer_import_rows") for command in commands
+    ] + [("customers", "update", "w", "gridex_can_write_company(company_id)", "gridex_can_write_company(company_id)")]
+    rows = ",".join("(" + ",".join("null" if value is None else q(value) for value in row) + ")" for row in expected)
+    return check(f"""not exists(select 1 from (values {rows}) e(relation,action,command,using_expression,check_expression)
+      left join pg_policy p on p.polrelid=to_regclass('public.'||e.relation) and p.polname=e.relation||'_tenant_'||e.action
+      where p.oid is null or p.polcmd<>e.command or not p.polpermissive or p.polroles<>array[0]::oid[]
+        or pg_get_expr(p.polqual,p.polrelid) is distinct from e.using_expression
+        or pg_get_expr(p.polwithcheck,p.polrelid) is distinct from e.check_expression)""",
+      "downstream exact retained6D2 import policies and replaced6E customers UPDATE: command/PUBLIC/permissive/USING/WITH CHECK") + check(f"""
+      not exists((select * from downstream_import_policies_before except ({downstream_import_policy_catalog_sql()}))
+        union all (({downstream_import_policy_catalog_sql()}) except select * from downstream_import_policies_before))""",
+      "downstream preserves all import policy OIDs, definitions and complete policy set")
+
+
 def bespoke_policy_expression_sql() -> str:
     """Let PostgreSQL deparse source-literal expected policies, then compare."""
     return """begin;

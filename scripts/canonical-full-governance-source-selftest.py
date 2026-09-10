@@ -128,6 +128,7 @@ def source(
 
 def downstream(expect_super_admin: bool) -> None:
     psql_sql(oracle.function_acl_snapshot_sql())
+    psql_sql("create table downstream_import_policies_before as " + oracle.downstream_import_policy_catalog_sql() + ";")
     psql_sql("create table downstream_import_before as select 'b' kind,id,to_jsonb(t) value from customer_import_batches t union all select 'r',id,to_jsonb(t) from customer_import_rows t; create table downstream_helper_oids_before as select oid,proname,pg_get_function_identity_arguments(oid) identity_args from pg_proc where pronamespace='public'::regnamespace and proname in ('gridex_user_is_platform_admin','gridex_user_company_ids','gridex_can_read_company','gridex_user_can_manage_company','gridex_can_write_company');")
     for relative in contract.DOWNSTREAM:
         psql_file(relative)
@@ -162,9 +163,8 @@ select test_assert((select count(*)=19 from pg_attribute where attrelid='custome
 select test_assert(not exists((select * from downstream_import_before except (select 'b',id,to_jsonb(t) from customer_import_batches t union all select 'r',id,to_jsonb(t) from customer_import_rows t)) union all ((select 'b',id,to_jsonb(t) from customer_import_batches t union all select 'r',id,to_jsonb(t) from customer_import_rows t) except select * from downstream_import_before)),'downstream preserves every import history row exactly');
 select test_assert(not exists(select * from downstream_helper_oids_before except select oid,proname,pg_get_function_identity_arguments(oid) from pg_proc),'downstream CREATE OR REPLACE preserves prior helper OIDs');
 select test_assert((select count(*)=2 from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key='company_admin' and p.key in ('tenants.read','tenants.write','tenants.invite')) and not exists(select 1 from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key='company_admin' and p.key='tenants.write'),'hard6E exact platform-role-only cleanup wins over F company-admin seed');
-select test_assert((select pg_get_expr(polqual,polrelid)='gridex_can_write_company(company_id)' and pg_get_expr(polwithcheck,polrelid)='gridex_can_write_company(company_id)' from pg_policy where polrelid='customer_import_rows'::regclass and polname='customer_import_rows_tenant_update'),'downstream 6E winning tenant-update policy body exact');
 -- Later selected helper/ACL/RLS/runtime composition is deliberately not inferred here.
-""" + super_check
+""" + super_check + oracle.downstream_policy_sql()
 
 
 def admission_result(sql: str, marker: str) -> dict[str, object]:

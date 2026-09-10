@@ -54,6 +54,25 @@ def whole_correction_constructors():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     oracle = module.oracle
+    # 6E replaces customer policies, but its target list excludes both imports.
+    downstream = module.downstream_checks_sql(True)
+    for table in ('customer_import_batches', 'customer_import_rows'):
+        for action, command, using, with_check in (
+            ('select', 'r', "'gridex_can_read_company(company_id)'", 'null'),
+            ('insert', 'a', 'null', "'gridex_can_write_company(company_id)'"),
+            ('update', 'w', "'gridex_can_read_company(company_id)'", "'gridex_can_write_company(company_id)'"),
+            ('delete', 'd', "'gridex_user_is_platform_admin()'", 'null')):
+            assert f"('{table}','{action}','{command}',{using},{with_check})" in downstream, 'downstream imports must retain actual6D2 policies'
+    assert "('customers','update','w','gridex_can_write_company(company_id)','gridex_can_write_company(company_id)')" in downstream
+    assert 'p.polroles<>array[0]::oid[]' in downstream and 'not p.polpermissive' in downstream
+    assert 'p.polcmd<>e.command' in downstream and 'p.oid is null' in downstream
+    assert 'pg_get_expr(p.polqual,p.polrelid) is distinct from e.using_expression' in downstream
+    assert 'pg_get_expr(p.polwithcheck,p.polrelid) is distinct from e.check_expression' in downstream
+    assert 'downstream_import_policies_before' in downstream
+    first_6e = (ROOT / 'supabase/migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql').read_text()
+    target_list = re.search(r'target_tables text\[\] := array\[(.*?)\];', first_6e, re.S).group(1)
+    assert "'customers'" in target_list
+    assert "'customer_import_batches'" not in target_list and "'customer_import_rows'" not in target_list
     # en_US.utf8 orders customers before customer_sites, unlike Python/C.
     # The oracle must use the same explicit order as its literal expected array.
     debug = oracle.debug_view_sql()
@@ -133,6 +152,13 @@ def whole_correction_constructors():
         calls.clear()
         module.source(alias, expected='23514')
         assert len(calls) == 1 and calls[0][0] == 'file', 'native failure snapshots must stay untouched'
+    calls.clear()
+    with redirect_stdout(io.StringIO()):
+        module.downstream(True)
+    first_file = next(i for i, call in enumerate(calls) if call[0] == 'file')
+    assert any('create table downstream_import_policies_before' in call[1] for call in calls[:first_file])
+    assert [call[1] for call in calls if call[0] == 'file'] == list(module.contract.DOWNSTREAM)
+    assert calls[-1][0] == 'sql' and 'downstream_import_policies_before' in calls[-1][1]
     # First F gets one precise delta; every repeat uses full row equality.
     first = oracle.stage_preserved_sql('f_first', ('roles', 'permissions', 'role_permissions'))
     repeat = oracle.stage_preserved_sql('f_repeat')
