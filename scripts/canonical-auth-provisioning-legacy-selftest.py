@@ -3,9 +3,36 @@
 from __future__ import annotations
 import importlib.util
 from pathlib import Path
+import re
 import sys
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def extract_top_level_job(workflow, name):
+    """Return exactly one named jobs child, stopping at the next sibling."""
+    lines = workflow.splitlines(keepends=True)
+    def top_level_name(line):
+        match = re.fullmatch(r'  ([A-Za-z0-9_-]+):\r?\n?', line)
+        return match.group(1) if match else None
+    starts = [
+        index for index, line in enumerate(lines)
+        if top_level_name(line) == name
+    ]
+    assert len(starts) == 1, f'expected one top-level job named {name}'
+    start = starts[0]
+    end = next(
+        (index for index in range(start + 1, len(lines))
+         if top_level_name(lines[index]) is not None),
+        len(lines),
+    )
+    return ''.join(lines[start:end])
+
+
+def validate_legacy_job(job):
+    assert 'timeout-minutes: 20' in job and '\n    needs:' not in job
+    assert 'if: always()' in job and '--cleanup-owned' in job
+    assert 'upload-artifact' not in job and 'services:' not in job and 'docker logs' not in job
 
 
 def load_batch():
@@ -161,10 +188,29 @@ def constructor_checks():
                         raise AssertionError('stderr setup marker accepted as source-stage evidence')
     workflow=(ROOT/'.github/workflows/ops-hardening.yml').read_text()
     assert 'auth-provisioning-legacy-skeleton:' not in workflow
-    job=workflow.split('  auth-provisioning-legacy-proof:',1)[1].split('\n  verify:',1)[0]
-    assert 'timeout-minutes: 20' in job and '\n    needs:' not in job
-    assert 'if: always()' in job and '--cleanup-owned' in job
-    assert 'upload-artifact' not in job and 'services:' not in job and 'docker logs' not in job
+    job=extract_top_level_job(workflow,'auth-provisioning-legacy-proof')
+    validate_legacy_job(job)
+    # A sibling may upload artifacts without changing the legacy container job.
+    sibling = job + '  later-sibling:\n    steps:\n      - uses: actions/upload-artifact@v4\n'
+    validate_legacy_job(extract_top_level_job(sibling,'auth-provisioning-legacy-proof'))
+    # The same extraction must work when the named job is the final jobs child.
+    validate_legacy_job(extract_top_level_job(job,'auth-provisioning-legacy-proof'))
+    for malformed in (
+        workflow.replace(job, '', 1),
+        workflow + job,
+    ):
+        try:
+            extract_top_level_job(malformed,'auth-provisioning-legacy-proof')
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('missing or duplicate legacy job accepted')
+    try:
+        validate_legacy_job(job.replace('      - name: Remove only', '      - uses: actions/upload-artifact@v4\n      - name: Remove only', 1))
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('forbidden upload inside legacy job accepted')
     import ast
     runner=ast.parse((ROOT/'scripts/canonical-auth-membership-group.py').read_text())
     commands=next(ast.literal_eval(n.value) for n in runner.body if isinstance(n,ast.Assign) and any(getattr(t,'id','')=='COMMANDS' for t in n.targets))

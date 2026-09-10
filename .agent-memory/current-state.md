@@ -11,11 +11,15 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `5389f2b51dac46fd00e858a9cddb27b676f678ca`, exact reviewed
-tree `b8387fa0fef66019c6d27957f281138e45920390`. Task8 VERIFIED:
-OPS34506822456 original16/auth102970940188 and legacy17/actual-loop102970940105
-both PASS on this head (complete command17 153600ms). Quality/build102970939833
-and Ediel102970940048 PASS. Both reviewed Minor corrections are closed.
+Latest publication: `935eb5a09844b7a6ff78b7d3b2ab88cd74c0448f`, exact reviewed
+tree `f76e8689784356bda166a35c4ef0c016c05acc1f`; fetched equality and tracked-clean
+alignment PASS, localcce0e2ad archived. Last complete all17 actual-loop baseline
+5389f2b5: OPS34506822456 original16/auth102970940188 + legacy17/102970940105 PASS,
+quality/build102970939833 and Ediel102970940048 PASS. Both Task8 Minors closed.
+Current OPS34510573935 CLI-skeleton102983387043 PASS. Legacy17/102983386870
+FAILS before SQL: existing constructor slices legacy job until verify and captures
+the new sibling artifact upload. Confirmed brittle job boundary, not SQL failure;
+owned cleanup PASS. Task10 scoped selftest correction active before next delivery.
 
 
 Working-tree accounting is 595 inputs: 533 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -33,16 +37,20 @@ Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
 
-Task10 IN_PROGRESS: actual CLI-created W skeleton preparation. Workflow-only
-commit39769c19 preserves prior jobs byte-for-byte; exact insertion/dry-run/diff
-checks PASS. Independent spec+quality review APPROVED. T10-R1 is a Minor
-report label error: default dry-run lists all17, not original16; actual commands
-are preserved. Await exact-tree publication and actual CLI artifact verification.
-Task9 documents4deefce5 independently spec+quality APPROVED with no blockers;
-Minor T9-R1 selected39 company-helper traceability is retained for the implicated
-implementation and final review. Eight sources/1677 lines/31 top-level units
-mapped. Next coherent group R2/E2/S2/W and five source-specific lifecycle cases
-are approved as design only; no new SQL proof or selection delta.
+Task10 IN_PROGRESS: actual CLI W artifact VERIFIED, scoped constructor correction
+committed7845090d and independently spec+quality APPROVED. Workflow39769c19
+was independently approved; actual hosted failure exposes brittle legacy selftest
+job slicing at164–167. Fix only its true top-level job extraction; preserve all
+forbidden upload/service/log/needs checks. Scoped rereview APPROVED with no new findings; constructor/compile/diff PASS.
+CLI2.101.0 job102983387043 at935eb5a0 created actual W:
+20260910174947_canonical_user_rbac_repair_boundary.sql. Artifact10165602317,
+ZIP224/SHA2563af4016441baf2e0eb4c1dcaa3085bdfdbfba95ab38e4e973aeeef675a0f7d30,
+sole empty member SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,
+retrieved and verified in ignored SDD workspace. urllib transport403, ordinary
+curl retrieval succeeded; no access escalation or fabricated artifact.
+Task9 design4deefce5 independently APPROVED; Minor T9-R1 selected39 dependency
+traceability follows implementation/final review. T10-R1 report label only:
+default dry-run is all17, not original16. No new source selection or SQL acceptance.
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
 Task7: COMPLETE standalone hosted PostgreSQL proof PASS at4130cdd9,
@@ -89,8 +97,9 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: review Task10 workflow, publish exact reviewed design/preparation/status
-tree, retrieve verified actual W skeleton, then complete R2/E2/S2/W implementation/proof. Preserve verified first52/foundation93 and
+Next: publish the reviewed Task10 constructor-boundary correction; then implement
+complete R2/E2/S2/W from actual retrieved skeleton under Task11, preserving
+last accepted all17 and obtaining fresh exact-head acceptance for amended code. Preserve verified first52/foundation93 and
 all17 command union. Remaining58 inputs, native full replay/types and production
 gates stay open. Task8 selection is accepted only within its isolated proof.
 Five business targets must be empty; existing role identities/metadata require
