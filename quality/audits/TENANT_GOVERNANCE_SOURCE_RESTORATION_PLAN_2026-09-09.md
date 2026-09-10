@@ -486,9 +486,31 @@ retention decision or phase closure. Return exact owned commit and evidence.
 
 ### Task 8: Prospective complete import/governance source verification
 
-Pending after Task7. Define and separately review exact prerequisite/whole-source
-order and source-application boundary before implementation. Carry all Task3/5
+After Task7, define and separately review exact prerequisite/whole-source
+order and source-application boundary before implementation. The resulting
+GOVERNANCE_FULL_SOURCE_EXECUTION_CONTRACT_2026-09-09.md is independently approved
+at3986a755+87b45d8d; execution acceptance remains a separate Task9 gate. Carry all Task3/5
 complete effects, intentional skips, ownership/seed effects, repeated sources,
 actual unwrapped failure units and later helper/policy composition forward.
 An admission snapshot alone cannot authorize concurrent production application.
-No source selection or final retention decision is implied by this placeholder.
+No source selection or final retention decision is implied by contract approval.
+
+### Task 9: Isolated whole-source execution proof before selection
+
+Requires Task8 contract approval. Implement the complete synthetic PG17 contract in
+GOVERNANCE_FULL_SOURCE_EXECUTION_CONTRACT_2026-09-09.md through one fixed15th
+runner command. Preserve existing14 commands and all prior admission cases.
+Execute actual first33, whole I/F/D/6D2, retained role-key/all6E; prove complete
+bounded effects, preservation/repeat, dirty admission, native partial failure and
+concurrency. Explicitly label reduced/later-hardening residuals. No selector,
+historical SQL, generated-artifact or production changes in this execution stage.
+Separate and integrated implementation review precede hosted verification.
+
+### Task 10: Reviewed canonical selection and preserved fixture boundaries
+
+Requires Task9 complete bounded hosted acceptance. Insert all four originals
+immediately after current33 with exact provenance/order/accounting transition
+from the approved Task8 contract. Retain early extracts, historical fixture
+prefixes, all previous test coverage and later hardening. Independently review
+selection and re-run hosted group before continuing remaining source restoration.
+No incomplete replay artifact refresh or masterplan phase closure.

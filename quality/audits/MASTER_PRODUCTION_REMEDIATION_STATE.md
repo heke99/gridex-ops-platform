@@ -5,6 +5,26 @@ recorded revisions, not current status. The sole current status is
 [current-state.md](../../.agent-memory/current-state.md). Resume from its next
 action; do not interpret an older "latest" heading here as a newer verification.
 
+## 2026-09-10 — Task8 contract reviewed; Task9 execution proof open
+
+Task8 contract commits3986a755 and87b45d8d independently approved after correcting
+actual empty-prefix seed coverage and native duplicate-token failure conditions.
+Task9 implementation cfcc5a60/9d991fc6/fa65ab2f and corrections3bb0d79f/34df3d0a
+have static-only evidence. Independent task/scoped/integrated reviews approved the
+final correction for hosted verification publication. Integrated F-T9-001..004
+fixed exact managed-bootstrap/retained function ACLs, first-F offer additions,
+reserved tableoid snapshot naming and discriminating native6D2 rollback evidence.
+Targeted regressions showed RED before/GREEN after; compile, selection/emission,
+fixed runner, migration integrity/provenance/accounting PASS. Whole-source SQL
+has not executed. Canonical source selection is unchanged; Task9 and phase gates
+remain open until bounded hosted execution succeeds.
+
+Fresh published-checkpoint OPS34411408397 passed auth102666415931, quality102666415994
+and Ediel102666416085. Verify102666415708 and clean102666415974 still fail the
+required types-tail and exhaustive-replay gates. User authorizes necessary
+production merge/migrations/deployment after those applicable gates. No such
+production action occurred in this continuation. Resume from current-state.md.
+
 ## 2026-09-09 — Task7 verified; execution environment disconnected
 
 Code 236637eb2368a7035e61a844d2a4f5963bd2390d, exact reviewed tree bea7af5d326c0fe11bf8477080159094f2cd71d1. OPS34410026916:
@@ -48,7 +68,7 @@ there is no generated schema/type artifact and no production parity claim.
 | Finding | Status | Evidence / remediation |
 | --- | --- | --- |
 | F-IMPORT-ADMISSION-001 / High / verification | VERIFIED_CLOSED | Correction5ecefd1f publishedc990dfb2, independent review approved; actual PG17 job102659793781 passes the formerly failing first33/empty observation, all6 reduced shape lanes and incomplete-table diagnostic. Focused regression RED/GREEN; no production mutation. |
-| F-IMPORT-FIXTURE-002 / Medium / verification | IN_PROGRESS | Same PG17 job passes56 dirty cases then would_change_supplier_switch_events fails exact expectation because its synthetic supplier_switch_requests parent lacks customer_id. Retain checker and exact category equality; complete fixture and rerun all cases. |
+| F-IMPORT-FIXTURE-002 / Medium / verification | VERIFIED_CLOSED | Correctiona0465abb/published236637eb completes the synthetic parent column; scoped review approved. PG17 job102662038207 passes all58 exact dirty cases plus final-gate/read-only/snapshot cases, keeping checker and expectations unchanged; checkpoint job102666415931 also PASS. |
 | Publication access | SUPERSEDED blocker | Authenticated create_tree/create_commit/non-force update_ref succeeded. Exact fetched tree verified; prior local history preserved. |
 | Production binding | VERIFIED_OPEN | Vercel production app.gridex.se remains dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c / maineb9a25bc. Login200. Connected Supabase piidsfebjqjmnepdpnas: ledger279/tail20260904222450,502 tables,160 views,632 functions,332 user triggers. Separate connector identities do not prove server runtime DB binding. |
 

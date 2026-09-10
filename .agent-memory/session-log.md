@@ -953,3 +953,18 @@ Local checkout cannot be fetched/reconciled while offline; on resume fetch this
 branch, preserve any local tracked edits and ignored draft/reports, then reconcile
 status by content before editing. Do not discard the separate Ediel worktree.
 No production mutation, merge or deployment. Required red gates remain blocking.
+
+2026-09-10 Continuation: environment restored; local branch fast-forwarded25cb2c2b,
+pre-checkpoint status edits preserved in named stash. Hosted checkpoint OPS34411408397
+job logs inspected: auth102666415931 PASS prior14 including exact dirty-category
+preservation and coherent snapshot; quality102666415994 and Ediel102666416085 PASS.
+Verify102666415708 fails generated-types tail20260909123000; clean102666415974
+fails before full replay. Fresh input accounting593:518/26/45/4. No phase closure.
+Task8 design3986a755+87b45d8d independently approved after seed/index expectation
+corrections; actual SQL unexecuted. Task9 fixed whole-source fixture implementation
+active, selectors unchanged; Task10 selection requires hosted proof. User explicitly
+authorizes necessary production merge/migrations/deployment after verification.
+
+2026-09-10 Task9 correction3bb0d79f: author static compile/selection/emit/group-selftest/diff PASS; independent scoped review reports eight consolidated groups addressed. Pre-existing first-I CTAS system-column-name collision remains a concrete execution blocker for integrated review/fix. All Task9 SQL remains NOT EXECUTED. No source selection or production action.
+
+2026-09-10 Task9 code34df3d0a: four integrated findings corrected and independently scoped approved, no new material breakage. Exact ACL/retained-identity, first-F allowed offer delta, CTAS alias and native6D2 rollback oracles have focused RED-before/GREEN-after static regressions. Compile/selection/emit/group/integrity/provenance/accounting PASS. Code approved for hosted publication; SQL NOT EXECUTED, Task9 acceptance OPEN. No selector or production change.

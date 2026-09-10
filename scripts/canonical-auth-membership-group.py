@@ -21,6 +21,7 @@ COMMANDS = (
     ('python3', 'scripts/canonical-operations-sync-selftest.py'),
     ('python3', 'scripts/invitation_token_prerequisite_selftest.py'),
     ('python3', 'scripts/canonical-import-admission-selftest.py'),
+    ('python3', 'scripts/canonical-full-governance-source-selftest.py'),
 )
 
 def main():

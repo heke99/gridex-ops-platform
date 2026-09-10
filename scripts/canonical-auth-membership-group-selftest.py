@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Verify the fixed auth/membership group runner and consolidated memory."""
+from contextlib import redirect_stdout
 import hashlib
+import io
+import importlib.util
 import json
 import os
 import re
@@ -29,6 +32,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-operations-sync-selftest.py'],
     ['python3', 'scripts/invitation_token_prerequisite_selftest.py'],
     ['python3', 'scripts/canonical-import-admission-selftest.py'],
+    ['python3', 'scripts/canonical-full-governance-source-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -44,7 +48,67 @@ def run(*args, cwd=ROOT, env=None):
     return subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True, check=False)
 
 
+def whole_correction_constructors():
+    """Database-free regression of the four integrated SQL construction contracts."""
+    spec = importlib.util.spec_from_file_location('task9', ROOT / 'scripts/canonical-full-governance-source-selftest.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    oracle = module.oracle
+    # Restoring proacl IS NULL or dropping explicit client/owner/PUBLIC tuples must fail.
+    acl_sql = oracle.f_function_postflight_sql() + oracle.governance_function_postflight_sql() + module.downstream_checks_sql(True)
+    assert 'proacl is null' not in acl_sql.lower(), 'managed functions have explicit inherited ACLs'
+    expected_acl = [['PUBLIC', 'EXECUTE', False, 'postgres'], ['anon', 'EXECUTE', False, 'postgres'],
+                    ['authenticated', 'EXECUTE', False, 'postgres'], ['postgres', 'EXECUTE', False, 'postgres'],
+                    ['service_role', 'EXECUTE', False, 'postgres']]
+    assert json.dumps(expected_acl) in acl_sql
+    assert acl_sql.count(json.dumps(expected_acl)) == 23  # F5, 6D2 eleven, downstream seven.
+    assert "aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))" in acl_sql
+    assert 'a.is_grantable' in acl_sql and 'a.grantor' in acl_sql
+    assert 'b.oid<>p.oid or b.acl is distinct from' in acl_sql
+    calls = []
+    module.psql_sql = lambda sql, **k: calls.append(('sql', sql))
+    module.psql_file = lambda path, **k: calls.append(('file', path, k))
+    for alias in ('F', '6D2'):
+        calls.clear()
+        module.source(alias)
+        assert len(calls) == 2 and calls[0][0] == 'sql' and calls[1][0] == 'file'
+        assert 'insert into task9_function_acls_before' in calls[0][1]
+        assert 'pg_get_function_identity_arguments(p.oid)' in calls[0][1]
+        calls.clear()
+        module.source(alias, expected='23514')
+        assert len(calls) == 1 and calls[0][0] == 'file', 'native failure snapshots must stay untouched'
+    # First F gets one precise delta; every repeat uses full row equality.
+    first = oracle.stage_preserved_sql('f_first', ('roles', 'permissions', 'role_permissions'))
+    repeat = oracle.stage_preserved_sql('f_repeat')
+    assert "to_jsonb(t)-array['last_versioned_at','version_note']::text[]" in first
+    assert "b.value ?| array['last_versioned_at','version_note']::text[]" in first
+    assert "to_jsonb(t)->'last_versioned_at' is distinct from 'null'::jsonb" in first
+    assert "to_jsonb(t)->'version_note' is distinct from 'null'::jsonb" in first
+    assert "('last_versioned_at','timestamptz'::regtype),('version_note','text'::regtype)" in first
+    assert 'a.attnotnull or d.oid is not null' in first
+    assert "t.id::text=b.id and to_jsonb(t)=b.value" in repeat and 'first-F' not in repeat
+    main_text = (ROOT / 'scripts/canonical-full-governance-source-selftest.py').read_text()
+    assert 'select tableoid as source_table_oid,id,to_jsonb(t)' in main_text
+    assert 'select source_table_oid,id,value from reduced_i_before' in main_text
+    assert '(select count(*) from customer_import_batches)+(select count(*) from customer_import_rows)' in main_text
+    # Capture constructed lane statements without a database; SQL remains NOT EXECUTED.
+    calls.clear()
+    module.reset_database = lambda *a, **k: None
+    module.psql_sql = lambda sql, **k: calls.append(('sql', sql))
+    module.source = lambda alias, **k: calls.append(('source', alias, k))
+    with redirect_stdout(io.StringIO()):
+        module.native_failure_lanes()
+    failure = calls.index(('source', '6D2', {'expected': '23514'}))
+    assert 'native_6d2_before_rows' in calls[failure - 1][1]
+    assert 'native_6d2_before_catalog' in calls[failure - 1][1]
+    after = calls[failure + 1][1]
+    assert 'count(*)=4 and bool_and(is_active)' in after
+    assert 'native_6d2_before_rows' in after and 'native_6d2_before_catalog' in after
+    assert after.count('except') >= 4, 'rollback requires two-way row AND catalog equality'
+
+
 def main():
+    whole_correction_constructors()
     emitted = run('python3', str(RBAC_FIXTURE), '--emit')
     assert emitted.returncode == 0, emitted.stderr
     for source in [
@@ -109,6 +173,90 @@ def main():
     assert 'all17 governance trigger identities/events/bindings retained through full6E' in prefix.stdout
     assert "'D','suspended'" not in prefix.stdout and "'D','locked_security'" in prefix.stdout
 
+    whole_selection = run('python3', str(ROOT / 'scripts/canonical-full-governance-source-selftest.py'), '--selection-only')
+    assert whole_selection.returncode == 0, whole_selection.stderr
+    whole_manifest = json.loads(whole_selection.stdout)
+    assert whole_manifest['sql'] == 'NOT EXECUTED'
+    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 78
+    assert whole_manifest['prefixPathSha256'] == 'ca5bba8be8cadae60b5e753addca0a6f4d7d835cf4f96bd3f3d91fb9734a8370'
+    assert [item['alias'] for item in whole_manifest['wholeSources']] == ['I', 'F', 'D', '6D2']
+    assert whole_manifest['canonicalSelectionUnchanged'] is True and whole_manifest['finalGates'] == 'OPEN'
+    whole_emit = run('python3', str(ROOT / 'scripts/canonical-full-governance-source-selftest.py'), '--emit')
+    assert whole_emit.returncode == 0, whole_emit.stderr
+    assert whole_emit.stdout.startswith('-- SQL NOT EXECUTED.')
+    assert whole_emit.stdout.count('-- WHOLE_SOURCE_FILE_BEGIN ') == 42
+    assert whole_emit.stdout.count('-- WHOLE_SOURCE_FILE_BEGIN bootstrap ') == 1
+    for path in order[:33] + whole_manifest['downstream']:
+        assert whole_emit.stdout.count('-- WHOLE_SOURCE_FILE_BEGIN ' + path + ' ') == 1, path
+    for item in whole_manifest['wholeSources']:
+        body = (ROOT / 'supabase' / item['path']).read_text()
+        assert whole_emit.stdout.count(body) == 1, item['path']
+    for marker in ['exact first33 -> I -> F(three-pair boundary) -> D -> 6D2 -> role-key/all6E',
+                   'EXPLICIT_SYNTHETIC_SUPER_ADMIN_SEED', 'FULL_GOVERNANCE_ADMISSION',
+                   'exact19 customer_import_batches positional type/nullability/default matrix', '6D2 exact28 operational INSERT/UPDATE-company triggers',
+                   'final ACL/RLS/retention/runtime/parity gates were not executed']:
+        assert marker in whole_emit.stdout, marker
+    whole_main = (ROOT / 'scripts/canonical-full-governance-source-selftest.py').read_text()
+    whole_sql = (ROOT / 'scripts/canonical_full_governance_sql.py').read_text()
+    assert "journal_oid := to_regclass('public.platform_session_revocations')" in whole_emit.stdout
+    admission_text = whole_emit.stdout.split('-- WHOLE_6D2_ADMISSION_BEGIN', 1)[1].split('-- WHOLE_EXPLICIT_SEED_AND_BEHAVIOR_BEGIN', 1)[0]
+    assert "'public.platform_session_revocations'::regclass" not in admission_text
+    assert "'public.platform_session_revocations_user_idx'::regclass" not in admission_text
+    assert "select exists(select 1 from pg_proc where pronamespace='public'::regnamespace and proname=split_part(signature,'(',1) and prokind='f') into same_name_exists;" in admission_text
+    assert "and prokind='f')\n       and to_regprocedure" not in admission_text
+    assert "exact_function_oid := to_regprocedure('public.'||signature);" in admission_text
+    assert "proargmodes=array['t'::\"char\"" in admission_text
+    assert "to_regclass('public.user_roles') is not null" in admission_text
+    assert "user_parent_ok := to_regclass('auth.users') is not null" in admission_text
+    assert "if user_parent_ok then" in admission_text and "if role_parent_ok then" in admission_text
+    assert "select 1 from pg_index where indexrelid=journal_index_oid and indrelid=journal_oid" in admission_text
+    assert "clean consumer fixture has zero row/batch owner mismatches" in whole_emit.stdout
+    assert "actual duplicate row numbers remain source-accepted" in whole_emit.stdout
+    assert "exact seven NULL/0/100 values" in whole_emit.stdout
+    assert "unsupported batch status exact native rejection" in whole_emit.stdout
+    assert 'create temporary table lifecycle_before' not in whole_sql and 'create table lifecycle_before' in whole_sql
+    assert 'linked_existing_customer\',\'unsupported' in whole_main
+    assert 'lock_timeout="1s", timeout="10s"' in whole_main
+    assert 'timeout=180' in whole_main and 'timeout=240' in whole_main and 'select.select' in whole_main
+    assert 'exact19 customer_import_batches positional type/nullability/default matrix' in whole_emit.stdout
+    assert 'exact import FK customer_import_rows.reviewed_by parent/action/raw validation' in whole_emit.stdout
+    assert 'all116 generic policy names/commands/roles/permissiveness/expressions' in whole_emit.stdout
+    assert 'all eight bespoke 6D2 policy identities/commands/roles/permissiveness' in whole_emit.stdout
+    assert 'array(select unnest(t.tgattr))' in whole_emit.stdout
+    assert 'D debug view exact15 names and honest missing_table/review_rls/ok results' in whole_emit.stdout
+    assert '6D2 journal exact columns/types/nullability/defaults' in whole_emit.stdout
+    assert 'F exact latest-contract filter body/signature/invoker/stable' in whole_sql
+    assert 'F latest-contract closed bucket exact' in whole_emit.stdout
+    assert 'overview exact counts/status buckets/greatest timestamp' in whole_emit.stdout
+    assert 'for mode, category in (("null", "would_change_ownership"), ("wrong", "conflicting_ownership"), ("orphan", "orphan_ownership_parent"))' in whole_main
+    assert 'source("F", expected="42P13")' in whole_main
+    assert 'source("D", expected="42P16")' in whole_main
+    assert 'POST6D2_TEMPLATE' in whole_main and 'RPC caught undefined-column branch returns empty' in whole_main
+    assert 'first I preserves existing import history table OIDs and values' in whole_main
+    assert 'F rename preserves table/index/FK OIDs' in whole_main
+    assert 'command = ["psql", "-X", "-qAt"' in whole_main
+    assert '.stdout.strip() == "t"' not in whole_main and 'if exists == "t"' not in whole_main
+    for relation in ['customer_contacts', 'customer_addresses', 'customer_contract_events',
+                     'supplier_switch_requests', 'supplier_switch_events', 'billing_underlays']:
+        assert f'"{relation}"' in whole_main
+    assert "reviewed_by=case when company_id='{C1}'" in whole_sql
+    assert 'C1 = "21000000-' in whole_sql and 'U2 = "11000000-' in whole_sql
+    assert 'all actors have owning-company membership' in whole_emit.stdout
+    assert 'drop constraint user_roles_status_check' not in whole_main
+    assert "('payload_version','text'::regtype,false,null::text)" in whole_sql
+    assert 'select * from public.gridex_user_company_ids()' in whole_emit.stdout
+    assert 'all eight bespoke policy expressions equal PostgreSQL-deparsed immutable source literals' in whole_emit.stdout
+    assert "array['is_active','disabled_at','disabled_by','status_reason']::text[]" in whole_sql
+    assert 'session_revoked_at' in whole_sql and 'user_profiles source-added nullable columns' in whole_sql
+    assert "'tenant_governance_events_select'" in whole_sql
+    assert 'task7.main_seed() + task7.table_sql("I"' in whole_main
+    assert 'select min(id) from company_invitations' not in whole_main
+    assert 'order by id limit 1' in whole_main
+    for marker in ['page_size zero clamps to one exact row', 'negative page_size clamps to one exact row',
+                   'page_num zero clamps to first-page exact rows', 'negative page_num clamps to first-page exact rows',
+                   'explicitly exclude archived and deleted_test_only companies']:
+        assert marker in whole_emit.stdout, marker
+
     dry = run('python3', str(RUNNER), '--dry-run')
     assert dry.returncode == 0, dry.stderr
     assert dry.stdout.splitlines() == [' '.join(command) for command in COMMANDS], dry.stdout
@@ -134,7 +282,7 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 14, observed
+        assert len(observed) == len(COMMANDS) == 15, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 

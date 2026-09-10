@@ -1,7 +1,13 @@
 # Current state
 
-Updated: 2026-09-09
+Updated: 2026-09-10
 Status: IN_PROGRESS
+
+Authorization 2026-09-10: user explicitly requests all necessary commits, pushes,
+PRs, production merges, migrations and deployments through the complete plan.
+Proceed after applicable verification gates; no renewed permission request is
+needed. Current isolated tasks make no production writes; that scoped boundary
+does not restrict later verified production convergence.
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Published baseline:
@@ -31,14 +37,32 @@ Both scoped code fixes independently reviewed; exact blocker equality retained.
 593 inputs remain518 full/26 substituted/45 unclassified/4 excluded,71 unresolved.
 Task7 bounded acceptance complete; no masterplan phase closed.
 
-Next active item: Task8 whole-source execution contract, proposed only and awaiting
-independent review. Local contract save failed when execution environment returned
-409 environment_offline; no Task8 code or source-selection change exists.
-Recovery summary: quality/audits/GOVERNANCE_FULL_SOURCE_EXECUTION_RECOVERY_2026-09-09.md.
-Current checkpoint and this evidence persisted via working GitHub connector.
-Local checkout cannot be fetched/reconciled while offline; on resume fetch this
-branch, preserve any local tracked edits and ignored draft/reports, then reconcile
-status by content before editing. Do not discard the separate Ediel worktree.
+Next active item: Task9 whole-source isolated execution proof. Task8 contract
+3986a755+87b45d8d independently approved after F-EXEC-SEED-001 (empty3-pair vs
+synthetic6-pair seed coverage) and F-EXEC-NATIVE-002 (native duplicate-token23505
+vs same-name-index skip) were corrected and re-reviewed. Contract approval is
+not executed SQL or canonical source-selection approval.
+Partial implementation cfcc5a60 adds the fixed15th runner lane; static checks
+PASS, all new SQL NOT EXECUTED. Independent review /root/whole_source_implementation_review
+returned Needs fixes. Correction round3 commit3bb0d79f implements the eight
+consolidated groups; scoped review approved them. Integrated review identified
+four harness defects, corrected in34df3d0a: exact inherited/retained function ACLs,
+first-F offer column preservation, first-I tableoid alias, and distinguishing
+native6D2 rollback row/catalog evidence. Independent integrated scoped re-review
+approved all four with no new material breakage. Code is approved for hosted
+verification publication; Task9 execution acceptance remains OPEN.
+Static regression RED-before/GREEN-after, compile, selection/emit, fixed runner,
+migration integrity, provenance and accounting PASS. SQL remains NOT EXECUTED.
+No source-selection or production change occurred. Next: publish this reviewed
+batch to existing PR310 and execute all15 commands on hosted PostgreSQL17.
+See Task9 ignored report; Task9 stays open. No selectors change before complete
+whole-source hosted evidence. Task10 selection follows.
+Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local
+status edits retained in stash continuation-20260910-pre-checkpoint-reconcile;
+unrelated Ediel worktree and ignored reports preserved.
+Fresh hosted checkpoint OPS34411408397: auth102666415931, quality102666415994,
+Ediel102666416085 PASS. Verify102666415708 and clean102666415974 remain FAIL at
+the same required migration/types and completeness steps. No phase closure.
 No production mutation, merge or deployment. Required red gates remain blocking.
 
 Task6 bounded implementation and isolated verification passed. Task5 contract
