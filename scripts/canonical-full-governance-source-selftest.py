@@ -251,14 +251,15 @@ def seeded_whole_lane() -> None:
 
 
 def catalog_fingerprint() -> str:
+    # Internal "char" and int2vector need explicit text to avoid || overloads.
     sql = """select md5(string_agg(v,'|' order by v)) from (
-select 'c:'||c.oid||':'||c.relkind||':'||c.relname||':'||c.relowner||':'||coalesce(c.relacl::text,'')||':'||coalesce(c.reloptions::text,'') v from pg_class c where c.relnamespace in ('public'::regnamespace,'auth'::regnamespace)
-union all select 'a:'||attrelid||':'||attnum||':'||attname||':'||atttypid||':'||atttypmod||':'||attnotnull||':'||attidentity||':'||attgenerated||':'||coalesce(pg_get_expr(d.adbin,d.adrelid),'') from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid in (select oid from pg_class where relnamespace in ('public'::regnamespace,'auth'::regnamespace)) and attnum>0 and not attisdropped
+select 'c:'||c.oid||':'||c.relkind::text||':'||c.relname||':'||c.relowner||':'||coalesce(c.relacl::text,'')||':'||coalesce(c.reloptions::text,'') v from pg_class c where c.relnamespace in ('public'::regnamespace,'auth'::regnamespace)
+union all select 'a:'||attrelid||':'||attnum||':'||attname||':'||atttypid||':'||atttypmod||':'||attnotnull||':'||attidentity::text||':'||attgenerated::text||':'||coalesce(pg_get_expr(d.adbin,d.adrelid),'') from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid in (select oid from pg_class where relnamespace in ('public'::regnamespace,'auth'::regnamespace)) and attnum>0 and not attisdropped
 union all select 'k:'||oid||':'||conname||':'||conrelid||':'||confrelid||':'||convalidated||':'||pg_get_constraintdef(oid) from pg_constraint where connamespace in ('public'::regnamespace,'auth'::regnamespace)
 union all select 'i:'||indexrelid||':'||indrelid||':'||indisvalid||':'||indisready||':'||indislive||':'||pg_get_indexdef(indexrelid) from pg_index where indrelid in (select oid from pg_class where relnamespace in ('public'::regnamespace,'auth'::regnamespace))
-union all select 'p:'||oid||':'||polrelid||':'||polname||':'||polcmd||':'||polpermissive||':'||polroles::text||':'||coalesce(pg_get_expr(polqual,polrelid),'')||':'||coalesce(pg_get_expr(polwithcheck,polrelid),'') from pg_policy
-union all select 'f:'||oid||':'||proname||':'||pg_get_function_identity_arguments(oid)||':'||prorettype||':'||proretset||':'||prosecdef||':'||provolatile||':'||proowner||':'||coalesce(proconfig::text,'')||':'||coalesce(proacl::text,'')||':'||md5(prosrc) from pg_proc where pronamespace in ('public'::regnamespace,'auth'::regnamespace)
-union all select 't:'||oid||':'||tgrelid||':'||tgname||':'||tgfoid||':'||tgtype||':'||tgattr||':'||tgenabled from pg_trigger where not tgisinternal
+union all select 'p:'||oid||':'||polrelid||':'||polname||':'||polcmd::text||':'||polpermissive||':'||polroles::text||':'||coalesce(pg_get_expr(polqual,polrelid),'')||':'||coalesce(pg_get_expr(polwithcheck,polrelid),'') from pg_policy
+union all select 'f:'||oid||':'||proname||':'||pg_get_function_identity_arguments(oid)||':'||prorettype||':'||proretset||':'||prosecdef||':'||provolatile::text||':'||proowner||':'||coalesce(proconfig::text,'')||':'||coalesce(proacl::text,'')||':'||md5(prosrc) from pg_proc where pronamespace in ('public'::regnamespace,'auth'::regnamespace)
+union all select 't:'||oid||':'||tgrelid||':'||tgname||':'||tgfoid||':'||tgtype||':'||tgattr::text||':'||tgenabled::text from pg_trigger where not tgisinternal
 ) x;"""
     parts = [psql_scalar(sql)]
     for relation in (

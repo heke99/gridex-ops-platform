@@ -80,10 +80,18 @@ passes complete I/F/D/6D2 postflight, then role-key and all three6E source files
 It fails the downstream import UPDATE policy oracle: 6E excludes import tables,
 so their retained6D2 policy uses read/write, not the assumed write/write. Correctione174d4e1 independently APPROVED: exact eight retained6D2 import policies,
 actual6E customers UPDATE replacement and full import-policy/OID preservation.
-Focused RED/GREEN, compile/group/selection/emit/diff PASS; corrected SQL pending.
+Focused RED/GREEN, compile/group/selection/emit/diff PASS. Published86383c92, exact
+reviewed treecfd5321a7bf7238e0a1b2468364170e2382b7b7e; fetched equality confirmed,
+local8e8cec8a archived before alignment. OPS34461460735/auth102820032935 passes
+both full-empty and seeded two-tenant lanes, consumer checks, source preservation/
+repeat and downstream composition. It fails entering dirty_admission_lanes in
+catalog_fingerprint: ambiguous text concatenation with internal PG char fields.
+Correction55e07ad6 independently APPROVED: explicit text casts for six internal
+char fields and tgattr; seven catalog branches and24 full-row checks preserved.
+Focused RED/GREEN, compile/group/selection/diff PASS; corrected hosted SQL pending.
 No historical source or selector changes; corrected whole-source acceptance pending.
 No full Task9 acceptance or source-selection change. Next: resolve/review/publish
-the observed downstream policy-winner mismatch and rerun hosted group, then dependent Task10.
+the observed catalog-fingerprint type mismatch and rerun hosted group, then dependent Task10.
 Quality102808527446 including build and Ediel102808527533 PASS;
 verify102808527272/clean102808527613 remain FAIL.
 See Task9 ignored report; Task9 stays open. No selectors change before complete

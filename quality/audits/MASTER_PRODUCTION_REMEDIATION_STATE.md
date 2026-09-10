@@ -380,9 +380,12 @@ independent scoped approval. Corrected PG17/full Task9 remains pending.
 | F-T9-RUNTIME-TIMEOUT-001 | VERIFIED_CLOSED in Task9 setup | Reviewed7c2b9123; subsequent hosted runs execute past positive-duration checks and actual first33. |
 | F-T9-RUNTIME-SEED-002 | VERIFIED_CLOSED in empty lane | Reviewedf07f3946; auth102813334149 executes seed snapshot, whole F/D/6D2. |
 | F-T9-RUNTIME-COLLATION-003 | VERIFIED_CLOSED in empty postflight | Reviewedbe74eb74; auth102816183689 passes complete postflight and all downstream source files. |
-| F-T9-RUNTIME-POLICY-WINNER-004 | IMPLEMENTED_NOT_VERIFIED | Reviewede174d4e1 corrects retained6D2 import versus replaced6E customers policies with full identity/set preservation; hosted corrected query pending. |
+| F-T9-RUNTIME-POLICY-WINNER-004 | VERIFIED_CLOSED in both main lanes | Reviewede174d4e1; auth102820032935 passes full-empty and seeded/repeat/downstream policy/identity checks. |
+| F-T9-RUNTIME-FINGERPRINT-005 | IMPLEMENTED_NOT_VERIFIED | Reviewed55e07ad6 explicitly casts internal catalog character/vector types; dirty/native execution pending. |
 
 No full source acceptance, canonical selection, production mutation, merge or
 masterplan phase closure is implied by these scoped receipts.
 
 2026-09-10 Policy-winner correctione174d4e1 independently approved: exact eight retained6D2 import policies, actual6E customers UPDATE replacement, command/PUBLIC/permissiveness/null-safe expressions and bidirectional full import-policy/OID preservation. Focused RED/GREEN; compile/group/selection/emit/diff PASS. Corrected hosted SQL pending. Latest5c943a77 quality102816183495 including build and Ediel102816183701 PASS; no source selection or production change.
+
+2026-09-10 Fingerprint correction55e07ad6 independently approved: explicit text casts for six internal char fields and tgattr preserve seven catalog branches and24 full-row checks. Focused RED/GREEN; compile/group/selection/diff PASS. Corrected dirty/native hosted execution pending. Latest86383c92 quality102820032805 including build and Ediel102820032618 PASS; no source selection or production change.

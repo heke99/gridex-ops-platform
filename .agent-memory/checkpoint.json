@@ -10,5 +10,5 @@
     "last_isolated_pg17_code": "236637eb2368a7035e61a844d2a4f5963bd2390d"
   },
   "execution_environment": "connected; branch reconciled to25cb2c2b; prior local edits preserved in named stash",
-  "next_action": "Task9 isolated whole-source implementation and independent review, then hosted PG17; Task10 canonical selection only after bounded acceptance. Full replay/types/parity remain open."
+  "next_action": "Continue Task9 hosted whole-source verification and reviewed runtime fixes; Task10 canonical selection only after full bounded acceptance. Full replay/types/parity and production delivery remain open."
 }

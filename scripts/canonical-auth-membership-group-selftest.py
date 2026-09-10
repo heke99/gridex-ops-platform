@@ -54,6 +54,23 @@ def whole_correction_constructors():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     oracle = module.oracle
+    # Construct the actual fingerprint without a database; all catalog branches
+    # and present-relation row queries must survive explicit text normalization.
+    fingerprint_calls = []
+    original_scalar = module.psql_scalar
+    try:
+        module.psql_scalar = lambda sql, **kwargs: (fingerprint_calls.append(sql) or 'fixture-value')
+        module.catalog_fingerprint()
+    finally:
+        module.psql_scalar = original_scalar
+    fingerprint = fingerprint_calls[0]
+    for field in ('c.relkind', 'attidentity', 'attgenerated', 'polcmd', 'provolatile', 'tgenabled', 'tgattr'):
+        assert '||' + field + '::text' in fingerprint, f'fingerprint must normalize {field} before concatenation'
+    assert re.findall(r"select '([cakipft]):'", fingerprint) == list('cakipft')
+    assert "md5(string_agg(v,'|' order by v))" in fingerprint
+    row_queries = [sql for sql in fingerprint_calls[1:] if 'string_agg(to_jsonb(t)::text' in sql]
+    assert len(row_queries) == 24
+    assert all("'|' order by to_jsonb(t)::text" in sql for sql in row_queries)
     # 6E replaces customer policies, but its target list excludes both imports.
     downstream = module.downstream_checks_sql(True)
     for table in ('customer_import_batches', 'customer_import_rows'):
