@@ -65,6 +65,26 @@ def check_support(sql):
         raise BoundaryError('ENVELOPE_REQUIRED')
 
 
+def validate_admission(sql):
+    """Require the transaction mutex before any target/catalog lookup or lock.
+
+    The fixed database-local two-int namespace belongs only to this offline
+    envelope. Exact preamble validation prevents a session lock, a second key,
+    or a catalog deparser inserted before serialization from reopening a cycle.
+    """
+    code=re.sub(r"--[^\n]*|/\*.*?\*/", " ", sql, flags=re.S)
+    preamble,separator,_=code.partition('DO $legacy$')
+    expected="""SET LOCAL lock_timeout = '10s';
+SET LOCAL statement_timeout = '60s';
+SET LOCAL search_path = public,extensions,pg_temp;
+SELECT pg_catalog.pg_advisory_xact_lock(20260910, 140053);
+"""
+    if (not separator or re.sub(r'\s+','',preamble)!=re.sub(r'\s+','',expected)
+        or len(re.findall(r'\bpg_advisory\w*\b',code))!=1):
+        raise BoundaryError('ADMISSION_LOCK_ORDER_MISMATCH')
+    check_support(sql)
+
+
 def verify_bytes(data,expected,line_count=None):
     if not re.fullmatch(r'[a-f0-9]{64}',expected or '') or digest(data)!=expected:
         raise BoundaryError('SOURCE_HASH_MISMATCH')
@@ -86,7 +106,8 @@ def validate_sources(paths):
         check_support(data.decode())
         result.append(Source(SOURCE_SPECS[i][0] if i<8 else 'Q',path,expected,data))
     for name in ('catalog','admission','assertions'):
-        check_support((SUPPORT/f'canonical-auth-provisioning-legacy-{name}.sql').read_text())
+        support=(SUPPORT/f'canonical-auth-provisioning-legacy-{name}.sql').read_text()
+        (validate_admission if name=='admission' else check_support)(support)
     return tuple(result)
 
 
@@ -365,6 +386,7 @@ def envelope_files(target,paths):
     context='SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\nCREATE TEMP TABLE legacy_reference(base jsonb NOT NULL,final jsonb) ON COMMIT DROP;\n'
     context+='INSERT INTO legacy_reference VALUES ('+literal(json.dumps(base))+'::jsonb,'+(literal(json.dumps(final))+'::jsonb' if final else 'NULL')+');\n'
     admission=(SUPPORT/'canonical-auth-provisioning-legacy-admission.sql').read_text()
+    validate_admission(admission)
     admission=admission.replace('-- LEGACY_CATALOG_CAPTURE',catalog_capture('legacy_catalog_before'))
     oracle_sql=ddl_oracles(sources)
     check_support(oracle_sql)

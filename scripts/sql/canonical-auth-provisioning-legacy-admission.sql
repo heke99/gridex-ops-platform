@@ -2,6 +2,12 @@
 SET LOCAL lock_timeout = '10s';
 SET LOCAL statement_timeout = '60s';
 SET LOCAL search_path = public,extensions,pg_temp;
+-- Serialize whole envelopes before any target relation lock or live catalog
+-- deparser. SHARE parent locks acquired by a waiting batch otherwise block the
+-- active batch's later FK DDL lock upgrades (for example auth.users in Q).
+-- This database-local, two-int key is fixed for every admitted contender; the
+-- mutex is released only by the same outer transaction's commit/rollback.
+SELECT pg_catalog.pg_advisory_xact_lock(20260910, 140053);
 DO $legacy$
 DECLARE r record; actual oid; expected oid; amount bigint;
 BEGIN

@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "936c9b44ca9a8924704d40ed288c141d348bf72a",
-    "last_isolated_pg17_code": "936c9b44ca9a8924704d40ed288c141d348bf72a"
+    "published_baseline": "f1409b2dc48b5d9f96a27fb7cf1ea02e44df9274",
+    "last_isolated_pg17_code": "f1409b2dc48b5d9f96a27fb7cf1ea02e44df9274"
   },
-  "execution_environment": "connected; branch aligned to published936c9b44; named pre-checkpoint stash preserved",
-  "next_action": "Publish independently approved failure3 fixes1f7fa237/95b64642; require complete legacy proof plus original16 on exact same head before Task8 selection."
+  "execution_environment": "connected; branch aligned to publishedf1409b2d; named pre-checkpoint stash preserved",
+  "next_action": "Publish independently approved deadlock fixb8a0366a; require full legacy plus original16 at exact same head before Task8. Last original16 PASS atf1409b2d; all prior failure3 corrections SQL PASS."
 }

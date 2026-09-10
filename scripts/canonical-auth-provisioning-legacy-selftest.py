@@ -40,6 +40,23 @@ def constructor_checks():
             else:
                 raise AssertionError('setup failure accepted as a source-native error')
     b = load_batch()
+    assert callable(getattr(b,'validate_admission',None)), 'admission must serialize before relation/catalog reads'
+    admission=(b.SUPPORT/'canonical-auth-provisioning-legacy-admission.sql').read_text()
+    mutex='SELECT pg_catalog.pg_advisory_xact_lock(20260910, 140053);'
+    b.validate_admission(admission)
+    # Missing, session-scoped, moved-after-locks, or pre-lock catalog access must
+    # fail construction before any source is submitted to PostgreSQL.
+    for bad in (admission.replace(mutex,''),
+                admission.replace('pg_advisory_xact_lock','pg_advisory_lock'),
+                admission.replace(mutex,'').replace('-- LEGACY_CATALOG_CAPTURE',mutex+'\n-- LEGACY_CATALOG_CAPTURE'),
+                admission.replace(mutex,"SELECT pg_get_constraintdef(oid) FROM pg_constraint;\n"+mutex),
+                admission.replace(mutex,mutex.replace('140053','140054'))):
+        try:
+            b.validate_admission(bad)
+        except b.BoundaryError:
+            pass
+        else:
+            raise AssertionError('unsafe admission mutex order/lifetime/key accepted')
     paths = b.reviewed_paths()
     sources = b.validate_sources(paths)
     assert len(sources) == 9 and ''.join(x.alias for x in sources) == 'ABCDEFHIQ'
@@ -519,8 +536,28 @@ def concurrency(b,h):
     first,path=spawn(h,database,files,'serialize_first')
     wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_serialize_first' AND wait_event='PgSleep')")
     second,spath=spawn(h,database,b.envelope_files(h,b.reviewed_paths()),'serialize_second')
-    wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_serialize_second' AND wait_event_type='Lock')")
+    # Observe the exact transaction mutex dependency, not an arbitrary Lock
+    # wait. The waiting contender must own no target relation lock that could
+    # block first's later FK lock upgrades or catalog deparsing.
+    wait_observed(h,database,"""EXISTS (
+SELECT 1 FROM pg_stat_activity first JOIN pg_stat_activity second
+ ON first.application_name='legacy_serialize_first' AND second.application_name='legacy_serialize_second'
+JOIN pg_locks held ON held.pid=first.pid
+JOIN pg_locks waiting ON waiting.pid=second.pid
+WHERE second.wait_event_type='Lock' AND second.wait_event='advisory'
+ AND held.locktype='advisory' AND held.granted AND held.mode='ExclusiveLock'
+ AND waiting.locktype='advisory' AND NOT waiting.granted AND waiting.mode='ExclusiveLock'
+ AND held.database=(SELECT oid FROM pg_database WHERE datname=current_database())
+ AND waiting.database=held.database AND held.classid=20260910 AND held.objid=140053 AND held.objsubid=2
+ AND waiting.classid=held.classid AND waiting.objid=held.objid AND waiting.objsubid=held.objsubid
+ AND first.pid=ANY(pg_blocking_pids(second.pid))
+ AND NOT EXISTS (SELECT 1 FROM pg_locks l JOIN pg_class c ON c.oid=l.relation
+ JOIN pg_namespace n ON n.oid=c.relnamespace WHERE l.pid=second.pid AND l.granted
+ AND l.locktype='relation' AND n.nspname IN ('public','auth','storage')))""")
     process_result(b,first,path,'serialize_first'); process_result(b,second,spath,'serialize_second')
+    for output in (path,spath):
+        assert b.re.findall(r'^LEGACY_STAGE_([A-Z]+)$',output.read_text(),b.re.M)==list('ABCDEFHI')+['COMPLETED']
+    print('PASS contenders observed transaction mutex wait without target relation locks; both whole batches completed')
     state=snapshot(h,database); b.execute(h,database,b.reviewed_paths()); unchanged(h,database,state)
     # Actual trigger DDL contention. The holder's catalog change rolls back;
     # admission cannot skip the wait and sees only the restored trusted shape.
