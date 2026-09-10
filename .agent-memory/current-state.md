@@ -11,19 +11,22 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `935eb5a09844b7a6ff78b7d3b2ab88cd74c0448f`, exact reviewed
-tree `f76e8689784356bda166a35c4ef0c016c05acc1f`; fetched equality and tracked-clean
-alignment PASS, localcce0e2ad archived. Last complete all17 actual-loop baseline
-5389f2b5: OPS34506822456 original16/auth102970940188 + legacy17/102970940105 PASS,
-quality/build102970939833 and Ediel102970940048 PASS. Both Task8 Minors closed.
-Current OPS34510573935 CLI-skeleton102983387043 PASS. Legacy17/102983386870
-FAILS before SQL: existing constructor slices legacy job until verify and captures
-the new sibling artifact upload. Confirmed brittle job boundary, not SQL failure;
-owned cleanup PASS. Task10 scoped selftest correction active before next delivery.
+Latest publication: `52f0dc731a76430abb16ecb4c21d81b3ab758c1b`, exact reviewed
+tree `d74829438f8936eee11d7309c4f1be121bbbce12`; fetched equality/tracked-clean
+alignment PASS, localec74423c archived. OPS34528124406 original16/auth103041949731 and legacy17/actual-loop103041949724
+both PASS; quality/build103041949607 and Ediel103041949852 PASS. Constructor correction7845090d independently APPROVED with no new findings.
+Current complete all17 actual-loop baseline is52f0dc73; constructor correction
+verified in the complete hosted path153419ms. No SQL/source-selection delta. Task10 actual CLI W verified at935eb5a0.
 
 
-Working-tree accounting is 595 inputs: 533 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 341 inputs: 290 selected, 20 substituted, 27 unclassified, and 4 excluded.
+Working-tree accounting is 596 inputs: 534 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 342 inputs: 291 selected, 20 substituted, 27 unclassified, and 4 excluded.
+Task11 W-only registration observed: actual CLI-created20260910174947 boundary
+adds one timestamp input and explicit focused-family classification. New W SQL
+is under implementation, not reviewed or executed. R2/E2/S2 remain UNCLASSIFIED,
+foundation93/all17 unchanged;58 total/47 focused unresolved. Published52f0dc73
+still has595/533/23/35/4 and341/290/20/27/4, with its accepted all17 baseline.
+
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
 Its complete standalone SQL execution is now verified with Task7; registration
@@ -37,20 +40,25 @@ Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
 
-Task10 IN_PROGRESS: actual CLI W artifact VERIFIED, scoped constructor correction
-committed7845090d and independently spec+quality APPROVED. Workflow39769c19
-was independently approved; actual hosted failure exposes brittle legacy selftest
-job slicing at164–167. Fix only its true top-level job extraction; preserve all
-forbidden upload/service/log/needs checks. Scoped rereview APPROVED with no new findings; constructor/compile/diff PASS.
+Task11 IMPLEMENTED_NOT_VERIFIED: commit383070ca implements unselected complete
+R2/E2/S2/W and authored independent owned/private PG17 proof (15 owned files).
+Independent spec+quality review APPROVED with one Minor T11-R1: native test
+check() accepts NULL postconditions; retain for next implicated test update/final
+review, no runtime guard bypass identified. T9-R1 is independently CLOSED. W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1.
+New/legacy constructors, fixed-group preservation, accounting29/groups15, cleanup17,
+diagnostics/RBAC provenance, integrity596/500 and syntax/diff checks PASS. No new
+SQL execution, source selection or production action. T9-R1 corrected in docs,
+independent closure confirmed. Legacy owned target/reference and original17 preserved.
+Task9 design4deefce5 approved; T9-R1 selected39 dependency citation carried into
+implementation. Task10 workflow39769c19 and constructor correction7845090d both
+independently approved; fresh all17 hosted receipt VERIFIED at52f0dc73.
 CLI2.101.0 job102983387043 at935eb5a0 created actual W:
 20260910174947_canonical_user_rbac_repair_boundary.sql. Artifact10165602317,
 ZIP224/SHA2563af4016441baf2e0eb4c1dcaa3085bdfdbfba95ab38e4e973aeeef675a0f7d30,
 sole empty member SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,
-retrieved and verified in ignored SDD workspace. urllib transport403, ordinary
-curl retrieval succeeded; no access escalation or fabricated artifact.
-Task9 design4deefce5 independently APPROVED; Minor T9-R1 selected39 dependency
-traceability follows implementation/final review. T10-R1 report label only:
-default dry-run is all17, not original16. No new source selection or SQL acceptance.
+retrieved and verified in ignored SDD workspace. Reuse this exact member; later
+skeleton reruns do not supersede it. T10-R1 report label only: default dry-run
+is all17, not original16. No new source selection or SQL acceptance.
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
 Task7: COMPLETE standalone hosted PostgreSQL proof PASS at4130cdd9,
@@ -97,9 +105,8 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish the reviewed Task10 constructor-boundary correction; then implement
-complete R2/E2/S2/W from actual retrieved skeleton under Task11, preserving
-last accepted all17 and obtaining fresh exact-head acceptance for amended code. Preserve verified first52/foundation93 and
+Next: publish Task11 exact reviewed batch and obtain original17 plus complete new SQL proof
+on same head before Task12 source selection/actual staged integration. Preserve verified first52/foundation93 and
 all17 command union. Remaining58 inputs, native full replay/types and production
 gates stay open. Task8 selection is accepted only within its isolated proof.
 Five business targets must be empty; existing role identities/metadata require

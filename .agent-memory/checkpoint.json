@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "935eb5a09844b7a6ff78b7d3b2ab88cd74c0448f",
-    "last_isolated_pg17_code": "5389f2b51dac46fd00e858a9cddb27b676f678ca"
+    "published_baseline": "52f0dc731a76430abb16ecb4c21d81b3ab758c1b",
+    "last_isolated_pg17_code": "52f0dc731a76430abb16ecb4c21d81b3ab758c1b"
   },
-  "execution_environment": "connected; branch aligned published935eb5a0; named stash preserved",
-  "next_action": "Publish reviewed constructor correction7845090d with synced status; obtain fresh all17. Actual W20260910174947 skeleton verified. Then Task11 complete R2/E2/S2/W implementation/proof; remaining58/native replay/types/production open."
+  "execution_environment": "connected; aligned published52f0dc73; named stash preserved",
+  "next_action": "Task11 code383070ca independently APPROVED; T9-R1 closed, Minor T11-R1 NULL native assertion retained. Publish exact batch then original17 + complete new PG17 proof before Task12 selection/staging/all18. W51849cf9, working596/534/23/35/4 and58 unresolved."
 }

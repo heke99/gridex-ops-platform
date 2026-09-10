@@ -4,7 +4,7 @@ Status: **EXECUTABLE DESIGN; IMPLEMENTATION, HOSTED SQL ACCEPTANCE AND SELECTION
 
 ## Decision and unchanged authority
 
-The next restoration batch is **complete R2, E2 and S2, followed immediately by one new fail-closed forward boundary W**. Aliases, hashes and all statement units are defined in `USER_RBAC_REPAIR_SOURCE_EFFECTS_2026-09-10.md`. This three-source batch can execute unchanged within one transaction: R2 supplies helpers used by S2; E2 shares the invitation prerequisite and has no target-identity prerequisite. R2 changes the role catalog and weakens the platform helper; S2 installs permissive PUBLIC policies and two sources create diagnostics. W must preserve preexisting role rows, restore the first52 platform helper and touched policy/RLS preimages, and make new diagnostic interfaces private before commit. Zero business targets alone does not secure catalog effects.
+The next restoration batch is **complete R2, E2 and S2, followed immediately by one new fail-closed forward boundary W**. Aliases, hashes and all statement units are defined in `USER_RBAC_REPAIR_SOURCE_EFFECTS_2026-09-10.md`. This three-source batch can execute unchanged within one transaction: R2 supplies the platform helper used by S2; selected39 supplies its company read/write helpers; E2 shares the invitation prerequisite and has no target-identity prerequisite. R2 changes the role catalog and weakens the platform helper; S2 installs permissive PUBLIC policies and two sources create diagnostics. W must preserve preexisting role rows, restore the first52 platform helper and touched policy/RLS preimages, and make new diagnostic interfaces private before commit. Zero business targets alone does not secure catalog effects.
 
 B0/C2/D2/F2 cannot successfully execute with their fixed Auth identity absent. D2/F2/H2 explicitly COMMIT internally. They have **separate concrete characterization and admission tasks below**, not exclusions, edited fragments, indefinite deferrals or a claim that errors count as complete execution. H2 is independent of hardcoded-user existence; its DML/COMMIT needs its own owned database lifecycle. B0/C2 have no COMMIT and can be characterized with genuine transaction rollback. Synthetic successful source execution does not by itself admit any of these five to the canonical selector.
 
@@ -43,6 +43,14 @@ Use one connection with `psql -X --single-transaction -v ON_ERROR_STOP=1`, separ
 8. Run all three originals, including every diagnostic SELECT, to completion privately. Mark each completed stage in the same transaction. W requires S2 stage and matching context/txid; absence/mismatch rejects before mutation. Assertions must finish before commit and prove every allowed row/catalog delta below. No partial source success receipt, role-restoration warning or ignored SQL error permits continuation.
 
 This is an isolated admission boundary, not a new rule that runtime tenant-role assignments or invitations must be empty. It is not permission to query production to find an empty window.
+
+S2 dependency authority (T9-R1 resolved): `gridex_can_read_company(uuid)` and
+`gridex_can_write_company(uuid)` come from selected39
+`20260520_batch_6e_rbac_tenant_stats_whitelabel.sql:155–170,190–208`;
+write also depends on `gridex_company_is_writable(uuid)`. R2 supplies only the
+platform helper among these three policy callees. Task11 binds complete first52
+catalog definitions/options/owners/ACLs and restores selected41's platform helper
+preimage; it does not re-run selected39/41 effects.
 
 ## W's exact forward obligations
 
