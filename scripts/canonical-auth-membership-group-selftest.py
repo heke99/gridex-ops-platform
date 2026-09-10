@@ -35,6 +35,7 @@ COMMANDS = [
     ['python3', 'scripts/canonical-full-governance-source-selftest.py'],
     ['python3', 'scripts/canonical-auth-provisioning-diagnostics-selftest.py'],
     ['python3', 'scripts/canonical-auth-provisioning-legacy-selftest.py'],
+    ['python3', 'scripts/canonical-user-rbac-repair-selftest.py'],
 ]
 HASHES = {
     'current-state.md': '404a2ee5d21f476e108c0efa17a3f45f9b2501db9f27fe3659378373dac08bf8',
@@ -460,7 +461,7 @@ def main():
     assert whole_selection.returncode == 0, whole_selection.stderr
     whole_manifest = json.loads(whole_selection.stdout)
     assert whole_manifest['sql'] == 'NOT EXECUTED'
-    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 93
+    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 97
     assert whole_manifest['prefixPathSha256'] == 'ca5bba8be8cadae60b5e753addca0a6f4d7d835cf4f96bd3f3d91fb9734a8370'
     assert [item['alias'] for item in whole_manifest['wholeSources']] == ['I', 'F', 'D', '6D2']
     assert whole_manifest['canonicalSelectionReviewed'] is True and whole_manifest['finalGates'] == 'OPEN'
@@ -565,16 +566,25 @@ def main():
         assert passed.returncode == 0, (passed.returncode, passed.stderr)
         observed = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [[command[1], *command[2:]] for command in COMMANDS]
-        assert len(observed) == len(COMMANDS) == 17, observed
+        assert len(observed) == len(COMMANDS) == 18, observed
         assert observed == expected, observed
         assert passed.stdout.splitlines() == [' '.join(command) for command in COMMANDS], passed.stdout
 
-        for partition, selected in (('original16',expected[:16]),('legacy17',expected[16:])):
+        partitions={}
+        for partition, selected in (('original16',expected[:16]),('legacy17',expected[16:17]),('repair18',expected[17:18]),('all17',expected[:17]),('all18',expected)):
             log.write_text('')
             result=run('python3',str(fixture / 'scripts' / RUNNER.name),'--partition',partition,cwd=fixture,env=environment)
             assert result.returncode==0
-            assert [json.loads(line) for line in log.read_text().splitlines()]==selected
+            executed=[json.loads(line) for line in log.read_text().splitlines()]
+            assert executed==selected
+            partitions[partition]=executed
 
+        union=[tuple(command) for name in ('original16','legacy17','repair18') for command in partitions[name]]
+        assert Counter(union)==Counter(map(tuple,expected)) and all(count==1 for count in Counter(union).values())
+        assert partitions['all17']==expected[:17] and partitions['all18']==expected
+        workflow=(ROOT/'.github/workflows/ops-hardening.yml').read_text()
+        for name in ('original16','legacy17','repair18'):
+            assert workflow.count('scripts/canonical-auth-membership-group.py --partition '+name)==1
         log.write_text('')
         environment['FAIL_COMMAND'] = json.dumps(expected[2])
         failed = run('python3', str(fixture / 'scripts' / RUNNER.name), cwd=fixture, env=environment)

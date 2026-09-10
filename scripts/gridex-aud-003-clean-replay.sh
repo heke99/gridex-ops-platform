@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PREFIX_PROOF=false
-if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then PREFIX_PROOF=true;
+REPLAY_SCOPE=full
+SCOPE_FLAGS=()
+if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=legacy52; SCOPE_FLAGS=(--foundation-prefix-proof);
+elif [[ "${1:-}" == --repair-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=repair56; SCOPE_FLAGS=(--repair-prefix-proof);
 elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -34,6 +36,7 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
+ACCOUNTING_PROOF="$(mktemp)"
 WORKTREE_MUTATED=false
 # Only the parent-owned compatible transport supports the selected sensitive
 # batch. CLI/native genesis and generic external URLs have no accepted ownership,
@@ -69,7 +72,7 @@ cleanup(){
       echo "replay migration restore failed; recovery copy retained at $HOLD" >&2
       restore_failed=true
     fi
-    if cp "$SEED_BACKUP" "$SEED"; then
+    if cp "$SEED_BACKUP" "$SEED" && touch -r "$SEED_BACKUP" "$SEED"; then
       rm -f "$SEED_BACKUP"
     else
       echo "replay seed restore failed; recovery copy retained at $SEED_BACKUP" >&2
@@ -78,7 +81,7 @@ cleanup(){
   else
     rm -rf "$HOLD" "$SEED_BACKUP"
   fi
-  rm -rf "$LEDGER_MARKERS" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
+  rm -rf "$LEDGER_MARKERS" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" "$ACCOUNTING_PROOF"
   if [[ "$status" == 0 && "$restore_failed" == true ]]; then status=1; fi
   exit "$status"
 }
@@ -123,13 +126,12 @@ fi
 # Input accounting must finish before originals are moved or a database starts.
 # A selected bootstrap is not evidence that its complete historical effects were
 # preserved. Keep unresolved substitutions blocking, not silently exempted.
-if [[ "$PREFIX_PROOF" == true ]]; then
+if [[ "$REPLAY_SCOPE" != full ]]; then
   # Explicitly bounded integration proof. Never writes replay artifacts/types or
   # claims completeness. Context binds this scope to the owned parent process.
-  python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context --foundation-prefix-proof
+  python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context "${SCOPE_FLAGS[@]}"
 else
-  mkdir -p "$ROOT/artifacts"
-  python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ROOT/artifacts/replay-input-accounting.json"
+  python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ACCOUNTING_PROOF"
   python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context
 fi
 
@@ -137,6 +139,7 @@ copy_replay_entries "$MIGRATIONS" "$HOLD"
 # Carry only directory timestamps onto the private HOLD; never its permissions.
 touch -r "$MIGRATIONS" "$HOLD"
 cp "$SEED" "$SEED_BACKUP"
+touch -r "$SEED" "$SEED_BACKUP"
 # Arm restoration only after both copies succeed, before the first mutation.
 WORKTREE_MUTATED=true
 rm -f "$MIGRATIONS"/*.sql
@@ -330,6 +333,7 @@ PY
 # Compatible mode carries NO ledger provenance. No CLI marker or provider
 # bootstrap is asserted equivalent to this explicitly synthetic surface.
 echo "[GRIDEX-REM-002 replay] owned compatible mode: NO ledger provenance"
+python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --validate-foundation --foundation "$FOUNDATION_EXEC" --hold "$HOLD" "${SCOPE_FLAGS[@]}"
 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
 
 apply_sql(){
@@ -339,10 +343,11 @@ apply_sql(){
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 # The same production foundation loop handles retained first43 and exactly
-# A44/B45/C46/D47/E48/F49/H50/I51/Q52 in its one-connection envelope.
-python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --foundation "$FOUNDATION_EXEC" --hold "$HOLD"
-if [[ "$PREFIX_PROOF" == true ]]; then
-  echo "[GRIDEX-REM-002 replay] PASS bounded first52 integration only; NO ledger provenance; full replay/artifacts/types remain blocked"
+# A44/B45/C46/D47/E48/F49/H50/I51/Q52 then R2/E2/S2/W53–56, each group
+# in its own same-connection envelope on the identical owned replay database.
+python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --foundation "$FOUNDATION_EXEC" --hold "$HOLD" "${SCOPE_FLAGS[@]}"
+if [[ "$REPLAY_SCOPE" != full ]]; then
+  echo "[GRIDEX-REM-002 replay] PASS bounded $REPLAY_SCOPE integration only; NO ledger provenance; full replay/artifacts/types remain blocked"
   exit 0
 fi
 poa_live_prerequisite_applied=false
@@ -447,4 +452,6 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[GRIDEX-REM-002 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
+mkdir -p "$ROOT/artifacts"
+cp "$ACCOUNTING_PROOF" "$ROOT/artifacts/replay-input-accounting.json"
 echo '[GRIDEX-REM-002 replay] PASS: owned compatible schema diagnostic; NO ledger provenance'

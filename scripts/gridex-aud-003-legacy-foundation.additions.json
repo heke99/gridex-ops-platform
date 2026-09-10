@@ -57,7 +57,11 @@
     "migrations/20260527_fix_company_user_invite_runtime_columns.sql",
     "migrations/20260528_final_user_access_schema_safe_repair.sql",
     "migrations/20260528_fix_user_roles_without_role_column_and_compact_users.sql",
-    "migrations/20260910140053_canonical_auth_provisioning_legacy_boundary.sql"
+    "migrations/20260910140053_canonical_auth_provisioning_legacy_boundary.sql",
+    "migrations/20260525_debug_batch_2_rbac_tenant_alignment.sql",
+    "migrations/20260525_debug_batch_2e_verify_dashboard_user_provisioning.sql",
+    "migrations/20260526_debug_batch_2_tenant_rbac_server_actions.sql",
+    "migrations/20260910174947_canonical_user_rbac_repair_boundary.sql"
   ],
   "interleaved": [
     {

@@ -75,6 +75,7 @@ exit 73
 
     def execute_replay(self, *arguments):
         self.migration_mtime_ns=self.migrations.stat().st_mtime_ns
+        self.seed_mtime_ns=self.seed.stat().st_mtime_ns if self.seed.exists() else None
         env = {'PATH': str(self.bin), 'TMPDIR': str(self.tmp), 'FIXTURE': str(self.root)}
         if self.context:
             env.update(GRIDEX_REPLAY_DB_URL='owned-compatible', GRIDEX_REPLAY_OWNED_SOCKET=str(self.root / 'synthetic-context'))
@@ -91,6 +92,8 @@ exit 73
                          'replay changed the original migrations-directory mode')
         self.assertEqual(self.migrations.stat().st_mtime_ns,self.migration_mtime_ns,
                          'replay changed the original migrations-directory mtime')
+        if self.seed_mtime_ns is not None:
+            self.assertEqual(self.seed.stat().st_mtime_ns,self.seed_mtime_ns,'replay changed seed mtime')
         self.assertEqual(list(self.tmp.iterdir()), [], 'successful cleanup leaked temporary files')
         return result
 
@@ -98,11 +101,58 @@ exit 73
         return self.calls.read_text().splitlines() if self.calls.exists() else []
 
     def test_invalid_scope_allocates_no_temporary_paths(self):
-        for arguments in (('--unsupported',), ('--foundation-prefix-proof', 'extra')):
+        for arguments in (('--unsupported',), ('--foundation-prefix-proof', 'extra'), ('--foundation-prefix-proof','--repair-prefix-proof'), ('--repair-prefix-proof','56')):
             with self.subTest(arguments=arguments):
                 result=self.run_replay(1,*arguments)
                 self.assertIn('unsupported replay scope',result.stderr)
                 self.assertEqual(self.supabase_calls(),[])
+
+    def test_both_named_scopes_reach_staging_without_artifacts(self):
+        for flag in ('--foundation-prefix-proof','--repair-prefix-proof'):
+            with self.subTest(flag=flag):
+                self.run_replay(73,flag)
+                self.assertFalse((self.root/'artifacts').exists())
+
+    def test_named_scope_success_validates_before_bootstrap_and_restores(self):
+        for flag in ('--foundation-prefix-proof','--repair-prefix-proof'):
+            with self.subTest(flag=flag):
+                log=self.root/'transport-calls'
+                log.unlink(missing_ok=True)
+                self.stub('python3', """
+if [[ "$1" == */gridex-replay-input-accounting.py ]]; then exit 98; fi
+if [[ "$1" == */canonical-auth-provisioning-replay.py ]]; then
+  printf '%s\\n' "$*" >> "$FIXTURE/transport-calls"
+fi
+exit 0
+""")
+                self.stub('psql', """
+[[ -f "$FIXTURE/transport-calls" ]] || exit 97
+printf 'bootstrap\\n' >> "$FIXTURE/transport-calls"
+exit 0
+""")
+                self.run_replay(0,flag)
+                calls=log.read_text().splitlines()
+                self.assertEqual(len(calls),4)
+                self.assertIn('--context '+flag,calls[0])
+                self.assertIn('--validate-foundation',calls[1])
+                self.assertEqual(calls[2],'bootstrap')
+                self.assertIn('--foundation',calls[3])
+                self.assertNotIn('--validate-foundation',calls[3])
+                self.assertTrue(all(flag in calls[i] for i in (0,1,3)))
+                self.assertFalse((self.root/'artifacts').exists())
+
+    def test_full_scope_never_reopens_originals_for_accounting(self):
+        self.stub('python3', """
+if [[ "$1" == */gridex-replay-input-accounting.py ]]; then
+  [[ -f "$FIXTURE/supabase/migrations/20260101000000_first.sql" ]] || exit 96
+  printf 'synthetic-accounting\\n'
+fi
+exit 0
+""")
+        self.stub('psql','exit 0')
+        result=self.run_replay(1)
+        self.assertIn('POA live-schema prerequisite boundary was not reached',result.stderr)
+        self.assertFalse((self.root/'artifacts').exists())
 
     def test_real_staging_keeps_hold_private_and_retains_hidden_entries(self):
         (self.migrations / '.hidden-source.sql').write_text('-- hidden synthetic source\n')

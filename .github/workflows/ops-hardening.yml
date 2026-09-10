@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify unselected complete R2 E2 S2 W on private owned PostgreSQL 17
-        run: python3 scripts/canonical-user-rbac-repair-selftest.py
+        run: python3 scripts/canonical-auth-membership-group.py --partition repair18
       - name: Remove only the owned repair proof container
         if: always()
         run: python3 scripts/canonical-user-rbac-repair-selftest.py --cleanup-owned

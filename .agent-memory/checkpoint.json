@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "517fdb1acf27d479f5b631de17edaedc35cc8907",
-    "last_isolated_pg17_code": "517fdb1acf27d479f5b631de17edaedc35cc8907"
+    "published_baseline": "62d60d76915f183bc028b8d2efa0f4b6051f8ae3",
+    "last_isolated_pg17_code": "62d60d76915f183bc028b8d2efa0f4b6051f8ae3"
   },
-  "execution_environment": "connected; aligned published517fdb1a; named stash preserved",
-  "next_action": "Publish independently APPROVED correction4 704e6105; explicit valid profiles/fail-closed canaries. Then same-head all17/complete new PG17 proof. Last517fdb1a all17 and actual new batch/repeat PASS.58 unresolved/no selection/prod."
+  "execution_environment": "connected; aligned published62d60d76; named stash preserved",
+  "next_action": "Publish APPROVED Task12 775af96c/29196b20 then same-head all18/actual legacy52+repair56/quality/Ediel. Minor T12-R1 step label deferred to next required workflow edit. Working55 unresolved/no prod."
 }

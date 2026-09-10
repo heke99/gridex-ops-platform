@@ -11,35 +11,36 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `517fdb1acf27d479f5b631de17edaedc35cc8907`, exact reviewed
-tree `9ced98d2af7847ab0ba41f7a16a59e578e35ebdc`; fetched equality/tracked-clean
-alignment PASS, locala85245af archived. Correction3 4fc34ae9 independently APPROVED:
-qualified distinct role_row alias removes admission record-variable42702 collision.
-Targeted regression/syntax/preservation PASS; no migration/W/history changes.
-OPS34536907210 newjob103070546491: assertion_semantics PASS1080ms, then
-actual complete R2/E2/S2/W and full repeat00000 with exact catalog/snapshot checks;
-actual-first52 presence01111111110011111 PASS. Next seeded_fixture fails42703
-(CATALOG_MISMATCH); cleanupPASS. Correction4 seeded fixture/schema diagnosis
-assigned to fresh higher-tier author per SDD; complete standalone proof still OPEN.
-Previous017d47e7 newproof103068535778 verified catalog/snapshot fixes, T11-R1
-NULL/empty-scalar controls and called/uncalled sequence regression (1144ms), then
-first whole_batch42702; owned cleanup PASS. Complete new acceptance still OPEN.
-All17 at517fdb1a PASS: original16/auth103070546492 and legacy17/actual-loop103070546303; quality103070546351 and Ediel103070546129 PASS. No selection/production changes.
+Latest publication: `62d60d76915f183bc028b8d2efa0f4b6051f8ae3`, exact reviewed
+tree `8d7f6166fe86ff5b3fad8020865e75be42a2e370`; fetched equality/tracked-clean
+alignment PASS, local319e70bc archived. Correction4 704e6105 independently APPROVED:
+explicit actual-schema profile canaries replace absent-column/zero-row assumptions,
+fail-closed presence/status/company checks and targeted constructor regression PASS.
+OPS34538019180 complete new proof103074034327 PASS166773ms; all10 lanes,
+actual/seeded/repeat, policy preimages, dirty/native/rollback/concurrency/security/
+private logging and owned cleanup/canary PASS. Legacy17/actual-loop103074034431
+PASS144187ms, quality103074034377 and Ediel103074034395 PASS. Original16/auth
+103074034403 PASS; same-head union gate satisfied and Task11 COMPLETE.
+Last517fdb1a all17 original16/auth103070546492 and legacy103070546303, quality103070546351,
+Ediel103070546129 PASS. New actual complete batch/repeat+catalog/rows and prior NULL/
+sequence controls PASS; seeded_fixture42703 led to this reviewed correction.
+No R2/E2/S2 selection, full replay/type refresh or production action.
 
 
-Working-tree accounting is 596 inputs: 534 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 35 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 342 inputs: 291 selected, 20 substituted, 27 unclassified, and 4 excluded.
-Task11 W-only registration observed: actual CLI-created20260910174947 boundary
-adds one timestamp input and explicit focused-family classification. New W SQL
-is independently reviewed; hosted standalone execution failed before any lane PASS. R2/E2/S2 remain UNCLASSIFIED,
-foundation93/all17 unchanged;58 total/47 focused unresolved. Published517fdb1a preserves these596/342 counts; latest accepted all17 baseline517fdb1a.
+Working-tree accounting is 596 inputs: 537 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 32 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 342 inputs: 294 selected, 20 substituted, 24 unclassified, and 4 excluded.
+Task12 author observed these exact post-selection counts without accounting errors.
+Working foundation97 retains first52, adds R2/E2/S2/W53–56 and shifts old suffix to57–97.
+55 total/44 focused remain unresolved. This selection/integration is under implementation,
+not yet independently reviewed or SQL-accepted. Published62d60d76 still has596/534/23/35/4,
+focused342/291/20/27/4 and foundation93/all17; its complete standalone proof is accepted.
 
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
 Its complete standalone SQL execution is now verified with Task7; registration
 alone was not that proof. Current reviewed59-line Q hash is
 fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983. A–I unchanged.
-There are58 total and47 focused unresolved inputs in the working tree. Selection means complete
+There are55 total and44 focused unresolved inputs in the working tree. Selection means complete
 source execution, not surviving-effect equivalence or production readiness.
 Foundation93 preserves historical fixture prefixes30/31/32/33 and RBAC38;
 first43 unchanged including G42/R43, former44–84 suffix preserved after new44–52.
@@ -47,16 +48,20 @@ Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
 
-Task11 PARTIAL: initial implementation383070ca and three independently approved
-hosted corrections07f58c3a/96cea061/4fc34ae9 are published. Complete actual
-R2/E2/S2/W + repeat with exact rows/catalog now PASS at517fdb1a; full standalone
-proof remains blocked by seeded_fixture42703. Correction4 704e6105 is committed: explicit synthetic profile canaries use actual
-first52 columns and enforce presence/status/company before preservation snapshot.
-Independent review APPROVED; complete same-head hosted acceptance remains.
+Task12 IMPLEMENTED_NOT_VERIFIED:775af96c plus packaging-only29196b20 implement
+exact R2/E2/S2/W53–56, foundation97, strict retained staging and appended command18.
+Independent spec/quality review APPROVED. Minor T12-R1 stale hosted step label
+is deferred to next required workflow edit. Actual new hosted integration pending. Working selection has foundation97 and the counts above; original17 prefix retained.
+Bounded constructors/partitions/cleanup20/accounting29/groups15/provenance97/integrity596/500
+and syntax/preservation PASS. No publication or actual staged56 SQL acceptance yet.
+Task11 COMPLETE at62d60d76: original17, complete new standalone PG17 proof166773ms,
+quality and Ediel all PASS on exact reviewed tree8d7f6166. Four hosted corrections
+independently approved; all actual/seeded/dirty/native/rollback/concurrency/security/
+privacy lanes verified. Reuse receipts; do not restart standalone design or audit.
 T9-R1 CLOSED. T11-R1 CLOSED and actual NULL/empty-scalar negative controls PASS.
 W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1
 unchanged. No R2/E2/S2 selection or production action. Legacy reference, first52,
-foundation93 and original17 are preserved; last accepted all17 baseline517fdb1a.
+foundation93 and original17 are preserved; last accepted all17 baseline62d60d76.
 Static constructors/accounting29/groups15/cleanup17/provenance/integrity596/500
 and scoped syntax/preservation checks PASS; they do not replace SQL acceptance.
 Task9 design and Task10 actual W skeleton are complete; reuse their receipts.
@@ -113,10 +118,10 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish independently APPROVED correction4 704e6105, then obtain original17
-plus complete new SQL proof on the same head
-before Task12 source selection/actual staged integration. Preserve verified first52/foundation93 and
-all17 command union. Remaining58 inputs, native full replay/types and production
+Next: publish the independently reviewed Task12 exact tree and require all18,
+actual historical52/new56 staged proofs, quality and Ediel on the same head.
+Preserve verified first52/foundation93 and
+all17 command union. Remaining55 working inputs (58 at published baseline), native full replay/types and production
 gates stay open. Task8 selection is accepted only within its isolated proof.
 Five business targets must be empty; existing role identities/metadata require
 exact preimage restoration before commit. Populated historical effects remain

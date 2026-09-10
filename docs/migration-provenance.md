@@ -109,35 +109,59 @@ The former native invocation, `bash scripts/gridex-aud-003-clean-replay.sh`, is 
 `GRIDEX-REM-002` is VERIFIED only when both the static provenance gate and the clean empty-database replay pass on the same commit.
 
 
-### Task8 owned compatible replay boundary (2026-09-10)
+### Owned compatible replay boundaries (Task12, 2026-09-10)
 
-The selected foundation now contains 93 inputs. Its unchanged first43 is followed
-by the complete pinned A44/B45/C46/D47/E48/F49/H50/I51/Q52 batch; the former44–84
-suffix retains its order at53–93. P38 remains an early prerequisite and now
-preserves its full historical source F at49. No historical SQL or Q is changed.
+The selected foundation contains 97 inputs. The first52 is unchanged, including
+historical fixture cuts30/31/32/33, P38, G42/R43 and complete A44 through Q52.
+Complete pinned R2/E2/S2/W occupy53–56; the former53–93 suffix retains its order
+at57–97. Each selected original and boundary executes once. W moves from timestamp
+execution to foundation56; it is not duplicated. Historical SQL, Q and W are unchanged.
 
-The supported transport is `python3 scripts/canonical-auth-provisioning-replay.py --owned-compatible` (one command). It creates and owns a network-disabled
-PostgreSQL17 container, retains the live ownership handle, and runs the real clean
-shell against its actual `gridex_auth_legacy_replay` database. Before staging,
-it derives independent first43 and final reference catalogs from the compatible
-bootstrap in separate reference databases within that same owned cluster. Those
-references are expectations, never substitute replay targets. The shell's retained
-HOLD bytes are resolved by logical migration identity and exact checksum;44–52
-execute once in the existing single-connection admission/originals/Q/assertions
-transaction. Other foundation/history ordering is preserved.
+Run `python3 scripts/canonical-auth-provisioning-replay.py --owned-compatible`
+with one of these scopes:
+
+| Scope flag | Execution boundary | Reference |
+| --- | --- | --- |
+| `--foundation-prefix-proof` | Historical first52, stopping after whole A–Q | Separate legacy first43/final52 catalogs |
+| `--repair-prefix-proof` | First52 then whole R2/E2/S2/W through56 | Separate repair base52/final56 catalogs |
+| No prefix flag | All97 then unchanged timestamp history, subject to full admission | Both independent bounded references, then later full-replay gates |
+
+Both prefix flags together, unknown flags and arbitrary cutoffs are rejected.
+Both diagnostic scopes exit before artifact, type or ledger output and cannot
+establish complete replay. Full mode requires `--require-full-effects` before
+owned startup or source staging and remains blocked by55 unresolved inputs:
+global596=537 full/23 substituted/32 unclassified/4 excluded;
+focused342=294/20/24/4, with44 focused unresolved.
+
+The parent creates a network-disabled PostgreSQL17 container and retains its exact
+owned handle. The three trusted consumers share one origin-verified loader/class.
+It prepares the required independent catalogs before original migrations move;
+the repair reference never overwrites the legacy first43/final52 pair. Reference
+databases supply expectations and are never substituted for the actual replay target.
+
+The real clean shell retains originals in private HOLD700 and communicates through
+a parent-owned socket600. It validates the complete97 order, physical identities,
+checksums and both groups' oracle dependencies before bootstrap SQL, even in either
+bounded scope. All migration reads after staging use retained bytes without ROOT
+fallback. Bootstrap, first43, whole44–52 and whole53–56 execute on the same actual
+`gridex_auth_legacy_replay` database; each complete group retains its own
+single-connection admission/originals/boundary/assertions transaction. Private raw
+client/server logging and exact owned cleanup remain required.
+
+Command17 retains the complete legacy standalone proof and historical52 actual
+staged proof, including ordinary Q rejection and post-Q rollback. Command18 appends
+the complete repair standalone lanes and actual repair56 shell/HOLD/planner proof,
+including independent final rows/catalog, ordinary W rejection and trusted post-W
+failure rolling the entire repair group back to intact52 rows/catalog/sequence.
+The default runner is `all18`; explicit `all17` preserves the historical prefix.
+Hosted `original16`, `legacy17` and `repair18` partitions cover all18 exactly once.
+Task12 constructors are not SQL acceptance: exact-head hosted all18, complete actual
+staging, quality and Ediel receipts remain required after review/publication.
 
 This mode carries **NO ledger provenance**. It does not create official Supabase
-ledger rows or represent the compatible Auth/storage shape as a provider or CLI
-catalog. Native CLI and generic external URLs are rejected before staging or SQL:
-independent native genesis, real stack ownership, private server logging and
-CLI-owned official-ledger proof remain required unresolved interfaces. The old
-CLI-ledger/type/full-replay gate cannot be satisfied by this diagnostic mode.
-
-Command17 in the fixed auth/membership runner includes the complete legacy proof
-and a bounded `--foundation-prefix-proof` invocation of that same shell staging
-and foundation loop. This proof exits after52, writes no replay artifacts/types,
-and is explicitly not full replay. It also checks ordinary Q rejection and native
-rollback after Q through the real loop. The hosted `original16` and `legacy17`
-partitions form the all17 union without duplicating the complete legacy proof.
-Full replay still requires `--require-full-effects`: 58 inputs remain unresolved
-(global595=533 full/23 substituted/35 unclassified/4 excluded; focused341=290/20/27/4).
+ledger rows or equate the compatible Auth/storage shape with a native provider
+catalog. Native CLI and generic external URLs are rejected; independent native
+genesis, real stack ownership, private logging and CLI-owned official-ledger proof
+remain unresolved interfaces. Full replay, type refresh, later-chain security and
+production delivery remain separate open gates. No artifacts may be refreshed from
+these incomplete diagnostic replays.

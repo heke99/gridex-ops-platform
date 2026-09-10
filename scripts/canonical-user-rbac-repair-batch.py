@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict unselected R2/E2/S2/W envelope on an existing exact owned handle.
+"""Strict selected R2/E2/S2/W envelope on an existing exact owned handle.
 
 The legacy target is reused unchanged, including its closed database namespace,
 private transport and logging. No arbitrary URL, handle adoption or source SQL
@@ -8,6 +8,7 @@ callback exists here. Reference construction never executes W.
 from dataclasses import dataclass
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -34,13 +35,9 @@ VIEWS = ('gridex_debug_batch2_rbac_v','gridex_debug_batch2_tenant_policy_gaps_v'
 
 
 def load_legacy():
-    name = 'repair_owned_legacy_batch'
-    if name not in sys.modules:
-        spec = importlib.util.spec_from_file_location(name, ROOT/'scripts/canonical-auth-provisioning-legacy-batch.py')
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[name] = module
-        spec.loader.exec_module(module)
-    return sys.modules[name]
+    spec=importlib.util.spec_from_file_location('repair_trusted_loader',ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module.load_batch()
 
 
 legacy = load_legacy()
@@ -60,7 +57,34 @@ def reviewed_paths():
     return tuple(ROOT/'supabase/migrations'/s[1] for s in SPECS)+(ROOT/'supabase/migrations'/W,)
 
 
-def validate_sources(paths):
+def read_source(logical,staging=None):
+    """All three manifests pin identities; staged reads never fall back to ROOT."""
+    logical=Path(logical)
+    if logical.parent!=ROOT/'supabase/migrations':
+        raise BoundaryError('LOGICAL_SOURCE_REQUIRED')
+    if staging is None:
+        path=logical
+    else:
+        if type(staging) is not legacy.StagedSources:
+            raise BoundaryError('PRIVATE_STAGE_REQUIRED')
+        hold=staging.hold
+        if (hold.resolve()!=hold or not hold.is_dir() or hold.stat().st_uid!=os.getuid() or
+            hold.stat().st_mode & 0o077):
+            raise BoundaryError('PRIVATE_STAGE_REQUIRED')
+        path=hold/logical.name
+    if path.is_symlink() or path.resolve()!=path or not path.is_file():
+        raise BoundaryError('STAGED_SOURCE_REQUIRED')
+    manifests=[json.loads((ROOT/'scripts'/name).read_text())['files'] for name in
+        ('migration-history-manifest.json','migration-history-manifest.additions.json','migration-history-manifest.runtime.additions.json')]
+    pins=[m[logical.name] for m in manifests if logical.name in m]
+    if not pins or len(set(pins))!=1:raise BoundaryError('SOURCE_HASH_MISMATCH')
+    data=path.read_bytes();legacy.verify_bytes(data,pins[0])
+    return data
+
+
+def validate_sources(paths,staging=None):
+    if staging is not None and type(staging) is not legacy.StagedSources:
+        raise BoundaryError('PRIVATE_STAGE_REQUIRED')
     if tuple(paths) != reviewed_paths() or any(p.is_symlink() or p.resolve()!=p for p in paths):
         raise BoundaryError('SOURCE_ORDER_MISMATCH')
     manifests = [json.loads((ROOT/'scripts'/name).read_text())['files'] for name in
@@ -71,7 +95,7 @@ def validate_sources(paths):
         pins = [m[path.name] for m in manifests if path.name in m]
         if not pins or any(pin != expected for pin in pins):
             raise BoundaryError('SOURCE_HASH_MISMATCH')
-        data = path.read_bytes()
+        data = read_source(path,staging)
         legacy.verify_bytes(data, expected, length)
         if alias == 'W':
             legacy.check_support(data.decode())
@@ -89,7 +113,8 @@ def require_owned(target, reference=True):
     if (type(target) is not legacy.OwnedPostgres or not target.active or
         target.name != target._created_name or target.directory is None):
         raise BoundaryError('OWNED_TARGET_REQUIRED')
-    if reference and (target not in REFERENCES or REFERENCES[target].directory != target.directory.name):
+    if reference and (target not in REFERENCES or type(REFERENCES[target]) is not Reference or
+                      REFERENCES[target].directory != target.directory.name):
         raise BoundaryError('OWNED_REFERENCE_REQUIRED')
 
 
@@ -155,9 +180,9 @@ END $repair$;
 SELECT 'REPAIR_STAGE_{current}';'''
 
 
-def envelope_files(target,paths):
+def envelope_files(target,paths,staging=None):
     require_owned(target)
-    sources = validate_sources(paths)
+    sources = validate_sources(paths,staging)
     target.verify_logging()
     ref = REFERENCES[target]
     context = '''SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
@@ -182,9 +207,9 @@ INSERT INTO repair_reference VALUES ('''+literal(json.dumps(ref.base))+'::jsonb,
     return files
 
 
-def execute(target,database,paths):
+def execute(target,database,paths,staging=None):
     legacy.validate_database(database)
-    output = target.run_files(database,envelope_files(target,paths),'whole_batch')
+    output = target.run_files(database,envelope_files(target,paths,staging),'whole_batch')
     stages = re.findall(r'^REPAIR_STAGE_(\w+)$',output,re.M)
     if stages!=['R2','E2','S2','COMPLETED']:
         raise BoundaryError('SOURCE_COMPLETION_MISMATCH')

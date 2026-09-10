@@ -36,13 +36,7 @@ def validate_legacy_job(job):
 
 
 def load_batch():
-    path = ROOT / 'scripts/canonical-auth-provisioning-legacy-batch.py'
-    assert path.is_file(), 'strict whole-source executor is required'
-    spec = importlib.util.spec_from_file_location('legacy_batch', path)
-    result = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = result
-    spec.loader.exec_module(result)
-    return result
+    return load_replay().load_batch()
 
 
 def constructor_checks():
@@ -132,7 +126,7 @@ def constructor_checks():
     # handle or executing SQL. The only stub is the infrastructure settings read.
     import tempfile,json,hashlib
     with tempfile.TemporaryDirectory(prefix='legacy-constructor-') as directory:
-        h=b.OwnedPostgres();h.active=True;h.reference=({},None)
+        h=b.OwnedPostgres();h.active=True;h.reference=({},{})
         h.directory=type('PrivateDirectory',(),{'name':directory})()
         h.verify_logging=lambda:None
         files=b.envelope_files(h,paths)
@@ -214,7 +208,7 @@ def constructor_checks():
     import ast
     runner=ast.parse((ROOT/'scripts/canonical-auth-membership-group.py').read_text())
     commands=next(ast.literal_eval(n.value) for n in runner.body if isinstance(n,ast.Assign) and any(getattr(t,'id','')=='COMMANDS' for t in n.targets))
-    assert len(commands)==17 and commands[16]==('python3','scripts/canonical-auth-provisioning-legacy-selftest.py')
+    assert len(commands)==18 and commands[16]==('python3','scripts/canonical-auth-provisioning-legacy-selftest.py')
     assert hashlib.sha256(json.dumps(commands[:16],separators=(',',':')).encode()).hexdigest()=='cb21bcc0056da45b1d91c1312f107e322330744f645fdb4123fa278825f6b1bb'
     replay=load_replay()
     replay_constructor_checks(b,replay)
@@ -812,7 +806,7 @@ def load_replay():
 def actual_replay_loop(b,h):
     replay=load_replay()
     h.reset(replay.DATABASE)
-    result=replay.serve_child(b,h,['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--foundation-prefix-proof'],True)
+    result=replay.serve_child(b,h,['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--foundation-prefix-proof'],'legacy52')
     assert result==0, 'actual staged clean-shell foundation proof failed'
     assert h.catalog(replay.DATABASE)==h.reference[1], 'actual replay DB differs from independent whole reference'
     # Q must remain unusable through an ordinary per-file invocation, even in
@@ -838,7 +832,7 @@ def actual_replay_loop(b,h):
         raise b.BoundaryError('SYNTHETIC_REPLAY_FAILURE')
     try:
         b.execute=injected
-        result=replay.serve_child(b,h,['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--foundation-prefix-proof'],True)
+        result=replay.serve_child(b,h,['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--foundation-prefix-proof'],'legacy52')
         assert result!=0 and len(preimages)==1 and rollbacks==['after_Q_XX000']
         unchanged(h,replay.DATABASE,preimages[0])
         assert h.catalog(replay.DATABASE)==h.reference[0]
@@ -854,7 +848,7 @@ def replay_constructor_checks(b,replay):
     result=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
     accounting=json.loads(result.stdout)
     assert result.returncode==1 and accounting['totalMigrations']==596 and not accounting['errors']
-    assert accounting['counts']=={'FULL_FILE_SELECTED':534,'SUBSTITUTED':23,'UNCLASSIFIED':35,'EXPLICITLY_EXCLUDED':4}
+    assert accounting['counts']=={'FULL_FILE_SELECTED':537,'SUBSTITUTED':23,'UNCLASSIFIED':32,'EXPLICITLY_EXCLUDED':4}
     by_path={item['path']:item for item in accounting['migrations']}
     for ordinal,logical in enumerate(replay.selected_group(b),44):
         assert by_path[logical]['classification']=='FULL_FILE_SELECTED'
@@ -864,10 +858,10 @@ def replay_constructor_checks(b,replay):
         hold=Path(directory)/'hold';hold.mkdir(mode=0o700)
         for path in (ROOT/'supabase/migrations').iterdir():
             if path.is_file(): shutil.copyfile(path,hold/path.name)
-        h=b.OwnedPostgres();h.active=True;h.reference=({},None)
+        h=b.OwnedPostgres();h.active=True;h.reference=({},{})
         h.directory=type('PrivateDirectory',(),{'name':directory})()
         h.verify_logging=lambda:None
-        loop=replay.FoundationLoop(b,h,True)
+        loop=replay.FoundationLoop(b,h,'legacy52')
         paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in loop.order]
         # Retained bytes must work even when no original migration is readable.
         from unittest.mock import patch

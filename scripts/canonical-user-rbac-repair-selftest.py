@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Owned private PG17 proof for the unselected R2/E2/S2/W group."""
+"""Owned private PG17 standalone and actual staged proof for R2/E2/S2/W."""
 from pathlib import Path
 import importlib.util
 import sys
@@ -7,13 +7,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 def load_batch():
-    path = ROOT/'scripts/canonical-user-rbac-repair-batch.py'
-    assert path.is_file(), 'reviewed repair executor is required'
-    spec = importlib.util.spec_from_file_location('user_rbac_repair_batch', path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    spec=importlib.util.spec_from_file_location('repair_test_loader',ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module.load_repair()
+
 
 def constructor_checks():
     b = load_batch()
@@ -732,15 +729,239 @@ def extended_constructors(b):
     workflow=(ROOT/'.github/workflows/ops-hardening.yml').read_text()
     job=old.extract_top_level_job(workflow,'user-rbac-repair-proof')
     assert 'timeout-minutes: 20' in job
-    assert 'python3 scripts/canonical-user-rbac-repair-selftest.py' in job
+    assert 'python3 scripts/canonical-auth-membership-group.py --partition repair18' in job
     assert 'if: always()' in job and '--cleanup-owned' in job
     assert not re.search(r'\b(?:needs|services):|upload-artifact|docker logs|supabase/setup-cli',job)
     old.validate_legacy_job(old.extract_top_level_job(workflow,'auth-provisioning-legacy-proof'))
     command=subprocess.run(['python3','scripts/canonical-auth-membership-group.py','--dry-run'],capture_output=True,text=True)
     assert command.returncode==0
     assert command.stdout.count('canonical-auth-provisioning-legacy-selftest.py')==1
-    assert 'canonical-user-rbac-repair-selftest.py' not in command.stdout
+    assert command.stdout.count('canonical-user-rbac-repair-selftest.py')==1
     print('PASS independent repair source/hash/context/ownership/workflow constructors; no SQL execution')
+
+
+def integration_constructors(b):
+    """Fail before SQL on selection, ownership, retained-source or scope drift."""
+    import hashlib, shutil, types
+    spec=importlib.util.spec_from_file_location('repair_actual_replay',ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    replay=importlib.util.module_from_spec(spec);spec.loader.exec_module(replay)
+    assert replay.load_batch() is b.legacy, 'trusted consumers must share the exact owned class'
+    assert replay.load_repair() is b, 'repair reference registry must survive trusted reuse'
+    key='canonical_owned_replay_batch';saved=sys.modules[key]
+    try:
+        copied=types.ModuleType(key);copied.__dict__.update(saved.__dict__)
+        for untrusted in (types.ModuleType(key),copied):
+            sys.modules[key]=untrusted
+            try:replay.load_batch()
+            except RuntimeError:pass
+            else:raise AssertionError('arbitrary registered module accepted as trusted origin')
+    finally:sys.modules[key]=saved
+    order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
+    assert len(order)==97 and order[52:56]==['migrations/'+p.name for p in b.reviewed_paths()]
+    account=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
+    data=json.loads(account.stdout)
+    assert account.returncode==1 and not data['errors']
+    assert data['counts']=={'FULL_FILE_SELECTED':537,'SUBSTITUTED':23,'UNCLASSIFIED':32,'EXPLICITLY_EXCLUDED':4}
+    by_path={row['path']:row for row in data['migrations']}
+    for ordinal,path in enumerate(order[43:56],44):
+        assert by_path[path]['execution']==[{'ordinal':ordinal,'stage':'foundation'}]
+    for scope,flags in (('legacy52',['--foundation-prefix-proof']),('repair56',['--repair-prefix-proof']),('full',[])):
+        assert replay.scope_flags(scope)==flags
+        replay.require_context({'scope':scope},scope)
+        for wrong in ({},{'prefix_only':True},{'scope':'56'},{'scope':'full' if scope!='full' else 'legacy52'}):
+            try:replay.require_context(wrong,scope)
+            except b.BoundaryError:pass
+            else:raise AssertionError('wrong/missing scope admitted')
+    script=str(ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    for flags in (['--foundation-prefix-proof','--repair-prefix-proof'],['--repair-prefix-proof','--cutoff','56'],['--unknown'],['--repair-prefix']):
+        result=subprocess.run([sys.executable,script,*flags],capture_output=True)
+        assert result.returncode==2
+    # Full completeness admission must precede even the constructor/startup.
+    class NoStartup:
+        def __init__(self):raise AssertionError('incomplete full replay started an owned target')
+    with patch.object(b.legacy,'OwnedPostgres',NoStartup),patch.object(sys,'argv',[script,'--owned-compatible']):
+        try:replay.main()
+        except b.BoundaryError as error:assert str(error)=='FULL_EFFECTS_INCOMPLETE'
+        else:raise AssertionError('incomplete full replay admitted')
+    with tempfile.TemporaryDirectory(prefix='repair-staged-constructor-') as directory:
+        hold=Path(directory)/'hold';hold.mkdir(mode=0o700)
+        for path in (ROOT/'supabase/migrations').iterdir():
+            if path.is_file():shutil.copyfile(path,hold/path.name)
+        h=b.legacy.OwnedPostgres();h.active=True;h.directory=types.SimpleNamespace(name=directory)
+        h.reference=({'legacy_base':1},{'legacy_final':1})
+        b.REFERENCES[h]=b.Reference(directory,{'repair_base':1},{'repair_final':1})
+        h.verify_logging=lambda:None
+        original_open=Path.open
+        def retained_only(path,*args,**kwargs):
+            if path.parent==ROOT/'supabase/migrations':raise AssertionError('ROOT original opened after HOLD mutation')
+            return original_open(path,*args,**kwargs)
+        paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in order]
+        try:
+            for scope in ('legacy52','repair56','full'):
+                loop=replay.FoundationLoop(b.legacy,h,scope)
+                observed=[]
+                h.run_files=lambda db,files,stage,transaction=True:observed.append((db,stage,transaction))
+                def legacy_execute(target,db,logical,staging=None):
+                    b.legacy.envelope_files(target,logical,staging)
+                    observed.append((db,'legacy',True));return {'sources':9}
+                def repair_execute(target,db,logical,staging=None):
+                    b.envelope_files(target,logical,staging)
+                    observed.append((db,'repair',True));return {'sources':4}
+                with patch.object(Path,'open',retained_only),patch.object(b.legacy,'execute',legacy_execute),patch.object(b,'execute',repair_execute),contextlib.redirect_stdout(io.StringIO()):
+                    loop.run(hold,paths)
+                expected=['replay_foundation_'+str(i) for i in range(1,44)]+['legacy']
+                if scope!='legacy52':expected+=['repair']
+                if scope=='full':expected+=['replay_foundation_'+str(i) for i in range(57,98)]
+                assert [stage for _,stage,_ in observed]==expected
+                assert all(db==replay.DATABASE for db,_,_ in observed)
+                try:loop.run(hold,paths)
+                except b.BoundaryError:pass
+                else:raise AssertionError('duplicate whole foundation executed')
+            loop=replay.FoundationLoop(b.legacy,h,'repair56')
+            h.run_files=lambda *a,**k:(_ for _ in ()).throw(AssertionError('invalid stage reached target SQL'))
+            for bad in (paths[:-1],paths[::-1],paths+paths[-1:],paths[:52]+paths[53:56]+paths[52:53]+paths[56:]):
+                try:loop.run(hold,bad)
+                except b.BoundaryError:pass
+                else:raise AssertionError('invalid physical order accepted')
+            dependencies=[*b.reviewed_paths(),ROOT/'supabase/migrations/20260810193450_canonical_access_provisioning_runtime_v1.sql']
+            for logical in dependencies:
+                path=hold/logical.name;raw=path.read_bytes()
+                for mutation in ('missing','changed','symlink'):
+                    path.unlink()
+                    if mutation=='changed':path.write_bytes(raw+b'\n')
+                    if mutation=='symlink':path.symlink_to(logical)
+                    try:loop.run(hold,paths)
+                    except b.BoundaryError:pass
+                    else:raise AssertionError('bad retained dependency accepted')
+                    path.unlink(missing_ok=True);path.write_bytes(raw)
+            for scope in ('legacy52','full'):
+                other=replay.FoundationLoop(b.legacy,h,scope)
+                w=hold/b.W;raw=w.read_bytes();w.write_bytes(raw+b'\n')
+                try:
+                    try:other.run(hold,paths)
+                    except b.BoundaryError:pass
+                    else:raise AssertionError('whole97 validation omitted repair source in named scope')
+                finally:w.write_bytes(raw)
+            for fake_stage in (object(),types.SimpleNamespace(read=lambda p:p.read_bytes())):
+                try:b.validate_sources(b.reviewed_paths(),fake_stage)
+                except b.BoundaryError:pass
+                else:raise AssertionError('duck-typed staged reader accepted')
+            for scope in ('56',56,True,'repair52'):
+                try:replay.FoundationLoop(b.legacy,h,scope)
+                except b.BoundaryError:pass
+                else:raise AssertionError('arbitrary scope accepted')
+            for fake in (object(),types.SimpleNamespace(active=True,reference=h.reference,directory=h.directory)):
+                try:replay.FoundationLoop(b.legacy,fake,'repair56')
+                except b.BoundaryError:pass
+                else:raise AssertionError('unowned target accepted')
+            # Reference replacement after construction must fail before SQL.
+            for replacement in ('legacy','repair','directory','inactive'):
+                bound=replay.FoundationLoop(b.legacy,h,'repair56')
+                saved_legacy=h.reference;saved_repair=b.REFERENCES[h];saved_name=h.name
+                try:
+                    if replacement=='legacy':h.reference=({}, {})
+                    if replacement=='repair':b.REFERENCES[h]=b.Reference(directory,{}, {})
+                    if replacement=='directory':h.name+='-wrong'
+                    if replacement=='inactive':h.active=False
+                    try:bound.run(hold,paths)
+                    except b.BoundaryError:pass
+                    else:raise AssertionError('changed owned reference reached target SQL')
+                finally:h.reference=saved_legacy;b.REFERENCES[h]=saved_repair;h.name=saved_name;h.active=True
+            saved_ref=b.REFERENCES.pop(h)
+            try:
+                try:replay.FoundationLoop(b.legacy,h,'repair56')
+                except b.BoundaryError:pass
+                else:raise AssertionError('legacy reference substituted for repair reference')
+            finally:b.REFERENCES[h]=saved_ref
+            assert h.reference==({'legacy_base':1},{'legacy_final':1})
+            assert b.REFERENCES[h] is saved_ref
+        finally:b.REFERENCES.pop(h,None);h.active=False;h.directory=None
+    print('PASS repair integration constructors: exact97, shared trusted loader, retained dependencies, three scopes and once-only same-target dispatch; NO SQL claim')
+
+
+def replay_originals_snapshot():
+    """In-memory exact restoration evidence, never expose original source bytes."""
+    migrations=ROOT/'supabase/migrations'
+    entries=[]
+    for path in sorted(migrations.rglob('*')):
+        stat=path.lstat()
+        value=os.readlink(path) if path.is_symlink() else (path.read_bytes() if path.is_file() else None)
+        entries.append((str(path.relative_to(migrations)),stat.st_mode,stat.st_mtime_ns,value))
+    seed=ROOT/'supabase/seed.sql'
+    return migrations.stat().st_mode,migrations.stat().st_mtime_ns,entries,seed.read_bytes(),seed.stat().st_mode,seed.stat().st_mtime_ns
+
+
+def actual_replay_loop(b,h):
+    """Real hosted shell/HOLD/planner/transport, both batches in one actual DB."""
+    spec=importlib.util.spec_from_file_location('repair_actual_replay_sql',ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    replay=importlib.util.module_from_spec(spec);spec.loader.exec_module(replay)
+    assert replay.load_batch() is b.legacy and replay.load_repair() is b
+    command=['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--repair-prefix-proof']
+    originals=replay_originals_snapshot()
+    legacy_reference=h.reference;repair_reference=b.REFERENCES[h]
+    original_legacy=b.legacy.execute;original_repair=b.execute
+    reached=[];preimages=[]
+    def legacy_once(target,database,paths,staging=None):
+        assert target is h and database==replay.DATABASE and type(staging) is b.legacy.StagedSources
+        reached.append('legacy')
+        return original_legacy(target,database,paths,staging)
+    def repair_once(target,database,paths,staging=None):
+        assert target is h and database==replay.DATABASE and type(staging) is b.legacy.StagedSources
+        assert h.catalog(database)==legacy_reference[1]
+        assert b.catalog(h,database)==repair_reference.base
+        reached.append('repair');preimages.append(snapshot(b,h,database))
+        return original_repair(target,database,paths,staging)
+    try:
+        b.legacy.execute=legacy_once;b.execute=repair_once
+        h.reset(replay.DATABASE)
+        status=replay.serve_child(b.legacy,h,command,'repair56')
+        assert status==0 and reached==['legacy','repair'] and len(preimages)==1
+        assert not (Path(h.directory.name)/'replay.sock').exists()
+        assert replay_originals_snapshot()==originals, 'successful staging did not restore exact originals'
+        after=snapshot(b,h,replay.DATABASE)
+        assert after[0]==repair_reference.final
+        before=preimages[0]
+        assert [row for row in before[1] if row[0]!='public.roles']==[row for row in after[1] if row[0]!='public.roles']
+        old_roles={row[1]['id']:row[1] for row in before[1] if row[0]=='public.roles'}
+        assert old_roles=={row[1]['id']:row[1] for row in after[1] if row[0]=='public.roles' and row[1]['id'] in old_roles}
+        old_keys={row['key'] for row in old_roles.values()}
+        added=[row[1] for row in after[1] if row[0]=='public.roles' and row[1]['id'] not in old_roles]
+        expected=[row for row in b.source_oracle(b.validate_sources(b.reviewed_paths()))[0] if row[0] not in old_keys]
+        assert sorted((r['key'],r['name'],r['description'],r['scope']) for r in added)==sorted(expected)
+        assert all(r['is_system'] is True for r in added)
+        rejected(b,h,replay.DATABASE,'P0002','actual_replay_W_alone',
+                 [h.private('actual-replay-outside-W.sql',b.validate_sources(b.reviewed_paths())[-1].data)])
+        # Real post-W marker can only be produced by the same backend and tx.
+        # Explicit terminal rollback also protects against unexpected success.
+        reached.clear();preimages.clear();rollbacks=[]
+        def injected(target,database,paths,staging=None):
+            assert target is h and database==replay.DATABASE and type(staging) is b.legacy.StagedSources
+            assert h.catalog(database)==legacy_reference[1] and b.catalog(h,database)==repair_reference.base
+            reached.append('repair');preimages.append(snapshot(b,h,database))
+            files=b.envelope_files(h,paths,staging)
+            files.insert(-1,h.private('actual-replay-after-W.sql',
+                "SELECT 'ACTUAL_REPLAY_W_REACHED' FROM pg_temp.repair_context WHERE stage='W' AND txid=txid_current() AND backend=pg_backend_pid() AND database_name=current_database();"+sentinel_sql()))
+            output=h.run_files(database,rollback_files(h,files),'actual_replay_rollback_after_W',expect='XX000')
+            assert output.splitlines().count('ACTUAL_REPLAY_W_REACHED')==1
+            assert re.findall(r'^REPAIR_STAGE_(\w+)$',output,re.M)==['R2','E2','S2']
+            rollbacks.append('after_W_XX000')
+            raise b.BoundaryError('SYNTHETIC_REPLAY_FAILURE')
+        b.execute=injected
+        h.reset(replay.DATABASE)
+        status=replay.serve_child(b.legacy,h,command,'repair56')
+        assert status!=0 and reached==['legacy','repair'] and len(preimages)==1 and rollbacks==['after_W_XX000']
+        assert not (Path(h.directory.name)/'replay.sock').exists()
+        unchanged(b,h,replay.DATABASE,preimages[0])
+        assert b.catalog(h,replay.DATABASE)==repair_reference.base and h.catalog(replay.DATABASE)==legacy_reference[1]
+        assert replay_originals_snapshot()==originals, 'failed staging did not restore exact originals'
+        assert h.reference is legacy_reference and b.REFERENCES[h] is repair_reference
+    finally:
+        b.legacy.execute=original_legacy;b.execute=original_repair
+    h.verify_logging()
+    h.docker(['logs',h.name])
+    assert SENTINEL.encode() not in (Path(h.directory.name)/'docker-private-last.out').read_bytes()
+    assert all(path.stat().st_mode & 0o077==0 for path in Path(h.directory.name).iterdir() if path.is_file())
+    print('PASS actual clean-shell HOLD/planner/bootstrap/first43/legacy44-52/repair53-56 once in same owned replay DB; independent rows/catalog, W-alone rejection, post-W rollback to intact52 rows/catalog/sequence, exact restoration and private logs; NO ledger provenance; NOT full replay')
 
 
 def cleanup_proof(b):
@@ -779,8 +1000,11 @@ def sql_main(b):
             begin=time.monotonic();lane(b,target)
             print('PASS repair lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
         unchanged(b,target,'gridex_auth_legacy_replay',canary)
+        print('PASS complete R2-E2-S2-W standalone SQL lanes before staged integration',flush=True)
+        begin=time.monotonic();actual_replay_loop(b,target)
+        print('PASS repair lane=actual_replay_loop milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
     cleanup_proof(b)
-    print('PASS complete unselected R2-E2-S2-W standalone SQL proof milliseconds='+str(round((time.monotonic()-started)*1000)))
+    print('PASS complete command18 standalone and actual staged repair56 SQL proof milliseconds='+str(round((time.monotonic()-started)*1000)))
 
 
 if __name__ == '__main__':
@@ -789,7 +1013,7 @@ if __name__ == '__main__':
         if '--cleanup-owned' in sys.argv:
             b.legacy.cleanup_workflow_owned()
         else:
-            constructor_checks();extended_constructors(b)
+            constructor_checks();extended_constructors(b);integration_constructors(b)
             if '--selection-only' not in sys.argv:sql_main(b)
     except BaseException as error:
         if isinstance(error,(KeyboardInterrupt,SystemExit)):raise

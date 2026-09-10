@@ -198,6 +198,20 @@ if (!replay.includes('unsupported replay target') || !replay.includes('NO ledger
     !replay.includes('--foundation "$FOUNDATION_EXEC" --hold "$HOLD"')) {
   fail('clean replay lost owned context, whole batch, completeness or NO-ledger boundary');
 }
+if (!replay.includes('--repair-prefix-proof') || !replay.includes('--foundation-prefix-proof') ||
+    replay.indexOf('--validate-foundation --foundation') > replay.indexOf('psql "$DB_URL" -X -q') ||
+    !replay.includes('--validate-foundation --foundation')) {
+  fail('named replay scopes must validate retained sources before bootstrap SQL');
+}
+const repairSources = [
+  'migrations/20260525_debug_batch_2_rbac_tenant_alignment.sql',
+  'migrations/20260525_debug_batch_2e_verify_dashboard_user_provisioning.sql',
+  'migrations/20260526_debug_batch_2_tenant_rbac_server_actions.sql',
+  'migrations/20260910174947_canonical_user_rbac_repair_boundary.sql',
+];
+if (orderedFoundation.length !== 97 || JSON.stringify(orderedFoundation.slice(52, 56)) !== JSON.stringify(repairSources)) {
+  fail('complete repair sources must occupy foundation53–56 exactly once');
+}
 if (replay.includes('supabase start')) fail('unsupported native CLI target may start a stack');
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) fail('clean replay directly mutates the Supabase migration ledger');
 if (!fs.existsSync(fingerprintPath)) fail('schema fingerprint query is missing');
