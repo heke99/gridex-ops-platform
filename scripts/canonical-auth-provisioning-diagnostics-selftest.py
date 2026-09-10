@@ -28,7 +28,10 @@ BOOTSTRAP = 'scripts/sql/gridex-supabase-compatible-bootstrap.sql'
 BOOTSTRAP_SHA = '209b0c391bcfa957ec8b30cfc338622b4bda776e6976d3624fdd2d04779b8914'
 PREFIX_SHA = '38fbbe9f2d21feab39285d249cad99f17d929687cee3fbfa0b56ebe0d91330dd'
 SUFFIX_SHA = '0f502cdd0f15911dc6ff87589969f2ccf2d94bf361ccd76cfc73131efc304ef4'
-RUNNER_SHA = '7e2f9439a4ce76c654f58c6469355e62dd694ad4e01d7b741013dd5eb7e16517'
+RUNNER_SHA = '4665b791b5e228628fe4ca508c762a4377a9692850fd1090566385c645c8e1ac'
+BASE_FOUNDATION_MANIFEST_SHA = '7196bf2e7fc66cbb5ec0546e8b3d75675410763dbf569036d5c0bcdc627e4ba9'
+OLD_ADDITIONS_FOUNDATION_SHA = '753a7813c9a9ff49f927c5b3c1633aafbaea185c42ae95e1400cbc7b7c8ffe09'
+ADDITIONS_DERIVED_SHA = '11e6ef86224ba62349491835eb5faa0ff74f3dfe3df8619fdd83a9b966de5dc5'
 DATABASES = tuple('gridex_auth_provisioning_' + name for name in ('reduced','prefix','failure','lock'))
 ADMIN = 'gridex_auth_test'
 EVENTS = 'public.auth_provisioning_events'
@@ -37,6 +40,9 @@ POLICY = 'canonical_auth_provisioning_service_boundary'
 SHAPE = 'AUTH_PROVISIONING_TARGET_SHAPE_MISMATCH'
 ROLES = 'AUTH_PROVISIONING_ROLE_BOUNDARY_MISMATCH'
 POLICIES = 'AUTH_PROVISIONING_POLICY_DEFINITION_MISMATCH'
+SAFE_STAGE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._+/-]{0,159}$')
+SAFE_ASSERTION = re.compile(r'^[A-Za-z][A-Za-z0-9 ._+/-]{0,159}$')
+KNOWN_REJECTIONS = frozenset((SHAPE, ROLES, POLICIES))
 
 
 def digest(data):
@@ -45,6 +51,10 @@ def digest(data):
 
 def path_digest(paths):
     return digest(('\n'.join(paths) + '\n').encode())
+
+
+def json_digest(value):
+    return digest(json.dumps(value, sort_keys=True, separators=(',', ':')).encode())
 
 
 def read(path):
@@ -85,12 +95,17 @@ def transaction_body(sql):
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 82, 'standalone stage preserves foundation82'
-    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[41:]) == SUFFIX_SHA
+    assert len(order) == 84, 'selected diagnostics stage requires foundation84'
+    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[43:]) == SUFFIX_SHA
+    assert order[41:43] == [G,R], 'whole diagnostics sources require exact G42/R43'
+    assert order.count(G) == order.count(R) == 1, 'whole diagnostics sources must be selected once'
     rbac = module('diagnostics_rbac_prefix', 'canonical-rbac-prefix-selftest.py')
     assert order[37] == rbac.BOUNDARY and tuple(order[38:41]) == rbac.SOURCES
-    assert G not in order and R not in order, 'selection is a subsequent reviewed task'
     return order[:41]
+
+
+def foundation_execution_once(execution, ordinal):
+    assert execution == [{'ordinal':ordinal,'stage':'foundation'}], 'diagnostics source replayed outside its single foundation stage'
 
 
 def verified_prefix_sources(overrides=None):
@@ -120,23 +135,35 @@ def constructor_checks():
     prefix = verified_prefix_sources()
     assert len(prefix) == 41
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    changed = list(order)
-    changed[38],changed[39] = changed[39],changed[38]
-    try:
-        prefix_paths(changed)
-    except AssertionError:
-        pass
-    else:
-        raise AssertionError('reordered actual prefix accepted')
+    changed_orders = []
+    changed = list(order); changed[38],changed[39] = changed[39],changed[38]
+    changed_orders.append(('altered first41',changed))
+    changed = list(order); changed[43],changed[44] = changed[44],changed[43]
+    changed_orders.append(('changed old suffix',changed))
+    changed = list(order); changed[40],changed[41] = changed[41],changed[40]
+    changed_orders.append(('misplaced G',changed))
+    changed_orders.extend((
+        ('missing G',order[:41]+[R]+order[43:]),
+        ('missing R',order[:42]+order[43:]),
+        ('duplicate G',order[:42]+[G]+order[43:]),
+        ('duplicate R',order[:41]+[R,R]+order[43:]),
+        ('reversed G/R',order[:41]+[R,G]+order[43:]),
+    ))
+    for label, changed in changed_orders:
+        try:
+            prefix_paths(changed)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(label + ' accepted')
     try:
         verified_prefix_sources({prefix[0][0]:prefix[0][1].encode()[:-1]})
     except AssertionError:
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    proposed = order[:41]+[G,R]+order[41:]
-    assert len(proposed)==84 and proposed[41:43]==[G,R]
-    assert path_digest(proposed[:41])==PREFIX_SHA and path_digest(proposed[43:])==SUFFIX_SHA
+    assert len(order)==84 and order[41:43]==[G,R]
+    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[43:])==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
                    {G:source[G].replace('full join','left join',1).encode()},
@@ -164,7 +191,8 @@ def constructor_checks():
         raise AssertionError('checksum tampering accepted')
     assert digest((ROOT / 'scripts/canonical-auth-membership-group.py').read_bytes()) == RUNNER_SHA
     group = module('diagnostics_group', 'canonical-auth-membership-group.py')
-    assert len(group.COMMANDS) == 15
+    assert len(group.COMMANDS) == 16 and group.COMMANDS[-1] == (
+        'python3','scripts/canonical-auth-provisioning-diagnostics-selftest.py')
     assert all(key not in clean_environment() for key in os.environ if key.startswith('PG'))
     for target in ('postgres', 'production', 'postgresql://localhost/customer'):
         try:
@@ -175,24 +203,35 @@ def constructor_checks():
             raise AssertionError('arbitrary target accepted')
     # Classification and global equality are checked by the existing focused
     # guards as well; no fixture SQL or table fragments select G implicitly.
+    assert digest((ROOT / 'scripts/gridex-aud-003-legacy-foundation.json').read_bytes()) == BASE_FOUNDATION_MANIFEST_SHA
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
-    assert G not in additions['foundation'] and R not in additions['foundation']
+    assert additions['foundation'].count(G) == additions['foundation'].count(R) == 1
+    old_additions = [path for path in additions['foundation'] if path not in (G,R)]
+    assert json_digest(old_additions) == OLD_ADDITIONS_FOUNDATION_SHA
+    assert json_digest(additions['derivedBootstrap']) == ADDITIONS_DERIVED_SHA
     workflow = read('.github/workflows/ops-hardening.yml')
     assert 'Create diagnostics migration skeleton' not in workflow
-    assert workflow.count('run: python3 scripts/canonical-auth-provisioning-diagnostics-selftest.py') == 1
-    assert workflow.index('run: python3 scripts/canonical-auth-membership-group.py') < workflow.index(
-        'run: python3 scripts/canonical-auth-provisioning-diagnostics-selftest.py')
+    assert workflow.count('run: python3 scripts/canonical-auth-membership-group.py') == 1
+    assert 'run: python3 scripts/canonical-auth-provisioning-diagnostics-selftest.py' not in workflow
     account_run = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==594
-    assert account['counts']=={'FULL_FILE_SELECTED':523,'SUBSTITUTED':24,'UNCLASSIFIED':43,'EXPLICITLY_EXCLUDED':4}
-    by_path = {item['path']:item['classification'] for item in account['migrations']}
-    assert by_path[G]=='UNCLASSIFIED' and by_path[R]=='FULL_FILE_SELECTED'
+    assert account['counts']=={'FULL_FILE_SELECTED':524,'SUBSTITUTED':24,'UNCLASSIFIED':42,'EXPLICITLY_EXCLUDED':4}
+    by_path = {item['path']:item for item in account['migrations']}
+    assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
+    foundation_execution_once(by_path[G]['execution'],42)
+    foundation_execution_once(by_path[R]['execution'],43)
+    try:
+        foundation_execution_once(by_path[R]['execution']+[{'ordinal':509,'stage':'timestamp'}],43)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('attempted duplicate timestamp replay accepted')
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==340
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':280,'SUBSTITUTED':21,'UNCLASSIFIED':35,'EXPLICITLY_EXCLUDED':4}
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':281,'SUBSTITUTED':21,'UNCLASSIFIED':34,'EXPLICITLY_EXCLUDED':4}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)
@@ -213,6 +252,34 @@ def command(database):
     return ['psql','-X','-q','-A','-t','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose',url]
 
 
+def assertion_labels(sql):
+    """Extract only generated test_assert labels, never database output."""
+    labels = re.findall(r"(?:public[.])?test_assert[(][^;]*,[ ]*'((?:''|[^'])*)'[ ]*[)]", sql, re.I)
+    decoded = {label.replace("''", "'") for label in labels}
+    return {label for label in decoded if SAFE_ASSERTION.fullmatch(label)}
+
+
+def safe_failure_receipt(stderr, stage, permitted_labels, fallback_location=0):
+    """Reduce private psql diagnostics to an allowlisted, actionable receipt."""
+    assert SAFE_STAGE.fullmatch(stage), 'unsafe fixture stage label'
+    states = re.findall(r'(?:ERROR|FATAL):\s+([A-Z0-9]{5}):', stderr)
+    line = re.search(r'(?:^|\n)LINE\s+(\d+):', stderr)
+    if line is None:
+        line = re.search(r'(?:^|\n)LOCATION:\s+[^\n]*:(\d+)\s*$', stderr, re.M)
+    receipt = {
+        'stage': stage,
+        'sqlstate': states[0] if states else '00000',
+        'location': int(line.group(1)) if line else int(fallback_location),
+    }
+    primary = re.search(r'^(?:ERROR|FATAL):\s+[A-Z0-9]{5}:\s*(.*)$', stderr, re.M)
+    message = primary.group(1).strip() if primary else ''
+    matched = [label for label in permitted_labels if message in (
+        label, 'FAIL: ' + label) or message.startswith(label + ': ')]
+    if matched:
+        receipt['assertion'] = sorted(matched, key=lambda value: (-len(value), value))[0]
+    return receipt
+
+
 class Harness:
     def __init__(self, directory):
         self.directory = Path(directory)
@@ -231,10 +298,11 @@ class Harness:
             process.stdin.flush()
         except BrokenPipeError:
             pass  # finish reads only sanitized SQLSTATE/named-error diagnostics.
-        return process, stem, out, err, label
+        permitted = assertion_labels(sql) | KNOWN_REJECTIONS
+        return process, stem, out, err, label, permitted
 
     def finish(self, handle, state=None, error=None, timeout=120):
-        process, stem, out, err, label = handle
+        process, stem, out, err, label, permitted = handle
         try:
             process.stdin.close()
         except BrokenPipeError:
@@ -255,7 +323,8 @@ class Harness:
             assert process.returncode != 0 and any(s in allowed for s in states), label + ': expected SQLSTATE ' + str(allowed) + ', got ' + str(states)
             assert error is None or error in errors, label + ': expected named rejection absent'
         else:
-            assert process.returncode == 0, label + ': SQL failure ' + str(states) + ' (SQL and provider rows are not logged)'
+            receipt = safe_failure_receipt(errors, label, permitted, stem.name)
+            assert process.returncode == 0, 'unexpected SQL failure ' + json.dumps(receipt, sort_keys=True)
         return stem.with_suffix('.out').read_text()
 
     def run(self, database, sql, label, state=None, error=None):
@@ -828,7 +897,7 @@ def main():
             for database in DATABASES:
                 h.run(ADMIN,f'DROP DATABASE IF EXISTS {database} WITH(FORCE);','cleanup fixed disposable database')
             h.run(ADMIN,'DROP ROLE diagnostics_unclassified;','cleanup synthetic fixture role')
-    print('PASS: standalone auth provisioning diagnostics PostgreSQL17; G remains UNCLASSIFIED; later chain and production gates OPEN',flush=True)
+    print('PASS: auth provisioning diagnostics PostgreSQL17; exact G42/R43 selected; later chain and production gates OPEN',flush=True)
 
 
 if __name__=='__main__':

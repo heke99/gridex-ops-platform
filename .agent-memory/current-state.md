@@ -11,13 +11,13 @@ does not restrict later verified production convergence.
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Latest verified publication:
-`95a41dea25a3b6f23e832ce9256fac6f102cd898`, exact reviewed tree
-`d664844f44de5e84191535592d497c4d3ca2ff2f`. No masterplan phase is closed.
+`17984611d9a4158ebf2b33631668fdac4d3730a9`, exact reviewed tree
+`77e1ac320a74889911fb0ae6fcc3d34c089dc62e`. No masterplan phase is closed.
 
-Working-tree accounting is 594 inputs: 523 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 43 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 340 inputs: 280 selected, 21 substituted, 35 unclassified, and 4 excluded.
-Sixty-seven total
-inputs and56 focused candidates remain unresolved. Selection is not proof of
+Working-tree accounting is 594 inputs: 524 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 42 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 340 inputs: 281 selected, 21 substituted, 34 unclassified, and 4 excluded.
+Sixty-six total
+inputs and55 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
 
 ## Historical Task7 execution receipt
@@ -53,13 +53,13 @@ Active plan: quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10
 Task1 nine-source1695-line/110-unit effects and G/R contract authored in
 commits cfc05d9d..6cd7d256. Independent architecture review APPROVED with no blockers;
 Task2 hosted CLI skeleton acceptance VERIFIED at95a41dea.
-Task3 transactional diagnostics repair and standalone PG17 proof is active.
-Implementation3b946b1a is committed and independently APPROVED;
-standalone hosted SQL execution remains unverified. No selection change. Proposed G42/R43
-preserves first41.
-Next: publish reviewed3b946b1a and obtain standalone PG17 proof, then
-separately
-review selection and append-only command16 integration.
+Task3 transactional diagnostics repair and standalone PG17 proof is VERIFIED
+at17984611. Task4 exactG42/R43 source selection and command16 integration is active.
+Working-tree selection is nowG42/R43 with first41 preserved and foundation84;
+implementationfdc8cab9 is independently APPROVED, including safe diagnostics;
+hosted all16 acceptance is pending publication.
+Next: publish reviewed Task4 and run all16, then execute prepared Task5
+lossless admission/repair design for eight remaining provisioning originals.
 Continue with the remaining invitation/direct-account source group, reusing the
 five-source characterization and existing invitation/actor-FK reconstruction.
 Do not treat historical lossy status normalization, expired temporary-password
@@ -132,3 +132,11 @@ Published95a41dea25a3b6f23e832ce9256fac6f102cd898, exact reviewed treed664844f44
 Additional current-head receipts95a41dea: tenant-integrity102862356554 and browser-public102862356887 PASS. Full-E2E coverage102862356001 PASS; smoke102862356461 is14/15, sole generated-types-tail failure, and pr-certificate102862783280 FAIL. Full/runtime/customer/staging/load/ZAP/certification skips are not passes.
 
 Task3 R is checksum-registered:20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql, SHA256018d81e763e6134ddb3d886ef7e219d6247584a9dad14b871e2ef98014db6333. Fresh accounting returns errors=[] and594=523/24/43/4 (exit1 solely unresolved sources); focused340=280/21/35/4. G remains UNCLASSIFIED, foundation82 and fixed15 unchanged. SQL execution and independent implementation review remain pending.
+
+Published17984611d9a4158ebf2b33631668fdac4d3730a9, exact reviewed tree77e1ac320a74889911fb0ae6fcc3d34c089dc62e; fetched equality and tracked-clean checks PASS; reviewed local000308ba archived before alignment. OPS34478576195 pending original15 plus standalone diagnostics execution.
+
+At17984611 verify102875334287 fails generated-types tail20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql; clean102875334320 FAIL before replay. Ediel102875334362, tenant102875333694 and browser-public102875333946 PASS. Auth102875334400 and quality/build102875334025 pending. Task4 exact selection/integration plan is prepared but blocked on successful standalone Task3 SQL receipt, not on new user permission.
+
+2026-09-10 Task3 bounded VERIFIED at17984611d9a4158ebf2b33631668fdac4d3730a9 (tree77e1ac320a74889911fb0ae6fcc3d34c089dc62e): OPS34478576195/auth102875334400 PASS unchanged15 plus complete standalone diagnostics. G51/R249 exact hashes verified; eleven independent reduced projections/history/repeats,23 dirty catalog cases, five role/inherited privilege cases, native42703/42P01/42P16 and composite rollback, real55P03 and native catalog contention/retry, actual41/RBAC/helper/preservation/client denial PASS. Actual G-after-R alone resets invoker=false/reloptionsNULL and is explicitly not runtime-ready; subsequent wholeR restores required secure state. Quality/build102875334025, Ediel102875334362, tenant102875333694/browser102875333946 PASS. Verify102875334287 types-tail20260910121054 and clean102875334320 remain red.594/523,67 unresolved; G not yet selected, no production change.
+
+2026-09-10 Task4 fdc8cab9 independent selection/integration/safe-diagnostics review APPROVED, no findings. Exact84 order/G42/R43/foundation-only execution, original15+16, unchanged source hashes and primary-only safe receipt verified. Task3 low-severity diagnostics finding resolved; actual hosted all16 acceptance remains pending publication.

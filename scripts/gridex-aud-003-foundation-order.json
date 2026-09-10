@@ -43,6 +43,8 @@
     "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
     "migrations/20260520_batch_6e_fix_rbac_backfill_security.sql",
     "migrations/20260520_batch_6e_hard_platform_roles_only.sql",
+    "migrations/20260528_auth_provisioning_runtime_guard.sql",
+    "migrations/20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260521_batch_2b_control_tower_foundation.sql",
