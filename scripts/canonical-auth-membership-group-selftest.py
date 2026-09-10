@@ -268,9 +268,42 @@ def rbac_prefix_seed_uniqueness():
     assert 'baseline plus six fixture grants minus two synthetic and one authentic cleanup row' in sql
 
 
+def rbac_prefix_user_role_statuses():
+    """Every prefix-local role status must satisfy the selected 6D2 vocabulary."""
+    spec = importlib.util.spec_from_file_location('rbac_prefix_status', RBAC_PREFIX_FIXTURE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    seed = module.reduced_seed()
+    source = (ROOT / 'supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql').read_text()
+    constraint = re.search(
+        r"add constraint user_roles_status_check\s+check \(status in \((.*?)\)\)",
+        source, re.S).group(1)
+    allowed = set(re.findall(r"'([^']+)'", constraint))
+    rows = {}
+    for line in seed.splitlines():
+        if line.lstrip().startswith("('70000000-"):
+            values = re.findall(r"'([^']+)'", line)
+            rows[values[0]] = values[-1]
+    assert len(rows) == 4, rows
+    assert set(rows.values()) <= allowed, (rows, allowed)
+    assert rows['70000000-0000-0000-0000-000000000002'] == 'disabled'
+    assert "add column if not exists is_active boolean not null default true" in source
+    base_spec = importlib.util.spec_from_file_location('rbac_reduced_status', RBAC_FIXTURE.with_name('canonical-rbac-tenant-selftest.py'))
+    base = importlib.util.module_from_spec(base_spec)
+    base_spec.loader.exec_module(base)
+    assert "'70000000-0000-0000-0000-000000000002'" in base.seed()
+    assert "(select id from roles where key='company_admin'),'inactive')" in base.seed()
+    main_sql = module.main_sql()
+    assert "not gridex_user_has_role_key('company_admin'),'inactive role status is rejected" in main_sql
+    final = (ROOT / 'supabase/migrations/20260908120000_preserve_gridex_user_has_role_key.sql').read_text()
+    assert "coalesce(ur.status, ''active'') = ''active''" in final
+    assert "coalesce(ur.is_active, true) = true" in final
+
+
 def main():
     whole_correction_constructors()
     rbac_prefix_seed_uniqueness()
+    rbac_prefix_user_role_statuses()
     emitted = run('python3', str(RBAC_FIXTURE), '--emit')
     assert emitted.returncode == 0, emitted.stderr
     for source in [

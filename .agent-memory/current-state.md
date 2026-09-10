@@ -60,9 +60,20 @@ extended prefix. Preceding selection selftest passes. Correctiond15ef34a uses
 a disjoint synthetic pair while preserving all six IDs; exact hard6E expected
 grant multiset includes its one authenticF cleanup row. Focused RED/GREEN,
 group/RBACselection/emit/compile/diff PASS. Scoped spec/quality APPROVED, no new
-material breakage; selected-order
-hosted acceptance remains open. Quality/build102835575212 and Ediel102835575406
-PASS at2539b572; verify102835575431/clean102835575512 remain red. No artifact regeneration from incomplete replay.
+material breakage. Published d9c561e4b98d3bf5b20f601de30cf12f2a848416, exact
+reviewed treeac76b74dfb97eb58ff8ba718a780d68f60b8b818; fetched tree equality
+and tracked-clean state verified, locale016081d archived before alignment.
+OPS34467334952/auth102838869738 passes prior grant insertion then FAILS
+command6 synthetic user_roles row...0002: status inactive violates selected6D2
+user_roles_status_check. Correctionb44ae36c adapts only prefix-local row...0002
+inactive→disabled, retaining identity/is_active=true/status-denial intent and
+separate active/is_active=false row...0004. All four seed statuses checked against
+exact6D2 vocabulary; original reduced fixture unchanged. Focused RED/GREEN,
+group/RBACselection/status-audit/compile/diff PASS; independent scoped
+spec/quality APPROVED with no new breakage. Corrected hosted run pending.
+Selected-order hosted acceptance remains open. Quality/build102835575212 and Ediel102835575406
+PASS at2539b572; latest d9c561e4 quality/build102838870050 and
+Ediel102838870083 also PASS; verify102838870004/clean102838869953 remain red. No artifact regeneration from incomplete replay.
 
 Environment restored2026-09-10; local branch reconciled to25cb2c2b. Prior local
 status edits retained in stash continuation-20260910-pre-checkpoint-reconcile;

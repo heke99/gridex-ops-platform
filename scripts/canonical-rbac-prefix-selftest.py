@@ -50,15 +50,18 @@ def reduced_seed():
     valid_company = "('20000000-0000-0000-0000-000000000002','Synthetic Two','2222222222','onboarding');"
     conflicting_grant = "('60000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),(select id from permissions where key='tenants.write'))"
     unique_grant = "('60000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),(select id from permissions where key='permissions.manage'))"
+    inactive_role = "('70000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'inactive')"
+    disabled_role = "('70000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'disabled')"
     marker = 'create temporary table memberships_before as select * from company_memberships;'
     extra = """insert into user_roles(id,user_id,company_id,role_id,status,is_active) values
  ('70000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'active',false);
 """
-    assert marker in sql and invalid_company in sql and conflicting_grant in sql
+    assert marker in sql and invalid_company in sql and conflicting_grant in sql and inactive_role in sql
     # Full 6D rejects suspended profiles; keep the reduced historical fixture intact.
     sql = sql.replace("'D','suspended'", "'D','locked_security'").replace("'F','suspended'", "'F','locked_security'")
     return sql.replace(invalid_company, valid_company).replace(
-        conflicting_grant, unique_grant).replace(marker, extra + marker)
+        conflicting_grant, unique_grant).replace(
+        inactive_role, disabled_role).replace(marker, extra + marker)
 
 
 def catalog_prerequisites():

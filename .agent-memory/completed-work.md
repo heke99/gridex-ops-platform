@@ -744,3 +744,5 @@ authorizes necessary production merge/migrations/deployment after verification.
 2026-09-10 Task10 implementation3241a76f independently APPROVED; exact selection/provenance/count/fixture checks PASS. Hosted selected-order acceptance remains pending. No full task/masterplan closure.
 
 2026-09-10 Task10 runtime seed correctiond15ef34a independently APPROVED; focused RED/GREEN and group/RBAC selection/emit/compile/diff PASS. Hosted corrected selected-order acceptance remains pending.
+
+2026-09-10 Task10 status fixture correctionb44ae36c independently APPROVED; covering RED/GREEN/selection/status/compile/diff PASS. Corrected hosted acceptance still pending.
