@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "a38f0bd3ea74dde3ebb9e606e8d5f0ed202e33d1",
-    "last_isolated_pg17_code": "a38f0bd3ea74dde3ebb9e606e8d5f0ed202e33d1"
+    "published_baseline": "936c9b44ca9a8924704d40ed288c141d348bf72a",
+    "last_isolated_pg17_code": "936c9b44ca9a8924704d40ed288c141d348bf72a"
   },
-  "execution_environment": "connected; branch aligned to publisheda38f0bd3; named pre-checkpoint stash preserved",
-  "next_action": "Fixture/scheduling fixe43afef6 independently APPROVED. Publish reviewed tree and require both current-head original16 and complete independent legacy SQL proof before selection; Task8 staging/target interfaces documented."
+  "execution_environment": "connected; branch aligned to published936c9b44; named pre-checkpoint stash preserved",
+  "next_action": "Publish independently approved failure3 fixes1f7fa237/95b64642; require complete legacy proof plus original16 on exact same head before Task8 selection."
 }

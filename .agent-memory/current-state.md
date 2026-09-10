@@ -11,11 +11,11 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `a38f0bd3ea74dde3ebb9e606e8d5f0ed202e33d1`, exact reviewed
-tree `2d5bf73988f43ea61ee8d56d9ec26675ada61a2a`; fetched equality/tracked-clean
-alignment passed, local07b6e028 archived. OPS34494150132 original16 and catalog-fix
-legacy rerun FAILED later at event_completed_setup23502 after catalog and whole
-batch/repeat PASS. Original16 job102928189857 PASS; last full16 is a38f0bd3.
+Latest publication: `936c9b44ca9a8924704d40ed288c141d348bf72a`, exact reviewed
+tree `09bda2f9211869a80ade10e11d07f8a6172d5ee9`; fetched equality/tracked-clean
+alignment passed, locala08fbb15 archived. OPS34496370168 original16/job102935744848 PASS. Independent legacy proof
+102935744648 resolves both event fixtures but fails later at reduced_I_pair;
+complete legacy acceptance remains required before selection.
 
 
 Working-tree accounting is 595 inputs: 525 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 42 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -32,15 +32,23 @@ retain the exact original15 order and execute diagnostics once at the end.
 ## Sole active work item
 
 Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
-Task7: hosted failure2 at a38f0bd3/job102931418279. Catalog42725 is RESOLVED.
-Six complete whole_batch executions PASS (reference twice, actual first43 twice,
-seeded role-preimage/repeat twice); five initial dirty cases reject55000 and
-preserve catalog/snapshots. event_completed_setup then fails23502; cleanup PASS,
-remaining lanes unexecuted. Fixe43afef6 adds required event action to both history setups; bounded review
-of remaining new INSERT prerequisites found no further mismatch. Independent
-fixture/scheduling review APPROVED, no findings; actual remaining SQL lanes pending.
-Both current-head jobs remain required; independent owned proof may run parallel
-to original16 in the next reviewed scheduling fix to remove the measured8min wait.
+Task7: hosted failure3 at936c9b44/job102935744648. Catalog42725 and event
+setup23502 are RESOLVED. All14 dirty data/alias and11 dirty catalog cases PASS;
+native FK23503/key23505/notnull23502/check23514 plus stage-verified fullA pair
+and fullH triple23505 PASS. Reduced D/E/F/H and default-admin E/I rollback PASS.
+Then reduced_I_pair unexpectedly returns00000 instead of23505; cleanup PASS.
+Source-backed cause: first43 has no operations_agent role, so tie setup selects
+only company_admin. Author is adding explicit synthetic seed and exact eligible
+candidate cardinality/stage evidence. Expected-error whole-source calls also need
+an explicit rollback footer to prevent unexpected success committing before host
+rejection. This occurred only in the owned disposable fixture; no production
+mutation. Atomic/concurrency/helper/logging/session/listener lanes remain unrun.
+Fix1f7fa237 corrects tie/stage and rollback construction. Scoped review identified
+one Important missing hosted unexpected-success rollback control; fix95b64642
+adds wholeI mutation witness, precise00000/exit0 host rejection and independent
+committed row/catalog preservation. Independent scoped rereview APPROVED,
+sole Important finding closed, no new findings. Full exact-head hosted proof
+remains required; constructor/AST/diff do not establish SQL acceptance.
 Task5 contract
 66c56c70/9a6eb324 independently APPROVED, no open findings. Task6 c9a60e5e plus
 report-tracking cleanup585e367e independently APPROVED and published e37bc25b.
@@ -51,8 +59,9 @@ sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retriev
 and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
 Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
 
-Next: publish approved fixture/scheduling fixe43afef6, then obtain
-complete standalone PG17 acceptance plus original16 before source selection. No source selection yet.
+Next: publish reviewed failure3 fixes1f7fa237/95b64642 as one coherent batch,
+then require full standalone PG17 acceptance and original16
+on the same head. No source selection yet.
 Preserve first43; prospective44–52 batch/foundation93 requires later acceptance.
 Five business targets must be empty; existing role identities/metadata require
 exact preimage restoration before commit. Populated historical effects remain
@@ -68,7 +77,7 @@ source/credential/provider content in that logging path without weakening tests.
 
 ## Current executed acceptance
 
-OPS34494150132/auth102928189857 at a38f0bd3 PASS complete fixed16 (reconfirms
+OPS34496370168/auth102935744848 at936c9b44 PASS complete fixed16 (reconfirms
 prior e37bc25b/194fd0cf executed receipts): all prior
 source/RBAC/governance/SaaS/admission lanes plus selected diagnostics G/R,
 eleven reduced projections/history/repeats,23 dirty catalog cases, five role/
@@ -87,14 +96,13 @@ G-after-R alone actually resets invoker=false/reloptionsNULL and is explicitly
 not runtime-ready. Each subsequent wholeR secure boundary passed. The complete
 later selected chain must still prove final ACL/policy/invoker survival.
 
-At a38f0bd3, quality/build102928189801, Ediel102928189744,
-tenant102928188658, browser-public102928189150 and coverage102928192363 PASS.
-Verify102928189872 FAILS generated-types tail20260910140053;
-clean102928189317 FAILS before complete replay. Smoke102928192794 is14/15,
-sole same types failure; pr-certificate102928791379 FAILS. New legacy proof
-failure2 at event_completed_setup23502 is the active blocker above. Full/runtime/
-customer/load/staging/ZAP/certification skips remain unverified. Never regenerate
-artifacts from incomplete replay or weaken gates for green output.
+At936c9b44, quality/build102935744262, Ediel102935744752,
+tenant102935743677, browser-public102935744794 and coverage102935745298 PASS.
+Verify102935744609 FAILS generated-types tail20260910140053 (log confirmed);
+clean102935744734 FAILS before complete replay. Smoke102935744885 is14/15,
+sole same types failure; pr-certificate102936334833 FAILS. Legacy failure3 is
+active above. Full/runtime/customer/load/staging/ZAP/certification skips remain
+unverified. Never regenerate artifacts from incomplete replay or weaken gates.
 
 ## Remaining masterplan and environment boundaries
 

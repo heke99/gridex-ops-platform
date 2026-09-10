@@ -19,10 +19,12 @@ def load_batch():
 
 
 def constructor_checks():
+    assert callable(globals().get('run_rollback_error')), 'expected-error sources require rollback on unexpected success'
     assert callable(globals().get('require_native_setup')), 'source-native failure requires a setup stage guard'
     require_native_setup('LEGACY_NATIVE_SETUP_COMPLETED_A\n','A')
     require_native_setup('LEGACY_NATIVE_SETUP_COMPLETED_H\n','H')
-    for source in ('A','H'):
+    require_native_setup('LEGACY_NATIVE_SETUP_COMPLETED_I\n','I')
+    for source in ('A','H','I'):
         for output in ('', '23505\n', 'ERROR: 23505: fixture setup failed\n',
                        'LEGACY_NATIVE_SETUP_COMPLETED_'+('H' if source=='A' else 'A')+'\n',
                        ('LEGACY_NATIVE_SETUP_COMPLETED_'+source+'\n')*2,
@@ -103,17 +105,34 @@ def constructor_checks():
         # A setup23505 may carry the marker in stderr; it must still fail the
         # stage guard. A post-marker23505 has the trusted marker in stdout.
         import contextlib,io
-        for source in ('A','H'):
+        real_command=h.command
+        for source in ('A','H','I'):
             marker='LEGACY_NATIVE_SETUP_COMPLETED_'+source+'\n'
-            for setup_completed in (False,True):
+            source_bytes=next(s.data for s in sources if s.alias==source)
+            inputs=[h.private('stage-control-setup.sql',"SELECT '"+marker.strip()+"';"),h.private('stage-control-whole.sql',source_bytes)]
+            for setup_completed,exit_code in ((False,3),(True,3),(True,0)):
                 stdout=marker if setup_completed else ''
-                stderr='ERROR:  23505: synthetic native failure\nDETAIL: synthetic detail\n'+marker
-                code='import sys; sys.stdout.write('+repr(stdout)+'); sys.stderr.write('+repr(stderr)+'); sys.exit(3)'
-                h.command=lambda *args,code=code:[sys.executable,'-c',code]
+                stderr=('ERROR:  23505: synthetic native failure\nDETAIL: synthetic detail\n'+marker) if exit_code else ''
+                code='import sys; sys.stdout.write('+repr(stdout)+'); sys.stderr.write('+repr(stderr)+'); sys.exit('+str(exit_code)+')'
+                def command(database,submitted,transaction=True):
+                    assert submitted[:-1]==inputs and submitted[-1].read_bytes()==b'ROLLBACK;\n'
+                    assert submitted[1].read_bytes()==source_bytes
+                    assert len(inputs)==2
+                    argv=real_command(database,submitted,transaction)
+                    assert transaction and argv.count('--single-transaction')==1
+                    assert argv[-2:]==['-f','/legacy-private/'+submitted[-1].name]
+                    return [sys.executable,'-c',code]
+                h.command=command
                 public=io.StringIO()
                 with contextlib.redirect_stdout(public):
-                    captured_stdout=h.run_files('gridex_auth_legacy_native',[],'native_stage_control',expect='23505')
+                    try:
+                        captured_stdout=run_rollback_error(h,'gridex_auth_legacy_native',inputs,'native_stage_control','23505')
+                    except b.BoundaryError:
+                        assert exit_code==0, 'expected failure was rejected unexpectedly'
+                    else:
+                        assert exit_code==3, 'unexpected source success was accepted'
                 assert marker.strip() not in public.getvalue()
+                if exit_code==0: continue
                 if setup_completed:
                     require_native_setup(captured_stdout,source)
                 else:
@@ -174,9 +193,24 @@ def unchanged(h,database,before):
     assert snapshot(h,database)==before, 'rollback did not preserve complete rows/catalog'
 
 
+def rollback_only_files(h,files):
+    """Expected-error fixtures must also roll back when every input succeeds.
+
+    ON_ERROR_STOP aborts on an error; this final file handles the success path
+    before psql's single-transaction COMMIT. Whole-source bytes stay untouched.
+    This test-only wrapper is never used by the admitted batch executor.
+    """
+    return [*files,h.private('expected-error-rollback.sql','ROLLBACK;\n')]
+
+
+def run_rollback_error(h,database,files,label,state):
+    assert state!='00000', 'rollback-error fixture requires a failing SQLSTATE'
+    return h.run_files(database,rollback_only_files(h,files),label,expect=state)
+
+
 def expected_batch_error(b,h,database,state,label,files=None):
     before=snapshot(h,database)
-    h.run_files(database,files or b.envelope_files(h,b.reviewed_paths()),label,expect=state)
+    run_rollback_error(h,database,files or b.envelope_files(h,b.reviewed_paths()),label,state)
     unchanged(h,database,before)
 
 
@@ -216,7 +250,7 @@ def dirty_rows(b,h):
       'event_completed':f"ALTER TABLE auth_email_events DROP CONSTRAINT auth_email_events_status_check; INSERT INTO auth_email_events(user_id,company_id,email,action,event_type,status) VALUES ('{U}','{C}','event@example.invalid','invite_sent','invite_sent','completed');",
       'event_unknown':"ALTER TABLE auth_email_events DROP CONSTRAINT IF EXISTS auth_email_events_event_type_check; ALTER TABLE auth_email_events DROP CONSTRAINT IF EXISTS auth_email_events_status_check; INSERT INTO auth_email_events(email,action,event_type,status) VALUES ('unknown@example.invalid','invite_sent','synthetic_unknown','synthetic_unknown');",
       'role_orphan_alias':f"INSERT INTO user_roles(user_id,company_id,role,status,is_active) VALUES ('{U}','{C}','admin','active',true);",
-      'role_multitenant_tie':f"INSERT INTO user_roles(user_id,company_id,role_id,created_at) SELECT '{U}',c.id,r.id,'2026-01-01' FROM companies c CROSS JOIN roles r WHERE c.id IN ('{C}','{C2}') AND r.key IN ('company_admin','operations_agent');",
+      'role_multitenant_tie':"INSERT INTO roles(key,name) VALUES ('operations_agent','Synthetic operations role');"+f"INSERT INTO user_roles(user_id,company_id,role_id,created_at) SELECT '{U}',c.id,r.id,'2026-01-01' FROM companies c CROSS JOIN roles r WHERE c.id IN ('{C}','{C2}') AND r.key IN ('company_admin','operations_agent');"+check('(SELECT count(*)=4 AND count(DISTINCT company_id)=2 AND count(DISTINCT role_id)=2 FROM user_roles)'),
       'flexible_action':f"INSERT INTO user_profiles(id,email,last_auth_email_action) VALUES ('{U}','action@example.invalid','vendor:custom.action');",
       'role_null_activity':f"ALTER TABLE user_roles ALTER COLUMN status DROP NOT NULL; ALTER TABLE user_roles ALTER COLUMN is_active DROP NOT NULL; INSERT INTO user_roles(user_id,company_id,status,is_active) VALUES ('{U}',NULL,NULL,NULL);",
       'membership_null_orphan':"ALTER TABLE company_memberships ALTER COLUMN company_id DROP NOT NULL; ALTER TABLE company_memberships ALTER COLUMN user_id DROP NOT NULL; INSERT INTO company_memberships(company_id,user_id,status) VALUES (NULL,NULL,'active');",
@@ -263,7 +297,7 @@ def require_native_setup(stdout,source):
     Callers pass run_files' stdout return, never its private stderr/error file.
     SQLSTATE validation remains in run_files; it cannot replace this stage proof.
     """
-    assert source in ('A','H'), 'unexpected native-source stage'
+    assert source in ('A','H','I'), 'unexpected native-source stage'
     markers=[line for line in stdout.splitlines() if line.startswith('LEGACY_NATIVE_SETUP_COMPLETED_')]
     assert markers==['LEGACY_NATIVE_SETUP_COMPLETED_'+source], 'source-native setup stage not completed'
 
@@ -291,7 +325,7 @@ DROP INDEX company_memberships_company_user_uidx;
 INSERT INTO company_memberships(company_id,user_id) VALUES ('{C}','{U}'),('{C}','{U}');
 """+check('(SELECT count(*)=2 FROM company_memberships)')+"\nSELECT 'LEGACY_NATIVE_SETUP_COMPLETED_A';"
     files=[h.private('native-pair-setup.sql',setup),h.private('native-pair-whole.sql',source.data)]
-    stdout=h.run_files(database,files,'native_full_A_pair',expect='23505')
+    stdout=run_rollback_error(h,database,files,'native_full_A_pair','23505')
     require_native_setup(stdout,'A')
     unchanged(h,database,before)
     clone(h,database); h.sql(database,seed_parents(), 'triple_parents')
@@ -299,7 +333,7 @@ INSERT INTO company_memberships(company_id,user_id) VALUES ('{C}','{U}'),('{C}',
     setup=f"INSERT INTO user_roles(user_id,company_id,role_id) SELECT '{U}','{C}',id FROM roles WHERE key='company_admin'; INSERT INTO user_roles(user_id,company_id,role_id) SELECT user_id,company_id,role_id FROM user_roles;"
     setup+=check('(SELECT count(*)=2 FROM user_roles)')+"\nSELECT 'LEGACY_NATIVE_SETUP_COMPLETED_H';"
     source=b.validate_sources(b.reviewed_paths())[6]
-    stdout=h.run_files(database,[h.private('native-triple-setup.sql',setup),h.private('native-triple-whole.sql',source.data)],'native_full_H_triple',expect='23505')
+    stdout=run_rollback_error(h,database,[h.private('native-triple-setup.sql',setup),h.private('native-triple-whole.sql',source.data)],'native_full_H_triple','23505')
     require_native_setup(stdout,'H')
     unchanged(h,database,before)
     print('PASS native SQLSTATE FK unique notnull CHECK full-A-pair full-H-triple rollback')
@@ -328,12 +362,24 @@ def reduced_characterization(b,h):
         files=[h.private('char-whole.sql',sources[alias].data),h.private('char-assert.sql',check("EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE r.key='company_admin')")+'\nROLLBACK;')]
         h.run_files(database,files,'reduced_'+alias+'_default_admin'); unchanged(h,database,before)
     clone(h,database)
-    h.sql(database,seed_parents()+f"INSERT INTO user_roles(user_id,company_id,role_id,created_at) SELECT '{U}','{C}',id,'2026-01-01' FROM roles WHERE key IN ('company_admin','operations_agent');",'tie_candidates')
+    # operations_agent is absent from the literal first43; seed it explicitly.
+    # Pin both ordering timestamps so this is a real tie for both H and I.
+    eligible=check("""(SELECT count(*)=2 AND count(DISTINCT (ur.company_id,ur.user_id))=1
+AND min(ur.created_at)=max(ur.created_at) AND min(ur.updated_at)=max(ur.updated_at)
+AND array_agg(coalesce(r.key,r.name) ORDER BY coalesce(r.key,r.name))=ARRAY['company_admin','operations_agent']
+FROM user_roles ur LEFT JOIN roles r ON r.id=ur.role_id
+WHERE ur.company_id IS NOT NULL AND ur.user_id IS NOT NULL
+AND coalesce(ur.status,'active')='active' AND coalesce(ur.is_active,true)=true
+AND NOT EXISTS(SELECT 1 FROM company_memberships cm WHERE cm.company_id=ur.company_id AND cm.user_id=ur.user_id))
+AND (SELECT count(*)=0 FROM company_memberships)""")
+    h.sql(database,seed_parents()+"INSERT INTO roles(key,name) VALUES ('operations_agent','Synthetic operations role');"+f"INSERT INTO user_roles(user_id,company_id,role_id,created_at,updated_at) SELECT '{U}','{C}',id,'2026-01-01','2026-01-01' FROM roles WHERE key IN ('company_admin','operations_agent');"+eligible,'tie_candidates')
     expected_batch_error(b,h,database,'55000','reject_H_I_tie')
     before=snapshot(h,database)
     # I's plain INSERT, unlike H DISTINCT ON, sees both role candidates against
     # the same empty membership snapshot and hits pair uniqueness.
-    h.run_files(database,[h.private('char-I-whole.sql',sources['I'].data)],'reduced_I_pair',expect='23505')
+    files=[h.private('char-I-stage.sql',eligible+"\nSELECT 'LEGACY_NATIVE_SETUP_COMPLETED_I';"),h.private('char-I-whole.sql',sources['I'].data)]
+    stdout=run_rollback_error(h,database,files,'reduced_I_pair','23505')
+    require_native_setup(stdout,'I')
     unchanged(h,database,before)
     h.run_files(database,[h.private('char-H-whole.sql',sources['H'].data),h.private('char-H-assert.sql',check("(SELECT count(*)=1 FROM company_memberships) AND (SELECT role_key IN ('company_admin','operations_agent') FROM company_memberships)")+'\nROLLBACK;')],'reduced_H_tie')
     unchanged(h,database,before)
@@ -344,6 +390,40 @@ def reduced_characterization(b,h):
     h.run_files(database,[h.private('char-null-I.sql',sources['I'].data),h.private('char-null-assert.sql',check('(SELECT status=\'active\' AND is_active FROM user_roles)')+'\nROLLBACK;')],'reduced_I_null_activation')
     unchanged(h,database,before)
     print('PASS reduced D E F H I full-byte overwrite default-admin tie NULL characterization rolled back')
+
+
+def unexpected_success_rollback(b,h):
+    """Exercise the footer in PostgreSQL when a whole source really succeeds."""
+    import contextlib,io,json
+    database='gridex_auth_legacy_native'; clone(h,database)
+    # The same valid default-admin preimage already characterized above. Setup
+    # is outside the exception handler, and the committed preimage is independent.
+    setup=seed_parents()+f"INSERT INTO company_memberships(company_id,user_id,membership_role,role_key,status) VALUES ('{C}','{U}','member',NULL,'active');"
+    h.sql(database,setup+check('(SELECT count(*)=0 FROM user_roles)'),'rollback_success_setup')
+    before=snapshot(h,database)
+    source=next(s for s in b.validate_sources(b.reviewed_paths()) if s.alias=='I')
+    # Prove a real row effect before the footer: removing that footer must make
+    # the later independent committed-row comparison fail.
+    changed=check(f"""(SELECT count(*)=1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
+WHERE ur.user_id='{U}' AND ur.company_id='{C}' AND r.key='company_admin'
+AND ur.status='active' AND ur.is_active)""")
+    files=[h.private('success-control-whole-I.sql',source.data),h.private('success-control-effect.sql',changed)]
+    public=io.StringIO()
+    with contextlib.redirect_stdout(public):
+        try:
+            run_rollback_error(h,database,files,'unexpected_success_rollback','23505')
+        except b.BoundaryError as error:
+            if str(error)!='UNEXPECTED_SQL_RESULT': raise
+        else:
+            raise AssertionError('unexpected source success was accepted')
+    # The same BoundaryError can also signal a different SQL error. Require the
+    # actual successful subprocess receipt, never merely the exception class.
+    receipt=json.loads(public.getvalue())
+    assert receipt['stage']=='unexpected_success_rollback'
+    assert receipt['sqlstate']=='00000' and receipt['exit_code']==0 and receipt['category']=='OK'
+    print(json.dumps(receipt,sort_keys=True),flush=True)
+    unchanged(h,database,before)
+    print('PASS whole-I unexpected success rejected after footer restores committed rows/catalog')
 
 
 def private_query(h,database,sql):
@@ -405,7 +485,7 @@ def atomic_cases(b,h):
     clone(h,database); before=snapshot(h,database)
     files=b.envelope_files(h,b.reviewed_paths()); i=next(i for i,p in enumerate(files) if p.name=='stage-F.sql')+1
     files.insert(i,h.private('death-wait.sql','SELECT pg_sleep(30);'))
-    process,path=spawn(h,database,files,'connection_death')
+    process,path=spawn(h,database,rollback_only_files(h,files),'connection_death')
     wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_connection_death' AND wait_event='PgSleep')")
     private_query(h,database,"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name='legacy_connection_death'")
     process_result(b,process,path,'connection_death','57P01')
@@ -418,7 +498,7 @@ def concurrency(b,h):
     before=snapshot(h,database)
     holder,path=spawn(h,database,[h.private('lock-holder.sql','LOCK TABLE public.company_memberships IN ACCESS EXCLUSIVE MODE; SELECT pg_sleep(30);')],'lock_holder')
     wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_lock_holder' AND wait_event='PgSleep')")
-    contender,cpath=spawn(h,database,b.envelope_files(h,b.reviewed_paths()),'lock_contender')
+    contender,cpath=spawn(h,database,rollback_only_files(h,b.envelope_files(h,b.reviewed_paths())),'lock_contender')
     wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_lock_contender' AND wait_event_type='Lock')")
     process_result(b,contender,cpath,'lock_timeout','55P03')
     private_query(h,database,"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name='legacy_lock_holder'")
@@ -428,7 +508,7 @@ def concurrency(b,h):
     clone(h,database); h.sql(database,seed_parents(),'stale_parents')
     holder,path=spawn(h,database,[h.private('stale-holder.sql',f"LOCK TABLE public.company_memberships IN ACCESS EXCLUSIVE MODE; INSERT INTO company_memberships(company_id,user_id) VALUES ('{C}','{U}'); SELECT pg_sleep(2);")],'stale_holder')
     wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_stale_holder' AND wait_event='PgSleep')")
-    contender,cpath=spawn(h,database,b.envelope_files(h,b.reviewed_paths()),'stale_contender')
+    contender,cpath=spawn(h,database,rollback_only_files(h,b.envelope_files(h,b.reviewed_paths())),'stale_contender')
     wait_observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='legacy_stale_contender' AND wait_event_type='Lock')")
     process_result(b,holder,path,'stale_holder'); process_result(b,contender,cpath,'stale_contender','55000')
     h.sql(database,check('(SELECT count(*)=1 FROM company_memberships)'),'fresh_row_retained')
@@ -468,7 +548,10 @@ def notification_case(b,h,rollback):
     files=b.envelope_files(h,b.reviewed_paths())
     if rollback:
         files.insert(-1,h.private('notification-error.sql',"DO $$ BEGIN RAISE EXCEPTION USING ERRCODE='XX000',MESSAGE='"+SENTINEL+"'; END $$;"))
-    h.run_files(database,files,'notification_rollback' if rollback else 'notification_commit',expect='XX000' if rollback else '00000')
+    if rollback:
+        run_rollback_error(h,database,files,'notification_rollback','XX000')
+    else:
+        h.run_files(database,files,'notification_commit')
     process.stdin.write(b"SELECT 1;\n\\q\n");process.stdin.flush();process.wait(timeout=10)
     assert process.returncode==0
     raw=output.read_text()
@@ -573,7 +656,7 @@ def privilege_variants(b,h):
     # command is first, then the hostile fixture, then fresh locked admission.
     context=files[0].read_text();context=context.replace('SET TRANSACTION ISOLATION LEVEL READ COMMITTED;','SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n'+setup)
     files[0]=h.private('inherited-context.sql',context)
-    h.run_files(database,files,'inherited_grant_rejected',expect='42804')
+    run_rollback_error(h,database,files,'inherited_grant_rejected','42804')
     unchanged(h,database,before)
     print('PASS client roles service-count inherited-grant denial')
 
@@ -618,7 +701,7 @@ def sql_main():
     with b.OwnedPostgres() as h:
         b.prepare_reference(h)
         for lane in (actual_and_seeded,dirty_rows,dirty_catalog,native_cases,reduced_characterization,
-                     atomic_cases,concurrency,downstream_helper,optional_session_compatibility,
+                     unexpected_success_rollback,atomic_cases,concurrency,downstream_helper,optional_session_compatibility,
                      privilege_variants,logging_cases):
             begin=time.monotonic();lane(b,h)
             print('PASS lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
