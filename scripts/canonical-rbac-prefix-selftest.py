@@ -11,6 +11,10 @@ import sys
 sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
+CONTRACT_SPEC = importlib.util.spec_from_file_location(
+    'rbac_prefix_governance_contract', ROOT / 'scripts/canonical_full_governance_contract.py')
+governance_contract = importlib.util.module_from_spec(CONTRACT_SPEC)
+CONTRACT_SPEC.loader.exec_module(governance_contract)
 ADMIN = 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test'
 DATABASE = 'gridex_rbac_prefix_fixture'
 TARGET = f'postgresql://postgres:postgres@127.0.0.1:55440/{DATABASE}'
@@ -87,7 +91,9 @@ select test_assert((select count(*)=2 and bool_and(atttypid='timestamptz'::regty
 
 
 def prefix_baseline():
-    return """create temporary table rbac_governance_triggers as select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger where tgname like '%_tenant_operational_guard_trg';
+    trigger_targets = ','.join("('%s')" % target for target in governance_contract.TRIGGER_TARGETS)
+    return f"""create temporary table rbac_expected_governance_trigger_targets(table_name text primary key) as values {trigger_targets};
+create temporary table rbac_governance_triggers as select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger where tgname like '%_tenant_operational_guard_trg' and not tgisinternal;
 create temporary table rbac_governance_checks as select oid,conrelid,conname,pg_get_constraintdef(oid) definition from pg_constraint where conname in ('companies_status_check','company_memberships_role_check','company_memberships_status_check','company_invitations_membership_role_check','company_invitations_status_check','user_profiles_user_status_check') or conrelid='tenant_governance_events'::regclass;
 create temporary table rbac_governance_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('tenant_governance_events'::regclass,'platform_tenant_governance_overview'::regclass,'tenant_governance_events_company_created_idx'::regclass,'tenant_governance_events_target_user_created_idx'::regclass);
 create temporary table rbac_operations_constraints as select oid,conname,contype,conkey,pg_get_constraintdef(oid) definition from pg_constraint where conrelid='customer_sync_events'::regclass;
@@ -112,6 +118,37 @@ select
 create temporary table prefix_companies_before as
 select id, to_jsonb(c) - array['status','country_code','operating_environment'] as unrelated_fields
 from companies c;
+"""
+
+
+def governance_trigger_checks():
+    expected_count = len(governance_contract.TRIGGER_TARGETS)
+    assert expected_count == 28
+    return f"""select test_assert(
+  (select count(*)={expected_count} from rbac_governance_triggers)
+  and not exists(
+    select 1 from rbac_expected_governance_trigger_targets e
+    left join pg_class c on c.relnamespace='public'::regnamespace and c.relname=e.table_name
+    left join rbac_governance_triggers t on t.tgrelid=c.oid and t.tgname=e.table_name||'_tenant_operational_guard_trg'
+    where t.oid is null or t.tgtype<>23 or t.tgenabled<>'O'
+      or t.tgfoid<>'public.gridex_assert_company_operational_for_write()'::regprocedure
+      or array(select unnest(t.tgattr))<>array[(select attnum from pg_attribute where attrelid=t.tgrelid and attname='company_id')]::smallint[])
+  and not exists(
+    select 1 from rbac_governance_triggers t
+    join pg_class c on c.oid=t.tgrelid
+    left join rbac_expected_governance_trigger_targets e on e.table_name=c.relname
+    where e.table_name is null or t.tgname<>c.relname||'_tenant_operational_guard_trg')
+  and not exists(
+    (select * from rbac_governance_triggers except
+     select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger
+     where tgname like '%_tenant_operational_guard_trg' and not tgisinternal)
+    union all (select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger
+     where tgname like '%_tenant_operational_guard_trg' and not tgisinternal
+     except select * from rbac_governance_triggers)),
+  'all28 source-targeted governance trigger identities/events/function and company_id bindings retained through full6E and helper repair');
+select test_assert(not exists(select 1 from pg_trigger where not tgisinternal
+  and tgrelid in ('public.user_roles'::regclass,'public.user_profiles'::regclass)
+  and (tgtype&16)=16),'no unexpected mutating user-role/profile UPDATE trigger through full6E and helper repair');
 """
 
 
@@ -207,8 +244,8 @@ select test_assert((select count(*) from role_permissions)=(select count(*)+6 fr
             chunks.append(first_checks())
     chunks.append(f'-- RBAC_FINAL_HELPER_BEGIN {FINAL}\n{read("supabase/" + FINAL)}')
     chunks.append(final_checks())
-    chunks.append("""select test_assert((select count(*)=17 from rbac_governance_triggers) and not exists(select * from rbac_governance_triggers except select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger),'all17 governance trigger identities/events/bindings retained through full6E and helper repair');
-select test_assert(not exists(select * from rbac_governance_checks except select oid,conrelid,conname,pg_get_constraintdef(oid) from pg_constraint),'governance checks and journal PK/FKs retained through full6E');
+    chunks.append(governance_trigger_checks())
+    chunks.append("""select test_assert(not exists(select * from rbac_governance_checks except select oid,conrelid,conname,pg_get_constraintdef(oid) from pg_constraint),'governance checks and journal PK/FKs retained through full6E');
 select test_assert(not exists(select * from rbac_governance_objects except select oid,relname,relacl,reloptions from pg_class),'journal/overview/index identities and bounded ACL/options retained through full6E');
 select test_assert(not exists(select * from rbac_operations_constraints except select oid,conname,contype,conkey,pg_get_constraintdef(oid) from pg_constraint),'operations journal PK/check identities retained through full6E');
 select test_assert(not exists(select * from rbac_operations_objects except select oid,relname,relacl,reloptions from pg_class),'operations journal/index identities and bounded ACL/options retained through full6E');

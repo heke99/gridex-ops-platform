@@ -300,10 +300,36 @@ def rbac_prefix_user_role_statuses():
     assert "coalesce(ur.is_active, true) = true" in final
 
 
+def rbac_prefix_governance_trigger_contract():
+    """The expanded prefix must retain 6D2's finite trigger catalog exactly."""
+    spec = importlib.util.spec_from_file_location('rbac_prefix_triggers', RBAC_PREFIX_FIXTURE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    contract_spec = importlib.util.spec_from_file_location(
+        'full_governance_contract', ROOT / 'scripts/canonical_full_governance_contract.py')
+    contract = importlib.util.module_from_spec(contract_spec)
+    contract_spec.loader.exec_module(contract)
+    sql = module.main_sql()
+    assert len(contract.TRIGGER_TARGETS) == 28
+    assert 'create temporary table rbac_expected_governance_trigger_targets' in sql
+    for target in contract.TRIGGER_TARGETS:
+        assert f"('{target}')" in sql
+    assert '(select count(*)=28 from rbac_governance_triggers)' in sql
+    assert "t.tgtype<>23 or t.tgenabled<>'O'" in sql
+    assert "t.tgfoid<>'public.gridex_assert_company_operational_for_write()'::regprocedure" in sql
+    assert "array(select unnest(t.tgattr))<>array[(select attnum" in sql
+    assert 'select * from rbac_governance_triggers except' in sql
+    assert 'union all (select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger' in sql
+    assert "tgrelid in ('public.user_roles'::regclass,'public.user_profiles'::regclass)" in sql
+    assert '(tgtype&16)=16' in sql
+    assert 'all17 governance trigger identities/events/bindings retained' not in sql
+
+
 def main():
     whole_correction_constructors()
     rbac_prefix_seed_uniqueness()
     rbac_prefix_user_role_statuses()
+    rbac_prefix_governance_trigger_contract()
     emitted = run('python3', str(RBAC_FIXTURE), '--emit')
     assert emitted.returncode == 0, emitted.stderr
     for source in [
@@ -365,7 +391,7 @@ def main():
     assert checker.returncode == 0, checker.stderr
     assert 'begin isolation level repeatable read read only;' in checker.stdout
     assert 'IMPORT_ADMISSION_PREFIX_FILE_BEGIN' not in checker.stdout
-    assert 'all17 governance trigger identities/events/bindings retained through full6E' in prefix.stdout
+    assert 'all28 source-targeted governance trigger identities/events/function and company_id bindings retained through full6E' in prefix.stdout
     assert "'D','suspended'" not in prefix.stdout and "'D','locked_security'" in prefix.stdout
 
     whole_selection = run('python3', str(ROOT / 'scripts/canonical-full-governance-source-selftest.py'), '--selection-only')
