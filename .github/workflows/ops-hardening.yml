@@ -47,7 +47,6 @@ jobs:
         run: python3 scripts/canonical-auth-membership-group.py
 
   auth-provisioning-legacy-proof:
-    needs: auth-email-source-effects
     runs-on: ubuntu-latest
     # Original16 retain their own10min job. This separate owned-container lane
     # budgets bootstrap/reference plus deterministic <=10s contention bounds.

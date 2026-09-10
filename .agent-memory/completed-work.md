@@ -782,3 +782,7 @@ authorizes necessary production merge/migrations/deployment after verification.
 2026-09-10 e2774bc4 original16/auth102920508896 PASS complete previous source/diagnostic lanes; quality/build102920509041 Ediel102920508971 tenant102920508308 browser102920508825 coverage102920509644 PASS. New legacy proof catalog42725 failure is explicitly not completed work; see current-state.
 
 2026-09-10 Hosted failure1 fixba3ef41c independent scoped review APPROVED, no Critical/Important/Minor. PG17 internal-char concatenation resolved explicitly in one catalog operand; full coverage/security unchanged. Constructor/diff PASS are nonSQL evidence; real catalog resolution and all later legacy lanes await exact-head execution.
+
+2026-09-10 a38f0bd3 bounded SQL evidence: original16 PASS, catalog42725 actually resolved, six complete batch/repeat executions and seeded role preimages PASS. Complete Task7 remains open due later fixture setup23502; no selection/prod acceptance.
+
+2026-09-10 Hosted failure2 fixture/scheduling fixe43afef6 independently APPROVED, no findings. Required action supplied without changing completed/unknown history semantics; both current-head jobs remain required, independent scheduling/timeouts/cleanup preserved. Existing constructor/YAML/AST/diff PASS; actual remaining PostgreSQL lanes still pending publication/rerun.

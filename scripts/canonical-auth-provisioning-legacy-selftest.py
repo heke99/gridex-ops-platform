@@ -126,7 +126,7 @@ def constructor_checks():
     workflow=(ROOT/'.github/workflows/ops-hardening.yml').read_text()
     assert 'auth-provisioning-legacy-skeleton:' not in workflow
     job=workflow.split('  auth-provisioning-legacy-proof:',1)[1].split('\n  verify:',1)[0]
-    assert 'timeout-minutes: 20' in job and 'needs: auth-email-source-effects' in job
+    assert 'timeout-minutes: 20' in job and '\n    needs:' not in job
     assert 'if: always()' in job and '--cleanup-owned' in job
     assert 'upload-artifact' not in job and 'services:' not in job and 'docker logs' not in job
     assert hashlib.sha256((ROOT/'scripts/canonical-auth-membership-group.py').read_bytes()).hexdigest()=='4665b791b5e228628fe4ca508c762a4377a9692850fd1090566385c645c8e1ac'
@@ -212,8 +212,9 @@ def dirty_rows(b,h):
       'membership_revoked':f"INSERT INTO company_memberships(company_id,user_id,status,membership_role) VALUES ('{C}','{U}','revoked','member');",
       'invitation_expired_issued':f"INSERT INTO company_invitations(company_id,email,status,metadata,expires_at) VALUES ('{C}','expired@example.invalid','pending','{{\"temporary_password_issued_at\":\"2025-01-01\"}}','2025-01-01');",
       'invitation_sending':f"ALTER TABLE company_invitations DROP CONSTRAINT company_invitations_status_check; INSERT INTO company_invitations(company_id,email,status) VALUES ('{C}','sending@example.invalid','sending'),('{C}','uncertain@example.invalid','delivery_uncertain');",
-      'event_completed':f"ALTER TABLE auth_email_events DROP CONSTRAINT auth_email_events_status_check; INSERT INTO auth_email_events(user_id,company_id,email,event_type,status) VALUES ('{U}','{C}','event@example.invalid','invite_sent','completed');",
-      'event_unknown':"ALTER TABLE auth_email_events DROP CONSTRAINT IF EXISTS auth_email_events_event_type_check; ALTER TABLE auth_email_events DROP CONSTRAINT IF EXISTS auth_email_events_status_check; INSERT INTO auth_email_events(email,event_type,status) VALUES ('unknown@example.invalid','synthetic_unknown','synthetic_unknown');",
+      # The earlier callback source's required action survives the later CREATE IF NOT EXISTS.
+      'event_completed':f"ALTER TABLE auth_email_events DROP CONSTRAINT auth_email_events_status_check; INSERT INTO auth_email_events(user_id,company_id,email,action,event_type,status) VALUES ('{U}','{C}','event@example.invalid','invite_sent','invite_sent','completed');",
+      'event_unknown':"ALTER TABLE auth_email_events DROP CONSTRAINT IF EXISTS auth_email_events_event_type_check; ALTER TABLE auth_email_events DROP CONSTRAINT IF EXISTS auth_email_events_status_check; INSERT INTO auth_email_events(email,action,event_type,status) VALUES ('unknown@example.invalid','invite_sent','synthetic_unknown','synthetic_unknown');",
       'role_orphan_alias':f"INSERT INTO user_roles(user_id,company_id,role,status,is_active) VALUES ('{U}','{C}','admin','active',true);",
       'role_multitenant_tie':f"INSERT INTO user_roles(user_id,company_id,role_id,created_at) SELECT '{U}',c.id,r.id,'2026-01-01' FROM companies c CROSS JOIN roles r WHERE c.id IN ('{C}','{C2}') AND r.key IN ('company_admin','operations_agent');",
       'flexible_action':f"INSERT INTO user_profiles(id,email,last_auth_email_action) VALUES ('{U}','action@example.invalid','vendor:custom.action');",
