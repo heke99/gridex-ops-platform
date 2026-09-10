@@ -68,11 +68,24 @@ jobs:
       GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-repair-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
-      - name: Verify unselected complete R2 E2 S2 W on private owned PostgreSQL 17
+      - name: Verify command18 standalone and actual staged repair56 on private owned PostgreSQL 17
         run: python3 scripts/canonical-auth-membership-group.py --partition repair18
       - name: Remove only the owned repair proof container
         if: always()
         run: python3 scripts/canonical-user-rbac-repair-selftest.py --cleanup-owned
+
+  user-rbac-dedupe-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-dedupe-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify complete unselected H2 with native COMMIT on private owned PostgreSQL 17
+        run: python3 scripts/canonical-user-rbac-dedupe-selftest.py
+      - name: Remove only the owned dedupe proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-dedupe-selftest.py --cleanup-owned
 
   verify:
     runs-on: ubuntu-latest

@@ -11,29 +11,29 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `62d60d76915f183bc028b8d2efa0f4b6051f8ae3`, exact reviewed
-tree `8d7f6166fe86ff5b3fad8020865e75be42a2e370`; fetched equality/tracked-clean
-alignment PASS, local319e70bc archived. Correction4 704e6105 independently APPROVED:
-explicit actual-schema profile canaries replace absent-column/zero-row assumptions,
-fail-closed presence/status/company checks and targeted constructor regression PASS.
-OPS34538019180 complete new proof103074034327 PASS166773ms; all10 lanes,
-actual/seeded/repeat, policy preimages, dirty/native/rollback/concurrency/security/
-private logging and owned cleanup/canary PASS. Legacy17/actual-loop103074034431
-PASS144187ms, quality103074034377 and Ediel103074034395 PASS. Original16/auth
-103074034403 PASS; same-head union gate satisfied and Task11 COMPLETE.
-Last517fdb1a all17 original16/auth103070546492 and legacy103070546303, quality103070546351,
-Ediel103070546129 PASS. New actual complete batch/repeat+catalog/rows and prior NULL/
-sequence controls PASS; seeded_fixture42703 led to this reviewed correction.
-No R2/E2/S2 selection, full replay/type refresh or production action.
+Latest publication: `6681ca3d79da9edfada5c01925edb2a54461e658`, exact reviewed
+tree `7e0bca400037f4214f96a8bc8a2a2c611eb3f814`; fetched equality/tracked-clean
+alignment PASS, locala1d1bba8 archived. Task12 implementation775af96c plus report
+untracking29196b20 independently APPROVED. Minor T12-R1 stale hosted step label
+is deferred to the next required workflow edit; no blocking finding.
+OPS34540658066 repair18/job103082327314 PASS169659ms, including full
+standalone plus actual shell/bootstrap/first43/legacy44–52/repair53–56 once in
+same owned DB, independent rows/catalog, W-alone rejection, post-W rollback to
+intact52 rows/catalog/sequence, exact restoration/private logs/cleanup. Legacy17
+job103082327393 PASS151856ms with historical52 proof. Ediel103082327231 PASS;
+quality103082327385 PASS. Original16/auth103082327371 PASS. Task12 COMPLETE; all18 and actual52/56 union verified.
+Task11 is COMPLETE at62d60d76 with same-head original17/new standalone166773ms/
+quality/Ediel all PASS; reuse its full source proof, no audit restart.
+No full replay/type refresh, production mutation, merge or deployment.
 
 
 Working-tree accounting is 596 inputs: 537 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 32 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 342 inputs: 294 selected, 20 substituted, 24 unclassified, and 4 excluded.
-Task12 author observed these exact post-selection counts without accounting errors.
-Working foundation97 retains first52, adds R2/E2/S2/W53–56 and shifts old suffix to57–97.
-55 total/44 focused remain unresolved. This selection/integration is under implementation,
-not yet independently reviewed or SQL-accepted. Published62d60d76 still has596/534/23/35/4,
-focused342/291/20/27/4 and foundation93/all17; its complete standalone proof is accepted.
+Task12 exact post-selection accounting is now published. Foundation97 retains
+first52, adds R2/E2/S2/W53–56 and shifts unchanged old suffix to57–97; all18 runner
+preserves original17.55 total/44 focused unresolved. This integration is reviewed
+and actual-staged SQL-accepted at6681ca3d. Prior62d60d76 standalone baseline remains
+596/534/23/35/4,focused342/291/20/27/4,foundation93/all17 and fully verified Task11.
 
 Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
 A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
@@ -48,92 +48,33 @@ Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
 
 ## Sole active work item
 
-Task12 IMPLEMENTED_NOT_VERIFIED:775af96c plus packaging-only29196b20 implement
-exact R2/E2/S2/W53–56, foundation97, strict retained staging and appended command18.
-Independent spec/quality review APPROVED. Minor T12-R1 stale hosted step label
-is deferred to next required workflow edit. Actual new hosted integration pending. Working selection has foundation97 and the counts above; original17 prefix retained.
-Bounded constructors/partitions/cleanup20/accounting29/groups15/provenance97/integrity596/500
-and syntax/preservation PASS. No publication or actual staged56 SQL acceptance yet.
-Task11 COMPLETE at62d60d76: original17, complete new standalone PG17 proof166773ms,
-quality and Ediel all PASS on exact reviewed tree8d7f6166. Four hosted corrections
-independently approved; all actual/seeded/dirty/native/rollback/concurrency/security/
-privacy lanes verified. Reuse receipts; do not restart standalone design or audit.
-T9-R1 CLOSED. T11-R1 CLOSED and actual NULL/empty-scalar negative controls PASS.
-W58 lines/SHA25651849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1
-unchanged. No R2/E2/S2 selection or production action. Legacy reference, first52,
-foundation93 and original17 are preserved; last accepted all17 baseline62d60d76.
-Static constructors/accounting29/groups15/cleanup17/provenance/integrity596/500
-and scoped syntax/preservation checks PASS; they do not replace SQL acceptance.
-Task9 design and Task10 actual W skeleton are complete; reuse their receipts.
-CLI2.101.0 job102983387043 at935eb5a0 created actual W:
-20260910174947_canonical_user_rbac_repair_boundary.sql. Artifact10165602317,
-ZIP224/SHA2563af4016441baf2e0eb4c1dcaa3085bdfdbfba95ab38e4e973aeeef675a0f7d30,
-sole empty member SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,
-retrieved and verified in ignored SDD workspace. Reuse this exact member; later
-skeleton reruns do not supersede it. T10-R1 report label only: default dry-run
-is all17, not original16. No new source selection or SQL acceptance.
+Task13 IMPLEMENTED_NOT_VERIFIED: author commit5801c68d0278abe6b5406be25da0b6f7a9817faf
+adds the independent complete H2 native-COMMIT proof and its private owned PG17
+workflow. Only new selftest/workflow changed; report remains ignored. Constructors,
+runner partitions, unchanged accounting/provenance/integrity and syntax PASS.
+Actual56/reduced/native failure/contention/death/privacy SQL cases are authored
+but not yet executed. Independent spec/quality review APPROVED, no findings; no SQL acceptance claim.
+Minor T12-R1 label is corrected in this implementation, independently reviewed and CLOSED.
+H2 remains UNCLASSIFIED; no source-selection or input-count delta.
 
-Plan: `quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md`.
-Task7: COMPLETE standalone hosted PostgreSQL proof PASS at4130cdd9,
-OPS34501598746/job102953458693 (132502ms). All five hosted defects resolved.
-Actual first43/seeded/repeat,14 dirty data/11 catalog/native/reduced D/E/F/H/I,
-real unexpected-success wholeI rollback, atomic A/C/F/Q/context/backend death,
-observed mutex/no-target-lock and both00000 contenders, trigger-DDL contention,
-downstream helper, existing bootstrap sessions+optional journal exact rows/catalog,
-client/service/inherited denials, private DETAIL/CONTEXT/statement/parameter/server
-collector logging and notification commit-only, exact owned cleanup/canary PASS.
-Safe complete-PASS receipt and successful cleanup confirmed from hosted log.
-Original16/auth102953458828 also PASS at this exact head; Task7 verified.
-Task8 implementation337caaa4 committed (18 owned files), independent spec+quality
-review APPROVED; both former Minors now CLOSED by reviewed6d2809a5. New canonical-auth-provisioning-replay.py retains
-parent-owned PostgreSQL and private socket/psql shim for actual shell staging,
-planner and first43→single batch in the same gridex_auth_legacy_replay database.
-Independent compatible reference built before originals move; explicit prefix
-proof stops after52 with NO artifacts/ledger, full mode retains completeness gate.
-Command17 appended; hosted jobs partition original16 and legacy17 without duplicate
-legacy proof. Staged constructors, group partitions,15 cleanup tests, accounting29,
-selection/integrity/provenance/AST/shell/diff PASS. Local AF_UNIX creation EPERM
-prevented transport execution; no retry/probe or local SQL claim. Hosted actual
-shell positive/Q-alone/marker-guarded postQ rollback cases authored. Independent
-review approved; initial two Minor findings (temp leak and obsolete native docs)
-are CLOSED by independently approved correction6d2809a5. Same-head all17+real-loop SQL proof PASS at5389f2b5.
-Task8 correction VERIFIED in PostgreSQL at5389f2b5/job102970940105:
-complete command17 legacy+actual staged replay PASS153600ms. Actual clean-shell
-HOLD staging, planner, first43 and whole44–52 once in same owned replay database,
-independent final catalog equality, standaloneQ P0002 rejection, trusted-marker
-postQ XX000 with complete row/catalog rollback, original file restoration and
-private logs/owned cleanup/canary PASS. The intentional rollback emits a handled
-FAIL owned replay receipt; final actual-loop and command17 PASS confirm expected
-negative test, not a new failure. NO ledger provenance; explicitly NOT full replay.
-Original16 PASS on samehead, so Task8 final union gate is satisfied. Both
-initial Minor findings independently closed. Native CLI/full replay/types still
-blocked and58 unresolved inputs remain; do not overclaim this bounded proof.
-Task5 contract
-66c56c70/9a6eb324 independently APPROVED, no open findings. Task6 c9a60e5e plus
-report-tracking cleanup585e367e independently APPROVED and published e37bc25b.
+Task12 COMPLETE at6681ca3d: same-head all18, actual52/56, quality and Ediel PASS.
+Foundation97/first52/original17 prefix and separate legacy/repair reference identities
+are the accepted baseline. Task11 complete standalone proof and four reviewed
+hosted fixes are inherited; T9-R1/T11-R1 closed. Earlier Tasks1–10 remain complete
+within their recorded bounded scopes; do not restart source audits or SQL suites.
+Detailed receipts reside in completed-work/session-log/verification-matrix and
+quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md.
 
-Task6 CLI2.101.0 preparation VERIFIED: OPS34486254854/job102901182147 PASS;
-artifact10155731061, ZIP240 bytes/SHA25698f7eb64e7cb29a1c420f9380ac5ddc6819336e96214eac7ff2695822f6aa9a5,
-sole empty20260910140053_canonical_auth_provisioning_legacy_boundary.sql retrieved
-and checked (SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855).
-Exact ZIP/member retained in ignored SDD workspace. No local CLI/DB inferred.
+Next: publish the coherent independently reviewed Task13 batch and require same-head original18, complete H2,
+quality and Ediel PASS. Only then plan the separate owned-database publication
+lifecycle/H2 selection gate.55 unresolved; full native replay/types remain red.
+No source selection or production readiness is inferred from constructors.
 
-Next: publish the independently reviewed Task12 exact tree and require all18,
-actual historical52/new56 staged proofs, quality and Ediel on the same head.
-Preserve verified first52/foundation93 and
-all17 command union. Remaining55 working inputs (58 at published baseline), native full replay/types and production
-gates stay open. Task8 selection is accepted only within its isolated proof.
-Five business targets must be empty; existing role identities/metadata require
-exact preimage restoration before commit. Populated historical effects remain
-rollback characterization, never authorized live replay. Q must require the
-same-connection envelope and final assertions before commit. No real-user/provider
-reads or credential generation required. Do not mass-replay or mass-mark
-historical sources live; reconcile eventual forward delivery with ledger/runtime.
-
-Task7 verified private server logging and exact owned cleanup. Task8 must retain
-that boundary in its actual replay transport. Original16 service cleanup can print
-SQL STATEMENT lines; do not route sensitive legacy bytes through that unprotected
-path or expose raw source/logs. No actual secret disclosure is claimed.
+Actual CLI-created Q and W skeleton artifacts and ignored SDD reports remain
+preserved; never regenerate timestamps or edit immutable history. No local PG,
+Docker, socket or CLI installation probes are needed. Use isolated hosted PG17.
+No historical sources may be mass-replayed or mass-marked live; eventual forward
+convergence must reconcile the actual ledger/runtime under ADR-006.
 
 ## Current executed acceptance
 
