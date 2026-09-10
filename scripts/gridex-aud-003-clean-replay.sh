@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PREFIX_PROOF=false
+if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then PREFIX_PROOF=true;
+elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUPABASE="$ROOT/supabase"
 MIGRATIONS="$SUPABASE/migrations"
@@ -31,9 +35,6 @@ SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
 WORKTREE_MUTATED=false
-PREFIX_PROOF=false
-if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then PREFIX_PROOF=true;
-elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
 # Only the parent-owned compatible transport supports the selected sensitive
 # batch. CLI/native genesis and generic external URLs have no accepted ownership,
 # independent catalog reference or private-server logging contract.
@@ -41,13 +42,28 @@ EXTERNAL_DB="${GRIDEX_REPLAY_DB_URL:-}"
 DB_URL="$EXTERNAL_DB"
 SUPABASE_BOOTSTRAP="$ROOT/scripts/sql/gridex-supabase-compatible-bootstrap.sql"
 
+
+# Copy every entry, including hidden entries, without transferring the source
+# directory's mode to the destination. HOLD must remain owner-only, and restore
+# must retain the original migrations-directory attributes. Descendant metadata
+# and symlinks still use archive semantics; an empty source fails closed.
+copy_replay_entries(){
+  local replay_source="$1" replay_destination="$2"
+  (
+    shopt -s dotglob nullglob
+    replay_entries=("$replay_source"/*)
+    [[ "${#replay_entries[@]}" -gt 0 ]] || exit 1
+    cp -a -- "${replay_entries[@]}" "$replay_destination"/
+  )
+}
+
 cleanup(){
   local status=$?
   local restore_failed=false
   set +e
   # Preflight and incomplete backups must never overwrite untouched originals.
   if [[ "$WORKTREE_MUTATED" == true ]]; then
-    if rm -f "$MIGRATIONS"/*.sql && cp -a "$HOLD"/. "$MIGRATIONS"/; then
+    if rm -f "$MIGRATIONS"/*.sql && copy_replay_entries "$HOLD" "$MIGRATIONS" && touch -r "$HOLD" "$MIGRATIONS"; then
       rm -rf "$HOLD"
     else
       echo "replay migration restore failed; recovery copy retained at $HOLD" >&2
@@ -117,7 +133,9 @@ else
   python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context
 fi
 
-cp -a "$MIGRATIONS"/. "$HOLD"/
+copy_replay_entries "$MIGRATIONS" "$HOLD"
+# Carry only directory timestamps onto the private HOLD; never its permissions.
+touch -r "$MIGRATIONS" "$HOLD"
 cp "$SEED" "$SEED_BACKUP"
 # Arm restoration only after both copies succeed, before the first mutation.
 WORKTREE_MUTATED=true

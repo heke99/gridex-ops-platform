@@ -104,7 +104,7 @@ verification and full two-way parity; it cannot establish production convergence
 
 `node scripts/gridex-aud-003-migration-provenance-regression.cjs` statically verifies provenance manifests, hashes, foundation order, interleaved substitutions, noncanonical classifications, ledger ordering, replay safety and critical smoke gates.
 
-`bash scripts/gridex-aud-003-clean-replay.sh` starts an empty local Supabase stack, executes the verified reconstruction, recreates the observed dev ledger through Supabase CLI markers, validates critical objects and requires an exact schema fingerprint.
+The former native invocation, `bash scripts/gridex-aud-003-clean-replay.sh`, is **blocked as of Task8**. Its prior CLI startup and official-ledger reconstruction behavior is historical, not a supported current execution path. The owned compatible entry below provides diagnostic replay with **NO ledger provenance**; native CLI ownership, genesis, private logging and official-ledger acceptance remain unresolved gates.
 
 `GRIDEX-REM-002` is VERIFIED only when both the static provenance gate and the clean empty-database replay pass on the same commit.
 

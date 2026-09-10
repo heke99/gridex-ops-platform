@@ -22,13 +22,15 @@ class ReplayCleanupTest(unittest.TestCase):
         self.bin.mkdir()
         self.tmp = self.root / 'tmp'
         self.tmp.mkdir()
-        for command in ('dirname', 'mktemp', 'mkdir', 'rm', 'cp', 'sha256sum', 'awk'):
+        for command in ('dirname', 'mktemp', 'mkdir', 'rm', 'cp', 'sha256sum', 'awk', 'stat', 'touch'):
             (self.bin / command).symlink_to(shutil.which(command))
         (self.root / 'scripts').mkdir()
         self.script = self.root / 'scripts' / 'gridex-aud-003-clean-replay.sh'
         shutil.copyfile(ROOT / 'scripts' / self.script.name, self.script)
         self.migrations = self.root / 'supabase' / 'migrations'
         self.migrations.mkdir(parents=True)
+        self.migrations.chmod(0o755)
+        self.migration_mode=self.migrations.stat().st_mode & 0o7777
         (self.migrations / '20260101000000_first.sql').write_text('-- original one\n')
         (self.migrations / '20260101000001_second.sql').write_text('-- original two\n')
         (self.migrations / 'README.txt').write_text('preserve non-SQL files\n')
@@ -71,24 +73,58 @@ exit 73
         return {str(p.relative_to(self.root / 'supabase')): p.read_bytes()
                 for p in [*self.migrations.rglob('*'), self.seed] if p.is_file()}
 
-    def execute_replay(self):
+    def execute_replay(self, *arguments):
+        self.migration_mtime_ns=self.migrations.stat().st_mtime_ns
         env = {'PATH': str(self.bin), 'TMPDIR': str(self.tmp), 'FIXTURE': str(self.root)}
         if self.context:
             env.update(GRIDEX_REPLAY_DB_URL='owned-compatible', GRIDEX_REPLAY_OWNED_SOCKET=str(self.root / 'synthetic-context'))
-        result = subprocess.run([BASH, str(self.script)], cwd=self.root,
+        result = subprocess.run([BASH, str(self.script), *arguments], cwd=self.root,
                                 env=env, capture_output=True, text=True, timeout=10)
         return result
 
-    def run_replay(self, expected_status):
-        result = self.execute_replay()
+    def run_replay(self, expected_status, *arguments):
+        result = self.execute_replay(*arguments)
         self.assertEqual(result.returncode, expected_status, result.stderr)
         self.assertEqual(self.snapshot(), self.originals,
                          'failed replay changed original migrations or seed')
+        self.assertEqual(self.migrations.stat().st_mode & 0o7777, self.migration_mode,
+                         'replay changed the original migrations-directory mode')
+        self.assertEqual(self.migrations.stat().st_mtime_ns,self.migration_mtime_ns,
+                         'replay changed the original migrations-directory mtime')
         self.assertEqual(list(self.tmp.iterdir()), [], 'successful cleanup leaked temporary files')
         return result
 
     def supabase_calls(self):
         return self.calls.read_text().splitlines() if self.calls.exists() else []
+
+    def test_invalid_scope_allocates_no_temporary_paths(self):
+        for arguments in (('--unsupported',), ('--foundation-prefix-proof', 'extra')):
+            with self.subTest(arguments=arguments):
+                result=self.run_replay(1,*arguments)
+                self.assertIn('unsupported replay scope',result.stderr)
+                self.assertEqual(self.supabase_calls(),[])
+
+    def test_real_staging_keeps_hold_private_and_retains_hidden_entries(self):
+        (self.migrations / '.hidden-source.sql').write_text('-- hidden synthetic source\n')
+        (self.migrations / '.metadata').mkdir(mode=0o750)
+        (self.migrations / '.metadata' / 'retained').write_text('synthetic nested metadata\n')
+        (self.migrations / '.link').symlink_to('README.txt')
+        self.originals=self.snapshot()
+        self.stub('python3', '''
+if [[ "$1" == */gridex-replay-input-accounting.py ]]; then exit 0; fi
+if [[ "$1" == */canonical-auth-provisioning-replay.py ]]; then exit 0; fi
+# This is the actual shell's generated-plan call, after its real entry copy.
+[[ "$1" == - && "$#" == 12 ]] || exit 92
+[[ "$(stat -c %a "${10}")" == 700 ]] || exit 93
+[[ "$(stat -c %a "$FIXTURE/supabase/migrations")" == 755 ]] || exit 94
+[[ -f "${10}/.hidden-source.sql" && -f "${10}/.metadata/retained" && -L "${10}/.link" ]] || exit 95
+[[ "$(stat -c %a "${10}/.metadata")" == 750 ]] || exit 96
+exit 73
+''')
+        self.run_replay(73)
+        self.assertEqual((self.migrations / '.metadata').stat().st_mode & 0o777,0o750)
+        self.assertTrue((self.migrations / '.link').is_symlink())
+        self.assertEqual(self.supabase_calls(),[])
 
     def test_early_accounting_failure_never_stops_supabase(self):
         self.stub('python3', 'exit 2')
@@ -151,8 +187,8 @@ exit 98
 
     def test_partial_migration_backup_preserves_unbacked_originals(self):
         self.stub('cp', f'''
-if [[ "$1" == '-a' && "$2" == "$FIXTURE/supabase/migrations/." ]]; then
-  {shlex.quote(REAL_CP)} "$FIXTURE/supabase/migrations/20260101000000_first.sql" "$3"
+if [[ "$1" == '-a' && "$2" == -- && "$3" == "$FIXTURE/supabase/migrations/"* ]]; then
+  {shlex.quote(REAL_CP)} "$FIXTURE/supabase/migrations/20260101000000_first.sql" "${{@: -1}}"
   exit 74
 fi
 exec {shlex.quote(REAL_CP)} "$@"
@@ -177,7 +213,7 @@ exec {shlex.quote(REAL_CP)} "$@"
 
     def test_failed_restore_retains_migration_recovery_copy(self):
         self.stub('cp', f'''
-if [[ "$1" == '-a' && "$3" == "$FIXTURE/supabase/migrations/" ]]; then
+if [[ "$1" == '-a' && "${{@: -1}}" == "$FIXTURE/supabase/migrations/" ]]; then
   exit 76
 fi
 exec {shlex.quote(REAL_CP)} "$@"
