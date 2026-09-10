@@ -17,7 +17,7 @@
 - Never expose credentials, tokens or secret literals from a source. Report sensitive statements by path/line and effect, with synthetic identities only in proposed fixtures.
 - No blanket exclusion, table/column excerpt substituted for unreviewed whole-source effects, weakening of guards or artifact refresh from incomplete replay.
 - Preserve existing verified invitation/actor-FK reconstructions and canonical credential, tenant, membership and session invariants. Historical unsafe behavior is characterization evidence, not an approved runtime requirement.
-- Root owns .agent-memory status/checkpoint/evidence and MASTER_PRODUCTION_REMEDIATION_STATE.md; delegated author owns only the named new evidence/contract documents and report.
+- Root owns .agent-memory status/checkpoint/evidence and MASTER_PRODUCTION_REMEDIATION_STATE.md; each delegated author owns only the files named in its task and its report.
 - The user requested continuous execution. Do not pause for execution-method approval; independently review this result and continue the authorized masterplan.
 
 ---
@@ -95,7 +95,7 @@ for path in sorted(Path('supabase/migrations').glob('*.sql')):
 - Produces one downloadable empty migration skeleton from actual CLI execution, not a hand-authored timestamp. No SQL, manifest, selector or accounting changes in this preparation commit.
 - Root publishes the independently reviewed workflow plus Task1 evidence/status batch, retrieves the artifact and supplies its exact generated basename to Task3. Task3 removes these temporary steps before publication of the filled migration and standalone SQL test.
 
-- [ ] **Step 1: Add the exact preparation steps after the unchanged fixed15 command.** Preserve every existing service, job, trigger and command. Add only:
+- [x] **Step 1: Add the exact preparation steps after the unchanged fixed15 command.** Preserve every existing service, job, trigger and command. Add only:
 
 ```yaml
       - uses: supabase/setup-cli@v1
@@ -113,7 +113,7 @@ for path in sorted(Path('supabase/migrations').glob('*.sql')):
           if-no-files-found: error
 ```
 
-- [ ] **Step 2: Check the bounded workflow diff and existing constructor contract.** Run:
+- [x] **Step 2: Check the bounded workflow diff and existing constructor contract.** Run:
 
 ```sh
 git diff --check
@@ -123,7 +123,7 @@ git diff -- .github/workflows/ops-hardening.yml
 
 Expected: diff whitespace clean; existing group static assertions PASS with unchanged593/foundation82/15 commands; only the three new preparation steps in the workflow diff. This task does not claim SQL execution locally. A separate implementation-mirroring test is unnecessary for the temporary setup steps.
 
-- [ ] **Step 3: Commit only the workflow and write the full report.**
+- [x] **Step 3: Commit only the workflow and write the full report.**
 
 ```sh
 git add .github/workflows/ops-hardening.yml
@@ -136,10 +136,10 @@ Report the exact commit, covering command/results and preservation checks. Indep
 ### Task 3: Implement the transactional diagnostics repair and standalone execution proof
 
 **Files:**
-- Fill: the exact CLI-created `supabase/migrations/*_canonical_auth_provisioning_diagnostics_boundary.sql` artifact from Task2; root records its concrete basename in this task before dispatch.
+- Create from retrieved CLI artifact, then fill: `supabase/migrations/20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql`. The exact empty source artifact is `.superpowers/sdd/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10/20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql` (0bytes, SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855). Copy that actual artifact before writing the SQL body; do not generate a different timestamp.
 - Create: `scripts/canonical-auth-provisioning-diagnostics-selftest.py`.
 - Create: `scripts/canonical-auth-provisioning-diagnostics-selection-selftest.py`.
-- Modify: the normal migration history checksum manifest, adding only R's actual new bytes/hash.
+- Modify: `scripts/migration-history-manifest.json`, adding only R's actual new bytes/hash.
 - Modify: `scripts/canonical-governance-selftest.py` and `scripts/canonical-operations-sync-selftest.py`, only the reviewed intermediate global-count expectations.
 - Modify: `.github/workflows/ops-hardening.yml`, remove Task2 skeleton preparation and add the standalone diagnostics test after the unchanged fixed15 command.
 - Modify: `quality/audits/AUTH_PROVISIONING_RESTORATION_CONTRACT_2026-09-10.md`, record actual R basename/hash and correct the reviewed minor opening policy wording to exact validation/retention.
@@ -190,3 +190,5 @@ git diff --check
 ```
 
 Run local SQL only if fixed disposable PostgreSQL is actually available; otherwise report it pending. Commit only owned implementation paths after inspecting the complete diff. Report exact command outputs and outstanding execution to task-3-report.md. Root obtains independent code/security review, publishes the exact reviewed tree, requires unchanged15 and standalone diagnostics PASS on that head, fixes confirmed failures through the author/review loop, and records the receipt before the selection task. Required global source/types gates remain red until the remaining masterplan work resolves them.
+
+Task2 hosted acceptance:95a41dea, OPS34474633273/auth102862356592 PASS all15 plus CLI2.101.0 version/help/new and artifact upload. Artifact10151184576, ZIP SHA256ec04108c02c4a4c2549d3ae49768df16489737059bc09558165fcc0d4b6fea41 verified after download; one exact empty migration above. Quality/build102862356599 and Ediel102862356702 PASS; required verify/types and clean/source-completeness remain red.

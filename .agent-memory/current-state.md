@@ -11,11 +11,11 @@ does not restrict later verified production convergence.
 
 Active branch: `codex/gridex-parity-remediation-20260905`; [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
 Active group: `auth_membership_tenant`. Latest verified publication:
-`9e1223659491bb77ec2f13855189e9dd729238e1`, exact reviewed tree
-`76bd532190382312ab4698b532d448e4709d1533`. No masterplan phase is closed.
+`95a41dea25a3b6f23e832ce9256fac6f102cd898`, exact reviewed tree
+`d664844f44de5e84191535592d497c4d3ca2ff2f`. No masterplan phase is closed.
 
-Working-tree accounting is 593 inputs: 522 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 43 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 339 inputs: 279 selected, 21 substituted, 35 unclassified, and 4 excluded.
+Working-tree accounting is 594 inputs: 523 `FULL_FILE_SELECTED`, 24 `SUBSTITUTED`, 43 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 340 inputs: 280 selected, 21 substituted, 35 unclassified, and 4 excluded.
 Sixty-seven total
 inputs and56 focused candidates remain unresolved. Selection is not proof of
 surviving effects. Full replay, artifacts and production parity remain open.
@@ -45,18 +45,20 @@ OPS34470585925/auth102849298884 at9e1223659491bb77ec2f13855189e9dd729238e1 (tree
 
 Task10 selection3241a76f plus five reviewed runtime corrections are accepted by
 that complete hosted run. All previous seed/status/trigger/SQL/journal failures
-are verified past their exact former boundaries. Current selection is522/24/43/4;
+are verified past their exact former boundaries. At that Task10 receipt selection was522/24/43/4;
 67 total and56 focused inputs remain unresolved. Detailed correction history is
 preserved in evidence/session/verification registers, not competing active status.
 
 Active plan: quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md,
 Task1 nine-source1695-line/110-unit effects and G/R contract authored in
 commits cfc05d9d..6cd7d256. Independent architecture review APPROVED with no blockers;
-Task2 hosted CLI preparation c7c52cfd is independently APPROVED; publication
-and hosted skeleton acceptance are next. No new selection or SQL
-implementation yet. Proposed G42/R43 preserves first41.
-Next: review and publish CLI preparation, retrieve the generated skeleton,
-implement the repair and standalone PG17 proof, then separately
+Task2 hosted CLI skeleton acceptance VERIFIED at95a41dea.
+Task3 transactional diagnostics repair and standalone PG17 proof is active.
+Implementation3b946b1a is committed and independently APPROVED;
+standalone hosted SQL execution remains unverified. No selection change. Proposed G42/R43
+preserves first41.
+Next: publish reviewed3b946b1a and obtain standalone PG17 proof, then
+separately
 review selection and append-only command16 integration.
 Continue with the remaining invitation/direct-account source group, reusing the
 five-source characterization and existing invitation/actor-FK reconstruction.
@@ -121,3 +123,12 @@ The prior workflow-tooling batch retains its scoped authorization statement:
 "For this workflow-tooling batch, no production mutation is authorized or performed."
 This historical batch boundary does not revoke the user's broader authorization
 for subsequent necessary work.
+
+Published95a41dea25a3b6f23e832ce9256fac6f102cd898, exact reviewed treed664844f44de5e84191535592d497c4d3ca2ff2f; fetched equality and tracked-clean checks PASS, reviewed local15bcf962 archived before alignment. OPS34474633273/auth102862356592 subsequently PASS original15 and actual CLI skeleton artifact.
+
+
+2026-09-10 Auth provisioning Task2 bounded VERIFIED at95a41dea25a3b6f23e832ce9256fac6f102cd898 (treed664844f44de5e84191535592d497c4d3ca2ff2f): OPS34474633273/auth102862356592 PASS all15 plus CLI2.101.0 skeleton generation/upload. Artifact10151184576 ZIP SHA256ec04108c02c4a4c2549d3ae49768df16489737059bc09558165fcc0d4b6fea41 verified; sole0-byte20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql extracted. Quality/build102862356599 and Ediel102862356702 PASS. Verify102862356389 remains generated-types-tail20260909123000 red; clean102862356579 FAIL before replay. No source selection or production changes. Next Task3 implementation and standalone PG17 proof.
+
+Additional current-head receipts95a41dea: tenant-integrity102862356554 and browser-public102862356887 PASS. Full-E2E coverage102862356001 PASS; smoke102862356461 is14/15, sole generated-types-tail failure, and pr-certificate102862783280 FAIL. Full/runtime/customer/staging/load/ZAP/certification skips are not passes.
+
+Task3 R is checksum-registered:20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql, SHA256018d81e763e6134ddb3d886ef7e219d6247584a9dad14b871e2ef98014db6333. Fresh accounting returns errors=[] and594=523/24/43/4 (exit1 solely unresolved sources); focused340=280/21/35/4. G remains UNCLASSIFIED, foundation82 and fixed15 unchanged. SQL execution and independent implementation review remain pending.

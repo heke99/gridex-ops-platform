@@ -22,7 +22,7 @@ Alternatives considered:
 | Copy G's table/view fragments into a substitute | Reject. It would leave seven complete source units unresolved and reproduce the fragment-accounting problem. |
 | Whole G followed by narrow R | Choose. All schema prerequisites are already present in the actual selected38 prefix. The only app/lib consumer found is the platform-guarded server service count at `app/admin/system/auth-diagnostics/page.tsx:8–15,40–52`; no app/lib caller needs direct authenticated table/view access. Later source invoker/revoke/platform-only intent backs the boundary. |
 
-R is a deliberate forward tightening of client SQL privileges, not a claim of byte-identical historical ACLs. Existing table policies remain present except the new policy's own exact replacement on repeat. Their effective client access is denied by a restrictive policy and revoked privileges. Service access preserves the existing guarded server count. Owner/admin diagnostic view use remains possible; no new client workflow is introduced.
+R is a deliberate forward tightening of client SQL privileges, not a claim of byte-identical historical ACLs. Existing table policies remain present; the new policy is validated exactly and its OID retained on repeat. Their effective client access is denied by a restrictive policy and revoked privileges. Service access preserves the existing guarded server count. Owner/admin diagnostic view use remains possible; no new client workflow is introduced.
 
 ## Frozen evidence and exact prospective source order
 
@@ -36,6 +36,8 @@ Authority remains code `9e1223659491bb77ec2f13855189e9dd729238e1`, tree `76bd532
 | E6 | `supabase/migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql` | `47c24a0340da00d3ab765d87efdfcf17622a12102af3bf29c2327db5f4500c64` |
 | E6FIX | `supabase/migrations/20260520_batch_6e_fix_rbac_backfill_security.sql` | `3e8858b6df6600d5d6fa3e35b7e99bc9f8a07814be64c6e402f172d7ed3d44fc` |
 | E6HARD | `supabase/migrations/20260520_batch_6e_hard_platform_roles_only.sql` | `03f825a78ea7fcad8bd64aadc94e70d0d067276ee3ed77a349c595effc469d0b` |
+
+**Task3 artifact registration:** `supabase/migrations/20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql`, SHA256 `018d81e763e6134ddb3d886ef7e219d6247584a9dad14b871e2ef98014db6333`. The exact0-byte CLI artifact from hosted Task2 was copied before authoring; implementation and standalone PostgreSQL acceptance remain subject to independent review.
 
 **R definition:** the single new file returned by Supabase CLI2.101.0 `migration new canonical_auth_provisioning_diagnostics_boundary` (use the verified hosted fallback below when the local CLI is absent), within `supabase/migrations/`, with basename ending `_canonical_auth_provisioning_diagnostics_boundary.sql`. Run CLI `--version` and `migration new --help` first. Local `command -v supabase` and `node_modules/.bin/supabase` checks found no CLI; a pinned npx version probe could not complete because network approval was canceled. CLI availability is not assumed. Capture that actual path and SHA256 in the fixture constant and appropriate history manifest. No generated timestamp or checksum is assumed here. R must have one BEGIN/COMMIT transaction with local10s lock timeout/60s statement timeout and the catalog checks/security changes below; no source excerpt is classified as G. This alias defines a precise file creation operation, not an omitted implementation decision.
 

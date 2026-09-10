@@ -20,6 +20,7 @@
     "ediel_rules.sql"
   ],
   "files": {
+    "20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql": "018d81e763e6134ddb3d886ef7e219d6247584a9dad14b871e2ef98014db6333",
     "20260909123000_canonical_invitation_token_prerequisite.sql": "51f0b8df14704c4eb7d9cd6bccf59855ad0cbf7f5a0016bbfb10ea87078c25b2",
     "01_db1_schema_repair_core_helpers_and_canonical_tables.sql": "85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2",
     "01_db2_full_view_preflight_schema_and_functions.sql": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9",

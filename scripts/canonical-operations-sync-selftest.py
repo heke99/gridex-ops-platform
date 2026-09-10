@@ -86,15 +86,15 @@ def selection():
     account_run = subprocess.run(['python3', 'scripts/gridex-replay-input-accounting.py'], cwd=ROOT, text=True, capture_output=True)
     account = json.loads(account_run.stdout)
     assert account_run.returncode == 1 and not account['errors']
-    assert account['totalMigrations'] == 593
-    assert account['counts'] == {'FULL_FILE_SELECTED': 522, 'SUBSTITUTED': 24, 'UNCLASSIFIED': 43, 'EXPLICITLY_EXCLUDED': 4}
+    assert account['totalMigrations'] == 594
+    assert account['counts'] == {'FULL_FILE_SELECTED': 523, 'SUBSTITUTED': 24, 'UNCLASSIFIED': 43, 'EXPLICITLY_EXCLUDED': 4}
     by_path = {item['path']: item for item in account['migrations']}
     assert by_path[SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     group_run = subprocess.run(['python3', 'scripts/gridex-replay-review-groups.py', '--group', 'auth_membership_tenant'], cwd=ROOT, text=True, capture_output=True)
     group = json.loads(group_run.stdout)
-    assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 339
+    assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 340
     counts = {key: sum(item['classification'] == key for item in group['inputs']) for key in account['counts']}
-    assert counts == {'FULL_FILE_SELECTED': 279, 'SUBSTITUTED': 21, 'UNCLASSIFIED': 35, 'EXPLICITLY_EXCLUDED': 4}
+    assert counts == {'FULL_FILE_SELECTED': 280, 'SUBSTITUTED': 21, 'UNCLASSIFIED': 35, 'EXPLICITLY_EXCLUDED': 4}
     assert SOURCE not in {item['path'] for item in group['inputs']}
     return order[:31]
 

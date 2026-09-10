@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "9e1223659491bb77ec2f13855189e9dd729238e1",
-    "last_isolated_pg17_code": "9e1223659491bb77ec2f13855189e9dd729238e1"
+    "published_baseline": "95a41dea25a3b6f23e832ce9256fac6f102cd898",
+    "last_isolated_pg17_code": "95a41dea25a3b6f23e832ce9256fac6f102cd898"
   },
   "execution_environment": "connected; branch reconciled to25cb2c2b; prior local edits preserved in named stash",
-  "next_action": "Task1 contract approved6cd7d256. Review/publish Task2 hosted CLI skeleton preparation, retrieve artifact, then implement G/R repair and standalone PG17 proof before selection. Continue full replay/types/parity/production delivery."
+  "next_action": "Task3 implementation3b946b1a independently approved. Publish reviewed batch and obtain hosted standalone PG17 proof; R594/523, G unclassified. Then separately selectG42/R43 and append16, address safe diagnostics minor, continue entire masterplan."
 }
