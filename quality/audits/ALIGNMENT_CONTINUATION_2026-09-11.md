@@ -131,3 +131,32 @@ Concrete fixture correction independently APPROVED with no material findings.
 Reviewer verified every per-variant source map and exact11/87/13identities,
 shared setup path, unchanged source/admission/rollback and unknown-dependency
 rejection control; single new constructor+diffcheckPASS. Hosted native pending.
+
+## Staged-source continuation prerequisite
+
+The real shell relocates originals to HOLD before controller execution. The
+alignment constructors previously inspected/read only original paths, so they
+could not participate legitimately in actual staged continuation. Optional exact
+StagedSources now propagates through validate_sources, diagnostic_source,
+expected_ddl, new_index_keys and prelude. Every physical source retains owner,
+non-symlink/canonical-path checks before read; repair.read_source additionally
+checks private HOLD and immutable manifests. No fallback to existing live files.
+
+New constructor observed TypeError RED thenGREEN;28constructors+6diagnosticsPASS.
+It proves direct/staged source, DDL and prelude equality plus absent/corrupt/
+symlink staged files, missing diagnostic and foreign-stage rejections while valid
+originals remain available. Independent review APPROVED, no material findings;
+reviewer single constructor+diffcheckPASS. This is a read prerequisite only.
+
+Next integration boundary is after FIXED_COMPLETE and before child release on
+the same owned replay database. AlignmentProof requires closed accepted inputs
+and SUCCEEDED state and must not be imported as production execution authority.
+A runtime executor must retain live input/stage bindings, one P/A/B/C/W
+transaction, source-only independent final oracle and linked completion/final
+snapshot. Existing fixed release cannot be bypassed by setting full=True.
+
+After native actual68/once-only/fault/controller/child-after-commit/HOLD/privacy/
+predecessor gates, five whole entries may register at foundation64–68. Existing
+selector removes P/W from later timestamps. Expected accounting then109foundation,
+508timestamp,549selected/23unclassified/23substituted/5excluded;46 still unresolved.
+No registration or accounting change is made by this prerequisite.

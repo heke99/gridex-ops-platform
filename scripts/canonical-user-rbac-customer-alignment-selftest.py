@@ -20,6 +20,39 @@ def load(name, filename):
 
 
 class Constructors(unittest.TestCase):
+    def test_staged_alignment_sources_never_fall_back_to_live_paths(self):
+        import tempfile
+        direct = batch.validate_sources(batch.reviewed_paths())
+        with tempfile.TemporaryDirectory() as directory:
+            hold = Path(directory)
+            for source in direct:
+                (hold/source.path.name).write_bytes(source.data)
+            view_path = ROOT/'supabase/migrations'/batch.VIEW_SOURCE
+            (hold/view_path.name).write_bytes(view_path.read_bytes())
+            staging = legacy.StagedSources(directory)
+            self.assertEqual(batch.validate_sources(batch.reviewed_paths(), staging), direct)
+            self.assertEqual(batch.diagnostic_source(staging), batch.diagnostic_source())
+            self.assertEqual(batch.new_index_keys(direct, {}, staging=staging), batch.new_index_keys(direct, {}))
+            self.assertEqual(batch.expected_ddl(direct, {}, staging), batch.expected_ddl(direct, {}))
+            before = ({'relation/' + batch.DIAGNOSTIC: {'definition': 'source view'}}, [])
+            self.assertEqual(batch.prelude(direct, before, {}, 'a'*32, staging=staging),
+                             batch.prelude(direct, before, {}, 'a'*32))
+            for mode in ('missing', 'changed', 'symlink'):
+                staged = hold/direct[1].path.name
+                staged.unlink()
+                if mode == 'changed': staged.write_bytes(direct[1].data + b'\n')
+                if mode == 'symlink': staged.symlink_to(direct[1].path)
+                with self.assertRaises(batch.BoundaryError):
+                    batch.validate_sources(batch.reviewed_paths(), staging)
+                with self.assertRaises(batch.BoundaryError):
+                    batch.prelude(direct, before, {}, 'a'*32, staging=staging)
+                if staged.exists() or staged.is_symlink(): staged.unlink()
+                staged.write_bytes(direct[1].data)
+            (hold/view_path.name).unlink()
+            with self.assertRaises(batch.BoundaryError): batch.diagnostic_source(staging)
+            with self.assertRaises(batch.BoundaryError): batch.expected_ddl(direct, {}, staging)
+            with self.assertRaises(batch.BoundaryError): batch.validate_sources(batch.reviewed_paths(), object())
+
     def test_guard_dependency_plan_binds_sources_targets_and_preimages(self):
         g = load('alignment_guard_fixture_controls', 'canonical-user-rbac-customer-alignment-guard-fixtures.py')
         prefix = legacy.verified_prefix()

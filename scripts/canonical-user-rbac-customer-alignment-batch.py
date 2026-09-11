@@ -63,13 +63,15 @@ def reviewed_paths():
     return tuple(ROOT/'supabase/migrations'/name for _, name, _, _ in SPECS)
 
 
-def validate_sources(paths):
+def validate_sources(paths, staging=None):
     check(tuple(paths) == reviewed_paths(), 'ALIGNMENT_SOURCE_ORDER')
+    check(staging is None or type(staging) is legacy.StagedSources, 'PRIVATE_STAGE_REQUIRED')
     result = []
     for path, (key, _, pin, lines) in zip(paths, SPECS):
-        check(path.is_file() and not path.is_symlink() and path.resolve() == path
-              and path.stat().st_uid == os.getuid(), 'ALIGNMENT_SOURCE_OWNER')
-        data = repair.read_source(path)
+        physical = path if staging is None else staging.hold/path.name
+        check(physical.is_file() and not physical.is_symlink() and physical.resolve() == physical
+              and physical.stat().st_uid == os.getuid(), 'ALIGNMENT_SOURCE_OWNER')
+        data = repair.read_source(path, staging)
         legacy.verify_bytes(data, pin, lines)
         check(not re.search(rb'^\s*(?:commit|rollback|begin\s*;)\s*;', data, re.I | re.M),
               'ALIGNMENT_OUTER_TRANSACTION_REQUIRED')
@@ -136,8 +138,8 @@ def index_selected(item, shape):
     return True
 
 
-def new_index_keys(sources, base, stages=('A', 'B', 'C')):
-    check(sources == validate_sources(reviewed_paths()), 'ALIGNMENT_SOURCE_BYTES_CHANGED')
+def new_index_keys(sources, base, stages=('A', 'B', 'C'), staging=None):
+    check(sources == validate_sources(reviewed_paths(), staging), 'ALIGNMENT_SOURCE_BYTES_CHANGED')
     check(stages in (('A', 'B', 'C'), ('B',), ('C',)), 'ALIGNMENT_SOURCE_STAGE_REQUIRED')
     return tuple('alignment_index/public.' + item[1] for item in index_declarations(sources)
                  if item[0] in stages and index_selected(item, base)
@@ -145,9 +147,9 @@ def new_index_keys(sources, base, stages=('A', 'B', 'C')):
                  and 'index/public.' + item[1] not in base)
 
 
-def diagnostic_source():
+def diagnostic_source(staging=None):
     path = ROOT/'supabase/migrations'/VIEW_SOURCE
-    data = repair.read_source(path).decode()
+    data = repair.read_source(path, staging).decode()
     match = re.search(r'create or replace view public\.gridex_debug_step1_2_schema_alignment_v as\n.*?order by table_name;', data, re.S)
     check(match is not None, 'SELECTED_DIAGNOSTIC_SOURCE_REQUIRED')
     tables = ('companies', 'company_memberships', 'user_roles', 'customers',
@@ -164,7 +166,7 @@ def diagnostic_source():
     return match[0]
 
 
-def expected_ddl(sources, shape):
+def expected_ddl(sources, shape, staging=None):
     """Reviewed source declarations; independent of P/W and complete DML runner."""
     a, b, c = (source.data.decode().splitlines() for source in sources[1:4])
     result = []
@@ -174,7 +176,7 @@ def expected_ddl(sources, shape):
     result += [item[4] for item in index_declarations(sources) if index_selected(item, shape)]
     # C4..C11 declarations, preserving the real DROP/return-shape transition.
     result.append('\n'.join(c[168:]))
-    result.append(diagnostic_source())
+    result.append(diagnostic_source(staging))
     # Independent declarative private ACL policy, deliberately not W bytes.
     for function in FUNCTIONS:
         result.append('REVOKE ALL ON FUNCTION public.' + function + ' FROM PUBLIC;')
@@ -239,7 +241,7 @@ def stage_sql(previous, stage):
     return "DO $$ BEGIN IF (SELECT count(*) FROM alignment_context WHERE stage=" + literal(previous) + ")<>1 THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_STAGE_MISMATCH'; END IF; UPDATE alignment_context SET stage=" + literal(stage) + "; END $$;"
 
 
-def prelude(sources, before, after_catalog, token, rollback_only=False):
+def prelude(sources, before, after_catalog, token, rollback_only=False, staging=None):
     check(re.fullmatch('[0-9a-f]{32}', token) is not None, 'ALIGNMENT_TOKEN_REQUIRED')
     check(type(rollback_only) is bool, 'ALIGNMENT_MODE_REQUIRED')
     check(CLOCK not in json.dumps(before), 'ALIGNMENT_CLOCK_COLLISION')
@@ -255,7 +257,7 @@ CREATE TEMP TABLE alignment_reference(base jsonb,final jsonb,before_rows jsonb,a
 CREATE TEMP TABLE alignment_context(database_name name,backend integer,txid bigint,hashes text[],token text,stage text) ON COMMIT DROP;
 INSERT INTO alignment_reference VALUES (''' + ','.join((json_sql(before[0]), json_sql(after_catalog), json_sql(before[1]),
     "replace(" + literal(json.dumps(expected_rows(before[1]), sort_keys=True)) + "," + literal('"' + CLOCK + '"') + ",to_jsonb(now())::text)::jsonb",
-    pins, literal(token), literal(body), json_sql(new_index_keys(sources, before[0])))) + ''');
+    pins, literal(token), literal(body), json_sql(new_index_keys(sources, before[0], staging=staging)))) + ''');
 DO $$ DECLARE r record; BEGIN
  IF current_user<>'postgres' OR current_database() NOT IN ('gridex_auth_legacy_native','gridex_auth_legacy_dirty','gridex_auth_legacy_atomic','gridex_auth_legacy_lock') THEN
  RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_OWNER_REQUIRED'; END IF;

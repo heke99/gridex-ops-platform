@@ -10,28 +10,32 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published baseline: `87135839bee0b4bf8fb251dfa6685a2d4fe29d89`.
+- Published implementation baseline: `61bc1fe53935e40bbb2a40a36aadb98e233d809c`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- The source-scoped HOT correction passed native32-case SQL controls and nine
-  behavior cases before guard_sources. OPS34645977547/alignment103416745939
-  then measured all43 setup variants:17 fail with dependency2BP01,26 succeed;
-  every attempt preserves the exact original catalog+rows. CleanupPASS.
-- Failing ordinals:0,2,4,6,8,10,12,13,15,17,20,23,25,29,31,33,39.
-  This matches source-established company_id policies/triggers/views and one
-  metering_values.created_at view dependency. No migration-source failure in
-  these variants has yet been measured because setup blocks first.
-- Correction independently APPROVED: exact per-variant fixture-only removal map, globally
-  11views+87policies+13triggers from five pinned predecessor sources. Require
-  complete before=immutable-origin equality and named preimages; explicit
-  RESTRICT drops in reviewed order. Tenant-delete policies remain. Same setup
-  runs on preflight, disposable target and independent source oracle.
-- Native negative control adds one unknown dependent after planning, requires
-  2BP01 and full rollback, then removes that probe and verifies original state.
-  All43 prepared setups must pass; no skip or catch-and-continue acceptance.
-  New constructor observedRED->GREEN;27constructors+6diagnosticsPASS.
-  Independent scoped review APPROVED; corrected native acceptance pending.
-- Next: publish reviewed fixture correction, require full native alignment, then
-  proceed with source disposition/native replay/schema/types.
+- Five reviewed batches pushed. The directional HOT correction passed native32
+  SQL controls and nine behavior cases. All43 raw omission setups were measured:
+  17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
+- Source-bound omission fixture correction is published61bc1fe5. It uses exact
+  per-variant maps from five pinned sources, globally11views+87policies+13triggers,
+  full origin equality and RESTRICT. Unknown-dependency negative control and
+  all43 corrected native preflights are running in OPS34646873072/job103419655635.
+  No native acceptance claim yet. The27constructors+6diagnostics passed locally.
+- Next staged-source prerequisite independently APPROVED: optional exact
+  StagedSources flows through source validation, diagnostic DDL, expected DDL,
+  index selection and generated prelude. Physical ownership, canonical path,
+  no-symlink, private HOLD and source pins retained. No live-path fallback.
+  New regression observedRED->GREEN;28constructors+6diagnosticsPASS, diffcheckPASS.
+  Direct bytes/DDL/prelude outputs unchanged. No source/selector/state changes.
+- Next: publish staged-read prerequisite; inspect complete native61bc1fe5 result
+  and resolve any concrete remaining case failure. Then add trusted same-handle
+  actual68 continuation after FIXED_COMPLETE, before successful child release.
+  Do not import AlignmentProof/selftests as production authority or append five
+  independent SQL calls. Retain live AcceptedInputs/StagedSources, transactional
+  P/A/B/C/W, source-only oracle, linked fixed+alignment completion, post-commit
+  final snapshot and exact child/HOLD/privacy/terminal cleanup gates.
+- Only after integration gates register allfive at foundation64–68, yielding
+  foundation109/timestamp508 and549 selected/23unclassified/23substituted/5excluded.
+  Current accounting remains unchanged600=546/26/23/5; full effects49unresolved.
 - Main/app.gridex.se remains eb9a25bc; connected ledger tail20260904222450.
   No production writes; full plan and production parity remain incomplete.
 

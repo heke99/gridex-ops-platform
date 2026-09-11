@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "87135839bee0b4bf8fb251dfa6685a2d4fe29d89"
+    "published_baseline": "61bc1fe53935e40bbb2a40a36aadb98e233d809c"
   },
-  "next_action": "Publish reviewed source-bound guard fixture correction, require complete native alignment, then source disposition/full replay/schema/types."
+  "next_action": "Publish reviewed staged-source reads; inspect native61bc1fe5; then trusted actual68 controller continuation and only after gates register five whole sources."
 }
