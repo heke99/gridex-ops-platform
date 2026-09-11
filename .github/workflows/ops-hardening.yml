@@ -87,6 +87,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-user-rbac-dedupe-selftest.py --cleanup-owned
 
+  user-rbac-fixed-target-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-fixed-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete fixed-target sources on private owned PostgreSQL 17
+        run: python3 scripts/canonical-user-rbac-fixed-target-selftest.py
+      - name: Remove only the owned fixed-target proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-fixed-target-selftest.py --cleanup-owned
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25

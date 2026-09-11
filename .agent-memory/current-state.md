@@ -11,15 +11,16 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `8448b57736cba0ae96eb1fe38e0257bdda4aa8c6`, exact reviewed
-tree `5c5ad4575770e805b7ea32ea1ce2b729a4452a82`; fetched equality/tracked-clean
-alignment PASS, local838bd79d archived. Task13 COMPLETE: independently reviewed
-5801c68d, no findings. OPS34543272605 fullH2/job103090355261 PASS69083ms;
-original16/auth103090355254, repair18/actual56 job103090355020 PASS180653ms,
-quality103090355308 and Ediel103090355311 PASS. Legacy17 targeted retry103092259593
-PASS151107ms on identical head after early opaque BoundaryError; no code change
-or confirmed source defect. Same-head all18/fullH2/quality/Ediel union accepted.
-Task12 COMPLETE6681ca3d all18/actual52+56/quality/Ediel; T12-R1 CLOSED.
+Latest publication: `536906f3b6af4400fda8b1a4d20954987f583a47`, exact reviewed
+tree `1498199b949dfdd459d28eb7a943bb94cfd2d42d`; fetched equality/tracked-clean
+alignment PASS, localcf0583b6 archived. Task14 COMPLETE: reviewed39e14a98+4e086e04,
+T14-R1/R2 CLOSED. OPS34549538480 original16/auth103109350028, legacy17/actual52
+job103109350023151663ms, repair18/actual56 job103109350011184433ms, quality103109349980
+and Ediel103109349997 PASS. Command19/job103109349875 full standalone62235ms plus
+20 actual57 success/failure/restoration modes and actual controller SIGKILL PASS.
+Same-head all19/actual52+56+57 union accepted. Native/types remain red; no full
+replay or production closure. Task13 COMPLETE8448b577 and Task12 COMPLETE6681ca3d;
+prior bounded receipts remain accepted and must not be restarted.
 Task11 is COMPLETE at62d60d76 with same-head original17/new standalone166773ms/
 quality/Ediel all PASS; reuse its full source proof, no audit restart.
 No full replay/type refresh, production mutation, merge or deployment.
@@ -27,44 +28,46 @@ No full replay/type refresh, production mutation, merge or deployment.
 
 Working-tree accounting is 596 inputs: 538 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 31 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 342 inputs: 295 selected, 20 substituted, 23 unclassified, and 4 excluded.
-Task14 working selection is authored, not yet reviewed/hosted: H2at57,foundation98,
-first56 and former57–97 suffix preserved; computed foundation SHA256
+Task14 selection is reviewed, published and actual57 SQL-accepted:
+H2at57,foundation98, first56 and former57–97 suffix preserved. Foundation SHA256
 271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08.
-Working54 total/43 focused unresolved. Published8448b577 baseline remains
-596=537/23/32/4,focused342=294/20/24/4,foundation97/all18,55/44 unresolved and
-H2 UNCLASSIFIED. Do not infer actual57 SQL acceptance from working selection.
-Immutable history and Q/W hashes remain unchanged; source selection is not
-production readiness. Counts in older receipts remain historical.
+54 total/43 focused unresolved. Prior accepted8448b577 baseline was
+596=537/23/32/4,focused342=294/20/24/4,foundation97/all18,55/44 unresolved.
+Immutable history and Q/W hashes remain unchanged; selection is not production
+readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task14 IMPLEMENTED_NOT_VERIFIED at39e14a98f78ece7eae72c8cda52c15306cc06abc:
-integrate verified H2 at57 with strict reusable boundary and
-terminal owned-database failure lifecycle. Follow Task14 exact plan/brief;
-parent-held preimages survive native COMMIT, any failed/partial target is denied
-and exactly disposed before usable continuation. Preserve accepted legacy52 and
-repair56 scopes, first56 and immutable SQL; add named dedupe57/all19 and real
-staged proof. No historical replay or mass ledger marking live under ADR-006.
-Task14 working accounting is54 unresolved; published55 remains the accepted baseline.
+Task15 IMPLEMENTED_NOT_VERIFIED at1f01305ddb1f0a0bfe3b819f9ee4b909bd21e96a: prove complete B0/C2/D2/F2 privately using approved Task9 source
+matrix/fixture protocol and actual accepted57. Four independent disposable source
+cases, source-derived symbolic synthetic reservations, no real accounts/credentials/
+providers, complete native transactions and full row/catalog/sequence/dependent
+oracles. Actual57 canonical guards remain; explicitly reduced fixtures only for
+otherwise unreachable historical branches. All four remain UNCLASSIFIED, counts
+unchanged. The actual token UUID/default remains intact; previously accepted
+nonredeemable isolated token test data is allowed privately, without live issuer,
+app/provider, redemption, delivery/export or credential provisioning. Exact
+clarification/evidence is in Task15 brief; no new prerequisite for that default. No selected completion or live cleanup is inferred from characterization.
 
-Task13 COMPLETE at8448b577: complete actual56/index/full rows/sequences, native
-constraints, actual/reduced sequential/dependent characterization, pre/postCOMMIT
-errors, real contention/backend/controller death/private cleanup PASS. No fixed
-identity/account/provider needed. Independently reviewed/no findings. Reuse these
-SQL receipts; no source audit restart. H2 is now selected in unverified Task14 working code; published baseline remains UNCLASSIFIED.
-Task12 and earlier bounded receipts remain complete. Separate legacy/repair
-reference identities, trusted loaders, private staged sources and exact originals/
-seed restoration are binding. Details in source-restoration plan/evidence files.
+Task15 B0 actual57 is blocked by missing industry/suspended_at columns; actual
+native rejection and reduced prerequisite/success lanes are authored. All100cases
+await hosted SQL; constructor/static checks pass, not native acceptance.
 
-Bounded constructors, runner19,20 cleanup tests, provenance98, exact accounting/
-hashes and syntax PASS per author report. Independent review is active; new actual57
-failure/death/transport SQL remains authored/unexecuted. Report stays ignored.
+Task14 COMPLETE536906f3: actual57/H2 once after accepted56, all20 success/staged/
+admission/native-pre/postCOMMIT/final-row-sequence/transport/backend/shell/restore/
+suffix/success-called modes and actual controller SIGKILL PASS, exact terminal
+denial/disposal/restoration/canary/private receipts. Complete standalone retained.
+Historical52/56 remain green. T14-R1/R2 CLOSED by review and actual hosted lanes.
 
-Next: finish Task14 independent review and coherent exact-tree publication;
-require same-head all19 including actual52/56/57 plus quality/Ediel before
-acceptance. Full replay/types and production gates remain open. Source selection
-or constructors do not imply readiness. Actual Q/W skeletons/reports stay preserved;
-no local PG/Docker/socket/CLI retries or timestamp regeneration.
+Task15 independent spec/quality review APPROVED, no findings; hosted SQL pending.
+Next: publish reviewed Task15 implementation and synchronized evidence,
+coherent publication and same-head all19/full fixed-target/quality/Ediel gate.
+Then actual evidence determines minimum forward prerequisites/lossless cleanup
+boundaries from real CLI skeletons, individual source selection and remaining54
+sources/full native replay/types/security/live parity/E2E/load/production gates.
+No mass-replay or mass-mark historical sources live under ADR-006. No timestamp
+regeneration, source excerpts, blanket exclusions or weakened guards. Actual Q/W
+artifacts and ignored reports remain preserved. No local PG/Docker/socket/CLI probes.
 
 ## Current executed acceptance
 
