@@ -65,6 +65,12 @@ class ReviewGroupsTest(unittest.TestCase):
         return self.module.group_report(copy.deepcopy(self.report),
                                         lambda path: SQL[path], focus)
 
+    def test_alignment_boundaries_stay_in_auth_review_family(self):
+        for name in ('20260911114442_canonical_user_rbac_customer_alignment_prerequisites',
+                     '20260911114443_canonical_user_rbac_customer_alignment_boundary'):
+            self.assertIn('auth_membership_tenant', self.module.domains(name))
+        self.assertNotIn('auth_membership_tenant', self.module.domains('unrelated_customer_alignment'))
+
     def test_every_accounted_input_is_preserved_once_and_mapped(self):
         grouped = self.build()
         self.assertEqual([row['path'] for row in grouped['inputs']],

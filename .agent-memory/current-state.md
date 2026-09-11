@@ -11,28 +11,44 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `54ae675938fcec05e87324ad3ae4ae8380214d53`, exact reviewed tree
-`5f50e2c3f4ab08fcb4522683c89ea6dd17967e5a`. Nonforce publication/fetch/local-server
-tree equality and tracked-clean alignment PASS; localc41353a5 archived.
-Published batch includes independently approved Task18 fix2/Task19 map/Task20
-CLI-only workflow. OPS34595483635 running mandatory actual63/privacy and same-head
-original19/full102/quality/Ediel; actual alignment CLI artifact retrieval pending.
-Prior aec7a34f all19/actual52+56+57/full102/finalprivacy/quality/Ediel PASS;
-new actual63 failed the now-corrected seed admission/result artifact causes.
-Fix2 code review is approval to test, not native acceptance. Full plan open.
-No tracked user changes discarded; cache and unrelated worktree preserved.
+Latest publication: `6c9e05d2dd5b93f31e031b513c5ff9862761d5c2`, exact reviewed tree
+`4957ebcd63dce52a48f9dddcf56daeef9cb094b0`. Nonforce publication/fetch/local-server
+tree equality and tracked-clean alignment PASS; local6a432466 archived.
+Approved fix3 preserves runtime/SQL/privacy/source pins. Complete new native
+continuation103253167529 PASS12:10:31: standalone/actual63/repeats/all22faults/
+child exit/controller deaths after D2/F2/X/finalprivacy and cleanup. Samehead
+full10218/25/28/31/finalprivacy, quality/Ediel/original16/actual52/actual56 PASS.
+Historical19 targeted retry103257042591 PASS complete standalone/actual57/
+controller deaths/fresh failure recovery/privacy/exactcleanup12:20UTC.
+Task18 aggregate bounded original19/full102/actual63 acceptance COMPLETE.
+The initial reduced-controller failure remains documented with unproved cause;
+one retry, unchanged code, no guard weakening or repeated passed matrices.
+Task19 map/Task20 actual CLI/Task21 independently approved design complete.
+Task22 code55f29c50 + scopedfix14b85b35 independently APPROVED;
+complete new hostedPG17 characterization is the next acceptance gate.
+Nine fresh constructors and scoped static checks PASS; native hosted proof pending.
+Tenant/browser and fullE2E coverage PASS. Smoke14/15PASS including application
+TypeScript; sole migrations/generated-schema-types guard fails, so PRcertificate
+correctly remains red. Runtime/real/nightly/full lanes skipped, not acceptance.
+Full native/types/production plan remains open. No user changes discarded.
 Tasks1-14 remain accepted; their recorded source proofs are not restarted.
 Full native replay/types and production gates remain open.
 
 
-Working-tree accounting is 598 inputs: 544 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 27 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 344 inputs: 301 selected, 20 substituted, 19 unclassified, and 4 excluded.
+Working-tree accounting is 600 inputs: 546 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 27 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 346 inputs: 303 selected, 20 substituted, 19 unclassified, and 4 excluded.
+Task22 P/W registration is IMPLEMENTED_NOT_VERIFIED: new two CLI identities
+only; historical A/B/C remain unselected. Foundation104/actual63 unchanged,
+timestamp510. Exact focused-family adaptation and counter-only changes preserve
+all50 historic unresolved inputs/39focused unresolved. Published6c9e05d2
+Task18 accepted baseline remains598=544/23/27/4 and focused344=301/20/19/4.
+
 Published Task14/e2bb1a9b baseline (before current Task18 registration) is
 reviewed and actual57 SQL-accepted:
 H2at57,foundation98, first56 and former57–97 suffix preserved. Foundation SHA256
 271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08.
 That published baseline has54 total/43 focused unresolved; current working
-Task18 implementation has50 total/39 focused unresolved, not native accepted.
+Task18 native-accepted implementation has50 total/39 focused unresolved.
 Prior accepted8448b577 baseline was
 596=537/23/32/4,focused342=294/20/24/4,foundation97/all18,55/44 unresolved.
 Immutable history and Q/W hashes remain unchanged; selection is not production
@@ -40,77 +56,46 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task18 IMPLEMENTED_NOT_VERIFIED; fix3 targets proof-wrapper assertion after
-successful actual staged-shell boundary. At54ae6759, OPS34595483635/job103250143594
-passes complete standalone six-input execution/restoration/canary/finalprivacy;
-actual shell then reports bounded fixed-target integration PASS. Its subsequent
-stale-handle test calls the still-patched observation wrapper and asserts the
-pre-run state after successful completion. The real trusted denial must run.
-Fix3b0bce50c is independently APPROVED; runtime/SQL/privacy
-remain unchanged. Remaining native fault/death/repeat cases still must finish.
+Task22: publish reviewed whole-alignment characterization/private boundary and
+verify complete hostedPG17 behavior, failure/death/privacy/cleanup. Scopedfix1
+I1/I2 both addressed and independently approved, no newfindings.
+No local nativeSQL acceptance or historical A/B/C selection is claimed. Independent reviewed
+Task21 design and actual Task20 P20260911114442/W20260911114443 identities are binding.
+No historical A/B/C selection until complete hosted characterization passes.
+Task23 static source-effects map committedcfbc9f46 and independently APPROVED
+after scoped correction. All five DB2 sources remain unclassified. Root separate
+connected-project/history receipts do not establish native-prefix/production parity.
 
-Task20 actual CLI artifact10261507270 verified: ZIP484bytes/SHA7d1841830464e313509f55021ec23d91151b7e5bae02a94e67d98ce4db7a89f4;
-exact empty P20260911114442 and W20260911114443 alignment members retained ignored.
-Task20 complete. Fix3 also removes only its temporary job to avoid regeneration.
-Task19 source map complete/approved including two corrected minor wordings.
+Task18 is bounded VERIFIED at6c9e05d2, all19/full102/complete actual63/native
+fault/death/repeat/privacy accepted. No repeated old source audits/matrices.
+Task21 runtime/data-provenance/UX/native/live implementation gates remain downstream.
 
-Next: coherent publication and mandatory actual63 complete native/failure/privacy gates plus
-same-head19/102/quality/Ediel. No repeated source audits/CLI identities. Full
-native/types/security/system/production plan remains open; no production action.
+Next: publish the coherent reviewed Task21/22/23 batch, verify exact local/remote
+tree equality and the complete new hostedPG17 job with required prior gates. Actual600/346 registration deltas are already synchronized.
+Fullnative/types/security/system/production plan remains open; no production action.
 
 ## Current executed acceptance
 
-2026-09-11 Task15 FINAL NATIVE ACCEPTED at e2bb1a9becc07989181405ddccdbdcae173d36d4,
-reviewed treeaa7fbe284635d7fdbb9b0ed858e9fc1476d276f5, OPS34586595826.
-Fixed-target103222123596 PASS full102 (B0=18/C2=25/D2=28/F2=31), exact log
-PASS complete private fixed-target characterization; selection unchanged at10:02:00,
-ownedcleanupPASS. This final success is after strict artifact+collector scan.
-Same-head original16/auth103222123215, legacy17/actual52 103222123500,
-repair18/actual56 103222123422, dedupe19/actual57 103222123516, quality/build
-103222123483 and Ediel103222123485 allPASS. No mandatory bounded gate outstanding.
-Task17 actual2CLI empty identities/artifact verified. Task16 design approved.
-Task18 may now implement the exact approved continuation; no remaining54source,
-full native/types or production gate is closed by this bounded acceptance.
+Task18 VERIFIED on published6c9e05d2 / OPS34596437761:
+- Complete continuation103253167529: standalone, actual63, fresh repeats,
+  all22 fault/rejection modes, child exit, controller SIGKILL afterD2/F2/X,
+  finalprivacy12:10:31 and exactcleanup PASS.
+- Full fixed-target102 job103253167595: B0=18/C2=25/D2=28/F2=31,
+  complete finalprivacy and exactcleanup PASS.
+- Original16/auth103253167502, legacy17/actual52 103253167615,
+  repair18/actual56 103253167463, quality103253167299 and Ediel103253167443 PASS.
+- Historical19 targeted retry103257042591: complete reduced standalone,
+  all actual57 cases, controller death/fresh recovery/privacy and cleanup PASS
+  at12:20UTC. Initial103253167445 failure remains nonreproduced/unclassified;
+  the only retry used unchanged code and guards.
+- Tenant34596437759, browser34596437692 and coverage103253167767 PASS.
+  FullE2E smoke103253168004 passes14/15, including application TypeScript;
+  only generated-schema-types provenance/tail guard fails. PR certificate red;
+  skipped downstream runtime/real/nightly/full lanes remain unverified.
 
-
-OPS34559080010 at2bbcdab8: original16/auth103137885428,
-legacy17/actual52 job103137885602, repair18/actual56 job103137885688,
-dedupe19/actual57 job103137885631, quality103137885695 and Ediel103137885555 PASS.
-Fixed-target103137885579: all102 native PASS, final artifact privacy FAIL, cleanupPASS.
-Fresh log retrieval confirmed final privacy failure. Verify103137885556 fails
-Supabase generated-types check; clean103137885654 rejects unsupported native target.
-The private owned-compatible replay is bounded evidence, not official native ledger.
-No production merge/migration/deployment has occurred.
-
-## Historical legacy boundary receipts
-
-OPS34506822456/auth102970940188 at5389f2b5 PASS complete original16 partition (reconfirms
-prior e37bc25b/194fd0cf executed receipts): all prior
-source/RBAC/governance/SaaS/admission lanes plus selected diagnostics G/R,
-eleven reduced projections/history/repeats,23 dirty catalog cases, five role/
-inherited-privilege cases, native failure/composite rollback, real55P03 and
-catalog contention/retry, actual41/RBAC/final-helper preservation and client denial.
-Task4 implementationfdc8cab9 independently APPROVED with no findings; safe
-primary-only diagnostic receipts and redaction are reviewed and tested.
-Tasks1–4 in this provisioning plan are bounded VERIFIED. The prior governance
-plan's Tasks1–10 are also bounded VERIFIED; reuse their recorded evidence.
-
-G: `20260528_auth_provisioning_runtime_guard.sql`,51 lines,
-SHA2560c2455cbc31553f4be1f1a3fa2800f516295c972bcead8fbbd77c448d3f98026.
-R: `20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql`,249 lines,
-SHA256018d81e763e6134ddb3d886ef7e219d6247584a9dad14b871e2ef98014db6333.
-G-after-R alone actually resets invoker=false/reloptionsNULL and is explicitly
-not runtime-ready. Each subsequent wholeR secure boundary passed. The complete
-later selected chain must still prove final ACL/policy/invoker survival.
-
-At5389f2b5 quality/build102970939833, Ediel102970940048,
-tenant102970938663, browser-public102970940669 and coverage102970941046 PASS.
-Original16/auth102970940188 and complete legacy17/actual-loop102970940105 PASS.
-Verify102970940080 FAILS generated-types tail20260910140053 (log confirmed);
-clean102970940010 FAILS unsupported native mode before replay (log confirmed).
-Smoke102970940775 and pr-certificate102971364862 FAIL; their gates remain open.
-Full/runtime/customer/load/staging/ZAP/certification skips remain unverified.
-Never regenerate artifacts from incomplete replay or weaken gates.
+Earlier Tasks1–17 and Task19/20/21 receipts remain in completed-work,
+verification-matrix and the task reports/reviews. They are historical evidence,
+not instructions to restart work. No Task22 native SQL has executed locally.
 
 ## Remaining masterplan and environment boundaries
 
@@ -147,11 +132,5 @@ The historical workflow-tooling boundary remains scoped to that earlier batch:
 "For this workflow-tooling batch, no production mutation is authorized or performed."
 It does not revoke the user's explicit authorization for later verified delivery.
 
-Resolved Task11 hosted defects (historical receipts, not active blockers):
-- Catalog42725 internal-char concatenation:07f58c3a reviewed; actual catalogs pass.
-- Snapshot42809 sequence whole-row conversion:96cea061 reviewed; all3 paths now
-  capture exact sequence state; actual called/uncalled regression passes.
-- Admission42702 record/whole-row alias collision:4fc34ae9 reviewed; actual complete
-  batch and repeat pass at517fdb1a. No raw diagnostics disclosed.
-
-Correction4 first exact defect confirmed: seeded profile UPDATE assumes is_active, absent in immutable bootstrap+first52; existing user_status supports the disabled fixture. Also no Auth INSERT trigger creates profiles in exact first52, so previous UPDATE would affect zero rows. Explicitly seed two profiles with existing columns and assert presence/status, preserving disabled status and independent membership/admin conditions. Same-class audit checked41 authored INSERT column sets and seeded required/default/constraint shapes with no further confirmed mismatch. Targeted constructor red/green, syntax/diff/preservation PASS.704e6105 scoped review APPROVED with no new findings; no foundation/source/W changes.
+Resolved Task11/14/15 defects and exact corrective evidence remain in completed-work
+and known-failures. They are not active blockers or new work.

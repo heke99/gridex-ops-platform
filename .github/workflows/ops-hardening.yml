@@ -113,6 +113,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-user-rbac-fixed-target-continuation-selftest.py --cleanup-owned
 
+  user-rbac-customer-alignment-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize whole customer alignment on a private owned actual63 PostgreSQL 17 prefix
+        run: python3 scripts/canonical-user-rbac-customer-alignment-selftest.py
+      - name: Remove only the owned customer alignment proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-customer-alignment-selftest.py --cleanup-owned
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25

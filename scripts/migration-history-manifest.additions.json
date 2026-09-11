@@ -153,6 +153,8 @@
     "20260904103000_z01_sla_watchdog_candidate_convergence.sql": "9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24",
     "20260910174947_canonical_user_rbac_repair_boundary.sql": "51849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1",
     "20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql": "50a29a266a5c270ebcbd407099d5bc408291ad1115e478002f5d114131e8ad80",
-    "20260911095505_canonical_user_rbac_fixed_target_restoration.sql": "f6fbfd30b62e9529539c27c00722c89446e6ed5dd7cbed9217594f7202025ee7"
+    "20260911095505_canonical_user_rbac_fixed_target_restoration.sql": "f6fbfd30b62e9529539c27c00722c89446e6ed5dd7cbed9217594f7202025ee7",
+    "20260911114442_canonical_user_rbac_customer_alignment_prerequisites.sql": "3459cc3fa1afc04aae659a5702eebd22d41f171d42079ab0b14aa0049b951983",
+    "20260911114443_canonical_user_rbac_customer_alignment_boundary.sql": "80f58edf6d9a48baef4999202744040979cd7af1cc0e61b812e52369ad13aff1"
   }
 }
