@@ -1205,3 +1205,30 @@ Two meaningful REDs then GREEN;41 actual controls (19adapter/5staging/17privacy)
 constructor/syntax/diff PASS. Report typo42 corrected to41, no code change. Original
 102cases/helpers/history/foundation98/all19/accounting untouched. Hosted full final
 privacy plus all19/quality/Ediel pending exact reviewed publication; full plan OPEN.
+
+2026-09-11 OPS34581892193 fixed-target103207157878 atfe0379e4: all102native
+PASS (18/25/28/31), complete accepted preparation/transport/staging passes; final
+SOURCE_LITERAL_IN_PRIVATE_ARTIFACT stillFAIL. Known whole-input/admission correction
+is not complete hosted artifact acceptance; investigate additional data-dependent
+retained writer, do not speculate/widen exceptions. Task16 design385335d0 reviewed
+next independently; no continuation SQL/selection before final privacy acceptance.
+
+2026-09-11 additional populated-reference correction5b083ba7 (BASE385335d0):
+actual unchanged legacy/repair writers serialize a pinned helper definition into
+two generated contexts. Exactly envelope-context.sql/repair-context.sql now remain
+in memory alongside repair-admission.sql. Repair coalesces only the two adjacent
+generated controls; original whole source bytes and individual arguments remain
+unchanged. Four actual executor routes and11 reference failure variants under
+mocked SQL/process transport, final strict privacy negatives and constructors PASS.
+Independent scoped review pending; full102/final privacy native acceptance required.
+Task16 design385335d0 independently APPROVED; Task17 CLI-only preparation underway.
+Accounting596/538/23/31/4 remains unchanged; no production operation.
+
+Task15 populated-reference5b083ba7: independent spec/quality APPROVED, no findings.
+Full scoped report read; unchanged writer/command/lifecycle completion inspected.
+No test rerun; native same-head finalprivacy/full102 and all19/quality/Ediel pending.
+
+Task17b19bb54f: complete code/static preparation, independent spec/quality APPROVED,
+no findings. All9 existing jobs unchanged; exact after-checkout guarded CLI2.101
+job generates/verifies/uploads only two empty actual identities. Hosted artifact
+pending. Root memory-pointer/whitespace check PASS. Coherent publication ready.

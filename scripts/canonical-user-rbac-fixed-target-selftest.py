@@ -109,10 +109,11 @@ class Source:
 
 
 class MemoryAdmission:
-    """One opaque, single-use repair input; never a physical file."""
+    """One opaque, single-use generated control; never a physical file."""
     name = 'repair-admission.sql'
 
-    def __init__(self, adapter, data):
+    def __init__(self, adapter, data, name='repair-admission.sql'):
+        self.name = name
         self.adapter, self.data, self.valid = adapter, bytearray(data), True
 
     def read_text(self):
@@ -132,13 +133,17 @@ class MemoryAdmission:
 class AcceptedInputs:
     """Task15-only adaptation of the exact accepted preparation handle.
 
-    Four whole inputs are retained with writer and inode provenance. Only the
-    generated repair admission uses stdin; all other methods/writes delegate.
+    Four whole inputs retain writer/inode provenance. Only three exact generated
+    reference/admission controls use stdin; all other methods/writes delegate.
     """
     ORDER = ('repair-context.sql','repair-admission.sql','repair-whole-R2.sql',
              'repair-stage-R2.sql','repair-whole-E2.sql','repair-stage-E2.sql',
              'repair-whole-S2.sql','repair-stage-S2.sql','repair-whole-W.sql',
              'repair-assertions.sql')
+    LEGACY_ORDER = ('envelope-context.sql','envelope-admission.sql')+tuple(
+        name for alias,*_ in legacy.SOURCE_SPECS
+        for name in ('whole-'+alias+'.sql','stage-'+alias+'.sql'))+('whole-Q.sql','envelope-assertions.sql')
+    GENERATED = ('envelope-context.sql','repair-context.sql','repair-admission.sql')
     PREFIX = ('01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
               '85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2')
 
@@ -147,6 +152,7 @@ class AcceptedInputs:
         self.directory = h.directory.name if h.directory else None
         self.active = self.closed = False
         self.staging = None
+        self.route = self.binding = self.phase = None
         self.records, self.envelope, self.buffers = {}, [], []
         self.sources = {'prefix-1.sql':self.PREFIX,'replay-source-1.sql':self.PREFIX,
                         'repair-whole-E2.sql':repair.SPECS[1][1:3],
@@ -159,6 +165,11 @@ class AcceptedInputs:
               and self.h.__dict__.get('private') is self.private_wrapper
               and self.h.__dict__.get('run_files') is self.run_wrapper
               and self.h.command == self.command, 'STALE_ACCEPTED_INPUT_OWNER')
+        if self.binding is not None:
+            current = (self.h.reference,repair.REFERENCES.get(self.h),dedupe._REFERENCES.get(self.h))
+            check(all(actual is bound for actual,bound in zip(current,self.binding)),
+                  'ACCEPTED_ENVELOPE_REFERENCE_CHANGED')
+            check(dedupe._STATES.get(self.h) == self.phase, 'ACCEPTED_ENVELOPE_PHASE_CHANGED')
 
     def canonical(self, name, staging=None):
         filename, digest = self.sources[name]
@@ -190,23 +201,46 @@ class AcceptedInputs:
             return (frame.f_code is replay.FoundationLoop._run.__code__
                     and type(loop) is replay.FoundationLoop and loop.target is self.h
                     and dedupe._STATES.get(self.h) == 'FRESH')
+        if name == 'envelope-context.sql':
+            return (frame.f_code is legacy.envelope_files.__code__ and frame.f_locals.get('target') is self.h
+                    and dedupe._STATES.get(self.h) in (None,'FRESH'))
         function = dedupe.execute if name == 'dedupe-whole-H2.sql' else repair.envelope_files
         return (frame.f_code is function.__code__ and frame.f_locals.get('target') is self.h
                 and dedupe._STATES.get(self.h) == ('NATIVE' if name == 'dedupe-whole-H2.sql' else 'FRESH'))
 
     def write(self, name, data, frame):
+        try:
+            return self._write(name,data,frame)
+        except BaseException:
+            self.clear()
+            raise
+
+    def _write(self, name, data, frame):
         self.owned()
-        admission = name == MemoryAdmission.name
-        envelope_writer = frame.f_code is repair.envelope_files.__code__
-        if admission or name in self.sources:
+        generated = name in self.GENERATED
+        route = ('repair' if frame.f_code is repair.envelope_files.__code__ else
+                 'legacy' if frame.f_code is legacy.envelope_files.__code__ else None)
+        if generated or name in self.sources:
             check(self.writer(frame,name), 'TRUSTED_ACCEPTED_WRITER_REQUIRED')
-        if envelope_writer:
-            check(frame.f_locals.get('target') is self.h and len(self.envelope) < len(self.ORDER)
-                  and name == self.ORDER[len(self.envelope)], 'CLOSED_REPAIR_WRITES_REQUIRED')
-        if admission:
-            check(not self.buffers and not (Path(self.directory)/name).exists()
-                  and not (Path(self.directory)/name).is_symlink(), 'PHYSICAL_ADMISSION_FORBIDDEN')
-            path = MemoryAdmission(self,data.encode() if isinstance(data,str) else data)
+        if route is not None:
+            order = self.ORDER if route == 'repair' else self.LEGACY_ORDER
+            check(frame.f_locals.get('target') is self.h and len(self.envelope) < len(order)
+                  and name == order[len(self.envelope)], 'CLOSED_CONTROL_WRITES_REQUIRED')
+            if not self.envelope:
+                check(self.route is None and not self.buffers, 'FRESH_CONTROL_ENVELOPE_REQUIRED')
+                state = dedupe._STATES.get(self.h)
+                staging = frame.f_locals.get('staging')
+                check(staging is self.staging and (state == 'FRESH' or
+                      (route == 'legacy' and state is None and staging is None)),
+                      'EXACT_CONTROL_PHASE_REQUIRED')
+                self.route = route
+                self.phase = state
+                self.binding = (self.h.reference,repair.REFERENCES.get(self.h),dedupe._REFERENCES.get(self.h))
+            check(self.route == route, 'EXACT_CONTROL_ROUTE_REQUIRED')
+        if generated:
+            check(not (Path(self.directory)/name).exists() and not (Path(self.directory)/name).is_symlink(),
+                  'PHYSICAL_ADMISSION_FORBIDDEN')
+            path = MemoryAdmission(self,data.encode() if isinstance(data,str) else data,name)
             self.buffers.append(path)
         else:
             if name in self.sources:
@@ -223,39 +257,56 @@ class AcceptedInputs:
             if name in self.sources:
                 check(path == Path(self.directory)/name, 'ACCEPTED_WRITER_PATH_MISMATCH')
                 self.records[name] = (path,self.physical(path))
-        if envelope_writer:
+        if route is not None:
             self.envelope.append(path)
         return path
 
     def run(self, database, files, stage, transaction=True, expect='00000', timeout=120):
-        self.owned()
         files = tuple(files)
         virtual = [path for path in files if isinstance(path,MemoryAdmission)]
-        repair_route = any(getattr(path,'name',None) == MemoryAdmission.name for path in files)
-        if not virtual and not repair_route and not self.envelope:
+        generated = any(getattr(path,'name',None) in self.GENERATED for path in files)
+        if not virtual and not generated and not self.envelope:
+            self.owned()
             return self.run_files(database,files,stage,transaction,expect,timeout)
         try:
-            repair.require_owned(self.h)
-            dedupe.require_live(self.h)
-            check(database == replay.DATABASE and dedupe._STATES.get(self.h) == 'FRESH'
-                  and stage == 'whole_batch' and transaction is True and expect == '00000'
-                  and timeout == 120, 'EXACT_REPAIR_ROUTE_REQUIRED')
-            check(len(files) == len(self.ORDER) and tuple(path.name for path in files) == self.ORDER
+            self.owned()
+            state = dedupe._STATES.get(self.h)
+            check(self.route in ('legacy','repair'), 'EXACT_CONTROL_ROUTE_REQUIRED')
+            preparation = self.route == 'legacy' and state is None
+            if preparation:
+                check(database == 'gridex_auth_legacy_reference' and self.staging is None,
+                      'EXACT_CONTROL_PHASE_REQUIRED')
+            else:
+                repair.require_owned(self.h)
+                dedupe.require_live(self.h)
+                check(database == replay.DATABASE and state == 'FRESH', 'EXACT_CONTROL_PHASE_REQUIRED')
+            check(stage == 'whole_batch' and transaction is True and expect == '00000'
+                  and timeout == 120, 'EXACT_CONTROL_RESULT_REQUIRED')
+            order = self.LEGACY_ORDER if self.route == 'legacy' else self.ORDER
+            count = 1 if self.route == 'legacy' else 2
+            check(len(files) == len(order) and tuple(path.name for path in files) == order
                   and len(self.envelope) == len(files)
                   and all(a is b for a,b in zip(files,self.envelope))
-                  and len(virtual) == 1 and virtual == self.buffers
-                  and virtual[0].adapter is self and virtual[0].valid, 'EXACT_REPAIR_INPUTS_REQUIRED')
+                  and len(virtual) == count and virtual == self.buffers
+                  and all(virtual[i] is files[i] and virtual[i].adapter is self and virtual[i].valid
+                          for i in range(count)), 'EXACT_CONTROL_INPUTS_REQUIRED')
             argv = self.h.command(database,files,transaction)
-            needle = '/legacy-private/'+MemoryAdmission.name
-            positions = [i for i,value in enumerate(argv) if value == needle]
-            check(len(positions) == 1 and argv[positions[0]-1] == '-f', 'EXACT_REPAIR_ARGUMENT_REQUIRED')
+            positions = []
+            for control in virtual:
+                found = [i for i,value in enumerate(argv) if value == '/legacy-private/'+control.name]
+                check(len(found) == 1 and argv[found[0]-1] == '-f', 'EXACT_CONTROL_ARGUMENT_REQUIRED')
+                positions.extend(found)
             argv[positions[0]] = '-'
+            if count == 2:
+                check(positions[1] == positions[0]+2, 'ADJACENT_GENERATED_CONTROLS_REQUIRED')
+                del argv[positions[1]-1:positions[1]+1]
             started = time.monotonic()
             try:
-                result = subprocess.run(argv,input=bytes(virtual[0].data),capture_output=True,
+                result = subprocess.run(argv,input=b'\n'.join(bytes(control.data) for control in virtual),capture_output=True,
                                         timeout=timeout,env=legacy.clean_environment())
             except (OSError,subprocess.TimeoutExpired):
                 raise BoundaryError('PRIVATE_SQL_PROCESS_FAILED') from None
+            self.owned()
             receipt = legacy.safe_receipt(result.stderr.decode(errors='replace'),result.returncode,stage)
             receipt['milliseconds'] = round((time.monotonic()-started)*1000)
             print(json.dumps(receipt,sort_keys=True),flush=True)
@@ -270,6 +321,7 @@ class AcceptedInputs:
             buffer.clear()
         self.buffers.clear()
         self.envelope.clear()
+        self.route = self.binding = self.phase = None
 
     def __enter__(self):
         repair.require_owned(self.h,False)

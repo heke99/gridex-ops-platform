@@ -51,6 +51,7 @@ def constructors(c,models,cases):
     role_status_controls(c,cases)
     membership_type_controls(c,cases)
     accepted_input_controls(c)
+    reference_input_controls(c)
     workflow(c)
     names = [(key,name) for key,name,_ in cases.cases()]
     c.check(len(names)==len(set(names)) and {key for key,_ in names}==set(c.SPECS),'CLOSED_CASE_MATRIX_REQUIRED')
@@ -549,6 +550,134 @@ def admission_bytes(c):
             .replace('-- REPAIR_DIAGNOSTIC_GUARD',c.repair.diagnostic_guard(sources))).encode()
 
 
+def context_bytes(c,h,route):
+    """Expected complete generated statements, independently of adapter buffers."""
+    literal = c.legacy.literal
+    if route == 'legacy':
+        base,final = h.reference
+        return ('SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n'
+                'CREATE TEMP TABLE legacy_reference(base jsonb NOT NULL,final jsonb) ON COMMIT DROP;\n'
+                'INSERT INTO legacy_reference VALUES ('+literal(json.dumps(base))+'::jsonb,'+
+                (literal(json.dumps(final))+'::jsonb' if final else 'NULL')+');\n').encode()
+    ref = c.repair.REFERENCES[h]
+    hashes = ','.join(literal(source.sha256) for source in c.repair.validate_sources(c.repair.reviewed_paths()))
+    return ('SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n'
+            'CREATE TEMP TABLE repair_reference(base jsonb NOT NULL,final jsonb NOT NULL,hashes text[] NOT NULL) ON COMMIT DROP;\n'
+            'INSERT INTO repair_reference VALUES ('+literal(json.dumps(ref.base))+'::jsonb,'+
+            literal(json.dumps(ref.final))+'::jsonb,ARRAY['+hashes+']);').encode()
+
+
+def reference_catalog(c):
+    """Source-backed populated datum, not a simulated native catalog claim."""
+    name,digest = c.AcceptedInputs.PREFIX
+    raw = c.repair.read_source(c.ROOT/'supabase/migrations'/name)
+    c.legacy.verify_bytes(raw,digest)
+    declaration = c.re.search(r'create\s+(?:or\s+replace\s+)?function\s+public\.gridex_db1_default_company_id\s*\(.*?\$\$.*?\$\$\s*;',raw.decode(),c.re.I|c.re.S)
+    c.check(declaration is not None,'PINNED_REFERENCE_DECLARATION_REQUIRED')
+    return {'function/public.gridex_db1_default_company_id()':{'definition':declaration.group()}}
+
+
+def reference_input_controls(c):
+    output = ''.join('LEGACY_STAGE_'+alias+'\n' for alias in (*'ABCDEFHI','COMPLETED'))
+    output += ''.join('REPAIR_STAGE_'+alias+'\n' for alias in ('R2','E2','S2','COMPLETED'))
+    with accepted_handle(c) as h:
+        catalog = reference_catalog(c)
+        h.reference = (catalog,None)
+        tokens,calls = [],[]
+        def process(argv,**kwargs):
+            if inputs.buffers:
+                route = inputs.route
+                order = inputs.LEGACY_ORDER if route=='legacy' else inputs.ORDER
+                database = 'gridex_auth_legacy_reference' if c.dedupe._STATES.get(h) is None else c.replay.DATABASE
+                expected = c.legacy.OwnedPostgres.command(h,database,[Path(h.directory.name)/name for name in order],True)
+                expected[expected.index('/legacy-private/'+order[0])] = '-'
+                payload = context_bytes(c,h,route)
+                if route=='repair':
+                    index = expected.index('/legacy-private/'+order[1])
+                    del expected[index-1:index+1]
+                    payload += b'\n'+admission_bytes(c)
+                c.check(argv==expected and kwargs.get('input')==payload,'POPULATED_REFERENCE_BYTES_AND_ARGV_REQUIRED')
+                module = c.legacy if route=='legacy' else c.repair
+                for source in module.validate_sources(module.reviewed_paths()):
+                    whole = ('whole-' if route=='legacy' else 'repair-whole-')+source.alias+'.sql'
+                    c.check((Path(h.directory.name)/whole).read_bytes()==source.data and
+                            '/legacy-private/'+whole in argv and source.data not in payload,
+                            'INDEPENDENT_UNCHANGED_MIGRATION_INPUT_REQUIRED')
+                tokens.extend(inputs.buffers)
+                calls.append((route,database))
+            return subprocess.CompletedProcess(argv,0,output.encode(),b'')
+        with patch.object(subprocess,'run',side_effect=process),c.AcceptedInputs(h) as inputs:
+            c.legacy.execute(h,'gridex_auth_legacy_reference',c.legacy.reviewed_paths())
+            c.check(not (Path(h.directory.name)/'envelope-context.sql').exists(),'REFERENCE_CONTEXT_MUST_STAY_IN_MEMORY')
+            h.reference = (catalog,catalog)
+            c.legacy.execute(h,'gridex_auth_legacy_reference',c.legacy.reviewed_paths())
+            c.repair.REFERENCES[h] = c.repair.Reference(h.directory.name,catalog,catalog)
+            c.dedupe._REFERENCES[h] = c.dedupe._Reference(h.directory.name,h.name,h.reference,c.repair.REFERENCES[h],catalog,catalog,[])
+            c.dedupe._STATES[h] = 'FRESH'
+            with tempfile.TemporaryDirectory(prefix='fixed-reference-stage-') as directory:
+                stage = c.legacy.StagedSources(Path(directory))
+                prefix = c.legacy.verified_prefix()
+                for path,text in prefix:
+                    if path.startswith('migrations/'):
+                        (stage.hold/Path(path).name).write_bytes(text.encode())
+                oracle = c.ROOT/'supabase/migrations/20260810193450_canonical_access_provisioning_runtime_v1.sql'
+                (stage.hold/oracle.name).write_bytes(c.repair.read_source(oracle))
+                for module in (c.legacy,c.repair):
+                    for source in module.validate_sources(module.reviewed_paths()):
+                        (stage.hold/source.path.name).write_bytes(source.data)
+                loop = c.replay.FoundationLoop.__new__(c.replay.FoundationLoop)
+                loop.applied,loop.terminal,loop.scope = False,False,'legacy52'
+                loop.target,loop.b = h,c.legacy
+                loop.validate = lambda *args:(stage,[text.encode() for _,text in prefix])
+                loop._run(None,None)
+                c.repair.execute(h,c.replay.DATABASE,c.repair.reviewed_paths(),stage)
+            c.check(not (Path(h.directory.name)/'repair-context.sql').exists(),'REFERENCE_CONTEXT_MUST_STAY_IN_MEMORY')
+        c.check(calls==[('legacy','gridex_auth_legacy_reference')]*2+
+                [('legacy',c.replay.DATABASE),('repair',c.replay.DATABASE)],'REFERENCE_PREP_AND_ACTUAL_ROUTES_REQUIRED')
+        c.check(all(not token.valid and not token.data for token in tokens),'REFERENCE_BUFFERS_CLEARED_REQUIRED')
+        proof = type('PopulatedReferenceProof',(),{'h':h,'name':h.name,'directory':h.directory.name,'accepted_inputs':inputs})()
+        with patch.object(subprocess,'run',return_value=subprocess.CompletedProcess([],0,b'',b'')):
+            privacy(c,proof)
+    reference_failure_controls(c,output)
+
+
+def reference_failure_controls(c,output):
+    for route,failure in (('legacy','reference'),('legacy','phase'),('legacy','database'),
+                          ('legacy','foreign'),('legacy','physical'),('legacy','result'),
+                          ('legacy','completion'),('repair','reference'),('repair','phase'),
+                          ('repair','foreign'),('repair','physical')):
+        with accepted_handle(c) as h:
+            catalog = reference_catalog(c)
+            h.reference = (catalog,catalog)
+            c.repair.REFERENCES[h] = c.repair.Reference(h.directory.name,catalog,catalog)
+            c.dedupe._REFERENCES[h] = c.dedupe._Reference(h.directory.name,h.name,h.reference,c.repair.REFERENCES[h],catalog,catalog,[])
+            original = h.private,h.run_files
+            result = subprocess.CompletedProcess([],1 if failure=='result' else 0,
+                                                  b'' if failure=='completion' else output.encode(),b'')
+            tokens = []
+            with patch.object(subprocess,'run',return_value=result) as run,c.AcceptedInputs(h) as inputs:
+                if route=='repair':c.dedupe._STATES[h] = 'FRESH'
+                module = c.legacy if route=='legacy' else c.repair
+                database = 'gridex_auth_legacy_reference' if route=='legacy' else c.replay.DATABASE
+                if failure in ('result','completion'):
+                    c.rejected(lambda:module.execute(h,database,module.reviewed_paths()))
+                else:
+                    files = module.envelope_files(h,module.reviewed_paths())
+                    tokens.extend(inputs.buffers)
+                    if failure=='reference':
+                        if route=='legacy':h.reference = (dict(catalog),dict(catalog))
+                        else:c.repair.REFERENCES[h] = c.repair.Reference(h.directory.name,catalog,catalog)
+                    if failure=='phase':c.dedupe._STATES[h] = 'SUCCEEDED'
+                    if failure=='database':database = c.replay.DATABASE
+                    if failure=='foreign':files[0] = c.MemoryAdmission(object(),b'SELECT 1;',files[0].name)
+                    if failure=='physical':files[0] = Path(h.directory.name)/files[0].name
+                    c.rejected(lambda:h.run_files(database,files,'whole_batch'))
+                    c.check(not run.called,'REFERENCE_REJECTION_BEFORE_PROCESS_REQUIRED')
+                c.check(not inputs.buffers and not inputs.envelope and inputs.binding is None and
+                        all(not token.valid and not token.data for token in tokens),'REFERENCE_ERROR_CLEARS_IMMEDIATELY')
+            c.check((h.private,h.run_files)==original,'REFERENCE_METHOD_RESTORATION_REQUIRED')
+
+
 def accepted_input_controls(c):
     """Real unchanged writer/execute and command; only SQL/process transport is mocked."""
     output = b'REPAIR_STAGE_R2\nREPAIR_STAGE_E2\nREPAIR_STAGE_S2\nREPAIR_STAGE_COMPLETED\n'
@@ -559,12 +688,13 @@ def accepted_input_controls(c):
             old_private,old_run = h.private,h.run_files
             tokens = []
             def process(argv,**kwargs):
-                token = inputs.buffers[0]
-                tokens.append(token)
+                tokens.extend(inputs.buffers)
                 expected = c.legacy.OwnedPostgres.command(h,c.replay.DATABASE,
                             [Path(h.directory.name)/name for name in inputs.ORDER],True)
-                expected[expected.index('/legacy-private/repair-admission.sql')] = '-'
-                c.check(argv == expected and kwargs['input'] == admission_bytes(c),
+                expected[expected.index('/legacy-private/repair-context.sql')] = '-'
+                admission_index = expected.index('/legacy-private/repair-admission.sql')
+                del expected[admission_index-1:admission_index+1]
+                c.check(argv == expected and kwargs['input'] == context_bytes(c,h,'repair')+b'\n'+admission_bytes(c),
                         'UNCHANGED_ADMISSION_COMMAND_AND_BYTES_REQUIRED')
                 c.check(kwargs['capture_output'] is True and kwargs['timeout']==120
                         and kwargs['env']==c.legacy.clean_environment(),'ACCEPTED_PROCESS_OPTIONS_REQUIRED')
@@ -686,7 +816,8 @@ def privacy_input_controls(c):
     """Whole-input provenance is the only exception; collector/artifact scan stays exact."""
     failures = (None,'collector','collector_failure','generated_empty','generated_literal','artifact',
                 'copied','lookalike','mutated','replaced','symlink','foreign_proof','missing_source',
-                'source_symlink','source_mutated','manifest','no_provenance')
+                'source_symlink','source_mutated','manifest','no_provenance',
+                'generated_legacy_context','generated_repair_context')
     for failure in failures:
         with accepted_writers(c) as proof,contextlib.ExitStack() as stack:
             inputs = proof.accepted_inputs
@@ -697,6 +828,9 @@ def privacy_input_controls(c):
             if failure=='collector_failure': result.returncode = 1
             if failure in ('generated_empty','generated_literal'):
                 (path.parent/'repair-admission.sql').write_bytes(b'SELECT 1;' if failure=='generated_empty' else literal)
+            if failure in ('generated_legacy_context','generated_repair_context'):
+                name = 'envelope-context.sql' if failure=='generated_legacy_context' else 'repair-context.sql'
+                (path.parent/name).write_bytes(b'SELECT 1;')
             if failure=='artifact': (path.parent/'client-last.out').write_bytes(literal)
             if failure in ('copied','lookalike'):
                 destination = path.parent/('foreign' if failure=='copied' else 'lookalike')
@@ -752,7 +886,7 @@ def privacy(c,proof):
     c.check(result.returncode==0,'PRIVATE_COLLECTOR_INSPECTION_REQUIRED')
     c.check(not any(value in result.stdout+result.stderr for value in values),'SOURCE_LITERAL_IN_COLLECTOR')
     for path in Path(proof.directory).rglob('*'):
-        c.check(path.name != 'repair-admission.sql', 'PHYSICAL_ADMISSION_FORBIDDEN')
+        c.check(path.name not in c.AcceptedInputs.GENERATED, 'PHYSICAL_ADMISSION_FORBIDDEN')
         if path.is_file():
             inputs = getattr(proof,'accepted_inputs',None)
             if inputs is not None and inputs.whole_input(proof,path):

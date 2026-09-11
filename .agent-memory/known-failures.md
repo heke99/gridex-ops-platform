@@ -234,3 +234,11 @@ generated admission (per-handle memory/stdin), with other artifact/collector gua
 unchanged. Unpublished43b90fd0/report lost after environment restoration; a recovered
 implementation must earn fresh review and native acceptance. Earlier Task15 F1-F4
 native blockers are closed at2bbcdab8, not separate active work.
+
+2026-09-11 fe0379e4 follow-up: all102native/all19/quality/EdielPASS but finalprivacy
+stillFAIL. Additional exact source-pinned nonempty-reference reproduction finds
+legacy envelope-context.sql and repair-context.sql containing a pinned stored
+function body. Prior empty-reference writer audit could not detect these. Approved
+scope virtualizes both contexts, retaining generated admission memory; only adjacent
+generated repair controls coalesce, no original whole-source/guard change. No general
+client-output leak inferred. Implementation/review/native acceptance pending.
