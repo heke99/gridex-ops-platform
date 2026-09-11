@@ -338,3 +338,31 @@ operation order. Dedupe first receipt is only the first exception reaching its
 instrumented context; no claim to recover internally replaced exceptions.
 Unchanged group/status test PASS. Native causes remain unproved; next hosted
 run supplies evidence. No source/classification/workflow/production mutation.
+
+
+2026-09-11 published17204f06/tree4ab25230: exact reviewed9-file tree, nonforce
+ref/fetch/local alignment PASS; archive/proof-stages-reviewed-4e624d67 retained.
+OPS34622016471 alignment103338041853 passed24constructors/actual63/catalog-source
+equality/view binding/oracleDDL, then proved42804 at timestamp_mutation16:27:27Z;
+cleanupPASS. Reviewed139b532 replaces concrete-array assignment with PG-created
+temp-donor anyarray copying, preserving exact1drift/raw42804/preservation/disposal.
+25constructors and focused10reviewsubcases PASS; no findings; native SQL pending.
+Legacy103338041773 failed beforefirst43 with BoundaryError; causeUNCLASSIFIED.
+Dedupe103338041737 now PASS whole standalone/actual57/all19/death/privacy/cleanup
+16:35:06Z; auth/repair/fixed102/quality/Ediel and tenant/browserPASS. Existing
+types/clean-native gates remain open, actual63continuation collection pending.
+Sharedstartup separately has a source-proven temporary-server readiness gap;
+scopedd89a497 requires finalPID1+socketready under unchanged bounds/logging.
+Real__enter__ temporary/final/timeout cleanup seams RED/GREEN and existinglegacy
+constructors/AST/whitespacePASS; independent review pending, no native claim.
+No historical SQL/classification/workflow/production change.
+
+17204f06 complete actual63 continuation103338041627 PASS16:37:14Z including finalrepeat/death/privacy/cleanup. Verify103338041867 exact known types tail failure; clean103338041829 rejects unsupported native target before replay. No retries or production actions.
+
+2026-09-11 startupd89a497 scoped independent review APPROVED, no findings; root
+read complete report. Actual lifecycle3scenario/timeout/ownership/privacy checks
+PASS, originaldeadline semantics retained (not a native wall-clock measurement).
+Alignment139b532 independently approved; native verification pending for both.
+Root unchangedgroup/status regression PASS after metadata update. Current17204
+fullE2E smoke confirmed14/15: only types tail; coverage/P0contractPASS, fullruntime
+lanes skipped. CurrentCI inspection complete; no historicalcause/retry/prodclaim.

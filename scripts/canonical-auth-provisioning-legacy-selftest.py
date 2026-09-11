@@ -61,6 +61,7 @@ def constructor_checks():
             else:
                 raise AssertionError('setup failure accepted as a source-native error')
     b = load_batch()
+    startup_constructor_checks(b)
     assert callable(getattr(b,'validate_admission',None)), 'admission must serialize before relation/catalog reads'
     admission=(b.SUPPORT/'canonical-auth-provisioning-legacy-admission.sql').read_text()
     mutex='SELECT pg_catalog.pg_advisory_xact_lock(20260910, 140053);'
@@ -213,6 +214,105 @@ def constructor_checks():
     replay=load_replay()
     replay_constructor_checks(b,replay)
     print('PASS legacy constructor bytes/order/context/target/logging negative controls; SQL acceptance not executed')
+
+
+def startup_constructor_checks(b):
+    """Drive real startup/logging/cleanup through the Docker subprocess boundary."""
+    import contextlib,io,subprocess
+    from unittest.mock import patch
+    settings = b'\n'.join((
+        b'log_duration|off', b'log_error_verbosity|terse', b'log_file_mode|0600',
+        b'log_min_duration_sample|-1', b'log_min_duration_statement|-1',
+        b'log_min_error_statement|panic', b'log_parameter_max_length|0',
+        b'log_parameter_max_length_on_error|0', b'log_statement|none',
+        b'log_transaction_sample_rate|0', b'logging_collector|on',
+        b'local_preload_libraries|', b'session_preload_libraries|',
+        b'shared_preload_libraries|')) + b'\n'
+    for scenario in ('temporary_then_final', 'temporary_timeout', 'final_timeout'):
+        state = {'elapsed': 0.0, 'poll': 0, 'removed': False, 'directory': None}
+        events = []
+        public = io.StringIO()
+        def sleep(seconds):
+            assert seconds == 0.25
+            state['elapsed'] += seconds
+            state['poll'] += 1
+        def run(argv, *, input, capture_output, timeout, env):
+            assert argv[0] == 'docker' and input is None and capture_output is True
+            assert not any(key.startswith('PG') for key in env)
+            args = argv[1:]
+            code, output = 0, b''
+            if args[0] == 'run':
+                assert args[args.index('--network')+1] == 'none' and timeout == 180
+                assert args[args.index('--name')+1] == owned.name
+                assert 'gridex.auth-legacy.owner='+owned.name in args
+                state['directory'] = Path(owned.directory.name)
+                assert state['directory'].stat().st_mode & 0o777 == 0o700
+                events.append('run')
+            elif args == ['exec', owned.name, 'cat', '/proc/1/comm']:
+                assert timeout == 5
+                final = scenario == 'final_timeout' or (
+                    scenario == 'temporary_then_final' and state['poll'] > 0)
+                output = b'postgres\n' if final else b'bash\n'
+                events.append('final_pid1' if final else 'temporary_pid1')
+            elif args == ['exec', owned.name, 'pg_isready', '-U', 'postgres']:
+                assert timeout == 5
+                # Temporary initialization accepts socket connections. The first
+                # final-server probe rejects; only the next final probe is ready.
+                ready = scenario == 'temporary_timeout' or (
+                    scenario == 'temporary_then_final' and state['poll'] != 1)
+                code = 0 if ready else 1
+                events.append('socket_ready' if ready else 'socket_not_ready')
+            elif args == ['exec', '--user', 'postgres', owned.name, 'chmod', '0700',
+                          '/var/lib/postgresql/data/pg_log_private']:
+                assert scenario == 'temporary_then_final' and state['poll'] >= 2, (
+                    'startup accepted temporary or unready final server', scenario, state['poll'])
+                events.append('logging_chmod')
+            elif args[:7] == ['exec', owned.name, 'psql', '-X', '-U', 'postgres', '-At']:
+                assert args[7] == '-c' and 'FROM pg_settings' in args[8]
+                output = settings
+                events.append('logging_settings')
+            elif args == ['exec', owned.name, 'stat', '-c', '%a',
+                          '/var/lib/postgresql/data/pg_log_private']:
+                output = b'700\n'
+                events.append('logging_mode')
+            elif args == ['inspect', '--format',
+                          '{{ index .Config.Labels "gridex.auth-legacy.owner" }}', owned.name]:
+                output = owned.name.encode()+b'\n'
+                events.append('owner_check')
+            elif args == ['rm', '--force', '--volumes', owned.name]:
+                assert events[-1] == 'owner_check'
+                state['removed'] = True
+                events.append('remove')
+            else:
+                raise AssertionError('unexpected startup command')
+            return subprocess.CompletedProcess(argv, code, output, b'PRIVATE_STARTUP_SENTINEL')
+        with patch.dict(b.os.environ, {'GRIDEX_LEGACY_CONTAINER_NAME': 'gridex-auth-legacy-'+scenario.replace('_','-')}), \
+             patch.object(b.subprocess, 'run', side_effect=run), \
+             patch.object(b.time, 'monotonic', side_effect=lambda: state['elapsed']), \
+             patch.object(b.time, 'sleep', side_effect=sleep), \
+             contextlib.redirect_stdout(public), contextlib.redirect_stderr(public):
+            owned = b.OwnedPostgres()
+            try:
+                with owned as entered:
+                    assert scenario == 'temporary_then_final', 'startup deadline was bypassed'
+                    assert entered is owned and owned.active
+                    assert state['elapsed'] == 0.5
+                    assert events == ['run', 'temporary_pid1', 'final_pid1', 'socket_not_ready',
+                                      'final_pid1', 'socket_ready', 'logging_chmod',
+                                      'logging_settings', 'logging_mode']
+                    private = Path(owned.directory.name)/'docker-private-last.out'
+                    assert private.stat().st_mode & 0o777 == 0o600
+            except b.BoundaryError:
+                assert scenario != 'temporary_then_final', 'final ready startup rejected'
+                assert state['elapsed'] == 60.0
+                assert not any(event.startswith('logging_') for event in events)
+            else:
+                assert scenario == 'temporary_then_final', 'startup timeout was swallowed'
+            assert state['removed'] and not owned.active and owned.directory is None
+            assert not state['directory'].exists()
+            assert events[-2:] == ['owner_check', 'remove']
+            assert public.getvalue() == '', 'private startup output escaped'
+    print('PASS owned startup final PID1 plus socket readiness; bounded timeout/owned cleanup; no native execution')
 
 
 # All fixture identities are synthetic and confined to the owned container.

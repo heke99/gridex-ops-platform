@@ -195,7 +195,7 @@ class Constructors(unittest.TestCase):
                         proof = Mock(spec=AlignmentProof)
                         proof.sources = batch.validate_sources(batch.reviewed_paths())
                         proof.fresh_generation.side_effect = lambda database, case: database
-                        proof.snapshot.return_value = ({}, [])
+                        proof.snapshot.return_value = timestamp_catalogs()[0]
                         proof.expected.side_effect = lambda before: AlignmentProof.expected(proof, before)
                         def query(database, sql):
                             if database == failed_database:
@@ -217,6 +217,33 @@ class Constructors(unittest.TestCase):
                             dict(stage=stage, type='QUERY', category='QUERY_DATATYPE'))
         finally:
             _NATIVE_FAILURE = previous
+
+    def test_timestamp_control_requires_single_drift_rejection_and_preservation(self):
+        from unittest.mock import Mock
+        for fault in (None, 'no_drift', 'extra_drift', 'accepted', 'wrong_state', 'not_preserved'):
+            with self.subTest(fault=fault):
+                admitted = timestamp_catalogs()[0]
+                changed = copy.deepcopy(admitted)
+                key = 'alignment_attribute/public.audit_logs/updated_at'
+                changed[0][key]['missing_value'] = ['2026-09-11T12:00:03.000001+00:00']
+                if fault == 'no_drift':
+                    changed = copy.deepcopy(admitted)
+                elif fault == 'extra_drift':
+                    changed[0][key]['missing'] = False
+                proof = Mock(spec=AlignmentProof)
+                proof.fresh_generation.return_value = ATOMIC
+                proof.snapshot.side_effect = [admitted, changed,
+                    admitted if fault == 'not_preserved' else changed]
+                proof.expected.return_value = admitted[0]
+                proof.query.return_value = 't\n'
+                proof.envelope.return_value = core.Result('', '', 0 if fault == 'accepted' else 1,
+                    '00000' if fault == 'accepted' else ('P0004' if fault == 'wrong_state' else '42804'), None, None)
+                if fault is None:
+                    native_timestamp_controls(proof)
+                else:
+                    with self.assertRaises(batch.BoundaryError):
+                        native_timestamp_controls(proof)
+                proof.dispose.assert_called_once_with(ATOMIC)
 
     def test_boundary_privilege_probe_rejects_commit_before_reader(self):
         try:
@@ -408,7 +435,7 @@ import argparse
 import contextlib
 import copy
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import io
 import json
@@ -837,10 +864,18 @@ def native_timestamp_controls(proof):
         admitted = proof.snapshot(database)
         expected = proof.expected(admitted)
         with diagnostic_stage('timestamp_mutation'):
-            changed = proof.query(database, '''UPDATE pg_catalog.pg_attribute
-SET attmissingval = ARRAY[(attmissingval::text::timestamptz[])[1] + interval '1 microsecond']
-WHERE attrelid='public.audit_logs'::regclass AND attname='updated_at' AND atthasmissing
-RETURNING atthasmissing;''')
+            cached = admitted[0]['alignment_attribute/public.audit_logs/updated_at']['missing_value'][0]
+            replacement = datetime.fromisoformat(cached) + timedelta(microseconds=1)
+            # PostgreSQL must build the catalog's anyarray value. A concrete
+            # timestamptz[] expression cannot satisfy the UPDATE row type.
+            changed = proof.query(database, '''CREATE TEMP TABLE alignment_timestamp_donor(id integer) ON COMMIT DROP;
+ALTER TABLE pg_temp.alignment_timestamp_donor ADD COLUMN value timestamptz DEFAULT ''' + batch.literal(replacement.isoformat()) + '''::timestamptz;
+UPDATE pg_catalog.pg_attribute target SET attmissingval=donor.attmissingval
+FROM pg_catalog.pg_attribute donor
+WHERE target.attrelid='public.audit_logs'::regclass AND target.attname='updated_at' AND target.atthasmissing
+AND donor.attrelid='pg_temp.alignment_timestamp_donor'::regclass AND donor.attname='value' AND donor.atthasmissing
+RETURNING target.atthasmissing;
+DROP TABLE pg_temp.alignment_timestamp_donor;''')
         check(changed.strip() == 't', 'ALIGNMENT_NATIVE_TIMESTAMP_MUTATION_REQUIRED')
         before = proof.snapshot(database)
         check(batch.catalog.mismatch_summary(before[0], admitted[0]) == {'objects': 1, 'groups': [

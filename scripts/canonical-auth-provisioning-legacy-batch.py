@@ -221,6 +221,10 @@ class OwnedPostgres:
             deadline=time.monotonic()+60
             while True:
                 try:
+                    # The image's temporary init server also accepts socket connections.
+                    pid1=self.docker(['exec',self.name,'cat','/proc/1/comm'],timeout=5)
+                    if pid1.strip()!=b'postgres':
+                        raise BoundaryError('OWNED_FINAL_POSTGRES_REQUIRED')
                     self.docker(['exec',self.name,'pg_isready','-U','postgres'],timeout=5)
                     break
                 except BoundaryError:

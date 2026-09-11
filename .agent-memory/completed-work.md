@@ -926,3 +926,17 @@ operation order. Dedupe first receipt is only the first exception reaching its
 instrumented context; no claim to recover internally replaced exceptions.
 Unchanged group/status test PASS. Native causes remain unproved; next hosted
 run supplies evidence. No source/classification/workflow/production mutation.
+
+
+2026-09-11 alignment139b532 independently approved without findings. Proved
+hosted42804 correction is limited to the disposable timestamp negative control;
+25constructors/10focusedreviewsubcases/AST/whitespacePASS. Native donor SQL
+and complete alignment acceptance remain open; this is local verification only.
+
+2026-09-11 startupd89a497 scoped independent review APPROVED, no findings; root
+read complete report. Actual lifecycle3scenario/timeout/ownership/privacy checks
+PASS, originaldeadline semantics retained (not a native wall-clock measurement).
+Alignment139b532 independently approved; native verification pending for both.
+Root unchangedgroup/status regression PASS after metadata update. Current17204
+fullE2E smoke confirmed14/15: only types tail; coverage/P0contractPASS, fullruntime
+lanes skipped. CurrentCI inspection complete; no historicalcause/retry/prodclaim.

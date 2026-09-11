@@ -10,63 +10,51 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published head: `5ec9b426c97549e713f162e2723c8c3eaa407593`, tree
-  `00fc09bff521827bad5b6a4f27716e068027be2d`; nonforce publication/fetch and exact
-  reviewed tree equality passed. OPS34620219856 has new finite failures below;
-  complete actual63 continuation/fault/death/privacy passed at16:21:09Z.
-- Last completely inspected CI baseline: `d060d1d2` / OPS34617768352.
+- Published head: `17204f06fddcc2db5bcc7363e2c07e01a8448725`, tree
+  `4ab252303f6e3ed718b0a8d4f9bc887ec1d3d4e9`. Exact reviewed-tree/nonforce/fetch
+  checks passed; reviewed local history is in archive/proof-stages-reviewed-4e624d67.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Task22 constructor correction b3407e0e is locally complete: exact15
-  required-table VALUES, all23 constructors GREEN, native guards unchanged.
-  Independent spec/quality review approved with no findings. Task24 I1 correction
-  1925fc9b passed scoped independent re-review with no findings. Both changes
-  are published together. Hosted exact15 diagnostic binding now passes;
-  alignment reaches native_cases and fails QUERY_DATATYPE (42804).
-- Task24 committed91d045f: finite operational disposition of the exact31-line
-  DB2 execution script, nine dependency pins, Python/JS overlap guards and
-  adversarial checks. Accounting38, cleanup20, review-groups16, migration
-  integrity, provenance, group runner and affected constructors pass.
-  I1 correction1925fc9b includes direct interleaved artifact paths in both
-  validators. Actual-validator RED/GREEN and regenerated receipt hashes pass;
-  scoped independent review approved. Outer accounting already rejected that fixture.
-  No SQL bypass is claimed and no historical repair SQL ran.
-- Task22 correction e9d4f56c is reviewed and published in d060d1d2. All20 local
-  constructors pass; independent spec/quality review approved with no findings.
-  OPS34617768352 alignment103323860108 passed all20 constructors, actual63 and
-  the independent catalog/source equality, then failed diagnostic_binding.
-  Root reproduced the cause locally: diagnostic_source expects15 broad literal
-  occurrences but its immutable view has18 (15 table rows plus three unrelated
-  expressions). Reviewed correction b3407e0e addresses this; native acceptance remains
-  open and historical A/B/C remain unclassified.
-- Active next action: publish approved dedupe stagesfa6828b and alignment
-  stages7ac14cdc as one coherent diagnostic/source-evidence batch; inspect
-  hosted stages to localize alignment42804 and earlydedupe, then fix only proved
-  causes. No blind retry or relaxed catalog comparisons. Regenerate schema/types
-  only after full replay is authoritative.
-- On 5ec9b426, alignment103332040645 passed23 constructors, actual63, catalog/
-  source equality and diagnostic binding. All four bounded relation names are
-  absent at actual63. QUERY_DATATYPE occurred later in native_cases; oracle DDL
-  versus timestamp mutation versus behavior cases remains unlocalized.
-- Dedupe103332040656 passed every constructor, then failed BoundaryError before
-  any first43/SQL receipt; owned cleanup passed. Its runtime and legacy/repair
-  files are unchanged from passing d060d1d2. Root traced startup/reference path;
-  exact cause remains unproved. No environmental or Task24 causality claimed.
-- Current auth/legacy/repair/fixed102, Ediel and quality/build jobs PASS. Tenant
-  and public-browser workflows PASS. Full E2E smoke is14/15; only the same
-  generated-types check fails. Coverage and executable14-scenario contract pass;
-  runtime/staging/full/nightly lanes are skipped and remain unverified.
-  Verify103332040464 now passes both initial
-  regression stages, then fails only at the known generated-types tail; clean
-  native ownership remains blocked.
-- Alignment stages7ac14cdc are independently approved without findings;24
-  constructors pass, four injected failures RED/GREEN. Dedupe stagesfa6828b
-  pass private-payload/known-label/6failure-cleanup seams and all constructors;
-  scoped independent review approved without findings. Both are diagnostic only. AST comparisons confirm
-  unchanged preexisting function bodies after removing diagnostic wrappers/call,
-  including unchanged SQL and guards. Neither native cause is proved.
-- Root status shortening omitted exact existing memory-test markers; restored
-  them and reran canonical-auth-membership-group-selftest.py successfully. The
-  original CI failure is retained; no test expectation was weakened.
+- Active subtask: publish approved owned-startupd89a497 and alignment139b532
+  as one coherent harness batch, then inspect native acceptance. Both independent
+  scoped reviews approved without findings; no active implementation author. No blind retry or
+  relaxed acceptance. Regenerate schema/types only after authoritative full replay.
+- Alignment139b532 is locally implemented: the hosted42804 is proved at
+  timestamp_mutation in job103338041853, after24 constructors, actual63,
+  independent catalog/source equality, exact15-table binding and oracle DDL pass.
+  The fix copies a PG-created donor anyarray into the catalog in the existing
+  disposable transaction. Exact1 drift/raw42804 rejection/preservation/disposal
+  gates stay unchanged. All25 constructors pass; scoped independent review
+  approved without findings. Native donor SQL acceptance remains pending.
+- Shared startup has a separately source-proven gap: socket pg_isready may accept
+  the official image's temporary initialization server before final exec. The
+  bounded correction will require final PID1 postgres plus socket readiness under
+  unchanged60s deadline/0.25s cadence/5s command limits, then logging checks.
+  Actual__enter__ seam RED/GREEN, timeout/owned-cleanup and all legacy constructors
+  pass. Independent review approved without findings; historical failure causality
+  remains UNCLASSIFIED. Hosted native readiness and cleanup acceptance pending. No first43 receipt is not
+  proof of zero SQL/process work.
+- OPS34622016471 on17204f06: alignment103338041853 failed as above;
+  legacy103338041773 passed constructors then BoundaryError before first43/SQL
+  receipts, cleanupPASS. Auth/repair/dedupe/fixed102/Ediel/quality-build PASS;
+  fullactual63 continuation/fault/death/privacy103338041627 PASS16:37:14Z. Dedupe103338041737 completed all19 modes,
+  controller death/privacy/cleanup at16:35:06Z. Tenant/public-browser PASS.
+  Verify/fullE2E retain known types failure; skipped runtime lanes unverified.
+- Previous complete baseline:5ec9b426/OPS34620219856. Auth/legacy/repair/fixed102,
+  fullactual63 continuation/fault/death/privacy, Ediel, quality/build, tenant and
+  public-browser PASS. Alignment passed the corrected exact15-table binding then
+  exposed42804; dedupe failed early with unknown cause and successful cleanup.
+  Verify and E2E smoke fail the known types tail20260911114443 (smoke14/15).
+  Coverage/P0contractPASS; runtime/staging/full/nightly skipped and unverified.
+- Task24 bounded DB2 operational-script disposition is independently reviewed and
+  published: exact31-line exclusion, nine pins, Python/JS direct+derived overlap
+  guards. Accounting38/cleanup20/reviewgroups16/integrity600/504/provenance and
+  affected constructor checks pass; I1 direct-interleaved case closed by RED/GREEN
+  and scoped re-review. No historical SQL executed; schema-bearing companions
+  remain unclassified. Accounting and foundation boundaries below remain binding.
+- Reviewed diagnostic commits7ac14cdc/fa6828b are published in17204f06. Finite
+  stages/categories preserve first captured failure and cleanup behavior; local
+  privacy/seam/constructor checks and independent reviews passed. Prior timestamp
+  comparison and view-binding fixes passed their formerly failing hosted stages.
 
 ## Verified starting evidence
 

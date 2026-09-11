@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "5ec9b426c97549e713f162e2723c8c3eaa407593"
+    "published_baseline": "17204f06fddcc2db5bcc7363e2c07e01a8448725"
   },
-  "next_action": "Publish the coherent approved7ac14cdc/fa6828b diagnostic/source-evidence batch, inspect hosted Task22/19 finite stages, then fix only proved causes. Full native/types/production remain open."
+  "next_action": "Publish approved startupd89a497 with alignment139b532, then require native timestamp-control/startup and full prior gates. Historical startup cause unclassified; full native/types/production remain open."
 }
