@@ -12,7 +12,7 @@ No production mutation has been performed in this replay-verification batch.
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `559f70e81d7fce979f28a7280e0d6ad92e8bdb2a`.
+- Published implementation baseline: `0ca45764960662c07fbb51393cf9f2f17be55390`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
 - Six reviewed batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
@@ -32,21 +32,25 @@ No production mutation has been performed in this replay-verification batch.
   no-symlink, private HOLD and source pins retained. No live-path fallback.
   New regression observedRED->GREEN;28constructors+6diagnosticsPASS, diffcheckPASS.
   Direct bytes/DDL/prelude outputs unchanged. No source/selector/state changes.
-- Local candidate: trusted same-handle
-  actual68 continuation after FIXED_COMPLETE, before successful child release.
-  Do not import AlignmentProof/selftests as production authority or append five
-  independent SQL calls. Retain live AcceptedInputs/StagedSources, transactional
-  P/A/B/C/W, source-only oracle, linked fixed+alignment completion, post-commit
-  final snapshot and exact child/HOLD/privacy/terminal cleanup gates.
-- Proposed source registration inserts allfive at foundation64–68 for the
-  native integration gate, yielding foundation109/timestamp508 and
-  549selected/23unclassified/23substituted/5excluded. This remains
-  INPUT_SELECTION_ONLY until native integration passes. Actual68 is not proved.
-  Full effects46unresolved; no unsupported exemption has been added.
-- Local8 continuation/28 alignment/6 diagnostics/20 shell-recovery tests and
-  accounting/provenance/readiness gates PASS. New owned PG17 actual68 workflow
-  is prepared; native execution is PENDING. Next: complete independent review,
-  push the coherent candidate, resolve its native gate before accepting actual68.
+- Actual68 native SUCCESS on0ca45764: OPS34650841849/job103432379255.
+  Three actual-shell success runs/fresh repeats, rejected closed-handle reuse,
+  extended storage drift, rows/owner/stage/database/hash/private-copy faults,
+  exact22012/57P01 rollback, postcommit catalog/row drift, failed child and
+  post-COMMIT controller death all PASS. Canary, source/HOLD restoration,
+  private collector boundaries and exact owner cleanup all PASS by21:54:51Z.
+- Source registration64–68 now has native evidence. Global accounting remains
+  INPUT_SELECTION_ONLY: foundation109/timestamp508;600=549selected,
+  23substituted,23unclassified,5excluded. Full46dispositions unresolved.
+- Next bounded P0-C group: complete original customer_move_out_lifecycle,
+  ediel_tenant_profile_runtime_sync and operations_customers_ux (20260519).
+  All244source lines and prerequisites independently reviewed. Private
+  standalone characterization prepared at frozen accepted actual68;9constructors
+  PASS. Complete final review, push candidate and resolve hosted native gate
+  before registration.
+  No additional source selection/order change or actual71 claim has occurred.
+- Local affected constructors/accounting/provenance/readiness and native
+  auth/legacy/repair/dedupe/fixed/Ediel/quality gates PASS. Full types still FAIL
+  on migration tail20260911114443; native CLI still unsupported beforeSQL.
 - Main/app.gridex.se remains eb9a25bc; connected ledger tail20260904222450.
   No production writes; full plan and production parity remain incomplete.
 
@@ -70,7 +74,7 @@ Working-tree accounting is 600 inputs: 549 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED
 The focused group contains 346 inputs: 306 selected, 20 substituted,
 15 unclassified, and 5 excluded.
 Forty-six historical inputs remain unresolved; focused group unresolved35.
-Proposed foundation109 / native actual63 and all immutable source pins remain binding.
+Foundation109 / native actual68 and all immutable source pins remain binding.
 Selection is not proof of successful full SQL replay or production parity.
 
 ## Production and access
@@ -93,7 +97,7 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Continue with the new actual68 integration native gate after publishing the reviewed candidate.
+Continue with the next three original customer/Ediel/operations sources from accepted actual68.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics
 are independently implemented from complete published source, not reconstructed

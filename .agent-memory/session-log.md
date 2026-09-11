@@ -1617,3 +1617,39 @@ Independent review APPROVED for incremental publication/native validation.
 Both runtime findings and native test instrumentation/fault/death findings
 are corrected. Eight constructors and diffcheck independently PASS.
 Actual68 still requires hosted SQL evidence; immutable migrations unchanged.
+
+
+## 2026-09-11 21:55Z actual68 native acceptance
+
+Commit0ca45764960662c07fbb51393cf9f2f17be55390, exact published/fetched tree
+74ba737da0d7dad0bf7cea3ca5e5695c4b906352. OPS34650841849 alignment continuation
+job103432379255 conclusionSUCCESS. Actual-shell successes at21:45:41Z,
+21:46:19Z and21:54:51Z; all13negative/fault cases passed. Storage drift rejected
+by independent baseline, owner and staged/program provenance rejected, exact
+22012/57P01 source-stage failures preserved full rollback, both postcommit
+drift cases rejected, child failure disposed the owned target. Controller death
+at21:54:12Z observed alignment-only committed uuid column plus canary/HOLD/
+privacy/exact cleanup. Full suitePASS21:54:51Z. Actual68 is now verified.
+
+Next: source-effects characterization of the three20260519 customer move-out,
+Ediel tenant profile sync and operations UX originals at frozen actual68.
+No classification/order/runtime acceptance beyond68. Full46 source dispositions,
+full replay/types/parity and production/delivery/masterplan remain incomplete.
+No production writes/merge/migration/deployment.
+
+
+## 2026-09-11 customer operations candidate
+
+Prepared complete L/E/U source model and private standalone characterization at
+accepted actual68. All244original lines and relevant prerequisites independently
+reviewed; no selection/order/migration bytes changed. Added9constructor controls;
+direct/staged physicalowner, stale completion links and failed-clone cleanup
+regressions observed RED->GREEN. New native workflow covers full declarations,
+complete row/sequence multisets, relation/column comments, exact backfill guards,
+commit/repeat/rollback, journal constraints/privileges, original/canary preservation
+and exact cleanup. Native evidence is PENDING. Full46dispositions remain open.
+Details: quality/audits/CUSTOMER_OPERATIONS_SOURCE_PROOF_2026-09-11.md.
+
+Independent implementation/native-matrix review APPROVED for incremental
+publication and hosted validation. Nine constructors, syntax, diffcheck and
+all three original hashes independently verified. Native results remain pending.

@@ -113,6 +113,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-user-rbac-fixed-target-continuation-selftest.py --cleanup-owned
 
+  customer-operations-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete customer and Ediel operations sources at owned actual68
+        run: python3 scripts/canonical-customer-operations-selftest.py
+      - name: Remove only the owned customer operations proof container
+        if: always()
+        run: python3 scripts/canonical-customer-operations-selftest.py --cleanup-owned
+
   user-rbac-alignment-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30
