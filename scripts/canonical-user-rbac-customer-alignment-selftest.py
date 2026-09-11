@@ -20,6 +20,43 @@ def load(name, filename):
 
 
 class Constructors(unittest.TestCase):
+    def test_guard_dependency_plan_binds_sources_targets_and_preimages(self):
+        g = load('alignment_guard_fixture_controls', 'canonical-user-rbac-customer-alignment-guard-fixtures.py')
+        prefix = legacy.verified_prefix()
+        shape = {}
+        for ordinal in g.VARIANTS:
+            for kind, table, name in g.objects(ordinal):
+                key = g.key(kind, table, name)
+                shape[key] = {'kind': 'v', 'owner': 'postgres'} if kind == 'view' else {'definition': 'source fixture'}
+        for ordinal in g.VARIANTS:
+            setup = g.target_sql(ordinal)
+            sql = g.prepare(sys.modules[__name__], ordinal, setup, shape, copy.deepcopy(shape), prefix)
+            self.assertTrue(sql.endswith(setup))
+            self.assertNotIn('CASCADE', sql.upper())
+            self.assertEqual(sql.count('DROP VIEW ')+sql.count('DROP POLICY ')+sql.count('DROP TRIGGER '), len(g.objects(ordinal)))
+            self.assertNotIn('_tenant_delete', sql)
+        identities = set(item for ordinal in g.VARIANTS for item in g.objects(ordinal))
+        self.assertEqual({kind: sum(item[0] == kind for item in identities)
+                          for kind in ('view', 'policy', 'trigger')},
+                         {'view': 11, 'policy': 87, 'trigger': 13})
+        sql = g.prepare(sys.modules[__name__], 13, g.target_sql(13), shape, shape, prefix)
+        self.assertLess(sql.index('ediel_overdue_message_acks_v'), sql.index('ediel_message_ack_state_v'))
+        self.assertLess(sql.index('gridex_db1_backfill_readiness_v'), sql.index('gridex_db1_tenant_gap_v'))
+        sql = g.prepare(sys.modules[__name__], 39, g.target_sql(39), shape, shape, prefix)
+        self.assertEqual(sql.count('DROP VIEW '), 1)
+        self.assertNotIn('DROP POLICY', sql)
+        self.assertEqual(g.prepare(sys.modules[__name__], 1, 'unchanged setup', shape, shape, prefix), 'unchanged setup')
+        for mutation in ('source', 'target', 'preimage', 'missing', 'ordinal'):
+            p = list(prefix); actual = copy.deepcopy(shape); origin = copy.deepcopy(shape)
+            ordinal = 0; setup = g.target_sql(0)
+            if mutation == 'source': p[2] = (p[2][0], p[2][1]+'\n')
+            if mutation == 'target': setup += ' SELECT 1;'
+            if mutation == 'preimage': actual[next(iter(actual))]['owner'] = 'authenticated'
+            if mutation == 'missing': actual.pop(next(iter(actual)))
+            if mutation == 'ordinal': ordinal = True
+            with self.assertRaises(batch.BoundaryError):
+                g.prepare(sys.modules[__name__], ordinal, setup, actual, origin, p)
+
     def test_final_catalog_accepts_only_new_source_index_hot_safety(self):
         self.assertTrue(hasattr(batch.catalog, 'final_equal'))
         self.assertTrue(hasattr(batch, 'new_index_keys'))

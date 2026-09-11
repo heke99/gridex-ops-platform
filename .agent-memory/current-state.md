@@ -10,24 +10,28 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published baseline: `1c979ecf57930182455eeb8ddc92bf8bdbad2527`.
+- Published baseline: `87135839bee0b4bf8fb251dfa6685a2d4fe29d89`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- The directional source-scoped HOT correction now passes native32-case SQL
-  controls and the nine behavior cases preceding guard_sources, including
-  populated full rows/catalog, boundary privileges, standalone C, loss rejection,
-  RPC/count/role oracles. OPS34645171060/alignment103414093339 fails later at
-  case_guard_sources/ALIGNMENT_GUARD_SETUP_SOURCE_DEPENDENCY. CleanupPASS.
-- Failure is during fixture setup before B/C source execution. The43 omission
-  setups run against actual63, which includes column-dependent policies/views.
-  Exact blocked variants must be measured before any fixture correction.
-- Current diagnostic batch probes all43 setups in individually rolled-back
-  transactions and verifies exact catalog/row preservation after each attempt.
-  Failure still blocks; only fixed ordinals and finite error categories escape.
-  No CASCADE or production/source/selection changes.6diagnostics+26constructors
-  PASS; new receipt test observed1RED->GREEN. Independent scoped review APPROVED.
-- Next: publish reviewed setup diagnostic, inspect full blocked-variant receipt,
-  make a source-reviewed bounded fixture correction, require full native
-  alignment, then proceed with source disposition/native replay/schema/types.
+- The source-scoped HOT correction passed native32-case SQL controls and nine
+  behavior cases before guard_sources. OPS34645977547/alignment103416745939
+  then measured all43 setup variants:17 fail with dependency2BP01,26 succeed;
+  every attempt preserves the exact original catalog+rows. CleanupPASS.
+- Failing ordinals:0,2,4,6,8,10,12,13,15,17,20,23,25,29,31,33,39.
+  This matches source-established company_id policies/triggers/views and one
+  metering_values.created_at view dependency. No migration-source failure in
+  these variants has yet been measured because setup blocks first.
+- Correction independently APPROVED: exact per-variant fixture-only removal map, globally
+  11views+87policies+13triggers from five pinned predecessor sources. Require
+  complete before=immutable-origin equality and named preimages; explicit
+  RESTRICT drops in reviewed order. Tenant-delete policies remain. Same setup
+  runs on preflight, disposable target and independent source oracle.
+- Native negative control adds one unknown dependent after planning, requires
+  2BP01 and full rollback, then removes that probe and verifies original state.
+  All43 prepared setups must pass; no skip or catch-and-continue acceptance.
+  New constructor observedRED->GREEN;27constructors+6diagnosticsPASS.
+  Independent scoped review APPROVED; corrected native acceptance pending.
+- Next: publish reviewed fixture correction, require full native alignment, then
+  proceed with source disposition/native replay/schema/types.
 - Main/app.gridex.se remains eb9a25bc; connected ledger tail20260904222450.
   No production writes; full plan and production parity remain incomplete.
 

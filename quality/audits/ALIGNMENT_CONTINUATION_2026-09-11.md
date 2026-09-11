@@ -90,3 +90,44 @@ successful constructor command is --selection-only. Hosted setup receipt pending
 
 Independent setup diagnostic review APPROVED: exact rollback/preservation and
 fail-closed43-case receipt retained; reviewer diagnostics6+diffcheckPASS.
+
+## Source-bound omission fixture correction
+
+87135839/OPS34645977547/alignment103416745939 measured all43 original setups.
+Seventeen reject with2BP01:0,2,4,6,8,10,12,13,15,17,20,23,25,29,31,33,39.
+All26 others succeed; every attempt rolls back with exact catalog+row equality.
+CleanupPASS. This directly verifies the invalid omission-fixture construction.
+
+Independent source review mapped the17 variants to eleven views,87policies,
+and13 UPDATE OF company_id triggers. Source03 lines675–725 creates the48 DB1
+select/insert/update policies. Source6e lines214–298 creates39 later tenant
+policies; final tenant_delete policies use platform-admin expressions and must
+remain. Source6d2 lines357–401 creates the13 column-specific operational triggers.
+Repair W restores S2 policy preimages; introduced gridex_debug2 policies are
+therefore excluded. Five exact predecessor files/hashes bind the implementation.
+
+View sources:02 Ediel ack/overdue/duplicate-ack;03 tenant-gap, three duplicate
+candidate views and backfill-readiness;6d platform tenant governance;6d2 metering
+billing audit;6e company billing volume. Backfill-readiness must drop before its
+tenant-gap/duplicate parents; overdue-ack must drop before ack-state. Ordinal39
+needs only metering_billing_audit_overview, which references created_at.
+The complete per-variant map is explicit in the new guard-fixtures module.
+
+These are counterfactual disposable fixtures for original guard behavior, never
+an alternative admitted actual63 migration schema. The complete fixture starts
+identical to the independently source-bound origin. Every mapped object must
+exist with the original descriptor. Explicit RESTRICT statements replace no
+source bytes or runtime policy. An unknown-dependency native negative control
+requires2BP01 and exact rollback after prior named removals. The identical
+prepared setup is applied on the independent oracle. Every prepared case must
+still pass its original whole-source SQLSTATE/catalog/row/rollback assertions.
+
+Constructor RED->GREEN;27constructor+6diagnosticsPASS. Controls cover all17
+mapped cases, exact11/87/13 global identities, dependency order, preserved tenant
+DELETE, unchanged unblocked setups and source/target/preimage/absence/ordinal
+rejections. Hosted correction remains unverified until published execution.
+
+Concrete fixture correction independently APPROVED with no material findings.
+Reviewer verified every per-variant source map and exact11/87/13identities,
+shared setup path, unchanged source/admission/rollback and unknown-dependency
+rejection control; single new constructor+diffcheckPASS. Hosted native pending.

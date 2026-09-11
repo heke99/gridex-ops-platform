@@ -444,6 +444,19 @@ def guard_sources(c, p):
     failures = []
     try:
         original = p.snapshot(database)
+        guard_fixtures = c.load('alignment_guard_fixture_plans', 'canonical-user-rbac-customer-alignment-guard-fixtures.py')
+        prefix = c.legacy.verified_prefix()
+        variants = [(source, name, guard_fixtures.prepare(c, ordinal, setup, original[0], p.origin[0], prefix), state)
+                    for ordinal, (source, name, setup, state) in enumerate(variants)]
+        # A new dependent outside the source map must still block the explicit
+        # RESTRICT plan, with every earlier named removal rolled back exactly.
+        p.query(database, 'CREATE VIEW public.alignment_guard_unreviewed_dependency AS SELECT company_id FROM public.billing_underlays;')
+        with_unknown = p.snapshot(database)
+        rejected = p.run(database, variants[0][2] + '\nROLLBACK;')
+        c.check(rejected.code != 0 and rejected.state == '2BP01', 'ALIGNMENT_GUARD_SETUP_SOURCE_DEPENDENCY')
+        preserved(c, p, database, with_unknown)
+        p.query(database, 'DROP VIEW public.alignment_guard_unreviewed_dependency RESTRICT;')
+        preserved(c, p, database, original)
         for ordinal, (_, _, setup, _) in enumerate(variants):
             if setup:
                 result = p.run(database, setup + '\nROLLBACK;')

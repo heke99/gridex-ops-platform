@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "1c979ecf57930182455eeb8ddc92bf8bdbad2527"
+    "published_baseline": "87135839bee0b4bf8fb251dfa6685a2d4fe29d89"
   },
-  "next_action": "Inspect all43 native guard setup outcomes, correct source-proved fixture dependencies, require full alignment then continue native replay/schema/types."
+  "next_action": "Publish reviewed source-bound guard fixture correction, require complete native alignment, then source disposition/full replay/schema/types."
 }
