@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "e2bb1a9becc07989181405ddccdbdcae173d36d4",
+    "published_baseline": "633a9cf0c46ed780980fc11c278da5edd52c0ebe",
     "last_isolated_pg17_code": "e2bb1a9becc07989181405ddccdbdcae173d36d4"
   },
-  "execution_environment": "connected; exact reviewed tree aa7fbe28 aligned to publishede2bb1a9b; local5d8c38ae archived",
-  "next_action": "Task18 commit28597803 independent review; scoped fixes if required, one coherent publication then hosted actual63 and unchanged102/privacy/19 acceptance. Task19 ignored read-only draft preparation. Working598=544/23/27/4 remains IMPLEMENTED_NOT_VERIFIED; full native/types/production open."
+  "execution_environment": "connected; exact reviewed tree45c49b28 aligned to published633a9cf0; local8de5daec archived",
+  "next_action": "Task18 fix1: native continuation103237628157 FAIL FIXED_FAILURE_PRIVACY_REJECTED at633a9cf0; constructors/cleanup PASS. Original author diagnosing narrow fix; independent re-review then publication. Other mandatory OPS34591510426 jobs ongoing. Task19 ignored source draft. Full plan open."
 }

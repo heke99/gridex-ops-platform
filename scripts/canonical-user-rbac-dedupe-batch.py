@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import weakref
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -184,6 +185,35 @@ def _dispose(target):
             raise BoundaryError('OWNED_DISPOSAL_FAILED')
 
 
+# Closed source-owned categories only: uppercase exception text is not itself
+# evidence of a safe label. Never serialize exception repr, SQL, paths or args.
+_FIXED_FAILURE_CATEGORIES = frozenset((
+    'FIXED_PRIVATE_QUERY_FAILED', 'PRIVATE_SESSION_REQUIRED', 'PRIVATE_MEMORY_PROCESS_FAILED',
+    'OFFLINE_FIXED_OWNER_REQUIRED', 'LOCAL_FIXED_DATABASE_REQUIRED', 'EXTERNAL_INCOMING_FK_REJECTED',
+    'FROZEN_FIXED_REFERENCE_REQUIRED', 'UNPUBLISHED_FIXED_REQUIRED', 'FIXED_STAGE_REQUIRED',
+    'FRESH_FIXED_RESERVATION_REQUIRED', 'ACTUAL57_FIXED_CATALOG_REQUIRED', 'EMPTY_FIXED_BUSINESS_REQUIRED',
+    'INDEPENDENT_FIXED_CATALOG_REQUIRED', 'FRESH_PREREQUISITES_REQUIRED', 'PRIVATE_SNAPSHOT_REQUIRED',
+    'FIXED_FK_DEFINITION_REQUIRED', 'FIXED_FK_COLUMNS_REQUIRED', 'UNREVIEWED_EVENT_TRIGGER',
+    'UNREVIEWED_WRITE_TRIGGER', 'UNREVIEWED_INCOMING_HOOK', 'ORDINARY_FIXED_TABLE_REQUIRED',
+    'AUTH_DEFAULT_REVIEW_REQUIRED', 'SEQUENCE_CONSUMER_REJECTED', 'UNREVIEWED_GENERATED_EXPRESSION',
+    'DEFAULT_ORACLE_REVIEW_REQUIRED', 'ORACLE_CLOCK_REQUIRED', 'UNREVIEWED_FK_TARGET',
+    'EMPTY_DEPENDENT_GRAPH_REQUIRED', 'FIXED_PRIVACY_OWNER_REQUIRED', 'ACCEPTED_METHODS_CHANGED',
+    'SOURCE_ORACLE_LITERAL', 'PRIVATE_COLLECTOR_INSPECTION_REQUIRED', 'SOURCE_LITERAL_IN_COLLECTOR',
+    'PHYSICAL_ADMISSION_FORBIDDEN', 'SOURCE_LITERAL_IN_PRIVATE_ARTIFACT', 'ACCEPTED_INPUT_PROVENANCE_REQUIRED',
+    'PHYSICAL_ACCEPTED_INPUT_REQUIRED', 'CANONICAL_ACCEPTED_INPUT_REQUIRED', 'ACCEPTED_INPUT_MANIFEST_MISMATCH',
+    'RETAINED_ACCEPTED_INPUT_CHANGED',
+))
+
+
+def _failure_category(error):
+    if type(error) is BoundaryError and len(error.args)==1 and type(error.args[0]) is str:
+        if error.args[0] in _FIXED_FAILURE_CATEGORIES:
+            return error.args[0]
+    return {TypeError:'TYPE_ERROR',KeyError:'KEY_ERROR',ValueError:'VALUE_ERROR',
+            AttributeError:'ATTRIBUTE_ERROR',FileNotFoundError:'FILE_NOT_FOUND',
+            AssertionError:'ASSERTION_ERROR'}.get(type(error),'UNCLASSIFIED')
+
+
 def fail(target):
     # Denial is installed before disposal, persists even if disposal itself fails,
     # and cannot be cleared by constructing another loop or resetting the DB.
@@ -193,19 +223,30 @@ def fail(target):
         raise BoundaryError('UNPUBLISHED_REPLAY_REQUIRED')
     if _STATES.get(target) == 'DISPOSED':
         return
+    state = _STATES.get(target)
+    cause = sys.exc_info()[1]
     _STATES[target] = 'TERMINAL'
-    privacy_error = False
+    privacy_error = None
     if _REFERENCES[target].continuation:
         try:
             fixed_module().privacy(target)
-        except BaseException:
-            privacy_error = True
+        except BaseException as error:
+            privacy_error = error
+    disposal = 'FAILED'
     try:
         _dispose(target)
+        disposal = 'VERIFIED'
     except BaseException:
         raise BoundaryError('REPLAY_TERMINAL_DISPOSAL_FAILED') from None
+    finally:
+        if _REFERENCES[target].continuation:
+            print(json.dumps({'stage':'fixed_failure',
+                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
+                'cause':_failure_category(cause),
+                'privacy':'VERIFIED' if privacy_error is None else _failure_category(privacy_error),
+                'disposal':disposal},sort_keys=True),flush=True)
     _STATES[target] = 'DISPOSED'
-    if privacy_error:
+    if privacy_error is not None:
         raise BoundaryError('FIXED_FAILURE_PRIVACY_REJECTED')
 
 

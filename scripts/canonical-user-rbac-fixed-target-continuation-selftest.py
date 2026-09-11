@@ -43,6 +43,7 @@ def constructors():
     cleanup_context_controls(c)
     lifecycle_controls(c)
     memory_controls(c)
+    failure_receipt_controls(c)
     print('PASS continuation pins/reference/graph/PK/lifecycle/private-input constructors; no SQL executed')
 
 
@@ -224,6 +225,58 @@ def lifecycle_controls(c):
             rejected(c,lambda:c.dedupe.fail(h))
             assert not dispose.called and c.dedupe._STATES[h]=='SUCCEEDED'
         rejected(c,lambda:c.dedupe.fresh_target(h))
+
+
+def failure_receipt_controls(c):
+    """A terminal privacy failure must retain safe causes, never private text."""
+    core=characterization()
+    controls=core.load('continuation_failure_controls','canonical-user-rbac-fixed-target-controls.py')
+    # Real accepted writers and scanner; only the external collector/disposal
+    # commands are replaced. This is the hosted H2 -> capture -> fail order.
+    with contextlib.redirect_stdout(io.StringIO()),controls.accepted_writers(core) as proof:
+        h=proof.h
+        sources=c.validate_sources(c.reviewed_paths())
+        c._REFERENCES[h]=c.Reference(h.name,h.directory.name,c.dedupe._REFERENCES[h],b'',None,proof.accepted_inputs,sources)
+        c.dedupe._REFERENCES[h]=c.dedupe._Reference(h.directory.name,h.name,h.reference,c.repair.REFERENCES[h],{},{},[],True,'fixed-target')
+        c.dedupe._STATES[h]='H2_COMPLETE'
+        private=next(iter(sources[1].slots.values())).encode()
+        artifact=Path(h.directory.name)/'client-last.out'
+        artifact.write_bytes(private)
+        output=io.StringIO();states=[]
+        with patch.object(c.subprocess,'run',return_value=subprocess.CompletedProcess([],0,b'',b'')),patch.object(c.dedupe,'_dispose',side_effect=lambda target:states.append(c.dedupe._STATES[target])),contextlib.redirect_stdout(output):
+            try:
+                c.check(False,'DEFAULT_ORACLE_REVIEW_REQUIRED')
+            except c.BoundaryError:
+                try:c.dedupe.fail(h)
+                except c.BoundaryError as error:
+                    assert str(error)=='FIXED_FAILURE_PRIVACY_REJECTED'
+                else:raise AssertionError('PRIVACY_FAILURE_SWALLOWED')
+        assert states==['TERMINAL'] and c.dedupe._STATES[h]=='DISPOSED'
+        assert private not in output.getvalue().encode() and str(artifact) not in output.getvalue()
+        assert output.getvalue().strip(),'SAFE_FAILURE_CAUSES_MISSING'
+        assert json.loads(output.getvalue())=={'stage':'fixed_failure','state':'H2_COMPLETE',
+            'cause':'DEFAULT_ORACLE_REVIEW_REQUIRED','privacy':'SOURCE_LITERAL_IN_PRIVATE_ARTIFACT','disposal':'VERIFIED'}
+        c._REFERENCES.pop(h)
+    # Arbitrary uppercase messages are still private, not valid category labels.
+    secret='PRIVATE_SYNTHETIC_CANARY'
+    for privacy_failure,disposal_failure in ((False,False),(True,False),(True,True)):
+        with synthetic_handle(c,True,'H2_COMPLETE') as h:
+            output=io.StringIO();states=[]
+            def dispose(target):
+                states.append(c.dedupe._STATES[target])
+                if disposal_failure:raise ValueError(secret)
+            with patch.object(c,'privacy',side_effect=c.BoundaryError(secret) if privacy_failure else None),patch.object(c.dedupe,'_dispose',side_effect=dispose),contextlib.redirect_stdout(output):
+                try:raise c.BoundaryError(secret)
+                except c.BoundaryError:
+                    if privacy_failure:
+                        rejected(c,lambda:c.dedupe.fail(h))
+                    else:c.dedupe.fail(h)
+            assert states==['TERMINAL']
+            assert c.dedupe._STATES[h]==('TERMINAL' if disposal_failure else 'DISPOSED')
+            assert secret not in output.getvalue()
+            assert json.loads(output.getvalue())=={'stage':'fixed_failure','state':'H2_COMPLETE',
+                'cause':'UNCLASSIFIED','privacy':'UNCLASSIFIED' if privacy_failure else 'VERIFIED',
+                'disposal':'FAILED' if disposal_failure else 'VERIFIED'}
 
 
 def memory_controls(c):

@@ -11,12 +11,13 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `e2bb1a9becc07989181405ddccdbdcae173d36d4`, exact reviewed tree
-`aa7fbe284635d7fdbb9b0ed858e9fc1476d276f5`. Nonforce publication/fetch/local-server
-tree equality and tracked-clean alignment PASS; reviewed local5d8c38ae archived.
-OPS34586595826 all19/actual52+56+57/full102/final privacy/quality/Ediel PASS.
-Actual CLI skeleton job103222123610 and exact two-member artifact retrieval PASS. No tracked user changes
-were discarded; preexisting scripts/__pycache__ and other worktree retained.
+Latest publication: `633a9cf0c46ed780980fc11c278da5edd52c0ebe`, exact reviewed tree
+`45c49b28dea3c10153a40b43a1f0d44bd3710127`. Nonforce publication/fetch/local-server
+tree equality and tracked-clean alignment PASS; reviewed local8de5daec archived.
+OPS34591510426 is running mandatory original19/actual52+56+57/full102/finalprivacy,
+quality/Ediel and new actual63 continuation proof. Native acceptance PENDING.
+Prior e2bb1a9b accepted Task15 full102/finalprivacy and Task17 actual CLI artifact.
+No tracked user changes were discarded; cache and other worktree retained.
 Tasks1-14 remain accepted; their recorded source proofs are not restarted.
 Full native replay/types and production gates remain open.
 
@@ -44,7 +45,7 @@ requirements are in the source-restoration plan and ignored task-18-brief.md.
 Task18 working-tree registration IMPLEMENTED_NOT_VERIFIED: actual two P/X and
 four whole originals selected,598=544/23/27/4,50unresolved; focused344=301/20/19/4,
 39unresolved. Foundation104 endpoint63. These counts are implementation state,
-not native/source acceptance; published e2bb1a9b remains596/538/23/31/4.
+not native/source acceptance; published633a9cf0 now has598/544/23/27/4; native acceptance pending.
 Author actual accounting/group validation reports errors[]; root synchronized
 exact markers before targeted equality-dependent tests.
 
@@ -53,8 +54,10 @@ runtime adapter extraction, exact P→B0→C2→D2→F2→X lossless boundary, f
 pre-release lifecycle and standalone/actual-loop proof. Targeted constructors,
 provenance, accounting, preservation and syntax checks PASS; hosted actual63
 SQL/death/privacy proof remains unexecuted. Independent spec/quality review APPROVED with no findings.
-Next: publish one coherent reviewed batch
-and run mandatory hosted acceptance. Task19 source-effects preparation is
+Diagnostic-only fix1c862abae independently APPROVED; no SQL/scanner change.
+Next: publish safe dual-cause receipt and diagnose first hosted continuation failure
+FIXED_FAILURE_PRIVACY_REJECTED in job103237628157 (constructors PASS, exact
+cleanup PASS); review scoped fix, then republish. All original19/full102/finalprivacy/quality/Ediel PASS at633a9cf0. Task19 source-effects preparation is
 read-only and confined to ignored drafts while this publication is pending.
 No historical source audit rerun, original102 branch matrix/19tuple unchanged.
 Continue remaining source effects/full native/types and complete production gates.

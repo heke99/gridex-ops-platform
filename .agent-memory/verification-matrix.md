@@ -1099,3 +1099,31 @@ Actual P/X CLI identities and four whole originals registered:598=544/23/27/4,
 Status IMPLEMENTED_NOT_VERIFIED: publish coherent batch, then require hosted
 actual63 SQL/cleanup/death/privacy and same-head original19/full102/quality/Ediel.
 No source acceptance, full-native/types closure or production mutation claimed.
+
+2026-09-11 Task18 first hosted boundary at633a9cf0, OPS34591510426,
+continuation103237628157 FAIL: constructor PASS, native terminal category
+FIXED_FAILURE_PRIVACY_REJECTED; exact owned cleanup PASS. Native source
+acceptance remains OPEN. Original author resumed for narrow source-backed fix1;
+independent review required before next coherent publication. No retry/waiver.
+Same-head clean103237628240 rejects unsupported native mode before replay;
+verify103237628107 fails generated-types check. Existing gates remain enforced.
+
+633a9cf0 same-head continuation isolation evidence: fixed-target103237628235
+PASS full102 independently counted18/25/28/31, final complete-private scan
+11:01:17 and owned cleanup PASS. Quality/build103237628166, Ediel103237628115,
+legacy52 103237628149, repair56 103237628014, public-browser103237628687 PASS.
+Task18 new actual63 still fails; diagnostic fix preserves allowlisted causes,
+no broad privacy exception. Remaining auth/dedupe jobs still running at check.
+
+633a9cf0 OPS34591510426 completed: all original19/actual52+56+57 PASS
+(auth103237628127, legacy103237628149, repair103237628014, dedupe103237628239).
+Full102/finalprivacy103237628235, quality103237628166 and Ediel103237628115 PASS.
+New actual63 continuation103237628157 fails masked FIXED_FAILURE_PRIVACY_REJECTED;
+source-backed diagnostic-only fixc862abae under scoped review, native cause still
+unresolved. Clean native/types gates remain red. No production action.
+
+Task18 fix1 c862abae diagnostic-only scoped spec/quality APPROVED no findings.
+RED SAFE_FAILURE_CAUSES_MISSING then focused constructor/privacy-canary/disposal
+and historical H2 compatibility GREEN. Closed original/privacy/disposal labels
+preserve fail-closed behavior; no SQL/scanner/pin changes. Underlying actual63
+cause unresolved; publish diagnostic repair and inspect hosted safe receipt.

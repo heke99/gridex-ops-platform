@@ -253,3 +253,11 @@ inputs retain finite trusted physical/source provenance. Same-head all19/actual
 are closed within Task15, not ongoing production or full-replay acceptance.
 Current blockers remain remaining54source effects, native ownership/official-ledger
 replay, generated types and full masterplan gates; see current-state.md.
+
+2026-09-11 Task18 first hosted boundary at633a9cf0, OPS34591510426,
+continuation103237628157 FAIL: constructor PASS, native terminal category
+FIXED_FAILURE_PRIVACY_REJECTED; exact owned cleanup PASS. Native source
+acceptance remains OPEN. Original author resumed for narrow source-backed fix1;
+independent review required before next coherent publication. No retry/waiver.
+Same-head clean103237628240 rejects unsupported native mode before replay;
+verify103237628107 fails generated-types check. Existing gates remain enforced.
