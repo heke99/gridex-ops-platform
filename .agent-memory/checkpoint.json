@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "f5435f8f961e9fa8524746f9da69c7be149bc092",
+    "published_baseline": "ff33ce8039f8c47654c5fc22b02da7b6b6a32b31",
     "last_isolated_pg17_code": "536906f3b6af4400fda8b1a4d20954987f583a47"
   },
-  "execution_environment": "connected; alignedf5435f8f; Task15 reviewed fix2 hosted running; stash preserved",
-  "next_action": "Publish approved Task15 fix3 ed9ce0ca (T15-F3 addressed), then exact-head all19/full fixed-target101cases/quality/Ediel.54 unresolved/no production."
+  "execution_environment": "connected; alignedff33ce80; Task15 reviewed fix3 hosted running; stash preserved",
+  "next_action": "Publish approved Task15 fix4 cd9bb843 (T15-F4 addressed), then exact-head all19/full102/quality/Ediel.54 unresolved/no production."
 }

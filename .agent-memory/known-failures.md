@@ -209,3 +209,18 @@ fixture/status audit spans C2/D2/F2, no canonical guard/source weakening.
 T15-F3 correctioned9ce0ca independently ADDRESSED with no new findings;
 10-case seed-domain red-green and strict reduced/native classifier/privacy
 controls PASS. Actual new-head SQL acceptance remains pending.
+
+## Task15 D2 missing role type cast — reviewed classification, hosted pending
+
+Atff33ce80/job103132524843 reduced_membership_column_absent returns42601 but
+runner expects success. Pinned D2 leaves v_membership_role_type NULL when
+company_memberships.membership_role is absent, then interpolates it into
+a dynamic cast when company_invitations.membership_role remains present.
+Native error substring not exposed/guessed. Correct the historical lane to
+require syntax failure/full rollback; add explicitly reduced both-column-absence
+whole-source success/repeat if source-supported. No original source/schema/helper
+weakening; bounded initialization/use audit and targeted regression pending.
+
+T15-F4 cd9bb843 scoped independent review ADDRESSED, no new findings. Shared
+nonzero-exit guard makes interim missing-exit allegation a retracted false-positive.
+Corrected native rejection/new reduced success and full102 acceptance pending.

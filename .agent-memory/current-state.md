@@ -11,9 +11,9 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `f5435f8f961e9fa8524746f9da69c7be149bc092`, exact reviewed
-tree `aa1c094d5fbb3897aab8561e7f3b7a1e692e85d6`; fetched equality/tracked-clean
-alignment PASS, localf10e775e archived. Task15 fix2 native PASS; next C2 fixture setup failure, fix3 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
+Latest publication: `ff33ce8039f8c47654c5fc22b02da7b6b6a32b31`, exact reviewed
+tree `ba5bab5c92001cd6793fc9a6ede721f388f5fac2`; fetched equality/tracked-clean
+alignment PASS, local6045a9f0 archived. Task15 fix3 progressed through C2; D2 optional-column42601, fresh fix4 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
 T14-R1/R2 CLOSED. OPS34549538480 original16/auth103109350028, legacy17/actual52
 job103109350023151663ms, repair18/actual56 job103109350011184433ms, quality103109349980
 and Ediel103109349997 PASS. Command19/job103109349875 full standalone62235ms plus
@@ -44,20 +44,22 @@ immutable sources, helpers, accounting and all four UNCLASSIFIED entries unchang
 Actual57 uses real accepted replay once; reduced historical fixtures are explicit.
 No selected completion, full replay or production readiness follows from this proof.
 
-Latest full fixed-target job103129093787 atf5435f8f failed FIXTURE_NATIVE_SETUP_FAILED
-before C2 actual_null_company_role source execution. Fix3 implementeded9ce0ca and independently APPROVED, no new findings:
-shared role_row/other_target_role fixtures use inactive, disallowed by retained
-user_roles_status_check; use native-valid disabled. Same-class audit spans shared
-C2/D2/F2 fixture branches. Immutable F2 writes inactive for old roles, so preserve
-actual CHECK rejection/full rollback and explicit reduced historical success.
-Plan/brief carry this clarification; no canonical guard/source weakening.
+Latest full fixed-target job103132524843 atff33ce80 failed WHOLE_SOURCE_SUCCESS_REQUIRED
+for D2 reduced_membership_column_absent, actual SQLSTATE42601. Exact cleanup PASS.
+B0/C2 preceding cases and D2 actor-FK/invitation/repeated/null-company/role-tie cases
+passed. Confirmed D2 missing membership_role leaves type variable NULL, then present
+invitation membership_role uses it in dynamic cast. Require native42601 rollback
+and separate named reduced both-column-absence success lane;102cases.
+Fix4 cd9bb843 implemented by fresh astra-xhigh author; full report/red-green
+inspected. Scoped independent review APPROVED for two-file dynamic-column
+classification/new reduced success, no new findings. Prior author
+completed3 reviewed fixes; fresh escalation preserves their accepted behavior.
 
 Earlier Task15 fixes:
 - T15-F1/4ed89ff5: per-execution full tied-candidate B0 oracle; independent review,
   meaningful red-green and native tie/all B0 cases PASS at35136233 andf5435f8f.
 - T15-F2/5ad9c68f: exact actor FK preimage catalog/table/name classifier; independent
-  review and red-green PASS. C2 native23503/rollback PASS atf5435f8f; shared D2 lane
-  remains beyond the current first failure. No arbitrary FK error is accepted.
+  review and red-green PASS. C2 native23503/rollback PASS atf5435f8f; shared D2 native23503/rollback PASS onff33ce80. No arbitrary FK error is accepted.
 
 Actual B0 lacks companies.industry/company_memberships.suspended_at; actual native
 rejection and explicit industry-only/both-column reduced lanes passed. Whole
@@ -66,14 +68,18 @@ Opaque nonredeemable invitation UUID/default fixtures are allowed only in fresh
 owned network-none/provider-free memory, with no issuer/redemption/delivery/export.
 Actual guards/defaults stay intact. No live account or credential operation.
 
-Next: publish reviewed fix3 ed9ce0ca plus synchronized evidence; require new-head
-all19/full fixed-target101cases/quality/Ediel. Continue from actual
+Next: fresh fix4 author report/commit, scoped independent review and coherent
+publication; require new-head all19/full101cases/quality/Ediel. Continue from actual
 proof to whole prerequisites/CLI-created forward lossless boundaries, then remaining
 54 sources/full native replay/types/security/parity/E2E/load/production gates.
 No local PG/Docker/socket/CLI probes, blanket exclusions, source excerpts, invented
 timestamps or weakened gates. Actual Q/W artifacts and ignored reports preserved.
 
 ## Current executed acceptance
+
+Atff33ce80 OPS34557286206 original16/auth103132524798,legacy17/actual52
+job103132524873,repair18/actual56 job103132524818,dedupe19/actual57 job103132524832,
+quality103132524692 andEdiel103132524841 all PASS. Full fixed-target failure above.
 
 Atf5435f8f OPS34556127130 original16/auth103129093659, legacy17/actual52 job103129093785,
 repair18/actual56 job103129093768, dedupe19/actual57 job103129093930 full standalone,

@@ -49,6 +49,7 @@ def constructors(c,models,cases):
     bootstrap_tie_controls(c,models,cases)
     actor_fk_controls(c,cases)
     role_status_controls(c,cases)
+    membership_type_controls(c,cases)
     workflow(c)
     names = [(key,name) for key,name,_ in cases.cases()]
     c.check(len(names)==len(set(names)) and {key for key,_ in names}==set(c.SPECS),'CLOSED_CASE_MATRIX_REQUIRED')
@@ -439,6 +440,69 @@ def role_status_shape_controls(c,cases,fixtures):
                              ('F2','actual_old_roles_status_rejected',reduced),
                              ('F2','reduced_old_roles_disabled',{'without_role_status_check':True})):
         c.rejected(lambda:construct(key,name,options))
+
+
+def membership_type_controls(c,cases):
+    """Exercise the real rejection/rollback runner with private synthetic input.
+
+    A missing membership type must not be labeled whole-source success, and a
+    syntax error from a different catalog shape must not satisfy this case.
+    Native PostgreSQL remains the separate hosted proof.
+    """
+    matrix = {(key,name):options for key,name,options in cases.cases()}
+    name = 'reduced_membership_column_absent'
+    def run(change=None,source_key='D2'):
+        catalog = {'relation/public.'+table:{'kind':'r'} for table in
+                   ('company_memberships','company_invitations')}
+        for column in ('membership_role','email','invited_email'):
+            catalog['column/public.company_invitations/'+column] = {'type':'text'}
+        before = (catalog,[['public.companies',{'id':1,'name':'synthetic canary'}],
+                    ['auth.refresh_tokens_id_seq',{'last_value':41,'log_cnt':0,'is_called':True}]])
+        if change=='membership_type_present':
+            catalog['column/public.company_memberships/membership_role'] = {'type':'text'}
+        elif change in ('membership_role','email','invited_email'):
+            del catalog['column/public.company_invitations/'+change]
+        elif change=='wrong_relation':
+            catalog['relation/public.company_invitations']['kind'] = 'v'
+        after = copy.deepcopy(before)
+        if change=='rollback_row':
+            after[1][0][1]['name'] = 'changed synthetic canary'
+        elif change=='rollback_sequence':
+            after[1][1][1]['is_called'] = False
+        elif change=='rollback_catalog':
+            after[0]['relation/public.company_memberships']['kind'] = 'v'
+        state = '23514' if change=='wrong_state' else '00000' if change=='source_success' else '42601'
+        code = 0 if change in ('source_success','zero_exit') else 1
+        message = 'ERROR: 42601: syntax error at or near "synthetic private parser token"'
+        if change=='wrong_message':
+            message = 'ERROR: synthetic unrelated rejection'
+        native = c.Result('',message,code,state,None,None)
+        source = type('SyntheticMembershipTypeSource',(),{'key':source_key})()
+        destroyed = []
+        def execute(self,sent_source,database,rollback,suffix):
+            c.check(sent_source is source and database==c.DATABASES[source_key] and
+                    rollback==(source_key=='C2') and not suffix,'TYPE_DEPENDENCY_NATIVE_ROUTE_REQUIRED')
+            return native
+        proof = type('SyntheticMembershipTypeProof',(),{'native':execute,
+            'snapshot':lambda *args:copy.deepcopy(after),
+            'destroy':lambda self,database:destroyed.append(database)})()
+        fixture = type('SyntheticMembershipTypeFixture',(),{'database':c.DATABASES[source_key],
+            'seed':lambda *args:copy.deepcopy(before)})()
+        fixtures = type('SyntheticMembershipTypeFixtures',(),{'Fixture':lambda *args:fixture})()
+        output = io.StringIO()
+        with patch.object(c,'Source',return_value=source),contextlib.redirect_stdout(output):
+            try:
+                cases.run_case(c,None,fixtures,proof,source_key,name,matrix[source_key,name])
+            finally:
+                c.check(destroyed==[c.DATABASES[source_key]],'TYPE_DEPENDENCY_DISPOSAL_REQUIRED')
+                c.check('synthetic private parser token' not in output.getvalue(),'TYPE_ERROR_MESSAGE_MUST_STAY_PRIVATE')
+    run()
+    for change in ('wrong_state','source_success','zero_exit','wrong_message','membership_type_present',
+                   'membership_role','email','invited_email','wrong_relation',
+                   'rollback_row','rollback_sequence','rollback_catalog'):
+        c.rejected(lambda:run(change))
+    # C2's static column-absent branch remains a whole-source success lane.
+    c.rejected(lambda:run(source_key='C2'))
 
 
 def workflow(c):

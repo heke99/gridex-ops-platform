@@ -675,3 +675,15 @@ reduced status-shape fixtures only. Document exact affected case mapping and
 source/check evidence; no canonical constraint/source/helper/count edits or
 actual compatibility/selection inference. This applies the existing actual-vs-
 reduced rule and informs later lossless prerequisite work.
+
+
+Task15 D2 dependent-column clarification (2026-09-11, fix4): absence of
+company_memberships.membership_role leaves v_membership_role_type NULL; a present
+company_invitations.membership_role makes later dynamic invitation UPDATE use that
+uninitialized cast type. Current reduced_membership_column_absent must characterize
+native42601 and exact rollback/preimage. Add a clearly named reduced both-column-
+absence whole-source success/repeat lane if source-supported, preserving native
+BEGIN/COMMIT and independent effects. No guessed private error substring or
+canonical schema/source/helper/count changes;102 private characterization cases.
+Bounded same-mechanism audit covers type initialization/use in existing optional
+column branches, not a fresh source-effects audit.

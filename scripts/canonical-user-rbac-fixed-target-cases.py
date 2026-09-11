@@ -43,7 +43,7 @@ def cases():
         add(source,'actual_null_company_role',role_row='null_company',other_target_role=True)
         add(source,'actual_target_role_and_name_tie',role_row='target',role_name_tie=True,other_target_role=True)
         add(source,'reduced_membership_column_absent',reduced=True,membership='none',
-            omit_columns={'public.company_memberships':('membership_role',)})
+            omit_columns={'public.company_memberships':('membership_role',)},error=source=='D2')
         for member in ('admin','member'):
             add(source,'reduced_enum_fallback_'+member,reduced=True,enum=('company_membership_role',(member,)),
                 initial_member_value=member,member_value=member,omit_tables=('public.company_invitations',))
@@ -100,6 +100,14 @@ def cases():
     for source in ('D2','F2'):
         for failure in ('sentinel','backend','controller'):
             add(source,'actual_postcommit_'+failure,membership='none',durability=failure)
+    # D2 leaves its membership type NULL when that column is absent, but its
+    # invitation cast still uses the type if the invitation column exists.
+    # Keep that native rejection above; omit both only in this reduced success
+    # lane. Append to preserve all existing case names, including alias IDs.
+    add('D2','reduced_both_membership_role_columns_absent',reduced=True,membership='none',
+        invitation='both',repeat=True,omit_columns={
+            'public.company_memberships':('membership_role',),
+            'public.company_invitations':('membership_role',)})
     return result
 
 
@@ -314,6 +322,19 @@ def verify_failure(core,result,source_key,name,options,before):
         core.check(source_key=='F2' and constraint.get('kind')=='c' and constraint.get('definition')==definition and
                    result.state=='23514' and 'new row for relation "user_roles" violates check constraint "user_roles_status_check"' in result.stderr,
                    'NATIVE_ROLE_STATUS_CHECK_REQUIRED')
+    elif name=='reduced_membership_column_absent':
+        # Pin the schema dependency, not a guessed private parser token. The
+        # whole immutable D2 file must fail natively before its own COMMIT;
+        # run_case still requires exact catalog/row/sequence preimage equality.
+        catalog = before[0]
+        core.check(source_key=='D2' and options.get('reduced') and
+                   all(catalog.get('relation/public.'+table,{}).get('kind')=='r'
+                       for table in ('company_memberships','company_invitations')) and
+                   'column/public.company_memberships/membership_role' not in catalog and
+                   all('column/public.company_invitations/'+column in catalog
+                       for column in ('membership_role','email','invited_email')) and
+                   result.state=='42601' and 'syntax error' in result.stderr,
+                   'NATIVE_MISSING_MEMBERSHIP_TYPE_REQUIRED')
     elif name=='reduced_invitation_without_email' and source_key=='D2':
         core.check('falselower' in result.stderr,'NATIVE_MALFORMED_ALIAS_PREDICATE_REQUIRED')
     elif name=='reduced_missing_token_default':
