@@ -1,0 +1,47 @@
+{
+  "observed_at": "2026-09-11T15:26:32Z",
+  "repository": "heke99/gridex-ops-platform",
+  "main_sha": "eb9a25bc989c6de808903f41c2314d5465e9c07b",
+  "remediation_pr": 310,
+  "remediation_sha": "de3bab8bab607e3f24653c8e8faa04cfdb23e7c7",
+  "vercel": {
+    "project_id": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+    "deployment_id": "dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c",
+    "domain": "app.gridex.se",
+    "target": "production",
+    "state": "READY",
+    "deployed_sha": "eb9a25bc989c6de808903f41c2314d5465e9c07b",
+    "evidence": "Connected Vercel get_project and get_deployment; alias and githubCommitSha verified"
+  },
+  "connected_supabase": {
+    "project_ref": "piidsfebjqjmnepdpnas",
+    "name": "gridex-ops-dev",
+    "database": "postgres",
+    "server_version": "17.6",
+    "migration_count": 279,
+    "migration_tail": "20260904222450",
+    "public_tables": 502,
+    "public_views": 160,
+    "public_functions": 632,
+    "evidence": "Connected list_projects and aggregate catalog query inside BEGIN READ ONLY / ROLLBACK",
+    "runtime_binding_verified": false
+  },
+  "ci": {
+    "ops_run": 34611459551,
+    "passed": ["auth-email-source-effects", "auth-provisioning-legacy-proof", "user-rbac-repair-proof", "user-rbac-dedupe-proof", "user-rbac-fixed-target-proof", "user-rbac-fixed-target-continuation-proof", "ediel-source-effects", "quality-release-gates"],
+    "failed": {
+      "user-rbac-customer-alignment-proof": "12 alignment_attribute.missing_value differences at independent catalog equality; owned cleanup passed",
+      "verify": "Generated-types manifest does not cover migration tail 20260911114443",
+      "clean-migration-replay": "Native CLI ownership/reference/private logging is not implemented; rejected before SQL"
+    }
+  },
+  "input_accounting": {
+    "total": 600,
+    "full_file_selected": 546,
+    "substituted": 23,
+    "unclassified": 27,
+    "explicitly_excluded": 4,
+    "evidence_scope": "Selection only; neither successful full replay nor schema parity"
+  },
+  "production_mutations": false
+}

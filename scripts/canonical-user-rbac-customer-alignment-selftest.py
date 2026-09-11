@@ -20,6 +20,90 @@ def load(name, filename):
 
 
 class Constructors(unittest.TestCase):
+    def test_independent_catalog_accepts_only_source_qualified_build_timestamps(self):
+        self.assertTrue(hasattr(batch.catalog, 'independent_equal'), 'bounded independent comparison required')
+        actual, expected, actual_bounds, expected_bounds = timestamp_catalogs()
+        before = encoded((actual, expected))
+        self.assertNotEqual(actual[0], expected[0])
+        self.assertTrue(batch.catalog.independent_equal(actual, expected, actual_bounds,
+                                                       expected_bounds, legacy.verified_prefix()))
+        self.assertEqual(encoded((actual, expected)), before)
+        # A clone still shares its origin's cached value; raw comparison must
+        # detect a one-microsecond change even inside the construction window.
+        clone = copy.deepcopy(actual)
+        clone[0]['alignment_attribute/public.audit_logs/updated_at']['missing_value'] = ['2026-09-11T12:00:03.000001+00:00']
+        from unittest.mock import Mock
+        for snapshots, label in (([clone], 'ALIGNMENT_IMMUTABLE_ORIGIN_CHANGED'),
+                                 ([actual, clone], 'ALIGNMENT_ACTUAL63_CLONE_REQUIRED')):
+            proof = Mock(spec=AlignmentProof)
+            proof.origin, proof.reservations, proof.name, proof.h = actual, {}, 'owned-test', Mock()
+            proof.snapshot.side_effect = snapshots
+            with self.assertRaisesRegex(batch.BoundaryError, label):
+                AlignmentProof.clone(proof, TARGET, 'timestamp-drift')
+
+    def test_independent_catalog_rejects_timestamp_or_metadata_corruption(self):
+        self.assertTrue(hasattr(batch.catalog, 'independent_equal'), 'bounded independent comparison required')
+        prefix = legacy.verified_prefix()
+        key = 'alignment_attribute/public.audit_logs/updated_at'
+        mutations = (
+            ('missing_value', None), ('missing_value', []), ('missing_value', [None]),
+            ('missing_value', ['infinity']), ('missing_value', ['private-value']),
+            ('missing_value', ['2026-09-11T12:00:03']),
+            ('missing_value', ['2020-01-01T00:00:00+00:00']),
+            ('missing_value', ['2026-09-11T12:00:05+00:00']),
+            ('missing_value', ['2026-09-11T12:00:03+00:00'] * 2),
+            ('missing_value', [['2026-09-11T12:00:03+00:00']]),
+            ('missing', False), ('type', 'text'), ('dimensions', 1),
+            ('ordinal', 999), ('unknown_field', 'private-value'))
+        for field, value in mutations:
+            for side in (0, 1):
+                with self.subTest(field=field, value=value, side=side):
+                    actual, expected, ab, eb = timestamp_catalogs()
+                    (actual, expected)[side][0][key][field] = value
+                    self.assertFalse(batch.catalog.independent_equal(actual, expected, ab, eb, prefix))
+        for field, value in (('default', 'clock_timestamp()'), ('type', 'text'),
+                             ('notnull', True), ('generated', 's'), ('unknown_field', None)):
+            actual, expected, ab, eb = timestamp_catalogs()
+            for snapshot in (actual, expected):
+                snapshot[0]['column/public.audit_logs/updated_at'][field] = value
+            self.assertFalse(batch.catalog.independent_equal(actual, expected, ab, eb, prefix))
+
+    def test_independent_catalog_requires_empty_ordinary_tables_and_exact_other_fields(self):
+        self.assertTrue(hasattr(batch.catalog, 'independent_equal'), 'bounded independent comparison required')
+        prefix = legacy.verified_prefix()
+        for side in (0, 1):
+            actual, expected, ab, eb = timestamp_catalogs()
+            (actual, expected)[side][1].append(['public.audit_logs', {'id': 'existing-row'}])
+            self.assertFalse(batch.catalog.independent_equal(actual, expected, ab, eb, prefix))
+        for mutation in ('view', 'missing', 'extra', 'unqualified', 'unknown'):
+            actual, expected, ab, eb = timestamp_catalogs()
+            if mutation == 'view':
+                for snapshot in (actual, expected):
+                    snapshot[0]['relation/public.audit_logs']['kind'] = 'v'
+            elif mutation == 'missing':
+                del actual[0]['alignment_attribute/public.audit_logs/updated_at']
+            elif mutation == 'extra':
+                actual[0]['dependency/private-object'] = 'a'
+            elif mutation == 'unqualified':
+                for snapshot, value in ((actual, '2026-09-11T12:00:03+00:00'),
+                                        (expected, '2026-09-11T12:00:01+00:00')):
+                    snapshot[0]['alignment_attribute/public.other/updated_at'] = dict(
+                        snapshot[0]['alignment_attribute/public.audit_logs/updated_at'], missing_value=[value])
+            else:
+                actual[0]['relation/public.audit_logs']['private-field'] = 'private-value'
+            self.assertFalse(batch.catalog.independent_equal(actual, expected, ab, eb, prefix))
+
+    def test_independent_catalog_requires_source_pins_and_separate_valid_build_bounds(self):
+        self.assertTrue(hasattr(batch.catalog, 'independent_equal'), 'bounded independent comparison required')
+        actual, expected, ab, eb = timestamp_catalogs()
+        prefix = legacy.verified_prefix()
+        for bad in (prefix[1:], tuple(reversed(prefix)),
+                    tuple((path, data + '\n') if i == 1 else (path, data)
+                          for i, (path, data) in enumerate(prefix))):
+            self.assertFalse(batch.catalog.independent_equal(actual, expected, ab, eb, bad))
+        for bounds in ((), (ab[1], ab[0]), (ab[0].replace(tzinfo=None), ab[1]), eb):
+            self.assertFalse(batch.catalog.independent_equal(actual, expected, bounds, eb, prefix))
+
     def test_catalog_mismatch_receipt_has_only_fixed_fields_and_counts(self):
         self.assertTrue(hasattr(batch.catalog, 'mismatch_summary'), 'closed catalog mismatch summary required')
         actual = {'alignment_attribute/private-object/private-column':
@@ -278,6 +362,33 @@ def rows_equal(a, b):
     return sorted(map(encoded, a)) == sorted(map(encoded, b))
 
 
+def timestamp_catalogs():
+    """Independent literal fixtures for the twelve source-defined additions."""
+    tables = ('supplier_switch_events', 'outbound_dispatch_events', 'metering_values',
+              'ediel_message_events', 'ediel_message_validation_issues', 'ediel_aperak_error_details',
+              'audit_logs', 'customer_portal_events', 'customer_invoice_lines',
+              'customer_invoice_documents', 'customer_import_batches', 'customer_import_rows')
+    actual = {}
+    for table in tables:
+        name = 'public.' + table
+        actual['relation/' + name] = dict(kind='r', owner='postgres', acl=None, rls=True,
+                                         force=False, options=None, definition=None)
+        actual['column/' + name + '/updated_at'] = dict(type='timestamp with time zone',
+            notnull=table.startswith('customer_import_'), default='now()', identity='',
+            generated='', collation='-', acl=None)
+        actual['alignment_attribute/' + name + '/updated_at'] = dict(ordinal=12,
+            type='timestamp with time zone', dimensions=0, storage='p', compression='',
+            local=True, inheritance=0, missing=True,
+            missing_value=['2026-09-11T12:00:03+00:00'], options=None)
+    expected = copy.deepcopy(actual)
+    for key, value in expected.items():
+        if key.startswith('alignment_attribute/'):
+            value['missing_value'] = ['2026-09-11T12:00:01+00:00']
+    ab = tuple(datetime.fromisoformat('2026-09-11T12:00:0' + str(i) + '+00:00') for i in (2, 4))
+    eb = tuple(datetime.fromisoformat('2026-09-11T12:00:0' + str(i) + '+00:00') for i in (0, 2))
+    return (actual, []), (expected, []), ab, eb
+
+
 DIAGNOSTIC_STAGES = frozenset(('entry', 'owner_requirement', 'source_snapshot',
     'owned_lifecycle', 'accepted_inputs', 'reference_prepare', 'canary_setup',
     'actual63_child', 'alignment_reference', 'release_binding', 'helper_prerequisites',
@@ -370,7 +481,7 @@ class AlignmentProof(core.Proof):
     Reuses accepted memory query transport, never rearms the published original
     or substitutes a reduced prefix. Every native source run has a fresh clone.
     """
-    def __init__(self, h):
+    def __init__(self, h, actual_bounds=None, helper_bounds=None):
         repair.require_owned(h)
         dedupe.require_owned(h)
         self.h, self.name, self.directory = h, h.name, h.directory.name
@@ -388,21 +499,23 @@ class AlignmentProof(core.Proof):
         with diagnostic_stage('helper_prerequisites'):
             self.query(REFERENCE, "ALTER TABLE public.companies ADD COLUMN industry text NOT NULL DEFAULT 'electricity_supplier'; ALTER TABLE public.company_memberships ADD COLUMN suspended_at timestamptz;")
         with diagnostic_stage('helper_catalog'):
-            independently_constructed = self.snapshot(REFERENCE)[0]
+            independently_constructed = self.snapshot(REFERENCE)
         with diagnostic_stage('origin_snapshot'):
             self.origin = self.snapshot(batch.replay.DATABASE)
         with diagnostic_stage('reference_decode'):
             expected = fixed.decoded(self.fixed_release.s1)
         with diagnostic_stage('catalog_equality'):
-            if self.origin[0] != independently_constructed:
+            equal = batch.catalog.independent_equal(self.origin, independently_constructed,
+                actual_bounds, helper_bounds, legacy.verified_prefix())
+            if not equal:
                 print(json.dumps({'stage': 'alignment_catalog_mismatch',
-                                  'summary': batch.catalog.mismatch_summary(self.origin[0], independently_constructed)},
+                                  'summary': batch.catalog.mismatch_summary(self.origin[0], independently_constructed[0])},
                                  sort_keys=True), flush=True)
-            check(self.origin[0] == independently_constructed, 'ALIGNMENT_INDEPENDENT_ACTUAL63_CATALOG')
+            check(equal, 'ALIGNMENT_INDEPENDENT_ACTUAL63_CATALOG')
         with diagnostic_stage('source_state_equality'):
             check({k: v for k, v in self.origin[0].items() if not k.startswith('alignment_')} == expected[0]
                   and rows_equal(self.origin[1], expected[1]), 'ALIGNMENT_SOURCE_BACKED_ACTUAL63_REQUIRED')
-        self.reference = encoded((independently_constructed, expected[1]))
+        self.reference = encoded((independently_constructed[0], expected[1]))
         with diagnostic_stage('canary_snapshot'):
             self.canary = self.snapshot(CANARY)
         with diagnostic_stage('graph_admission'):
@@ -628,6 +741,28 @@ def require_owner():
           'ALIGNMENT_EXACT_WORKFLOW_OWNER')
 
 
+def native_timestamp_controls(proof):
+    """The unchanged SQL admission guard rejects cached-value clone drift."""
+    database = proof.fresh_generation(ATOMIC, 'cached-timestamp-drift')
+    try:
+        admitted = proof.snapshot(database)
+        expected = proof.expected(admitted)
+        changed = proof.query(database, '''UPDATE pg_catalog.pg_attribute
+SET attmissingval = ARRAY[(attmissingval::text::timestamptz[])[1] + interval '1 microsecond']
+WHERE attrelid='public.audit_logs'::regclass AND attname='updated_at' AND atthasmissing
+RETURNING atthasmissing;''')
+        check(changed.strip() == 't', 'ALIGNMENT_NATIVE_TIMESTAMP_MUTATION_REQUIRED')
+        before = proof.snapshot(database)
+        check(batch.catalog.mismatch_summary(before[0], admitted[0]) == {'objects': 1, 'groups': [
+            {'kind': 'alignment_attribute', 'change': 'changed', 'field': 'missing_value', 'count': 1}]},
+            'ALIGNMENT_RAW_TIMESTAMP_DRIFT_REQUIRED')
+        result = proof.envelope(database, admitted, expected)
+        check(result.code != 0 and result.state == '42804', 'ALIGNMENT_RAW_TIMESTAMP_DRIFT_REJECTED')
+        check(encoded(proof.snapshot(database)) == encoded(before), 'ALIGNMENT_TIMESTAMP_REJECTION_PRESERVED')
+    finally:
+        proof.dispose(database)
+
+
 def native(death_stage=None):
     global _NATIVE_FAILURE
     _NATIVE_FAILURE = None
@@ -638,15 +773,19 @@ def native(death_stage=None):
     with diagnostic_stage('owned_lifecycle'), legacy.OwnedPostgres() as h:
         with diagnostic_stage('accepted_inputs'), core.AcceptedInputs(h):
             with diagnostic_stage('reference_prepare'):
+                helper_lower = datetime.now(timezone.utc)
                 dedupe.prepare_reference(h, 'fixed-target')
+                helper_bounds = (helper_lower, datetime.now(timezone.utc))
             with diagnostic_stage('canary_setup'):
                 h.reset(CANARY)
                 h.sql(CANARY, 'CREATE TABLE public.alignment_canary(id integer PRIMARY KEY, value text); INSERT INTO public.alignment_canary VALUES(1,\'preserved\');', 'alignment_canary')
             command = ['bash', str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'), '--fixed-target-prefix-proof']
             with diagnostic_stage('actual63_child'):
+                actual_lower = datetime.now(timezone.utc)
                 check(batch.replay.serve_child(legacy, h, command, 'fixed-target') == 0, 'ALIGNMENT_ACTUAL63_CHILD_REQUIRED')
+                actual_bounds = (actual_lower, datetime.now(timezone.utc))
         with diagnostic_stage('alignment_reference'):
-            proof = AlignmentProof(h)
+            proof = AlignmentProof(h, actual_bounds, helper_bounds)
         with diagnostic_stage('next_catalog_receipt'):
             labels = ('customer_profiles', 'customer_delivery_points', 'contract_agreements', 'document_ai_extractions')
             sql = "SELECT jsonb_object_agg(label,coalesce(c.relkind::text,'missing')) FROM (VALUES " + ','.join('(' + batch.literal(name) + ')' for name in labels) + ") names(label) LEFT JOIN pg_class c ON c.oid=to_regclass('public.'||label);"
@@ -660,6 +799,7 @@ def native(death_stage=None):
             proof.envelope(database, before, proof.expected(before), fault='controller_' + death_stage)
             raise batch.BoundaryError('ALIGNMENT_CONTROLLER_DEATH_NOT_OBSERVED')
         with diagnostic_stage('native_cases'):
+            native_timestamp_controls(proof)
             cases.run(sys.modules[__name__], proof)
         with diagnostic_stage('final_privacy'):
             core.private_inputs.privacy(core, proof)

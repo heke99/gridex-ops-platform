@@ -5,6 +5,41 @@ recorded revisions, not current status. The sole current status is
 [current-state.md](../../.agent-memory/current-state.md). Resume from its next
 action; do not interpret an older "latest" heading here as a newer verification.
 
+## 2026-09-11 15:26 UTC — resumed from published code and CI
+
+Baseline `de3bab8b` and OPS34611459551 verified directly. The earlier status
+pointer still described29c419f0 and an unlocalized catalog failure; it was stale.
+Current evidence is preserved in `PRODUCTION_BASELINE_2026-09-11T152632Z.json`.
+Main and Vercel production remain aligned at `eb9a25bc`; the remediation branch
+is not deployed. Connected DB aggregate counts match the prior receipt, while
+runtime binding remains unverified.
+
+Task22's current failure is confined to twelve PostgreSQL cached missing values
+in the independent catalog comparison. The correction must qualify source,
+column/default/type, build time and empty-table semantics; raw origin/clone
+snapshots must still compare exactly. Native acceptance remains required.
+The full replay ownership gate and generated-types tail remain blocking.
+
+Skill routing for this continuation: Supabase and Vercel API for connected
+identity/catalog reads; using-superpowers, executing-plans, systematic-debugging,
+TDD, variant-analysis, verification-before-completion and requesting-code-review
+for the bounded replay correction. The last skill requires independent review.
+Broader discovery, UI/Next.js, performance, scanners and provider integration
+workflows are deferred until their corresponding masterplan steps; this change
+does not alter application, auth, billing, Ediel or production schema behavior.
+
+Task24 recovery: the unpushed529b824e object named in the PR text is unavailable
+through GitHub and no db2 branch was found. Published source/effect evidence is
+available; reconstruct that bounded implementation rather than claim recovery.
+The nine relevant dependency files were located again, and the five DB1 helper
+bodies are byte-identical in split and timestamped sources. No SQL executed.
+
+Task22 correction e9d4f56c is independently spec/quality approved with no
+findings. Four new tests demonstrated RED before implementation; all20
+constructors passed afterward. Closed twelve-column/source/window/empty-table
+qualification leaves raw clone and SQL admission guards exact. Native PG17
+acceptance remains required before any historical alignment-source selection.
+
 ## 2026-09-10 — Task8 contract reviewed; Task9 execution proof open
 
 Task8 contract commits3986a755 and87b45d8d independently approved after correcting

@@ -1,6 +1,9 @@
 """Alignment-only additions to the accepted complete portable catalog reader."""
 
 from collections import Counter
+from datetime import datetime
+import hashlib
+import re
 
 
 # Diagnostic names are fixed projection fields, never object names or values.
@@ -23,6 +26,80 @@ MISMATCH_FIELDS = {
     'alignment_dependency': '',
 }
 MISMATCH_FIELDS = {kind: frozenset(fields.split()) for kind, fields in MISMATCH_FIELDS.items()}
+
+
+# Selected #1/#2 CREATE declarations omit these ten updated_at columns; #2's
+# compatibility loop adds precisely timestamptz DEFAULT now(). Selected #34
+# creates the two import tables without updated_at; #36 adds it NOT NULL.
+# These are the only qualified identities, with their exact source nullability.
+MISSING_TIMESTAMPS = { 'public.' + name + '/updated_at': False for name in (
+    'supplier_switch_events', 'outbound_dispatch_events', 'metering_values',
+    'ediel_message_events', 'ediel_message_validation_issues', 'ediel_aperak_error_details',
+    'audit_logs', 'customer_portal_events', 'customer_invoice_lines', 'customer_invoice_documents') }
+MISSING_TIMESTAMPS.update({'public.customer_import_batches/updated_at': True,
+                           'public.customer_import_rows/updated_at': True})
+TIMESTAMP_SOURCE_PINS = (
+    (0, '01_db1_schema_repair_core_helpers_and_canonical_tables.sql', '85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2'),
+    (1, '02_db1_operations_ediel_billing_dedupe_and_storage.sql', '0413f4dca84aca387297954b900a163aa63d0f84552570c372c12e8f8abdd693'),
+    (33, '20260519_customer_intake_contracts_tenant_hardening.sql', 'a448184e58e8777c41f8bdefb32e45a1365bd37fd9a8e316065da657e57e19f4'),
+    (35, '20260526_debug_step1_2f_customer_import_foundation.sql', 'b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a'))
+
+
+def independent_equal(actual, expected, actual_bounds, expected_bounds, prefix):
+    """Compare separate builds only; snapshots and same-origin guards stay raw.
+
+    PG17 caches a nonvolatile ADD COLUMN default in attmissingval. Its now()
+    value belongs to that build, not the schema. On these source-pinned empty
+    ordinary tables it cannot supply a historical row value. Everything else,
+    including atthasmissing and the complete attribute/column shape, stays exact.
+    """
+    try:
+        if len(prefix) != 43 or any(prefix[i][0] != 'migrations/' + name
+                or type(prefix[i][1]) is not str
+                or hashlib.sha256(prefix[i][1].encode()).hexdigest() != digest
+                for i, name, digest in TIMESTAMP_SOURCE_PINS):
+            return False
+        for bounds in (actual_bounds, expected_bounds):
+            if (type(bounds) is not tuple or len(bounds) != 2
+                    or any(type(value) is not datetime or value.utcoffset() is None for value in bounds)
+                    or bounds[0] >= bounds[1]):
+                return False
+        if expected_bounds[1] > actual_bounds[0]:
+            return False
+        left, right = actual[0], expected[0]
+        if type(left) is not dict or type(right) is not dict or left.keys() != right.keys():
+            return False
+        tables = {name.split('/')[0] for name in MISSING_TIMESTAMPS}
+        for snapshot, bounds in ((actual, actual_bounds), (expected, expected_bounds)):
+            shape, rows = snapshot
+            if type(rows) is not list or any(type(row) is not list or len(row) != 2
+                    or type(row[0]) is not str or type(row[1]) is not dict
+                    or row[0] in tables for row in rows):
+                return False
+            for name, notnull in MISSING_TIMESTAMPS.items():
+                relation = shape['relation/' + name.split('/')[0]]
+                column = shape['column/' + name]
+                attribute = shape['alignment_attribute/' + name]
+                if (type(relation) is not dict or relation.get('kind') != 'r'
+                        or type(column) is not dict or set(column) != MISMATCH_FIELDS['column']
+                        or column['type'] != 'timestamp with time zone' or column['default'] != 'now()'
+                        or column['notnull'] is not notnull or column['identity'] != '' or column['generated'] != ''
+                        or type(attribute) is not dict or set(attribute) != MISMATCH_FIELDS['alignment_attribute']
+                        or attribute['type'] != 'timestamp with time zone' or attribute['missing'] is not True
+                        or type(attribute['dimensions']) is not int or attribute['dimensions'] != 0):
+                    return False
+                value = attribute['missing_value']
+                if (type(value) is not list or len(value) != 1 or type(value[0]) is not str
+                        or re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?[+-]\d{2}:\d{2}', value[0]) is None
+                        or not bounds[0] <= datetime.fromisoformat(value[0]) <= bounds[1]):
+                    return False
+        qualified = {'alignment_attribute/' + name for name in MISSING_TIMESTAMPS}
+        return all(left[key] == right[key] or (key in qualified
+            and {field: value for field, value in left[key].items() if field != 'missing_value'}
+                == {field: value for field, value in right[key].items() if field != 'missing_value'})
+            for key in left)
+    except (ValueError, TypeError, KeyError, IndexError):
+        return False
 
 
 def mismatch_summary(actual, expected):

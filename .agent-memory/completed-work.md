@@ -887,3 +887,11 @@ Task22 fix2 diagnostic-only8092b6376e01ed0c0b9d3fa8cf000667f2a94c9c (BASE1d6f75e
 Diagnosticpublication29c419f0d8b06b8ceae14d4b49267ee89e77b9b8/treea0ba1a79ea9ad370bb2b3c22e46333db0a88db8c exact9file689974char/6partpayloadSHA150f4d0e358f16ecfd6033ec361d5e2495fa63a9791a2a96feed4231f6444f4f; nonforce/fetch/localalignmentPASS, local3f6ce2c42c463301b3fde3361b02933a36643df5 preservedarchive/alignment-diagnostic-reviewed-3f6ce2c4. PR310updated. Prior1d6f75ed allboundedpredecessorgatesPASS including historical19finalactual57controller13:56:29.397 andcompleteactual63continuation14:01:19.195/finalprivacy/cleanup14:01:19.694; no cancellation/retry/guardweakening. NewOPS34607798880/job103290440301FAILED14:03:22:14constructorsPASS,closedstagecatalog_equality/typeBOUNDARY/categoryBOUNDARY_REJECTED,cleanupPASS. Snapshotqueries/referenceDecode completed; independentlyconstructed vsactual63catalogdifferenceunlocalized. Source-stateequality/fourlabelreceipt not reached. Task22fix3 scopedauthoractive, no causalfixclaimed or comparator/projectionrelaxation. Fullplanopen/no prodactions.
 
 Task22 fix round 3/5: e3c0db35bf76a594d2491bc1929bb4114c203adf independently spec/quality APPROVED with no findings; root read the complete review. Two-file diagnostic adds only finite catalog kind/change/field labels and integer counts, preserving exact comparison and operands. Two focused RED/GREEN tests, two AST parses and whitespace passed. Native cause remains unproved; publish this reviewed batch for the next isolated PG17 observation. On published29c419f0, OPS34607798880 original16/17/18/19/full102/actual63 continuation, quality and Ediel jobs all completed successfully; tenant34607799117 and browser34607798980 passed. Alignment103290440301 failed at catalog_equality; full native/types remain open. No production action.
+
+
+2026-09-11 resumed baseline VERIFIED from remote de3bab8b and OPS34611459551.
+All prior bounded DB groups/actual63, quality, Ediel, tenant and browser passed;
+alignment failed only twelve cached timestamp fields. Main/production deployment
+SHA eb9a25bc matched. Connected DB aggregate receipt and exact CI outcomes are
+in quality/audits/PRODUCTION_BASELINE_2026-09-11T152632Z.json. Runtime DB binding,
+full replay/types and complete masterplan are not verified. No production write.
