@@ -114,7 +114,7 @@ SELECT coalesce(jsonb_agg(jsonb_build_array(name,row_value) ORDER BY name,row_va
 
 def prepare_reference(target, scope='dedupe57'):
     started = datetime.now(timezone.utc)
-    if scope not in ('dedupe57','fixed-target','alignment68','full'):
+    if scope not in ('dedupe57','fixed-target','alignment68','operations71','full'):
         raise BoundaryError('DEDUPE_SCOPE_REQUIRED')
     require_owned(target, False)
     if target in _STATES or target in _REFERENCES:
@@ -144,8 +144,10 @@ def prepare_reference(target, scope='dedupe57'):
     _REFERENCES[target] = _Reference(target.directory.name,target.name,legacy_ref,repair_ref,before[0],final,indexes,scope != 'dedupe57',scope)
     if scope != 'dedupe57':
         fixed_module().prepare_reference(target)
-    if scope in ('alignment68', 'full'):
+    if scope in ('alignment68', 'operations71', 'full'):
         fixed_module().replay.load_alignment_runtime().prepare_reference(target, started)
+    if scope in ('operations71','full'):
+        fixed_module().replay.load_operations_runtime().prepare_reference(target)
 
 
 def fresh_target(target):
@@ -238,9 +240,48 @@ _ALIGNMENT_FAILURE_CATEGORIES = frozenset((
 ))
 
 
+_OPERATIONS_FAILURE_CATEGORIES = frozenset((
+    'OPERATIONS_BASE_CHANGED',
+    'OPERATIONS_CATALOG_MISMATCH',
+    'OPERATIONS_COMPLETION_LINK_REQUIRED',
+    'OPERATIONS_COMPLETION_RECEIPT_REQUIRED',
+    'OPERATIONS_COMPLETION_REQUIRED',
+    'OPERATIONS_CONTINUATION_REQUIRED',
+    'OPERATIONS_CONTRACT_REQUIRED',
+    'OPERATIONS_CONTROLLER_CALL_REQUIRED',
+    'OPERATIONS_FINAL_STATE_CHANGED',
+    'OPERATIONS_FRESH_ORACLE_REQUIRED',
+    'OPERATIONS_FROZEN_SOURCES_REQUIRED',
+    'OPERATIONS_INDEPENDENT_BASELINE_REQUIRED',
+    'OPERATIONS_INDEPENDENT_PREPARATION_REQUIRED',
+    'OPERATIONS_INDEX_DECLARATIONS_REQUIRED',
+    'OPERATIONS_MANIFEST_REQUIRED',
+    'OPERATIONS_ONCE_STAGED_REQUIRED',
+    'OPERATIONS_ORACLE_BASELINE_REQUIRED',
+    'OPERATIONS_ORACLE_ORIGIN_REQUIRED',
+    'OPERATIONS_ORACLE_SOURCE_REQUIRED',
+    'OPERATIONS_ORIGINALS_RESTORATION_REQUIRED',
+    'OPERATIONS_OWNER_REQUIRED',
+    'OPERATIONS_PHYSICAL_SOURCE_REQUIRED',
+    'OPERATIONS_POST_COMMIT_MISMATCH',
+    'OPERATIONS_PREIMAGE_CHANGED',
+    'OPERATIONS_PROGRAM_BINDING_REQUIRED',
+    'OPERATIONS_REFERENCE_REQUIRED',
+    'OPERATIONS_RELEASE_SCOPE_REQUIRED',
+    'OPERATIONS_SCOPE_REQUIRED',
+    'OPERATIONS_SNAPSHOT_REQUIRED',
+    'OPERATIONS_SOURCE_ORDER_REQUIRED',
+    'OPERATIONS_STAGED_SOURCE_CHANGED',
+    'OPERATIONS_STAGE_REQUIRED',
+    'OPERATIONS_STATE_REQUIRED',
+    'OPERATIONS_TARGETS_REQUIRED',
+    'OPERATIONS_TENANT_GUARD_REJECTS',
+))
+
+
 def _failure_category(error):
     if type(error) is BoundaryError and len(error.args)==1 and type(error.args[0]) is str:
-        if error.args[0] in _FIXED_FAILURE_CATEGORIES or error.args[0] in _ALIGNMENT_FAILURE_CATEGORIES:
+        if error.args[0] in _FIXED_FAILURE_CATEGORIES or error.args[0] in _ALIGNMENT_FAILURE_CATEGORIES or error.args[0] in _OPERATIONS_FAILURE_CATEGORIES:
             return error.args[0]
     return {TypeError:'TYPE_ERROR',KeyError:'KEY_ERROR',ValueError:'VALUE_ERROR',
             AttributeError:'ATTRIBUTE_ERROR',FileNotFoundError:'FILE_NOT_FOUND',
@@ -274,7 +315,7 @@ def fail(target):
     finally:
         if _REFERENCES[target].continuation:
             print(json.dumps({'stage':'fixed_failure',
-                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','ALIGNMENT_NATIVE','ALIGNMENT_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
+                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','ALIGNMENT_NATIVE','ALIGNMENT_COMPLETE','OPERATIONS_NATIVE','OPERATIONS_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
                 'cause':_failure_category(cause),
                 'privacy':'VERIFIED' if privacy_error is None else _failure_category(privacy_error),
                 'disposal':disposal},sort_keys=True),flush=True)
@@ -358,11 +399,14 @@ def finish(target, full=False):
     require_live(target)
     try:
         ref = _REFERENCES[target]
-        alignment = ref.scope in ('alignment68', 'full')
-        expected = 'ALIGNMENT_COMPLETE' if alignment else ('FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE')
+        operations = ref.scope in ('operations71', 'full')
+        alignment = ref.scope == 'alignment68'
+        expected = 'OPERATIONS_COMPLETE' if operations else ('ALIGNMENT_COMPLETE' if alignment else ('FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE'))
         if _STATES[target] != expected or full != (ref.scope == 'full'):
             raise BoundaryError('DEDUPE_COMPLETION_REQUIRED')
-        if alignment:
+        if operations:
+            fixed_module().replay.load_operations_runtime().release_checks(target, full=full)
+        elif alignment:
             fixed_module().replay.load_alignment_runtime().release_checks(target, full=full)
         elif ref.continuation:
             fixed_module().release_checks(target,full=full)
@@ -377,7 +421,7 @@ def finish(target, full=False):
 def continue_alignment(target, database, paths, staging, actual_bounds):
     require_live(target)
     try:
-        if (_REFERENCES[target].scope not in ('alignment68', 'full')
+        if (_REFERENCES[target].scope not in ('alignment68', 'operations71', 'full')
                 or _STATES[target] != 'FIXED_COMPLETE' or database != DATABASE):
             raise BoundaryError('ALIGNMENT_CONTINUATION_REQUIRED')
         fixed = fixed_module()
@@ -390,6 +434,28 @@ def continue_alignment(target, database, paths, staging, actual_bounds):
             raise BoundaryError('ALIGNMENT_COMPLETION_REQUIRED')
         runtime.assert_final(target)
         _STATES[target] = 'ALIGNMENT_COMPLETE'
+        return receipt
+    except BaseException:
+        fail(target)
+        raise
+
+
+def continue_operations(target, database, paths, staging):
+    require_live(target)
+    try:
+        if (_REFERENCES[target].scope not in ('operations71','full')
+                or _STATES[target] != 'ALIGNMENT_COMPLETE' or database != DATABASE):
+            raise BoundaryError('OPERATIONS_CONTINUATION_REQUIRED')
+        replay = fixed_module().replay
+        replay.load_alignment_runtime().assert_final(target)
+        runtime = replay.load_operations_runtime()
+        runtime.owned(target, 'ALIGNMENT_COMPLETE')
+        _STATES[target] = 'OPERATIONS_NATIVE'
+        receipt = runtime.execute(target, database, paths, staging)
+        if receipt != {'sources':3}:
+            raise BoundaryError('OPERATIONS_COMPLETION_REQUIRED')
+        runtime.assert_final(target)
+        _STATES[target] = 'OPERATIONS_COMPLETE'
         return receipt
     except BaseException:
         fail(target)

@@ -126,6 +126,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-customer-operations-selftest.py --cleanup-owned
 
+  customer-operations-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual71 customer and Ediel continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-customer-operations-continuation-selftest.py
+      - name: Remove only the owned operations continuation container
+        if: always()
+        run: python3 scripts/canonical-customer-operations-continuation-selftest.py --cleanup-owned
+
   user-rbac-alignment-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30

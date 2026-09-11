@@ -12,9 +12,9 @@ No production mutation has been performed in this replay-verification batch.
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `0ca45764960662c07fbb51393cf9f2f17be55390`.
+- Published implementation baseline: `279e0f556bb16c13f05895fc9f91d823f7c3e18e`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Six reviewed batches pushed. The directional HOT correction passed native32
+- Eight reviewed batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
   17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
 - Source-bound omission fixture correction is published61bc1fe5. It uses exact
@@ -38,16 +38,21 @@ No production mutation has been performed in this replay-verification batch.
   exact22012/57P01 rollback, postcommit catalog/row drift, failed child and
   post-COMMIT controller death all PASS. Canary, source/HOLD restoration,
   private collector boundaries and exact owner cleanup all PASS by21:54:51Z.
-- Source registration64–68 now has native evidence. Global accounting remains
-  INPUT_SELECTION_ONLY: foundation109/timestamp508;600=549selected,
-  23substituted,23unclassified,5excluded. Full46dispositions unresolved.
-- Next bounded P0-C group: complete original customer_move_out_lifecycle,
-  ediel_tenant_profile_runtime_sync and operations_customers_ux (20260519).
-  All244source lines and prerequisites independently reviewed. Private
-  standalone characterization prepared at frozen accepted actual68;9constructors
-  PASS. Complete final review, push candidate and resolve hosted native gate
-  before registration.
-  No additional source selection/order change or actual71 claim has occurred.
+- Actual68 remains the accepted native boundary. Source-only L/E/U native PASS
+  on279e0f55, OPS34653186725/job103439770379. All14cases, privileges/constraints,
+  populated Ediel message preservation, exact rollback, original/canary/privacy
+  and owner cleanup PASS22:17:15Z. Full source analysis244lines is accepted.
+- Next bounded P0-C group: actual71 integration of complete original customer
+  move-out lifecycle, Ediel tenant-profile sync and operations customer UX.
+  Runtime, controller and7constructor tests prepared; independent review
+  APPROVED for publication to hosted native gate. Whole L/E/U admitted from
+  frozen linked actual68 using private PIPE/singletransaction, independently
+  prepared comments/global-constraint names, full catalog/rows and original-child
+  release. Native71 matrix pending; no actual71 acceptance claim.
+- Source registration69–71 prepared: foundation112/timestamp508;
+  600=552selected,23substituted,20unclassified,5excluded. Global43dispositions
+  unresolved; focused32. All immutable source bytes/manifests unchanged.
+  INPUT_SELECTION_ONLY remains explicit until full native replay/provenance.
 - Local affected constructors/accounting/provenance/readiness and native
   auth/legacy/repair/dedupe/fixed/Ediel/quality gates PASS. Full types still FAIL
   on migration tail20260911114443; native CLI still unsupported beforeSQL.
@@ -69,12 +74,12 @@ OPS run 34611459551 on the starting commit:
 - Separate tenant and browser-public workflows passed. Skipped full runtime,
   authenticated domain and production lanes remain unverified.
 
-Working-tree accounting is 600 inputs: 549 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`,
-23 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
-The focused group contains 346 inputs: 306 selected, 20 substituted,
-15 unclassified, and 5 excluded.
-Forty-six historical inputs remain unresolved; focused group unresolved35.
-Foundation109 / native actual68 and all immutable source pins remain binding.
+Working-tree accounting is 600 inputs: 552 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`,
+20 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+The focused group contains 346 inputs: 309 selected, 20 substituted,
+12 unclassified, and 5 excluded.
+Forty-three historical inputs remain unresolved; focused group unresolved32.
+Foundation112 / native actual68 and all immutable source pins remain binding.
 Selection is not proof of successful full SQL replay or production parity.
 
 ## Production and access
@@ -97,7 +102,8 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Continue with the next three original customer/Ediel/operations sources from accepted actual68.
+Publish reviewed actual71 integration candidate and resolve its isolated PG17 native gate.
+Continue remaining source dispositions after the linked actual71 gate passes.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics
 are independently implemented from complete published source, not reconstructed

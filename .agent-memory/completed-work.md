@@ -1035,3 +1035,22 @@ Details: quality/audits/CUSTOMER_OPERATIONS_SOURCE_PROOF_2026-09-11.md.
 Independent implementation/native-matrix review APPROVED for incremental
 publication and hosted validation. Nine constructors, syntax, diffcheck and
 all three original hashes independently verified. Native results remain pending.
+
+
+## 2026-09-11 22:17Z operations whole-source acceptance; actual71 candidate
+
+Published279e0f55 tree82a31056ac45d8073ff30182969417f4df53f95c.
+OPS34653186725/job103439770379 SUCCESS: all14complete source cases,
+constraints/privileges, populated message nullable-owner preservation,
+commit/repeat/exact rollback, original/canary/privacy and exact cleanupPASS
+22:17:15Z. This accepts standalone L/E/U semantics at actual68 only.
+
+Prepared reviewed actual71 runtime/controller/whole source registration69–71.
+New7constructorsPASS; reviewer found and corrected exact death-observer policy
+name and changed global-constraint drift to a schema outside predecessor coverage.
+Targeted fixed/alignment/source/legacy/repair/dedupe/diagnostics constructors,
+38accounting tests,20shell cleanup tests, static provenance and source integrity/
+production-readiness checksPASS. Full-effects rejects as expected beforeSQL.
+Accounting600=552selected/23substituted/20unclassified/5excluded;
+foundation112/timestamp508.43global/32focuseddispositions remain unresolved.
+Native71 suite is prepared but PENDING; no production writes or parity claim.

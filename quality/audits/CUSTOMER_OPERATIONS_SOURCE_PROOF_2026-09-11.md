@@ -1,8 +1,8 @@
 # Customer and Ediel operations source characterization
 
-Status: candidate prepared; source review and local constructors only.
-No source selection/order change, actual71 claim, live migration or production
-readiness conclusion. Accepted predecessor is actual68 at0ca45764,
+Status: standalone whole-source native PASS on279e0f55.
+OPS34653186725/job103439770379 SUCCESS22:17:15Z.
+No actual71 claim, live migration or production readiness conclusion. Accepted predecessor is actual68 at0ca45764,
 OPS34650841849/job103432379255 SUCCESS21:54:51Z.
 
 ## Complete immutable sources
@@ -70,3 +70,17 @@ from these counts or from local constructors. Global46dispositions remain open.
 Independent implementation/native-matrix review APPROVED for incremental
 publication and hosted validation. Nine constructors, syntax, diffcheck and
 all three original hashes independently verified. Native results remain pending.
+
+## Native receipt and next integration
+
+All14source cases PASS in the job above, including full catalog/comments/rows,
+privilege/constraint probes, exact rollback and original/canary preservation.
+Always-cleanup PASS. The independent test emitted only finite outcome labels;
+no production/customer data was used. This closes the pending standalone gate.
+
+A separate reviewed actual71 runtime now selects these complete files at
+foundation69–71. Existing first68 and old41tail order remain exact. It uses the
+original live controller and held sources, with an independently prepared extra
+catalog baseline and exact single-transaction completion. Source registration is
+INPUT_SELECTION_ONLY; native71 acceptance is pending its separate hosted gate.
+Source bytes, history manifests and timestamp order remain unchanged.

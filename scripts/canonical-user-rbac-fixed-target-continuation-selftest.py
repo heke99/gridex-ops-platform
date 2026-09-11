@@ -33,7 +33,7 @@ def constructors():
     c = load()
     assert tuple(source.key for source in c.validate_sources(c.reviewed_paths())) == ('P','B0','C2','D2','F2','X')
     assert c.replay.SCOPES['fixed-target'] == 63
-    assert c.replay.SCOPES['full'] == 109
+    assert c.replay.SCOPES['full'] == 112
     assert c.replay.scope_flags('fixed-target') == ['--fixed-target-prefix-proof']
     assert not any('selftest' in str(value) for value in c.__dict__.values() if isinstance(value,type(sys)))
     staging_controls(c)

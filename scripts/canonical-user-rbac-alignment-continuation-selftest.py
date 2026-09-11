@@ -143,7 +143,7 @@ class Constructors(unittest.TestCase):
         r=runtime()
         self.assertEqual(r.replay.SCOPES['alignment68'],68)
         self.assertEqual(r.replay.scope_flags('alignment68'),['--alignment-prefix-proof'])
-        self.assertEqual(r.replay.SCOPES['full'],109)
+        self.assertEqual(r.replay.SCOPES['full'],112)
         order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.assertEqual(order[63:68],['migrations/'+p.name for p in r.reviewed_paths()])
         workflow=(ROOT/'.github/workflows/ops-hardening.yml').read_text()

@@ -254,7 +254,7 @@ const repairSources = [
   'migrations/20260526_debug_batch_2_tenant_rbac_server_actions.sql',
   'migrations/20260910174947_canonical_user_rbac_repair_boundary.sql',
 ];
-if (orderedFoundation.length !== 109 || JSON.stringify(orderedFoundation.slice(52, 56)) !== JSON.stringify(repairSources)) {
+if (orderedFoundation.length !== 112 || JSON.stringify(orderedFoundation.slice(52, 56)) !== JSON.stringify(repairSources)) {
   fail('complete repair sources must occupy foundation53–56 exactly once');
 }
 if (orderedFoundation[56] !== 'migrations/20260525_debug_batch_2h_dedupe_user_roles_and_unique_guard.sql') {
