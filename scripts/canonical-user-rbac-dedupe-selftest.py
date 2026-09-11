@@ -40,6 +40,36 @@ support = load('dedupe_repair_test_support', 'canonical-user-rbac-repair-selftes
 BoundaryError = legacy.BoundaryError
 
 
+DIAGNOSTIC_STAGES = frozenset(('entry', 'owned_lifecycle', 'reference_prepare',
+    'actual56', 'standalone_cases', 'standalone_cleanup', 'controller_death', 'actual57'))
+BOUNDARY_CATEGORIES = {label: label for label in (
+    'OWNED_CONTAINER_COMMAND_FAILED', 'PRIVATE_LOG_SETTINGS_MISMATCH',
+    'PRIVATE_LOG_PERMISSIONS_MISMATCH', 'OWNED_TARGET_REQUIRED')}
+_NATIVE_FAILURE = None
+
+
+def failure_receipt(stage, error):
+    """Closed literals only; no private SQL, dynamic type names or error text."""
+    stage = stage if type(stage) is str and stage in DIAGNOSTIC_STAGES else 'internal'
+    kind = {BoundaryError: 'BOUNDARY', AssertionError: 'ASSERTION',
+            OSError: 'PROCESS', subprocess.TimeoutExpired: 'TIMEOUT'}.get(type(error), 'OTHER')
+    category = 'BOUNDARY_REJECTED' if kind == 'BOUNDARY' else 'PRIVATE_PROOF_FAILED'
+    if type(error) is BoundaryError and len(error.args) == 1 and type(error.args[0]) is str:
+        category = BOUNDARY_CATEGORIES.get(error.args[0], 'BOUNDARY_REJECTED')
+    return dict(stage=stage, type=kind, category=category)
+
+
+@contextlib.contextmanager
+def diagnostic_stage(stage):
+    global _NATIVE_FAILURE
+    try:
+        yield
+    except BaseException as error:
+        if _NATIVE_FAILURE is None:
+            _NATIVE_FAILURE = failure_receipt(stage, error)
+        raise
+
+
 def source_bytes(paths):
     return dedupe.validate_sources(paths)[0].data
 
@@ -298,6 +328,68 @@ def workflow_constructors():
         main()
         cleanup.assert_called_once_with()
     print('PASS independent workflow, exact cleanup and CLI constructors; all19 with unchanged original18')
+
+
+def diagnostic_constructors():
+    assert 'failure_receipt' in globals(), 'closed dedupe failure receipt required'
+    class PrivateError(RuntimeError):
+        def __str__(self):
+            raise AssertionError('private exception string must never be read')
+    assert failure_receipt('private path', PrivateError('private SQL')) == {
+        'stage': 'internal', 'type': 'OTHER', 'category': 'PRIVATE_PROOF_FAILED'}
+    for args in (('private SQL',), (), ('OWNED_CONTAINER_COMMAND_FAILED', 'private SQL'),
+                 (['OWNED_CONTAINER_COMMAND_FAILED'],)):
+        receipt = failure_receipt('owned_lifecycle', BoundaryError(*args))
+        assert receipt == {'stage': 'owned_lifecycle', 'type': 'BOUNDARY', 'category': 'BOUNDARY_REJECTED'}
+    for label in ('OWNED_CONTAINER_COMMAND_FAILED', 'PRIVATE_LOG_SETTINGS_MISMATCH',
+                  'PRIVATE_LOG_PERMISSIONS_MISMATCH', 'OWNED_TARGET_REQUIRED'):
+        assert failure_receipt('owned_lifecycle', BoundaryError(label))['category'] == label
+    original_failure = globals().get('_NATIVE_FAILURE')
+    try:
+        for stage in ('owned_lifecycle', 'reference_prepare', 'actual56'):
+            for cleanup_fails in (False, True):
+                globals()['_NATIVE_FAILURE'] = None
+                events = []
+                first = BoundaryError('OWNED_CONTAINER_COMMAND_FAILED')
+                cleanup_error = PrivateError('private cleanup SQL')
+                def fail():
+                    raise first
+                class Held:
+                    def __enter__(self):
+                        events.append('enter')
+                        if stage == 'owned_lifecycle':
+                            fail()
+                        return self
+                    def __exit__(self, *args):
+                        events.append('exit')
+                        if cleanup_fails:
+                            raise cleanup_error
+                def prepare(target):
+                    events.append('prepare')
+                    if stage == 'reference_prepare':
+                        fail()
+                def actual(proof):
+                    events.append('actual56')
+                    fail()
+                with patch.object(legacy, 'OwnedPostgres', Held), \
+                     patch.object(repair, 'prepare_reference', prepare), \
+                     patch.object(signal, 'signal'), \
+                     patch.dict(globals(), {'Proof': lambda target: target, 'actual56': actual}):
+                    try:
+                        sql_main()
+                    except BaseException as error:
+                        assert error is (cleanup_error if cleanup_fails and stage != 'owned_lifecycle' else first)
+                    else:
+                        raise AssertionError('native startup failure was swallowed')
+                    observed = globals()['_NATIVE_FAILURE']
+                assert observed == {
+                    'stage': stage, 'type': 'BOUNDARY', 'category': 'OWNED_CONTAINER_COMMAND_FAILED'}
+                assert events == {'owned_lifecycle': ['enter'],
+                                  'reference_prepare': ['enter', 'prepare', 'exit'],
+                                  'actual56': ['enter', 'prepare', 'actual56', 'exit']}[stage]
+    finally:
+        globals()['_NATIVE_FAILURE'] = original_failure
+    print('PASS closed dedupe stages/categories and first-failure cleanup seams; NO SQL execution')
 
 
 def clone(h, database, template='gridex_auth_legacy_template'):
@@ -862,18 +954,23 @@ def sql_main():
     signal.signal(signal.SIGTERM,interrupted)
     signal.signal(signal.SIGINT,interrupted)
     started = time.monotonic()
-    with legacy.OwnedPostgres() as h:
-        repair.prepare_reference(h)
-        proof = Proof(h)
-        actual56(proof)
-        canary = snapshot(proof,replay.DATABASE)
-        for lane in (admission_negatives,native_constraints,characterization,failure_boundaries,concurrency_and_death,privacy):
-            begin = time.monotonic()
-            lane(proof)
-            assert snapshot(proof,replay.DATABASE) == canary
-            print('PASS dedupe lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
-    support.cleanup_proof(repair)
-    controller_death_cleanup()
+    with diagnostic_stage('owned_lifecycle'), legacy.OwnedPostgres() as h:
+        with diagnostic_stage('reference_prepare'):
+            repair.prepare_reference(h)
+            proof = Proof(h)
+        with diagnostic_stage('actual56'):
+            actual56(proof)
+        with diagnostic_stage('standalone_cases'):
+            canary = snapshot(proof,replay.DATABASE)
+            for lane in (admission_negatives,native_constraints,characterization,failure_boundaries,concurrency_and_death,privacy):
+                begin = time.monotonic()
+                lane(proof)
+                assert snapshot(proof,replay.DATABASE) == canary
+                print('PASS dedupe lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
+    with diagnostic_stage('standalone_cleanup'):
+        support.cleanup_proof(repair)
+    with diagnostic_stage('controller_death'):
+        controller_death_cleanup()
     print('PASS complete standalone unpublished H2 native-COMMIT proof milliseconds='+str(round((time.monotonic()-started)*1000)))
 
 
@@ -1250,16 +1347,20 @@ def main():
     constructors()
     oracle_constructors()
     workflow_constructors()
+    diagnostic_constructors()
     if not args.selection_only:
         sql_main()
-        actual57_integration()
+        with diagnostic_stage('actual57'):
+            actual57_integration()
 
 
 if __name__ == '__main__':
     try:
-        main()
+        with diagnostic_stage('entry'):
+            main()
     except BaseException as error:
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             raise
-        print('FAIL dedupe proof category=UNEXPECTED_RESULT type='+type(error).__name__, file=sys.stderr)
+        receipt = _NATIVE_FAILURE or failure_receipt('entry', error)
+        print('FAIL dedupe proof ' + json.dumps(receipt, sort_keys=True), file=sys.stderr)
         sys.exit(1)

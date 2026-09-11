@@ -1494,3 +1494,29 @@ immutable. Generated receipt refreshed; global600=546/23/26/5, focused346=
 Task22 constructor b3407e0e independently approved with no findings: exact15
 required-table declaration, full view preserved,23 constructors/AST/whitespace
 PASS; native full acceptance pending. Root read all full review/correction reports.
+
+
+2026-09-11 published5ec9b426/tree00fc09bf: exact reviewed19-file tree, nonforce
+ref/fetch/local alignment passed; reviewed history retained. OPS34620219856
+alignment103332040645 passed23constructors/actual63/catalog-source equality/
+diagnostic binding, emitted four missing relation labels, then QUERY_DATATYPE
+(42804) in native_cases; cleanupPASS. Dedupe103332040656 passed constructors
+then BoundaryError before any SQL/first43 receipt; cleanupPASS. Exact cause
+unproved and runtime files unchanged from passingd060. No retry or causalfix.
+Auth/legacy/repair/fixed102, Ediel, quality/build and complete actual63
+continuation/fault/death/privacy103332040184 PASS (final16:21:09Z); tenant and
+public-browser PASS. Verify and E2E smoke both stop on existing generated-types
+tail20260911114443; smoke14/15, coverage/P0contractPASS; runtime/staging/full/
+nightly skipped. Clean native ownership/reference/private logging stays blocked.
+No source-order/accounting/native acceptance/production change.
+
+
+2026-09-11 bounded diagnostic instrumentation VERIFIED locally and independently
+approved without findings: alignment7ac14cdc (24constructors; four injected
+oracle/mutation+cleanup RED/GREEN), dedupefa6828b (all constructors; six actual
+startup/reference/actual56+cleanup seams and closed-payload negatives). Root
+read both complete reviews. Normalized AST checks retain preexisting SQL/guards/
+operation order. Dedupe first receipt is only the first exception reaching its
+instrumented context; no claim to recover internally replaced exceptions.
+Unchanged group/status test PASS. Native causes remain unproved; next hosted
+run supplies evidence. No source/classification/workflow/production mutation.

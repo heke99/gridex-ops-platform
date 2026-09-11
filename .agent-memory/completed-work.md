@@ -908,3 +908,21 @@ immutable. Generated receipt refreshed; global600=546/23/26/5, focused346=
 Task22 constructor b3407e0e independently approved with no findings: exact15
 required-table declaration, full view preserved,23 constructors/AST/whitespace
 PASS; native full acceptance pending. Root read all full review/correction reports.
+
+
+2026-09-11 timestamped DB1 SOURCE-ONLY PREPARATION preserved in
+quality/audits/TIMESTAMPED_DB1_SOURCE_MAP_2026-09-11.md. Whole3073-line map,
+full normalized256-line split-source comparison inspected, scoped independent
+review approved with no findings. Four differences and exact source pins retained.
+This is documentation only: no disposition/order/schema/native acceptance.
+
+
+2026-09-11 bounded diagnostic instrumentation VERIFIED locally and independently
+approved without findings: alignment7ac14cdc (24constructors; four injected
+oracle/mutation+cleanup RED/GREEN), dedupefa6828b (all constructors; six actual
+startup/reference/actual56+cleanup seams and closed-payload negatives). Root
+read both complete reviews. Normalized AST checks retain preexisting SQL/guards/
+operation order. Dedupe first receipt is only the first exception reaching its
+instrumented context; no claim to recover internally replaced exceptions.
+Unchanged group/status test PASS. Native causes remain unproved; next hosted
+run supplies evidence. No source/classification/workflow/production mutation.

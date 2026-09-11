@@ -10,14 +10,18 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Latest inspected CI baseline: `d060d1d2791bd26ea6baa1a9a30d91dbce5adcd4`.
-  The coherent next publication adds reviewed Task22/24 changes and this status.
+- Published head: `5ec9b426c97549e713f162e2723c8c3eaa407593`, tree
+  `00fc09bff521827bad5b6a4f27716e068027be2d`; nonforce publication/fetch and exact
+  reviewed tree equality passed. OPS34620219856 has new finite failures below;
+  complete actual63 continuation/fault/death/privacy passed at16:21:09Z.
+- Last completely inspected CI baseline: `d060d1d2` / OPS34617768352.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
 - Task22 constructor correction b3407e0e is locally complete: exact15
   required-table VALUES, all23 constructors GREEN, native guards unchanged.
   Independent spec/quality review approved with no findings. Task24 I1 correction
   1925fc9b passed scoped independent re-review with no findings. Both changes
-  are ready for coherent publication and hosted verification.
+  are published together. Hosted exact15 diagnostic binding now passes;
+  alignment reaches native_cases and fails QUERY_DATATYPE (42804).
 - Task24 committed91d045f: finite operational disposition of the exact31-line
   DB2 execution script, nine dependency pins, Python/JS overlap guards and
   adversarial checks. Accounting38, cleanup20, review-groups16, migration
@@ -34,9 +38,32 @@ without renewed permission. No production action has occurred in this continuati
   occurrences but its immutable view has18 (15 table rows plus three unrelated
   expressions). Reviewed correction b3407e0e addresses this; native acceptance remains
   open and historical A/B/C remain unclassified.
-- Active next action: publish the reviewed Task22/24 batch and inspect complete
-  hosted alignment. No blind retry or relaxed catalog comparisons. Regenerate
-  schema/types only after full replay is authoritative.
+- Active next action: publish approved dedupe stagesfa6828b and alignment
+  stages7ac14cdc as one coherent diagnostic/source-evidence batch; inspect
+  hosted stages to localize alignment42804 and earlydedupe, then fix only proved
+  causes. No blind retry or relaxed catalog comparisons. Regenerate schema/types
+  only after full replay is authoritative.
+- On 5ec9b426, alignment103332040645 passed23 constructors, actual63, catalog/
+  source equality and diagnostic binding. All four bounded relation names are
+  absent at actual63. QUERY_DATATYPE occurred later in native_cases; oracle DDL
+  versus timestamp mutation versus behavior cases remains unlocalized.
+- Dedupe103332040656 passed every constructor, then failed BoundaryError before
+  any first43/SQL receipt; owned cleanup passed. Its runtime and legacy/repair
+  files are unchanged from passing d060d1d2. Root traced startup/reference path;
+  exact cause remains unproved. No environmental or Task24 causality claimed.
+- Current auth/legacy/repair/fixed102, Ediel and quality/build jobs PASS. Tenant
+  and public-browser workflows PASS. Full E2E smoke is14/15; only the same
+  generated-types check fails. Coverage and executable14-scenario contract pass;
+  runtime/staging/full/nightly lanes are skipped and remain unverified.
+  Verify103332040464 now passes both initial
+  regression stages, then fails only at the known generated-types tail; clean
+  native ownership remains blocked.
+- Alignment stages7ac14cdc are independently approved without findings;24
+  constructors pass, four injected failures RED/GREEN. Dedupe stagesfa6828b
+  pass private-payload/known-label/6failure-cleanup seams and all constructors;
+  scoped independent review approved without findings. Both are diagnostic only. AST comparisons confirm
+  unchanged preexisting function bodies after removing diagnostic wrappers/call,
+  including unchanged SQL and guards. Neither native cause is proved.
 - Root status shortening omitted exact existing memory-test markers; restored
   them and reran canonical-auth-membership-group-selftest.py successfully. The
   original CI failure is retained; no test expectation was weakened.
@@ -89,9 +116,11 @@ reconstructed from published whole-source evidence in91d045f/1925fc9b and is now
 independently approved. Do not restart that work or claim the older object was
 recovered. Historical receipts remain in Git and in the evidence files.
 
-Next-source static preparation of the timestamped DB1 file is complete in scratch;
-it is schema/reference-bearing with four verified differences from the selected
-split sources. No disposition or ordering change is authorized by that map alone.
+Next-source static preparation is preserved in
+`quality/audits/TIMESTAMPED_DB1_SOURCE_MAP_2026-09-11.md`; independent scoped
+review approved documentation only with no findings. The source is schema/
+reference-bearing with four verified differences from the selected split sources.
+No disposition or ordering change is authorized by that map alone.
 
 After each bounded fix: test, independent review, publish a coherent batch,
 inspect relevant CI, record exact evidence and continue. Do not repeat accepted

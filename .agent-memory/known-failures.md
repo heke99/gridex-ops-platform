@@ -312,3 +312,29 @@ Task22 fix2 diagnostic-only8092b6376e01ed0c0b9d3fa8cf000667f2a94c9c (BASE1d6f75e
 Diagnosticpublication29c419f0d8b06b8ceae14d4b49267ee89e77b9b8/treea0ba1a79ea9ad370bb2b3c22e46333db0a88db8c exact9file689974char/6partpayloadSHA150f4d0e358f16ecfd6033ec361d5e2495fa63a9791a2a96feed4231f6444f4f; nonforce/fetch/localalignmentPASS, local3f6ce2c42c463301b3fde3361b02933a36643df5 preservedarchive/alignment-diagnostic-reviewed-3f6ce2c4. PR310updated. Prior1d6f75ed allboundedpredecessorgatesPASS including historical19finalactual57controller13:56:29.397 andcompleteactual63continuation14:01:19.195/finalprivacy/cleanup14:01:19.694; no cancellation/retry/guardweakening. NewOPS34607798880/job103290440301FAILED14:03:22:14constructorsPASS,closedstagecatalog_equality/typeBOUNDARY/categoryBOUNDARY_REJECTED,cleanupPASS. Snapshotqueries/referenceDecode completed; independentlyconstructed vsactual63catalogdifferenceunlocalized. Source-stateequality/fourlabelreceipt not reached. Task22fix3 scopedauthoractive, no causalfixclaimed or comparator/projectionrelaxation. Fullplanopen/no prodactions.
 
 Task22 fix round 3/5: e3c0db35bf76a594d2491bc1929bb4114c203adf independently spec/quality APPROVED with no findings; root read the complete review. Two-file diagnostic adds only finite catalog kind/change/field labels and integer counts, preserving exact comparison and operands. Two focused RED/GREEN tests, two AST parses and whitespace passed. Native cause remains unproved; publish this reviewed batch for the next isolated PG17 observation. On published29c419f0, OPS34607798880 original16/17/18/19/full102/actual63 continuation, quality and Ediel jobs all completed successfully; tenant34607799117 and browser34607798980 passed. Alignment103290440301 failed at catalog_equality; full native/types remain open. No production action.
+
+
+2026-09-11 published5ec9b426/tree00fc09bf: exact reviewed19-file tree, nonforce
+ref/fetch/local alignment passed; reviewed history retained. OPS34620219856
+alignment103332040645 passed23constructors/actual63/catalog-source equality/
+diagnostic binding, emitted four missing relation labels, then QUERY_DATATYPE
+(42804) in native_cases; cleanupPASS. Dedupe103332040656 passed constructors
+then BoundaryError before any SQL/first43 receipt; cleanupPASS. Exact cause
+unproved and runtime files unchanged from passingd060. No retry or causalfix.
+Auth/legacy/repair/fixed102, Ediel, quality/build and complete actual63
+continuation/fault/death/privacy103332040184 PASS (final16:21:09Z); tenant and
+public-browser PASS. Verify and E2E smoke both stop on existing generated-types
+tail20260911114443; smoke14/15, coverage/P0contractPASS; runtime/staging/full/
+nightly skipped. Clean native ownership/reference/private logging stays blocked.
+No source-order/accounting/native acceptance/production change.
+
+
+2026-09-11 bounded diagnostic instrumentation VERIFIED locally and independently
+approved without findings: alignment7ac14cdc (24constructors; four injected
+oracle/mutation+cleanup RED/GREEN), dedupefa6828b (all constructors; six actual
+startup/reference/actual56+cleanup seams and closed-payload negatives). Root
+read both complete reviews. Normalized AST checks retain preexisting SQL/guards/
+operation order. Dedupe first receipt is only the first exception reaching its
+instrumented context; no claim to recover internally replaced exceptions.
+Unchanged group/status test PASS. Native causes remain unproved; next hosted
+run supplies evidence. No source/classification/workflow/production mutation.

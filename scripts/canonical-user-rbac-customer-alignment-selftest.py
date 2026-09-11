@@ -179,6 +179,45 @@ class Constructors(unittest.TestCase):
         finally:
             _NATIVE_FAILURE = previous
 
+    def test_timestamp_failures_identify_oracle_or_mutation_and_preserve_cleanup(self):
+        from unittest.mock import Mock
+        global _NATIVE_FAILURE
+        previous = _NATIVE_FAILURE
+        try:
+            for failed_database, stage in ((ORACLE, 'source_oracle_ddl'),
+                                           (ATOMIC, 'timestamp_mutation')):
+                for cleanup_fails in (False, True):
+                    with self.subTest(stage=stage, cleanup_fails=cleanup_fails):
+                        _NATIVE_FAILURE = None
+                        error, cleanup_error = NativeQueryError('42804'), OSError('private cleanup detail')
+                        error.args = ('private query detail',)
+                        cleanup = []
+                        proof = Mock(spec=AlignmentProof)
+                        proof.sources = batch.validate_sources(batch.reviewed_paths())
+                        proof.fresh_generation.side_effect = lambda database, case: database
+                        proof.snapshot.return_value = ({}, [])
+                        proof.expected.side_effect = lambda before: AlignmentProof.expected(proof, before)
+                        def query(database, sql):
+                            if database == failed_database:
+                                raise error
+                            self.assertEqual(database, ORACLE)
+                            return ''
+                        def dispose(database):
+                            cleanup.append(database)
+                            if cleanup_fails and database == failed_database:
+                                raise cleanup_error
+                        proof.query.side_effect = query
+                        proof.destroy.side_effect = proof.dispose.side_effect = dispose
+                        with self.assertRaises(OSError if cleanup_fails else NativeQueryError) as caught:
+                            with diagnostic_stage('native_cases'):
+                                native_timestamp_controls(proof)
+                        self.assertIs(caught.exception, cleanup_error if cleanup_fails else error)
+                        self.assertEqual(cleanup, [ORACLE, ATOMIC])
+                        self.assertEqual(_NATIVE_FAILURE,
+                            dict(stage=stage, type='QUERY', category='QUERY_DATATYPE'))
+        finally:
+            _NATIVE_FAILURE = previous
+
     def test_boundary_privilege_probe_rejects_commit_before_reader(self):
         try:
             with self.assertRaises(batch.BoundaryError):
@@ -442,7 +481,8 @@ DIAGNOSTIC_STAGES = frozenset(('entry', 'owner_requirement', 'source_snapshot',
     'actual63_child', 'alignment_reference', 'release_binding', 'helper_prerequisites',
     'helper_catalog', 'origin_snapshot', 'reference_decode', 'catalog_equality',
     'source_state_equality', 'canary_snapshot', 'graph_admission', 'diagnostic_binding',
-    'next_catalog_receipt', 'native_cases', 'final_privacy', 'controller_deaths'))
+    'next_catalog_receipt', 'native_cases', 'source_oracle_ddl', 'timestamp_mutation',
+    'timestamp_control', 'behavior_cases', 'final_privacy', 'controller_deaths'))
 QUERY_CATEGORIES = {'42601': 'QUERY_SYNTAX', '42703': 'QUERY_UNDEFINED_COLUMN',
     '42P01': 'QUERY_UNDEFINED_RELATION', '42704': 'QUERY_UNDEFINED_OBJECT',
     '42804': 'QUERY_DATATYPE', '42883': 'QUERY_UNDEFINED_FUNCTION',
@@ -687,7 +727,8 @@ class AlignmentProof(core.Proof):
             reference_before = self.snapshot(ORACLE)
             check(reference_before[0] == before[0], 'ALIGNMENT_INDEPENDENT_FIXTURE_CATALOG')
             # Independent source declaration path contains no historical DML or W.
-            self.query(ORACLE, batch.expected_ddl(self.sources, before[0]))
+            with diagnostic_stage('source_oracle_ddl'):
+                self.query(ORACLE, batch.expected_ddl(self.sources, before[0]))
             result = self.snapshot(ORACLE)[0]
             return copy.deepcopy(result)
         finally:
@@ -795,7 +836,8 @@ def native_timestamp_controls(proof):
     try:
         admitted = proof.snapshot(database)
         expected = proof.expected(admitted)
-        changed = proof.query(database, '''UPDATE pg_catalog.pg_attribute
+        with diagnostic_stage('timestamp_mutation'):
+            changed = proof.query(database, '''UPDATE pg_catalog.pg_attribute
 SET attmissingval = ARRAY[(attmissingval::text::timestamptz[])[1] + interval '1 microsecond']
 WHERE attrelid='public.audit_logs'::regclass AND attname='updated_at' AND atthasmissing
 RETURNING atthasmissing;''')
@@ -847,8 +889,10 @@ def native(death_stage=None):
             proof.envelope(database, before, proof.expected(before), fault='controller_' + death_stage)
             raise batch.BoundaryError('ALIGNMENT_CONTROLLER_DEATH_NOT_OBSERVED')
         with diagnostic_stage('native_cases'):
-            native_timestamp_controls(proof)
-            cases.run(sys.modules[__name__], proof)
+            with diagnostic_stage('timestamp_control'):
+                native_timestamp_controls(proof)
+            with diagnostic_stage('behavior_cases'):
+                cases.run(sys.modules[__name__], proof)
         with diagnostic_stage('final_privacy'):
             core.private_inputs.privacy(core, proof)
         check(not proof.reservations, 'ALIGNMENT_ALL_CONTROLS_DISPOSED')
