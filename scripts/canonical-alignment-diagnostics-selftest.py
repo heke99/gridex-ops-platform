@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Privacy and failure-attribution regressions for the alignment proof."""
 import importlib.util
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -59,6 +60,23 @@ class Diagnostics(unittest.TestCase):
             self.assertNotIn('private', str(receipt))
         result = c.core.Result('ALIGNMENT_COMPLETE\n', '', 0, '00000', None, None)
         cases.succeeded(c, result)
+
+    def test_final_catalog_diagnostic_keeps_only_counts_and_fixed_fields(self):
+        actual = {'alignment_index/private-index': {'check_xmin': True},
+                  'private-kind/private-object': {'private-field': 'private value'}}
+        expected = {'alignment_index/private-index': {'check_xmin': False}}
+        marker = 'ALIGNMENT_PRIVATE_FINAL_CATALOGS\n'
+        stderr = 'psql:/legacy-private/alignment-assertions.sql:12: ERROR:  P0004: ALIGNMENT_FINAL_CATALOG_MISMATCH\n'
+        result = c.core.Result(marker + json.dumps([actual, expected]), stderr, 3, 'P0004', None, None)
+        receipt = c.failure_receipt('case_populated', c.NativeResultError(result))
+        self.assertEqual(receipt.get('catalog'), {'objects': 2, 'groups': [
+            {'kind': 'alignment_index', 'change': 'changed', 'field': 'check_xmin', 'count': 1},
+            {'kind': 'other', 'change': 'extra_actual', 'field': 'object', 'count': 1}]})
+        self.assertNotIn('private', json.dumps(receipt))
+        for stdout in (marker + 'bad private JSON', marker + '[]', marker + '[null,{}]',
+                       marker + json.dumps([actual, expected]) + '\n' + marker):
+            result = c.core.Result(stdout, stderr, 3, 'P0004', None, None)
+            self.assertNotIn('catalog', c.failure_receipt('case_populated', c.NativeResultError(result)))
 
 
 if __name__ == '__main__':

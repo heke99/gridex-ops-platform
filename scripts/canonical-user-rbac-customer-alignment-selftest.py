@@ -623,6 +623,7 @@ class NativeResultError(batch.BoundaryError):
         super().__init__()
         self.category = query_failure_category(result.state)
         self.input = self.assertion = 'UNCLASSIFIED'
+        self.catalog = None
         # Only a primary error at byte zero is authoritative. Never scan NOTICE,
         # CONTEXT or multiline quoted payload for something resembling a header.
         match = re.match(r'psql:(<stdin>|/legacy-private/alignment-(whole-[PABCW]|stage-[PABC]|assertions)\.sql):[0-9]+: ERROR:[ \t]+([A-Z0-9]{5}):[ \t]*([^\r\n]*)', result.stderr)
@@ -630,6 +631,16 @@ class NativeResultError(batch.BoundaryError):
             self.input = match[2] or 'prelude'
             if match[3] == result.state and match[4] in SQL_ASSERTIONS:
                 self.assertion = match[4]
+        if self.assertion == 'ALIGNMENT_FINAL_CATALOG_MISMATCH':
+            lines = result.stdout.splitlines()
+            marker = 'ALIGNMENT_PRIVATE_FINAL_CATALOGS'
+            if lines.count(marker) == 1:
+                try:
+                    snapshots = json.loads(lines[lines.index(marker) + 1])
+                    if type(snapshots) is list and len(snapshots) == 2 and all(type(s) is dict for s in snapshots):
+                        self.catalog = batch.catalog.mismatch_summary(*snapshots)
+                except (ValueError, IndexError, TypeError):
+                    pass
 
 
 def failure_receipt(stage, error):
@@ -651,6 +662,8 @@ def failure_receipt(stage, error):
             receipt['guard'] = guard
     if type(error) is NativeResultError:
         receipt.update(input=error.input, assertion=error.assertion)
+        if error.catalog is not None:
+            receipt['catalog'] = error.catalog
     return receipt
 
 

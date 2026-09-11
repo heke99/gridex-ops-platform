@@ -10,29 +10,21 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published baseline: `54ce97ab60688cfffcd8d9048d6d5e03a3df2644`.
+- Published baseline: `ba728a8a9752a4daca0d88b8f8ba269fb077afb7`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- This fresh continuation verified main and app.gridex.se production remain
-  `eb9a25bc989c6de808903f41c2314d5465e9c07b`. Connected Supabase ledger tail
-  remains `20260904222450`. No production write has occurred.
-- PR #310 contains the newer outage handoff than the previous current-state.
-  Its unpublished `c68ff550`/`f23dcdf3` objects are unavailable: exact Git fetch
-  returned not-our-ref and authenticated GitHub commit retrieval returned 404.
-  No claim is made to recover those objects or their prior reviews.
-- OPS34623405014 alignment103342579053 passed25 constructors, actual63,
-  catalog/source/view/oracle binding and timestamp drift rejection, then failed
-  at behavior_cases with BOUNDARY_REJECTED; cleanup passed. The actual failed
-  SQL/guard remains unknown. Do not guess a SQL fix or weaken an acceptance gate.
-- New diagnostics retain the original execution/SQL/success predicates and add
-  16 case stages,63 fixed guard labels and primary-header-only input/assertion
-  classification. Unknown and preceding NOTICE/quoted content stay unclassified.
-  Four new regressions: three expected RED failures, then all four GREEN;
-  all25 existing constructors GREEN. Scoped independent review APPROVED after
-  the client NOTICE correction; AST confirms same16 ordered calls/arguments.
-- Next: publish the reviewed diagnostic batch, inspect the next hosted receipt,
-  fix its proved cause, then continue native replay/source disposition/types.
-- Native CLI ownership/reference/private logging remains unsupported; generated
-  types still omit tail20260911114443. Full source accounting below remains open.
+- New hosted alignment103410251604/OPS34643991621 passes empty baseline and
+  fails case_populated at assertions/ALIGNMENT_FINAL_CATALOG_MISMATCH. The
+  diagnostic change is natively effective; final cleanup passed. No SQL fix yet.
+- Follow-up adds only captured private catalog-pair output on this exact mismatch
+  and emits finite field/count summary. New regression1RED->GREEN;5 diagnostics
+  and25 original constructorsPASS. Scoped review APPROVED, no material findings;
+  reviewer independently ran5 tests and verified private output transport.
+- Source review identifies a possible data-dependent index/HOT safety flag
+  difference; only the next actual receipt can confirm its relevance. Do not
+  remove/normalize a field merely to pass or change business/migration semantics.
+- Current main/app.gridex.se remains eb9a25bc, connected ledger tail20260904222450.
+  No production write. Native CLI ownership/reference/private logging and types
+  tail20260911114443 remain open; source accounting below is unchanged.
 
 ## Verified starting evidence
 

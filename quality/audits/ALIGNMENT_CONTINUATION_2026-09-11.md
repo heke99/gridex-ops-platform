@@ -34,3 +34,12 @@ an exception replaced by a case's own finally block.
 Independent scoped review: APPROVED after NOTICE correction, no material
 findings. Reviewer independently ran4 tests and diffcheck; AST comparison
 confirms unchanged success predicate,16 ordered calls and other case functions.
+
+Hosted ba728a8a: alignment103410251604/OPS34643991621 passes empty baseline
+and fails populated/assertions/ALIGNMENT_FINAL_CATALOG_MISMATCH. CleanupPASS.
+Follow-up exposes only finite field/count mismatch through captured private
+output, with unchanged rejecting assertion. New regression1RED->GREEN;5+25PASS.
+Source/HOT flag is a hypothesis until actual receipt, not a justified fix yet.
+
+Finite catalog receipt scoped review APPROVED; reviewer independently5PASS
+and verified PIPE/memory-only raw catalog path and unchanged rejecting gates.

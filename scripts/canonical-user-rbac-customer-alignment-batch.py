@@ -270,6 +270,10 @@ def assertions(rollback=False):
     result = '''DO $$ BEGIN IF (SELECT count(*) FROM alignment_context WHERE stage='W' AND backend=pg_backend_pid() AND txid=txid_current())<>1 THEN
  RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_COMPLETION_REQUIRED'; END IF; END $$;
 CREATE TEMP TABLE alignment_final_catalog ON COMMIT DROP AS ''' + catalog.sql(repair) + '''
+SELECT 'ALIGNMENT_PRIVATE_FINAL_CATALOGS'
+WHERE (SELECT * FROM alignment_final_catalog) IS DISTINCT FROM (SELECT final FROM alignment_reference);
+SELECT jsonb_build_array((SELECT * FROM alignment_final_catalog),(SELECT final FROM alignment_reference))
+WHERE (SELECT * FROM alignment_final_catalog) IS DISTINCT FROM (SELECT final FROM alignment_reference);
 DO $$ BEGIN IF (SELECT * FROM alignment_final_catalog) IS DISTINCT FROM (SELECT final FROM alignment_reference) THEN
  RAISE EXCEPTION USING ERRCODE='P0004',MESSAGE='ALIGNMENT_FINAL_CATALOG_MISMATCH'; END IF; END $$;
 ''' + assert_rows('after_rows') + "\nSELECT 'ALIGNMENT_COMPLETE';\n"
