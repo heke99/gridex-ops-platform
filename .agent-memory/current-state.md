@@ -11,9 +11,9 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `3b3b508adafa3c1235534e0498769a8fbcddd0fa`, exact reviewed
-tree `d462a5d5e9668214c195b6e84f0e6c73b8f92969`; fetched equality/tracked-clean
-alignment PASS, localffb1b920 archived. Task15 hosted failed B0 reduced_match_tie full PK/field oracle; fix1 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
+Latest publication: `351362330f8370944e9ab66937580a98abb94f36`, exact reviewed
+tree `433300de5ca9ae7855d89a87ec576fd0d3767c8e`; fetched equality/tracked-clean
+alignment PASS, local51ea0bf4 archived. Task15 fix1 native PASS; new C2 actor-FK expectation failure, fix2 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
 T14-R1/R2 CLOSED. OPS34549538480 original16/auth103109350028, legacy17/actual52
 job103109350023151663ms, repair18/actual56 job103109350011184433ms, quality103109349980
 and Ediel103109349997 PASS. Command19/job103109349875 full standalone62235ms plus
@@ -64,8 +64,14 @@ oracle defect. All19/actual52+56+57, quality and Ediel PASS on3b3b508a.
 Fix1 has a reproduced red/green regression for per-execution tied candidates;
 Fix4ed89ff5 committed two scripts; complete red-green report inspected, scoped
 independent review APPROVED, no new findings. Corrected hosted SQL pending.
-Next: publish independently approved Task15 fix4ed89ff5 and synchronized evidence;
-then new-head all19/full fixed-target/quality/Ediel gates.
+Task15 fix5ad9c68f scoped review APPROVED, T15-F2 addressed/no new findings.
+Next: publish reviewed actor-FK correction and run exact-head full gates. Report/red-green
+verified: SQLSTATE23503 occurred; old classifier incorrectly demanded one name.
+B0 tie and all B0 cases PASS; T15-F1 native closed. C2 staleFOUND/collision pass;
+full Task15 proof remains unaccepted, exact cleanup PASS.
+Separate unchanged H2 job103126766544 failed BoundaryError after sequence_change
+PASS, cleanup PASS; cause unconfirmed. Require complete H2 PASS on next head;
+prior3b3b508a same-code PASS does not accept35136233.
 OPS34554272047 actual57 and first12 source cases PASS, exact cleanup PASS;
 full fixed-target job103123464997 FAIL, no acceptance.
 Then actual evidence determines minimum forward prerequisites/lossless cleanup

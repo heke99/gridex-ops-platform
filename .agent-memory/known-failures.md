@@ -160,7 +160,7 @@ finding F-PARITY-4.
 These are bounded proof-tool corrections, not full replay or production acceptance.
 Current status and remaining gates are exclusively in current-state.md.
 
-## Task15 B0 equal-timestamp oracle reuse — reviewed correction, hosted pending
+## Task15 B0 equal-timestamp oracle reuse — closed by review and native execution
 
 At3b3b508a OPS34554272047 fixed-target job103123464997 passed12 cases then
 failed FULL_PK_FIELD_ORACLE_MISMATCH at reduced_match_tie, exact cleanup PASS.
@@ -175,3 +175,20 @@ full SQL acceptance or source selection inferred.
 Task15 T15-F1 correction4ed89ff5 independently ADDRESSED with no new findings;
 meaningful synthetic four-sequence red/green and full negative controls PASS.
 Corrected native acceptance pending, not inferred from old-head receipts.
+
+T15-F1 native CLOSED:35136233/job103126766378 B0 reduced_match_tie and all B0
+cases PASS. Subsequent C2 actor-FK expectation failed; separate fix2 diagnosis.
+
+## Task15 actor FK name overconstraint — reviewed correction, hosted pending
+
+At35136233/job103126766378 C2 reduced_actor_fk actually returned SQLSTATE23503,
+but validator demanded only fixed_actor_fk. Reduced fixtures retain the original
+invited_by→auth.users FK too. C2 staleFOUND reaches invitation INSERT; D2 ROW_COUNT
+reaches membership INSERT.5ad9c68f validates exact closed names only when full
+preimage FK definition and primary-error table/constraint match intended actor
+relationship. Full rollback/disposal unchanged. Targeted real-runner synthetic
+RED old failure→GREEN, wrong state/table/parent/column/kind/name/catalog/rollback
+negatives PASS. Native error name not disclosed/guessed. Scoped review pending.
+
+T15-F2 scoped independent review ADDRESSED5ad9c68f, no new findings; native
+corrected acceptance pending.

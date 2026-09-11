@@ -967,3 +967,9 @@ At3b3b508a OPS34554272047 original16/auth103123465014,legacy17/actual52 job10312
 Task15 fix1 authored4ed89ff5ecea7c9557b27010e4fbfeb50f23a9ba, cases+controls only. Full report inspected: deterministic original FULL_PK_FIELD_ORACLE_MISMATCH RED; four legal per-execution winner combinations and full PK/field/dependent/catalog/sequence/canary negatives GREEN; diff checks PASS. Scoped sol-high independent review dispatched. No hosted corrected acceptance yet; source/helpers/counts unchanged.
 
 Task15 fix round1/5: T15-F1 ADDRESSED by4ed89ff5, scoped independent review clean/no new or out-of-scope findings. Full PK/row/dependent/catalog/sequence checks preserved per execution; corrected native acceptance pending. Publish coherent fix batch then exact-head all19/full fixed-target/quality/Ediel.
+
+Task15 fix1 native acceptance: at35136233 OPS34555351809/job103126766378 reduced_match_tie and all remaining B0 cases PASS; T15-F1 CLOSED. C2 staleFOUND/collision PASS, next reduced_actor_fk FAIL NATIVE_ACTOR_FK_REQUIRED; exact cleanup PASS. Original author resumed fix2 to diagnose actor-FK source/fixture expectation; no new native root cause guessed. Full proof unaccepted; legacy17/repair18 and Ediel samehead PASS.
+
+Task15 fix2 authored5ad9c68fab5dc3c24a4f063dbd3e7af6a4271e48 cases+controls only; full report/red-green/output inspected. Scoped independent review dispatched for T15-F2 exact catalog-qualified actor FK classification; all guards/full rollback preserved. Separate H2 unknown BoundaryError retained for nexthead full gate.
+
+Task15 fix round2/5: T15-F2 ADDRESSED by5ad9c68f; scoped independent review clean, no new/out-of-scope findings. Native corrected acceptance pending. Publish coherent fix2 batch and require exact-head all19/full fixed-target/quality/Ediel; prior H2 opaque failure not waived.

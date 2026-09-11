@@ -47,6 +47,7 @@ def constructors(c,models,cases):
     identity_controls(c)
     oracle_controls(c,models)
     bootstrap_tie_controls(c,models,cases)
+    actor_fk_controls(c,cases)
     workflow(c)
     names = [(key,name) for key,name,_ in cases.cases()]
     c.check(len(names)==len(set(names)) and {key for key,_ in names}==set(c.SPECS),'CLOSED_CASE_MATRIX_REQUIRED')
@@ -272,6 +273,55 @@ def bootstrap_tie_controls(c,models,cases):
         changed = copy.deepcopy(before)
         next(row for table,row in changed[1] if table=='public.companies' and row['id']==second_id)[column] = bad
         c.rejected(lambda:cases.assert_expected(c,models,changed,source,result(),{'match':'tie'},initial))
+
+
+def actor_fk_controls(c,cases):
+    """Native-message classifier regression only; no database is executed."""
+    def run(source_key,constraint='fixed_actor_fk',state='23503',change=None):
+        table = 'company_invitations' if source_key=='C2' else 'company_memberships'
+        catalog = {'constraint/public.'+table+'/'+name:{'kind':'f','definition':
+                   'FOREIGN KEY (invited_by) REFERENCES auth.users(id)'+suffix}
+                   for name,suffix in ((table+'_invited_by_fkey',' ON DELETE SET NULL'),('fixed_actor_fk',''))}
+        before = (catalog,[['auth.refresh_tokens_id_seq',{'last_value':41,'log_cnt':0,'is_called':True}]])
+        current = copy.deepcopy(before)
+        message_table = table
+        if change=='wrong_parent':
+            catalog['constraint/public.'+table+'/'+constraint]['definition'] = 'FOREIGN KEY (invited_by) REFERENCES public.roles(id)'
+        elif change=='wrong_column':
+            catalog['constraint/public.'+table+'/'+constraint]['definition'] = 'FOREIGN KEY (user_id) REFERENCES auth.users(id)'
+        elif change=='wrong_kind':
+            catalog['constraint/public.'+table+'/'+constraint]['kind'] = 'c'
+        elif change=='missing_catalog':
+            del catalog['constraint/public.'+table+'/'+constraint]
+        elif change=='wrong_table':
+            message_table = 'companies'
+        elif change=='rollback':
+            current[1][0][1]['is_called'] = False
+        if change!='rollback':
+            current = copy.deepcopy(before)
+        message = 'ERROR: insert or update on table "'+message_table+'" violates foreign key constraint "'+constraint+'"'
+        result = c.Result('',message,1,state,None,None)
+        destroyed = []
+        proof = type('SyntheticActorProof',(),{
+            'native':lambda *args,**kwargs:result,'snapshot':lambda *args:copy.deepcopy(current),
+            'destroy':lambda self,database:destroyed.append(database)})()
+        fixture = type('SyntheticActorFixture',(),{'database':c.DATABASES[source_key],
+                        'seed':lambda *args:copy.deepcopy(before)})()
+        fixtures = type('SyntheticActorFixtures',(),{'Fixture':lambda *args:fixture})()
+        source = type('SyntheticActorSource',(),{'key':source_key})()
+        with patch.object(c,'Source',return_value=source),contextlib.redirect_stdout(io.StringIO()):
+            try:
+                cases.run_case(c,None,fixtures,proof,source_key,'reduced_actor_fk',
+                               {'actor_fk':True,'reduced':True,'no_U_actor':True,'membership':'none','error':True})
+            finally:
+                c.check(destroyed==[c.DATABASES[source_key]],'ACTOR_REGRESSION_DISPOSAL_REQUIRED')
+    for source_key,table in (('C2','company_invitations'),('D2','company_memberships')):
+        run(source_key,table+'_invited_by_fkey')
+        run(source_key)
+        for change in ('wrong_parent','wrong_column','wrong_kind','missing_catalog','wrong_table','rollback'):
+            c.rejected(lambda:run(source_key,change=change))
+        c.rejected(lambda:run(source_key,state='23502'))
+        c.rejected(lambda:run(source_key,constraint='unrelated_fk'))
 
 
 def workflow(c):

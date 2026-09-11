@@ -227,7 +227,7 @@ def run_case(core, models, fixtures, proof, source_key, name, options):
                     core.check('column' in result.stderr and any(column in result.stderr for column in ('industry','suspended_at')),'NATIVE_B0_DEPENDENCY_REQUIRED')
                     missing = {column for column,table in (('industry','public.companies'),('suspended_at','public.company_memberships')) if 'column/'+table+'/'+column not in before[0]}
                     core.check(missing==({'suspended_at'} if options.get('reduced') else {'industry','suspended_at'}),'B0_ACTUAL_CATALOG_ABSENCE_REQUIRED')
-                verify_failure(core,result,source_key,name,options)
+                verify_failure(core,result,source_key,name,options,before)
                 core.check(proof.snapshot(database) == before,'NATIVE_FAILURE_PREIMAGE_REQUIRED')
             else:
                 if options.get('durability')=='sentinel':
@@ -286,14 +286,27 @@ def notice_counts(before,source):
     return max(1,memberships),max(1,assignments),invitations
 
 
-def verify_failure(core,result,source_key,name,options):
+def verify_failure(core,result,source_key,name,options,before):
     core.check(result.code != 0 and result.state not in ('00000','XXXXX'),'NATIVE_SOURCE_REJECTION_REQUIRED')
     if options.get('no_U_boot') or options.get('no_U_target'):
         core.check(result.state=='P0001','NATIVE_AUTH_GUARD_REQUIRED')
     elif options.get('membership') in ('both','collision') or options.get('role_row')=='null_company':
         core.check(result.state=='23505' and 'duplicate key value violates unique constraint' in result.stderr,'NATIVE_UNIQUE_GUARD_REQUIRED')
     elif options.get('actor_fk'):
-        core.check('fixed_actor_fk' in result.stderr and result.state=='23503','NATIVE_ACTOR_FK_REQUIRED')
+        # Reduced fixtures retain actual FKs and add fixed_actor_fk. Either
+        # equivalent actor constraint can reject first. C2's stale FOUND skips
+        # membership insertion; D2's ROW_COUNT branch inserts membership first.
+        table = 'company_invitations' if source_key=='C2' else 'company_memberships'
+        definitions = {'FOREIGN KEY (invited_by) REFERENCES auth.users(id)',
+                       'FOREIGN KEY (invited_by) REFERENCES auth.users(id) ON DELETE SET NULL'}
+        constraints = []
+        for constraint in ('fixed_actor_fk',table+'_invited_by_fkey'):
+            entry = before[0].get('constraint/public.'+table+'/'+constraint,{})
+            if entry.get('kind')=='f' and entry.get('definition') in definitions:
+                constraints.append(constraint)
+        core.check(source_key in ('C2','D2') and result.state=='23503' and any(
+            'insert or update on table "'+table+'" violates foreign key constraint "'+constraint+'"' in result.stderr
+            for constraint in constraints),'NATIVE_ACTOR_FK_REQUIRED')
     elif name=='reduced_invitation_without_email' and source_key=='D2':
         core.check('falselower' in result.stderr,'NATIVE_MALFORMED_ALIAS_PREDICATE_REQUIRED')
     elif name=='reduced_missing_token_default':

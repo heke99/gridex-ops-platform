@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "3b3b508adafa3c1235534e0498769a8fbcddd0fa",
+    "published_baseline": "351362330f8370944e9ab66937580a98abb94f36",
     "last_isolated_pg17_code": "536906f3b6af4400fda8b1a4d20954987f583a47"
   },
-  "execution_environment": "connected; aligned3b3b508a; Task15 hosted acceptance running; stash preserved",
-  "next_action": "Publish reviewed Task15 fix4ed89ff5, T15-F1 addressed no new findings; then exact-head all19/full fixed-target/quality/Ediel.54 unresolved; no production."
+  "execution_environment": "connected; aligned35136233; Task15 reviewed fix1 hosted running; stash preserved",
+  "next_action": "Publish independently approved Task15 fix5ad9c68f; require new-head all19/full fixed-target/quality/Ediel including complete H2 after prior unconfirmed BoundaryError.54 unresolved/no production."
 }
