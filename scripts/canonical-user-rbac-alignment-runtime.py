@@ -143,7 +143,7 @@ def run_private(target, database, sql, files=()):
         check_program(target, sql, files)
     state = legacy.safe_receipt(stderr.decode(errors='replace'), process.returncode, 'alignment')['sqlstate']
     if process.returncode != 0 or state != '00000':
-        allowed = ('42P01','42703','42804','P0002','P0004','55000','2BP01','23505','57014','22012','57P01')
+        allowed = ('42601','42P01','42703','42804','P0002','P0004','55000','2BP01','23505','57014','22012','57P01')
         raise batch.BoundaryError('ALIGNMENT_QUERY_' + (state if state in allowed else 'OTHER'))
     return stdout.decode()
 

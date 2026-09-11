@@ -1054,3 +1054,19 @@ production-readiness checksPASS. Full-effects rejects as expected beforeSQL.
 Accounting600=552selected/23substituted/20unclassified/5excluded;
 foundation112/timestamp508.43global/32focuseddispositions remain unresolved.
 Native71 suite is prepared but PENDING; no production writes or parity claim.
+
+
+## 2026-09-11 22:41Z actual71 first native rejection
+
+Published3fd47bc7e4c0b78e7ef0caa1ba266040d44db4bb; exact local/fetched tree
+166aef08ad973e5dde785fe149799907bedd0940. OPS34655008072/job103445378363
+failed in OPERATIONS_NATIVE at22:41:13Z with finiteALIGNMENT_QUERY_OTHER.
+Privacy/disposal/exact cleanupPASS. No actual71 acceptance or production action.
+
+Direct implementation inspection found invalid typed CTAS column list in the
+new admission query. PostgreSQL17 CREATE TABLE AS permits column names only
+(https://www.postgresql.org/docs/17/sql-createtableas.html). Corrected before_rows
+list to a name; SELECT supplies jsonb type. Exact42601 added to finite private
+transport diagnostics, no raw SQL/stderr exposure.7operations+8alignment
+constructorsPASS and diffcheckPASS; attribution of hosted failure and actual71
+acceptance remain pending the correction's native run. Accounting unchanged.

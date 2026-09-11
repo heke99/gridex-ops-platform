@@ -120,7 +120,7 @@ END $$;
 CREATE TEMP TABLE operations_admitted(value) ON COMMIT DROP AS '''+batch.catalog_sql()+'''
 DO $$ BEGIN IF (SELECT value FROM operations_admitted) IS DISTINCT FROM (SELECT base FROM operations_admission) THEN
  RAISE EXCEPTION USING ERRCODE='42804',MESSAGE='OPERATIONS_BASE_CHANGED'; END IF; END $$;
-CREATE TEMP TABLE alignment_reference(before_rows jsonb) ON COMMIT DROP AS SELECT before_rows FROM operations_admission;
+CREATE TEMP TABLE alignment_reference(before_rows) ON COMMIT DROP AS SELECT before_rows FROM operations_admission;
 '''+batch.alignment.assert_rows('before_rows')+'\nDROP TABLE alignment_reference;\n'
 
 
