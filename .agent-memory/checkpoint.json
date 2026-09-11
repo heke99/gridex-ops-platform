@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "61bc1fe53935e40bbb2a40a36aadb98e233d809c"
+    "published_baseline": "559f70e81d7fce979f28a7280e0d6ad92e8bdb2a"
   },
-  "next_action": "Publish reviewed staged-source reads; inspect native61bc1fe5; then trusted actual68 controller continuation and only after gates register five whole sources."
+  "next_action": "Review/push actual68 candidate and run new owned PG17 actual-shell gate. Native alignment559 SUCCESS; actual68 pending. Full effects46 unresolved; no production mutation."
 }

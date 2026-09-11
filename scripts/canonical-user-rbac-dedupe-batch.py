@@ -6,6 +6,7 @@ Private Python preimages span H2's own COMMIT; no SQL rollback claim spans it.
 The historical legacy52/repair56 proof scopes do not use this lifecycle.
 """
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import importlib.util
 import json
 import os
@@ -112,7 +113,8 @@ SELECT coalesce(jsonb_agg(jsonb_build_array(name,row_value) ORDER BY name,row_va
 
 
 def prepare_reference(target, scope='dedupe57'):
-    if scope not in ('dedupe57','fixed-target','full'):
+    started = datetime.now(timezone.utc)
+    if scope not in ('dedupe57','fixed-target','alignment68','full'):
         raise BoundaryError('DEDUPE_SCOPE_REQUIRED')
     require_owned(target, False)
     if target in _STATES or target in _REFERENCES:
@@ -142,6 +144,8 @@ def prepare_reference(target, scope='dedupe57'):
     _REFERENCES[target] = _Reference(target.directory.name,target.name,legacy_ref,repair_ref,before[0],final,indexes,scope != 'dedupe57',scope)
     if scope != 'dedupe57':
         fixed_module().prepare_reference(target)
+    if scope in ('alignment68', 'full'):
+        fixed_module().replay.load_alignment_runtime().prepare_reference(target, started)
 
 
 def fresh_target(target):
@@ -212,9 +216,31 @@ _FIXED_FAILURE_CATEGORIES = frozenset((
 ))
 
 
+_ALIGNMENT_FAILURE_CATEGORIES = frozenset((
+    'ALIGNMENT_REFERENCE_REQUIRED', 'ALIGNMENT_CONTINUATION_STATE_REQUIRED',
+    'ALIGNMENT_CONTINUATION_REQUIRED', 'ALIGNMENT_COMPLETION_REQUIRED',
+    'ALIGNMENT_PRIVATE_PROCESS_FAILED', 'ALIGNMENT_PRIVATE_INPUT_REQUIRED',
+    'ALIGNMENT_INDEPENDENT_PREPARATION_REQUIRED', 'ALIGNMENT_REFERENCE_BOUNDS_REQUIRED',
+    'ALIGNMENT_LOCAL_OWNER_REQUIRED', 'ALIGNMENT_FRESH_ORACLE_REQUIRED',
+    'ALIGNMENT_ORACLE_CLONE_REQUIRED', 'ALIGNMENT_ONCE_STAGED_EXECUTION_REQUIRED',
+    'ALIGNMENT_FROZEN_SOURCES_REQUIRED', 'ALIGNMENT_FIXED_COMPLETION_REQUIRED',
+    'ALIGNMENT_INDEPENDENT_BASELINE_REQUIRED', 'ALIGNMENT_FIXED_BASELINE_REQUIRED',
+    'ALIGNMENT_PREIMAGE_CHANGED', 'ALIGNMENT_WHOLE_FILE_REQUIRED',
+    'ALIGNMENT_POST_COMMIT_MISMATCH', 'ALIGNMENT_STAGED_SOURCE_CHANGED',
+    'ALIGNMENT_COMPLETION_RECEIPT_REQUIRED', 'ALIGNMENT_COMPLETION_LINK_REQUIRED',
+    'ALIGNMENT_COMMITTED_SNAPSHOT_REQUIRED', 'ALIGNMENT_FINAL_STATE_CHANGED',
+    'ALIGNMENT_ORIGINALS_RESTORATION_REQUIRED', 'ALIGNMENT_PROGRAM_BINDING_REQUIRED',
+    'ALIGNMENT_CONSUMED_SOURCE_CHANGED', 'SUCCESSFUL_ORIGINAL_CHILD_REQUIRED',
+    'ALIGNMENT_QUERY_42P01', 'ALIGNMENT_QUERY_42703', 'ALIGNMENT_QUERY_42804',
+    'ALIGNMENT_QUERY_P0002', 'ALIGNMENT_QUERY_P0004', 'ALIGNMENT_QUERY_55000',
+    'ALIGNMENT_QUERY_2BP01', 'ALIGNMENT_QUERY_23505', 'ALIGNMENT_QUERY_57014',
+    'ALIGNMENT_QUERY_22012', 'ALIGNMENT_QUERY_57P01', 'ALIGNMENT_QUERY_OTHER',
+))
+
+
 def _failure_category(error):
     if type(error) is BoundaryError and len(error.args)==1 and type(error.args[0]) is str:
-        if error.args[0] in _FIXED_FAILURE_CATEGORIES:
+        if error.args[0] in _FIXED_FAILURE_CATEGORIES or error.args[0] in _ALIGNMENT_FAILURE_CATEGORIES:
             return error.args[0]
     return {TypeError:'TYPE_ERROR',KeyError:'KEY_ERROR',ValueError:'VALUE_ERROR',
             AttributeError:'ATTRIBUTE_ERROR',FileNotFoundError:'FILE_NOT_FOUND',
@@ -248,7 +274,7 @@ def fail(target):
     finally:
         if _REFERENCES[target].continuation:
             print(json.dumps({'stage':'fixed_failure',
-                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
+                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','ALIGNMENT_NATIVE','ALIGNMENT_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
                 'cause':_failure_category(cause),
                 'privacy':'VERIFIED' if privacy_error is None else _failure_category(privacy_error),
                 'disposal':disposal},sort_keys=True),flush=True)
@@ -332,14 +358,39 @@ def finish(target, full=False):
     require_live(target)
     try:
         ref = _REFERENCES[target]
-        expected = 'FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE'
+        alignment = ref.scope in ('alignment68', 'full')
+        expected = 'ALIGNMENT_COMPLETE' if alignment else ('FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE')
         if _STATES[target] != expected or full != (ref.scope == 'full'):
             raise BoundaryError('DEDUPE_COMPLETION_REQUIRED')
-        if ref.continuation:
+        if alignment:
+            fixed_module().replay.load_alignment_runtime().release_checks(target, full=full)
+        elif ref.continuation:
             fixed_module().release_checks(target,full=full)
         elif not full:
             assert_final(target)
         _STATES[target] = 'SUCCEEDED'
+    except BaseException:
+        fail(target)
+        raise
+
+
+def continue_alignment(target, database, paths, staging, actual_bounds):
+    require_live(target)
+    try:
+        if (_REFERENCES[target].scope not in ('alignment68', 'full')
+                or _STATES[target] != 'FIXED_COMPLETE' or database != DATABASE):
+            raise BoundaryError('ALIGNMENT_CONTINUATION_REQUIRED')
+        fixed = fixed_module()
+        fixed.assert_final(target)
+        runtime = fixed.replay.load_alignment_runtime()
+        runtime.owned(target, 'FIXED_COMPLETE')
+        _STATES[target] = 'ALIGNMENT_NATIVE'
+        receipt = runtime.execute(target, database, paths, staging, actual_bounds)
+        if receipt != {'sources': 5}:
+            raise BoundaryError('ALIGNMENT_COMPLETION_REQUIRED')
+        runtime.assert_final(target)
+        _STATES[target] = 'ALIGNMENT_COMPLETE'
+        return receipt
     except BaseException:
         fail(target)
         raise

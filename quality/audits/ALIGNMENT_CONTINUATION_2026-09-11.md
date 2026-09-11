@@ -160,3 +160,69 @@ predecessor gates, five whole entries may register at foundation64–68. Existin
 selector removes P/W from later timestamps. Expected accounting then109foundation,
 508timestamp,549selected/23unclassified/23substituted/5excluded;46 still unresolved.
 No registration or accounting change is made by this prerequisite.
+
+## 2026-09-11 — alignment continuation native verified
+
+Published six independently reviewed batches ba728a8a,98027a81,1c979ecf,
+87135839,61bc1fe5,559f70e8. Nonforce push and exact remote/local tree verified
+for each. Full native PG17 alignment on61bc1fe5 is SUCCESS:
+OPS34646873072/job103419655635, whole suitePASS21:09:28Z, both controller
+kill/rollback/privacy/exact-cleanup probesPASS, final cleanup21:10:42Z.
+This closes the prior failing standalone actual63-derived alignment proof.
+
+Verified fixes: finite private diagnostics;18 new-index HOT safety false
+positives handled only on exact source-selected new indexes;17 invalid omission
+setups corrected with exact per-variant source-pinned RESTRICT dependencies;
+all43 setups and remaining16 behavior cases, faults/concurrency pass natively.
+Staged read support559f70e8 is independently reviewed and28constructors+
+6diagnosticsPASS locally; its hosted follow-up remains separate/pending.
+
+Source registration and actual68 staged execution are NOT yet verified. Full
+replay/types/parity remain blocked, accounting unchanged600/49unresolved. No
+production writes/migrations/merge/deploy. Main/runtimeeb9a25bc and read-only
+ledger tail20260904222450 remain the verified environment baseline.
+
+Runtime baseline design review: fixed.assert_final omits extended attributes.
+A clone alone would self-authorize e.g. SET STORAGE EXTERNAL drift. Reuse the
+already independently built helper plus two source-only fixed prerequisites,
+freeze its full snapshot/construction bounds before staging, and require full
+extended actual63 baseline equality before cloning for the independent DDL delta.
+No extra first43 replay is needed; no weakening of baseline conformance is allowed.
+
+
+## 2026-09-11 actual68 integration candidate
+
+Published staged-reader559f70e8 also passed native alignment and the complete
+fixed continuation: OPS34647918467/jobs103423027097 and103423027208 SUCCESS.
+Prepared the trusted same-owner actual68 runtime and source registration at
+foundation64–68. All five original migration bytes and pins remain unchanged.
+The controller retains one live AcceptedInputs/HOLD, consumes fixed completion,
+compares a complete independently constructed actual63 baseline, and runs
+P/A/B/C/W once in a transaction. A frozen generated program binds exact private
+file bytes/order/prelude before and after execution. The identity preimage is
+captured after locking, beforeP. A linked committed snapshot plus successful
+original child, exact source restoration and privacy are required for release.
+
+Local gates PASS:8 continuation constructors,28 alignment constructors,
+6 private diagnostics,20 clean-shell recovery tests including alignment68,
+38 accounting tests,16 review-group tests, repair/dedupe/fixed constructors,
+auth runner/status/provenance and production migration readiness. Readiness
+regenerates inventory only; generated live-manifest SQL was not executed.
+New isolated PG17 workflow exercises actual shell success/fresh repeat, rejected
+reuse, extended storage drift, rows/owner/stage/database/source/private-copy
+faults, exact division-by-zero/backend failures and rollback, postcommit drift,
+failed child, controller death, canary, HOLD restoration and exact cleanup.
+Native actual68 is PENDING; local tests are not SQL-effect evidence.
+
+Proposed accounting:600 inputs=549selected/23substituted/23unclassified/5excluded;
+foundation109 and timestamp508 selections,507 ledger-eligible versions.
+46 source dispositions remain unresolved (focused35). The registration is
+INPUT_SELECTION_ONLY pending the new native gate; full replay and types/parity
+remain incomplete. User's explicit stepwise-push authorization replaces obsolete
+text-marker tests for an earlier tooling-only task; no release gate is removed.
+No production migration, merge, deployment, ledger marking or customer writes.
+
+Independent review APPROVED for incremental publication/native validation.
+Both runtime findings and native test instrumentation/fault/death findings
+are corrected. Eight constructors and diffcheck independently PASS.
+Actual68 still requires hosted SQL evidence; immutable migrations unchanged.

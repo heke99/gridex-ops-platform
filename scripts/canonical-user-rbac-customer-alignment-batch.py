@@ -166,6 +166,30 @@ def diagnostic_source(staging=None):
     return match[0]
 
 
+def admit_graph(shape, staging=None):
+    write = {'public.' + table for table in model.DML_TABLES}
+    source = repair.read_source(ROOT/'supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql', staging).decode()
+    body = re.search(r'create or replace function public\.gridex_assert_company_operational_for_write\(\).*?as \$\$(.*?)\$\$;', source, re.S)
+    check(body is not None, 'ALIGNMENT_TRIGGER_SOURCE_REQUIRED')
+    for key, value in shape.items():
+        if key.startswith('event_trigger/'):
+            check(value['enabled'] == 'D', 'ALIGNMENT_EVENT_TRIGGER_REJECTED')
+        if key.startswith('trigger/') and key.split('/')[1] in write:
+            definition = value['definition']
+            check(value['enabled'] == 'O' and 'BEFORE INSERT OR UPDATE OF company_id' in definition
+                  and 'gridex_assert_company_operational_for_write()' in definition,
+                  'ALIGNMENT_UNKNOWN_WRITE_TRIGGER')
+            functions = [v for k, v in shape.items() if k.startswith('function/public.gridex_assert_company_operational_for_write(')]
+            check(len(functions) == 1 and body[1] in functions[0]['definition'], 'ALIGNMENT_TRIGGER_BODY_MISMATCH')
+        if key.startswith('rule/') and key.split('/')[1] in write:
+            raise BoundaryError('ALIGNMENT_UNKNOWN_WRITE_RULE')
+        if key.startswith('relation/') and key.split('/')[1] in write:
+            check(value['kind'] == 'r', 'ALIGNMENT_ORDINARY_TARGET_REQUIRED')
+    # Entire actual independently bound catalog covers all FK parents, checks,
+    # domains, incoming actions, dependency identities and effective role graph.
+    # A controlled fixture may add only explicitly modeled test probes.
+
+
 def expected_ddl(sources, shape, staging=None):
     """Reviewed source declarations; independent of P/W and complete DML runner."""
     a, b, c = (source.data.decode().splitlines() for source in sources[1:4])
@@ -241,9 +265,12 @@ def stage_sql(previous, stage):
     return "DO $$ BEGIN IF (SELECT count(*) FROM alignment_context WHERE stage=" + literal(previous) + ")<>1 THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_STAGE_MISMATCH'; END IF; UPDATE alignment_context SET stage=" + literal(stage) + "; END $$;"
 
 
-def prelude(sources, before, after_catalog, token, rollback_only=False, staging=None):
+def prelude(sources, before, after_catalog, token, rollback_only=False, staging=None, target_database=None):
     check(re.fullmatch('[0-9a-f]{32}', token) is not None, 'ALIGNMENT_TOKEN_REQUIRED')
     check(type(rollback_only) is bool, 'ALIGNMENT_MODE_REQUIRED')
+    check(target_database is None or target_database == replay.DATABASE, 'ALIGNMENT_TARGET_DATABASE_REQUIRED')
+    databases = (replay.DATABASE,) if target_database is not None else (
+        'gridex_auth_legacy_native', 'gridex_auth_legacy_dirty', 'gridex_auth_legacy_atomic', 'gridex_auth_legacy_lock')
     check(CLOCK not in json.dumps(before), 'ALIGNMENT_CLOCK_COLLISION')
     if not rollback_only:
         model.admit_a([row for table, row in before[1] if table == 'public.ediel_tgt_test_data'])
@@ -259,7 +286,7 @@ INSERT INTO alignment_reference VALUES (''' + ','.join((json_sql(before[0]), jso
     "replace(" + literal(json.dumps(expected_rows(before[1]), sort_keys=True)) + "," + literal('"' + CLOCK + '"') + ",to_jsonb(now())::text)::jsonb",
     pins, literal(token), literal(body), json_sql(new_index_keys(sources, before[0], staging=staging)))) + ''');
 DO $$ DECLARE r record; BEGIN
- IF current_user<>'postgres' OR current_database() NOT IN ('gridex_auth_legacy_native','gridex_auth_legacy_dirty','gridex_auth_legacy_atomic','gridex_auth_legacy_lock') THEN
+ IF current_user<>'postgres' OR current_database() NOT IN (''' + ','.join(literal(name) for name in databases) + ''') THEN
  RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_OWNER_REQUIRED'; END IF;
  FOR r IN SELECT key,value FROM jsonb_each((SELECT base FROM alignment_reference))
  WHERE key LIKE 'relation/%' AND value->>'kind' IN ('r','p') ORDER BY key LOOP

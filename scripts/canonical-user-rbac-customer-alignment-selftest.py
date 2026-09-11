@@ -967,27 +967,7 @@ class AlignmentProof(core.Proof):
         check(owner == 'postgres', 'ALIGNMENT_DIAGNOSTIC_OWNER_REQUIRED')
 
     def graph(self, shape):
-        write = {'public.' + table for table in batch.model.DML_TABLES}
-        source = repair.read_source(batch.ROOT/'supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql').decode()
-        body = re.search(r'create or replace function public\.gridex_assert_company_operational_for_write\(\).*?as \$\$(.*?)\$\$;', source, re.S)
-        check(body is not None, 'ALIGNMENT_TRIGGER_SOURCE_REQUIRED')
-        for key, value in shape.items():
-            if key.startswith('event_trigger/'):
-                check(value['enabled'] == 'D', 'ALIGNMENT_EVENT_TRIGGER_REJECTED')
-            if key.startswith('trigger/') and key.split('/')[1] in write:
-                definition = value['definition']
-                check(value['enabled'] == 'O' and 'BEFORE INSERT OR UPDATE OF company_id' in definition
-                      and 'gridex_assert_company_operational_for_write()' in definition,
-                      'ALIGNMENT_UNKNOWN_WRITE_TRIGGER')
-                functions = [v for k, v in shape.items() if k.startswith('function/public.gridex_assert_company_operational_for_write(')]
-                check(len(functions) == 1 and body[1] in functions[0]['definition'], 'ALIGNMENT_TRIGGER_BODY_MISMATCH')
-            if key.startswith('rule/') and key.split('/')[1] in write:
-                raise batch.BoundaryError('ALIGNMENT_UNKNOWN_WRITE_RULE')
-            if key.startswith('relation/') and key.split('/')[1] in write:
-                check(value['kind'] == 'r', 'ALIGNMENT_ORDINARY_TARGET_REQUIRED')
-        # Entire actual independently bound catalog covers all FK parents, checks,
-        # domains, incoming actions, dependency identities and effective role graph.
-        # A controlled fixture may add only explicitly modeled test probes.
+        batch.admit_graph(shape)
 
     def clone(self, database, case):
         check(database in (TARGET, ORACLE, ATOMIC, LOCK), 'ALIGNMENT_CONTROL_DATABASE_REQUIRED')

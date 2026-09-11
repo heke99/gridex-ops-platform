@@ -101,20 +101,20 @@ exit 73
         return self.calls.read_text().splitlines() if self.calls.exists() else []
 
     def test_invalid_scope_allocates_no_temporary_paths(self):
-        for arguments in (('--unsupported',), ('--foundation-prefix-proof', 'extra'), ('--foundation-prefix-proof','--repair-prefix-proof'), ('--foundation-prefix-proof','--dedupe-prefix-proof'), ('--repair-prefix-proof','--dedupe-prefix-proof'), ('--dedupe-prefix-proof','57'), ('--dedupe-prefix',), ('--repair-prefix-proof','56')):
+        for arguments in (('--unsupported',), ('--foundation-prefix-proof', 'extra'), ('--foundation-prefix-proof','--repair-prefix-proof'), ('--foundation-prefix-proof','--dedupe-prefix-proof'), ('--repair-prefix-proof','--dedupe-prefix-proof'), ('--dedupe-prefix-proof','57'), ('--dedupe-prefix',), ('--repair-prefix-proof','56'), ('--alignment-prefix-proof','68'), ('--alignment-prefix-proof','--fixed-target-prefix-proof')):
             with self.subTest(arguments=arguments):
                 result=self.run_replay(1,*arguments)
                 self.assertIn('unsupported replay scope',result.stderr)
                 self.assertEqual(self.supabase_calls(),[])
 
     def test_all_named_scopes_reach_staging_without_artifacts(self):
-        for flag in ('--foundation-prefix-proof','--repair-prefix-proof','--dedupe-prefix-proof'):
+        for flag in ('--foundation-prefix-proof','--repair-prefix-proof','--dedupe-prefix-proof','--fixed-target-prefix-proof','--alignment-prefix-proof'):
             with self.subTest(flag=flag):
                 self.run_replay(73,flag)
                 self.assertFalse((self.root/'artifacts').exists())
 
     def test_named_scope_success_validates_before_bootstrap_and_restores(self):
-        for flag in ('--foundation-prefix-proof','--repair-prefix-proof','--dedupe-prefix-proof'):
+        for flag in ('--foundation-prefix-proof','--repair-prefix-proof','--dedupe-prefix-proof','--fixed-target-prefix-proof','--alignment-prefix-proof'):
             with self.subTest(flag=flag):
                 log=self.root/'transport-calls'
                 log.unlink(missing_ok=True)

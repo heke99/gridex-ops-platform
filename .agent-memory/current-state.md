@@ -5,37 +5,48 @@ Status: IN_PROGRESS
 
 The user authorizes necessary commits, pushes, PRs, merges, migrations and
 production deployment after the relevant gates. Continue in dependency order
-without renewed permission. No production action has occurred in this continuation.
+without renewed permission.
+Push reviewed, coherent batches stepwise as requested. No production action has occurred in this continuation.
+No production mutation has been performed in this replay-verification batch.
 
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `61bc1fe53935e40bbb2a40a36aadb98e233d809c`.
+- Published implementation baseline: `559f70e81d7fce979f28a7280e0d6ad92e8bdb2a`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Five reviewed batches pushed. The directional HOT correction passed native32
+- Six reviewed batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
   17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
 - Source-bound omission fixture correction is published61bc1fe5. It uses exact
   per-variant maps from five pinned sources, globally11views+87policies+13triggers,
   full origin equality and RESTRICT. Unknown-dependency negative control and
-  all43 corrected native preflights are running in OPS34646873072/job103419655635.
-  No native acceptance claim yet. The27constructors+6diagnostics passed locally.
+  all43 corrected native preflights and FULL native suite PASS in
+  OPS34646873072/job103419655635 on61bc1fe5. Whole-source16case suitePASS
+  at21:09:28Z; both controller-death/rollback/privacy/exact-cleanup probesPASS
+  and final cleanupPASS at21:10:42Z. Job conclusionSUCCESS.
+  Published staged-read559f70e8 native follow-up also PASS: OPS34647918467,
+  alignment103423027097 and fixed continuation103423027208 bothSUCCESS.
 - Next staged-source prerequisite independently APPROVED: optional exact
   StagedSources flows through source validation, diagnostic DDL, expected DDL,
   index selection and generated prelude. Physical ownership, canonical path,
   no-symlink, private HOLD and source pins retained. No live-path fallback.
   New regression observedRED->GREEN;28constructors+6diagnosticsPASS, diffcheckPASS.
   Direct bytes/DDL/prelude outputs unchanged. No source/selector/state changes.
-- Next: publish staged-read prerequisite; inspect complete native61bc1fe5 result
-  and resolve any concrete remaining case failure. Then add trusted same-handle
+- Local candidate: trusted same-handle
   actual68 continuation after FIXED_COMPLETE, before successful child release.
   Do not import AlignmentProof/selftests as production authority or append five
   independent SQL calls. Retain live AcceptedInputs/StagedSources, transactional
   P/A/B/C/W, source-only oracle, linked fixed+alignment completion, post-commit
   final snapshot and exact child/HOLD/privacy/terminal cleanup gates.
-- Only after integration gates register allfive at foundation64–68, yielding
-  foundation109/timestamp508 and549 selected/23unclassified/23substituted/5excluded.
-  Current accounting remains unchanged600=546/26/23/5; full effects49unresolved.
+- Proposed source registration inserts allfive at foundation64–68 for the
+  native integration gate, yielding foundation109/timestamp508 and
+  549selected/23unclassified/23substituted/5excluded. This remains
+  INPUT_SELECTION_ONLY until native integration passes. Actual68 is not proved.
+  Full effects46unresolved; no unsupported exemption has been added.
+- Local8 continuation/28 alignment/6 diagnostics/20 shell-recovery tests and
+  accounting/provenance/readiness gates PASS. New owned PG17 actual68 workflow
+  is prepared; native execution is PENDING. Next: complete independent review,
+  push the coherent candidate, resolve its native gate before accepting actual68.
 - Main/app.gridex.se remains eb9a25bc; connected ledger tail20260904222450.
   No production writes; full plan and production parity remain incomplete.
 
@@ -54,12 +65,12 @@ OPS run 34611459551 on the starting commit:
 - Separate tenant and browser-public workflows passed. Skipped full runtime,
   authenticated domain and production lanes remain unverified.
 
-Working-tree accounting is 600 inputs: 546 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`,
-26 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
-The focused group contains 346 inputs: 303 selected, 20 substituted,
-18 unclassified, and 5 excluded.
-Forty-nine historical inputs remain unresolved; focused group unresolved38.
-Foundation104/actual63 and all immutable source pins remain binding.
+Working-tree accounting is 600 inputs: 549 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`,
+23 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+The focused group contains 346 inputs: 306 selected, 20 substituted,
+15 unclassified, and 5 excluded.
+Forty-six historical inputs remain unresolved; focused group unresolved35.
+Proposed foundation109 / native actual63 and all immutable source pins remain binding.
 Selection is not proof of successful full SQL replay or production parity.
 
 ## Production and access
@@ -82,7 +93,7 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Continue from the new hosted alignment receipt after publishing this batch.
+Continue with the new actual68 integration native gate after publishing the reviewed candidate.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics
 are independently implemented from complete published source, not reconstructed

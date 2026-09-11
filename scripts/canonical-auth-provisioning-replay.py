@@ -9,6 +9,7 @@ invented; a prefix proof exits before the remaining foundation/history.
 """
 from __future__ import annotations
 import argparse
+from datetime import datetime, timezone
 import importlib.util
 import importlib.machinery
 import hashlib
@@ -66,6 +67,14 @@ def load_fixed():
     return trusted_module('canonical_user_rbac_fixed_batch','canonical-user-rbac-fixed-target-batch.py')
 
 
+def load_alignment():
+    return trusted_module('canonical_user_rbac_alignment_batch','canonical-user-rbac-customer-alignment-batch.py')
+
+
+def load_alignment_runtime():
+    return trusted_module('canonical_user_rbac_alignment_runtime','canonical-user-rbac-alignment-runtime.py')
+
+
 def load_batch():
     return trusted_module('canonical_owned_replay_batch','canonical-auth-provisioning-legacy-batch.py')
 
@@ -78,8 +87,8 @@ def load_dedupe():
     return trusted_module('user_rbac_dedupe_batch','canonical-user-rbac-dedupe-batch.py')
 
 
-SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'full':104}
-FOUNDATION_SHA256='eaa0f2f665bdca8fd87ed6b70e3190350993d46c0c87c1fd47dd99680b5c71c1'
+SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'full':109}
+FOUNDATION_SHA256='8ffc82eb9d9586da7ccde98b7a5a8bfe2b5972aad16426bb8a6f60f5c92851ef'
 
 
 def require_scope(scope):
@@ -90,7 +99,7 @@ def require_scope(scope):
 
 def scope_flags(scope):
     require_scope(scope)
-    return {'legacy52':['--foundation-prefix-proof'],'repair56':['--repair-prefix-proof'],'dedupe57':['--dedupe-prefix-proof'],'fixed-target':['--fixed-target-prefix-proof'],'full':[]}[scope]
+    return {'legacy52':['--foundation-prefix-proof'],'repair56':['--repair-prefix-proof'],'dedupe57':['--dedupe-prefix-proof'],'fixed-target':['--fixed-target-prefix-proof'],'alignment68':['--alignment-prefix-proof'],'full':[]}[scope]
 
 
 def require_context(payload,scope):
@@ -107,7 +116,7 @@ class FoundationLoop:
         self.scope=require_scope(scope)
         self.repair=load_repair()
         self.dedupe=load_dedupe()
-        self.terminal=scope in ('dedupe57','fixed-target','full')
+        self.terminal=scope in ('dedupe57','fixed-target','alignment68','full')
         if self.terminal:
             self.dedupe.require_live(target)
             if self.dedupe._REFERENCES[target].scope != scope:
@@ -124,10 +133,11 @@ class FoundationLoop:
         self.repair_reference=self.repair.REFERENCES.get(target) if scope!='legacy52' else None
         self.order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.prefix=b.verified_prefix()
-        if (len(self.order)!=104 or self.order[43:52]!=selected_group(b) or
+        if (len(self.order)!=109 or self.order[43:52]!=selected_group(b) or
             self.order[52:56]!=selected_group(self.repair) or
             self.order[56:57]!=selected_group(self.dedupe) or
             self.order[57:63]!=selected_group(load_fixed()) or
+            self.order[63:68]!=selected_group(load_alignment()) or
             hashlib.sha256(json.dumps(self.order,separators=(',',':')).encode()).hexdigest()!=FOUNDATION_SHA256):
             raise b.BoundaryError('FOUNDATION_GROUP_MISMATCH')
         if [p for p,_ in self.prefix]!=self.order[:43]:
@@ -171,6 +181,7 @@ class FoundationLoop:
         self.repair.diagnostic_guard(repair_sources)
         self.dedupe.index_declarations(stage)
         load_fixed().validate_sources(load_fixed().reviewed_paths(),stage)
+        load_alignment().validate_sources(load_alignment().reviewed_paths(),stage)
         self.validated=True
         return stage,data
 
@@ -187,6 +198,7 @@ class FoundationLoop:
         stage,data=self.validate(hold,paths)
         self.applied=True
         h=self.target;b=self.b
+        actual_lower=datetime.now(timezone.utc)
         for ordinal,raw in enumerate(data[:43],1):
             h.run_files(DATABASE,[h.private('replay-source-'+str(ordinal)+'.sql',raw)],'replay_foundation_'+str(ordinal),transaction=False)
         receipt=b.execute(h,DATABASE,b.reviewed_paths(),stage)
@@ -198,15 +210,20 @@ class FoundationLoop:
             self.dedupe.accepted56(h)
             receipt=self.dedupe.execute(h,DATABASE,self.dedupe.reviewed_paths(),stage)
             if receipt['sources']!=1: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
-        if self.scope in ('fixed-target','full'):
+        if self.scope in ('fixed-target','alignment68','full'):
             receipt=self.dedupe.continue_fixed(h,DATABASE,load_fixed().reviewed_paths(),stage)
             if receipt['sources']!=6: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
+        if self.scope in ('alignment68','full'):
+            receipt=self.dedupe.continue_alignment(h,DATABASE,load_alignment().reviewed_paths(),stage,
+                (actual_lower,datetime.now(timezone.utc)))
+            if receipt!={'sources':5}: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
         if self.scope=='full':
-            for ordinal,raw in enumerate(data[63:],64):
+            for ordinal,raw in enumerate(data[68:],69):
                 h.run_files(DATABASE,[h.private('replay-source-'+str(ordinal)+'.sql',raw)],'replay_foundation_'+str(ordinal),transaction=False)
         print(json.dumps({'stage':'actual_replay_foundation','first43':43,'legacy_sources':9,
                           'repair_sources':0 if self.scope=='legacy52' else 4,'dedupe_sources':int(self.terminal),'scope':self.scope,
-                          'fixed_sources':6 if self.scope in ('fixed-target','full') else 0,
+                          'fixed_sources':6 if self.scope in ('fixed-target','alignment68','full') else 0,
+                          'alignment_sources':5 if self.scope in ('alignment68','full') else 0,
                           'executions_each':1,'foundation_sources':SCOPES[self.scope],
                           'ledger_provenance':'NO','complete_replay':False},sort_keys=True),flush=True)
         return ''
@@ -255,7 +272,7 @@ def originals_snapshot():
 
 
 def serve_child(b,h,command,scope='full'):
-    terminal=require_scope(scope) in ('dedupe57','fixed-target','full')
+    terminal=require_scope(scope) in ('dedupe57','fixed-target','alignment68','full')
     dedupe=load_dedupe()
     if terminal: dedupe.fresh_target(h)
     try:
@@ -310,7 +327,7 @@ def _serve_child(b,h,command,scope):
                                 if bootstrap_done or payload['sql']!=bootstrap:
                                     raise b.BoundaryError('BOOTSTRAP_ONLY_REQUIRED')
                                 bootstrap_done=True
-                            elif scope in ('dedupe57','fixed-target'):
+                            elif scope in ('dedupe57','fixed-target','alignment68'):
                                 raise b.BoundaryError('BOUNDED_SQL_REJECTED')
                             # Keep all client/server raw streams private. Only
                             # SQL stdout needed by fingerprint/shape checks is
@@ -356,12 +373,13 @@ def main():
     scopes.add_argument('--repair-prefix-proof',action='store_true')
     scopes.add_argument('--dedupe-prefix-proof',action='store_true')
     scopes.add_argument('--fixed-target-prefix-proof',action='store_true')
+    scopes.add_argument('--alignment-prefix-proof',action='store_true')
     parser.add_argument('--context',action='store_true')
     parser.add_argument('--foundation')
     parser.add_argument('--validate-foundation',action='store_true')
     parser.add_argument('--hold')
     args=parser.parse_args()
-    scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else ('dedupe57' if args.dedupe_prefix_proof else ('fixed-target' if args.fixed_target_prefix_proof else 'full')))
+    scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else ('dedupe57' if args.dedupe_prefix_proof else ('fixed-target' if args.fixed_target_prefix_proof else ('alignment68' if args.alignment_prefix_proof else 'full'))))
     if args.context:
         request({'operation':'context','scope':scope});return
     if args.foundation:
@@ -377,7 +395,7 @@ def main():
         result_accounting=result.stdout
     import contextlib
     with b.OwnedPostgres() as h, contextlib.ExitStack() as private_stack:
-        if scope in ('fixed-target','full'):
+        if scope in ('fixed-target','alignment68','full'):
             private_stack.enter_context(load_private().AcceptedInputs(h))
         if scope=='legacy52':b.prepare_reference(h)
         elif scope=='repair56':load_repair().prepare_reference(h)
@@ -387,7 +405,7 @@ def main():
         command+=scope_flags(scope)
         result=serve_child(b,h,command,scope)
         if result: raise b.BoundaryError('ACTUAL_REPLAY_FAILED')
-        if scope in ('dedupe57','fixed-target'):
+        if scope in ('dedupe57','fixed-target','alignment68'):
             print('PASS actual clean-shell scope='+scope+'; owned compatible diagnostic; NOT full replay')
         elif scope in ('legacy52','repair56'):
             actual=h.catalog(DATABASE) if scope=='legacy52' else load_repair().catalog(h,DATABASE)

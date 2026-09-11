@@ -757,11 +757,11 @@ def integration_constructors(b):
             else:raise AssertionError('arbitrary registered module accepted as trusted origin')
     finally:sys.modules[key]=saved
     order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
-    assert len(order)==104 and order[52:56]==['migrations/'+p.name for p in b.reviewed_paths()]
+    assert len(order)==109 and order[52:56]==['migrations/'+p.name for p in b.reviewed_paths()]
     account=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
     data=json.loads(account.stdout)
     assert account.returncode==1 and not data['errors']
-    assert data['counts']=={'FULL_FILE_SELECTED':546,'SUBSTITUTED':23,'UNCLASSIFIED':26,'EXPLICITLY_EXCLUDED':5}
+    assert data['counts']=={'FULL_FILE_SELECTED':549,'SUBSTITUTED':23,'UNCLASSIFIED':23,'EXPLICITLY_EXCLUDED':5}
     by_path={row['path']:row for row in data['migrations']}
     for ordinal,path in enumerate(order[43:56],44):
         assert by_path[path]['execution']==[{'ordinal':ordinal,'stage':'foundation'}]
@@ -798,16 +798,17 @@ def integration_constructors(b):
         paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in order]
         try:
             # New native-COMMIT scopes have their own real lifecycle proof in command19.
-            # These recorder-only checks retain full104 dispatch construction.
+            # These recorder-only checks retain full109 dispatch construction.
             with contextlib.ExitStack() as constructor_patches:
                 dedupe=replay.load_dedupe()
                 for name in ('require_live','accepted56','fail'):
                     constructor_patches.enter_context(patch.object(dedupe,name,return_value=None))
                 constructor_patches.enter_context(patch.object(dedupe,'execute',side_effect=lambda target,db,paths,staging=None: observed.append((db,'dedupe',False)) or {'sources':1}))
                 constructor_patches.enter_context(patch.object(dedupe,'continue_fixed',side_effect=lambda target,db,paths,staging: observed.append((db,'fixed',False)) or {'sources':6}))
-                _record_scopes=('legacy52','repair56','dedupe57','fixed-target','full')
+                constructor_patches.enter_context(patch.object(dedupe,'continue_alignment',side_effect=lambda target,db,paths,staging,bounds: observed.append((db,'alignment',True)) or {'sources':5}))
+                _record_scopes=('legacy52','repair56','dedupe57','fixed-target','alignment68','full')
                 for scope in _record_scopes:
-                    dedupe._REFERENCES[h]=dedupe._Reference(directory,h.name,h.reference,b.REFERENCES[h],{},{},[],scope in ('fixed-target','full'),scope)
+                    dedupe._REFERENCES[h]=dedupe._Reference(directory,h.name,h.reference,b.REFERENCES[h],{},{},[],scope in ('fixed-target','alignment68','full'),scope)
                     loop=replay.FoundationLoop(b.legacy,h,scope)
                     observed=[]
                     h.run_files=lambda db,files,stage,transaction=True:observed.append((db,stage,transaction))
@@ -821,9 +822,10 @@ def integration_constructors(b):
                         loop.run(hold,paths)
                     expected=['replay_foundation_'+str(i) for i in range(1,44)]+['legacy']
                     if scope!='legacy52':expected+=['repair']
-                    if scope in ('dedupe57','fixed-target','full'):expected+=['dedupe']
-                    if scope in ('fixed-target','full'):expected+=['fixed']
-                    if scope=='full':expected+=['replay_foundation_'+str(i) for i in range(64,105)]
+                    if scope in ('dedupe57','fixed-target','alignment68','full'):expected+=['dedupe']
+                    if scope in ('fixed-target','alignment68','full'):expected+=['fixed']
+                    if scope in ('alignment68','full'):expected+=['alignment']
+                    if scope=='full':expected+=['replay_foundation_'+str(i) for i in range(69,110)]
                     assert [stage for _,stage,_ in observed]==expected
                     assert all(db==replay.DATABASE for db,_,_ in observed)
                     try:loop.run(hold,paths)
@@ -852,7 +854,7 @@ def integration_constructors(b):
                 try:
                     try:other.run(hold,paths)
                     except b.BoundaryError:pass
-                    else:raise AssertionError('whole104 validation omitted repair source in named scope')
+                    else:raise AssertionError('whole109 validation omitted repair source in named scope')
                 finally:w.write_bytes(raw)
             for fake_stage in (object(),types.SimpleNamespace(read=lambda p:p.read_bytes())):
                 try:b.validate_sources(b.reviewed_paths(),fake_stage)
@@ -888,7 +890,7 @@ def integration_constructors(b):
             assert h.reference==({'legacy_base':1},{'legacy_final':1})
             assert b.REFERENCES[h] is saved_ref
         finally:b.REFERENCES.pop(h,None);h.active=False;h.directory=None
-    print('PASS repair integration constructors: exact104, shared trusted loader, retained dependencies, five scopes and once-only same-target dispatch; NO SQL claim')
+    print('PASS repair integration constructors: exact109, shared trusted loader, retained dependencies, six scopes and once-only same-target dispatch; NO SQL claim')
 
 
 def replay_originals_snapshot():
