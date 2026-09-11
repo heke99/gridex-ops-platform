@@ -1011,3 +1011,66 @@ Actual P/X CLI identities and four whole originals registered:598=544/23/27/4,
 Status IMPLEMENTED_NOT_VERIFIED: publish coherent batch, then require hosted
 actual63 SQL/cleanup/death/privacy and same-head original19/full102/quality/Ediel.
 No source acceptance, full-native/types closure or production mutation claimed.
+
+Task18 fix2 contract correction required (no implementation yet): immutable first
+input01_db1_schema_repair_core_helpers_and_canonical_tables.sql:513–515 inserts
+an initial public.companies row. Task16's empty-companies/one-new-company
+assumption conflicts with the actual accepted prefix; runtime correctly rejects
+EMPTY_FIXED_BUSINESS_REQUIRED. User explicitly requests correcting the entire
+plan and broken points, authorizing this factual contract correction without
+renewed permission. No blanket seed exemption, deletion/recreation or second
+company is approved. Author prepares exact source-bound sole-company reuse/PK/
+P-materialization/S1/cleanup preservation amendment for independent review.
+Private artifact cause remains separately under source-backed diagnosis.
+
+Task19 bounded source-effects document COMPLETE: ccd5cefd independently spec/
+quality APPROVED (741 complete source lines,57 index declarations, named caller/
+dependency contract). No Critical/Important findings. Two Minor wording points
+addressed in5a59f483: transaction row/catalog rollback vs nontransactional
+sequence disposal; conditional absence across57 index declaration identities.
+Root inspected exact two-line correction; no new test/review loop required.
+Actual63/native catalog/ownership/security decisions remain explicit later
+implementation gates. No source registration or production acceptance claimed.
+
+Task18 fix2 factual amendment independently APPROVED with no findings. Exact
+requirements in ignored task-18-fix2-contract.md and its review; tracked Task16
+contract will be reconciled by the sole fix author. Preserve original C_seed PK
+and exact independent S0; derive S1 with only P column effects including industry
+materialization; guarded temporary slug reservation +3Auth/1fixed-company; use
+B0's exact slug OR hyphen-stripped organization predicate; independently bind
+company restoration, delete only generated graph, exact final S1 includinglog_cnt.
+Intercept only actual synchronous trusted run_files result sink, bound bytes/
+writer/handle/files/phase/reference/staging, finally cleared; no disk exception.
+Author implements from5a59f483; originalSQL/19/102/pins/order retained except
+reviewed authored-X content/pin if needed. Independent code review and native
+acceptance remain mandatory. User authorization covers factual plan correction.
+
+# Task20 — actual CLI skeletons for the reviewed alignment boundaries
+
+This is a mechanical workflow-only preparation task following approved Task19 source-effects map. No source selection or SQL/production acceptance is implied. Read quality/audits/USER_RBAC_CUSTOMER_ALIGNMENT_SOURCE_EFFECTS_2026-09-11.md only dependency-order/boundaries section and this plan's task-19-review.md as context. Task18 runtime/native proof remains separate and must be accepted before alignment execution.
+
+Own ONLY .github/workflows/ops-hardening.yml plus ignored task-20-report.md. Root supplies exact BASE after the sole Task18 author commits. Preserve all existing jobs, required original19/102 and new continuation proof unchanged. Add one temporary, bounded pinned Supabase CLI2.101.0 job that runs actual help/version and migration new commands for canonical_user_rbac_customer_alignment_prerequisites and canonical_user_rbac_customer_alignment_boundary. Reuse the exact independently reviewed Task17 two-empty-skeleton pattern available in git show e2bb1a9b:.github/workflows/ops-hardening.yml; do not invent timestamps or assume success. Generate in isolated temporary directory, sleep1 between actual CLI calls, assert exactly two distinct14digit versions, regular nonsymlink zero-byte files with intended suffixes. Upload only these two verified empty files under artifact user-rbac-customer-alignment-skeletons. All CLI/generation/upload steps must skip if either authored suffix already exists in repository migrations, including fallback always/upload behavior; checkout and guard first. Never upload authored SQL or secrets. No app deploy, DB connection, migration apply, provider/customer/credential action, package-probe/localCLI install or source-copy artifact.
+
+Use minimal workflow timeout, existing checkout/setup pin conventions and exact same reviewed CLI behavior. No changes to replay modes, source manifests, selectors, migration files, types/fingerprints or memory. Root will download/verify actual artifact and identities before any future P/W authoring. These logical boundaries remain unselected and unimplemented.
+
+Validate only workflow syntax/guard/artifact-path coverage, preserved existing jobs and whitespace. No unchanged suites or mocked CLI success, no broad audit. Commit sole workflow, full ignored report with exact local static commands/output and hosted-not-executed limitation. Independent scoped spec/quality review follows; no publish by author.
+
+Task18 fix2 implementation3a16b0f8cb6acf5eedb0572bad3c82faa239cb27 complete
+from5a59f483; independent exact100162-byte scoped review active. Approved factual
+amendment reconciled into Task16 contract. Real writer RED/GREEN, full independent
+seed/generated binding/P materialization/B0 predicate/X reservation/capture/failure
+controls, existing adapter and affected H2/repair constructors PASS. Complete
+oracles/original102/19/order/P/history preserved. X actualidentity unchanged,
+107lines SHA256f6fbfd30b62e9529539c27c00722c89446e6ed5dd7cbed9217594f7202025ee7;
+runtime/history pin agree. Foundation104/endpoint63 and598=544/23/27/4 unchanged.
+Native SQL/cleanup/death/finalprivacy acceptance still pending. Task20 sole
+workflow author now prepares two actual empty CLI alignment skeletons; no
+production or source-selection change. One coherent publication after reviews.
+
+Task18 fix2 code3a16b0f8 independently spec-compliant/quality APPROVED, no
+findings. Complete1121-line/100162-byte diff and named reference/cleanup/writer
+callees checked. Source-bound independent seed, three enumerated generated
+bindings, exact B0 predicate, original-PK company restoration, real writer/result
+memory path and final disposal/privacy contracts approved. No tests rerun by
+reviewer. Native actual63 remains mandatory; ready for coherent publication
+with separately reviewed Task19 document and Task20 CLI-only workflow.

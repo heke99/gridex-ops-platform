@@ -1314,3 +1314,77 @@ RED SAFE_FAILURE_CAUSES_MISSING then focused constructor/privacy-canary/disposal
 and historical H2 compatibility GREEN. Closed original/privacy/disposal labels
 preserve fail-closed behavior; no SQL/scanner/pin changes. Underlying actual63
 cause unresolved; publish diagnostic repair and inspect hosted safe receipt.
+
+Task18 diagnostic native aec7a34f OPS34592482485/job103240714820 confirms
+H2_COMPLETE cause EMPTY_FIXED_BUSINESS_REQUIRED, privacy
+SOURCE_LITERAL_IN_PRIVATE_ARTIFACT, disposal VERIFIED; final wrapper FAIL and
+owned cleanup PASS. No speculative SQL finding; author fix2 from ccd5cefd
+diagnoses exact accepted-prefix rows and retained artifact. Root preserves strict
+privacy/closed admission; underlying actual63 still unaccepted. Task19 sole-doc
+ccd5cefd is under independent read-only review, no selection or SQL claim.
+
+Task18 fix2 contract correction required (no implementation yet): immutable first
+input01_db1_schema_repair_core_helpers_and_canonical_tables.sql:513–515 inserts
+an initial public.companies row. Task16's empty-companies/one-new-company
+assumption conflicts with the actual accepted prefix; runtime correctly rejects
+EMPTY_FIXED_BUSINESS_REQUIRED. User explicitly requests correcting the entire
+plan and broken points, authorizing this factual contract correction without
+renewed permission. No blanket seed exemption, deletion/recreation or second
+company is approved. Author prepares exact source-bound sole-company reuse/PK/
+P-materialization/S1/cleanup preservation amendment for independent review.
+Private artifact cause remains separately under source-backed diagnosis.
+
+Task19 bounded source-effects document COMPLETE: ccd5cefd independently spec/
+quality APPROVED (741 complete source lines,57 index declarations, named caller/
+dependency contract). No Critical/Important findings. Two Minor wording points
+addressed in5a59f483: transaction row/catalog rollback vs nontransactional
+sequence disposal; conditional absence across57 index declaration identities.
+Root inspected exact two-line correction; no new test/review loop required.
+Actual63/native catalog/ownership/security decisions remain explicit later
+implementation gates. No source registration or production acceptance claimed.
+
+Task18 fix2 factual amendment independently APPROVED with no findings. Exact
+requirements in ignored task-18-fix2-contract.md and its review; tracked Task16
+contract will be reconciled by the sole fix author. Preserve original C_seed PK
+and exact independent S0; derive S1 with only P column effects including industry
+materialization; guarded temporary slug reservation +3Auth/1fixed-company; use
+B0's exact slug OR hyphen-stripped organization predicate; independently bind
+company restoration, delete only generated graph, exact final S1 includinglog_cnt.
+Intercept only actual synchronous trusted run_files result sink, bound bytes/
+writer/handle/files/phase/reference/staging, finally cleared; no disk exception.
+Author implements from5a59f483; originalSQL/19/102/pins/order retained except
+reviewed authored-X content/pin if needed. Independent code review and native
+acceptance remain mandatory. User authorization covers factual plan correction.
+
+aec7a34f OPS34592482485 complete: original19/actual52+56+57 PASS
+(auth103240714812,legacy103240714804,repair103240714790,dedupe103240714732);
+full102103240714894 independently counted18/25/28/31 with final complete-private
+11:14:51 and cleanup PASS; quality103240714745/Ediel103240714750 PASS.
+Only bounded new actual63 fails with already recorded exact dual causes; clean
+native/types still red. No CI retry or bypass. Approved fix2 implementing.
+
+Task18 fix2 implementation3a16b0f8cb6acf5eedb0572bad3c82faa239cb27 complete
+from5a59f483; independent exact100162-byte scoped review active. Approved factual
+amendment reconciled into Task16 contract. Real writer RED/GREEN, full independent
+seed/generated binding/P materialization/B0 predicate/X reservation/capture/failure
+controls, existing adapter and affected H2/repair constructors PASS. Complete
+oracles/original102/19/order/P/history preserved. X actualidentity unchanged,
+107lines SHA256f6fbfd30b62e9529539c27c00722c89446e6ed5dd7cbed9217594f7202025ee7;
+runtime/history pin agree. Foundation104/endpoint63 and598=544/23/27/4 unchanged.
+Native SQL/cleanup/death/finalprivacy acceptance still pending. Task20 sole
+workflow author now prepares two actual empty CLI alignment skeletons; no
+production or source-selection change. One coherent publication after reviews.
+
+Task18 fix2 code3a16b0f8 independently spec-compliant/quality APPROVED, no
+findings. Complete1121-line/100162-byte diff and named reference/cleanup/writer
+callees checked. Source-bound independent seed, three enumerated generated
+bindings, exact B0 predicate, original-PK company restoration, real writer/result
+memory path and final disposal/privacy contracts approved. No tests rerun by
+reviewer. Native actual63 remains mandatory; ready for coherent publication
+with separately reviewed Task19 document and Task20 CLI-only workflow.
+
+Task20 workflow4bd5f056 independently spec/quality APPROVED, no findings.
+Existing10jobs byte-preserved; one5min pinnedCLI2.101 two-empty-skeleton job,
+allCLI/upload skipped if either authored alignment suffix exists. Static YAML/
+guard/path/identity/whitespace PASS; actual CLI artifact retrieval remains pending.
+Task18 fix2 and Task19 documentation already approved. Publish coherent batch.

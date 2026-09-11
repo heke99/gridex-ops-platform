@@ -261,3 +261,22 @@ acceptance remains OPEN. Original author resumed for narrow source-backed fix1;
 independent review required before next coherent publication. No retry/waiver.
 Same-head clean103237628240 rejects unsupported native mode before replay;
 verify103237628107 fails generated-types check. Existing gates remain enforced.
+
+Task18 diagnostic native aec7a34f OPS34592482485/job103240714820 confirms
+H2_COMPLETE cause EMPTY_FIXED_BUSINESS_REQUIRED, privacy
+SOURCE_LITERAL_IN_PRIVATE_ARTIFACT, disposal VERIFIED; final wrapper FAIL and
+owned cleanup PASS. No speculative SQL finding; author fix2 from ccd5cefd
+diagnoses exact accepted-prefix rows and retained artifact. Root preserves strict
+privacy/closed admission; underlying actual63 still unaccepted. Task19 sole-doc
+ccd5cefd is under independent read-only review, no selection or SQL claim.
+
+Task18 fix2 contract correction required (no implementation yet): immutable first
+input01_db1_schema_repair_core_helpers_and_canonical_tables.sql:513–515 inserts
+an initial public.companies row. Task16's empty-companies/one-new-company
+assumption conflicts with the actual accepted prefix; runtime correctly rejects
+EMPTY_FIXED_BUSINESS_REQUIRED. User explicitly requests correcting the entire
+plan and broken points, authorizing this factual contract correction without
+renewed permission. No blanket seed exemption, deletion/recreation or second
+company is approved. Author prepares exact source-bound sole-company reuse/PK/
+P-materialization/S1/cleanup preservation amendment for independent review.
+Private artifact cause remains separately under source-backed diagnosis.

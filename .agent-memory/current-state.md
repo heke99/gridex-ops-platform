@@ -11,13 +11,18 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `633a9cf0c46ed780980fc11c278da5edd52c0ebe`, exact reviewed tree
-`45c49b28dea3c10153a40b43a1f0d44bd3710127`. Nonforce publication/fetch/local-server
-tree equality and tracked-clean alignment PASS; reviewed local8de5daec archived.
-OPS34591510426 is running mandatory original19/actual52+56+57/full102/finalprivacy,
-quality/Ediel and new actual63 continuation proof. Native acceptance PENDING.
-Prior e2bb1a9b accepted Task15 full102/finalprivacy and Task17 actual CLI artifact.
-No tracked user changes were discarded; cache and other worktree retained.
+Latest publication: `aec7a34fd44f107d1d5411a8640b9d2bd0a4f93d`, exact reviewed tree
+`a81b69759c9b17e94b81952111aaddf966cc114f`. Nonforce publication/fetch/local-server
+tree equality and tracked-clean alignment PASS; local90258256 archived.
+Diagnostic-only fix1 independently APPROVED; OPS34592482485 running to reveal
+safe cause categories now confirm EMPTY_FIXED_BUSINESS_REQUIRED plus
+SOURCE_LITERAL_IN_PRIVATE_ARTIFACT at H2_COMPLETE; disposal VERIFIED.
+Author fix2 active from ccd5cefd; actual63 remains unaccepted.
+Prior633a9cf0 all original19/actual52+56+57/full102/finalprivacy/quality/Ediel PASS;
+new actual63 failed FIXED_FAILURE_PRIVACY_REJECTED, exact cleanup PASS.
+Task19 source map ccd5cefd independently APPROVED; two Minor wording corrections
+in5a59f483 inspected and accepted. Documentation task complete, native still open.
+No tracked user changes discarded; cache and unrelated worktree preserved.
 Tasks1-14 remain accepted; their recorded source proofs are not restarted.
 Full native replay/types and production gates remain open.
 
@@ -37,30 +42,31 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task18 IMPLEMENTED_NOT_VERIFIED: independently review implemented Task16 lossless continuation
-using actual P20260911095503 and X20260911095505 CLI identities, after accepted
-first57 and before preserved suffix. Task15 complete native/privacy accepted;
-Task17 actual two empty skeletons retrieved and hashes verified. Exact Task18
-requirements are in the source-restoration plan and ignored task-18-brief.md.
-Task18 working-tree registration IMPLEMENTED_NOT_VERIFIED: actual two P/X and
-four whole originals selected,598=544/23/27/4,50unresolved; focused344=301/20/19/4,
-39unresolved. Foundation104 endpoint63. These counts are implementation state,
-not native/source acceptance; published633a9cf0 now has598/544/23/27/4; native acceptance pending.
-Author actual accounting/group validation reports errors[]; root synchronized
-exact markers before targeted equality-dependent tests.
+Task18 IMPLEMENTED_NOT_VERIFIED; fix2 contract correction independently APPROVED;
+fix2 implemented3a16b0f8 from5a59f483, independent code review APPROVED
+with no findings; mandatory hosted acceptance pending. Exact first57 creates an original random-PK
+company; original empty-company/one-total premise was impossible. Actual native
+aec7a34f job103240714820 confirms EMPTY_FIXED_BUSINESS_REQUIRED plus physical
+snapshot SOURCE_LITERAL_IN_PRIVATE_ARTIFACT at H2_COMPLETE, disposal VERIFIED.
 
-Implementation commit28597803b7160c38c631aa1834462ae0b6520f53 contains the narrow
-runtime adapter extraction, exact P→B0→C2→D2→F2→X lossless boundary, frozen
-pre-release lifecycle and standalone/actual-loop proof. Targeted constructors,
-provenance, accounting, preservation and syntax checks PASS; hosted actual63
-SQL/death/privacy proof remains unexecuted. Independent spec/quality review APPROVED with no findings.
-Diagnostic-only fix1c862abae independently APPROVED; no SQL/scanner change.
-Next: publish safe dual-cause receipt and diagnose first hosted continuation failure
-FIXED_FAILURE_PRIVACY_REJECTED in job103237628157 (constructors PASS, exact
-cleanup PASS); review scoped fix, then republish. All original19/full102/finalprivacy/quality/Ediel PASS at633a9cf0. Task19 source-effects preparation is
-read-only and confined to ignored drafts while this publication is pending.
-No historical source audit rerun, original102 branch matrix/19tuple unchanged.
-Continue remaining source effects/full native/types and complete production gates.
+Proposed correction preserves C_seed's original PK, requires its exact
+source-backed full row, independently materializes P's industry default in S1,
+reserves only its slug temporarily and constructs the required fixed C_target.
+Exactly3 synthetic Auth and1 synthetic company; two companies during composition,
+original one after X. Full original seed row/PK/catalog/sequence restoration and
+strict private actual-writer memory transport remain mandatory. No blanket
+business admission, PK rewrite, source rewrite or privacy exception is approved.
+Ignored task-18-fix2-contract.md and its approved review hold exact requirements;
+tracked Task16 contract will be reconciled alongside the implementation.
+
+Next: publish one
+coherent publication with mandatory hosted actual63 and same-head19/102 gates.
+Task19 source map is complete: ccd5cefd approved, two Minor wording corrections
+in5a59f483 inspected. Its later native/catalog/ownership/security gates remain open.
+Task20 CLI-only workflow4bd5f056 independently APPROVED; include in coherent
+publication and retrieve/verify actual two empty CLI identities from hosted job.
+Do not rerun completed source audits or invent timestamps. Full native/types
+and the complete production plan remain open; no production action occurred.
 
 ## Current executed acceptance
 

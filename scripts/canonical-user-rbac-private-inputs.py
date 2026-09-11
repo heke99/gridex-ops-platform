@@ -74,6 +74,7 @@ class AcceptedInputs:
         self.staging = None
         self.closed_staging = None
         self.route = self.binding = self.phase = None
+        self.result_call = None
         self.records, self.envelope, self.buffers = {}, [], []
         self.sources = {'prefix-1.sql':self.PREFIX,'replay-source-1.sql':self.PREFIX,
                         'repair-whole-E2.sql':repair.SPECS[1][1:3],
@@ -138,6 +139,27 @@ class AcceptedInputs:
 
     def _write(self, name, data, frame):
         self.owned()
+        if name == 'client-last.out':
+            call = self.result_call
+            check(call is not None and frame.f_code is legacy.OwnedPostgres.run_files.__code__
+                  and frame.f_back is call['frame'] and frame.f_back.f_code is AcceptedInputs.run.__code__
+                  and frame.f_back.f_locals.get('self') is self
+                  and frame.f_back.f_locals.get('call') is call
+                  and frame.f_locals.get('self') is self.h
+                  and frame.f_locals.get('files') is call['files']
+                  and all(frame.f_locals.get(key)==call[key] for key in
+                          ('database','stage','transaction','expect','timeout')),
+                  'TRUSTED_RESULT_WRITER_REQUIRED')
+            self.result_owned(call)
+            result = frame.f_locals.get('result')
+            check(type(result) is subprocess.CompletedProcess and type(result.stdout) is bytes
+                  and type(result.stderr) is bytes and type(data) is bytes
+                  and data == result.stdout+result.stderr, 'EXACT_RESULT_BYTES_REQUIRED')
+            path = Path(self.directory)/name
+            check(not path.exists() and not path.is_symlink(), 'PHYSICAL_RESULT_FORBIDDEN')
+            # This exact writer ignores private()'s return. The real run_files
+            # frame retains stdout/stderr and returns its ordinary result; no sink.
+            return None
         generated = name in self.GENERATED
         route = ('repair' if frame.f_code is repair.envelope_files.__code__ else
                  'legacy' if frame.f_code is legacy.envelope_files.__code__ else None)
@@ -182,13 +204,32 @@ class AcceptedInputs:
             self.envelope.append(path)
         return path
 
+    def result_owned(self, call):
+        self.owned()
+        current = (self.h.reference,repair.REFERENCES.get(self.h),dedupe._REFERENCES.get(self.h))
+        check(self.result_call is call and all(a is b for a,b in zip(current,call['references']))
+              and dedupe._STATES.get(self.h) == call['phase'] and self.staging is call['staging'],
+              'STALE_RESULT_INVOCATION')
+
     def run(self, database, files, stage, transaction=True, expect='00000', timeout=120):
         files = tuple(files)
         virtual = [path for path in files if isinstance(path,MemoryAdmission)]
         generated = any(getattr(path,'name',None) in self.GENERATED for path in files)
         if not virtual and not generated and not self.envelope:
             self.owned()
-            return self.run_files(database,files,stage,transaction,expect,timeout)
+            check(self.result_call is None, 'FRESH_RESULT_INVOCATION_REQUIRED')
+            call = dict(frame=sys._getframe(),database=database,files=files,stage=stage,
+                        transaction=transaction,expect=expect,timeout=timeout,
+                        references=(self.h.reference,repair.REFERENCES.get(self.h),dedupe._REFERENCES.get(self.h)),
+                        phase=dedupe._STATES.get(self.h),staging=self.staging)
+            self.result_call = call
+            try:
+                output = self.run_files(database,files,stage,transaction,expect,timeout)
+                self.result_owned(call)
+                return output
+            finally:
+                self.result_call = None
+                call.clear()
         try:
             self.owned()
             state = dedupe._STATES.get(self.h)
@@ -238,6 +279,7 @@ class AcceptedInputs:
             self.clear()
 
     def clear(self):
+        self.result_call = None
         for buffer in self.buffers:
             buffer.clear()
         self.buffers.clear()

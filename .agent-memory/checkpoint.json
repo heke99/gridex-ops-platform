@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "633a9cf0c46ed780980fc11c278da5edd52c0ebe",
-    "last_isolated_pg17_code": "e2bb1a9becc07989181405ddccdbdcae173d36d4"
+    "published_baseline": "aec7a34fd44f107d1d5411a8640b9d2bd0a4f93d",
+    "last_isolated_pg17_code": "aec7a34fd44f107d1d5411a8640b9d2bd0a4f93d"
   },
-  "execution_environment": "connected; exact reviewed tree45c49b28 aligned to published633a9cf0; local8de5daec archived",
-  "next_action": "Task18 fix1: native continuation103237628157 FAIL FIXED_FAILURE_PRIVACY_REJECTED at633a9cf0; constructors/cleanup PASS. Original author diagnosing narrow fix; independent re-review then publication. Other mandatory OPS34591510426 jobs ongoing. Task19 ignored source draft. Full plan open."
+  "execution_environment": "connected; exact reviewed treea81b6975 aligned to publishedaec7a34f; local90258256 archived",
+  "next_action": "Publish coherent approved Task18 fix2/Task19 map/Task20 workflow batch; require actual63/nativeprivacy and samehead19/102/quality/Ediel plus actual two-empty CLI artifact retrieval. Full plan open."
 }

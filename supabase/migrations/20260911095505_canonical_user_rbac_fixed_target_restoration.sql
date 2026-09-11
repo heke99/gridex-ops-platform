@@ -33,10 +33,19 @@ BEGIN
        WHERE r.owner=envelope->>'owner' AND r.reservation=envelope->>'reservation'
          AND r.hashes=envelope->'hashes' AND r.database_name=current_database()
          AND r.backend=pg_backend_pid() AND r.transaction_id=txid_current()
-         AND r.stage='F2_COMPLETE')
+         AND r.stage='F2_COMPLETE' AND r.company=envelope->'company')
      OR envelope->'post_catalog' IS DISTINCT FROM (SELECT catalog FROM pg_temp.fixed_post_catalog)
      OR envelope->'post_rows' IS DISTINCT FROM (SELECT rows FROM pg_temp.fixed_post_rows) THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_CONTEXT_MISMATCH';
+  END IF;
+  IF envelope->'company'->>'table' IS DISTINCT FROM 'public.companies'
+     OR envelope->'company'->'before'->>'id' IS NULL
+     OR envelope->'company'->'before'->>'id' IS DISTINCT FROM envelope->'company'->'after'->>'id'
+     OR (SELECT count(*) FROM jsonb_array_elements(envelope->'restorations') x
+         WHERE x->>'table'='public.companies')<>1
+     OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(envelope->'restorations') x
+                    WHERE x=envelope->'company') THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_COMPANY_RESERVATION';
   END IF;
   -- Consume before the first write. A repeated X cannot regain this reservation.
   DELETE FROM pg_temp.fixed_restoration_context;
@@ -46,6 +55,10 @@ BEGIN
       'public.roles','public.permissions','public.role_permissions','public.user_roles',
       'public.company_memberships','public.company_invitations','public.audit_logs') THEN
       RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_DELETE_GRAPH';
+    END IF;
+    IF item->>'table'='public.companies'
+       AND item->'row'->>'id'=envelope->'company'->'before'->>'id' THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_ORIGINAL_COMPANY_DELETE';
     END IF;
     parent_relation := (item->>'table')::regclass;
     -- Explicitly prove no descendants remain. FK actions never perform reversal.
@@ -67,7 +80,8 @@ BEGIN
     IF affected<>1 THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_CAPTURED_ROW_MISMATCH'; END IF;
   END LOOP;
   FOR item IN SELECT value FROM jsonb_array_elements(envelope->'restorations') LOOP
-    IF item->>'table' NOT IN ('public.roles','public.permissions','public.role_permissions')
+    IF (item->>'table' NOT IN ('public.roles','public.permissions','public.role_permissions')
+        AND NOT (item->>'table'='public.companies' AND item=envelope->'company'))
        OR item->'before'->>'id' IS DISTINCT FROM item->'after'->>'id' THEN
       RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_SEED_IDENTITY';
     END IF;

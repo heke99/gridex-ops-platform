@@ -37,9 +37,12 @@ def constructors():
     assert c.replay.scope_flags('fixed-target') == ['--fixed-target-prefix-proof']
     assert not any('selftest' in str(value) for value in c.__dict__.values() if isinstance(value,type(sys)))
     staging_controls(c)
+    seed_controls(c)
+    result_writer_controls(c)
     reference_controls(c)
     constructor_controls(c)
     cleanup_controls(c)
+    company_cleanup_controls(c)
     cleanup_context_controls(c)
     lifecycle_controls(c)
     memory_controls(c)
@@ -80,6 +83,120 @@ def staging_controls(c):
         rejected(c,lambda:c.validate_sources(c.reviewed_paths()[::-1],stage))
         rejected(c,lambda:c.validate_sources(c.reviewed_paths(),type('ForeignStage',(),{'hold':hold})()))
         rejected(c,lambda:c.Source('B0',hold/original[1].path.name,stage))
+
+def seed_fixture(c):
+    source=c.Source('B0')
+    row=dict(id='70000000-0000-4000-8000-000000000081',name=source.literal(226),
+        slug=source.literal(209),company_slug=source.literal(209),org_number=None,
+        normalized_org_number=None,status='active',is_active=True,is_paused=False,
+        metadata={'source':'db1_default_company'},created_at='2020-01-01T00:00:00+00:00',
+        updated_at='2020-01-01T00:00:00+00:00',created_by=None,updated_by=None,paused_at=None)
+    catalog={'relation/public.companies':{'kind':'r'}}
+    for name,value in row.items():
+        catalog['column/public.companies/'+name]=dict(type='text',notnull=False,default=None,
+            generated='',identity='',collation='-',acl=None)
+    catalog['column/public.companies/id'].update(type='uuid',default='gen_random_uuid()')
+    for name in ('created_at','updated_at'):
+        catalog['column/public.companies/'+name].update(type='timestamp with time zone',default='now()')
+    return catalog,row
+
+
+def seed_controls(c):
+    sources=c.validate_sources(c.reviewed_paths());catalog,row=seed_fixture(c)
+    before=(catalog,[['public.companies',row]])
+    template=c.seed_expectation(catalog,before[1],sources)
+    actual=copy.deepcopy(row);actual['id']='70000000-0000-4000-8000-000000000082'
+    actual['created_at']=actual['updated_at']='2021-01-01T00:00:00+00:00'
+    lower=c.datetime(2020,12,31,tzinfo=c.timezone.utc);upper=c.datetime(2021,1,2,tzinfo=c.timezone.utc)
+    assert c.bind_seed(template,actual,sources,lower,upper)==actual
+    for name in actual:
+        if name in ('id','created_at','updated_at'):continue
+        changed=copy.deepcopy(actual);changed[name]='unreviewed'
+        rejected(c,lambda:c.bind_seed(template,changed,sources,lower,upper))
+    for name,value in (('id',sources[2].slots['C_target']),('id','invalid'),
+                       ('created_at','1999-01-01T00:00:00+00:00'),('updated_at','2021-01-01T01:00:00+00:00')):
+        changed=copy.deepcopy(actual);changed[name]=value
+        rejected(c,lambda:c.bind_seed(template,changed,sources,lower,upper))
+    rejected(c,lambda:c.seed_expectation(catalog,before[1]*2,sources))
+    bad_catalog=copy.deepcopy(catalog);bad_catalog['column/public.companies/id']['default']='unreviewed()'
+    rejected(c,lambda:c.seed_expectation(bad_catalog,before[1],sources))
+    expected=c.prerequisite_state(before)
+    assert expected[1]==[['public.companies',dict(row,industry='electricity_supplier')]]
+    assert 'industry' not in row and before[0]==catalog
+    reserved=c.company_reservation(expected,sources)
+    assert reserved['before']==expected[1][0][1]
+    assert reserved['after']==dict(reserved['before'],slug='fixed-prefix-reserved-'+row['id'])
+    dirty=copy.deepcopy(expected);dirty[1][0][1]['org_number']=sources[1].literal(210,3)
+    rejected(c,lambda:c.company_reservation(dirty,sources))
+    # Exact B0 hyphen removal, not the broader generated digit normalization.
+    probe=dict(row,slug='inert',org_number='x'+sources[1].literal(210,3))
+    assert not c.company_matches(probe,sources[1])
+    probe['org_number']=sources[1].literal(210,3)[:3]+'-'+sources[1].literal(210,3)[3:]
+    assert c.company_matches(probe,sources[1])
+    incoming={'constraint/public.roles/company':{'kind':'f','definition':'FOREIGN KEY (company_id) REFERENCES companies(id)'}}
+    rejected(c,lambda:c.graph(incoming,[['public.companies',row],['public.roles',{'id':'role','company_id':row['id']}]]))
+    # Exercise the actual H2 capture boundary; only external owner/snapshot I/O
+    # is replaced. The independently frozen template must drive admission/S1.
+    for dirty in (False,True):
+        with synthetic_handle(c) as h:
+            dref=c.dedupe._REFERENCES[h]
+            c.dedupe._REFERENCES[h]=c.dedupe._Reference(dref.directory,dref.name,dref.legacy,dref.repair,catalog,catalog,[],True,'fixed-target')
+            c._REFERENCES[h]=c.Reference(h.name,h.directory.name,c.dedupe._REFERENCES[h],
+                c.encoded((c.prerequisite_catalog(catalog),[])),None,None,sources,template,lower)
+            captured=copy.deepcopy(actual)
+            if dirty:captured['metadata']={}
+            state=(catalog,[['public.companies',captured]])
+            with patch.object(c,'identity'),patch.object(c,'snapshot',return_value=state):
+                if dirty:
+                    try:c.capture_prefix(h)
+                    except c.BoundaryError as error:
+                        assert c.dedupe._failure_category(error)=='DETERMINISTIC_PREFIX_SEED_REQUIRED'
+                    else:raise AssertionError('DIRTY_PREFIX_SEED_ACCEPTED')
+                else:
+                    c.capture_prefix(h)
+                    assert c.decoded(c._RUNS[h].s0)==state
+                    assert c.decoded(c._RUNS[h].s1)==c.prerequisite_state(state)
+                    assert json.loads(c._RUNS[h].company)==c.company_reservation(c.prerequisite_state(state),sources)
+                    rejected(c,lambda:c.capture_prefix(h))
+
+
+def result_writer_controls(c):
+    core=characterization();controls=core.load('continuation_result_controls','canonical-user-rbac-fixed-target-controls.py')
+    _,row=seed_fixture(c);payload=json.dumps([['public.companies',row]]).encode()
+    with controls.accepted_handle(core) as h,c.AcceptedInputs(h) as inputs:
+        path=h.private('result-test.sql','SELECT synthetic_result;')
+        for failure in (None,'sql_error','process_error','wrong_bytes','wrong_frame','phase','reference','staging'):
+            output=io.StringIO();authorizations=[]
+            def process(argv,**kwargs):
+                authorizations.append(inputs.result_call)
+                if failure=='process_error':raise OSError('PRIVATE_CANARY')
+                if failure=='wrong_frame':h.private('client-last.out',payload)
+                if failure=='phase':c.dedupe._STATES[h]='FRESH'
+                if failure=='reference':h.reference=({},None)
+                if failure=='staging':inputs.staging=object()
+                return subprocess.CompletedProcess(argv,1 if failure=='sql_error' else 0,payload,b'ERROR:  XX000: synthetic' if failure=='sql_error' else b'')
+            original=h.reference
+            old_write=inputs._write
+            def write(name,data,frame):
+                return old_write(name,data+b'changed' if name=='client-last.out' else data,frame)
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(contextlib.redirect_stdout(output))
+                stack.enter_context(patch.object(subprocess,'run',side_effect=process))
+                if failure=='wrong_bytes':stack.enter_context(patch.object(inputs,'_write',side_effect=write))
+                if failure is None:
+                    assert h.run_files(c.replay.DATABASE,[path],'dedupe_preimage')==payload.decode()
+                else:rejected(c,lambda:h.run_files(c.replay.DATABASE,[path],'dedupe_preimage'))
+            assert not (Path(h.directory.name)/'client-last.out').exists(),'RESULT_ARTIFACT_MUST_NOT_BE_WRITTEN'
+            assert inputs.result_call is None and all(not call for call in authorizations)
+            assert payload not in output.getvalue().encode()
+            c.dedupe._STATES.pop(h,None);h.reference=original;inputs.staging=None
+        rejected(c,lambda:h.private('client-last.out',payload))
+    # Closing restores ordinary writer behavior; copied output is not exempt.
+    with controls.accepted_writers(core) as proof:
+        artifact=Path(proof.directory)/'client-last.out';artifact.write_bytes(payload)
+        with patch.object(subprocess,'run',return_value=subprocess.CompletedProcess([],0,b'',b'')):
+            rejected(c,lambda:core.private_inputs.privacy(core,proof))
+
 
 def reference_controls(c):
     baseline={'relation/public.companies':{'kind':'r'},
@@ -126,17 +243,23 @@ def constructor_controls(c):
     column('public.companies','created_at','now()',True,'timestamp with time zone')
     column('public.companies','industry',"'electricity_supplier'::text",True)
     sources=c.validate_sources(c.reviewed_paths())
-    sql,oracle=c.constructor((catalog,[]),sources)
-    assert sql.count('INSERT INTO ')==4
-    assert {table:len(rows) for table,rows in oracle.rows.items()}=={'auth.users':3,'public.companies':1}
-    users=oracle.rows['auth.users'];company=oracle.rows['public.companies'][0]
+    seed={key.split('/')[-1]:None for key in catalog if key.startswith('column/public.companies/')}
+    seed.update(id='70000000-0000-4000-8000-000000000081',name=sources[1].literal(226),
+                slug=sources[1].literal(209),status='active',created_at='2019-01-01T00:00:00+00:00',industry='electricity_supplier')
+    before=(catalog,[['public.companies',seed]])
+    sql,oracle=c.constructor(before,sources)
+    assert sql.count('INSERT INTO ')==4 and sql.count('UPDATE public.companies')==1
+    assert 'DELETE FROM' not in sql and 'SET id=' not in sql and 'to_jsonb(t)=' in sql
+    assert {table:len(rows) for table,rows in oracle.rows.items()}=={'public.companies':2,'auth.users':3}
+    assert oracle.rows['public.companies'][0]==dict(seed,slug='fixed-prefix-reserved-'+seed['id'])
+    users=oracle.rows['auth.users'];company=oracle.rows['public.companies'][1]
     assert {row['id'] for row in users}=={sources[1].slots['U_boot'],sources[2].slots['U_target'],sources[2].slots['U_actor']}
     assert sources[4].slots['U_old'] not in {row['id'] for row in users}
     assert company['id']==sources[2].slots['C_target'] and company['slug']==sources[1].literal(209)
     assert company['created_by'] is None and company['updated_by'] is None
     assert all(row['encrypted_password'] is None and row['raw_app_meta_data'] is None and row['raw_user_meta_data'] is None for row in users)
     dirty=copy.deepcopy(catalog);dirty['column/auth.users/encrypted_password']['default']="'unsafe'::text"
-    rejected(c,lambda:c.constructor((dirty,[]),sources))
+    rejected(c,lambda:c.constructor((dirty,before[1]),sources))
 
 def cleanup_controls(c):
     def uid(n):return '60000000-0000-4000-8000-'+str(n).zfill(12)
@@ -173,13 +296,35 @@ def cleanup_controls(c):
     rejected(c,lambda:c.Oracle(c,original).assert_snapshot(mismatch))
 
 
+def company_cleanup_controls(c):
+    sources=c.validate_sources(c.reviewed_paths());catalog,row=seed_fixture(c)
+    before=c.prerequisite_state((catalog,[['public.companies',row]]))
+    company=c.company_reservation(before,sources)
+    post=(before[0],[['public.companies',company['after']],
+                    ['public.companies',dict(company['after'],id=sources[2].slots['C_target'],slug=sources[1].literal(209))]])
+    deletions,restores=c.cleanup_plan(before,post,company)
+    assert [item['row']['id'] for item in deletions]==[sources[2].slots['C_target']]
+    assert restores==[company] and company['before']['id']==company['after']['id']
+    for change in ('id','slug','missing','foreign_reservation'):
+        changed=copy.deepcopy(post);binding=copy.deepcopy(company)
+        if change=='id':changed[1][0][1]['id']='70000000-0000-4000-8000-000000000099'
+        if change=='slug':changed[1][0][1]['slug']='unexpected'
+        if change=='missing':changed[1].pop(0)
+        if change=='foreign_reservation':binding['before']['id']=binding['after']['id']='70000000-0000-4000-8000-000000000099'
+        rejected(c,lambda:c.cleanup_plan(before,changed,binding))
+    rejected(c,lambda:c.cleanup_plan(before,post))
+
+
 def cleanup_context_controls(c):
     with synthetic_handle(c) as h:
         check={'kind':'c','definition':'CHECK (true)','validated':True,'deferrable':False,'deferred':False,'noinherit':False}
-        before=({c.CHECK_KEY:check},[])
-        c._RUNS[h]=c.Reservation(None,c.encoded(before),c.encoded(before),'a'*32)
-        sources=c.validate_sources(c.reviewed_paths())
-        payload=c.cleanup_input(h,sources,before)
+        catalog,row=seed_fixture(c);catalog[c.CHECK_KEY]=check
+        before=c.prerequisite_state((catalog,[['public.companies',row]]))
+        sources=c.validate_sources(c.reviewed_paths());company=c.company_reservation(before,sources)
+        post=(before[0],[['public.companies',company['after']]])
+        c._RUNS[h]=c.Reservation(None,c.encoded(before),c.encoded(before),'a'*32,c.encoded(company))
+        payload=c.cleanup_input(h,sources,post)
+        assert b'company jsonb NOT NULL' in payload and c.value_sql(json.loads(c.encoded(company))).encode() in payload
         assert b'CREATE TEMP TABLE fixed_restoration_reservation' in payload,'INDEPENDENT_CLEANUP_RESERVATION_MISSING'
         assert payload.endswith(sources[-1].data)
         for source in sources:assert c.hashlib.sha256(source.data).hexdigest().encode() in payload
@@ -363,6 +508,7 @@ def native_case(mode,actual=False,prior=None):
                 assert not submitted and c.dedupe._STATES[h]=='H2_COMPLETE'
                 if mode=='dirty_rows':
                     reader.query(database,"INSERT INTO public.companies(id,name) VALUES('70000000-0000-4000-8000-000000000001','synthetic dirty');")
+                if mode=='dirty_company':reader.query(database,"UPDATE public.companies SET metadata='{}'::jsonb;")
                 if mode=='dirty_seed':
                     row=next(row for table,row in c.decoded(c._RUNS[h].s0)[1] if table=='public.roles')
                     reader.query(database,"UPDATE public.roles SET description='synthetic dirty' WHERE id="+c.value_sql(row['id'])+';')
@@ -389,12 +535,18 @@ def native_case(mode,actual=False,prior=None):
                     row=next(row for table,row in post[1] if table=='public.audit_logs')
                     injection='DELETE FROM public.audit_logs WHERE id='+c.value_sql(row['id'])+';'
                 if mode=='seed_id':
-                    assert c.cleanup_plan(c.decoded(c._RUNS[h].s1),post)[1]
-                    injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,'{restorations,0,before,id}','\"70000000-0000-4000-8000-000000000099\"'::jsonb);"
+                    assert c.cleanup_plan(c.decoded(c._RUNS[h].s1),post,json.loads(c._RUNS[h].company))[1]
+                    injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,ARRAY['restorations',(SELECT (ordinality-1)::text FROM jsonb_array_elements(value->'restorations') WITH ORDINALITY r(item,ordinality) WHERE item->>'table'='public.roles' LIMIT 1),'before','id'],to_jsonb('70000000-0000-4000-8000-000000000099'::text));"
                 if mode=='envelope_hash':
                     injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,'{hashes,0}',to_jsonb(repeat('0',64)));"
+                if mode=='company_id':
+                    injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,'{company,before,id}',to_jsonb('70000000-0000-4000-8000-000000000099'::text));"
+                if mode=='company_postimage':
+                    injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,'{company,after,slug}',to_jsonb('unreserved'::text));"
+                if mode=='company_skip':
+                    injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,'{restorations}',(SELECT coalesce(jsonb_agg(x),'[]'::jsonb) FROM jsonb_array_elements(value->'restorations') x WHERE x->>'table'<>'public.companies'));"
                 if mode=='skip_restore':
-                    assert c.cleanup_plan(c.decoded(c._RUNS[h].s1),post)[1]
+                    assert c.cleanup_plan(c.decoded(c._RUNS[h].s1),post,json.loads(c._RUNS[h].company))[1]
                     injection="UPDATE fixed_restoration_context SET value=jsonb_set(value,'{restorations}','[]'::jsonb);"
                 return raw[:-len(selected[-1].data)]+injection.encode()+b'\n'+selected[-1].data
             def dispose(target):
@@ -431,7 +583,9 @@ def native_case(mode,actual=False,prior=None):
                 if mode in ('success','repeat','standalone'):
                     assert operation()==0
                     assert submitted==['P','B0','C2','D2','F2','X']
-                    assert reader.snapshot(c.replay.DATABASE)==c.decoded(c._RUNS[h].s1)
+                    final=reader.snapshot(c.replay.DATABASE)
+                    assert final==c.decoded(c._RUNS[h].s1)
+                    assert [row for table,row in final[1] if table=='public.companies']==[json.loads(c._RUNS[h].company)['before']]
                     if actual:
                         assert c.dedupe._STATES[h]=='SUCCEEDED'
                         rejected(c,lambda:c.dedupe.continue_fixed(h,c.replay.DATABASE,c.reviewed_paths(),inputs.closed_staging))
@@ -444,8 +598,10 @@ def native_case(mode,actual=False,prior=None):
                 else:
                     rejected(c,operation)
                     assert c.dedupe._STATES[h]=='DISPOSED' and disposed==[h]
-                    if mode in ('dirty_rows','dirty_seed','dirty_default','incoming_hook','owner','hash','stage'):
+                    if mode in ('dirty_rows','dirty_company','dirty_seed','dirty_default','incoming_hook','owner','hash','stage'):
                         assert not submitted
+                    if mode in ('missing_capture','seed_id','skip_restore','envelope_hash','company_id','company_postimage','company_skip','X_error','catalog','sequence'):
+                        assert submitted==['P','B0','C2','D2','F2','X'],'ACTUAL_X_FAILURE_REQUIRED'
                     if mode in ('D2_error','D2_backend','F2_error','F2_backend'):
                         assert observed==['COMMITTED_'+mode[:2]]
                     rejected(c,lambda:c.dedupe.fresh_target(h))
@@ -504,9 +660,9 @@ def native():
     first=native_case('success',actual=True)
     native_case('repeat',actual=True,prior=first)
     # Each rejected handle is disposed; no fixture re-arms a prior lifecycle.
-    for mode in ('dirty_rows','dirty_seed','dirty_default','incoming_hook','owner','hash','stage',
+    for mode in ('dirty_rows','dirty_company','dirty_seed','dirty_default','incoming_hook','owner','hash','stage',
                  'D2_error','D2_backend','F2_error','F2_backend','missing_capture','seed_id',
-                 'skip_restore','envelope_hash','X_error','catalog','sequence'):
+                 'skip_restore','envelope_hash','company_id','company_postimage','company_skip','X_error','catalog','sequence'):
         native_case(mode)
     native_case('child_exit',actual=True)
     controller_deaths()

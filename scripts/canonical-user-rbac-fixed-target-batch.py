@@ -562,7 +562,7 @@ def normalize(o, source, member_value='company_admin'):
 # imported here; the compatibility oracle module re-exports the semantics above.
 P_NAME = '20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql'
 X_NAME = '20260911095505_canonical_user_rbac_fixed_target_restoration.sql'
-FORWARD = {'P': ('50a29a266a5c270ebcbd407099d5bc408291ad1115e478002f5d114131e8ad80', 27), 'X': ('79d345f2d3dd36099431711ec3b774a6a950f541e0b3866644b4de9495f46503', 93)}
+FORWARD = {'P': ('50a29a266a5c270ebcbd407099d5bc408291ad1115e478002f5d114131e8ad80', 27), 'X': ('f6fbfd30b62e9529539c27c00722c89446e6ed5dd7cbed9217594f7202025ee7', 107)}
 _DATABASE = replay.DATABASE
 _REFERENCES = weakref.WeakKeyDictionary()
 _RUNS = weakref.WeakKeyDictionary()
@@ -622,6 +622,79 @@ def prerequisite_catalog(base):
     return result
 
 
+def single_seed(rows):
+    companies = [row for table,row in rows if table=='public.companies']
+    check(len(companies)==1, 'EXACT_PREFIX_COMPANY_REQUIRED')
+    return companies[0]
+
+
+def seed_expectation(catalog, rows, sources):
+    """Freeze the independently prepared prefix's complete deterministic row."""
+    row = single_seed(rows)
+    columns = {key.split('/')[-1] for key in catalog if key.startswith('column/public.companies/')}
+    check(set(row)==columns and {'id','created_at','updated_at'}<=columns, 'COMPLETE_PREFIX_SEED_REQUIRED')
+    for name in ('id','created_at','updated_at'):
+        column = catalog['column/public.companies/'+name]
+        check(not column['generated'] and not column['identity'] and
+              (column['type']=='uuid' and column['default'] in ('gen_random_uuid()','extensions.gen_random_uuid()')
+               if name=='id' else column['type']=='timestamp with time zone' and column['default']=='now()'),
+              'PREFIX_SEED_GENERATED_SHAPE_REQUIRED')
+    boot = sources[1]
+    expected = dict(name=boot.literal(226),slug=boot.literal(209),company_slug=boot.literal(209),
+                    org_number=None,normalized_org_number=None,status='active',is_active=True,is_paused=False,
+                    metadata={'source':'db1_default_company'},created_by=None,updated_by=None)
+    check(all(key in row and row[key]==value for key,value in expected.items()), 'PINNED_PREFIX_SEED_REQUIRED')
+    return encoded(row)
+
+
+def bind_seed(template, actual, sources, lower, upper):
+    expected = json.loads(template)
+    check(type(actual) is dict and set(actual)==set(expected), 'COMPLETE_PREFIX_SEED_REQUIRED')
+    generated = ('id','created_at','updated_at')
+    check({k:v for k,v in actual.items() if k not in generated}==
+          {k:v for k,v in expected.items() if k not in generated}, 'DETERMINISTIC_PREFIX_SEED_REQUIRED')
+    value = actual['id']
+    check(type(value) is str and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}',value)
+          and value not in {v for source in sources[1:-1] for k,v in source.slots.items() if k!='email'},
+          'PREFIX_SEED_IDENTITY_REQUIRED')
+    times = []
+    for key in generated[1:]:
+        check(type(actual[key]) is str, 'PREFIX_SEED_CLOCK_REQUIRED')
+        try: stamp = datetime.fromisoformat(actual[key])
+        except ValueError: raise BoundaryError('PREFIX_SEED_CLOCK_REQUIRED') from None
+        check(stamp.tzinfo is not None and lower<=stamp<=upper, 'PREFIX_SEED_CLOCK_REQUIRED')
+        times.append(stamp)
+    expected_times = [datetime.fromisoformat(expected[key]) for key in generated[1:]]
+    check(times[0]<=times[1] and (times[0]==times[1])==(expected_times[0]==expected_times[1]),
+          'PREFIX_SEED_CLOCK_REQUIRED')
+    return copy.deepcopy(actual)
+
+
+def prerequisite_state(before):
+    catalog,rows = before
+    result = copy.deepcopy(rows)
+    seed = single_seed(result)
+    check('industry' not in seed and not any(table=='public.company_memberships' for table,_ in rows),
+          'FRESH_PREREQUISITE_ROWS_REQUIRED')
+    seed['industry'] = 'electricity_supplier'
+    return prerequisite_catalog(catalog),result
+
+
+def company_matches(row, source):
+    # B0 strips hyphens only. The generated normalization expression is broader.
+    return row.get('slug')==source.literal(209) or (row.get('org_number') or '').replace('-','')==source.literal(210,3)
+
+
+def company_reservation(before, sources):
+    seed = single_seed(before[1])
+    check(seed['id']!=sources[2].slots['C_target'] and seed.get('org_number') is None
+          and seed.get('normalized_org_number') is None and company_matches(seed,sources[1]),
+          'PREFIX_COMPANY_RESERVATION_REQUIRED')
+    reserved = dict(seed,slug='fixed-prefix-reserved-'+seed['id'])
+    check(not company_matches(reserved,sources[1]), 'PREFIX_PREDICATE_RESERVATION_REQUIRED')
+    return dict(table='public.companies',before=copy.deepcopy(seed),after=reserved)
+
+
 @dataclass(frozen=True,repr=False)
 class Reference:
     name: str
@@ -631,6 +704,8 @@ class Reference:
     originals: object
     inputs: object
     sources: tuple
+    seed_template: bytes = b''
+    started: object = None
 
 
 @dataclass(frozen=True,repr=False)
@@ -639,6 +714,7 @@ class Reservation:
     s0: bytes
     s1: bytes
     token: str
+    company: bytes = b''
 
 
 def owned(target, stage=None):
@@ -661,8 +737,14 @@ def prepare_reference(target):
     check(type(inputs) is replay.load_private().AcceptedInputs, 'PRIVATE_FIXED_PREPARATION_REQUIRED')
     inputs.owned()
     sources = validate_sources(reviewed_paths())
+    frame = sys._getframe(1)
+    check(frame.f_code is dedupe.prepare_reference.__code__ and frame.f_locals.get('target') is target
+          and frame.f_locals.get('final') is dedupe._REFERENCES[target].final,
+          'INDEPENDENT_PREFIX_REFERENCE_REQUIRED')
+    template = seed_expectation(dedupe._REFERENCES[target].final,frame.f_locals['rows'],sources)
     _REFERENCES[target] = Reference(target.name,target.directory.name,dedupe._REFERENCES[target],
-        encoded((prerequisite_catalog(dedupe._REFERENCES[target].final),[])),replay.originals_snapshot(),inputs,sources)
+        encoded((prerequisite_catalog(dedupe._REFERENCES[target].final),[])),replay.originals_snapshot(),inputs,sources,
+        template,datetime.now(timezone.utc))
 
 
 @dataclass(repr=False)
@@ -777,6 +859,12 @@ def graph(catalog,rows):
     for child,_,parent,_ in fks:
         if child in WRITE_TABLES:
             check(parent in WRITE_TABLES,'UNREVIEWED_FK_TARGET')
+    for seed in (row for table,row in rows if table=='public.companies'):
+        for child,columns,parent,parents in fks:
+            if parent=='public.companies':
+                check(not any(table==child and all(row[column] is not None and row[column]==seed[key]
+                          for column,key in zip(columns,parents)) for table,row in rows),
+                      'EMPTY_PREFIX_COMPANY_DESCENDANTS_REQUIRED')
     for table,row in rows:
         if table in reachable-WRITE_TABLES or (table.startswith('auth.') and not table.endswith('_seq')):
             check(table in SEEDS,'EMPTY_DEPENDENT_GRAPH_REQUIRED')
@@ -789,12 +877,17 @@ def capture_prefix(target):
     identity(target)
     before = snapshot(target)
     check(before[0] == ref.dedupe.final,'ACTUAL57_FIXED_CATALOG_REQUIRED')
-    for table,_ in before[1]:
-        check(table not in WRITE_TABLES-SEEDS,'EMPTY_FIXED_BUSINESS_REQUIRED')
+    seed = bind_seed(ref.seed_template,single_seed(before[1]),ref.sources,ref.started,datetime.now(timezone.utc))
+    for table,row in before[1]:
+        check(table not in WRITE_TABLES-SEEDS or (table=='public.companies' and row==seed),
+              'EMPTY_FIXED_BUSINESS_REQUIRED')
     graph(prerequisite_catalog(before[0]),before[1])
     expected_catalog = decoded(ref.final_catalog)[0]
     check(expected_catalog==prerequisite_catalog(before[0]),'INDEPENDENT_FIXED_CATALOG_REQUIRED')
-    _RUNS[target] = Reservation(ref,encoded(before),encoded((expected_catalog,before[1])),uuid.uuid4().hex)
+    expected = prerequisite_state(before)
+    check(expected[0]==expected_catalog,'INDEPENDENT_FIXED_CATALOG_REQUIRED')
+    _RUNS[target] = Reservation(ref,encoded(before),encoded(expected),uuid.uuid4().hex,
+                                encoded(company_reservation(expected,ref.sources)))
 
 
 def constructor(before,sources):
@@ -806,7 +899,13 @@ def constructor(before,sources):
               ('auth.users',dict(id=shared.slots['U_actor'],email='fixed-actor@example.invalid')),
               ('public.companies',dict(id=shared.slots['C_target'],name='Synthetic fixed target',
                  slug=boot.literal(209),status='active',created_by=None,updated_by=None))]
-    statements=[]
+    reservation = company_reservation(before,sources)
+    seed = o.one('public.companies',id=reservation['before']['id'])
+    o.update('public.companies',seed,{'slug':reservation['after']['slug']})
+    statements=["DO $fixed_seed$ DECLARE affected bigint; BEGIN UPDATE public.companies t SET slug="+
+        value_sql(reservation['after']['slug'])+" WHERE t.id="+value_sql(seed['id'])+"::uuid AND to_jsonb(t)="+
+        value_sql(reservation['before'])+"; GET DIAGNOSTICS affected=ROW_COUNT; IF affected<>1 THEN "
+        "RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='FIXED_PREFIX_PREIMAGE_MISMATCH'; END IF; END $fixed_seed$;"]
     for table,overrides in values:
         columns=o.columns(table)
         row={}
@@ -826,11 +925,13 @@ def constructor(before,sources):
         statements.append('INSERT INTO '+qualified(table)+' ('+','.join(ident(k) for k in row)+') VALUES ('+
                           ','.join(value_sql(v) for v in row.values())+');')
         o.generated_columns(table,row); o.table(table).append(row)
-    check(len(o.table('public.companies'))==1,'ONE_SHARED_COMPANY_REQUIRED')
+    companies=o.table('public.companies')
+    check(len(companies)==2 and [row['id'] for row in companies if company_matches(row,boot)]==[shared.slots['C_target']]
+          and o.one('public.companies',id=seed['id'])==reservation['after'],'UNIQUE_FIXED_COMPANY_REQUIRED')
     return '\n'.join(statements),o
 
 
-def cleanup_plan(before,after):
+def cleanup_plan(before,after,company=None):
     """Exact captured PK differences and a row-specific child-first ordering."""
     original={(table,row['id']):row for table,row in before[1] if table in WRITE_TABLES}
     current={(table,row['id']):row for table,row in after[1] if table in WRITE_TABLES}
@@ -840,7 +941,12 @@ def cleanup_plan(before,after):
     generated={key:row for key,row in current.items() if key not in original}
     restored=[]
     for (table,key),row in original.items():
-        check(table in SEEDS,'ORIGINAL_BUSINESS_FORBIDDEN')
+        if table=='public.companies':
+            check(type(company) is dict and company.get('table')==table
+                  and company.get('before')==row and company.get('after')==current[table,key]
+                  and company['before']['id']==company['after']['id'], 'EXACT_COMPANY_RESTORATION_REQUIRED')
+        else:
+            check(table in SEEDS,'ORIGINAL_BUSINESS_FORBIDDEN')
         if current[table,key]!=row:
             restored.append(dict(table=table,before=row,after=current[table,key]))
     fks=foreign_keys(after[0]); deletions=[]
@@ -867,12 +973,16 @@ def cleanup_plan(before,after):
 
 def cleanup_input(target,sources,post):
     reservation=_RUNS[target]; before=decoded(reservation.s1)
-    deletions,restorations=cleanup_plan(before,post)
+    company=json.loads(reservation.company)
+    check(company==company_reservation(before,sources),'INDEPENDENT_COMPANY_RESERVATION_REQUIRED')
+    deletions,restorations=cleanup_plan(before,post,company)
+    check([item for item in restorations if item['table']=='public.companies']==[company],
+          'EXACT_COMPANY_RESTORATION_REQUIRED')
     envelope=dict(database=_DATABASE,owner=target.name,stage='F2_COMPLETE',reservation=reservation.token,
                   hashes=[hashlib.sha256(s.data).hexdigest() for s in sources],post_catalog=post[0],post_rows=post[1],
-                  deletions=deletions,restorations=restorations,membership_check=before[0][CHECK_KEY])
-    context="CREATE TEMP TABLE fixed_restoration_reservation(owner text NOT NULL,reservation text NOT NULL,hashes jsonb NOT NULL,database_name text NOT NULL,backend integer NOT NULL,transaction_id bigint NOT NULL,stage text NOT NULL) ON COMMIT DROP;\n"
-    context+="INSERT INTO fixed_restoration_reservation SELECT "+value_sql(target.name)+","+value_sql(reservation.token)+","+value_sql(envelope['hashes'])+",current_database(),pg_backend_pid(),txid_current(),'F2_COMPLETE';\n"
+                  deletions=deletions,restorations=restorations,company=company,membership_check=before[0][CHECK_KEY])
+    context="CREATE TEMP TABLE fixed_restoration_reservation(owner text NOT NULL,reservation text NOT NULL,hashes jsonb NOT NULL,database_name text NOT NULL,backend integer NOT NULL,transaction_id bigint NOT NULL,stage text NOT NULL,company jsonb NOT NULL) ON COMMIT DROP;\n"
+    context+="INSERT INTO fixed_restoration_reservation SELECT "+value_sql(target.name)+","+value_sql(reservation.token)+","+value_sql(envelope['hashes'])+",current_database(),pg_backend_pid(),txid_current(),'F2_COMPLETE',"+value_sql(company)+";\n"
     context+="CREATE TEMP TABLE fixed_restoration_context(value jsonb NOT NULL) ON COMMIT DROP;\n"
     context+="INSERT INTO fixed_restoration_context SELECT "+value_sql(envelope)+" || jsonb_build_object('backend',pg_backend_pid()::text,'transaction',txid_current()::text);\n"
     context+=repair.catalog_capture('fixed_post_catalog')+'\n'
