@@ -573,7 +573,8 @@ DIAGNOSTIC_STAGES = frozenset(('entry', 'owner_requirement', 'source_snapshot',
 QUERY_CATEGORIES = {'42601': 'QUERY_SYNTAX', '42703': 'QUERY_UNDEFINED_COLUMN',
     '42P01': 'QUERY_UNDEFINED_RELATION', '42704': 'QUERY_UNDEFINED_OBJECT',
     '42804': 'QUERY_DATATYPE', '42883': 'QUERY_UNDEFINED_FUNCTION',
-    '42501': 'QUERY_PRIVILEGE', '55P03': 'QUERY_LOCK', 'P0004': 'QUERY_ASSERTION'}
+    '42501': 'QUERY_PRIVILEGE', '55P03': 'QUERY_LOCK', 'P0004': 'QUERY_ASSERTION',
+    '2BP01': 'QUERY_DEPENDENCY'}
 DIAGNOSTIC_STAGES |= frozenset((
     'case_baseline',
     'case_populated',
@@ -677,6 +678,24 @@ class NativeQueryError(batch.BoundaryError):
         self.category = query_failure_category(state)
 
 
+class NativeSetupError(batch.BoundaryError):
+    """Closed 43-case setup receipt; never retain a native result or SQL."""
+    def __init__(self, failures):
+        super().__init__()
+        self.variants = []
+        if type(failures) is not list or not 0 < len(failures) <= 43:
+            return
+        if not all(type(item) is tuple and len(item) == 2
+                   and type(item[0]) is int and 0 <= item[0] < 43
+                   and type(item[1]) is str and item[1] in QUERY_CATEGORIES
+                   for item in failures):
+            return
+        if len({item[0] for item in failures}) != len(failures):
+            return
+        self.variants = [dict(ordinal=ordinal, category=QUERY_CATEGORIES[state])
+                         for ordinal, state in failures]
+
+
 class NativeResultError(batch.BoundaryError):
     """Finite diagnostic only; no Result, SQL or stderr retained by the error."""
     def __init__(self, result):
@@ -707,7 +726,7 @@ def failure_receipt(stage, error):
     """Finite literals only; unknown exception content is never disclosed."""
     stage = stage if type(stage) is str and stage in DIAGNOSTIC_STAGES else 'internal'
     kind = {batch.BoundaryError: 'BOUNDARY', NativeQueryError: 'QUERY',
-            NativeResultError: 'NATIVE_RESULT',
+            NativeResultError: 'NATIVE_RESULT', NativeSetupError: 'SETUP',
             AssertionError: 'ASSERTION', ValueError: 'VALUE', KeyError: 'KEY',
             TypeError: 'TYPE', AttributeError: 'ATTRIBUTE', json.JSONDecodeError: 'JSON',
             OSError: 'PROCESS', subprocess.TimeoutExpired: 'TIMEOUT'}.get(type(error), 'OTHER')
@@ -716,6 +735,8 @@ def failure_receipt(stage, error):
         candidate = error.category
         category = candidate if type(candidate) is str and candidate in QUERY_CATEGORIES.values() else 'PRIVATE_QUERY_FAILED'
     receipt = dict(stage=stage, type=kind, category=category)
+    if type(error) is NativeSetupError:
+        receipt.update(category='GUARD_SETUP_REJECTED', variants=error.variants)
     if type(error) is batch.BoundaryError and len(error.args) == 1:
         guard = error.args[0]
         if type(guard) is str and guard in CASE_GUARDS:

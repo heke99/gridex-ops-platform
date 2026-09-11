@@ -436,6 +436,24 @@ def guard_sources(c, p):
         (source_c, 'unguarded-c-join', 'ALTER TABLE public.billing_export_run_items ADD COLUMN contract_id uuid; ALTER TABLE public.ediel_inbound_cases DROP COLUMN ediel_message_id;', '42703'),
         (source_c, 'unguarded-c-expression', 'ALTER TABLE public.billing_export_run_items ADD COLUMN contract_id uuid; ALTER TABLE public.customer_contracts DROP COLUMN customer_site_id;', '42703'),
     ]
+    c.check(len(variants) == 43, 'ALIGNMENT_GUARD_SETUP_SOURCE_DEPENDENCY')
+    # Probe every named setup in an independently rolled-back transaction. A
+    # setup failure remains blocking; collect the complete fixed ordinal matrix
+    # so one dependent column does not hide every remaining source dependency.
+    database = p.fresh_generation(c.ATOMIC, 'guard-setup-preflight')
+    failures = []
+    try:
+        original = p.snapshot(database)
+        for ordinal, (_, _, setup, _) in enumerate(variants):
+            if setup:
+                result = p.run(database, setup + '\nROLLBACK;')
+                if result.code != 0 or result.state != '00000':
+                    failures.append((ordinal, result.state))
+                preserved(c, p, database, original)
+    finally:
+        p.dispose(database)
+    if failures:
+        raise c.NativeSetupError(failures)
     for source, name, setup, state in variants:
         database = p.fresh_generation(c.ATOMIC, name)
         try:

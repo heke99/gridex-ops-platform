@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "98027a8112a46c6104dec9ab65e111841228daa1"
+    "published_baseline": "1c979ecf57930182455eeb8ddc92bf8bdbad2527"
   },
-  "next_action": "Publish reviewed directional HOT catalog correction, require native32-case SQL matrix and full alignment, then continue source/native replay/types."
+  "next_action": "Inspect all43 native guard setup outcomes, correct source-proved fixture dependencies, require full alignment then continue native replay/schema/types."
 }

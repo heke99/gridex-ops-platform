@@ -15,6 +15,20 @@ spec.loader.exec_module(c)
 
 
 class Diagnostics(unittest.TestCase):
+    def test_guard_setup_receipt_is_a_finite_ordinal_matrix(self):
+        self.assertTrue(hasattr(c, 'NativeSetupError'))
+        error = c.NativeSetupError([(0, '2BP01'), (2, '42703')])
+        receipt = c.failure_receipt('case_guard_sources', error)
+        self.assertEqual(receipt, dict(stage='case_guard_sources', type='SETUP',
+            category='GUARD_SETUP_REJECTED', variants=[
+                {'ordinal': 0, 'category': 'QUERY_DEPENDENCY'},
+                {'ordinal': 2, 'category': 'QUERY_UNDEFINED_COLUMN'}]))
+        for bad in ([('private', '2BP01')], [(True, '2BP01')], [(99, '2BP01')],
+                    [(0, 'private')], [(0, '2BP01'), (0, '2BP01')]):
+            receipt = c.failure_receipt('case_guard_sources', c.NativeSetupError(bad))
+            self.assertEqual(receipt['variants'], [])
+            self.assertNotIn('private', json.dumps(receipt))
+
     def test_case_and_known_guard_survive_cleanup(self):
         c._NATIVE_FAILURE = None
         original = c.batch.BoundaryError('ALIGNMENT_EMPTY_COUNT_SOURCE_ORACLE')

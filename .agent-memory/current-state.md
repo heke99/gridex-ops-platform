@@ -10,27 +10,26 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published baseline: `98027a8112a46c6104dec9ab65e111841228daa1`.
+- Published baseline: `1c979ecf57930182455eeb8ddc92bf8bdbad2527`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Hosted alignment103411642582/OPS34644416888 proves populated failure is
-  exactly18 alignment_index/check_xmin differences, with no other catalog drift.
-  Empty baseline passes; final cleanupPASS.
-- Root cause: source DML before new index builds can create HOT chains, so PG17
-  sets indcheckxmin=True; independent empty DDL oracle has False. This is an
-  MVCC safety restriction, not a changed index definition. PG17 documentation
-  and exact REL_17_STABLE index/heap source confirm the mechanism.
-- Correction in review: only permit expectedFalse->actualTrue for source-selected
-  new indexes absent from BOTH base index projections. Full field shape, all
-  remaining fields, valid/ready/liveTrue required. Existing/unknown index drift,
-  reverse/missing/nonboolean flag or any other object/field difference reject.
-  Raw admission, clones, rollback, repeat and origin catalogs remain unchanged.
-- New Python matrix observedRED thenGREEN, including bool-vs-int rejection;
- 26constructors+5diagnosticsPASS. The identical32-case matrix runs in native SQL
-  before behavior cases; scoped implementation review APPROVED, no material
-  findings. Hosted corrected acceptance remains pending.
-- Next: publish reviewed fix, inspect corrected full alignment, then proceed with
-  source disposition/native replay/schema/types. Main/app.gridex.se remains
-  eb9a25bc; connected ledger tail20260904222450. No production writes.
+- The directional source-scoped HOT correction now passes native32-case SQL
+  controls and the nine behavior cases preceding guard_sources, including
+  populated full rows/catalog, boundary privileges, standalone C, loss rejection,
+  RPC/count/role oracles. OPS34645171060/alignment103414093339 fails later at
+  case_guard_sources/ALIGNMENT_GUARD_SETUP_SOURCE_DEPENDENCY. CleanupPASS.
+- Failure is during fixture setup before B/C source execution. The43 omission
+  setups run against actual63, which includes column-dependent policies/views.
+  Exact blocked variants must be measured before any fixture correction.
+- Current diagnostic batch probes all43 setups in individually rolled-back
+  transactions and verifies exact catalog/row preservation after each attempt.
+  Failure still blocks; only fixed ordinals and finite error categories escape.
+  No CASCADE or production/source/selection changes.6diagnostics+26constructors
+  PASS; new receipt test observed1RED->GREEN. Independent scoped review APPROVED.
+- Next: publish reviewed setup diagnostic, inspect full blocked-variant receipt,
+  make a source-reviewed bounded fixture correction, require full native
+  alignment, then proceed with source disposition/native replay/schema/types.
+- Main/app.gridex.se remains eb9a25bc; connected ledger tail20260904222450.
+  No production writes; full plan and production parity remain incomplete.
 
 ## Verified starting evidence
 

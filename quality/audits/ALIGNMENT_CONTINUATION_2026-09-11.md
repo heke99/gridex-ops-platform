@@ -71,3 +71,22 @@ and true-only null handling, source pins, same final predicates and raw rollback
 Predecessor ba728a8a OPS34643991621 now completes all prior bounded/native
 auth/legacy/repair/dedupe/fixed/continuation/Ediel/quality gates successfully;
 alignment, types and unsupported full-native gates remain failures as recorded.
+
+## Guard fixture dependency localization
+
+1c979ecf/OPS34645171060/alignment103414093339 passes native catalog_controls
+and all nine behavior cases before guard_sources. The prior populated catalog
+false positive is resolved in native PG17. The next failure is fixture setup:
+ALIGNMENT_GUARD_SETUP_SOURCE_DEPENDENCY; no B/C execution in that variant.
+
+A bounded preflight attempts all43 source-derived setups in separate rollback
+transactions on a disposable actual63 clone. Exact original catalog+rows must
+remain after every attempt. Any failure still blocks all whole-source variants;
+the receipt includes only fixed0..42 ordinals and known SQLSTATE categories.
+No dependency removal, CASCADE, source change or selection advancement.
+New receipt regression observed1RED->GREEN;6diagnostics+26constructorsPASS.
+The earlier attempted --constructors-only flag was rejected by argparse; actual
+successful constructor command is --selection-only. Hosted setup receipt pending.
+
+Independent setup diagnostic review APPROVED: exact rollback/preservation and
+fail-closed43-case receipt retained; reviewer diagnostics6+diffcheckPASS.
