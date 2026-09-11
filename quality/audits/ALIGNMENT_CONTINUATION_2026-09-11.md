@@ -43,3 +43,31 @@ Source/HOT flag is a hypothesis until actual receipt, not a justified fix yet.
 
 Finite catalog receipt scoped review APPROVED; reviewer independently5PASS
 and verified PIPE/memory-only raw catalog path and unchanged rejecting gates.
+
+## Proved populated catalog false positive
+
+98027a81/OPS34644416888/alignment103411642582: precisely18 alignment_index
+objects differ solely in check_xmin. No other schema fields differ. Empty
+baseline passed, owned cleanupPASS.
+
+PG17 indcheckxmin marks index visibility against HOT chains. A updates parsed
+payload before creating the unique index; B/C also build indexes following
+backfills. The independent empty DDL oracle cannot reproduce that heap history.
+Documentation: https://www.postgresql.org/docs/17/catalog-pg-index.html .
+Exact REL_17_STABLE sources reviewed: heapam_handler.c lines1589–1600 (blob
+6f8b1b79298f3a364b95b76f93bd7d3814f362dd), catalog/index.c lines3099–3120
+(blob192d614434c23c3c6e1eb3c43138ad570bb51c46).
+
+The fix qualifies only False->True on newly selected pinned-source indexes with
+valid/ready/liveTrue and exact remaining fields. It does not remove this field
+from snapshots or normalize admission/rollback/origin/repeat comparisons.
+Simultaneous unknown drift, existing indexes, reverse changes and nonbooleans
+reject. Python matrixRED->GREEN;26constructors+5diagnosticsPASS. The same cases
+are executed against native SQL before corrected behavior acceptance.
+
+Directional HOT correction independently APPROVED with no material findings.
+Reviewer ran the32-case constructor and diagnostics5, verified SQL FULL JOIN
+and true-only null handling, source pins, same final predicates and raw rollback.
+Predecessor ba728a8a OPS34643991621 now completes all prior bounded/native
+auth/legacy/repair/dedupe/fixed/continuation/Ediel/quality gates successfully;
+alignment, types and unsupported full-native gates remain failures as recorded.

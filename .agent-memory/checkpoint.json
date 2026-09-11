@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "54ce97ab60688cfffcd8d9048d6d5e03a3df2644"
+    "published_baseline": "98027a8112a46c6104dec9ab65e111841228daa1"
   },
-  "next_action": "Publish reviewed finite alignment diagnostics, inspect hosted case/guard/source receipt, fix proven cause and continue P0-C."
+  "next_action": "Publish reviewed directional HOT catalog correction, require native32-case SQL matrix and full alignment, then continue source/native replay/types."
 }

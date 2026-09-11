@@ -10,21 +10,27 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published baseline: `ba728a8a9752a4daca0d88b8f8ba269fb077afb7`.
+- Published baseline: `98027a8112a46c6104dec9ab65e111841228daa1`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- New hosted alignment103410251604/OPS34643991621 passes empty baseline and
-  fails case_populated at assertions/ALIGNMENT_FINAL_CATALOG_MISMATCH. The
-  diagnostic change is natively effective; final cleanup passed. No SQL fix yet.
-- Follow-up adds only captured private catalog-pair output on this exact mismatch
-  and emits finite field/count summary. New regression1RED->GREEN;5 diagnostics
-  and25 original constructorsPASS. Scoped review APPROVED, no material findings;
-  reviewer independently ran5 tests and verified private output transport.
-- Source review identifies a possible data-dependent index/HOT safety flag
-  difference; only the next actual receipt can confirm its relevance. Do not
-  remove/normalize a field merely to pass or change business/migration semantics.
-- Current main/app.gridex.se remains eb9a25bc, connected ledger tail20260904222450.
-  No production write. Native CLI ownership/reference/private logging and types
-  tail20260911114443 remain open; source accounting below is unchanged.
+- Hosted alignment103411642582/OPS34644416888 proves populated failure is
+  exactly18 alignment_index/check_xmin differences, with no other catalog drift.
+  Empty baseline passes; final cleanupPASS.
+- Root cause: source DML before new index builds can create HOT chains, so PG17
+  sets indcheckxmin=True; independent empty DDL oracle has False. This is an
+  MVCC safety restriction, not a changed index definition. PG17 documentation
+  and exact REL_17_STABLE index/heap source confirm the mechanism.
+- Correction in review: only permit expectedFalse->actualTrue for source-selected
+  new indexes absent from BOTH base index projections. Full field shape, all
+  remaining fields, valid/ready/liveTrue required. Existing/unknown index drift,
+  reverse/missing/nonboolean flag or any other object/field difference reject.
+  Raw admission, clones, rollback, repeat and origin catalogs remain unchanged.
+- New Python matrix observedRED thenGREEN, including bool-vs-int rejection;
+ 26constructors+5diagnosticsPASS. The identical32-case matrix runs in native SQL
+  before behavior cases; scoped implementation review APPROVED, no material
+  findings. Hosted corrected acceptance remains pending.
+- Next: publish reviewed fix, inspect corrected full alignment, then proceed with
+  source disposition/native replay/schema/types. Main/app.gridex.se remains
+  eb9a25bc; connected ledger tail20260904222450. No production writes.
 
 ## Verified starting evidence
 

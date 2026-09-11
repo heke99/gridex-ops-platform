@@ -46,7 +46,8 @@ def baseline(c, p):
                 'ALIGNMENT_EMPTY_COUNT_SOURCE_ORACLE')
         # Preserve historical TABLE shape, six private functions and exact view.
         after = p.snapshot(database)
-        c.check(after[0] == expected, 'ALIGNMENT_EXPECTED_CATALOG_REQUIRED')
+        c.check(c.batch.catalog.final_equal(before[0], after[0], expected,
+            c.batch.new_index_keys(p.sources, before[0])), 'ALIGNMENT_EXPECTED_CATALOG_REQUIRED')
         roles = [v for k, v in expected.items() if k.startswith('alignment_function/public.gridex_get_user_roles(')]
         c.check(len(roles) == 1 and roles[0]['result'] == 'TABLE(role_key text, key text, code text, name text)',
                 'ALIGNMENT_TABLE_RETURN_REQUIRED')
@@ -463,7 +464,9 @@ def guard_sources(c, p):
             c.check(result.state == state and (result.code == 0) == (state == '00000'), 'ALIGNMENT_GUARD_NATIVE_RESULT')
             if expected_catalog is not None:
                 lines = result.stdout.splitlines()
-                c.check(lines.count('ALIGNMENT_GUARD_CATALOG') == 1 and json.loads(lines[lines.index('ALIGNMENT_GUARD_CATALOG') + 1]) == expected_catalog, 'ALIGNMENT_GUARD_INDEX_ORACLE')
+                c.check(lines.count('ALIGNMENT_GUARD_CATALOG') == 1 and c.batch.catalog.final_equal(
+                    before[0], json.loads(lines[lines.index('ALIGNMENT_GUARD_CATALOG') + 1]), expected_catalog,
+                    c.batch.new_index_keys(p.sources, before[0], ('B',))), 'ALIGNMENT_GUARD_INDEX_ORACLE')
             preserved(c, p, database, before)
         finally:
             p.dispose(database)
@@ -776,7 +779,9 @@ def standalone_c_backfills(c, p, fixtures):
         lines = result.stdout.splitlines()
         now = json.loads(lines[lines.index('ALIGNMENT_C_CLOCK') + 1])
         actual_rows = json.loads(lines[lines.index('ALIGNMENT_C_ROWS') + 1])
-        c.check(json.loads(lines[lines.index('ALIGNMENT_C_CATALOG') + 1]) == expected_catalog,
+        c.check(c.batch.catalog.final_equal(before[0],
+                json.loads(lines[lines.index('ALIGNMENT_C_CATALOG') + 1]), expected_catalog,
+                c.batch.new_index_keys(p.sources, before[0], ('C',))),
                 'ALIGNMENT_WHOLE_C_CATALOG_ORACLE')
         state, other = {}, []
         for table, row in before[1]:

@@ -20,6 +20,18 @@ def load(name, filename):
 
 
 class Constructors(unittest.TestCase):
+    def test_final_catalog_accepts_only_new_source_index_hot_safety(self):
+        self.assertTrue(hasattr(batch.catalog, 'final_equal'))
+        self.assertTrue(hasattr(batch, 'new_index_keys'))
+        sources = batch.validate_sources(batch.reviewed_paths())
+        for base, actual, expected, verdict in final_catalog_cases():
+            saved = encoded((base, actual, expected))
+            selected = batch.new_index_keys(sources, base)
+            self.assertIs(batch.catalog.final_equal(base, actual, expected, selected), verdict)
+            self.assertEqual(encoded((base, actual, expected)), saved)
+        with self.assertRaises(batch.BoundaryError):
+            batch.new_index_keys(tuple(reversed(sources)), {})
+
     def test_independent_catalog_accepts_only_source_qualified_build_timestamps(self):
         self.assertTrue(hasattr(batch.catalog, 'independent_equal'), 'bounded independent comparison required')
         actual, expected, actual_bounds, expected_bounds = timestamp_catalogs()
@@ -476,6 +488,54 @@ def rows_equal(a, b):
     return sorted(map(encoded, a)) == sorted(map(encoded, b))
 
 
+def final_catalog_cases():
+    """The same positive/negative matrix runs against Python and native SQL."""
+    name = 'public.ediel_tgt_test_data_suite_role_case_uidx'
+    key = 'alignment_index/' + name
+    base = {'relation/public.ediel_tgt_test_data': {'kind': 'r'}}
+    value = dict.fromkeys(batch.catalog.MISMATCH_FIELDS['alignment_index'])
+    value.update(table='ediel_tgt_test_data', live=True, check_xmin=False)
+    index = dict.fromkeys(batch.catalog.MISMATCH_FIELDS['index'])
+    index.update(valid=True, ready=True, definition='source-defined-index')
+    expected = {**base, key: value, 'index/' + name: index}
+    actual = copy.deepcopy(expected)
+    actual[key]['check_xmin'] = True
+    cases = [(base, actual, expected, True), (base, expected, expected, True),
+             (base, expected, actual, False)]
+    for prefix in ('index/', 'alignment_index/'):
+        existing = {**base, prefix + name: expected[prefix + name]}
+        cases.append((existing, actual, expected, False))
+    for field, value in (('live', False), ('table', 'other'), ('keys', 'different'),
+                         ('predicate', 'different'), ('private_field', 'unknown')):
+        changed = copy.deepcopy(actual); changed[key][field] = value
+        cases.append((base, changed, expected, False))
+    for side in ('actual', 'expected'):
+        for flag in (None, 0, 1, 'true', 'false', [], {}):
+            a, e = copy.deepcopy(actual), copy.deepcopy(expected)
+            (a if side == 'actual' else e)[key]['check_xmin'] = flag
+            cases.append((base, a, e, False))
+        a, e = copy.deepcopy(actual), copy.deepcopy(expected)
+        del (a if side == 'actual' else e)[key]['check_xmin']
+        cases.append((base, a, e, False))
+    for flag in ('valid', 'ready'):
+        a, e = copy.deepcopy(actual), copy.deepcopy(expected)
+        a['index/' + name][flag] = e['index/' + name][flag] = False
+        cases.append((base, a, e, False))
+    a, e = copy.deepcopy(actual), copy.deepcopy(expected)
+    a[key]['live'] = e[key]['live'] = False
+    cases.append((base, a, e, False))
+    a, e = copy.deepcopy(actual), copy.deepcopy(expected)
+    for shape in (a, e):
+        shape['alignment_index/public.unknown'] = shape.pop(key)
+        shape['index/public.unknown'] = shape.pop('index/' + name)
+    cases.append((base, a, e, False))
+    for side in ('actual', 'expected'):
+        a, e = copy.deepcopy(actual), copy.deepcopy(expected)
+        (a if side == 'actual' else e)['column/public.other/value'] = {'type': 'text'}
+        cases.append((base, a, e, False))
+    return cases
+
+
 def timestamp_catalogs():
     """Independent literal fixtures for the twelve source-defined additions."""
     tables = ('supplier_switch_events', 'outbound_dispatch_events', 'metering_values',
@@ -509,7 +569,7 @@ DIAGNOSTIC_STAGES = frozenset(('entry', 'owner_requirement', 'source_snapshot',
     'helper_catalog', 'origin_snapshot', 'reference_decode', 'catalog_equality',
     'source_state_equality', 'canary_snapshot', 'graph_admission', 'diagnostic_binding',
     'next_catalog_receipt', 'native_cases', 'source_oracle_ddl', 'timestamp_mutation',
-    'timestamp_control', 'behavior_cases', 'final_privacy', 'controller_deaths'))
+    'timestamp_control', 'catalog_controls', 'behavior_cases', 'final_privacy', 'controller_deaths'))
 QUERY_CATEGORIES = {'42601': 'QUERY_SYNTAX', '42703': 'QUERY_UNDEFINED_COLUMN',
     '42P01': 'QUERY_UNDEFINED_RELATION', '42704': 'QUERY_UNDEFINED_OBJECT',
     '42804': 'QUERY_DATATYPE', '42883': 'QUERY_UNDEFINED_FUNCTION',
@@ -1014,6 +1074,16 @@ DROP TABLE pg_temp.alignment_timestamp_donor;''')
         proof.dispose(database)
 
 
+def native_final_catalog_controls(proof):
+    cases = final_catalog_cases()
+    expressions = [batch.catalog.final_equal_sql(batch.json_sql(base), batch.json_sql(actual),
+        batch.json_sql(expected), batch.json_sql(batch.new_index_keys(proof.sources, base)))
+        for base, actual, expected, _ in cases]
+    values = json.loads(proof.query(batch.replay.DATABASE,
+        'SELECT jsonb_build_array(' + ','.join(expressions) + ');'))
+    check(values == [verdict for _, _, _, verdict in cases], 'ALIGNMENT_FINAL_CATALOG_COMPARISON_REQUIRED')
+
+
 def native(death_stage=None):
     global _NATIVE_FAILURE
     _NATIVE_FAILURE = None
@@ -1050,6 +1120,8 @@ def native(death_stage=None):
             proof.envelope(database, before, proof.expected(before), fault='controller_' + death_stage)
             raise batch.BoundaryError('ALIGNMENT_CONTROLLER_DEATH_NOT_OBSERVED')
         with diagnostic_stage('native_cases'):
+            with diagnostic_stage('catalog_controls'):
+                native_final_catalog_controls(proof)
             with diagnostic_stage('timestamp_control'):
                 native_timestamp_controls(proof)
             with diagnostic_stage('behavior_cases'):

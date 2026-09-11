@@ -3,6 +3,7 @@
 from collections import Counter
 from datetime import datetime
 import hashlib
+import json
 import re
 
 
@@ -130,6 +131,57 @@ def mismatch_summary(actual, expected):
                 counts[kind, 'changed', label] += 1
     return {'objects': objects, 'groups': [dict(kind=kind, change=change, field=field, count=count)
             for (kind, change, field), count in sorted(counts.items())]}
+
+
+def final_equal(base, actual, expected, new_indexes):
+    """Compare independent final DDL, retaining raw admission/rollback catalogs.
+
+    PG17 can mark a newly built index indcheckxmin after source DML creates HOT
+    chains. The empty DDL oracle cannot reproduce that physical MVCC history.
+    Permit only this False -> True safety restriction on selected new indexes;
+    every schema field, existing index and all other runtime flags remain exact.
+    """
+    if any(type(s) is not dict for s in (base, actual, expected)) or actual.keys() != expected.keys():
+        return False
+    for key, value in actual.items():
+        other = expected[key]
+        if json.dumps(value, sort_keys=True) == json.dumps(other, sort_keys=True):
+            continue
+        index_key = key.replace('alignment_index/', 'index/', 1)
+        if not (key in new_indexes and key not in base and index_key not in base
+                and type(value) is dict and type(other) is dict
+                and set(value) == set(other) == MISMATCH_FIELDS['alignment_index']
+                and value['check_xmin'] is True and other['check_xmin'] is False
+                and value['live'] is True and other['live'] is True
+                and json.dumps({k: v for k, v in value.items() if k != 'check_xmin'}, sort_keys=True)
+                    == json.dumps({k: v for k, v in other.items() if k != 'check_xmin'}, sort_keys=True)
+                and all(type(s.get(index_key)) is dict and s[index_key].get('valid') is True
+                        and s[index_key].get('ready') is True for s in (actual, expected))):
+            return False
+    return True
+
+
+def final_equal_sql(base, actual, expected, new_indexes):
+    """SQL counterpart of final_equal; inputs are trusted SQL expressions."""
+    fields = 'ARRAY[' + ','.join("'" + f + "'" for f in sorted(MISMATCH_FIELDS['alignment_index'])) + ']::text[]'
+    return '''(SELECT CASE WHEN jsonb_typeof(b)='object' AND jsonb_typeof(x)='object'
+ AND jsonb_typeof(y)='object' AND jsonb_typeof(allowed)='array' THEN
+ (SELECT coalesce(bool_and((a.value=e.value OR CASE
+   WHEN jsonb_typeof(a.value)='object' AND jsonb_typeof(e.value)='object' THEN
+    a.key=e.key AND allowed ? a.key AND NOT (b ? a.key)
+    AND NOT (b ? replace(a.key,'alignment_index/','index/'))
+    AND a.value ?& ''' + fields + ''' AND e.value ?& ''' + fields + '''
+    AND a.value-''' + fields + '''='{}'::jsonb AND e.value-''' + fields + '''='{}'::jsonb
+    AND a.value->'check_xmin'='true'::jsonb AND e.value->'check_xmin'='false'::jsonb
+    AND a.value->'live'='true'::jsonb AND e.value->'live'='true'::jsonb
+    AND a.value-'check_xmin'=e.value-'check_xmin'
+    AND x->replace(a.key,'alignment_index/','index/')->'valid'='true'::jsonb
+    AND x->replace(a.key,'alignment_index/','index/')->'ready'='true'::jsonb
+    AND y->replace(a.key,'alignment_index/','index/')->'valid'='true'::jsonb
+    AND y->replace(a.key,'alignment_index/','index/')->'ready'='true'::jsonb
+   ELSE false END) IS TRUE),true)
+  FROM jsonb_each(x) a FULL JOIN jsonb_each(y) e ON a.key=e.key)
+ ELSE false END FROM (SELECT ''' + base + ' AS b,' + actual + ' AS x,' + expected + ' AS y,' + new_indexes + ' AS allowed) inputs)'
 
 
 def sql(repair):

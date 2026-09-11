@@ -136,6 +136,15 @@ def index_selected(item, shape):
     return True
 
 
+def new_index_keys(sources, base, stages=('A', 'B', 'C')):
+    check(sources == validate_sources(reviewed_paths()), 'ALIGNMENT_SOURCE_BYTES_CHANGED')
+    check(stages in (('A', 'B', 'C'), ('B',), ('C',)), 'ALIGNMENT_SOURCE_STAGE_REQUIRED')
+    return tuple('alignment_index/public.' + item[1] for item in index_declarations(sources)
+                 if item[0] in stages and index_selected(item, base)
+                 and 'alignment_index/public.' + item[1] not in base
+                 and 'index/public.' + item[1] not in base)
+
+
 def diagnostic_source():
     path = ROOT/'supabase/migrations'/VIEW_SOURCE
     data = repair.read_source(path).decode()
@@ -242,11 +251,11 @@ def prelude(sources, before, after_catalog, token, rollback_only=False):
 SET LOCAL search_path=public,extensions,pg_temp;
 SELECT pg_advisory_xact_lock(20260910,140053);
 CREATE TEMP TABLE alignment_reference(base jsonb,final jsonb,before_rows jsonb,after_rows jsonb,
- hashes text[],token text,diagnostic_definition text) ON COMMIT DROP;
+ hashes text[],token text,diagnostic_definition text,new_indexes jsonb) ON COMMIT DROP;
 CREATE TEMP TABLE alignment_context(database_name name,backend integer,txid bigint,hashes text[],token text,stage text) ON COMMIT DROP;
 INSERT INTO alignment_reference VALUES (''' + ','.join((json_sql(before[0]), json_sql(after_catalog), json_sql(before[1]),
     "replace(" + literal(json.dumps(expected_rows(before[1]), sort_keys=True)) + "," + literal('"' + CLOCK + '"') + ",to_jsonb(now())::text)::jsonb",
-    pins, literal(token), literal(body))) + ''');
+    pins, literal(token), literal(body), json_sql(new_index_keys(sources, before[0])))) + ''');
 DO $$ DECLARE r record; BEGIN
  IF current_user<>'postgres' OR current_database() NOT IN ('gridex_auth_legacy_native','gridex_auth_legacy_dirty','gridex_auth_legacy_atomic','gridex_auth_legacy_lock') THEN
  RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_OWNER_REQUIRED'; END IF;
@@ -267,14 +276,17 @@ DO $$ BEGIN IF (SELECT * FROM alignment_admission_catalog) IS DISTINCT FROM (SEL
 
 
 def assertions(rollback=False):
+    equal = catalog.final_equal_sql('(SELECT base FROM alignment_reference)',
+        '(SELECT * FROM alignment_final_catalog)', '(SELECT final FROM alignment_reference)',
+        '(SELECT new_indexes FROM alignment_reference)')
     result = '''DO $$ BEGIN IF (SELECT count(*) FROM alignment_context WHERE stage='W' AND backend=pg_backend_pid() AND txid=txid_current())<>1 THEN
  RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='ALIGNMENT_COMPLETION_REQUIRED'; END IF; END $$;
 CREATE TEMP TABLE alignment_final_catalog ON COMMIT DROP AS ''' + catalog.sql(repair) + '''
 SELECT 'ALIGNMENT_PRIVATE_FINAL_CATALOGS'
-WHERE (SELECT * FROM alignment_final_catalog) IS DISTINCT FROM (SELECT final FROM alignment_reference);
+WHERE NOT ''' + equal + ''';
 SELECT jsonb_build_array((SELECT * FROM alignment_final_catalog),(SELECT final FROM alignment_reference))
-WHERE (SELECT * FROM alignment_final_catalog) IS DISTINCT FROM (SELECT final FROM alignment_reference);
-DO $$ BEGIN IF (SELECT * FROM alignment_final_catalog) IS DISTINCT FROM (SELECT final FROM alignment_reference) THEN
+WHERE NOT ''' + equal + ''';
+DO $$ BEGIN IF NOT ''' + equal + ''' THEN
  RAISE EXCEPTION USING ERRCODE='P0004',MESSAGE='ALIGNMENT_FINAL_CATALOG_MISMATCH'; END IF; END $$;
 ''' + assert_rows('after_rows') + "\nSELECT 'ALIGNMENT_COMPLETE';\n"
     return result + ('ROLLBACK;\n' if rollback else '')
