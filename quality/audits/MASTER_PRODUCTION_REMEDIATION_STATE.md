@@ -502,3 +502,18 @@ masterplan phase closure is implied by these scoped receipts.
 2026-09-10 Task11 author reports inspected W-only accounting:596=534/23/35/4, focused342=291/20/27/4;58/47 unresolved unchanged. Foundation93/original17 preserved, R2/E2/S2 unselected. W/support implementation not reviewed or SQL-verified; published52f0dc73 remains prior595-input baseline. Root current-state markers synchronized.
 
 2026-09-10 Task11 implementation383070ca independently spec+quality APPROVED, no blocking findings. T9-R1 CLOSED. Minor T11-R1 retained: native characterization check() IF NOT permits SQL NULL; next implicated selftest update/final review must make only true pass and prove NULL/empty scalar rejection. Main admission/W/assertions are null-safe. New code SQL remains hosted-pending; original17 + complete new proof must pass same head.
+
+2026-09-11 recovery: current branch safely fast-forwarded to published2bbcdab8.
+Task15 all102 native cases PASS; final artifact privacy FAIL103137885579,
+collector and exact cleanupPASS. All19/actual52+56+57/quality/EdielPASS.
+Unpublished43b90fd0/report missing after restored snapshot; only bounded privacy fix
+is being recovered and independently reviewed. Native full replay/types and whole
+masterplan remain OPEN;596=538/23/31/4,54 unresolved. No production action.
+
+2026-09-11 recovered Task15 privacy fix49f00ff8 independently APPROVED: generated
+admission memory/stdin only, four actual canonical/staged whole-input provenance
+exceptions, unchanged collector/artifact guard, per-handle method/buffer cleanup.
+Two meaningful REDs then GREEN;41 actual controls (19adapter/5staging/17privacy),
+constructor/syntax/diff PASS. Report typo42 corrected to41, no code change. Original
+102cases/helpers/history/foundation98/all19/accounting untouched. Hosted full final
+privacy plus all19/quality/Ediel pending exact reviewed publication; full plan OPEN.

@@ -1190,3 +1190,18 @@ Task15 fix3 hostedff33ce80 OPS34557286206: all19/auth103132524798/legacy17job103
 Task15 fix4 completedcd9bb8435e1cfb202761f9ca7b3142f2bc935b48 cases+controls only. Full finalized report inspected; realrunner RED→GREEN/13negative schema-error-rollback controls/staticpreservation PASS,102cases/prior101names intact. Original scoped reviewer no longer live; fresh sol-high user_rbac_fixed_target_fix4_review dispatched with currentbrief/report/diff. No native newhead acceptance yet.
 
 Task15 fix round4/5: T15-F4 ADDRESSED bycd9bb843, scoped independent review clean/no new or out-of-scope findings. Shared nonzero-exit entry guard confirms retracted interim false-positive; no unnecessary fix.102cases, new reduced success nativepending. Publish coherent batch then exact-head all19/full102/quality/Ediel.
+
+2026-09-11 environment recovery: shell reconnected to older735a3732; fetched and
+fast-forwarded to remote2bbcdab8, tracked baseline clean. Unpublished43b90fd0 object
+and ignored report unavailable. GitHub PR310 open/draft/unmerged at2bbcdab8.
+Fresh logs103137885579/556/654 confirm final artifact privacy failure and existing
+generated-types/native-mode gates. Recover only fix5; previous102 native cases and
+all19/quality/Ediel acceptance retained. No production action.
+
+2026-09-11 recovered Task15 privacy fix49f00ff8 independently APPROVED: generated
+admission memory/stdin only, four actual canonical/staged whole-input provenance
+exceptions, unchanged collector/artifact guard, per-handle method/buffer cleanup.
+Two meaningful REDs then GREEN;41 actual controls (19adapter/5staging/17privacy),
+constructor/syntax/diff PASS. Report typo42 corrected to41, no code change. Original
+102cases/helpers/history/foundation98/all19/accounting untouched. Hosted full final
+privacy plus all19/quality/Ediel pending exact reviewed publication; full plan OPEN.

@@ -50,6 +50,7 @@ def constructors(c,models,cases):
     actor_fk_controls(c,cases)
     role_status_controls(c,cases)
     membership_type_controls(c,cases)
+    accepted_input_controls(c)
     workflow(c)
     names = [(key,name) for key,name,_ in cases.cases()]
     c.check(len(names)==len(set(names)) and {key for key,_ in names}==set(c.SPECS),'CLOSED_CASE_MATRIX_REQUIRED')
@@ -520,6 +521,224 @@ def workflow(c):
         c.check(forbidden not in job,'UNSAFE_WORKFLOW_SURFACE')
 
 
+@contextlib.contextmanager
+def accepted_handle(c):
+    with tempfile.TemporaryDirectory(prefix='fixed-accepted-input-') as directory:
+        h = c.legacy.OwnedPostgres()
+        h.name = h._created_name = 'gridex-auth-legacy-fixed-12345678-1'
+        h.directory = type('PrivateDirectory',(),{'name':directory})()
+        h.active = True
+        h.reference = ({},{})
+        c.repair.REFERENCES[h] = c.repair.Reference(directory,{},{})
+        c.dedupe._REFERENCES[h] = c.dedupe._Reference(directory,h.name,h.reference,c.repair.REFERENCES[h],{},{},[])
+        try:
+            with patch.object(h,'verify_logging'),contextlib.redirect_stdout(io.StringIO()):
+                yield h
+        finally:
+            h.active = False
+            c.repair.REFERENCES.pop(h,None)
+            c.dedupe._REFERENCES.pop(h,None)
+            c.dedupe._STATES.pop(h,None)
+
+
+def admission_bytes(c):
+    sources = c.repair.validate_sources(c.repair.reviewed_paths())
+    return ((c.repair.SUPPORT/'canonical-user-rbac-repair-admission.sql').read_text()
+            .replace('-- REPAIR_CATALOG_CAPTURE',c.repair.catalog_capture('repair_catalog_before'))
+            .replace('-- REPAIR_SEED_ORACLE',c.repair.seed_oracle_sql(sources))
+            .replace('-- REPAIR_DIAGNOSTIC_GUARD',c.repair.diagnostic_guard(sources))).encode()
+
+
+def accepted_input_controls(c):
+    """Real unchanged writer/execute and command; only SQL/process transport is mocked."""
+    output = b'REPAIR_STAGE_R2\nREPAIR_STAGE_E2\nREPAIR_STAGE_S2\nREPAIR_STAGE_COMPLETED\n'
+    for failure in (None,'exit','state','stages','process','timeout','database','owner','phase',
+                    'files','duplicate','physical','stage','transaction','expect','foreign',
+                    'remove_private','remove_run_files','body_failure'):
+        with accepted_handle(c) as h:
+            old_private,old_run = h.private,h.run_files
+            tokens = []
+            def process(argv,**kwargs):
+                token = inputs.buffers[0]
+                tokens.append(token)
+                expected = c.legacy.OwnedPostgres.command(h,c.replay.DATABASE,
+                            [Path(h.directory.name)/name for name in inputs.ORDER],True)
+                expected[expected.index('/legacy-private/repair-admission.sql')] = '-'
+                c.check(argv == expected and kwargs['input'] == admission_bytes(c),
+                        'UNCHANGED_ADMISSION_COMMAND_AND_BYTES_REQUIRED')
+                c.check(kwargs['capture_output'] is True and kwargs['timeout']==120
+                        and kwargs['env']==c.legacy.clean_environment(),'ACCEPTED_PROCESS_OPTIONS_REQUIRED')
+                if failure=='process': raise OSError('synthetic process failure')
+                if failure=='timeout': raise subprocess.TimeoutExpired(argv,120)
+                state = b'ERROR: 23514: synthetic private error' if failure=='state' else b''
+                text = b'' if failure=='stages' else output
+                # A raw source-bound result must remain in memory on this route.
+                text += c.Source('C2').slots['email'].encode()+b'\n'
+                return subprocess.CompletedProcess(argv,1 if failure=='exit' else 0,text,state)
+            def exercise():
+                with c.AcceptedInputs(h) as adapter:
+                    nonlocal inputs
+                    inputs = adapter
+                    c.dedupe._STATES[h] = 'FRESH'
+                    if failure in ('remove_private','remove_run_files'):
+                        c.repair.envelope_files(h,c.repair.reviewed_paths())
+                        tokens.extend(inputs.buffers)
+                        del h.__dict__[failure.removeprefix('remove_')]
+                        return
+                    if failure=='body_failure':
+                        c.repair.envelope_files(h,c.repair.reviewed_paths())
+                        tokens.extend(inputs.buffers)
+                        raise c.BoundaryError('SYNTHETIC_BODY_FAILURE')
+                    if failure in ('files','duplicate','physical','stage','transaction','expect','foreign'):
+                        files = c.repair.envelope_files(h,c.repair.reviewed_paths())
+                        tokens.extend(inputs.buffers)
+                        if failure=='files': files[2],files[4] = files[4],files[2]
+                        if failure=='duplicate': files[2] = files[1]
+                        if failure=='physical': files[1] = Path(h.directory.name)/files[1].name
+                        if failure=='foreign': files[1] = c.MemoryAdmission(object(),b'SELECT 1;')
+                        h.run_files(c.replay.DATABASE,files,'wrong' if failure=='stage' else 'whole_batch',
+                                    transaction=failure!='transaction',expect='23514' if failure=='expect' else '00000')
+                        return
+                    if failure=='owner': h.name = 'gridex-auth-legacy-fixed-12345678-2'
+                    if failure=='phase': c.dedupe._STATES[h] = 'SUCCEEDED'
+                    result = c.repair.execute(h,'gridex_auth_legacy_reference' if failure=='database' else c.replay.DATABASE,
+                                              c.repair.reviewed_paths())
+                    c.check(result['sources']==4,'REPAIR_EXECUTOR_REQUIRED')
+                    c.check(not (Path(h.directory.name)/'repair-admission.sql').exists(),
+                            'GENERATED_ADMISSION_MUST_STAY_IN_MEMORY')
+            inputs = None
+            with patch.object(subprocess,'run',side_effect=process) as run:
+                if failure is None: exercise()
+                else: c.rejected(exercise)
+                if failure not in (None,'exit','state','stages','process','timeout'):
+                    c.check(not run.called,'INVALID_ADMISSION_BEFORE_PROCESS_REQUIRED')
+            c.check(h.private==old_private and h.run_files==old_run and
+                    'private' not in h.__dict__ and 'run_files' not in h.__dict__,
+                    'ACCEPTED_METHOD_RESTORATION_REQUIRED')
+            c.check(inputs.closed and not inputs.buffers and not inputs.envelope and
+                    all(not token.valid and not token.data for token in tokens),'PRIVATE_BUFFERS_CLEARED_REQUIRED')
+            for token in tokens: c.rejected(token.read_text)
+            c.check(not (Path(h.directory.name)/'client-last.out').exists(),
+                    'ADAPTED_RESULT_MUST_STAY_IN_MEMORY')
+    staged_input_controls(c)
+    privacy_input_controls(c)
+
+
+@contextlib.contextmanager
+def accepted_writers(c):
+    """Exercise all four unchanged writers, including the replay loop and H2 executor."""
+    output = b'REPAIR_STAGE_R2\nREPAIR_STAGE_E2\nREPAIR_STAGE_S2\nREPAIR_STAGE_COMPLETED\n'
+    result = subprocess.CompletedProcess([],0,output,b'')
+    with accepted_handle(c) as h,patch.object(subprocess,'run',return_value=result):
+        with c.AcceptedInputs(h) as inputs:
+            with patch.object(h,'reset'):
+                h.prefix('gridex_auth_legacy_reference')
+            prefix = c.legacy.verified_prefix()
+            c.dedupe._STATES[h] = 'FRESH'
+            with tempfile.TemporaryDirectory(prefix='fixed-accepted-stage-') as directory:
+                stage = c.legacy.StagedSources(Path(directory))
+                for name in inputs.sources:
+                    (stage.hold/inputs.sources[name][0]).write_bytes(inputs.canonical(name))
+                for source in c.repair.validate_sources(c.repair.reviewed_paths()):
+                    (stage.hold/source.path.name).write_bytes(source.data)
+                loop = c.replay.FoundationLoop.__new__(c.replay.FoundationLoop)
+                loop.applied,loop.terminal,loop.scope = False,False,'legacy52'
+                loop.target,loop.b = h,c.legacy
+                loop.validate = lambda *args:(stage,[text.encode() for _,text in prefix])
+                real_is_file = Path.is_file
+                # The real shell removes canonical files while the accepted HOLD is live.
+                with patch.object(Path,'is_file',lambda p:False if p.parent==c.ROOT/'supabase/migrations' else real_is_file(p)):
+                    with patch.object(c.legacy,'execute',return_value={'sources':9}):
+                        loop._run(None,None)
+                    c.repair.execute(h,c.replay.DATABASE,c.repair.reviewed_paths(),stage)
+                    c.dedupe._STATES[h] = 'ACCEPTED56'
+                    with patch.object(c.dedupe,'snapshot',return_value=({},[])),patch.object(c.dedupe,'assert_final'),patch.object(h,'sql',return_value='0'):
+                        c.dedupe.execute(h,c.replay.DATABASE,c.dedupe.reviewed_paths(),stage)
+        c.check(set(inputs.records)==set(inputs.sources),'FOUR_REAL_WRITERS_REQUIRED')
+        proof = type('AcceptedProof',(),{'h':h,'name':h.name,'directory':h.directory.name,'accepted_inputs':inputs})()
+        yield proof
+
+
+def staged_input_controls(c):
+    for failure in ('missing','symlink','mutated','foreign_stage','foreign_writer'):
+        with accepted_handle(c) as h,c.AcceptedInputs(h) as inputs:
+            c.dedupe._STATES[h] = 'FRESH'
+            if failure=='foreign_writer':
+                c.rejected(lambda:h.private('repair-whole-E2.sql',inputs.canonical('repair-whole-E2.sql')))
+                continue
+            with tempfile.TemporaryDirectory(prefix='fixed-input-stage-') as directory:
+                stage = c.legacy.StagedSources(Path(directory))
+                for source in c.repair.validate_sources(c.repair.reviewed_paths()):
+                    (stage.hold/source.path.name).write_bytes(source.data)
+                target = stage.hold/c.repair.SPECS[1][1]
+                if failure=='missing': target.unlink()
+                if failure=='mutated': target.write_bytes(target.read_bytes()+b'\n')
+                if failure=='symlink':
+                    target.unlink()
+                    target.symlink_to(c.repair.reviewed_paths()[1])
+                if failure=='foreign_stage': stage = type('ForeignStage',(),{'hold':stage.hold})()
+                with patch.object(subprocess,'run') as run:
+                    c.rejected(lambda:c.repair.execute(h,c.replay.DATABASE,c.repair.reviewed_paths(),stage))
+                    c.check(not run.called and not inputs.buffers,'STAGE_DENIED_BEFORE_INPUT_REQUIRED')
+
+
+def privacy_input_controls(c):
+    """Whole-input provenance is the only exception; collector/artifact scan stays exact."""
+    failures = (None,'collector','collector_failure','generated_empty','generated_literal','artifact',
+                'copied','lookalike','mutated','replaced','symlink','foreign_proof','missing_source',
+                'source_symlink','source_mutated','manifest','no_provenance')
+    for failure in failures:
+        with accepted_writers(c) as proof,contextlib.ExitStack() as stack:
+            inputs = proof.accepted_inputs
+            path = Path(proof.directory)/'repair-whole-E2.sql'
+            literal = c.Source('C2').slots['email'].encode()
+            result = subprocess.CompletedProcess([],0,b'',b'')
+            if failure=='collector': result.stdout = literal
+            if failure=='collector_failure': result.returncode = 1
+            if failure in ('generated_empty','generated_literal'):
+                (path.parent/'repair-admission.sql').write_bytes(b'SELECT 1;' if failure=='generated_empty' else literal)
+            if failure=='artifact': (path.parent/'client-last.out').write_bytes(literal)
+            if failure in ('copied','lookalike'):
+                destination = path.parent/('foreign' if failure=='copied' else 'lookalike')
+                destination.mkdir()
+                (destination/path.name).write_bytes(path.read_bytes())
+            if failure=='mutated': path.write_bytes(path.read_bytes()+b'\n')
+            if failure=='replaced':
+                replacement = path.parent/'replacement.sql'
+                replacement.write_bytes(path.read_bytes())
+                replacement.replace(path)
+            if failure=='symlink':
+                original = path.parent/'original.sql'
+                path.rename(original)
+                path.symlink_to(original)
+            if failure=='foreign_proof': proof.h = object()
+            if failure=='no_provenance': proof.accepted_inputs = None
+            source = c.ROOT/'supabase/migrations'/inputs.sources[path.name][0]
+            if failure=='missing_source':
+                real = Path.is_file
+                stack.enter_context(patch.object(Path,'is_file',lambda p:False if p==source else real(p)))
+            if failure=='source_symlink':
+                real = Path.is_symlink
+                stack.enter_context(patch.object(Path,'is_symlink',lambda p:p==source or real(p)))
+            if failure=='source_mutated':
+                real = Path.read_bytes
+                stack.enter_context(patch.object(Path,'read_bytes',lambda p:real(p)+b'\n' if p==source else real(p)))
+            if failure=='manifest':
+                real = Path.read_text
+                manifest = c.ROOT/'scripts/migration-history-manifest.json'
+                def changed(p,*args,**kwargs):
+                    text = real(p,*args,**kwargs)
+                    if p==manifest:
+                        data = json.loads(text)
+                        data['files'][source.name] = '0'*64
+                        return json.dumps(data)
+                    return text
+                stack.enter_context(patch.object(Path,'read_text',changed))
+            with patch.object(subprocess,'run',return_value=result):
+                if failure is None: privacy(c,proof)
+                else: c.rejected(lambda:privacy(c,proof))
+
+
 def privacy(c,proof):
     """Inspect server collector/client files privately; never publish contents."""
     sources = [c.Source(key) for key in c.SPECS]
@@ -533,7 +752,11 @@ def privacy(c,proof):
     c.check(result.returncode==0,'PRIVATE_COLLECTOR_INSPECTION_REQUIRED')
     c.check(not any(value in result.stdout+result.stderr for value in values),'SOURCE_LITERAL_IN_COLLECTOR')
     for path in Path(proof.directory).rglob('*'):
+        c.check(path.name != 'repair-admission.sql', 'PHYSICAL_ADMISSION_FORBIDDEN')
         if path.is_file():
+            inputs = getattr(proof,'accepted_inputs',None)
+            if inputs is not None and inputs.whole_input(proof,path):
+                continue
             contents = path.read_bytes()
             c.check(not any(value in contents for value in values),'SOURCE_LITERAL_IN_PRIVATE_ARTIFACT')
 

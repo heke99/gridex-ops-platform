@@ -11,19 +11,12 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `ff33ce8039f8c47654c5fc22b02da7b6b6a32b31`, exact reviewed
-tree `ba5bab5c92001cd6793fc9a6ede721f388f5fac2`; fetched equality/tracked-clean
-alignment PASS, local6045a9f0 archived. Task15 fix3 progressed through C2; D2 optional-column42601, fresh fix4 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
-T14-R1/R2 CLOSED. OPS34549538480 original16/auth103109350028, legacy17/actual52
-job103109350023151663ms, repair18/actual56 job103109350011184433ms, quality103109349980
-and Ediel103109349997 PASS. Command19/job103109349875 full standalone62235ms plus
-20 actual57 success/failure/restoration modes and actual controller SIGKILL PASS.
-Same-head all19/actual52+56+57 union accepted. Native/types remain red; no full
-replay or production closure. Task13 COMPLETE8448b577 and Task12 COMPLETE6681ca3d;
-prior bounded receipts remain accepted and must not be restarted.
-Task11 is COMPLETE at62d60d76 with same-head original17/new standalone166773ms/
-quality/Ediel all PASS; reuse its full source proof, no audit restart.
-No full replay/type refresh, production mutation, merge or deployment.
+Latest publication: `2bbcdab8d4aa5c625ed3bbe369998a52da3b5806`, exact tree
+`320a73a709d24de835ba1264ce505e98b6fb086a`. Restored local environment had an older
+snapshot; fetched and fast-forwarded safely to published HEAD. No tracked user
+changes were discarded. Preexisting scripts/__pycache__ and other worktree retained.
+Tasks1-14 remain accepted; their recorded source proofs are not restarted.
+Full native replay/types and production gates remain open.
 
 
 Working-tree accounting is 596 inputs: 538 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 31 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -38,55 +31,41 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task15 IMPLEMENTED_NOT_VERIFIED: whole private B0/C2/D2/F2 characterization.
-Original implementation1f01305d independently approved. Foundation98/all19,
-immutable sources, helpers, accounting and all four UNCLASSIFIED entries unchanged.
-Actual57 uses real accepted replay once; reduced historical fixtures are explicit.
-No selected completion, full replay or production readiness follows from this proof.
+Task15 IMPLEMENTED_NOT_VERIFIED: all102 whole-source private B0/C2/D2/F2 cases
+PASS at2bbcdab8, including actual/reduced role CHECK, missing-column and durable
+COMMIT/backend/controller cases. Final artifact privacy scan fails
+SOURCE_LITERAL_IN_PRIVATE_ARTIFACT; collector and exact owned cleanup pass.
+Four fixed-target sources remain UNCLASSIFIED, foundation98/all19 unchanged.
 
-Latest full fixed-target job103132524843 atff33ce80 failed WHOLE_SOURCE_SUCCESS_REQUIRED
-for D2 reduced_membership_column_absent, actual SQLSTATE42601. Exact cleanup PASS.
-B0/C2 preceding cases and D2 actor-FK/invitation/repeated/null-company/role-tie cases
-passed. Confirmed D2 missing membership_role leaves type variable NULL, then present
-invitation membership_role uses it in dynamic cast. Require native42601 rollback
-and separate named reduced both-column-absence success lane;102cases.
-Fix4 cd9bb843 implemented by fresh astra-xhigh author; full report/red-green
-inspected. Scoped independent review APPROVED for two-file dynamic-column
-classification/new reduced success, no new findings. Prior author
-completed3 reviewed fixes; fresh escalation preserves their accepted behavior.
+Root-cause correction: distinguish four exact pinned complete accepted input
+files from generated artifacts; route generated repair admission through a scoped
+per-handle in-memory stdin adapter. Keep scanner strict for generated/output files.
+Full scoped clarification is appended to Task15 plan and ignored recovery brief.
+Previous unpublished43b90fd0/report were unavailable after environment restoration.
+Recovered implementation49f00ff8 changes only two Task15 scripts. Independent scoped
+privacy/lifecycle review APPROVED, no code findings. Actual writer/execute RED/GREEN,
+19adapter +5staging/writer +17privacy =41 controls, constructors/syntax/whitespace PASS.
+Minor report-count typo corrected; no unnecessary code/test change. Native full
+acceptance remains pending publication. Task16 bounded continuation design is active
+in a separate document, using already accepted102 semantics; no implementation yet.
 
-Earlier Task15 fixes:
-- T15-F1/4ed89ff5: per-execution full tied-candidate B0 oracle; independent review,
-  meaningful red-green and native tie/all B0 cases PASS at35136233 andf5435f8f.
-- T15-F2/5ad9c68f: exact actor FK preimage catalog/table/name classifier; independent
-  review and red-green PASS. C2 native23503/rollback PASS atf5435f8f; shared D2 native23503/rollback PASS onff33ce80. No arbitrary FK error is accepted.
-
-Actual B0 lacks companies.industry/company_memberships.suspended_at; actual native
-rejection and explicit industry-only/both-column reduced lanes passed. Whole
-prerequisite candidates and dependencies are recorded for later lossless work.
-Opaque nonredeemable invitation UUID/default fixtures are allowed only in fresh
-owned network-none/provider-free memory, with no issuer/redemption/delivery/export.
-Actual guards/defaults stay intact. No live account or credential operation.
-
-Next: fresh fix4 author report/commit, scoped independent review and coherent
-publication; require new-head all19/full101cases/quality/Ediel. Continue from actual
-proof to whole prerequisites/CLI-created forward lossless boundaries, then remaining
-54 sources/full native replay/types/security/parity/E2E/load/production gates.
-No local PG/Docker/socket/CLI probes, blanket exclusions, source excerpts, invented
-timestamps or weakened gates. Actual Q/W artifacts and ignored reports preserved.
+Next: publish exact reviewed privacy fix49f00ff8 and metadata
+tree and obtain same-head full102/final privacy plus all19/quality/Ediel. Then execute
+lossless canonical prerequisites/boundaries and remaining54 sources, full native
+replay/types/security/parity/E2E/load and production delivery. No merge while mandatory
+gates fail. User requests efficiency: reuse accepted evidence, no optional broad tests
+or unrelated refactors, merge as soon as required gates permit.
 
 ## Current executed acceptance
 
-Atff33ce80 OPS34557286206 original16/auth103132524798,legacy17/actual52
-job103132524873,repair18/actual56 job103132524818,dedupe19/actual57 job103132524832,
-quality103132524692 andEdiel103132524841 all PASS. Full fixed-target failure above.
-
-Atf5435f8f OPS34556127130 original16/auth103129093659, legacy17/actual52 job103129093785,
-repair18/actual56 job103129093768, dedupe19/actual57 job103129093930 full standalone,
-all20 modes and controllerSIGKILL, quality103129093866 and Ediel103129093869 PASS.
-Prior unchanged H2 BoundaryError after sequence_change at35136233 did not reproduce;
-no root cause or code fix claimed. Full fixed-target remains unaccepted as above.
-Native replay/types remain red. No production mutation, merge or deployment.
+OPS34559080010 at2bbcdab8: original16/auth103137885428,
+legacy17/actual52 job103137885602, repair18/actual56 job103137885688,
+dedupe19/actual57 job103137885631, quality103137885695 and Ediel103137885555 PASS.
+Fixed-target103137885579: all102 native PASS, final artifact privacy FAIL, cleanupPASS.
+Fresh log retrieval confirmed final privacy failure. Verify103137885556 fails
+Supabase generated-types check; clean103137885654 rejects unsupported native target.
+The private owned-compatible replay is bounded evidence, not official native ledger.
+No production merge/migration/deployment has occurred.
 
 ## Historical legacy boundary receipts
 

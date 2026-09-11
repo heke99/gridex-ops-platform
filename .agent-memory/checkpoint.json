@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "ff33ce8039f8c47654c5fc22b02da7b6b6a32b31",
-    "last_isolated_pg17_code": "536906f3b6af4400fda8b1a4d20954987f583a47"
+    "published_baseline": "2bbcdab8d4aa5c625ed3bbe369998a52da3b5806",
+    "last_isolated_pg17_code": "2bbcdab8d4aa5c625ed3bbe369998a52da3b5806"
   },
-  "execution_environment": "connected; alignedff33ce80; Task15 reviewed fix3 hosted running; stash preserved",
-  "next_action": "Publish approved Task15 fix4 cd9bb843 (T15-F4 addressed), then exact-head all19/full102/quality/Ediel.54 unresolved/no production."
+  "execution_environment": "reconnected; older snapshot fast-forwarded to published HEAD; unpublished fix43b90fd0 absent",
+  "next_action": "Publish reviewed privacy fix49f00ff8; full102/final privacy/all19/quality/Ediel on same head. Task16 bounded continuation contract in progress; remaining full plan open."
 }

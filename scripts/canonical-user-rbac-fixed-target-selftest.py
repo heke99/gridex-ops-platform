@@ -108,6 +108,214 @@ class Source:
         return other.data
 
 
+class MemoryAdmission:
+    """One opaque, single-use repair input; never a physical file."""
+    name = 'repair-admission.sql'
+
+    def __init__(self, adapter, data):
+        self.adapter, self.data, self.valid = adapter, bytearray(data), True
+
+    def read_text(self):
+        self.adapter.owned()
+        check(self.valid, 'STALE_MEMORY_ADMISSION')
+        return self.data.decode()
+
+    def __fspath__(self):
+        self.read_text()
+        return str(Path(self.adapter.directory)/self.name)
+
+    def clear(self):
+        self.data.clear()
+        self.valid = False
+
+
+class AcceptedInputs:
+    """Task15-only adaptation of the exact accepted preparation handle.
+
+    Four whole inputs are retained with writer and inode provenance. Only the
+    generated repair admission uses stdin; all other methods/writes delegate.
+    """
+    ORDER = ('repair-context.sql','repair-admission.sql','repair-whole-R2.sql',
+             'repair-stage-R2.sql','repair-whole-E2.sql','repair-stage-E2.sql',
+             'repair-whole-S2.sql','repair-stage-S2.sql','repair-whole-W.sql',
+             'repair-assertions.sql')
+    PREFIX = ('01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
+              '85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2')
+
+    def __init__(self, h):
+        self.h, self.name = h, h.name
+        self.directory = h.directory.name if h.directory else None
+        self.active = self.closed = False
+        self.staging = None
+        self.records, self.envelope, self.buffers = {}, [], []
+        self.sources = {'prefix-1.sql':self.PREFIX,'replay-source-1.sql':self.PREFIX,
+                        'repair-whole-E2.sql':repair.SPECS[1][1:3],
+                        'dedupe-whole-H2.sql':(dedupe.SOURCE.name,dedupe.SHA256)}
+
+    def owned(self):
+        repair.require_owned(self.h, False)
+        check(self.active and self.h.name == self.name and self.h._created_name == self.name
+              and self.h.directory.name == self.directory
+              and self.h.__dict__.get('private') is self.private_wrapper
+              and self.h.__dict__.get('run_files') is self.run_wrapper
+              and self.h.command == self.command, 'STALE_ACCEPTED_INPUT_OWNER')
+
+    def canonical(self, name, staging=None):
+        filename, digest = self.sources[name]
+        path = ROOT/'supabase/migrations'/filename
+        if staging is None:
+            check(path.is_file() and not path.is_symlink() and path.resolve() == path,
+                  'CANONICAL_ACCEPTED_INPUT_REQUIRED')
+        manifest = json.loads((ROOT/'scripts/migration-history-manifest.json').read_text())['files']
+        check(manifest.get(filename) == digest, 'ACCEPTED_INPUT_MANIFEST_MISMATCH')
+        data = repair.read_source(path,staging)
+        legacy.verify_bytes(data,digest)
+        return data
+
+    @staticmethod
+    def physical(path):
+        check(type(path) is type(ROOT) and path.is_file() and not path.is_symlink()
+              and path.resolve() == path, 'PHYSICAL_ACCEPTED_INPUT_REQUIRED')
+        stat = path.stat()
+        return stat.st_dev,stat.st_ino,stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns
+
+    def writer(self, frame, name):
+        if name == 'prefix-1.sql':
+            return (frame.f_code in legacy.OwnedPostgres.prefix.__code__.co_consts
+                    and frame.f_back.f_code is legacy.OwnedPostgres.prefix.__code__
+                    and frame.f_back.f_locals.get('self') is self.h
+                    and dedupe._STATES.get(self.h) is None)
+        if name == 'replay-source-1.sql':
+            loop = frame.f_locals.get('self')
+            return (frame.f_code is replay.FoundationLoop._run.__code__
+                    and type(loop) is replay.FoundationLoop and loop.target is self.h
+                    and dedupe._STATES.get(self.h) == 'FRESH')
+        function = dedupe.execute if name == 'dedupe-whole-H2.sql' else repair.envelope_files
+        return (frame.f_code is function.__code__ and frame.f_locals.get('target') is self.h
+                and dedupe._STATES.get(self.h) == ('NATIVE' if name == 'dedupe-whole-H2.sql' else 'FRESH'))
+
+    def write(self, name, data, frame):
+        self.owned()
+        admission = name == MemoryAdmission.name
+        envelope_writer = frame.f_code is repair.envelope_files.__code__
+        if admission or name in self.sources:
+            check(self.writer(frame,name), 'TRUSTED_ACCEPTED_WRITER_REQUIRED')
+        if envelope_writer:
+            check(frame.f_locals.get('target') is self.h and len(self.envelope) < len(self.ORDER)
+                  and name == self.ORDER[len(self.envelope)], 'CLOSED_REPAIR_WRITES_REQUIRED')
+        if admission:
+            check(not self.buffers and not (Path(self.directory)/name).exists()
+                  and not (Path(self.directory)/name).is_symlink(), 'PHYSICAL_ADMISSION_FORBIDDEN')
+            path = MemoryAdmission(self,data.encode() if isinstance(data,str) else data)
+            self.buffers.append(path)
+        else:
+            if name in self.sources:
+                staging = frame.f_locals.get('stage' if name == 'replay-source-1.sql' else 'staging')
+                if name == 'replay-source-1.sql':
+                    check(type(staging) is legacy.StagedSources and self.staging is None,
+                          'ACCEPTED_REPLAY_STAGE_REQUIRED')
+                    self.staging = staging
+                elif name != 'prefix-1.sql':
+                    check(staging is self.staging, 'ACCEPTED_REPLAY_STAGE_REQUIRED')
+                check((data.encode() if isinstance(data,str) else data) == self.canonical(name,staging),
+                      'COMPLETE_ACCEPTED_INPUT_REQUIRED')
+            path = self.private(name,data)
+            if name in self.sources:
+                check(path == Path(self.directory)/name, 'ACCEPTED_WRITER_PATH_MISMATCH')
+                self.records[name] = (path,self.physical(path))
+        if envelope_writer:
+            self.envelope.append(path)
+        return path
+
+    def run(self, database, files, stage, transaction=True, expect='00000', timeout=120):
+        self.owned()
+        files = tuple(files)
+        virtual = [path for path in files if isinstance(path,MemoryAdmission)]
+        repair_route = any(getattr(path,'name',None) == MemoryAdmission.name for path in files)
+        if not virtual and not repair_route and not self.envelope:
+            return self.run_files(database,files,stage,transaction,expect,timeout)
+        try:
+            repair.require_owned(self.h)
+            dedupe.require_live(self.h)
+            check(database == replay.DATABASE and dedupe._STATES.get(self.h) == 'FRESH'
+                  and stage == 'whole_batch' and transaction is True and expect == '00000'
+                  and timeout == 120, 'EXACT_REPAIR_ROUTE_REQUIRED')
+            check(len(files) == len(self.ORDER) and tuple(path.name for path in files) == self.ORDER
+                  and len(self.envelope) == len(files)
+                  and all(a is b for a,b in zip(files,self.envelope))
+                  and len(virtual) == 1 and virtual == self.buffers
+                  and virtual[0].adapter is self and virtual[0].valid, 'EXACT_REPAIR_INPUTS_REQUIRED')
+            argv = self.h.command(database,files,transaction)
+            needle = '/legacy-private/'+MemoryAdmission.name
+            positions = [i for i,value in enumerate(argv) if value == needle]
+            check(len(positions) == 1 and argv[positions[0]-1] == '-f', 'EXACT_REPAIR_ARGUMENT_REQUIRED')
+            argv[positions[0]] = '-'
+            started = time.monotonic()
+            try:
+                result = subprocess.run(argv,input=bytes(virtual[0].data),capture_output=True,
+                                        timeout=timeout,env=legacy.clean_environment())
+            except (OSError,subprocess.TimeoutExpired):
+                raise BoundaryError('PRIVATE_SQL_PROCESS_FAILED') from None
+            receipt = legacy.safe_receipt(result.stderr.decode(errors='replace'),result.returncode,stage)
+            receipt['milliseconds'] = round((time.monotonic()-started)*1000)
+            print(json.dumps(receipt,sort_keys=True),flush=True)
+            check(receipt['sqlstate'] == expect and (expect == '00000') == (result.returncode == 0),
+                  'UNEXPECTED_SQL_RESULT')
+            return result.stdout.decode()
+        finally:
+            self.clear()
+
+    def clear(self):
+        for buffer in self.buffers:
+            buffer.clear()
+        self.buffers.clear()
+        self.envelope.clear()
+
+    def __enter__(self):
+        repair.require_owned(self.h,False)
+        check(not self.active and not self.closed and self.h not in dedupe._STATES
+              and re.fullmatch(r'gridex-auth-legacy-fixed-[0-9]+-[0-9]+',self.name) is not None,
+              'FRESH_FIXED_PREPARATION_REQUIRED')
+        check(getattr(self.h.private,'__func__',None) is legacy.OwnedPostgres.private
+              and getattr(self.h.run_files,'__func__',None) is legacy.OwnedPostgres.run_files,
+              'TRUSTED_ACCEPTED_METHODS_REQUIRED')
+        for name in self.sources:
+            self.canonical(name)
+        self.originals = {name:(name in self.h.__dict__,self.h.__dict__.get(name))
+                          for name in ('private','run_files')}
+        self.private,self.run_files,self.command = self.h.private,self.h.run_files,self.h.command
+        self.private_wrapper = lambda name,data:self.write(name,data,sys._getframe(1))
+        self.run_wrapper = lambda *args,**kwargs:self.run(*args,**kwargs)
+        self.h.private,self.h.run_files = self.private_wrapper,self.run_wrapper
+        self.active = True
+        return self
+
+    def __exit__(self, kind, error, traceback):
+        intact = (self.h.__dict__.get('private') is self.private_wrapper
+                  and self.h.__dict__.get('run_files') is self.run_wrapper)
+        try:
+            for name,(present,value) in self.originals.items():
+                if present:
+                    self.h.__dict__[name] = value
+                else:
+                    self.h.__dict__.pop(name,None)
+        finally:
+            self.clear()
+            self.staging = None
+            self.active,self.closed = False,True
+        check(intact,'ACCEPTED_METHODS_CHANGED')
+
+    def whole_input(self, proof, path):
+        check(self.closed and not self.active and proof.h is self.h and proof.name == self.name
+              and proof.directory == self.directory, 'ACCEPTED_INPUT_PROVENANCE_REQUIRED')
+        record = self.records.get(path.name)
+        if record is None or path != record[0]:
+            return False
+        check(self.physical(path) == record[1] and path.read_bytes() == self.canonical(path.name),
+              'RETAINED_ACCEPTED_INPUT_CHANGED')
+        return True
+
+
 def ident(value):
     check(re.fullmatch(r'[a-z_][a-z0-9_]*', value) is not None, 'IDENTIFIER_REQUIRED')
     return '"'+value+'"'
@@ -375,16 +583,18 @@ def sql_main():
     core = sys.modules[__name__]
     original = replay.originals_snapshot()
     with legacy.OwnedPostgres() as h:
-        dedupe.prepare_reference(h)
-        refs = h.reference,repair.REFERENCES[h],dedupe._REFERENCES[h]
-        h.reset(CANARY)
-        h.sql(CANARY,"CREATE TABLE public.fixed_canary(id integer PRIMARY KEY,value text); INSERT INTO public.fixed_canary VALUES (1,'preserved');",'fixed_canary')
-        command = ['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--dedupe-prefix-proof']
-        check(replay.serve_child(legacy,h,command,'dedupe57') == 0,'ACTUAL57_SHELL_REQUIRED')
+        with AcceptedInputs(h) as inputs:
+            dedupe.prepare_reference(h)
+            refs = h.reference,repair.REFERENCES[h],dedupe._REFERENCES[h]
+            h.reset(CANARY)
+            h.sql(CANARY,"CREATE TABLE public.fixed_canary(id integer PRIMARY KEY,value text); INSERT INTO public.fixed_canary VALUES (1,'preserved');",'fixed_canary')
+            command = ['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--dedupe-prefix-proof']
+            check(replay.serve_child(legacy,h,command,'dedupe57') == 0,'ACTUAL57_SHELL_REQUIRED')
         check(replay.originals_snapshot() == original,'WHOLE_SOURCE_STAGE_RESTORATION_REQUIRED')
         check(h.reference is refs[0] and repair.REFERENCES[h] is refs[1] and dedupe._REFERENCES[h] is refs[2],
               'REFERENCE_IDENTITIES_CHANGED')
         proof = Proof(h)
+        proof.accepted_inputs = inputs
         controls = load('fixed_sql_controls','canonical-user-rbac-fixed-target-controls.py')
         controls.admissions(core,models,fixtures,proof)
         for source,name,options in cases.cases():

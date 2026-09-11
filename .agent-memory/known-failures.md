@@ -224,3 +224,13 @@ weakening; bounded initialization/use audit and targeted regression pending.
 T15-F4 cd9bb843 scoped independent review ADDRESSED, no new findings. Shared
 nonzero-exit guard makes interim missing-exit allegation a retracted false-positive.
 Corrected native rejection/new reduced success and full102 acceptance pending.
+
+## Active Task15 final privacy blocker — recovered 2026-09-11
+At2bbcdab8 all102 native cases pass, final103137885579 fails
+SOURCE_LITERAL_IN_PRIVATE_ARTIFACT. Exact known matches are four pinned accepted
+whole-source inputs and generated repair-admission.sql. Required correction is
+finite canonical physical writer/byte provenance for whole inputs and no physical
+generated admission (per-handle memory/stdin), with other artifact/collector guards
+unchanged. Unpublished43b90fd0/report lost after environment restoration; a recovered
+implementation must earn fresh review and native acceptance. Earlier Task15 F1-F4
+native blockers are closed at2bbcdab8, not separate active work.

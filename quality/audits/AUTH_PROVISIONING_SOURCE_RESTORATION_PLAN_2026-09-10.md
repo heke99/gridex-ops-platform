@@ -687,3 +687,104 @@ BEGIN/COMMIT and independent effects. No guessed private error substring or
 canonical schema/source/helper/count changes;102 private characterization cases.
 Bounded same-mechanism audit covers type initialization/use in existing optional
 column branches, not a fresh source-effects audit.
+
+
+### Task15 accepted-input/privacy transport clarification (fix5 recovery)
+At published2bbcdab8 all102 native cases PASS; final privacy rejects retained
+accepted preparation files. This clarification restores the authorized fix5
+contract lost with the disconnected workspace; it does not change source semantics.
+
+Own only scripts/canonical-user-rbac-fixed-target-selftest.py and
+scripts/canonical-user-rbac-fixed-target-controls.py. Keep accepted helpers unchanged.
+Four finite whole-input paths can contain source literals: prefix-1.sql,
+replay-source-1.sql (both canonical accepted prefix item1), repair-whole-E2.sql
+(repair source item2), dedupe-whole-H2.sql. Distinguish these from generated
+artifacts ONLY with actual trusted writer/path provenance, independent canonical
+physical non-symlink source validation, manifest hash and exact complete bytes.
+No filename/suffix-only exception, copied/foreign/lookalike/symlink/mutated/missing
+source escape. Collector and all other retained files stay scanned unchanged.
+
+A fifth match is generated repair-admission.sql, from unchanged repair.envelope_files
+and diagnostic_guard(E2). It MUST NOT be written physically or excepted from scan.
+Use a Task15-only per-exact-owned-handle context adapter during accepted preparation:
+private returns an opaque in-memory input for this exact generated name; ordinary
+writes delegate unchanged. Preserve complete unchanged admission bytes. Adapt only
+its exact repair envelope run_files route: validate same handle/owner/database,
+closed ordered files, one exact virtual identity, expected stage/transaction/result.
+Use h.command unchanged and replace only the matching -f argument value with '-';
+pass unchanged admission via stdin. Preserve all other whole-file positions,
+ON_ERROR_STOP, source order/transactions, safe_receipt/result guards, lifecycle and
+reference identities. Raw adapted results stay in memory. No global monkeypatch or
+helper source/API/class changes. Restore instance methods and invalidate/clear all
+private buffers on every success/failure path, including unexpected method removal.
+Physical generated admission must fail final privacy even with no matching literal.
+Do not delete or write-then-delete evidence to pass privacy.
+
+Previous author reported a passing fix43b90fd0 (24adapter/41privacy controls), but
+that local object and ignored report are unavailable after environment restoration.
+Recreate this bounded fix from source and this confirmed mechanism; do not claim
+those lost tests as evidence for new code. Keep meaningful real unchanged writers
+and repair.execute with mocked process/SQL for targeted RED/GREEN; check routing,
+result failures, owner/phase, restoration and privacy provenance negatives.
+Prior119-file constructor audit matched the four complete inputs plus generated
+admission; actual catalog output is hosted-only. No speculative client output leak
+was confirmed: final client-last.out comes from dedupe index_details. No generic
+output adapter or accepted proof rewrite. If new evidence contradicts this, report
+concrete mechanism. No SQL locally, no installs/probes. Hosted full102/final privacy
+plus unchanged mandatory all19/quality/Ediel remains acceptance gate.
+
+Fix5 staging clarification: the accepted shell moves canonical migration files into
+private HOLD during replay. Validate canonical physical source/pin at adapter entry
+and after staging restoration/final scan; during HOLD use the actual trusted
+StagedSources physical input and identity through accepted staging APIs, verifying
+the same pinned whole bytes. Canonical absence during this bounded accepted phase
+is expected, not a bypass. Reject arbitrary copied/symlink/substituted/missing staged
+inputs; no helper change or filename-only provenance exception.
+
+
+### Task 16: Resolve the exact lossless fixed-target continuation interface
+
+This bounded design consumes Task9 complete source effects/admission and Task15
+actual102 native evidence; it does not repeat source characterization. Final Task15
+privacy acceptance is required before executing its continuation, but design may
+use already verified native semantics while that gate runs.
+
+Own one document quality/audits/USER_RBAC_FIXED_TARGET_CONTINUATION_2026-09-11.md.
+Root owns this plan and memory. No runtime/source/helper/selection/workflow changes.
+Use the existing lossless empty canonical continuation contract verbatim as the
+boundary: fresh unpublished owned database, empty business writes, independent
+complete preimages, minimum provider-free synthetic slots, whole original sources
+with native COMMIT, exact captured-PK/seed/catalog/sequence restoration, terminal
+failure/disposal before release. Do not add optional characterization cases.
+
+Resolve only decisions necessary for implementation:
+1. Smallest coherent source ordering/group and forward prerequisite/cleanup files,
+   each original/new migration executed whole exactly once. State exact logical
+   suffixes for actual CLI generation; do not invent timestamps or counts. Explain
+   whether a single group cleanup preserves every source and preimage obligation;
+   split only where concrete dependencies require. Include B0 missing industry and
+   membership suspended_at using whole compatible prerequisites or forward schema
+   migration justified by original declarations. Do not extract broad existing
+   migration fragments and claim selection. F2 old-role CHECK rejection is avoided
+   only by an admitted minimum constructor with no old role row, not weakened CHECK.
+2. Exact minimal constructor/write graph and per-source successful actual-prefix
+   path based on existing oracles. Original seeds, permissions/link identities and
+   source/constructor-created trigger work all need exact reversal. Identify any
+   nonconvergent trigger/sequence restoration with concrete evidence and remedy.
+3. Narrow accepted lifecycle extension before final H2 SUCCEEDED release; cannot
+   reset/reuse terminal/succeeded handle or use test modules as runtime authority.
+   Private whole input/output transport retains Task15 fix5 boundaries. Preserve
+   existing legacy52/repair56/dedupe57 proofs and original19 command union.
+4. Specify implementation-owned files, actual staged-loop insertion, independent
+   final reference, essential success/repeat/dirty/native-COMMIT-crash/cleanup tests
+   and final selected accounting formula once actual skeleton count is known.
+   No docs-mirroring tests; provide path/line evidence for new dependency decisions.
+
+Read Task9's named lossless section and existing source-effect matrix, Task15
+oracles/fixtures/lifecycle code only as needed. Do not re-audit all migration sources,
+retest accepted cases, inspect real users/providers or execute SQL. Preserve later
+R2 text[] versus alignment RETURNS TABLE dependency for its proper downstream task.
+Write concise actionable contract, git diff --check, commit only owned document and
+full ignored task-16-report.md. Independent review checks feasibility and exact
+lossless/lifecycle constraints. Then batch actual CLI skeleton generation in one
+hosted job and implement the reviewed boundary without another open-ended audit.
