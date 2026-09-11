@@ -1,7 +1,9 @@
 # Metering, readiness and outbound source characterization
 
-Status: source review and implementation candidate; native source proof pending.
-No additional source selection, actual74 or production readiness claim.
+Status: standalone native source proof PASS ondb517370.
+OPS34656370070/job103449573876 SUCCESS23:02:43Z.
+Complete M/E/Z inputs are registered atfoundation72–74 as INPUT_SELECTION_ONLY.
+Actual74 native acceptance and production readiness remain unproved.
 Predecessor actual71 passed its original-child native gate on335c950f:
 OPS34655243791/job103446101233 SUCCESS22:58:08Z. Source analysis does not establish native acceptance.
 
@@ -84,3 +86,22 @@ observed RED then GREEN. Independent final code/model/native-matrix review APPRO
 actual71 acceptance. Added active actor and enabled/disabled route-profile view
 branches as requested by review. Hosted native results remain required before
 selection or actual74 integration.
+
+
+## Native result and actual74 integration candidate
+
+All19prepared source cases and the view ACL/branch probes passed, including
+actor/profile alternatives, dirty environment normalization, ILIKE wildcard,
+current-key uniqueness and exact rollback. Original/canary/files/privacy/cleanup
+passed. This closes the standalone source gate.
+
+A separate actual74 runtime now consumes the exact linked actual71 snapshot,
+held full M/E/Z inputs and independent source-only oracle, under one private
+transaction with UTC/ISOcontext and fullpre/postcommit comparison. Foundation
+72–74 selection is INPUT_SELECTION_ONLY; actual74 native acceptance is pending.
+The complete first71 and old41tail order and all source pins remain unchanged.
+
+Independent actual74 runtime/native-matrix/scope-order review APPROVED publication.
+Seven constructors and exact first71+inserted3+old41tail/foundationhash verified.
+Hosted actual74 gate remains pending; no production action is authorized by
+these local checks alone. Existing user delivery authorization applies after gates.

@@ -12,9 +12,9 @@ No production mutation has been performed in this replay-verification batch.
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `335c950f83f5694a92c5022abc0b9bd9e890bbcd`.
+- Published implementation baseline: `db5173700b89a62f0a42cb376f7860a59583b5c5`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Ten reviewed batches pushed. The directional HOT correction passed native32
+- Eleven reviewed batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
   17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
 - Source-bound omission fixture correction is published61bc1fe5. It uses exact
@@ -38,7 +38,7 @@ No production mutation has been performed in this replay-verification batch.
   exact22012/57P01 rollback, postcommit catalog/row drift, failed child and
   post-COMMIT controller death all PASS. Canary, source/HOLD restoration,
   private collector boundaries and exact owner cleanup all PASS by21:54:51Z.
-- Actual68 remains the accepted native boundary. Source-only L/E/U native PASS
+- Actual71 is the accepted native boundary. Source-only L/E/U native PASS
   on279e0f55, OPS34653186725/job103439770379. All14cases, privileges/constraints,
   populated Ediel message preservation, exact rollback, original/canary/privacy
   and owner cleanup PASS22:17:15Z. Full source analysis244lines is accepted.
@@ -60,21 +60,21 @@ No production mutation has been performed in this replay-verification batch.
   catalog/row drift, failed child, controller death, canary/HOLD/privacy/exact
   cleanup all PASS. Actual71 is accepted. All predecessor alignment/fixed/
   legacy/repair/dedupe/source/Ediel/quality jobs SUCCESS.
-- Prepared next unregistered whole-source group M/E/Z:6Cmetering/readiness,
-  company/Ediel control center and finalZ01 outbound guard. All331source lines
-  independently reviewed. Independent full-row model handles customer ownership,
-  UTCcanonical keys and company normalization;10constructorsPASS. Source-only
-  DDL preserves existing indexes/nullability/FKs and SQL ILIKE wildcard semantics.
-  Private standalone proof mirrors full closed operations/alignment/fixed
-  completion chain; missing/corrupt reservation regressions RED->GREEN.
-  Independent review APPROVED publication; predecessor actual71 now accepted. Native19case
-  suite+view ACL/branch probes prepared, not run; no selection or actual74 claim.
-  Drafts: scripts/canonical-readiness-operations-{batch,selftest}.py and audit
-  quality/audits/READINESS_OPERATIONS_SOURCE_PROOF_2026-09-11.md.
-- Source registration69–71 prepared: foundation112/timestamp508;
-  600=552selected,23substituted,20unclassified,5excluded. Global43dispositions
-  unresolved; focused32. All immutable source bytes/manifests unchanged.
-  INPUT_SELECTION_ONLY remains explicit until full native replay/provenance.
+- Whole M/E/Z source gate now SUCCESS ondb517370:
+  OPS34656370070/job103449573876, native19cases+viewACL/branches allPASS
+  23:02:43Z and exact cleanupPASS.331original lines independently reviewed,
+  independent model/DDL +10constructors; closed-chain and ILIKE regressions
+  observedRED->GREEN. Actual71 remains accepted predecessor.
+- Prepared readiness74 original-child integration: complete M/E/Z atfoundation
+  72–74, immutable first71 and old41tail retained. Same activeowned target,
+  liveheldsources, full prior catalog/rows, UTC/ISOkeycontext, source-derived
+  oracle, one PIPEtransaction, fullpre/postcommit, linkedrelease and exactchild
+  completion/privacy/HOLD.7localconstructorsPASS; independent final review
+  APPROVED for publication; native74 gate PENDING. No actual74 claim.
+- Registration accounting INPUT_SELECTION_ONLY: foundation115/timestamp508;
+  600=555selected,23substituted,17unclassified,5excluded. Global40dispositions
+  unresolved; focused31. Original bytes/manifests unchanged; full replay remains
+  gated beforeSQL. Only E belongs to the focusedgroup; M/Z belong elsewhere.
 - Local affected constructors/accounting/provenance/readiness and native
   auth/legacy/repair/dedupe/fixed/Ediel/quality gates PASS. Full types still FAIL
   on migration tail20260911114443; native CLI still unsupported beforeSQL.
@@ -96,12 +96,12 @@ OPS run 34611459551 on the starting commit:
 - Separate tenant and browser-public workflows passed. Skipped full runtime,
   authenticated domain and production lanes remain unverified.
 
-Working-tree accounting is 600 inputs: 552 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`,
-20 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
-The focused group contains 346 inputs: 309 selected, 20 substituted,
-12 unclassified, and 5 excluded.
-Forty-three historical inputs remain unresolved; focused group unresolved32.
-Foundation112 / native actual71 and all immutable source pins remain binding.
+Working-tree accounting is 600 inputs: 555 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`,
+17 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+The focused group contains 346 inputs: 310 selected, 20 substituted,
+11 unclassified, and 5 excluded.
+Forty historical inputs remain unresolved; focused group unresolved31.
+Foundation115 / native actual71 and all immutable source pins remain binding.
 Selection is not proof of successful full SQL replay or production parity.
 
 ## Production and access
@@ -124,7 +124,7 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Publish reviewed M/E/Z standalone source proof and resolve its native gate at actual71.
+Complete independent review, publish actual74 integration and resolve its native gate.
 Continue remaining source dispositions after the linked actual71 gate passes.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics

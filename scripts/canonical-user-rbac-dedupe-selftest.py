@@ -988,7 +988,7 @@ def integration_constructors():
     assert b.legacy is legacy and b.repair is repair
     assert b.validate_sources(b.reviewed_paths())[0].data == source_bytes((SOURCE,))
     order = json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
-    assert len(order) == 112 and order[56] == 'migrations/'+SOURCE.name
+    assert len(order) == 115 and order[56] == 'migrations/'+SOURCE.name
     assert replay.scope_flags('dedupe57') == ['--dedupe-prefix-proof']
     for flags in (['--dedupe-prefix'], ['--dedupe-prefix-proof','--repair-prefix-proof'],
                   ['--dedupe-prefix-proof','--foundation-prefix-proof'], ['--dedupe-prefix-proof','57']):
@@ -998,7 +998,7 @@ def integration_constructors():
         try: b.require_owned(target)
         except BoundaryError: pass
         else: raise AssertionError('duck typed target accepted')
-    print('PASS H2 shared identity, exact112, named57 constructors; NO SQL claim')
+    print('PASS H2 shared identity, exact115, named57 constructors; NO SQL claim')
 
 
 def lifecycle_constructors():

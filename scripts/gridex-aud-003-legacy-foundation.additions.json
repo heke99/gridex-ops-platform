@@ -76,7 +76,10 @@
     "migrations/20260911114443_canonical_user_rbac_customer_alignment_boundary.sql",
     "migrations/20260519_customer_move_out_lifecycle.sql",
     "migrations/20260519_ediel_tenant_profile_runtime_sync.sql",
-    "migrations/20260519_operations_customers_ux.sql"
+    "migrations/20260519_operations_customers_ux.sql",
+    "migrations/20260519_batch_6c_metering_billing_readiness.sql",
+    "migrations/20260520_batch_1_2_saas_ediel_control_center.sql",
+    "migrations/20260520_final_z01_outbound_and_platform_guard.sql"
   ],
   "interleaved": [
     {

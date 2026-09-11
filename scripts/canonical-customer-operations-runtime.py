@@ -47,7 +47,7 @@ class Release:
 
 def base_owned(target):
     ref=alignment.owned(target)
-    check(ref.fixed.dedupe.scope in ('operations71','full'),'OPERATIONS_SCOPE_REQUIRED')
+    check(ref.fixed.dedupe.scope in ('operations71','readiness74','full'),'OPERATIONS_SCOPE_REQUIRED')
     return ref
 
 

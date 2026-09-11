@@ -9,6 +9,7 @@ elif [[ "${1:-}" == --dedupe-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=ded
 elif [[ "${1:-}" == --fixed-target-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=fixed-target; SCOPE_FLAGS=(--fixed-target-prefix-proof);
 elif [[ "${1:-}" == --alignment-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=alignment68; SCOPE_FLAGS=(--alignment-prefix-proof);
 elif [[ "${1:-}" == --operations-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=operations71; SCOPE_FLAGS=(--operations-prefix-proof);
+elif [[ "${1:-}" == --readiness-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=readiness74; SCOPE_FLAGS=(--readiness-prefix-proof);
 elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

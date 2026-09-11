@@ -462,7 +462,7 @@ def main():
     assert whole_selection.returncode == 0, whole_selection.stderr
     whole_manifest = json.loads(whole_selection.stdout)
     assert whole_manifest['sql'] == 'NOT EXECUTED'
-    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 112
+    assert whole_manifest['prefixCount'] == 33 and whole_manifest['foundationCount'] == 115
     assert whole_manifest['prefixPathSha256'] == 'ca5bba8be8cadae60b5e753addca0a6f4d7d835cf4f96bd3f3d91fb9734a8370'
     assert [item['alias'] for item in whole_manifest['wholeSources']] == ['I', 'F', 'D', '6D2']
     assert whole_manifest['canonicalSelectionReviewed'] is True and whole_manifest['finalGates'] == 'OPEN'

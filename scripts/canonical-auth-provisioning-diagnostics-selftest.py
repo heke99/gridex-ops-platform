@@ -29,6 +29,7 @@ BOOTSTRAP_SHA = '209b0c391bcfa957ec8b30cfc338622b4bda776e6976d3624fdd2d04779b891
 PREFIX_SHA = '38fbbe9f2d21feab39285d249cad99f17d929687cee3fbfa0b56ebe0d91330dd'
 ALIGNMENT_PATH_SHA = '382f733ba3404ada48502ec49e62ad704d8eb27305f8483c55881e9e762436eb'
 OPERATIONS_PATH_SHA = '5f91d7cf84c6ea1d9b6a7592b02b7e09d580f8b132eb270c4daf7d6beba9f20b'
+READINESS_PATH_SHA = 'a8c841b201c873a0349e015b7dc2b9647ef90675fffaf6b5299420cea27db2e5'
 SUFFIX_SHA = '0f502cdd0f15911dc6ff87589969f2ccf2d94bf361ccd76cfc73131efc304ef4'
 RUNNER_SHA = '4665b791b5e228628fe4ca508c762a4377a9692850fd1090566385c645c8e1ac'
 BASE_FOUNDATION_MANIFEST_SHA = '7196bf2e7fc66cbb5ec0546e8b3d75675410763dbf569036d5c0bcdc627e4ba9'
@@ -98,10 +99,11 @@ def transaction_body(sql):
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 112, 'selected diagnostics stage requires foundation112'
-    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[71:]) == SUFFIX_SHA
+    assert len(order) == 115, 'selected diagnostics stage requires foundation115'
+    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[74:]) == SUFFIX_SHA
     assert path_digest(order[63:68]) == ALIGNMENT_PATH_SHA
     assert path_digest(order[68:71]) == OPERATIONS_PATH_SHA
+    assert path_digest(order[71:74]) == READINESS_PATH_SHA
     assert order[41:43] == [G,R], 'whole diagnostics sources require exact G42/R43'
     assert order.count(G) == order.count(R) == 1, 'whole diagnostics sources must be selected once'
     rbac = module('diagnostics_rbac_prefix', 'canonical-rbac-prefix-selftest.py')
@@ -167,8 +169,8 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    assert len(order)==112 and order[41:43]==[G,R]
-    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[71:])==SUFFIX_SHA
+    assert len(order)==115 and order[41:43]==[G,R]
+    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[74:])==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
                    {G:source[G].replace('full join','left join',1).encode()},
@@ -229,7 +231,10 @@ def constructor_checks():
     operations=module('diagnostics_operations_loader','canonical-auth-provisioning-replay.py').load_operations()
     operations_inserted={'migrations/'+p.name for p in operations.reviewed_paths()}
     assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][68:71] == ['migrations/'+p.name for p in operations.reviewed_paths()]
-    old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted,*repair_inserted,*dedupe_inserted,*fixed_inserted,*alignment_inserted,*operations_inserted}]
+    readiness=module('diagnostics_readiness_loader','canonical-auth-provisioning-replay.py').load_readiness()
+    readiness_inserted={'migrations/'+p.name for p in readiness.reviewed_paths()}
+    assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][71:74] == ['migrations/'+p.name for p in readiness.reviewed_paths()]
+    old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted,*repair_inserted,*dedupe_inserted,*fixed_inserted,*alignment_inserted,*operations_inserted,*readiness_inserted}]
     assert json_digest(old_additions) == OLD_ADDITIONS_FOUNDATION_SHA
     prior_derived = json.loads(json.dumps(additions['derivedBootstrap']))
     assert prior_derived['bootstrap/20260527_company_memberships_role_key_foundation.sql'].pop('preserveSourceReplay') is True
@@ -242,7 +247,7 @@ def constructor_checks():
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':552,'SUBSTITUTED':23,'UNCLASSIFIED':20,'EXPLICITLY_EXCLUDED':5}
+    assert account['counts']=={'FULL_FILE_SELECTED':555,'SUBSTITUTED':23,'UNCLASSIFIED':17,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)
@@ -256,7 +261,7 @@ def constructor_checks():
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==346
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':309,'SUBSTITUTED':20,'UNCLASSIFIED':12,'EXPLICITLY_EXCLUDED':5}
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':310,'SUBSTITUTED':20,'UNCLASSIFIED':11,'EXPLICITLY_EXCLUDED':5}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)

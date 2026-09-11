@@ -1709,3 +1709,31 @@ reservation regressions observedRED->GREEN. Final independent implementation,
 view branch/ACL tests and native19case matrix review APPROVED publication now
 that actual71 is accepted. Native source gate pending. No source registration,
 actual74 or production claim.43global dispositions remain unresolved.
+
+
+## 2026-09-11 23:02Z M/E/Z source acceptance; readiness74 candidate
+
+Publisheddb5173700b89a62f0a42cb376f7860a59583b5c5, exact local/fetched tree
+7cf92f230a23482e3af68d04a1fa319d8c775d09. OPS34656370070/job103449573876
+SUCCESS: all19nativecases, two-tenant backfills/key preservation, collisions23505,
+blockedcompanyP0001 versus key-only success, dirty/null/production environment,
+Z23514/42710, wildcard/multiple CHECK behavior, required/optional absence,
+threeexact22012rollbacks, fullcatalog/comments/rows/repeat, allviewbranches and
+ACLdenial, source/canary/privacy/exactcleanupPASS23:02:43Z. Source semantics
+accepted only; no original-chain actual74 claim.
+
+Prepared readiness74 live continuation andfoundation72–74 registration, preserving
+first71 and old41tail.7newconstructorsPASS; shared admission/fullrows/UTCcontext,
+source-only oracle, whole PIPEtransaction/pre-postcommit/program binding and
+linked original-child release. Focusedsource accounting verified directly:
+only E belongs to auth_membership_tenant, so310selected/20substituted/11unclassified/
+5excluded. Global600=555selected/23substituted/17unclassified/5excluded;
+foundation115/timestamp508.40global/31focuseddispositions unresolved.
+
+Affected repair/dedupe/fixed/alignment/operations/source/diagnostics constructors,
+38accounting and20shellcleanup tests, staticprovenance/integrity/readinessPASS.
+Final independent review and actual74 native remain pending. No production action.
+
+Independent actual74 runtime/native-matrix/scope-order review APPROVED publication.
+Sevenconstructors, exact first71+new3+old41tail/hash and diffcheckPASS.
+Native74 remains pending; no production mutation or parity claim.

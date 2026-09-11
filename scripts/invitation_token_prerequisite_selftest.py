@@ -40,7 +40,7 @@ def selection():
     order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
     additions = json.loads(read('scripts/gridex-aud-003-legacy-foundation.additions.json'))
     assert order[31:38] == ['migrations/20260519_operations_core_saas_sync.sql', SOURCE, *WHOLE, BOUNDARY], 'missing token and complete-source sequence before role foundation'
-    assert len(order) == 112 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
+    assert len(order) == 115 and order.count(SOURCE) == additions['foundation'].count(SOURCE) == 1
     assert all(order.count(path) == additions['foundation'].count(path) == 1 for path in WHOLE)
     manifest = json.loads(read('scripts/migration-history-manifest.json'))
     assert manifest['files'][Path(SOURCE).name] == hashlib.sha256((ROOT / 'supabase' / SOURCE).read_bytes()).hexdigest()

@@ -139,6 +139,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-readiness-operations-selftest.py --cleanup-owned
 
+  readiness-operations-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual74 metering and readiness continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-readiness-operations-continuation-selftest.py
+      - name: Remove only the owned readiness continuation container
+        if: always()
+        run: python3 scripts/canonical-readiness-operations-continuation-selftest.py --cleanup-owned
+
   customer-operations-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30
