@@ -1070,3 +1070,24 @@ list to a name; SELECT supplies jsonb type. Exact42601 added to finite private
 transport diagnostics, no raw SQL/stderr exposure.7operations+8alignment
 constructorsPASS and diffcheckPASS; attribution of hosted failure and actual71
 acceptance remain pending the correction's native run. Accounting unchanged.
+
+
+## 2026-09-11 22:58Z actual71 acceptance and next source proof
+
+Commit335c950f83f5694a92c5022abc0b9bd9e890bbcd, exact published/fetched tree
+82c3e841993aa601ba554adcec153cc1da6416a2. OPS34655243791/job103446101233
+SUCCESS: actual71 original-shell successes22:44:46Z/22:45:35Z/22:58:07Z;
+15negative/fault casesPASS. Exact independent comment/global CHECK-name drift,
+row/owner/staging/database/hash/program denial,22012afterL/E/U+57P01afterE
+fullrollback, postcommit comments/rows, failed child, controller death22:57:18Z,
+canary/HOLD/source/privacy/exact cleanup all PASS. Finalcleanup22:58:08Z.
+This closes actual71 and confirms the corrected admission runs successfully.
+All predecessor/domain quality jobsSUCCESS; generatedtypes still stale tail
+20260911114443 and unsupported fullCLI replay still rejects beforeSQL.
+
+Next M/E/Z complete sources331lines independently reviewed; private standalone
+model/proof10constructorsPASS. SQL ILIKE wildcard and closed predecessor
+reservation regressions observedRED->GREEN. Final independent implementation,
+view branch/ACL tests and native19case matrix review APPROVED publication now
+that actual71 is accepted. Native source gate pending. No source registration,
+actual74 or production claim.43global dispositions remain unresolved.

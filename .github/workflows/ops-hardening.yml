@@ -126,6 +126,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-customer-operations-selftest.py --cleanup-owned
 
+  readiness-operations-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete metering and readiness sources at owned actual71
+        run: python3 scripts/canonical-readiness-operations-selftest.py
+      - name: Remove only the owned readiness source proof container
+        if: always()
+        run: python3 scripts/canonical-readiness-operations-selftest.py --cleanup-owned
+
   customer-operations-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30

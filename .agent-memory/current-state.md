@@ -12,9 +12,9 @@ No production mutation has been performed in this replay-verification batch.
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `3fd47bc7e4c0b78e7ef0caa1ba266040d44db4bb`.
+- Published implementation baseline: `335c950f83f5694a92c5022abc0b9bd9e890bbcd`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Nine reviewed batches pushed. The directional HOT correction passed native32
+- Ten reviewed batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
   17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
 - Source-bound omission fixture correction is published61bc1fe5. It uses exact
@@ -53,7 +53,24 @@ No production mutation has been performed in this replay-verification batch.
   Privacy/disposal/exact cleanupPASS. Invalid typed CTAS column list directly
   confirmed in admission and corrected to name-only per PostgreSQL17 grammar;
   exact42601 now remains a finite diagnostic. Targeted7+8constructorsPASS;
-  hosted correction validation pending. No actual71 acceptance claim.
+  correction335c950f published/fetched exacttree82c3e841. Corrected native71
+  OPS34655243791/job103446101233 SUCCESS22:58:08Z. Three success/fresh runs,
+  comment/global-constraint independent admission, rows/owner/stage/database/hash/
+  program faults, exact22012afterL/E/U and57P01afterE rollback, postcommit
+  catalog/row drift, failed child, controller death, canary/HOLD/privacy/exact
+  cleanup all PASS. Actual71 is accepted. All predecessor alignment/fixed/
+  legacy/repair/dedupe/source/Ediel/quality jobs SUCCESS.
+- Prepared next unregistered whole-source group M/E/Z:6Cmetering/readiness,
+  company/Ediel control center and finalZ01 outbound guard. All331source lines
+  independently reviewed. Independent full-row model handles customer ownership,
+  UTCcanonical keys and company normalization;10constructorsPASS. Source-only
+  DDL preserves existing indexes/nullability/FKs and SQL ILIKE wildcard semantics.
+  Private standalone proof mirrors full closed operations/alignment/fixed
+  completion chain; missing/corrupt reservation regressions RED->GREEN.
+  Independent review APPROVED publication; predecessor actual71 now accepted. Native19case
+  suite+view ACL/branch probes prepared, not run; no selection or actual74 claim.
+  Drafts: scripts/canonical-readiness-operations-{batch,selftest}.py and audit
+  quality/audits/READINESS_OPERATIONS_SOURCE_PROOF_2026-09-11.md.
 - Source registration69–71 prepared: foundation112/timestamp508;
   600=552selected,23substituted,20unclassified,5excluded. Global43dispositions
   unresolved; focused32. All immutable source bytes/manifests unchanged.
@@ -84,7 +101,7 @@ Working-tree accounting is 600 inputs: 552 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED
 The focused group contains 346 inputs: 309 selected, 20 substituted,
 12 unclassified, and 5 excluded.
 Forty-three historical inputs remain unresolved; focused group unresolved32.
-Foundation112 / native actual68 and all immutable source pins remain binding.
+Foundation112 / native actual71 and all immutable source pins remain binding.
 Selection is not proof of successful full SQL replay or production parity.
 
 ## Production and access
@@ -107,7 +124,7 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Publish the reviewed CTAS correction and resolve the actual71 isolated PG17 native gate.
+Publish reviewed M/E/Z standalone source proof and resolve its native gate at actual71.
 Continue remaining source dispositions after the linked actual71 gate passes.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics

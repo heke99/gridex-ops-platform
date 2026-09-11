@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "3fd47bc7e4c0b78e7ef0caa1ba266040d44db4bb"
+    "published_baseline": "335c950f83f5694a92c5022abc0b9bd9e890bbcd"
   },
-  "next_action": "Publish targeted CTAS syntax correction and resolve failed actual71 gate.3fd47bc7 job103445378363 failedOPERATIONS_NATIVE/OTHER withprivacy/disposal/cleanupPASS;7+8localconstructorsPASS. Accountingunchanged43unresolved."
+  "next_action": "Actual71 nativePASS on335c950f job103446101233 OPS34655243791. Publish reviewed M/E/Z standalone sourceproof10constructors/19nativecasesprepared and resolve native gate; no selection/actual74.43dispositionsunresolved."
 }

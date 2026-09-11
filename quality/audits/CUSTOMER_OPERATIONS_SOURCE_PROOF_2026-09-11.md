@@ -84,3 +84,10 @@ original live controller and held sources, with an independently prepared extra
 catalog baseline and exact single-transaction completion. Source registration is
 INPUT_SELECTION_ONLY; native71 acceptance is pending its separate hosted gate.
 Source bytes, history manifests and timestamp order remain unchanged.
+
+
+Actual71 native acceptance: corrected335c950f, OPS34655243791/job103446101233
+SUCCESS22:58:08Z. Whole original child, staged/program binding, independent
+baseline, full rollback/commit, failed child/controller death, canary/HOLD/privacy
+and exact cleanup PASS. Complete L/E/U selection69–71 now has original-runner
+native evidence. Full schema/types/provenance and production remain incomplete.
