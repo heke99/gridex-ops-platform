@@ -125,6 +125,36 @@ def expected(core, models, before, source, result, options, winner=None):
     return oracle
 
 
+def assert_expected(core,models,before,source,result,options,after):
+    if source.key!='B0' or options.get('match')!='tie':
+        expected(core,models,before,source,result,options).assert_snapshot(after)
+        return
+    # ORDER BY created_at has no PK tie-breaker. Derive the finite legal PK
+    # alternatives solely from THIS execution's preimage, never another run's
+    # winner or postimage fields. Each alternative models the complete graph.
+    candidates = [row for table,row in before[1] if table=='public.companies' and
+                  (row.get('slug')==source.literal(209) or
+                   (row.get('org_number') or '').replace('-','')==source.literal(210,3))]
+    core.check(len(candidates)==2 and len({row['id'] for row in candidates})==2 and
+               candidates[0]['created_at'] is not None and
+               candidates[0]['created_at']==candidates[1]['created_at'],'TIED_PK_WINNER_REQUIRED')
+    matches = 0
+    for candidate in candidates:
+        oracle = expected(core,models,before,source,result,options,candidate['id'])
+        try:
+            oracle.assert_snapshot(after)
+        except core.BoundaryError as error:
+            # Only comparison failures reject an alternative; construction or
+            # prerequisite errors must propagate, never become accepted branches.
+            if str(error) not in ('FULL_CATALOG_ORACLE_MISMATCH','FULL_ROW_MULTISET_MISMATCH',
+                                  'FULL_PK_FIELD_ORACLE_MISMATCH','RELATED_GENERATED_VALUE_MISMATCH',
+                                  'UNEXPECTED_DEPENDENT_ROW','UNEXPECTED_RELATION_ROWS'):
+                raise
+        else:
+            matches += 1
+    core.check(matches==1,'TIED_FULL_SNAPSHOT_ORACLE_MISMATCH')
+
+
 def death(core, proof, source, database, kind):
     """Observe native COMMIT, kill only our child/backend, then re-observe rows."""
     label = 'fixed_private_'+source.key.lower()+'_'+kind
@@ -204,25 +234,13 @@ def run_case(core, models, fixtures, proof, source_key, name, options):
                     core.check(result.code != 0 and result.state=='P0099','POSTCOMMIT_SENTINEL_REQUIRED')
                 elif not options.get('durability'):
                     core.check(result.code == 0 and result.state=='00000','WHOLE_SOURCE_SUCCESS_REQUIRED')
-                winner = None
-                if source_key=='B0' and options.get('match')=='tie':
-                    # Native tie winner is deliberately unspecified. Admit only
-                    # one of the original tied PKs, then verify ALL its fields.
-                    old_companies = {row['id']:row for table,row in before[1] if table=='public.companies'}
-                    changed = [row for table,row in after[1] if table=='public.companies' and row != old_companies.get(row['id'])]
-                    core.check(len(changed)==1 and changed[0]['id'] in old_companies,'AMBIGUOUS_WINNER_REQUIRED')
-                    candidates = [row for row in old_companies.values() if row.get('slug')==source.literal(209) or
-                                  (row.get('org_number') or '').replace('-','')==source.literal(210,3)]
-                    core.check(len(candidates)==2 and candidates[0]['created_at']==candidates[1]['created_at'] and
-                               changed[0]['id'] in {row['id'] for row in candidates},'TIED_PK_WINNER_REQUIRED')
-                    winner = changed[0]['id']
-                expected(core,models,before,source,result,options,winner).assert_snapshot(after)
+                assert_expected(core,models,before,source,result,options,after)
                 if source_key in ('B0','C2'):
                     core.check(proof.snapshot(database)==before,'GENUINE_OUTER_ROLLBACK_REQUIRED')
                     # Repeat in the SAME outer transaction is handled below;
                     # executing after rollback alone is not an idempotence proof.
                     if repetitions==2:
-                        repeat_rollback(core,models,proof,source,database,before,options,winner)
+                        repeat_rollback(core,models,proof,source,database,before,options)
                         break
                 else:
                     if source_key=='D2':
@@ -237,7 +255,7 @@ def run_case(core, models, fixtures, proof, source_key, name, options):
         proof.destroy(database)
 
 
-def repeat_rollback(core,models,proof,source,database,before,options,winner):
+def repeat_rollback(core,models,proof,source,database,before,options):
     # Complete source executes twice, retaining source-assigned PKs between runs.
     proof.identity(database)
     whole = source.refresh()
@@ -248,8 +266,8 @@ def repeat_rollback(core,models,proof,source,database,before,options,winner):
     core.check(len(chunks)==3,'REPEAT_PRIVATE_SNAPSHOTS_REQUIRED')
     first = core.decode_snapshot('FIXED_CATALOG\n'+chunks[1])
     second = core.decode_snapshot('FIXED_CATALOG\n'+chunks[2])
-    expected(core,models,before,source,result,options,winner).assert_snapshot(first)
-    expected(core,models,first,source,result,options,winner).assert_snapshot(second)
+    assert_expected(core,models,before,source,result,options,first)
+    assert_expected(core,models,first,source,result,options,second)
     core.check(proof.snapshot(database)==before,'REPEAT_OUTER_ROLLBACK_REQUIRED')
 
 

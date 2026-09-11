@@ -46,6 +46,7 @@ def constructors(c,models,cases):
     transport_controls(c)
     identity_controls(c)
     oracle_controls(c,models)
+    bootstrap_tie_controls(c,models,cases)
     workflow(c)
     names = [(key,name) for key,name,_ in cases.cases()]
     c.check(len(names)==len(set(names)) and {key for key,_ in names}==set(c.SPECS),'CLOSED_CASE_MATRIX_REQUIRED')
@@ -145,6 +146,132 @@ def oracle_controls(c,models):
     changed = copy.deepcopy(after);changed[0]['relation/'+table]['kind']='f';bad.append(changed)
     for changed in bad:
         c.rejected(lambda:oracle().assert_snapshot(changed))
+
+
+def bootstrap_tie_controls(c,models,cases):
+    """Synthetic model/runner regression, with independent complete postimages.
+
+    No historical literals or SQL execution enter this constructor. Each pair
+    permits a different oldest matching PK; mixed effects must still fail.
+    """
+    def uid(number):
+        return '20000000-0000-4000-8000-'+str(number).zfill(12)
+    user,first_id,second_id = uid(1),uid(2),uid(3)
+    old,now = '2020-01-01T00:00:00+00:00','2026-01-01T00:00:01+00:00'
+    literals = {(74,0):'super_admin',(74,1):'Synthetic system role',(74,2):'Synthetic description',
+                (75,0):'company_admin',(75,1):'Synthetic company role',(75,2):'Synthetic description',
+                (209,0):'synthetic-tie',(210,3):'123456',(243,0):'Synthetic selected company',
+                (245,0):'123-456',(248,0):'Synthetic contact',(249,0):'Synthetic industry',
+                (289,1):'Synthetic role note',(322,1):'Synthetic company audit',(323,1):'Synthetic source'}
+    source = type('SyntheticSource',(),{'key':'B0','slots':{'U_boot':user},
+                 'literal':lambda self,line,ordinal=0:literals[line,ordinal],
+                 'refresh':lambda self:b'SYNTHETIC_CONSTRUCTOR_ONLY'})()
+    rows = [['auth.users',{'id':user,'email':'tie-constructor@example.invalid'}]]
+    for number,key in ((4,'super_admin'),(5,'company_admin')):
+        rows.append(['public.roles',{'id':uid(number),'key':key,'name':'Before','description':'Before'}])
+        rows.append(['public.user_roles',{'id':uid(number+2),'user_id':user,'role_id':uid(number),
+                     'status':'inactive','is_active':False}])
+    for number,company in enumerate((first_id,second_id)):
+        rows.append(['public.companies',{'id':company,'name':'Before','slug':'synthetic-tie' if number==0 else None,
+                     'org_number':None if number==0 else '123-456','status':'onboarding',
+                     'primary_contact_email':None,'primary_contact_name':None,'industry':None,
+                     'metadata':{'canary':True},'created_at':old,'updated_at':old}])
+        rows.append(['public.company_memberships',{'id':uid(8+number),'company_id':company,'user_id':user,
+                     'membership_role':'member','status':'inactive','accepted_at':None,'suspended_at':old,
+                     'metadata':{'canary':True}}])
+    rows.append(['public.user_profiles',{'id':user,'email':'preserved@example.invalid','full_name':'Preserved',
+                 'active_company_id':None}])
+    rows.append(['auth.refresh_tokens_id_seq',{'last_value':41,'log_cnt':0,'is_called':True}])
+    catalog = {}
+    for table,row in rows:
+        catalog['relation/'+table] = {'kind':'S' if table.endswith('_seq') else 'r'}
+        for column in row:
+            catalog['column/'+table+'/'+column] = {'default':None,'generated':'','type':'text'}
+    catalog['relation/public.audit_logs'] = {'kind':'r'}
+    for column in ('id','actor_user_id','company_id','entity_type','entity_id','action','new_values','metadata'):
+        catalog['column/public.audit_logs/'+column] = {'default':'gen_random_uuid()' if column=='id' else None,
+                                                      'generated':'','type':'uuid' if column=='id' else 'text'}
+    constraint = 'constraint/public.company_memberships/company_memberships_role_check'
+    catalog[constraint] = {'definition':'Synthetic prior check'}
+    before = catalog,rows
+    def transition(preimage,winner,audit_number):
+        after = copy.deepcopy(preimage)
+        after[0][constraint]['definition'] = "CHECK ((membership_role = ANY (ARRAY['owner'::text, 'company_admin'::text, 'member'::text, 'viewer'::text])))"
+        for table,row in after[1]:
+            if table=='public.roles':
+                row.update(name='Synthetic system role' if row['key']=='super_admin' else 'Synthetic company role',
+                           description='Synthetic description')
+            elif table=='public.user_roles' and row['role_id']==uid(4):
+                row.update(status='active',is_active=True)
+            elif table=='public.companies' and row['id']==winner:
+                row.update(name='Synthetic selected company',slug=row['slug'] or 'synthetic-tie',
+                           org_number=row['org_number'] or '123-456',status='active',
+                           primary_contact_email='tie-constructor@example.invalid',primary_contact_name='Synthetic contact',
+                           industry='Synthetic industry',updated_at=now,
+                           metadata={'canary':True,'operational_company':True,'bootstrap_confirmed_at':now})
+            elif table=='public.company_memberships' and row['company_id']==winner:
+                row.update(membership_role='owner',status='active',accepted_at=now,suspended_at=None,
+                           metadata={'canary':True,'bootstrap_confirmed_at':now,'role_note':'Synthetic role note'})
+            elif table=='public.user_profiles':
+                row['active_company_id'] = winner
+        after[1].append(['public.audit_logs',{'id':uid(audit_number),'actor_user_id':user,'company_id':winner,
+                         'entity_type':'company','entity_id':winner,'action':'bootstrap_operational_company',
+                         'new_values':{'company_name':'Synthetic company audit','user_id':user},
+                         'metadata':{'source':'Synthetic source'}}])
+        return after
+    def encoded(snapshot):
+        return 'FIXED_CATALOG\n'+json.dumps(snapshot[0])+'\nFIXED_ROWS\n'+json.dumps(snapshot[1])+'\n'
+    def result(*snapshots):
+        return c.Result(''.join(map(encoded,snapshots)),'',0,'00000',
+                        datetime(2026,1,1,tzinfo=timezone.utc),datetime(2026,1,1,0,0,2,tzinfo=timezone.utc))
+    initial = transition(before,first_id,10)
+    def run(first,second):
+        destroyed = []
+        proof = type('SyntheticProof',(),{
+            'native':lambda *args,**kwargs:result(initial),
+            'run':lambda *args,**kwargs:result(first,second),
+            'snapshot':lambda *args:copy.deepcopy(before),'identity':lambda *args:None,
+            'destroy':lambda self,database:destroyed.append(database)})()
+        fixture = type('SyntheticFixture',(),{'database':c.DATABASES['B0'],'seed':lambda *args:copy.deepcopy(before)})()
+        fixtures = type('SyntheticFixtures',(),{'Fixture':lambda *args:fixture})()
+        with patch.object(c,'Source',return_value=source),contextlib.redirect_stdout(io.StringIO()):
+            try:
+                cases.run_case(c,models,fixtures,proof,'B0','synthetic_tie_regression',
+                               {'reduced':True,'match':'tie','repeat':True})
+            finally:
+                c.check(destroyed==[c.DATABASES['B0']],'TIE_REGRESSION_DISPOSAL_REQUIRED')
+    # The first repeated execution can differ from the prior rolled-back one;
+    # the second can either keep or change its own winner.
+    for first_winner in (first_id,second_id):
+        first = transition(before,first_winner,11)
+        for second_winner in (first_id,second_id):
+            second = transition(first,second_winner,12)
+            run(first,second)
+    first = transition(before,first_id,11)
+    second = transition(first,second_id,12)
+    mutations = (
+        ('public.companies','id',second_id,'id',uid(99)),
+        ('public.companies','id',second_id,'name','Unmodeled company change'),
+        ('public.company_memberships','company_id',second_id,'membership_role','member'),
+        ('public.user_profiles','id',user,'active_company_id',first_id),
+        ('public.audit_logs','id',uid(12),'entity_id',first_id),
+        ('auth.users','id',user,'email','changed@example.invalid'),
+        ('auth.refresh_tokens_id_seq','last_value',41,'is_called',False),
+    )
+    for table,key,value,column,bad in mutations:
+        changed = copy.deepcopy(second)
+        next(row for name,row in changed[1] if name==table and row[key]==value)[column] = bad
+        c.rejected(lambda:run(first,changed))
+    changed = copy.deepcopy(second);changed[0][constraint]['definition']='Unmodeled check'
+    c.rejected(lambda:run(first,changed))
+    changed = copy.deepcopy(second);changed[1].append(copy.deepcopy(changed[1][-1]))
+    c.rejected(lambda:run(first,changed))
+    # The named lane must remain two distinct oldest matching PKs; an unequal
+    # timestamp or duplicate identity cannot broaden the legal alternatives.
+    for column,bad in (('created_at','2021-01-01T00:00:00+00:00'),('id',first_id)):
+        changed = copy.deepcopy(before)
+        next(row for table,row in changed[1] if table=='public.companies' and row['id']==second_id)[column] = bad
+        c.rejected(lambda:cases.assert_expected(c,models,changed,source,result(),{'match':'tie'},initial))
 
 
 def workflow(c):

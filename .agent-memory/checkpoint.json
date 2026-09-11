@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "536906f3b6af4400fda8b1a4d20954987f583a47",
+    "published_baseline": "3b3b508adafa3c1235534e0498769a8fbcddd0fa",
     "last_isolated_pg17_code": "536906f3b6af4400fda8b1a4d20954987f583a47"
   },
-  "execution_environment": "connected; aligned536906f3; Task14 hosted all19/actual57 complete; stash preserved",
-  "next_action": "Publish reviewed Task15 implementation1f01305d and synchronized evidence, then exact-head all19/full fixed-target/quality/Ediel. No review findings; hosted SQL unverified. B0 industry/suspended_at prerequisites and54 unresolved remain open."
+  "execution_environment": "connected; aligned3b3b508a; Task15 hosted acceptance running; stash preserved",
+  "next_action": "Publish reviewed Task15 fix4ed89ff5, T15-F1 addressed no new findings; then exact-head all19/full fixed-target/quality/Ediel.54 unresolved; no production."
 }

@@ -159,3 +159,19 @@ finding F-PARITY-4.
 
 These are bounded proof-tool corrections, not full replay or production acceptance.
 Current status and remaining gates are exclusively in current-state.md.
+
+## Task15 B0 equal-timestamp oracle reuse — reviewed correction, hosted pending
+
+At3b3b508a OPS34554272047 fixed-target job103123464997 passed12 cases then
+failed FULL_PK_FIELD_ORACLE_MISMATCH at reduced_match_tie, exact cleanup PASS.
+Original B0 ORDER BY created_at has no tie-breaker; repeat_rollback reused the
+winner from a prior rolled-back source execution. A tied candidate may differ
+per whole execution. Correction must independently match one complete legal
+preimage-derived candidate postimage each time, retain all PK/field/catalog/
+sequence/dependent checks and reject hybrid effects; never force a source order.
+Native failing substage not disclosed/observed. Author fix1 in progress; no
+full SQL acceptance or source selection inferred.
+
+Task15 T15-F1 correction4ed89ff5 independently ADDRESSED with no new findings;
+meaningful synthetic four-sequence red/green and full negative controls PASS.
+Corrected native acceptance pending, not inferred from old-head receipts.

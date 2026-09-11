@@ -11,9 +11,9 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `536906f3b6af4400fda8b1a4d20954987f583a47`, exact reviewed
-tree `1498199b949dfdd459d28eb7a943bb94cfd2d42d`; fetched equality/tracked-clean
-alignment PASS, localcf0583b6 archived. Task14 COMPLETE: reviewed39e14a98+4e086e04,
+Latest publication: `3b3b508adafa3c1235534e0498769a8fbcddd0fa`, exact reviewed
+tree `d462a5d5e9668214c195b6e84f0e6c73b8f92969`; fetched equality/tracked-clean
+alignment PASS, localffb1b920 archived. Task15 hosted failed B0 reduced_match_tie full PK/field oracle; fix1 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
 T14-R1/R2 CLOSED. OPS34549538480 original16/auth103109350028, legacy17/actual52
 job103109350023151663ms, repair18/actual56 job103109350011184433ms, quality103109349980
 and Ediel103109349997 PASS. Command19/job103109349875 full standalone62235ms plus
@@ -59,9 +59,15 @@ suffix/success-called modes and actual controller SIGKILL PASS, exact terminal
 denial/disposal/restoration/canary/private receipts. Complete standalone retained.
 Historical52/56 remain green. T14-R1/R2 CLOSED by review and actual hosted lanes.
 
-Task15 independent spec/quality review APPROVED, no findings; hosted SQL pending.
-Next: publish reviewed Task15 implementation and synchronized evidence,
-coherent publication and same-head all19/full fixed-target/quality/Ediel gate.
+Task15 original implementation review APPROVED; hosted proof exposed a B0 tie
+oracle defect. All19/actual52+56+57, quality and Ediel PASS on3b3b508a.
+Fix1 has a reproduced red/green regression for per-execution tied candidates;
+Fix4ed89ff5 committed two scripts; complete red-green report inspected, scoped
+independent review APPROVED, no new findings. Corrected hosted SQL pending.
+Next: publish independently approved Task15 fix4ed89ff5 and synchronized evidence;
+then new-head all19/full fixed-target/quality/Ediel gates.
+OPS34554272047 actual57 and first12 source cases PASS, exact cleanup PASS;
+full fixed-target job103123464997 FAIL, no acceptance.
 Then actual evidence determines minimum forward prerequisites/lossless cleanup
 boundaries from real CLI skeletons, individual source selection and remaining54
 sources/full native replay/types/security/live parity/E2E/load/production gates.
