@@ -663,3 +663,15 @@ timestamptz without default. Reduced success is neither actual compatibility nor
 selected completion. Report whole source-backed prerequisite candidates for the
 next step; otherwise use an actual CLI-created forward migration later. No
 canonical schema/helper/history/selection/count changes in Task15.
+
+
+Task15 status-shape clarification (2026-09-11, fix3): retained actual57
+user_roles_status_check permits active/disabled/removed_from_company/
+invitation_revoked/locked_security, not inactive. Synthetic inactive preimages
+must use valid disabled. Where immutable F2 writes inactive into existing old-user
+roles, preserve actual guard and characterize native CHECK rejection with exact
+rollback. Otherwise unreachable historical success may use explicitly named
+reduced status-shape fixtures only. Document exact affected case mapping and
+source/check evidence; no canonical constraint/source/helper/count edits or
+actual compatibility/selection inference. This applies the existing actual-vs-
+reduced rule and informs later lossless prerequisite work.

@@ -72,7 +72,8 @@ def cases():
     for member in ('old','both'):
         add('F2','actual_'+member+'_membership',membership=member,error=member=='both',other_old=True)
     add('F2','actual_old_invitation',invitation='both',membership='old',other_old=True,repeat=True)
-    add('F2','actual_old_roles_disabled',role_row='old',other_old=True,repeat=True)
+    add('F2','actual_old_roles_status_rejected',role_row='old',other_old=True,repeat=True,error=True,role_status_error=True)
+    add('F2','reduced_old_roles_disabled',reduced=True,without_role_status_check=True,role_row='old',other_old=True,repeat=True)
     add('F2','actual_inconsistent_role_id',role_row='inconsistent',repeat=True)
     add('F2','actual_null_company_role_rejected',role_row='null_company',error=True)
     add('F2','reduced_null_company_role_moved',reduced=True,without_active_arbiters=True,role_row='null_company')
@@ -307,6 +308,12 @@ def verify_failure(core,result,source_key,name,options,before):
         core.check(source_key in ('C2','D2') and result.state=='23503' and any(
             'insert or update on table "'+table+'" violates foreign key constraint "'+constraint+'"' in result.stderr
             for constraint in constraints),'NATIVE_ACTOR_FK_REQUIRED')
+    elif options.get('role_status_error'):
+        constraint = before[0].get('constraint/public.user_roles/user_roles_status_check',{})
+        definition = "CHECK ((status = ANY (ARRAY['active'::text, 'disabled'::text, 'removed_from_company'::text, 'invitation_revoked'::text, 'locked_security'::text])))"
+        core.check(source_key=='F2' and constraint.get('kind')=='c' and constraint.get('definition')==definition and
+                   result.state=='23514' and 'new row for relation "user_roles" violates check constraint "user_roles_status_check"' in result.stderr,
+                   'NATIVE_ROLE_STATUS_CHECK_REQUIRED')
     elif name=='reduced_invitation_without_email' and source_key=='D2':
         core.check('falselower' in result.stderr,'NATIVE_MALFORMED_ALIAS_PREDICATE_REQUIRED')
     elif name=='reduced_missing_token_default':

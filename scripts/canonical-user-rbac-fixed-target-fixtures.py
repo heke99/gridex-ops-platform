@@ -40,6 +40,9 @@ class Fixture:
         It is NOT the accepted57 target, a migration or a lossless continuation.
         """
         c,p,h = self.c,self.proof,self.proof.h
+        if self.options.get('without_role_status_check'):
+            c.check(self.source.key=='F2' and self.case=='reduced_old_roles_disabled' and
+                    self.options.get('reduced'),'NAMED_ROLE_STATUS_SHAPE_REQUIRED')
         p.owned(self.database)
         h.reset(self.database)
         catalog = p.origin[0]
@@ -98,6 +101,8 @@ class Fixture:
                 continue
             for key,item in catalog.items():
                 if not key.startswith('constraint/'+table+'/'):
+                    continue
+                if self.options.get('without_role_status_check') and key=='constraint/public.user_roles/user_roles_status_check':
                     continue
                 definition = item['definition']
                 missing = omitted_columns.get(table,())
@@ -232,7 +237,7 @@ class Fixture:
                 shape = options['role_row']
                 role_values = dict(user_id=user,role_id=self.ids['other_role'] if shape in ('inconsistent','null_text') else role,
                                    role=None if shape == 'null_text' else 'company_admin',
-                                   company_id=None if shape in ('null_company','null_text') else company,status='active' if shape == 'inconsistent' else 'inactive',is_active=shape == 'inconsistent')
+                                   company_id=None if shape in ('null_company','null_text') else company,status='active' if shape == 'inconsistent' else 'disabled',is_active=shape == 'inconsistent')
                 if shape == 'old':
                     role_values['user_id'] = s['U_old']
                 self.insert('public.user_roles',role_values,'role-row')
@@ -252,7 +257,7 @@ class Fixture:
                 if options.get('second_alias'):
                     self.insert('public.company_invitations',dict(values,email=OTHER_EMAIL,invited_email=email),'second-alias')
             if options.get('other_target_role'):
-                self.insert('public.user_roles',dict(user_id=user,company_id=self.ids['other_company'],role_id=role,role='company_admin',status='inactive',is_active=False),'other-target-role')
+                self.insert('public.user_roles',dict(user_id=user,company_id=self.ids['other_company'],role_id=role,role='company_admin',status='disabled',is_active=False),'other-target-role')
             if options.get('role_name_tie'):
                 self.insert('public.roles',dict(key='fixed_name_tie',name='company_admin'),'role-name-tie')
             if options.get('other_old'):
@@ -264,6 +269,8 @@ class Fixture:
         self.proof.identity(self.database)
         self.proof.graph(self.catalog)
         result = self.proof.run(self.database,'\n'.join(self.statements))
+        if result.code:
+            print('SETUP fixed-target '+self.source.key+' '+self.case+' sqlstate='+result.state,flush=True)
         if options.get('setup_error'):
             c.check(result.code != 0 and result.state == '23502' and 'violates not-null constraint' in result.stderr,'ACTUAL_NATIVE_NOT_NULL_REQUIRED')
             c.check(self.proof.snapshot(self.database)==self.before,'FIXTURE_ERROR_ROLLBACK_REQUIRED')

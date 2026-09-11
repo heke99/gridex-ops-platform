@@ -973,3 +973,11 @@ Task15 fix1 native acceptance: at35136233 OPS34555351809/job103126766378 reduced
 Task15 fix2 authored5ad9c68fab5dc3c24a4f063dbd3e7af6a4271e48 cases+controls only; full report/red-green/output inspected. Scoped independent review dispatched for T15-F2 exact catalog-qualified actor FK classification; all guards/full rollback preserved. Separate H2 unknown BoundaryError retained for nexthead full gate.
 
 Task15 fix round2/5: T15-F2 ADDRESSED by5ad9c68f; scoped independent review clean, no new/out-of-scope findings. Native corrected acceptance pending. Publish coherent fix2 batch and require exact-head all19/full fixed-target/quality/Ediel; prior H2 opaque failure not waived.
+
+Task15 fix2 native C2 actor-FK PASS23503 atf5435f8f/job103129093787; following invitation alias/accepted-expired-revoked cases PASS00000. Next setup FAIL FIXTURE_NATIVE_SETUP_FAILED before source RESULT; exact cleanup PASS. Original author resumed fix3 to identify exact next constructor/native guard. No SQLSTATE/rootcause guessed. Full proof remains unaccepted; H2 still running.
+
+Atf5435f8f OPS34556127130 original16/auth103129093659,legacy17/actual52 job103129093785,repair18/actual56 job103129093768,dedupe19/actual57 job103129093930 full standalone/all20modes/controllerSIGKILL,quality103129093866 andEdiel103129093869 all PASS. Prior unchanged H2 BoundaryError at35136233 did not reproduce; no code fix/rootcause claimed. New full fixed-target remains failed setup, fix3 active.
+
+Task15 fix3 implementeded9ce0ca2f62c1e7de060ab73c32f6cca3e89bc8,3files cases/fixtures/controls. Full report inspected: real-seed status-domain RED→GREEN,10sharedcase audit/nativecheck catalog/strict reduced gate/SQLSTATE-only privacy and diff checks PASS. Originalactualoldrolesdisabled→actualoldrolesstatusrejected plus reducedoldrolesdisabled;101cases, no migration/count change. Scoped independent review dispatched. Native newhead pending.
+
+Task15 fix round3/5: T15-F3 ADDRESSED byed9ce0ca, scoped independent review clean/no new/out-of-scope findings. Native valid disabled fixture shapes and strict actualCHECK-vs-reduced historical split reviewed;101cases. Native newhead full acceptance pending; publish coherent batch then all19/fullproof/quality/Ediel.

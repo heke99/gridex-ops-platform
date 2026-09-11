@@ -11,9 +11,9 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `351362330f8370944e9ab66937580a98abb94f36`, exact reviewed
-tree `433300de5ca9ae7855d89a87ec576fd0d3767c8e`; fetched equality/tracked-clean
-alignment PASS, local51ea0bf4 archived. Task15 fix1 native PASS; new C2 actor-FK expectation failure, fix2 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
+Latest publication: `f5435f8f961e9fa8524746f9da69c7be149bc092`, exact reviewed
+tree `aa1c094d5fbb3897aab8561e7f3b7a1e692e85d6`; fetched equality/tracked-clean
+alignment PASS, localf10e775e archived. Task15 fix2 native PASS; next C2 fixture setup failure, fix3 active. Task14 COMPLETE: reviewed39e14a98+4e086e04,
 T14-R1/R2 CLOSED. OPS34549538480 original16/auth103109350028, legacy17/actual52
 job103109350023151663ms, repair18/actual56 job103109350011184433ms, quality103109349980
 and Ediel103109349997 PASS. Command19/job103109349875 full standalone62235ms plus
@@ -38,50 +38,51 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task15 IMPLEMENTED_NOT_VERIFIED at1f01305ddb1f0a0bfe3b819f9ee4b909bd21e96a: prove complete B0/C2/D2/F2 privately using approved Task9 source
-matrix/fixture protocol and actual accepted57. Four independent disposable source
-cases, source-derived symbolic synthetic reservations, no real accounts/credentials/
-providers, complete native transactions and full row/catalog/sequence/dependent
-oracles. Actual57 canonical guards remain; explicitly reduced fixtures only for
-otherwise unreachable historical branches. All four remain UNCLASSIFIED, counts
-unchanged. The actual token UUID/default remains intact; previously accepted
-nonredeemable isolated token test data is allowed privately, without live issuer,
-app/provider, redemption, delivery/export or credential provisioning. Exact
-clarification/evidence is in Task15 brief; no new prerequisite for that default. No selected completion or live cleanup is inferred from characterization.
+Task15 IMPLEMENTED_NOT_VERIFIED: whole private B0/C2/D2/F2 characterization.
+Original implementation1f01305d independently approved. Foundation98/all19,
+immutable sources, helpers, accounting and all four UNCLASSIFIED entries unchanged.
+Actual57 uses real accepted replay once; reduced historical fixtures are explicit.
+No selected completion, full replay or production readiness follows from this proof.
 
-Task15 B0 actual57 is blocked by missing industry/suspended_at columns; actual
-native rejection and reduced prerequisite/success lanes are authored. All100cases
-await hosted SQL; constructor/static checks pass, not native acceptance.
+Latest full fixed-target job103129093787 atf5435f8f failed FIXTURE_NATIVE_SETUP_FAILED
+before C2 actual_null_company_role source execution. Fix3 implementeded9ce0ca and independently APPROVED, no new findings:
+shared role_row/other_target_role fixtures use inactive, disallowed by retained
+user_roles_status_check; use native-valid disabled. Same-class audit spans shared
+C2/D2/F2 fixture branches. Immutable F2 writes inactive for old roles, so preserve
+actual CHECK rejection/full rollback and explicit reduced historical success.
+Plan/brief carry this clarification; no canonical guard/source weakening.
 
-Task14 COMPLETE536906f3: actual57/H2 once after accepted56, all20 success/staged/
-admission/native-pre/postCOMMIT/final-row-sequence/transport/backend/shell/restore/
-suffix/success-called modes and actual controller SIGKILL PASS, exact terminal
-denial/disposal/restoration/canary/private receipts. Complete standalone retained.
-Historical52/56 remain green. T14-R1/R2 CLOSED by review and actual hosted lanes.
+Earlier Task15 fixes:
+- T15-F1/4ed89ff5: per-execution full tied-candidate B0 oracle; independent review,
+  meaningful red-green and native tie/all B0 cases PASS at35136233 andf5435f8f.
+- T15-F2/5ad9c68f: exact actor FK preimage catalog/table/name classifier; independent
+  review and red-green PASS. C2 native23503/rollback PASS atf5435f8f; shared D2 lane
+  remains beyond the current first failure. No arbitrary FK error is accepted.
 
-Task15 original implementation review APPROVED; hosted proof exposed a B0 tie
-oracle defect. All19/actual52+56+57, quality and Ediel PASS on3b3b508a.
-Fix1 has a reproduced red/green regression for per-execution tied candidates;
-Fix4ed89ff5 committed two scripts; complete red-green report inspected, scoped
-independent review APPROVED, no new findings. Corrected hosted SQL pending.
-Task15 fix5ad9c68f scoped review APPROVED, T15-F2 addressed/no new findings.
-Next: publish reviewed actor-FK correction and run exact-head full gates. Report/red-green
-verified: SQLSTATE23503 occurred; old classifier incorrectly demanded one name.
-B0 tie and all B0 cases PASS; T15-F1 native closed. C2 staleFOUND/collision pass;
-full Task15 proof remains unaccepted, exact cleanup PASS.
-Separate unchanged H2 job103126766544 failed BoundaryError after sequence_change
-PASS, cleanup PASS; cause unconfirmed. Require complete H2 PASS on next head;
-prior3b3b508a same-code PASS does not accept35136233.
-OPS34554272047 actual57 and first12 source cases PASS, exact cleanup PASS;
-full fixed-target job103123464997 FAIL, no acceptance.
-Then actual evidence determines minimum forward prerequisites/lossless cleanup
-boundaries from real CLI skeletons, individual source selection and remaining54
-sources/full native replay/types/security/live parity/E2E/load/production gates.
-No mass-replay or mass-mark historical sources live under ADR-006. No timestamp
-regeneration, source excerpts, blanket exclusions or weakened guards. Actual Q/W
-artifacts and ignored reports remain preserved. No local PG/Docker/socket/CLI probes.
+Actual B0 lacks companies.industry/company_memberships.suspended_at; actual native
+rejection and explicit industry-only/both-column reduced lanes passed. Whole
+prerequisite candidates and dependencies are recorded for later lossless work.
+Opaque nonredeemable invitation UUID/default fixtures are allowed only in fresh
+owned network-none/provider-free memory, with no issuer/redemption/delivery/export.
+Actual guards/defaults stay intact. No live account or credential operation.
+
+Next: publish reviewed fix3 ed9ce0ca plus synchronized evidence; require new-head
+all19/full fixed-target101cases/quality/Ediel. Continue from actual
+proof to whole prerequisites/CLI-created forward lossless boundaries, then remaining
+54 sources/full native replay/types/security/parity/E2E/load/production gates.
+No local PG/Docker/socket/CLI probes, blanket exclusions, source excerpts, invented
+timestamps or weakened gates. Actual Q/W artifacts and ignored reports preserved.
 
 ## Current executed acceptance
+
+Atf5435f8f OPS34556127130 original16/auth103129093659, legacy17/actual52 job103129093785,
+repair18/actual56 job103129093768, dedupe19/actual57 job103129093930 full standalone,
+all20 modes and controllerSIGKILL, quality103129093866 and Ediel103129093869 PASS.
+Prior unchanged H2 BoundaryError after sequence_change at35136233 did not reproduce;
+no root cause or code fix claimed. Full fixed-target remains unaccepted as above.
+Native replay/types remain red. No production mutation, merge or deployment.
+
+## Historical legacy boundary receipts
 
 OPS34506822456/auth102970940188 at5389f2b5 PASS complete original16 partition (reconfirms
 prior e37bc25b/194fd0cf executed receipts): all prior

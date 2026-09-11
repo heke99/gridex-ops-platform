@@ -48,6 +48,7 @@ def constructors(c,models,cases):
     oracle_controls(c,models)
     bootstrap_tie_controls(c,models,cases)
     actor_fk_controls(c,cases)
+    role_status_controls(c,cases)
     workflow(c)
     names = [(key,name) for key,name,_ in cases.cases()]
     c.check(len(names)==len(set(names)) and {key for key,_ in names}==set(c.SPECS),'CLOSED_CASE_MATRIX_REQUIRED')
@@ -322,6 +323,122 @@ def actor_fk_controls(c,cases):
             c.rejected(lambda:run(source_key,change=change))
         c.rejected(lambda:run(source_key,state='23502'))
         c.rejected(lambda:run(source_key,constraint='unrelated_fk'))
+
+
+def role_status_controls(c,cases):
+    """Check the shared real seed branches against the retained status domain."""
+    fixtures = c.load('fixed_status_fixtures','canonical-user-rbac-fixed-target-fixtures.py')
+    allowed = {'active','disabled','removed_from_company','invitation_revoked','locked_security'}
+    def guard(rows):
+        c.check(all(row['status'] in allowed for table,row in rows if table=='public.user_roles'),
+                'ROLE_FIXTURE_STATUS_CHECK')
+    for key,name,options in cases.cases():
+        if not (options.get('role_row') or options.get('other_target_role')):
+            continue
+        rows = []
+        f = fixtures.Fixture.__new__(fixtures.Fixture)
+        f.c,f.case,f.options = c,name,options
+        f.database = c.DATABASES[key]
+        f.catalog = {}
+        f.before = ({},[])
+        f.statements = []
+        f.ids = {symbol:fixtures.synthetic('status-control/'+symbol) for symbol in
+                 ('other_user','other_company','other_role','other_actor')}
+        slots = {symbol:fixtures.synthetic('status-control/'+symbol) for symbol in
+                 ('U_target','C_target','U_actor','U_old')}
+        slots['email'] = 'status-control@example.invalid'
+        f.source = type('SyntheticStatusSource',(),{'key':key,'slots':slots})()
+        role_id = fixtures.synthetic('status-control/role')
+        f.oracle = type('SyntheticStatusOracle',(),{
+            'present':lambda *args:True,'columns':lambda *args:{'membership_role':{}},
+            'by':lambda *args,**kwargs:[{'id':role_id}],
+            'one':lambda *args,**kwargs:{'id':role_id},'assert_snapshot':lambda *args:None})()
+        def record(table,values,slot):
+            row = dict(values)
+            if table=='public.user_roles':
+                row.setdefault('status','active')
+                row.setdefault('is_active',True)
+            rows.append((table,row))
+        f.insert = record
+        def submit(*args):
+            guard(rows)
+            return c.Result('','',0,'00000',None,None)
+        f.proof = type('SyntheticStatusProof',(),{'identity':lambda *args:None,'graph':lambda *args:None,
+                        'run':submit,'snapshot':lambda *args:f.before})()
+        f.seed()
+        c.check(any(table=='public.user_roles' for table,row in rows),'STATUS_BRANCH_EXERCISED_REQUIRED')
+        for table,row in rows:
+            if table=='public.user_roles':
+                c.check((row['status']=='active')==row['is_active'],'FIXTURE_ACTIVITY_CONSISTENCY_REQUIRED')
+    c.rejected(lambda:guard([('public.user_roles',{'status':'inactive'})]))
+    f.proof.run = lambda *args:c.Result('','SYNTHETIC_PRIVATE_SERVER_MESSAGE',1,'23514',None,None)
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        c.rejected(f.seed)
+    c.check(output.getvalue()=='SETUP fixed-target '+f.source.key+' '+f.case+' sqlstate=23514\n',
+            'SETUP_RECEIPT_VALUES_MUST_STAY_PRIVATE')
+    role_status_shape_controls(c,cases,fixtures)
+
+
+def role_status_shape_controls(c,cases,fixtures):
+    constraint = 'constraint/public.user_roles/user_roles_status_check'
+    definition = "CHECK ((status = ANY (ARRAY['active'::text, 'disabled'::text, 'removed_from_company'::text, 'invitation_revoked'::text, 'locked_security'::text])))"
+    before = ({constraint:{'kind':'c','definition':definition}},[])
+    native = c.Result('','ERROR: new row for relation "user_roles" violates check constraint "user_roles_status_check"',1,'23514',None,None)
+    matrix = {(key,name):options for key,name,options in cases.cases()}
+    actual = matrix['F2','actual_old_roles_status_rejected']
+    reduced = matrix['F2','reduced_old_roles_disabled']
+    c.check(actual.get('error') and actual.get('role_status_error') and not actual.get('reduced') and
+            reduced.get('reduced') and reduced.get('without_role_status_check') and not reduced.get('error'),
+            'ACTUAL_REDUCED_STATUS_LANES_REQUIRED')
+    cases.verify_failure(c,native,'F2','actual_old_roles_status_rejected',actual,before)
+    for state,message in (('23505',native.stderr),('23514','ERROR: unrelated check constraint'),('00000',native.stderr)):
+        c.rejected(lambda:cases.verify_failure(c,c.Result('',message,1,state,None,None),'F2',
+                   'actual_old_roles_status_rejected',actual,before))
+    c.rejected(lambda:cases.verify_failure(c,native,'F2','actual_old_roles_status_rejected',actual,({},[])))
+    bad = copy.deepcopy(before);bad[0][constraint]['definition']='CHECK (true)'
+    c.rejected(lambda:cases.verify_failure(c,native,'F2','actual_old_roles_status_rejected',actual,bad))
+    # Exercise the real reduced SQL constructor with a synthetic catalog. This
+    # records declarations only; it does not execute or claim PostgreSQL proof.
+    catalog = {constraint:copy.deepcopy(before[0][constraint]),
+               'constraint/public.user_roles/fixed_status_canary':{'kind':'c','definition':'CHECK (is_active IS NOT NULL)'},
+               'function/public.gridex_normalize_org_number(p_value text)':{'definition':
+                   'CREATE FUNCTION public.gridex_normalize_org_number(p_value text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT p_value $$'}}
+    for table in fixtures.TABLE_ORDER:
+        catalog['relation/'+table] = {'kind':'r'}
+        catalog['column/'+table+'/id'] = {'type':'uuid','notnull':True,'default':None,'generated':''}
+    def construct(key,name,options):
+        f = fixtures.Fixture.__new__(fixtures.Fixture)
+        f.c,f.source,f.case,f.options = c,type('SyntheticStatusShape',(),{'key':key})(),name,options
+        f.database = c.DATABASES[key]
+        current = copy.deepcopy(catalog)
+        if options.get('without_role_status_check'):
+            current.pop(constraint)
+        sql = []
+        resets = []
+        def record(self,database,text):
+            sql.append(text)
+            return c.Result('','',0,'00000',None,None)
+        f.proof = type('SyntheticStatusShapeProof',(),{'origin':(catalog,[]),
+            'h':type('SyntheticReset',(),{'reset':lambda *args:resets.append(True)})(),
+            'owned':lambda *args:None,'identity':lambda *args:None,'graph':lambda *args:None,
+            'run':record,'snapshot':lambda *args:(current,[])})()
+        try:
+            f.reduced()
+        except c.BoundaryError:
+            c.check(not sql and not resets,'STATUS_SHAPE_REJECT_BEFORE_MUTATION')
+            raise
+        c.check(len(sql)==1 and len(resets)==1,'STATUS_SHAPE_CONSTRUCTOR_REQUIRED')
+        declaration = 'ADD CONSTRAINT "user_roles_status_check" '+definition
+        c.check((declaration in sql[0])==(not options.get('without_role_status_check')),'STATUS_SHAPE_EXACT_CHECK_REQUIRED')
+        c.check('ADD CONSTRAINT "fixed_status_canary" CHECK (is_active IS NOT NULL)' in sql[0] and
+                c.dedupe.index_declarations() in sql[0],'OTHER_STATUS_GUARDS_PRESERVED')
+    construct('F2','reduced_old_roles_disabled',reduced)
+    construct('F2','reduced_null_company_role_moved',{'reduced':True})
+    for key,name,options in (('C2','reduced_old_roles_disabled',reduced),
+                             ('F2','actual_old_roles_status_rejected',reduced),
+                             ('F2','reduced_old_roles_disabled',{'without_role_status_check':True})):
+        c.rejected(lambda:construct(key,name,options))
 
 
 def workflow(c):

@@ -179,7 +179,7 @@ Corrected native acceptance pending, not inferred from old-head receipts.
 T15-F1 native CLOSED:35136233/job103126766378 B0 reduced_match_tie and all B0
 cases PASS. Subsequent C2 actor-FK expectation failed; separate fix2 diagnosis.
 
-## Task15 actor FK name overconstraint — reviewed correction, hosted pending
+## Task15 actor FK name overconstraint — C2 native verified; shared D2 lane pending
 
 At35136233/job103126766378 C2 reduced_actor_fk actually returned SQLSTATE23503,
 but validator demanded only fixed_actor_fk. Reduced fixtures retain the original
@@ -192,3 +192,20 @@ negatives PASS. Native error name not disclosed/guessed. Scoped review pending.
 
 T15-F2 scoped independent review ADDRESSED5ad9c68f, no new findings; native
 corrected acceptance pending.
+
+T15-F2 corrected C2 reduced_actor_fk PASS23503 atf5435f8f/job103129093787.
+Shared D2 lane remains beyond current first failure; no full proof closure.
+
+## Task15 invalid inactive fixture status — reviewed correction, hosted pending
+
+Atf5435f8f/job103129093787, C2 actual_null_company_role setup fails before
+source RESULT. Shared role_row/other_target_role use inactive, disallowed by
+retained user_roles_status_check; disabled is the valid synthetic inactive status.
+Immutable F2 later writes inactive for old-user roles, so affected actual lanes
+must preserve native CHECK rejection/full rollback and use explicit reduced
+fixtures for otherwise unreachable historical success. Same-class shared
+fixture/status audit spans C2/D2/F2, no canonical guard/source weakening.
+
+T15-F3 correctioned9ce0ca independently ADDRESSED with no new findings;
+10-case seed-domain red-green and strict reduced/native classifier/privacy
+controls PASS. Actual new-head SQL acceptance remains pending.
