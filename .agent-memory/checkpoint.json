@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "1d6f75ede1606c084fc39e26796768e5665016e0",
-    "last_isolated_pg17_code": "6c9e05d2dd5b93f31e031b513c5ff9862761d5c2"
+    "published_baseline": "29c419f0d8b06b8ceae14d4b49267ee89e77b9b8",
+    "last_isolated_pg17_code": "1d6f75ede1606c084fc39e26796768e5665016e0"
   },
-  "execution_environment": "connected; reviewed tree33f3a960 aligned to published1d6f75ed; localeb902cf7 archived",
-  "next_action": "Publish reviewed diagnostic-onlyTask22fix2code8092b637, verify exacttree, collect onehosted first-stage/category evidence. Originalcauseunproved;10constructors/cleanupPASS, nativealignmentfailed.600/346,foundation104/actual63,50historical unresolved. Fullplanopen."
+  "execution_environment": "connected; diagnosticreviewedtreea0ba1a79 aligned to published29c419f0; local3f6ce2c4archived",
+  "next_action": "Publish independently approved Task22 fix3 e3c0db35 and inspect finite hosted catalog mismatch counts; native cause unproved. Task24 exact nine-pin implementation active in isolated worktree as sole author, review/integration pending. Primary600/346, foundation104/actual63, 50 historical unresolved unchanged."
 }

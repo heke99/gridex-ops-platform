@@ -1,5 +1,59 @@
 """Alignment-only additions to the accepted complete portable catalog reader."""
 
+from collections import Counter
+
+
+# Diagnostic names are fixed projection fields, never object names or values.
+MISMATCH_FIELDS = {
+    'relation': 'kind owner acl rls force options definition',
+    'column': 'type notnull default identity generated collation acl',
+    'constraint': 'kind definition validated deferrable deferred noinherit',
+    'index': 'definition valid ready unique primary exclusion immediate nulls_not_distinct',
+    'trigger': 'definition enabled', 'rule': 'definition enabled',
+    'policy': 'command permissive roles using check',
+    'function': 'definition owner acl', 'default_acl': '',
+    'database_role': 'rolname rolsuper rolinherit rolcreaterole rolcreatedb rolcanlogin rolreplication rolconnlimit rolvaliduntil rolbypassrls rolconfig',
+    'role_membership': 'roleid member grantor admin_option inherit_option set_option',
+    'extension': 'owner schema version relocatable',
+    'event_trigger': 'event owner function enabled tags',
+    'type': 'kind owner base notnull default labels', 'dependency': '',
+    'alignment_attribute': 'ordinal type dimensions storage compression local inheritance missing missing_value options',
+    'alignment_index': 'table method owner options tablespace keys key_count attribute_count collations opclasses ordering expressions predicate clustered replica_identity live check_xmin',
+    'alignment_function': 'result language volatility security_definer leakproof strict parallel config arguments body',
+    'alignment_dependency': '',
+}
+MISMATCH_FIELDS = {kind: frozenset(fields.split()) for kind, fields in MISMATCH_FIELDS.items()}
+
+
+def mismatch_summary(actual, expected):
+    """Count exact disagreements without returning identities, keys or values.
+
+    Read-only diagnostic projection; never normalizes either equality operand.
+    Unknown kinds/fields collapse to fixed 'other', including private names.
+    """
+    counts = Counter()
+    objects = 0
+    for key in actual.keys() | expected.keys():
+        if key in actual and key in expected and actual[key] == expected[key]:
+            continue
+        objects += 1
+        kind = next((name for name in MISMATCH_FIELDS
+                     if type(key) is str and key.startswith(name + '/')), 'other')
+        if key not in actual or key not in expected:
+            counts[kind, 'missing_actual' if key not in actual else 'extra_actual', 'object'] += 1
+            continue
+        left, right = actual[key], expected[key]
+        if type(left) is not dict or type(right) is not dict:
+            counts[kind, 'changed', 'value'] += 1
+            continue
+        allowed = MISMATCH_FIELDS.get(kind, frozenset())
+        for field in left.keys() | right.keys():
+            if field not in left or field not in right or left[field] != right[field]:
+                label = field if type(field) is str and field in allowed else 'other'
+                counts[kind, 'changed', label] += 1
+    return {'objects': objects, 'groups': [dict(kind=kind, change=change, field=field, count=count)
+            for (kind, change, field), count in sorted(counts.items())]}
+
 
 def sql(repair):
     base = repair.catalog_sql().strip().removesuffix(';')

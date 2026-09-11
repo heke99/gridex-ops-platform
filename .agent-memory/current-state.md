@@ -11,19 +11,20 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `1d6f75ede1606c084fc39e26796768e5665016e0`, exact reviewed tree
-`33f3a960d2801131b38aa78ca11ab8c718ef1fde`. Nonforce publication/fetch/local-server
-tree equality and tracked-clean alignment PASS; localeb902cf7 retained in
-archive/alignment-reviewed-eb902cf7. PRbody synchronized to actual head/failure.
-Task21 design, Task22 code55f29c50+fix14b85b35 and Task23mapcfbc9f46 are published
-and independently reviewed. Task22 hosted characterization FAILED before its
-first actual63 catalog receipt: OPS34606383824/job103285713102,10constructorsPASS
-13:48:08, PRIVATE_PROOF_FAILED13:48:43; ownedcleanupPASS. Exact cause unproved.
-Fix2 diagnostic-only8092b637 independently APPROVED; exact cause stillunproved.
-Publish the closed stage/type/category observation and obtain onehostedreceipt.
-Currenthead Ediel103285712932 and tenant34606383811 PASS; other required jobs
-still being collected. Clean replay103285713024 FAIL; fullnative/types gates open.
-Prior6c9e05d2 Task18 acceptance remains recorded below, not currenthead acceptance.
+Latest publication: `29c419f0d8b06b8ceae14d4b49267ee89e77b9b8`, exact reviewed tree
+`a0ba1a79ea9ad370bb2b3c22e46333db0a88db8c`. Nonforce/fetch/localtree alignmentPASS;
+reviewedlocal3f6ce2c4 retained in archive/alignment-diagnostic-reviewed-3f6ce2c4.
+PRbody synchronized. Diagnostic-only8092b637 was independentlyapproved.
+Task22 second hosted attempt OPS34607798880/job103290440301 FAILED:
+14constructorsPASS14:02:47; closed categoryBOUNDARY_REJECTED/stagecatalog_equality/
+typeBOUNDARY14:03:22; ownedcleanupPASS. Both snapshot queries/referenceDecode
+completed; helper vsactual63 catalogue differs. Exact differingkeys/fieldsunproved.
+Fix3 e3c0db35 is independently approved diagnostic-only code: finite catalog
+kind/change/field counts, exact comparison unchanged. Coherent publication and
+next hosted observation pending; no causal correction or native acceptance yet.
+Prior1d6f75ed all original16/17/18/19/full102/completeactual63continuation,
+quality/Ediel/tenant/browser/coverage PASS; finalcontinuation14:01:19 andcleanup.
+These are prior-head receipts. Fullnative/types and fullmasterplan remainopen.
 No user changes discarded; no production merge/migration/deployment.
 
 Working-tree accounting is 600 inputs: 546 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 27 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
@@ -47,23 +48,27 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task22 fix2: publish approved closed diagnostic8092b637 and obtain exact first
-hosted failure stage/category before a causal correction. No sharedruntime or
-SQL changes. Native acceptance/A/B/Cselection pending; root owns publication. Independent reviewed
-Task21 design and actual Task20 P20260911114442/W20260911114443 identities are binding.
-No historical A/B/C selection until complete hosted characterization passes.
-Task23 static source-effects map committedcfbc9f46 and independently APPROVED
-after scoped correction. All five DB2 sources remain unclassified. Root separate
-connected-project/history receipts do not establish native-prefix/production parity.
+Task22 fix3 publication and isolated hosted observation are the active gate. The
+approved diagnostic commit is ready; exact native catalog cause remains unproved.
+Root owns primary metadata/publication. Independent Task21 design and actual
+Task20 P20260911114442/W20260911114443 identities remain binding. Historical
+A/B/C stay unselected until the complete hosted characterization passes.
+Task23 static map cfbc9f46 and Task24 exact nine-pin operational-disposition
+decision are independently approved. Task24 implementation is delegated to the
+sole tracked author in isolated gridex-db2-disposition, BASE29c419f0; registration
+and primary accounting remain unchanged until implementation review/integration.
+Four schema-bearing DB2 companions remain unclassified. Separate connected
+project/history receipts do not establish native-prefix or production parity.
 
 Task18 is bounded VERIFIED at6c9e05d2, all19/full102/complete actual63/native
 fault/death/repeat/privacy accepted. No repeated old source audits/matrices.
 Task21 runtime/data-provenance/UX/native/live implementation gates remain downstream.
 
-Next: publish reviewed Task22 fix2 with synchronized evidence, verify exacttree,
-collect onehosted failure diagnosis and repair its proven cause; complete allgates.
-Actual600/346 registration deltas are already synchronized.
-Fullnative/types/security/system/production plan remains open; no production action.
+Next: publish the approved Task22 fix3 batch, inspect the closed hosted catalog
+counts, and resolve the evidenced cause through scoped review. Independently
+finish and review the bounded Task24 implementation, then integrate exact counts.
+Current primary 600/346 and 50 historical unresolved remain unchanged. Full
+native/types/security/system/production plan remains open; no production action.
 
 ## Current executed acceptance
 

@@ -20,6 +20,32 @@ def load(name, filename):
 
 
 class Constructors(unittest.TestCase):
+    def test_catalog_mismatch_receipt_has_only_fixed_fields_and_counts(self):
+        self.assertTrue(hasattr(batch.catalog, 'mismatch_summary'), 'closed catalog mismatch summary required')
+        actual = {'alignment_attribute/private-object/private-column':
+                  {'ordinal': 3, 'missing_value': ['private-value'], 'private-field': 'private-default'},
+                  'private-kind/private-identity': {'private-field': 'private-value'}}
+        expected = {'alignment_attribute/private-object/private-column':
+                    {'ordinal': 4, 'missing_value': ['different-private-value'], 'private-field': 'different'},
+                    'private-kind/private-identity': {'private-field': 'different'}}
+        self.assertEqual(batch.catalog.mismatch_summary(actual, expected), {'objects': 2, 'groups': [
+            {'kind': 'alignment_attribute', 'change': 'changed', 'field': 'missing_value', 'count': 1},
+            {'kind': 'alignment_attribute', 'change': 'changed', 'field': 'ordinal', 'count': 1},
+            {'kind': 'alignment_attribute', 'change': 'changed', 'field': 'other', 'count': 1},
+            {'kind': 'other', 'change': 'changed', 'field': 'other', 'count': 1}]})
+
+    def test_catalog_mismatch_receipt_counts_missing_and_scalar_without_mutation(self):
+        self.assertTrue(hasattr(batch.catalog, 'mismatch_summary'), 'closed catalog mismatch summary required')
+        actual = {'index/private-extra': {'definition': 'private SQL'}, 'dependency/private-key': 'a'}
+        expected = {'function/private-missing': {'definition': 'private SQL'}, 'dependency/private-key': 'n'}
+        before = copy.deepcopy((actual, expected))
+        self.assertEqual(batch.catalog.mismatch_summary(actual, expected), {'objects': 3, 'groups': [
+            {'kind': 'dependency', 'change': 'changed', 'field': 'value', 'count': 1},
+            {'kind': 'function', 'change': 'missing_actual', 'field': 'object', 'count': 1},
+            {'kind': 'index', 'change': 'extra_actual', 'field': 'object', 'count': 1}]})
+        self.assertEqual((actual, expected), before)
+        self.assertEqual(batch.catalog.mismatch_summary(actual, actual), {'objects': 0, 'groups': []})
+
     def test_failure_receipt_discards_untrusted_stage_type_and_message(self):
         self.assertTrue('failure_receipt' in globals(), 'closed diagnostic constructor required')
         class PrivateError(RuntimeError):
@@ -368,6 +394,10 @@ class AlignmentProof(core.Proof):
         with diagnostic_stage('reference_decode'):
             expected = fixed.decoded(self.fixed_release.s1)
         with diagnostic_stage('catalog_equality'):
+            if self.origin[0] != independently_constructed:
+                print(json.dumps({'stage': 'alignment_catalog_mismatch',
+                                  'summary': batch.catalog.mismatch_summary(self.origin[0], independently_constructed)},
+                                 sort_keys=True), flush=True)
             check(self.origin[0] == independently_constructed, 'ALIGNMENT_INDEPENDENT_ACTUAL63_CATALOG')
         with diagnostic_stage('source_state_equality'):
             check({k: v for k, v in self.origin[0].items() if not k.startswith('alignment_')} == expected[0]
