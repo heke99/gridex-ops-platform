@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "fe0379e47f7ec3ec3c0532aa2a608029211aa7a4",
-    "last_isolated_pg17_code": "2bbcdab8d4aa5c625ed3bbe369998a52da3b5806"
+    "published_baseline": "e2bb1a9becc07989181405ddccdbdcae173d36d4",
+    "last_isolated_pg17_code": "e2bb1a9becc07989181405ddccdbdcae173d36d4"
   },
-  "execution_environment": "connected, aligned publishedfe0379e4; reviewedb2d0dc42 archived",
-  "next_action": "Publish approved privacy5b083ba7, Task16 design385335d0 and Task17 workflowb19bb54f once; full102/final privacy/all19/quality/Ediel and retrieve both actual CLI skeletons before continuation.54 unresolved/full replay/types/production open."
+  "execution_environment": "connected; exact reviewed tree aa7fbe28 aligned to publishede2bb1a9b; local5d8c38ae archived",
+  "next_action": "Task18 commit28597803 independent review; scoped fixes if required, one coherent publication then hosted actual63 and unchanged102/privacy/19 acceptance. Task19 ignored read-only draft preparation. Working598=544/23/27/4 remains IMPLEMENTED_NOT_VERIFIED; full native/types/production open."
 }

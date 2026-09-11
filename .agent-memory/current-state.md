@@ -11,61 +11,68 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `fe0379e47f7ec3ec3c0532aa2a608029211aa7a4`, exact reviewed tree
-`6aaafdaf70a1e9adc8fb1d9d3745a841066ff44a`. Local/server tree equality and tracked-clean
-alignment PASS; reviewed localb2d0dc42 archived. OPS34581892193: all102native pass again; final artifact privacy still fails. Restored local environment had an older
-snapshot; fetched and fast-forwarded safely to published HEAD. No tracked user
-changes were discarded. Preexisting scripts/__pycache__ and other worktree retained.
+Latest publication: `e2bb1a9becc07989181405ddccdbdcae173d36d4`, exact reviewed tree
+`aa7fbe284635d7fdbb9b0ed858e9fc1476d276f5`. Nonforce publication/fetch/local-server
+tree equality and tracked-clean alignment PASS; reviewed local5d8c38ae archived.
+OPS34586595826 all19/actual52+56+57/full102/final privacy/quality/Ediel PASS.
+Actual CLI skeleton job103222123610 and exact two-member artifact retrieval PASS. No tracked user changes
+were discarded; preexisting scripts/__pycache__ and other worktree retained.
 Tasks1-14 remain accepted; their recorded source proofs are not restarted.
 Full native replay/types and production gates remain open.
 
 
-Working-tree accounting is 596 inputs: 538 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 31 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 342 inputs: 295 selected, 20 substituted, 23 unclassified, and 4 excluded.
-Task14 selection is reviewed, published and actual57 SQL-accepted:
+Working-tree accounting is 598 inputs: 544 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 27 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 344 inputs: 301 selected, 20 substituted, 19 unclassified, and 4 excluded.
+Published Task14/e2bb1a9b baseline (before current Task18 registration) is
+reviewed and actual57 SQL-accepted:
 H2at57,foundation98, first56 and former57–97 suffix preserved. Foundation SHA256
 271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08.
-54 total/43 focused unresolved. Prior accepted8448b577 baseline was
+That published baseline has54 total/43 focused unresolved; current working
+Task18 implementation has50 total/39 focused unresolved, not native accepted.
+Prior accepted8448b577 baseline was
 596=537/23/32/4,focused342=294/20/24/4,foundation97/all18,55/44 unresolved.
 Immutable history and Q/W hashes remain unchanged; selection is not production
 readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task15 IMPLEMENTED_NOT_VERIFIED: all102 whole-source private B0/C2/D2/F2 cases
-PASS at2bbcdab8, including actual/reduced role CHECK, missing-column and durable
-COMMIT/backend/controller cases. Final artifact privacy scan fails
-SOURCE_LITERAL_IN_PRIVATE_ARTIFACT; collector and exact owned cleanup pass.
-Four fixed-target sources remain UNCLASSIFIED, foundation98/all19 unchanged.
+Task18 IMPLEMENTED_NOT_VERIFIED: independently review implemented Task16 lossless continuation
+using actual P20260911095503 and X20260911095505 CLI identities, after accepted
+first57 and before preserved suffix. Task15 complete native/privacy accepted;
+Task17 actual two empty skeletons retrieved and hashes verified. Exact Task18
+requirements are in the source-restoration plan and ignored task-18-brief.md.
+Task18 working-tree registration IMPLEMENTED_NOT_VERIFIED: actual two P/X and
+four whole originals selected,598=544/23/27/4,50unresolved; focused344=301/20/19/4,
+39unresolved. Foundation104 endpoint63. These counts are implementation state,
+not native/source acceptance; published e2bb1a9b remains596/538/23/31/4.
+Author actual accounting/group validation reports errors[]; root synchronized
+exact markers before targeted equality-dependent tests.
 
-Root-cause correction: distinguish four exact pinned complete accepted input
-files from generated artifacts; route generated repair admission through a scoped
-per-handle in-memory stdin adapter. Keep scanner strict for generated/output files.
-Full scoped clarification is appended to Task15 plan and ignored recovery brief.
-Previous unpublished43b90fd0/report were unavailable after environment restoration.
-Recovered implementation49f00ff8 changes only two Task15 scripts. Independent scoped
-privacy/lifecycle review APPROVED, no code findings. Actual writer/execute RED/GREEN,
-19adapter +5staging/writer +17privacy =41 controls, constructors/syntax/whitespace PASS.
-Minor report-count typo corrected; no unnecessary code/test change. New-head103207157878 passes all102 native cases, including adapted preparation,
-then fails the same final artifact category. A further retained generated artifact
-is not covered by the empty-catalog constructor audit. Bounded diagnosis confirmed populated reference contexts retain a source-pinned
-function definition. Correction5b083ba7 virtualizes only those generated inputs;
-actual unchanged writer/executor RED/GREEN and constructors PASS. Independent scoped
-spec/quality review APPROVED, no findings; no native acceptance yet. Task16 design385335d0 independently
-APPROVED, using accepted102 semantics; continuation SQL is not implemented.
-
-Task17 workflowb19bb54f independently spec/quality APPROVED, no findings;
-YAML/embedded syntax/relevant constructor/preserved9jobs/whitespace PASS.
-
-Next: publish approved privacy5b083ba7, Task16 design385335d0 and Task17
-workflowb19bb54f once, then verify the exact resulting head. The correction virtualizes legacy context and
-coalesces only adjacent generated repair context/admission; original migration
-bytes/individual -f order stay exact. Task16 design385335d0 independently APPROVED;
-no findings. Generate its two empty actual CLI skeletons together, but do not execute
-continuation until final privacy is accepted. Remaining54 sources/full native replay,
-types/security/parity/E2E/load and production gates remain open.
+Implementation commit28597803b7160c38c631aa1834462ae0b6520f53 contains the narrow
+runtime adapter extraction, exact P→B0→C2→D2→F2→X lossless boundary, frozen
+pre-release lifecycle and standalone/actual-loop proof. Targeted constructors,
+provenance, accounting, preservation and syntax checks PASS; hosted actual63
+SQL/death/privacy proof remains unexecuted. Independent spec/quality review APPROVED with no findings.
+Next: publish one coherent reviewed batch
+and run mandatory hosted acceptance. Task19 source-effects preparation is
+read-only and confined to ignored drafts while this publication is pending.
+No historical source audit rerun, original102 branch matrix/19tuple unchanged.
+Continue remaining source effects/full native/types and complete production gates.
 
 ## Current executed acceptance
+
+2026-09-11 Task15 FINAL NATIVE ACCEPTED at e2bb1a9becc07989181405ddccdbdcae173d36d4,
+reviewed treeaa7fbe284635d7fdbb9b0ed858e9fc1476d276f5, OPS34586595826.
+Fixed-target103222123596 PASS full102 (B0=18/C2=25/D2=28/F2=31), exact log
+PASS complete private fixed-target characterization; selection unchanged at10:02:00,
+ownedcleanupPASS. This final success is after strict artifact+collector scan.
+Same-head original16/auth103222123215, legacy17/actual52 103222123500,
+repair18/actual56 103222123422, dedupe19/actual57 103222123516, quality/build
+103222123483 and Ediel103222123485 allPASS. No mandatory bounded gate outstanding.
+Task17 actual2CLI empty identities/artifact verified. Task16 design approved.
+Task18 may now implement the exact approved continuation; no remaining54source,
+full native/types or production gate is closed by this bounded acceptance.
+
 
 OPS34559080010 at2bbcdab8: original16/auth103137885428,
 legacy17/actual52 job103137885602, repair18/actual56 job103137885688,

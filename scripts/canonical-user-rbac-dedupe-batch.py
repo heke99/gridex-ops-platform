@@ -41,6 +41,8 @@ class _Reference:
     base: dict
     final: dict
     indexes: list
+    continuation: bool = False
+    scope: str = 'dedupe57'
 
 
 def reviewed_paths():
@@ -108,7 +110,9 @@ SELECT coalesce(jsonb_agg(jsonb_build_array(name,row_value) ORDER BY name,row_va
     return repair.catalog(target, database), json.loads(target.sql(database, sql, 'dedupe_preimage'))
 
 
-def prepare_reference(target):
+def prepare_reference(target, scope='dedupe57'):
+    if scope not in ('dedupe57','fixed-target','full'):
+        raise BoundaryError('DEDUPE_SCOPE_REQUIRED')
     require_owned(target, False)
     if target in _STATES or target in _REFERENCES:
         raise BoundaryError('FRESH_OWNED_TARGET_REQUIRED')
@@ -134,7 +138,9 @@ def prepare_reference(target):
                 item['nulls_not_distinct'] is not False or not item['predicate'] or
                 item['opclasses'] != ['uuid_ops','uuid_ops','text_ops' if 'text' in item['name'] else 'uuid_ops']):
             raise BoundaryError('DEDUPE_INDEX_ORACLE_MISMATCH')
-    _REFERENCES[target] = _Reference(target.directory.name,target.name,legacy_ref,repair_ref,before[0],final,indexes)
+    _REFERENCES[target] = _Reference(target.directory.name,target.name,legacy_ref,repair_ref,before[0],final,indexes,scope != 'dedupe57',scope)
+    if scope != 'dedupe57':
+        fixed_module().prepare_reference(target)
 
 
 def fresh_target(target):
@@ -160,7 +166,7 @@ def require_live(target):
 def _dispose(target):
     """Exact database disposal, falling back only to its exact labelled owner."""
     ref = _REFERENCES[target]
-    if type(target) is not legacy.OwnedPostgres or target.name != ref.name or target._created_name != ref.name:
+    if type(target) is not legacy.OwnedPostgres or not target.active or target.name != ref.name or target._created_name != ref.name:
         raise BoundaryError('OWNED_DISPOSAL_IDENTITY_MISMATCH')
     label = legacy.OwnedPostgres.docker(target, ['inspect','--format','{{ index .Config.Labels "gridex.auth-legacy.owner" }}',ref.name]).decode().strip()
     if label != ref.name:
@@ -183,14 +189,24 @@ def fail(target):
     # and cannot be cleared by constructing another loop or resetting the DB.
     if target not in _REFERENCES:
         raise BoundaryError('OWNED_DEDUPE_REFERENCE_REQUIRED')
+    if _STATES.get(target) == 'SUCCEEDED':
+        raise BoundaryError('UNPUBLISHED_REPLAY_REQUIRED')
     if _STATES.get(target) == 'DISPOSED':
         return
     _STATES[target] = 'TERMINAL'
+    privacy_error = False
+    if _REFERENCES[target].continuation:
+        try:
+            fixed_module().privacy(target)
+        except BaseException:
+            privacy_error = True
     try:
         _dispose(target)
     except BaseException:
         raise BoundaryError('REPLAY_TERMINAL_DISPOSAL_FAILED') from None
     _STATES[target] = 'DISPOSED'
+    if privacy_error:
+        raise BoundaryError('FIXED_FAILURE_PRIVACY_REJECTED')
 
 
 def accepted56(target):
@@ -227,7 +243,38 @@ def execute(target, database, paths, staging=None):
         if snapshot(target) != (ref.final,before[1]):
             raise BoundaryError('DEDUPE_PRESERVATION_FAILED')
         _STATES[target] = 'H2_COMPLETE'
+        if ref.continuation:
+            fixed_module().capture_prefix(target)
         return {'sources':1}
+    except BaseException:
+        fail(target)
+        raise
+
+
+def fixed_module():
+    spec = importlib.util.spec_from_file_location('dedupe_fixed_loader',ROOT/'scripts/canonical-auth-provisioning-replay.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module.load_fixed()
+
+
+def continue_fixed(target, database, paths, staging):
+    require_live(target)
+    try:
+        ref = _REFERENCES[target]
+        if not ref.continuation or _STATES[target] != 'H2_COMPLETE' or database != DATABASE:
+            raise BoundaryError('FROZEN_FIXED_CONTINUATION_REQUIRED')
+        fixed = fixed_module()
+        fixed.owned(target,'H2_COMPLETE')
+        if type(staging) is not legacy.StagedSources:
+            raise BoundaryError('ACTUAL_FIXED_STAGING_REQUIRED')
+        fixed.validate_sources(paths,staging)
+        _STATES[target] = 'FIXED_NATIVE'
+        receipt = fixed.execute(target,database,paths,staging)
+        if receipt != {'sources':6}:
+            raise BoundaryError('FIXED_COMPLETION_REQUIRED')
+        fixed.assert_final(target)
+        _STATES[target] = 'FIXED_COMPLETE'
+        return receipt
     except BaseException:
         fail(target)
         raise
@@ -235,8 +282,16 @@ def execute(target, database, paths, staging=None):
 
 def finish(target, full=False):
     require_live(target)
-    if _STATES[target] != 'H2_COMPLETE':
-        raise BoundaryError('DEDUPE_COMPLETION_REQUIRED')
-    if not full:
-        assert_final(target)
-    _STATES[target] = 'SUCCEEDED'
+    try:
+        ref = _REFERENCES[target]
+        expected = 'FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE'
+        if _STATES[target] != expected or full != (ref.scope == 'full'):
+            raise BoundaryError('DEDUPE_COMPLETION_REQUIRED')
+        if ref.continuation:
+            fixed_module().release_checks(target,full=full)
+        elif not full:
+            assert_final(target)
+        _STATES[target] = 'SUCCEEDED'
+    except BaseException:
+        fail(target)
+        raise

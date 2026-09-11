@@ -242,3 +242,14 @@ function body. Prior empty-reference writer audit could not detect these. Approv
 scope virtualizes both contexts, retaining generated admission memory; only adjacent
 generated repair controls coalesce, no original whole-source/guard change. No general
 client-output leak inferred. Implementation/review/native acceptance pending.
+
+2026-09-11 Task15 final privacy blocker CLOSED by actual native acceptance at
+e2bb1a9becc07989181405ddccdbdcae173d36d4. Fixed-target103222123596 in
+OPS34586595826 passes all102 (18/25/28/31), final complete-private scan and
+ownedcleanup. Additional populated-reference correction5b083ba7 independently
+APPROVED; exact generated contexts/admission stay private in memory, four whole
+inputs retain finite trusted physical/source provenance. Same-head all19/actual
+52+56+57/quality/EdielPASS. Earlier F1–F4/native and recovered privacy follow-ups
+are closed within Task15, not ongoing production or full-replay acceptance.
+Current blockers remain remaining54source effects, native ownership/official-ledger
+replay, generated types and full masterplan gates; see current-state.md.

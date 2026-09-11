@@ -1232,3 +1232,57 @@ Task17b19bb54f: complete code/static preparation, independent spec/quality APPRO
 no findings. All9 existing jobs unchanged; exact after-checkout guarded CLI2.101
 job generates/verifies/uploads only two empty actual identities. Hosted artifact
 pending. Root memory-pointer/whitespace check PASS. Coherent publication ready.
+
+Task17 actual CLI artifact VERIFIED: job103222123610, OPS34586595826 at
+e2bb1a9b, artifact10193838307, ZIP466bytes SHA256
+44b153f2f69f135bd28a0835cbc24a9dbdcbff669a027965c3a83bd507918d06.
+Exactly two empty regular non-symlink members, distinct actual14digitversions:
+20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql
+20260911095505_canonical_user_rbac_fixed_target_restoration.sql
+Both0bytes SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.
+ZIP/member validationPASS. First accepted actual identities pinned in ignored
+task-17-artifact-receipt.json; no timestamp invention or migration registration yet.
+Task15 same-head native final privacy still pending before continuation SQL.
+
+2026-09-11 publishede2bb1a9b/treeaa7fbe28 aligned with archived5d8c38ae;
+OPS34586595826: legacy17/actual52 103222123500 and repair18/actual56
+103222123422 PASS; Ediel103222123485 and actual CLI103222123610 PASS.
+Remaining original16/dedupe19/fixed102-finalprivacy/quality still running.
+Exact-head clean103222123613 log confirms unsupported native target before replay;
+verify103222123912 log confirms Supabase generated-types check failure. Known full
+replay/types gates remain open; no retry/warning suppression or production action.
+
+2026-09-11 Task15 FINAL NATIVE ACCEPTED at e2bb1a9becc07989181405ddccdbdcae173d36d4,
+reviewed treeaa7fbe284635d7fdbb9b0ed858e9fc1476d276f5, OPS34586595826.
+Fixed-target103222123596 PASS full102 (B0=18/C2=25/D2=28/F2=31), exact log
+PASS complete private fixed-target characterization; selection unchanged at10:02:00,
+ownedcleanupPASS. This final success is after strict artifact+collector scan.
+Same-head original16/auth103222123215, legacy17/actual52 103222123500,
+repair18/actual56 103222123422, dedupe19/actual57 103222123516, quality/build
+103222123483 and Ediel103222123485 allPASS. No mandatory bounded gate outstanding.
+Task17 actual2CLI empty identities/artifact verified. Task16 design approved.
+Task18 may now implement the exact approved continuation; no remaining54source,
+full native/types or production gate is closed by this bounded acceptance.
+
+Exact e2bb1a9b remaining-workflow receipts: tenant103222122875, public browser
+103222123219 and coverage103222123450 PASS. Smoke103222123192 actual14/15,
+sole generated-types/migration drift failure (log inspected); PRcertificate
+103222523308FAIL. Full/runtime/customer staging, load/soak/ZAP/stagingcertificate
+skipped and remain unverified; no separate new runtime failure inferred.
+
+Task18 working-tree registration IMPLEMENTED_NOT_VERIFIED: actual P20260911095503/
+X20260911095505 authored and four complete originals selected. Author reports actual
+accounting598=544/23/27/4,50unresolved; focused344=301/20/19/4,39unresolved, errors[].
+Foundation104 endpoint63; first57 and old suffix preserved. Current-state markers
+synchronized before equality-dependent tests. No hosted acceptance or production
+claim; published e2bb1a9b remains prior596/538/23/31/4.
+
+2026-09-11 Task18 implementation28597803b7160c38c631aa1834462ae0b6520f53
+independently spec-compliant and quality APPROVED, no findings. Complete4141-line
+review plus named unchanged callees checked. Targeted constructors, provenance,
+accounting, immutable source/first57/suffix/19tuple preservation and syntax PASS.
+Actual P/X CLI identities and four whole originals registered:598=544/23/27/4,
+50unresolved; focused344=301/20/19/4,39unresolved; foundation104/endpoint63.
+Status IMPLEMENTED_NOT_VERIFIED: publish coherent batch, then require hosted
+actual63 SQL/cleanup/death/privacy and same-head original19/full102/quality/Ediel.
+No source acceptance, full-native/types closure or production mutation claimed.

@@ -898,3 +898,116 @@ CLI-only two-empty-skeleton workflowb19bb54f independently APPROVED, staticPASS.
 Publish this coherent batch once, retrieve actual CLI identities, require mandatory
 same-head gates, then implement approved continuation.54 unresolved/full replay/
 types and complete production plan remain OPEN; no merge/migration/deployment.
+
+Task17 actual CLI artifact VERIFIED: job103222123610, OPS34586595826 at
+e2bb1a9b, artifact10193838307, ZIP466bytes SHA256
+44b153f2f69f135bd28a0835cbc24a9dbdcbff669a027965c3a83bd507918d06.
+Exactly two empty regular non-symlink members, distinct actual14digitversions:
+20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql
+20260911095505_canonical_user_rbac_fixed_target_restoration.sql
+Both0bytes SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.
+ZIP/member validationPASS. First accepted actual identities pinned in ignored
+task-17-artifact-receipt.json; no timestamp invention or migration registration yet.
+Task15 same-head native final privacy still pending before continuation SQL.
+
+### Task 18: Implement the approved lossless fixed-target continuation
+
+
+## Prerequisites and exact identities
+Dispatch only after root records e2bb1a9b same-head Task15full102/final privacy and all19/quality/Ediel accepted. Do not reinterpret a code review as native acceptance. Task16 independent review approved the complete contract in quality/audits/USER_RBAC_FIXED_TARGET_CONTINUATION_2026-09-11.md; read it in full as the binding requirements, plus task-16-review.md and task-18-preparation-notes.md here. Use that contract instead of restarting Task9/15 source audit. Task15 expanded populated-reference memory correction5b083ba7 is also reviewed and must survive runtime extraction.
+
+Task17 actual CLI artifact10193838307 at e2bb1a9becc07989181405ddccdbdcae173d36d4, OPS34586595826/job103222123610, ZIP466 SHA25644b153f2f69f135bd28a0835cbc24a9dbdcbff669a027965c3a83bd507918d06. task-17-artifact-receipt.json and the two original empty members are here. Copy each actual empty file to supabase/migrations before authoring (do not regenerate/rename):
+P = 20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql
+X = 20260911095505_canonical_user_rbac_fixed_target_restoration.sql
+Both original members0bytes SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.
+
+## Binding outcomes
+Implement whole once P→B0→C2→D2→F2→X after exact complete first57, before unchanged old58–98 suffix. P adds only the two approved source-backed declarations. Fresh provider-free3Auth+1company graph, no old user or extra memberships/seeds; preserve actual CHECKs/FKs/triggers/RLS/ACL/defaults. Per-source native success and independent complete postimage, C2 absence/D2 insertion/F2 update. Preserve B0/C2 successful commit and original D2/F2 internal COMMIT. X exact captured-PK child-first deletion, original full seed rows and IDs restoration, membership CHECK attributes, no incidental cascade/broad deletion/disabled guard/dump. S1 independently S0+P declarations, all rows/catalog/sequences exact including log_cnt; no setval. Incoming FK actions/statement hooks/default graph checked before writes. No persistent support or synthetic grants/session/provider work remains.
+
+Frozen trusted continuation-required mode before execution, H2_COMPLETE→FIXED_NATIVE→FIXED_COMPLETE→SUCCEEDED; success only through sole final release after exact child/HOLD/private cleanup. Historical52/56/57 unchanged. No reset/rearm/caller-provided reference/SQL bypass. Every failure terminally disposes before next request; canary untouched. Runtime must not import selftest as authority. Narrowly extract accepted memory transport and any necessary existing complete oracle semantics into trusted runtime modules, preserve existing tests/semantics; no broad refactor.
+
+## Owned files
+- Two exact P/X SQL files above.
+- scripts/canonical-user-rbac-fixed-target-batch.py and scripts/canonical-user-rbac-private-inputs.py.
+- scripts/canonical-auth-provisioning-replay.py, scripts/canonical-user-rbac-dedupe-batch.py, scripts/gridex-aud-003-clean-replay.sh: only approved frozen scope/pre-release once-only integration.
+- scripts/canonical-user-rbac-fixed-target-selftest.py and scripts/canonical-user-rbac-fixed-target-controls.py: only narrow runtime extraction/import adaptation preserving102 cases and accepted controls.
+- scripts/canonical-user-rbac-fixed-target-continuation-selftest.py: one separate essential proof and exact-owner cleanup.
+- Existing foundation-order/additions/history-additions and focused classification/accounting assertion files strictly needed for actual two identities/four original full-source selection. List exact touched paths in report; no immutable historical SQL/hash rewrites.
+- .github/workflows/ops-hardening.yml: remove temporary skeleton job when registering actual files, add one separately owned bounded continuation proof/always cleanup. Preserve original19 tuple/union and all prior9 jobs.
+- Full ignored task-18-report.md. Root owns all plan/memory/master/PR/publication; preserve dirty root changes/untracked/other worktree.
+
+After actual registration verify exactly598=544selected/23substituted/27unclassified/4excluded,50unresolved; focused344=301/20/19/4,39unresolved. Foundation104/endpoint63, old suffix shifted6. First57/hash/order intact, old58–98 relative order intact, fixture30–33/RBAC38/first43 unchanged. Root updates active accounting before tests requiring memory equality; notify root exact actual count transition. Registration alone is IMPLEMENTED_NOT_VERIFIED, no source acceptance until hosted proof.
+
+## Essential verification and report
+No local SQL/CLI/container/socket install/probes: environment absence already established. Use targeted meaningful RED/GREEN constructors/static tests for changed ownership/lifecycle/admission/transport and preservation. Essential new hosted proof: standalone+actual staged success and fresh repeat; each6inputs whole once; independent per-source/final equality; dirty graph/catalog/default/incoming-FK/owner/hash/stage pre-write rejection; D2/F2 postCOMMIT failure and backend/controller death; X/captured-row/seed-ID/catalog/sequence/release mismatch; cleanupCOMMIT-before-release death; finalprivacy and canary/disposal. Reuse existing accepted helpers/harness where trusted, avoid duplicated102 branch matrix or optional fixtures. Do not run unchanged full102 locally or add tests mirroring docs/YAML.
+
+Full report exact changes/owned paths/commits, targeted commands and actual output, source/pin/order/count preservation, self-review and explicit native-pending limitations. Finish complete coherent code with tests and commit only owned files; independent scoped review follows. No push/live operations. Surface concrete dependency/safety blocker with evidence; never weaken the contract to make green. Files over2000lines require safe bounded split. User explicitly requires efficient continuous completion, no unnecessary audits or confirmation pauses.
+
+2026-09-11 Task15 FINAL NATIVE ACCEPTED at e2bb1a9becc07989181405ddccdbdcae173d36d4,
+reviewed treeaa7fbe284635d7fdbb9b0ed858e9fc1476d276f5, OPS34586595826.
+Fixed-target103222123596 PASS full102 (B0=18/C2=25/D2=28/F2=31), exact log
+PASS complete private fixed-target characterization; selection unchanged at10:02:00,
+ownedcleanupPASS. This final success is after strict artifact+collector scan.
+Same-head original16/auth103222123215, legacy17/actual52 103222123500,
+repair18/actual56 103222123422, dedupe19/actual57 103222123516, quality/build
+103222123483 and Ediel103222123485 allPASS. No mandatory bounded gate outstanding.
+Task17 actual2CLI empty identities/artifact verified. Task16 design approved.
+Task18 may now implement the exact approved continuation; no remaining54source,
+full native/types or production gate is closed by this bounded acceptance.
+
+Task18 ownership clarification: scripts/canonical-user-rbac-fixed-target-oracles.py
+is additionally owned solely for a compatibility import/re-export shim when its
+unchanged pure Oracle/activate/bootstrap/normalize semantics are narrowly extracted
+to trusted runtime authority, as Task16 explicitly permits. No oracle semantics
+or102case changes. Preserve one canonical trusted replay-controller module identity
+through runtime and characterization imports, retaining exact caller-code/handle/
+staging provenance. No broad sys.modules/global monkeypatch or generic adapter.
+Targeted import/provenance controls cover this concrete extraction risk.
+
+## Downstream alignment preparation — no source acceptance
+Root bounded read of20260526_debug_step1_2c_full_schema_code_alignment.sql169–374
+confirms the whole source drops gridex_debug_batch2_rbac_v169 and
+gridex_get_user_roles(uuid)170 before its table-return replacement172. Therefore
+the isolated CREATE OR REPLACE return-type warning does not alone require another
+forward migration. Check exact additional dependents/whole-source execution first;
+do not invent an extra boundary from an isolated declaration. The role helper203
+explicitly grants anon/authenticated/service_role while body186–200 lacks actor/
+company binding; permission overrides223–238 and contract counts240–283 likewise
+need complete final runtime/caller/ACL/tenant review. This is source-level evidence,
+not live exploit or production grant verification. Caller search found
+lib/rbac/getUserPermissions.ts, app/dashboard/page.tsx, lib/tenant/scope.ts and
+lib/customer-contracts/db.ts; full traces/later winners remain open. No selection,
+SQL execution or current Task18 scope expansion. Detailed bounded routing stays
+in ignored next-alignment-source-routing.md until the downstream task.
+
+### Task 19: Complete three alignment-source effects and dependency contract
+
+
+Read task-19-preparation-notes.md and next-alignment-source-routing.md here first as context; verify every claim against the whole original files. Those root notes are source-read preparation, not independent review, SQL evidence or permission to omit effects. Read the relevant approved Task9/16 private-runtime boundaries only where a named dependency needs them; do not read the whole masterplan or redo accepted102/first57 audits.
+
+Own only quality/audits/USER_RBAC_CUSTOMER_ALIGNMENT_SOURCE_EFFECTS_2026-09-11.md and ignored task-19-report.md. This is a read-only code/schema task with one document; no SQL/migration/selector/fixture/helper/workflow/memory edits, no live/provider/customer/credential/network action or local install/probe. Root owns active memory/plan/PR and all later registration. Preserve current Task18 files and dirty root work. Its native acceptance remains independent/pending until root records it; this task does not implement a continuation.
+
+Scope exactly three immutable unresolved sources under supabase/migrations:
+- 20260525_debug_step2_code_schema_alignment.sql,87lines,SHA256e7be5cf935817846dcbe65e64c3b3d558d5e442c9bf7f7af5863f2180f108f04
+- 20260525_debug_step2b_tenant_scope_and_customer_card_performance.sql,280lines,SHA256afd5c2693cbb1a9f9bd40055cd993189e0118d4871bbb2bfcfb18e4124c2fcb2
+- 20260526_debug_step1_2c_full_schema_code_alignment.sql,374lines,SHA2565a4a2326232ab847d23fed32af2be13a046ee3e3a2dae41dead6f5b4eba16472
+
+Map complete statement units and exact line ranges, direct/trigger/helper/FK effects, admission conditions/guard gaps/native failures, transaction control, columns/default/nullability/index keys/predicates/order/NULL behavior, function return/body/actor/tenant/security/grants and view dependencies. Keep source semantics distinct from approved production behavior. No table/index extraction or empty no-op alone equals full source coverage; immutable SQL cannot be fixed in place.
+
+Specifically verify87line global TGT DELETE (no company/is_active in partition; NULLwindow grouping versus uniqueNULL-distinct); payload preservation; all9index declarations/table/columnDDL. Verify280line16guarded updates,16relation/17index declarations, timecolumn guard gaps and preserved/coalesced customer IDs. Verify374line5backfills with differing metering overwrite,31indexes,14tablecatalogview, explicit DROPview/function169–170 before table-return replacement, role/override/count definer helpers with unbound supplied user/tenant,2EdielRPC filters. Do not repeat a return-type conflict solely from CREATE OR REPLACE when the complete source drops its known predecessor. Exact remaining dependents and caller contracts still need evaluation.
+
+Trace only relevant actual app/lib callers and exact selected/bootstrap/whole-source authorities needed for the dependency map. Check current role helper codepaths found in lib/rbac/getUserPermissions.ts, app/dashboard/page.tsx, lib/tenant/scope.ts and contract-count caller lib/customer-contracts/db.ts. Identify last known selected/function winners/ACL boundary where provable from current code, distinguishing source-backed shape from unexecuted actual63 catalog. No fresh production queries. A missing exact predecessor (such as substituted debug_fix_batch_1b) must be justified by a named column/function/constraint statement; no speculative file-family expansion or whole inventory scan.
+
+Deliver a minimal next-step admission/verification contract: which complete sources can plausibly form one group and in what dependency order; what explicit structural/security boundary would actually be needed; required independent before/after field/PK/catalog/index/sequence outcomes and meaningful native dirty/missing/duplicate/cross-tenant/FK/trigger cases. Reuse approved private owned lifecycle, existing catalog/oracle formats, known accepted prefixes and no original19/102 duplication. Avoid optional fixtures and extra boundaries. Do not author SQL, invent timestamps, declare a new selected count or claim runtime/full native/production closure. Any needed CLI boundary remains an ungenerated logical identity until later actual CLI artifact creation. Unknown exact native shapes/dependencies remain explicit blockers for implementation, not silently assumed.
+
+Keep report concise and line-backed, with all741lines accounted in complete units and scoped caller evidence. Independent review follows. Validate pins/read coverage and document whitespace/references only; no docs-mirroring tests or unchanged suites. Commit only owned document, full ignored report exact verification/limitations/self-review, then return DONE/commit/one-line checks/concerns. The user requests efficient continuous completion; no optional audit expansion or confirmation pause.
+
+2026-09-11 Task18 implementation28597803b7160c38c631aa1834462ae0b6520f53
+independently spec-compliant and quality APPROVED, no findings. Complete4141-line
+review plus named unchanged callees checked. Targeted constructors, provenance,
+accounting, immutable source/first57/suffix/19tuple preservation and syntax PASS.
+Actual P/X CLI identities and four whole originals registered:598=544/23/27/4,
+50unresolved; focused344=301/20/19/4,39unresolved; foundation104/endpoint63.
+Status IMPLEMENTED_NOT_VERIFIED: publish coherent batch, then require hosted
+actual63 SQL/cleanup/death/privacy and same-head original19/full102/quality/Ediel.
+No source acceptance, full-native/types closure or production mutation claimed.

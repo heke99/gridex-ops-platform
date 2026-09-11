@@ -20,7 +20,7 @@ def main():
     fixture = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(fixture)
     order = json.loads((ROOT / 'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
-    assert len(order) == 98 and order[41:43] == [G, R], 'reviewed G42/R43 selection missing'
+    assert len(order) == 104 and order[41:43] == [G, R], 'reviewed G42/R43 selection missing'
     class SyntheticFailure:
         returncode = 1
 

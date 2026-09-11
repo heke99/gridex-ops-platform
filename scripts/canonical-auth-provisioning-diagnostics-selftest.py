@@ -96,8 +96,8 @@ def transaction_body(sql):
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 98, 'selected diagnostics stage requires foundation98'
-    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[57:]) == SUFFIX_SHA
+    assert len(order) == 104, 'selected diagnostics stage requires foundation104'
+    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[63:]) == SUFFIX_SHA
     assert order[41:43] == [G,R], 'whole diagnostics sources require exact G42/R43'
     assert order.count(G) == order.count(R) == 1, 'whole diagnostics sources must be selected once'
     rbac = module('diagnostics_rbac_prefix', 'canonical-rbac-prefix-selftest.py')
@@ -139,7 +139,7 @@ def constructor_checks():
     changed_orders = []
     changed = list(order); changed[38],changed[39] = changed[39],changed[38]
     changed_orders.append(('altered first41',changed))
-    changed = list(order); changed[56],changed[57] = changed[57],changed[56]
+    changed = list(order); changed[63],changed[64] = changed[64],changed[63]
     changed_orders.append(('changed old suffix',changed))
     changed = list(order); changed[40],changed[41] = changed[41],changed[40]
     changed_orders.append(('misplaced G',changed))
@@ -163,8 +163,8 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    assert len(order)==98 and order[41:43]==[G,R]
-    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[57:])==SUFFIX_SHA
+    assert len(order)==104 and order[41:43]==[G,R]
+    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[63:])==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
                    {G:source[G].replace('full join','left join',1).encode()},
@@ -216,7 +216,10 @@ def constructor_checks():
     dedupe=module('diagnostics_dedupe_loader','canonical-auth-provisioning-replay.py').load_dedupe()
     dedupe_inserted={'migrations/'+p.name for p in dedupe.reviewed_paths()}
     assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][56:57] == ['migrations/'+p.name for p in dedupe.reviewed_paths()]
-    old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted,*repair_inserted,*dedupe_inserted}]
+    fixed=module('diagnostics_fixed_loader','canonical-auth-provisioning-replay.py').load_fixed()
+    fixed_inserted={'migrations/'+p.name for p in fixed.reviewed_paths()}
+    assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][57:63] == ['migrations/'+p.name for p in fixed.reviewed_paths()]
+    old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted,*repair_inserted,*dedupe_inserted,*fixed_inserted}]
     assert json_digest(old_additions) == OLD_ADDITIONS_FOUNDATION_SHA
     prior_derived = json.loads(json.dumps(additions['derivedBootstrap']))
     assert prior_derived['bootstrap/20260527_company_memberships_role_key_foundation.sql'].pop('preserveSourceReplay') is True
@@ -228,8 +231,8 @@ def constructor_checks():
     account_run = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
-    assert not account['errors'] and account['totalMigrations']==596
-    assert account['counts']=={'FULL_FILE_SELECTED':538,'SUBSTITUTED':23,'UNCLASSIFIED':31,'EXPLICITLY_EXCLUDED':4}
+    assert not account['errors'] and account['totalMigrations']==598
+    assert account['counts']=={'FULL_FILE_SELECTED':544,'SUBSTITUTED':23,'UNCLASSIFIED':27,'EXPLICITLY_EXCLUDED':4}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)
@@ -242,8 +245,8 @@ def constructor_checks():
         raise AssertionError('attempted duplicate timestamp replay accepted')
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
-    assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==342
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':295,'SUBSTITUTED':20,'UNCLASSIFIED':23,'EXPLICITLY_EXCLUDED':4}
+    assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==344
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':301,'SUBSTITUTED':20,'UNCLASSIFIED':19,'EXPLICITLY_EXCLUDED':4}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)

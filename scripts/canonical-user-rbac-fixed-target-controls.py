@@ -874,25 +874,7 @@ def privacy_input_controls(c):
 
 
 def privacy(c,proof):
-    """Inspect server collector/client files privately; never publish contents."""
-    sources = [c.Source(key) for key in c.SPECS]
-    values = {value.encode() for source in sources for value in source.slots.values()}
-    for source in sources:
-        for line in {'B0':(226,227,228,231),'C2':(33,),'D2':(33,66),'F2':(40,)}[source.key]:
-            values.add(source.literal(line).encode())
-    # The closed owner command reads only its collector directory, into memory.
-    command = ['docker','exec',proof.name,'sh','-c','cat /var/lib/postgresql/data/pg_log_private/*.log']
-    result = subprocess.run(command,capture_output=True,timeout=30,env=c.legacy.clean_environment())
-    c.check(result.returncode==0,'PRIVATE_COLLECTOR_INSPECTION_REQUIRED')
-    c.check(not any(value in result.stdout+result.stderr for value in values),'SOURCE_LITERAL_IN_COLLECTOR')
-    for path in Path(proof.directory).rglob('*'):
-        c.check(path.name not in c.AcceptedInputs.GENERATED, 'PHYSICAL_ADMISSION_FORBIDDEN')
-        if path.is_file():
-            inputs = getattr(proof,'accepted_inputs',None)
-            if inputs is not None and inputs.whole_input(proof,path):
-                continue
-            contents = path.read_bytes()
-            c.check(not any(value in contents for value in values),'SOURCE_LITERAL_IN_PRIVATE_ARTIFACT')
+    return c.private_inputs.privacy(c,proof)
 
 
 def admissions(c,models,fixtures,proof):

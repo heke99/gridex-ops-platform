@@ -532,3 +532,32 @@ CLI-only two-empty-skeleton workflowb19bb54f independently APPROVED, staticPASS.
 Publish this coherent batch once, retrieve actual CLI identities, require mandatory
 same-head gates, then implement approved continuation.54 unresolved/full replay/
 types and complete production plan remain OPEN; no merge/migration/deployment.
+
+2026-09-11 Task15 FINAL NATIVE ACCEPTED at e2bb1a9becc07989181405ddccdbdcae173d36d4,
+reviewed treeaa7fbe284635d7fdbb9b0ed858e9fc1476d276f5, OPS34586595826.
+Fixed-target103222123596 PASS full102 (B0=18/C2=25/D2=28/F2=31), exact log
+PASS complete private fixed-target characterization; selection unchanged at10:02:00,
+ownedcleanupPASS. This final success is after strict artifact+collector scan.
+Same-head original16/auth103222123215, legacy17/actual52 103222123500,
+repair18/actual56 103222123422, dedupe19/actual57 103222123516, quality/build
+103222123483 and Ediel103222123485 allPASS. No mandatory bounded gate outstanding.
+Task17 actual2CLI empty identities/artifact verified. Task16 design approved.
+Task18 may now implement the exact approved continuation; no remaining54source,
+full native/types or production gate is closed by this bounded acceptance.
+
+Task18 working-tree registration IMPLEMENTED_NOT_VERIFIED: actual P20260911095503/
+X20260911095505 authored and four complete originals selected. Author reports actual
+accounting598=544/23/27/4,50unresolved; focused344=301/20/19/4,39unresolved, errors[].
+Foundation104 endpoint63; first57 and old suffix preserved. Current-state markers
+synchronized before equality-dependent tests. No hosted acceptance or production
+claim; published e2bb1a9b remains prior596/538/23/31/4.
+
+2026-09-11 Task18 implementation28597803b7160c38c631aa1834462ae0b6520f53
+independently spec-compliant and quality APPROVED, no findings. Complete4141-line
+review plus named unchanged callees checked. Targeted constructors, provenance,
+accounting, immutable source/first57/suffix/19tuple preservation and syntax PASS.
+Actual P/X CLI identities and four whole originals registered:598=544/23/27/4,
+50unresolved; focused344=301/20/19/4,39unresolved; foundation104/endpoint63.
+Status IMPLEMENTED_NOT_VERIFIED: publish coherent batch, then require hosted
+actual63 SQL/cleanup/death/privacy and same-head original19/full102/quality/Ediel.
+No source acceptance, full-native/types closure or production mutation claimed.

@@ -6,6 +6,7 @@ SCOPE_FLAGS=()
 if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=legacy52; SCOPE_FLAGS=(--foundation-prefix-proof);
 elif [[ "${1:-}" == --repair-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=repair56; SCOPE_FLAGS=(--repair-prefix-proof);
 elif [[ "${1:-}" == --dedupe-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=dedupe57; SCOPE_FLAGS=(--dedupe-prefix-proof);
+elif [[ "${1:-}" == --fixed-target-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=fixed-target; SCOPE_FLAGS=(--fixed-target-prefix-proof);
 elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

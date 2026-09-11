@@ -24,7 +24,7 @@ _SPEC.loader.exec_module(_ACCOUNTING)
 account = _ACCOUNTING.account
 
 DOMAIN_WORDS = {
-    'auth_membership_tenant': r'auth|membership|tenant|company|user_profile|invite|invitation|password|role|permission|canonical_user_rbac_repair_boundary',
+    'auth_membership_tenant': r'auth|membership|tenant|company|user_profile|invite|invitation|password|role|permission|canonical_user_rbac_repair_boundary|canonical_user_rbac_fixed_target_',
     'ediel': r'ediel|elhub|meter|grid_owner',
     'billing': r'billing|invoice|payment|tariff|pricing|settlement',
     'customer_lifecycle': r'customer|application|contract|onboarding|poa|power_of_attorney|request|profile',

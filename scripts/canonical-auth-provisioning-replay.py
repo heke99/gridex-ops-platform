@@ -50,6 +50,22 @@ def trusted_module(name,filename):
     return module
 
 
+def reviewed_paths():
+    return ()
+
+
+def controller():
+    return trusted_module('canonical_owned_replay_controller','canonical-auth-provisioning-replay.py')
+
+
+def load_private():
+    return trusted_module('canonical_user_rbac_private_inputs','canonical-user-rbac-private-inputs.py')
+
+
+def load_fixed():
+    return trusted_module('canonical_user_rbac_fixed_batch','canonical-user-rbac-fixed-target-batch.py')
+
+
 def load_batch():
     return trusted_module('canonical_owned_replay_batch','canonical-auth-provisioning-legacy-batch.py')
 
@@ -62,8 +78,8 @@ def load_dedupe():
     return trusted_module('user_rbac_dedupe_batch','canonical-user-rbac-dedupe-batch.py')
 
 
-SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'full':98}
-FOUNDATION_SHA256='271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08'
+SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'full':104}
+FOUNDATION_SHA256='eaa0f2f665bdca8fd87ed6b70e3190350993d46c0c87c1fd47dd99680b5c71c1'
 
 
 def require_scope(scope):
@@ -74,7 +90,7 @@ def require_scope(scope):
 
 def scope_flags(scope):
     require_scope(scope)
-    return {'legacy52':['--foundation-prefix-proof'],'repair56':['--repair-prefix-proof'],'dedupe57':['--dedupe-prefix-proof'],'full':[]}[scope]
+    return {'legacy52':['--foundation-prefix-proof'],'repair56':['--repair-prefix-proof'],'dedupe57':['--dedupe-prefix-proof'],'fixed-target':['--fixed-target-prefix-proof'],'full':[]}[scope]
 
 
 def require_context(payload,scope):
@@ -91,8 +107,12 @@ class FoundationLoop:
         self.scope=require_scope(scope)
         self.repair=load_repair()
         self.dedupe=load_dedupe()
-        self.terminal=scope in ('dedupe57','full')
-        if self.terminal: self.dedupe.require_live(target)
+        self.terminal=scope in ('dedupe57','fixed-target','full')
+        if self.terminal:
+            self.dedupe.require_live(target)
+            if self.dedupe._REFERENCES[target].scope != scope:
+                self.dedupe.fail(target)
+                raise b.BoundaryError('FROZEN_REPLAY_SCOPE_REQUIRED')
         if b is not load_batch() or self.repair.legacy is not b:
             raise RuntimeError('TRUSTED_MODULE_ORIGIN_REQUIRED')
         self.repair.require_owned(target,reference=scope!='legacy52')
@@ -104,9 +124,10 @@ class FoundationLoop:
         self.repair_reference=self.repair.REFERENCES.get(target) if scope!='legacy52' else None
         self.order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.prefix=b.verified_prefix()
-        if (len(self.order)!=98 or self.order[43:52]!=selected_group(b) or
+        if (len(self.order)!=104 or self.order[43:52]!=selected_group(b) or
             self.order[52:56]!=selected_group(self.repair) or
             self.order[56:57]!=selected_group(self.dedupe) or
+            self.order[57:63]!=selected_group(load_fixed()) or
             hashlib.sha256(json.dumps(self.order,separators=(',',':')).encode()).hexdigest()!=FOUNDATION_SHA256):
             raise b.BoundaryError('FOUNDATION_GROUP_MISMATCH')
         if [p for p,_ in self.prefix]!=self.order[:43]:
@@ -149,6 +170,7 @@ class FoundationLoop:
         self.repair.source_oracle(repair_sources)
         self.repair.diagnostic_guard(repair_sources)
         self.dedupe.index_declarations(stage)
+        load_fixed().validate_sources(load_fixed().reviewed_paths(),stage)
         self.validated=True
         return stage,data
 
@@ -176,11 +198,15 @@ class FoundationLoop:
             self.dedupe.accepted56(h)
             receipt=self.dedupe.execute(h,DATABASE,self.dedupe.reviewed_paths(),stage)
             if receipt['sources']!=1: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
+        if self.scope in ('fixed-target','full'):
+            receipt=self.dedupe.continue_fixed(h,DATABASE,load_fixed().reviewed_paths(),stage)
+            if receipt['sources']!=6: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
         if self.scope=='full':
-            for ordinal,raw in enumerate(data[57:],58):
+            for ordinal,raw in enumerate(data[63:],64):
                 h.run_files(DATABASE,[h.private('replay-source-'+str(ordinal)+'.sql',raw)],'replay_foundation_'+str(ordinal),transaction=False)
         print(json.dumps({'stage':'actual_replay_foundation','first43':43,'legacy_sources':9,
                           'repair_sources':0 if self.scope=='legacy52' else 4,'dedupe_sources':int(self.terminal),'scope':self.scope,
+                          'fixed_sources':6 if self.scope in ('fixed-target','full') else 0,
                           'executions_each':1,'foundation_sources':SCOPES[self.scope],
                           'ledger_provenance':'NO','complete_replay':False},sort_keys=True),flush=True)
         return ''
@@ -229,7 +255,7 @@ def originals_snapshot():
 
 
 def serve_child(b,h,command,scope='full'):
-    terminal=require_scope(scope) in ('dedupe57','full')
+    terminal=require_scope(scope) in ('dedupe57','fixed-target','full')
     dedupe=load_dedupe()
     if terminal: dedupe.fresh_target(h)
     try:
@@ -284,7 +310,7 @@ def _serve_child(b,h,command,scope):
                                 if bootstrap_done or payload['sql']!=bootstrap:
                                     raise b.BoundaryError('BOOTSTRAP_ONLY_REQUIRED')
                                 bootstrap_done=True
-                            elif scope=='dedupe57':
+                            elif scope in ('dedupe57','fixed-target'):
                                 raise b.BoundaryError('BOUNDED_SQL_REJECTED')
                             # Keep all client/server raw streams private. Only
                             # SQL stdout needed by fingerprint/shape checks is
@@ -303,6 +329,8 @@ def _serve_child(b,h,command,scope):
                 if status or not loop.applied or originals_snapshot()!=originals:
                     loop.dedupe.fail(h)
                     raise b.BoundaryError('ACTUAL_REPLAY_OR_RESTORATION_FAILED')
+                server.close()
+                endpoint.unlink(missing_ok=True)
                 loop.dedupe.finish(h,scope=='full')
             return status
         finally:
@@ -327,12 +355,13 @@ def main():
     scopes.add_argument('--foundation-prefix-proof',action='store_true')
     scopes.add_argument('--repair-prefix-proof',action='store_true')
     scopes.add_argument('--dedupe-prefix-proof',action='store_true')
+    scopes.add_argument('--fixed-target-prefix-proof',action='store_true')
     parser.add_argument('--context',action='store_true')
     parser.add_argument('--foundation')
     parser.add_argument('--validate-foundation',action='store_true')
     parser.add_argument('--hold')
     args=parser.parse_args()
-    scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else ('dedupe57' if args.dedupe_prefix_proof else 'full'))
+    scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else ('dedupe57' if args.dedupe_prefix_proof else ('fixed-target' if args.fixed_target_prefix_proof else 'full')))
     if args.context:
         request({'operation':'context','scope':scope});return
     if args.foundation:
@@ -346,17 +375,20 @@ def main():
         result=subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-input-accounting.py'),'--root',str(ROOT),'--require-full-effects'],capture_output=True)
         if result.returncode: raise b.BoundaryError('FULL_EFFECTS_INCOMPLETE')
         result_accounting=result.stdout
-    with b.OwnedPostgres() as h:
+    import contextlib
+    with b.OwnedPostgres() as h, contextlib.ExitStack() as private_stack:
+        if scope in ('fixed-target','full'):
+            private_stack.enter_context(load_private().AcceptedInputs(h))
         if scope=='legacy52':b.prepare_reference(h)
         elif scope=='repair56':load_repair().prepare_reference(h)
-        else:load_dedupe().prepare_reference(h)
+        else:load_dedupe().prepare_reference(h,scope)
         if scope in ('legacy52','repair56'):h.reset(DATABASE)
         command=['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh')]
         command+=scope_flags(scope)
         result=serve_child(b,h,command,scope)
         if result: raise b.BoundaryError('ACTUAL_REPLAY_FAILED')
-        if scope=='dedupe57':
-            print('PASS actual clean-shell scope=dedupe57; owned compatible diagnostic; NOT full replay')
+        if scope in ('dedupe57','fixed-target'):
+            print('PASS actual clean-shell scope='+scope+'; owned compatible diagnostic; NOT full replay')
         elif scope in ('legacy52','repair56'):
             actual=h.catalog(DATABASE) if scope=='legacy52' else load_repair().catalog(h,DATABASE)
             expected=h.reference[1] if scope=='legacy52' else load_repair().REFERENCES[h].final
@@ -369,7 +401,7 @@ def main():
 
 
 if __name__=='__main__':
-    try: main()
+    try: controller().main()
     except BaseException as error:
         if isinstance(error,(KeyboardInterrupt,SystemExit)): raise
         print('FAIL owned replay category=REJECTED type='+type(error).__name__,file=sys.stderr)

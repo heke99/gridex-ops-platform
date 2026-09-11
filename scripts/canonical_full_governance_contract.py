@@ -231,7 +231,7 @@ def validate() -> dict[str, object]:
 
     downstream_indexes = [order.index(path) for path in DOWNSTREAM]
     assert downstream_indexes == list(range(37, 41)), downstream_indexes
-    assert len(order) == 98
+    assert len(order) == 104
     return {
         "sql": "NOT EXECUTED",
         "prefixCount": PREFIX_COUNT,

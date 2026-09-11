@@ -891,7 +891,7 @@ def integration_constructors():
     assert b.legacy is legacy and b.repair is repair
     assert b.validate_sources(b.reviewed_paths())[0].data == source_bytes((SOURCE,))
     order = json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
-    assert len(order) == 98 and order[56] == 'migrations/'+SOURCE.name
+    assert len(order) == 104 and order[56] == 'migrations/'+SOURCE.name
     assert replay.scope_flags('dedupe57') == ['--dedupe-prefix-proof']
     for flags in (['--dedupe-prefix'], ['--dedupe-prefix-proof','--repair-prefix-proof'],
                   ['--dedupe-prefix-proof','--foundation-prefix-proof'], ['--dedupe-prefix-proof','57']):
@@ -901,7 +901,7 @@ def integration_constructors():
         try: b.require_owned(target)
         except BoundaryError: pass
         else: raise AssertionError('duck typed target accepted')
-    print('PASS H2 shared identity, exact98, named57 constructors; NO SQL claim')
+    print('PASS H2 shared identity, exact104, named57 constructors; NO SQL claim')
 
 
 def lifecycle_constructors():
@@ -1126,8 +1126,6 @@ def actual57_case(mode):
             original_dispose(target)
             assert h.sql(canary_db,"SELECT count(*) FROM pg_database WHERE datname='gridex_auth_legacy_replay';",'disposed').strip()=='0'
         def native(database,files,stage,*args,**kwargs):
-            if mode=='suffix' and stage=='replay_foundation_58':
-                return original_native(database,[h.private('external-suffix-failure.sql',sentinel_sql()),*files],stage,**kwargs)
             if stage!='dedupe_native':return original_native(database,files,stage,*args,**kwargs)
             assert reached==['legacy','repair'];reached.append('H2')
             assert kwargs.get('transaction') is False and len(files)==1
@@ -1169,6 +1167,9 @@ if result.returncode:
  with open(sys.argv[3],'w') as stream:json.dump(rejected,stream)
  sys.exit(result.returncode)
 if sys.argv[4]=='shell_failure':sys.exit(73)
+if sys.argv[4]=='suffix':
+ try:m.request({'operation':'sql','scope':'dedupe57','sql':'SELECT 1;'})
+ except Exception:sys.exit(74)
 '''
         rejected=Path(h.directory.name)/'rejected.json'
         command=[sys.executable,'-c',wrapper,str(ROOT/'scripts/canonical-auth-provisioning-replay.py'),str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),str(rejected),mode]
@@ -1198,19 +1199,10 @@ if sys.argv[4]=='shell_failure':sys.exit(73)
                     assert dedupe._STATES[h]=='SUCCEEDED'
                 else:
                     def failed_operation():
-                        if mode=='suffix':
-                            # A trusted bounded full-loop fault fixture; public noflag
-                            # completeness admission remains intact and blocks startup.
-                            hold=Path(h.directory.name)/'suffix-hold';hold.mkdir(mode=0o700)
-                            for path in (ROOT/'supabase/migrations').iterdir():
-                                if path.is_file():shutil.copyfile(path,hold/path.name)
-                            dedupe.fresh_target(h)
-                            loop=replay.FoundationLoop(legacy,h,'full')
-                            paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in loop.order]
-                            loop.validate(hold,paths)
-                            h.sql(replay.DATABASE,(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(),'bootstrap',transaction=False)
-                            loop.run(hold,paths)
-                        else:return replay.serve_child(legacy,h,command,'dedupe57')
+                        # The frozen historical scope now proves its suffix
+                        # boundary through the real shell and a harmless denied
+                        # post-foundation SQL request, never a full-scope rearm.
+                        return replay.serve_child(legacy,h,command,'dedupe57')
                     expect_actual57_failure(mode,failed_operation)
                     assert dedupe._STATES[h]=='DISPOSED' and len(disposed)==1
                     if mode not in ('transport','shell_failure','restore_failure','suffix'):

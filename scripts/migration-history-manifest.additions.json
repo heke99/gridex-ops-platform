@@ -151,6 +151,8 @@
     "20260904093000_z01_sla_watchdog_event_contract_fix.sql": "89ece5cead072077410a1109f83cec46ab70872852cea2dc0448a3a05f70449b",
     "20260904100000_z01_sla_late_response_resolution.sql": "9c6b1b95f7fa88f69cd71adbe0a9770de58964775c4d78593db486d9b3ecae30",
     "20260904103000_z01_sla_watchdog_candidate_convergence.sql": "9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24",
-    "20260910174947_canonical_user_rbac_repair_boundary.sql": "51849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1"
+    "20260910174947_canonical_user_rbac_repair_boundary.sql": "51849cf92903f175c548f2a8e853282e01217a55505a9b096b7635d55ee5bbe1",
+    "20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql": "50a29a266a5c270ebcbd407099d5bc408291ad1115e478002f5d114131e8ad80",
+    "20260911095505_canonical_user_rbac_fixed_target_restoration.sql": "79d345f2d3dd36099431711ec3b774a6a950f541e0b3866644b4de9495f46503"
   }
 }
