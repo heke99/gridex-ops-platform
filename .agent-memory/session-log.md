@@ -1467,3 +1467,30 @@ Task22 bounded author committed e9d4f56c; local tests pass. Separate spec/qualit
 review approved with no findings; root read the complete report.
 Root prepared finite Task24 brief from published whole-source evidence.
 No historical SQL, customer data operation, merge or deployment executed.
+
+
+2026-09-11 published d060d1d2/tree b1ed4bbe by nonforce GitHub ref; fetch and
+local/remote tree equality PASS, reviewed6f10618d retained in archive branch.
+OPS34617768352 all prior DB groups/full102/actual63 continuation, quality/build
+and Ediel PASS; tenant34617768354 and browser34617768356 PASS. Alignment
+103323860108 passed20 constructors, complete actual63 and the formerly failing
+independent catalog/source equality, then failed diagnostic_binding. Root
+reproduced the exact pre-SQL constructor rejection:15 table VALUES versus18
+broad literal occurrences in the unchanged selected view. No retry or guard
+waiver. Verify103323860012 also found root status-marker omission; exact markers
+and Status line restored, unchanged group selftest PASS locally. Clean native
+ownership and generated types remain open. Task24 91d045f locally verified and
+under independent review; no historical SQL or production change.
+
+
+2026-09-11 Task24 bounded disposition VERIFIED in91d045f + correction1925fc9b.
+Independent full review found I1 direct-interleaved exclusion overlap; actual
+Python/JS RED/GREEN and scoped re-review closed I1 with no remaining findings.
+Accounting38, cleanup20, review-groups16, integrity600/504, provenance and
+affected constructors PASS. Source/9dependency pins and prior4exclusions remain
+immutable. Generated receipt refreshed; global600=546/23/26/5, focused346=
+303/20/18/5, full-effects remains exit1/49global38focused unresolved. Foundation
+104/actual63 unchanged; this is input disposition only, no SQL/production action.
+Task22 constructor b3407e0e independently approved with no findings: exact15
+required-table declaration, full view preserved,23 constructors/AST/whitespace
+PASS; native full acceptance pending. Root read all full review/correction reports.

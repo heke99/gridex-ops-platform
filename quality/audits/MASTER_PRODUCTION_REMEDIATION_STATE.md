@@ -5,6 +5,22 @@ recorded revisions, not current status. The sole current status is
 [current-state.md](../../.agent-memory/current-state.md). Resume from its next
 action; do not interpret an older "latest" heading here as a newer verification.
 
+## 2026-09-11 — reviewed Task22/24 continuation ready for hosted verification
+
+Task24 finite operational disposition91d045f +1925fc9b independently approved.
+The sole review finding I1 is closed: both real validators reject excluded
+sources in direct foundation, direct interleaved and selected derived-source
+routes. Accounting38 and affected gates pass;49 unresolved inputs remain.
+No source, schema, ledger or production mutation. Full evidence is in the
+operational classification audit and DB2 generated exclusion receipt.
+
+Task22 diagnostic constructor b3407e0e independently approved,23 constructors
+pass. Its fifteen-table grammar replaces a mistaken broad literal count while
+preserving the full immutable view. Prior d060d1d2 native run passed the clock
+qualification and source equality; new full native acceptance is pending.
+All prior database groups/actual63 continuation, quality, Ediel, tenant and
+browser passed on d060d1d2. Full replay/types/production gates remain open.
+
 ## 2026-09-11 15:26 UTC — resumed from published code and CI
 
 Baseline `de3bab8b` and OPS34611459551 verified directly. The earlier status

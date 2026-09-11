@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "de3bab8bab607e3f24653c8e8faa04cfdb23e7c7"
+    "published_baseline": "d060d1d2791bd26ea6baa1a9a30d91dbce5adcd4"
   },
-  "next_action": "Publish reviewed Task22 correction e9d4f56c, verify complete hosted alignment, then continue bounded Task24 disposition and remaining full replay work. Full native/types/production gates remain open."
+  "next_action": "Publish independently approved Task22/24 batch, verify complete hosted alignment, then continue remaining source disposition. Full native/types/production remain open."
 }

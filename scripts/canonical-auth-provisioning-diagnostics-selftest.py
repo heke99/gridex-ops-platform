@@ -232,7 +232,7 @@ def constructor_checks():
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':546,'SUBSTITUTED':23,'UNCLASSIFIED':27,'EXPLICITLY_EXCLUDED':4}
+    assert account['counts']=={'FULL_FILE_SELECTED':546,'SUBSTITUTED':23,'UNCLASSIFIED':26,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)
@@ -246,7 +246,7 @@ def constructor_checks():
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==346
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':303,'SUBSTITUTED':20,'UNCLASSIFIED':19,'EXPLICITLY_EXCLUDED':4}
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':303,'SUBSTITUTED':20,'UNCLASSIFIED':18,'EXPLICITLY_EXCLUDED':5}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)

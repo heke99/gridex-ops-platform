@@ -137,8 +137,53 @@ const reviewedOperationalRepairs = {
     ]
   }
 };
+reviewedOperationalRepairs["migrations/02_db2_execute_controlled_reconciliation.sql"] = {
+  "sha256": "fcdc75e660f157a58e742f64b3e8f7a1c6801565ef16023bd0c9a317982744c9",
+  "dependencies": [
+    {
+      "path": "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+      "sha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9"
+    },
+    {
+      "path": "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+      "sha256": "85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2"
+    },
+    {
+      "path": "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
+      "sha256": "877e395df0050a36ec71298d279c72fb0e6cb13d8b90082277450012e196f169"
+    },
+    {
+      "path": "migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73"
+    },
+    {
+      "path": "migrations/20260612203000_company_customer_number_prefix_hardening.sql",
+      "sha256": "39f6c82ca05f6876e347c58f2b60a24c358c9a72fe856e42d7474f03f9f66065"
+    },
+    {
+      "path": "migrations/20260719120000_canonical_customer_number_assignment.sql",
+      "sha256": "259817d0c2fb43e83478b78184fd3d41125636d527e1edd2801783009326fe1e"
+    },
+    {
+      "path": "migrations/20260727040000_contract_security_energy_direction_api_completion.sql",
+      "sha256": "c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e"
+    },
+    {
+      "path": "migrations/20260802170000_canonical_security_convergence.sql",
+      "sha256": "e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a"
+    },
+    {
+      "path": "migrations/20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "sha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b"
+    }
+  ]
+};
 const noncanonicalArtifacts = noncanonical.artifacts || [];
 if (!noncanonicalArtifacts.length) fail('noncanonical artifact contract is empty');
+const selectedPaths = new Set([...orderedFoundation, ...interleaved.map((item) => item.path)]);
+const selectedDerivedSources = new Set(
+  [...selectedPaths].map((rel) => derived[rel]?.source).filter(Boolean)
+);
 const noncanonicalPaths = new Set();
 for (const item of noncanonicalArtifacts) {
   const rel = item.path || '';
@@ -160,7 +205,7 @@ for (const item of noncanonicalArtifacts) {
   const sourcePath = path.join(supabaseDir, rel);
   if (!fs.existsSync(sourcePath)) fail(`noncanonical artifact missing: ${rel}`);
   if (sha256(sourcePath) !== item.sha256 || pinned[name] !== item.sha256) fail(`noncanonical checksum mismatch: ${rel}`);
-  if (orderedFoundation.includes(rel)) fail(`noncanonical artifact overlaps foundation: ${rel}`);
+  if (selectedPaths.has(rel) || selectedDerivedSources.has(rel)) fail(`noncanonical artifact overlaps foundation/substitution: ${rel}`);
 }
 
 const collisionVersions = new Map();

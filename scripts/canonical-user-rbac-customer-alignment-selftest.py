@@ -197,6 +197,54 @@ class Constructors(unittest.TestCase):
         self.assertEqual(len(b.index_declarations(sources)), 57)
         self.assertEqual(len(b.model.DML_TABLES), 19)
 
+    def test_diagnostic_source_returns_complete_pinned_view(self):
+        data = batch.repair.read_source(ROOT/'supabase/migrations'/batch.VIEW_SOURCE).decode()
+        start = data.index('create or replace view public.gridex_debug_step1_2_schema_alignment_v as\n')
+        # The complete source tail is independently authoritative, including the
+        # to_regclass calls and NOT IN expression outside required_tables.
+        try:
+            declaration = batch.diagnostic_source()
+        except batch.BoundaryError:
+            self.fail('Pinned diagnostic view was rejected before native binding')
+        self.assertEqual(declaration, data[start:].strip())
+
+    def test_diagnostic_source_rejects_changed_required_tables_or_declaration(self):
+        from unittest.mock import patch
+        data = batch.repair.read_source(ROOT/'supabase/migrations'/batch.VIEW_SOURCE)
+        view = b'create or replace view public.gridex_debug_step1_2_schema_alignment_v as\n'
+        mutations = (
+            (b"('customers')", b"('unexpected_customers')"),
+            (b"    ('company_memberships'),\n", b''),
+            (b"('user_roles')", b"('companies')"),
+            (b"('companies'),\n    ('company_memberships')", b"('company_memberships'),\n    ('companies')"),
+            (b"('companies')", b"('companies'), ('extra_table')"),
+            (b"('companies')", b"('companies'::text)"),
+            (b"('companies')", b"('comp anies')"),
+            (b'with required_tables(table_name)', b'with other_tables(table_name)'),
+            (view, view.replace(b'_alignment_v', b'_other_v')),
+            (b'order by table_name;', b''))
+        for old, new in mutations:
+            with self.subTest(old=old, new=new):
+                changed = data.replace(old, new)
+                self.assertNotEqual(changed, data)
+                # Exercise declaration validation beneath the separately tested
+                # immutable file boundary, without writing historical source.
+                with patch.object(batch.repair, 'read_source', return_value=changed):
+                    with self.assertRaises(batch.BoundaryError):
+                        batch.diagnostic_source()
+
+    def test_diagnostic_source_rejects_changed_bytes_at_real_hash_boundary(self):
+        from unittest.mock import patch
+        source_path = ROOT/'supabase/migrations'/batch.VIEW_SOURCE
+        original = Path.read_bytes
+        def changed(path):
+            data = original(path)
+            return data + b'-- changed source\n' if path == source_path else data
+        # Keep repair.read_source, manifests and checksum verification real.
+        with patch.object(Path, 'read_bytes', changed):
+            with self.assertRaises(batch.repair.BoundaryError):
+                batch.diagnostic_source()
+
     def test_json_payload_equality_and_empty_standard_match_sql(self):
         m = load('alignment_model_edges', 'canonical-user-rbac-customer-alignment-oracles.py')
         for parsed in ([], False, 0, ''):

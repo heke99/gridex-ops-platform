@@ -340,5 +340,246 @@ class InputAccountingTest(unittest.TestCase):
         self.assertEqual(before, after)
 
 
+# Independent literal expectations from the reviewed source-effects brief. These
+# tests run the Python selector itself and the separate JS validator, never SQL.
+DB2_REPAIR_FIXTURE = {'path': 'migrations/02_db2_execute_controlled_reconciliation.sql',
+ 'sha256': 'fcdc75e660f157a58e742f64b3e8f7a1c6801565ef16023bd0c9a317982744c9',
+ 'status': 'historical_operational_data_repair',
+ 'finding': 'OPERATIONAL-REPAIR-DB2-2026-09-11',
+ 'reason': 'Reviewed DB2 operational reconciliation and nested '
+           'membership/profile/customer/link/run/item/finding/audit writes, customer-number allocation, and '
+           'conditional partner events and queued deliveries. No schema or reference seed effect. No '
+           'deployment-history or execution authorization claim. Schema-bearing dependencies remain '
+           'independently accounted.',
+ 'evidence': ['repo:quality/audits/OPERATIONAL_REPAIR_CLASSIFICATION_2026-09-06.md',
+              'repo:quality/audits/DB2_CONTROLLED_RECONCILIATION_SOURCE_EFFECTS_2026-09-11.md'],
+ 'reviewedDependencies': [{'path': 'migrations/01_db2_full_view_preflight_schema_and_functions.sql',
+                           'sha256': '4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9'},
+                          {'path': 'migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
+                           'sha256': '85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2'},
+                          {'path': 'migrations/03_db1_backfill_functions_rls_reports_and_finish.sql',
+                           'sha256': '877e395df0050a36ec71298d279c72fb0e6cb13d8b90082277450012e196f169'},
+                          {'path': 'migrations/20260522_db1_schema_repair_backfill_foundation.sql',
+                           'sha256': 'aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73'},
+                          {'path': 'migrations/20260612203000_company_customer_number_prefix_hardening.sql',
+                           'sha256': '39f6c82ca05f6876e347c58f2b60a24c358c9a72fe856e42d7474f03f9f66065'},
+                          {'path': 'migrations/20260719120000_canonical_customer_number_assignment.sql',
+                           'sha256': '259817d0c2fb43e83478b78184fd3d41125636d527e1edd2801783009326fe1e'},
+                          {'path': 'migrations/20260727040000_contract_security_energy_direction_api_completion.sql',
+                           'sha256': 'c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e'},
+                          {'path': 'migrations/20260802170000_canonical_security_convergence.sql',
+                           'sha256': 'e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a'},
+                          {'path': 'migrations/20260816170000_partner_api_v1_canonical_surface_events.sql',
+                           'sha256': '1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b'}]}
+
+
+class DB2DispositionTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='gridex-db2-disposition-')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        for rel in ('supabase/migrations', 'supabase/bootstrap'):
+            shutil.copytree(ROOT / rel, self.root / rel)
+        (self.root / 'scripts').mkdir()
+        (self.root / 'docs').mkdir()
+        for pattern in ('gridex-aud-003-*.json', 'migration-history-manifest*.json'):
+            for source in (ROOT / 'scripts').glob(pattern):
+                shutil.copyfile(source, self.root / 'scripts' / source.name)
+        for name in ('gridex-aud-003-clean-replay.sh',
+                     'gridex-aud-003-migration-provenance-regression.cjs',
+                     'gridex-aud-003-schema-fingerprint.sql'):
+            shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
+        for name in ('migration-provenance.md', 'production-runbook.md'):
+            shutil.copyfile(ROOT / 'docs' / name, self.root / 'docs' / name)
+        self.entry = json.loads(json.dumps(DB2_REPAIR_FIXTURE))
+        self.contract = self.read_json('gridex-aud-003-noncanonical-artifacts.json')
+        self.contract['artifacts'] = [item for item in self.contract['artifacts']
+                                      if item['path'] != self.entry['path']] + [self.entry]
+        self.save_contract()
+
+    def read_json(self, name):
+        return json.loads((self.root / 'scripts' / name).read_text())
+
+    def write_json(self, name, data):
+        (self.root / 'scripts' / name).write_text(json.dumps(data))
+
+    def save_contract(self):
+        self.write_json('gridex-aud-003-noncanonical-artifacts.json', self.contract)
+
+    def set_history_pin(self, source, pin):
+        originals = {}
+        for path in (self.root / 'scripts').glob('migration-history-manifest*.json'):
+            data = json.loads(path.read_text())
+            if source.name in data.get('files', {}):
+                originals[path] = path.read_bytes()
+                data['files'][source.name] = pin
+                path.write_text(json.dumps(data))
+        self.assertTrue(originals, source.name)
+        return originals
+
+    def restore_history(self, originals):
+        for path, content in originals.items():
+            path.write_bytes(content)
+
+    def validators(self):
+        shell = (self.root / 'scripts/gridex-aud-003-clean-replay.sh').read_text()
+        header = ('python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HISTORY_RUNTIME_ADDITIONS" '
+                  '"$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" '
+                  '"$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<\'PY\'\n')
+        selector = shell.split(header, 1)[1].split('\nPY\n', 1)[0]
+        names = ('migration-history-manifest.json', 'migration-history-manifest.additions.json',
+                 'migration-history-manifest.runtime.additions.json',
+                 'gridex-aud-003-legacy-foundation.json',
+                 'gridex-aud-003-legacy-foundation.additions.json',
+                 'gridex-aud-003-foundation-order.json',
+                 'gridex-aud-003-noncanonical-artifacts.json')
+        args = [self.root / 'scripts' / name for name in names]
+        args += [self.root / 'supabase', self.root / 'supabase/migrations',
+                 self.root / 'foundation.out', self.root / 'timestamp.out']
+        return {
+            'selector': subprocess.run([sys.executable, '-', *map(str, args)], input=selector,
+                                       text=True, capture_output=True, timeout=60),
+            'provenance': subprocess.run(['node', str(self.root / 'scripts/gridex-aud-003-migration-provenance-regression.cjs')],
+                                         text=True, capture_output=True, timeout=60),
+        }
+
+    def assert_rejected(self, cause='operational'):
+        self.save_contract()
+        for validator, result in self.validators().items():
+            with self.subTest(validator=validator):
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn(cause, result.stderr, result.stderr)
+
+    def test_db2_exact_source_is_excluded_without_selecting_schema_companions(self):
+        results = self.validators()
+        for validator, result in results.items():
+            with self.subTest(validator=validator):
+                self.assertEqual(result.returncode, 0, result.stderr)
+        if any(result.returncode for result in results.values()):
+            return
+        self.assertNotIn(self.entry['path'].split('/')[-1],
+                         (self.root / 'foundation.out').read_text() + (self.root / 'timestamp.out').read_text())
+        # Exercise the repository declaration too: fixture injection alone cannot
+        # prove that the shipped JSON actually classifies this source.
+        result = subprocess.run([sys.executable, str(CHECKER), '--require-full-effects'],
+                                text=True, capture_output=True, timeout=60)
+        report = json.loads(result.stdout)
+        self.assertEqual(result.returncode, 1, report)
+        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 546, 'SUBSTITUTED': 23,
+                                          'UNCLASSIFIED': 26, 'EXPLICITLY_EXCLUDED': 5})
+        self.assertEqual(report['selectedInputCounts'], {'foundation': 104, 'timestamp': 510})
+        rows = {row['path']: row for row in report['migrations']}
+        self.assertEqual(rows[self.entry['path']]['classification'], 'EXPLICITLY_EXCLUDED')
+        self.assertEqual(rows['migrations/02_db2b_apply_superadmin_and_membership.sql']['classification'], 'EXPLICITLY_EXCLUDED')
+        for name in ('01_db2_full_view_preflight_schema_and_functions.sql',
+                     '01_db2b_preflight_views.sql', '03_db2_validation_and_finish.sql',
+                     '03_db2b_validation_views.sql', '20260522_db1_schema_repair_backfill_foundation.sql'):
+            row = rows['migrations/' + name]
+            self.assertEqual(row['classification'], 'UNCLASSIFIED', name)
+            self.assertEqual(row['execution'], [], name)
+            self.assertEqual(row['derivedArtifacts'], [], name)
+        self.assertFalse(report['sqlExecutionVerified'])
+        self.assertFalse(report['ledgerProvenanceVerified'])
+
+    def test_source_bytes_and_pin_cannot_be_refreshed_into_exclusion(self):
+        source = self.root / 'supabase' / self.entry['path']
+        source.write_bytes(source.read_bytes() + b'\nSELECT public.unreviewed_helper();\n')
+        self.entry['sha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
+        self.set_history_pin(source, self.entry['sha256'])
+        self.assert_rejected()
+
+    def test_each_dependency_pin_is_independently_bound(self):
+        for dependency in self.entry['reviewedDependencies']:
+            original = dependency['sha256']
+            with self.subTest(path=dependency['path']):
+                dependency['sha256'] = '0' * 64
+                self.assert_rejected()
+            dependency['sha256'] = original
+
+    def test_each_dependency_bytes_rejected_even_with_refreshed_history_and_json(self):
+        for dependency in self.entry['reviewedDependencies']:
+            source = self.root / 'supabase' / dependency['path']
+            original, pin = source.read_bytes(), dependency['sha256']
+            with self.subTest(path=dependency['path']):
+                source.write_bytes(original + b'\nSELECT public.unreviewed_helper();\n')
+                dependency['sha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
+                history = self.set_history_pin(source, dependency['sha256'])
+                self.assert_rejected()
+            source.write_bytes(original)
+            dependency['sha256'] = pin
+            self.restore_history(history)
+
+    def test_dependency_missing_file_and_history_pin_rejected(self):
+        for dependency in self.entry['reviewedDependencies']:
+            source = self.root / 'supabase' / dependency['path']
+            original = source.read_bytes()
+            with self.subTest(path=dependency['path'], mutation='missing file'):
+                source.unlink()
+                self.assert_rejected(cause='missing')
+            source.write_bytes(original)
+            history = self.set_history_pin(source, '0' * 64)
+            with self.subTest(path=dependency['path'], mutation='history pin'):
+                self.assert_rejected(cause='checksum')
+            self.restore_history(history)
+
+    def test_removed_extra_reordered_dependencies_and_unknown_source_rejected(self):
+        deps = self.entry['reviewedDependencies']
+        for replacement in (None, [], *[deps[:i] + deps[i+1:] for i in range(9)],
+                            deps + [deps[0]], list(reversed(deps))):
+            with self.subTest(dependencies=replacement):
+                self.entry['reviewedDependencies'] = replacement
+                self.assert_rejected()
+        self.entry['reviewedDependencies'] = deps
+        self.entry['path'] = 'migrations/unreviewed_db2_execution.sql'
+        self.assert_rejected()
+
+    def test_execution_and_substitution_cannot_overlap_db2_exclusion(self):
+        for substitution in (False, True):
+            name = 'gridex-aud-003-legacy-foundation.additions.json'
+            plan = self.read_json(name)
+            order = self.read_json('gridex-aud-003-foundation-order.json')
+            changed = json.loads(json.dumps(plan))
+            changed_order = json.loads(json.dumps(order))
+            rel = self.entry['path']
+            if substitution:
+                rel = 'bootstrap/db2-overlap-fixture.sql'
+                target = self.root / 'supabase' / rel
+                target.write_text('SELECT 1;\n')
+                changed['derivedBootstrap'][rel] = {'source': self.entry['path'],
+                    'artifactSha256': hashlib.sha256(target.read_bytes()).hexdigest()}
+            changed['foundation'].append(rel)
+            changed_order['foundation'].append(rel)
+            self.write_json(name, changed)
+            self.write_json('gridex-aud-003-foundation-order.json', changed_order)
+            with self.subTest(substitution=substitution):
+                self.assert_rejected(cause='overlap')
+            self.write_json(name, plan)
+            self.write_json('gridex-aud-003-foundation-order.json', order)
+
+    def test_interleaved_artifact_cannot_be_excluded(self):
+        name = 'gridex-aud-003-legacy-foundation.additions.json'
+        plan = self.read_json(name)
+        rel = self.entry['path']
+        plan['derivedBootstrap'][rel] = {
+            'source': 'migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
+            'artifactSha256': self.entry['sha256'], 'preserveSourceReplay': True}
+        plan['interleaved'].append({**plan['interleaved'][0], 'path': rel})
+        self.write_json(name, plan)
+        self.assert_rejected(cause='overlap')
+
+    def test_interleaved_derived_source_cannot_be_excluded(self):
+        name = 'gridex-aud-003-legacy-foundation.additions.json'
+        plan = self.read_json(name)
+        rel = 'bootstrap/db2-interleaved-overlap-fixture.sql'
+        target = self.root / 'supabase' / rel
+        target.write_text('SELECT 1;\n')
+        plan['derivedBootstrap'][rel] = {
+            'source': self.entry['path'],
+            'artifactSha256': hashlib.sha256(target.read_bytes()).hexdigest()}
+        plan['interleaved'].append({**plan['interleaved'][0], 'path': rel})
+        self.write_json(name, plan)
+        self.assert_rejected(cause='overlap')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -140,7 +140,18 @@ def diagnostic_source():
     path = ROOT/'supabase/migrations'/VIEW_SOURCE
     data = repair.read_source(path).decode()
     match = re.search(r'create or replace view public\.gridex_debug_step1_2_schema_alignment_v as\n.*?order by table_name;', data, re.S)
-    check(match is not None and match[0].count("('") == 15, 'SELECTED_DIAGNOSTIC_SOURCE_REQUIRED')
+    check(match is not None, 'SELECTED_DIAGNOSTIC_SOURCE_REQUIRED')
+    tables = ('companies', 'company_memberships', 'user_roles', 'customers',
+              'customer_sites', 'metering_points', 'customer_contracts',
+              'customer_import_batches', 'customer_import_rows', 'billing_export_runs',
+              'billing_export_run_items', 'ediel_messages', 'ediel_inbound_cases',
+              'customer_portal_accounts', 'customer_portal_claims')
+    required = re.search(r'\nwith required_tables\(table_name\) as \(\s*values\s*(.*?)\s*\), table_status as \(', match[0], re.S)
+    # Bind only the complete VALUES grammar; to_regclass and NOT IN elsewhere
+    # in this source-backed view also contain parenthesized string literals.
+    rows = r'\s*,\s*'.join(re.escape("('" + table + "')") for table in tables)
+    check(required is not None and re.fullmatch(rows, required[1]) is not None,
+          'SELECTED_DIAGNOSTIC_SOURCE_REQUIRED')
     return match[0]
 
 
